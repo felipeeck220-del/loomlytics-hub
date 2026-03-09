@@ -12,7 +12,7 @@ import ClientsArticles from "./pages/ClientsArticles";
 import ProductionPage from "./pages/Production";
 import Weavers from "./pages/Weavers";
 import Reports from "./pages/Reports";
-import ImportFirebase from "./pages/ImportFirebase";
+
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
 
