@@ -263,42 +263,42 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
+      {/* KPI Cards - Full Width */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          label="ROLOS"
+          value={formatNumber(totalRolls)}
+          borderColor="border-l-amber-400"
+        />
+        <KpiCard
+          label="PESO (KG)"
+          value={`${formatNumber(totalWeight, 2)} kg`}
+          borderColor="border-l-orange-400"
+        />
+        <KpiCard
+          label="FATURAMENTO"
+          value={formatCurrency(totalRevenue)}
+          borderColor="border-l-emerald-500"
+        />
+        <KpiCard
+          label="EFICIÊNCIA"
+          value={formatPercent(avgEfficiency)}
+          borderColor="border-l-purple-500"
+          extra={
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center",
+              avgEfficiency >= 80 ? "bg-emerald-100 text-emerald-600" : avgEfficiency >= 70 ? "bg-amber-100 text-amber-600" : "bg-red-100 text-red-600"
+            )}>
+              <Gauge className="h-4 w-4" />
+            </div>
+          }
+        />
+      </div>
+
       {/* Main Grid: Left content + Right sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left 2/3 */}
         <div className="xl:col-span-2 space-y-6">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard
-              label="ROLOS"
-              value={formatNumber(totalRolls)}
-              borderColor="border-l-amber-400"
-            />
-            <KpiCard
-              label="PESO (KG)"
-              value={`${formatNumber(totalWeight, 2)} kg`}
-              borderColor="border-l-orange-400"
-            />
-            <KpiCard
-              label="FATURAMENTO"
-              value={formatCurrency(totalRevenue)}
-              borderColor="border-l-emerald-500"
-            />
-            <KpiCard
-              label="EFICIÊNCIA"
-              value={formatPercent(avgEfficiency)}
-              borderColor="border-l-purple-500"
-              extra={
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center",
-                  avgEfficiency >= 80 ? "bg-emerald-100 text-emerald-600" : avgEfficiency >= 70 ? "bg-amber-100 text-amber-600" : "bg-red-100 text-red-600"
-                )}>
-                  <Gauge className="h-4 w-4" />
-                </div>
-              }
-            />
-          </div>
-
           {/* Shift Breakdown + Machine Performance */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Shift Breakdown */}
@@ -325,7 +325,6 @@ export default function Dashboard() {
                     </span>
                   </div>
                 ))}
-                {/* Total */}
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/50">
                   <div>
                     <p className="text-sm font-semibold text-foreground">Total Geral</p>
