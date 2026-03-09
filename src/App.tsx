@@ -12,7 +12,7 @@ import ClientsArticles from "./pages/ClientsArticles";
 import ProductionPage from "./pages/Production";
 import Weavers from "./pages/Weavers";
 import Reports from "./pages/Reports";
-import ImportFirebase from "./pages/ImportFirebase";
+
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -49,7 +49,7 @@ const App = () => (
               <Route path="production" element={<ProductionPage />} />
               <Route path="weavers" element={<Weavers />} />
               <Route path="reports" element={<Reports />} />
-              <Route path="import-firebase" element={<ImportFirebase />} />
+              
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
