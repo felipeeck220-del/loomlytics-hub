@@ -153,7 +153,7 @@ export default function ImportFirebase() {
             company_id: companyId,
             number,
             name: (m.nome || '').trim(),
-            rpm: m.rpm || 0,
+            rpm: toInt(m.rpm),
             status,
             article_id: articleIdMap[m.artigoAtual] || null,
             observations: m.observacoes || '',
