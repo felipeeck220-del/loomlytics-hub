@@ -502,11 +502,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                   <Separator />
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground text-xs">Receita Total</p>
+                      <p className="text-muted-foreground text-xs">Receita (Repasse)</p>
                       <p className="font-bold text-foreground">{formatCurrency(totalRevenue)}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-xs">Custo Total</p>
+                      <p className="text-muted-foreground text-xs">Custo (Artigo)</p>
                       <p className="font-bold text-foreground">{formatCurrency(totalCost)}</p>
                     </div>
                     <div>
