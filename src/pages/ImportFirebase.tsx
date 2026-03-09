@@ -46,8 +46,7 @@ export default function ImportFirebase() {
         companyId = existingCompany.id;
         addLog(`Empresa existente encontrada: ${companyId}`);
       } else {
-        const { data: newCompany, error: companyErr } = await supabase
-          .from('companies')
+        const { data: newCompany, error: companyErr } = await (supabase.from as any)('companies')
           .insert({ name: user.company_name, admin_name: user.name, admin_email: user.email })
           .select('id')
           .single();
