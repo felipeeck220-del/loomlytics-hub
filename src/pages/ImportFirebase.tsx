@@ -14,8 +14,34 @@ async function batchInsert(table: string, rows: any[], batchSize = 200) {
   for (let i = 0; i < rows.length; i += batchSize) {
     const batch = rows.slice(i, i + batchSize);
     const { error } = await (supabase.from as any)(table).insert(batch);
-    if (error) throw new Error(`Erro inserindo ${table} (batch ${Math.floor(i/batchSize)+1}): ${error.message}`);
+    if (error) throw new Error(`Erro inserindo ${table} (batch ${Math.floor(i / batchSize) + 1}): ${error.message}`);
   }
+}
+
+function parseLocalizedNumber(value: unknown): number {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+
+  let str = String(value).trim();
+  str = str.replace(/[¤$€£¥\s]/g, '');
+
+  const lastComma = str.lastIndexOf(',');
+  const lastDot = str.lastIndexOf('.');
+  const isCommaDecimal = lastComma > lastDot;
+
+  if (isCommaDecimal) {
+    str = str.replace(/\./g, '');
+    str = str.replace(',', '.');
+  } else {
+    str = str.replace(/,/g, '');
+  }
+
+  const parsed = Number.parseFloat(str);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function toInt(value: unknown): number {
+  return Math.round(parseLocalizedNumber(value));
 }
 
 export default function ImportFirebase() {
@@ -98,9 +124,9 @@ export default function ImportFirebase() {
             name: a.nome || '',
             client_id: clientIdMap[a.clienteId] || null,
             client_name: a.clienteNome || '',
-            weight_per_roll: a.pesoRoloKg || 0,
-            value_per_kg: a.valorKgGanho || 0,
-            turns_per_roll: a.voltasPorRolo || 0,
+            weight_per_roll: parseLocalizedNumber(a.pesoRoloKg),
+            value_per_kg: parseLocalizedNumber(a.valorKgGanho),
+            turns_per_roll: toInt(a.voltasPorRolo),
             observations: a.observacoes || '',
             created_at: a.criadoEm || new Date().toISOString(),
           };
@@ -127,7 +153,7 @@ export default function ImportFirebase() {
             company_id: companyId,
             number,
             name: (m.nome || '').trim(),
-            rpm: m.rpm || 0,
+            rpm: toInt(m.rpm),
             status,
             article_id: articleIdMap[m.artigoAtual] || null,
             observations: m.observacoes || '',
@@ -188,11 +214,11 @@ export default function ImportFirebase() {
                 weaver_name: record.tecelaoNome || '',
                 article_id: articleIdMap[record.artigoId] || null,
                 article_name: record.artigoNome || '',
-                rpm: record.rpmUsado || record.rpmPadrao || 0,
-                rolls_produced: record.rolosProduzidos || 0,
-                weight_kg: record.kgProduzidos || 0,
-                revenue: record.valorLucrado || 0,
-                efficiency: record.porcentagemProducao || 0,
+                rpm: toInt(record.rpmUsado || record.rpmPadrao),
+                rolls_produced: toInt(record.rolosProduzidos),
+                weight_kg: parseLocalizedNumber(record.kgProduzidos),
+                revenue: parseLocalizedNumber(record.valorLucrado),
+                efficiency: parseLocalizedNumber(record.porcentagemProducao),
                 created_at: record.criadoEm || new Date().toISOString(),
               });
             }
