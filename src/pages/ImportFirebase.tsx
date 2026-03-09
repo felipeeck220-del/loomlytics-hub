@@ -214,11 +214,11 @@ export default function ImportFirebase() {
                 weaver_name: record.tecelaoNome || '',
                 article_id: articleIdMap[record.artigoId] || null,
                 article_name: record.artigoNome || '',
-                rpm: record.rpmUsado || record.rpmPadrao || 0,
-                rolls_produced: record.rolosProduzidos || 0,
-                weight_kg: record.kgProduzidos || 0,
-                revenue: record.valorLucrado || 0,
-                efficiency: record.porcentagemProducao || 0,
+                rpm: toInt(record.rpmUsado || record.rpmPadrao),
+                rolls_produced: toInt(record.rolosProduzidos),
+                weight_kg: parseLocalizedNumber(record.kgProduzidos),
+                revenue: parseLocalizedNumber(record.valorLucrado),
+                efficiency: parseLocalizedNumber(record.porcentagemProducao),
                 created_at: record.criadoEm || new Date().toISOString(),
               });
             }
