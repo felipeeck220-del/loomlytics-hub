@@ -5,15 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import type { Weaver, ShiftType } from '@/types';
 import { SHIFT_LABELS } from '@/types';
 
 export default function Weavers() {
-  const { getWeavers, saveWeavers } = useCompanyData();
-  const [weavers, setWeavers] = useState<Weaver[]>(getWeavers());
+  const { getWeavers, saveWeavers, loading } = useCompanyData();
+  const weavers = getWeavers();
+
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Weaver | null>(null);
   const [showDelete, setShowDelete] = useState<Weaver | null>(null);
@@ -24,10 +25,8 @@ export default function Weavers() {
     fixed_shift: '' as ShiftType | '', start_time: '', end_time: '',
   });
 
-  const refresh = () => setWeavers(getWeavers());
-
   const generateCode = () => {
-    const existing = getWeavers().map(w => parseInt(w.code.replace('#', '')));
+    const existing = weavers.map(w => parseInt(w.code.replace('#', '')));
     let code = 100;
     while (existing.includes(code) && code <= 999) code++;
     return `#${code}`;
@@ -45,13 +44,13 @@ export default function Weavers() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name) { toast.error('Nome é obrigatório'); return; }
-    const all = getWeavers();
+    const all = [...weavers];
     if (editing) {
       const idx = all.findIndex(w => w.id === editing.id);
       all[idx] = { ...all[idx], name: form.name, phone: form.phone || undefined, shift_type: form.shift_type, fixed_shift: form.shift_type === 'fixo' ? (form.fixed_shift as ShiftType) : undefined, start_time: form.shift_type === 'especifico' ? form.start_time : undefined, end_time: form.shift_type === 'especifico' ? form.end_time : undefined };
-      saveWeavers(all); toast.success('Tecelão atualizado');
+      await saveWeavers(all); toast.success('Tecelão atualizado');
     } else {
       all.push({
         id: crypto.randomUUID(), company_id: '', code: generateCode(), name: form.name, phone: form.phone || undefined,
@@ -60,16 +59,20 @@ export default function Weavers() {
         end_time: form.shift_type === 'especifico' ? form.end_time : undefined,
         created_at: new Date().toISOString(),
       });
-      saveWeavers(all); toast.success('Tecelão cadastrado');
+      await saveWeavers(all); toast.success('Tecelão cadastrado');
     }
-    setShowModal(false); refresh();
+    setShowModal(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
-    saveWeavers(getWeavers().filter(w => w.id !== showDelete?.id));
-    setShowDelete(null); setDeleteWord(''); toast.success('Tecelão excluído'); refresh();
+    await saveWeavers(weavers.filter(w => w.id !== showDelete?.id));
+    setShowDelete(null); setDeleteWord(''); toast.success('Tecelão excluído');
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-3 text-muted-foreground">Carregando...</span></div>;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -103,7 +106,6 @@ export default function Weavers() {
         {weavers.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhum tecelão cadastrado</p>}
       </div>
 
-      {/* Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Editar Tecelão' : 'Novo Tecelão'}</DialogTitle></DialogHeader>
@@ -125,9 +127,7 @@ export default function Weavers() {
                 <Label>Turno</Label>
                 <Select value={form.fixed_shift} onValueChange={v => setForm(p => ({ ...p, fixed_shift: v as ShiftType }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione o turno" /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(SHIFT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{Object.entries(SHIFT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             )}
@@ -145,7 +145,6 @@ export default function Weavers() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Modal */}
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Excluir {showDelete?.name}?</DialogTitle></DialogHeader>
