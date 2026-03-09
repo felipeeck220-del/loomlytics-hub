@@ -14,7 +14,338 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      articles: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          observations: string | null
+          turns_per_roll: number
+          value_per_kg: number
+          weight_per_roll: number
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          observations?: string | null
+          turns_per_roll?: number
+          value_per_kg?: number
+          weight_per_roll?: number
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          observations?: string | null
+          turns_per_roll?: number
+          value_per_kg?: number
+          weight_per_roll?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          company_id: string
+          contact: string | null
+          created_at: string
+          id: string
+          name: string
+          observations: string | null
+        }
+        Insert: {
+          company_id: string
+          contact?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          observations?: string | null
+        }
+        Update: {
+          company_id?: string
+          contact?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          observations?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          admin_email: string
+          admin_name: string
+          created_at: string
+          id: string
+          name: string
+          whatsapp: string | null
+        }
+        Insert: {
+          admin_email: string
+          admin_name: string
+          created_at?: string
+          id?: string
+          name: string
+          whatsapp?: string | null
+        }
+        Update: {
+          admin_email?: string
+          admin_name?: string
+          created_at?: string
+          id?: string
+          name?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      machine_logs: {
+        Row: {
+          ended_at: string | null
+          id: string
+          machine_id: string
+          started_at: string
+          status: Database["public"]["Enums"]["machine_status"]
+        }
+        Insert: {
+          ended_at?: string | null
+          id?: string
+          machine_id: string
+          started_at?: string
+          status: Database["public"]["Enums"]["machine_status"]
+        }
+        Update: {
+          ended_at?: string | null
+          id?: string
+          machine_id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["machine_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_logs_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      machines: {
+        Row: {
+          article_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          number: number
+          observations: string | null
+          rpm: number
+          status: Database["public"]["Enums"]["machine_status"]
+        }
+        Insert: {
+          article_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          number: number
+          observations?: string | null
+          rpm?: number
+          status?: Database["public"]["Enums"]["machine_status"]
+        }
+        Update: {
+          article_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          number?: number
+          observations?: string | null
+          rpm?: number
+          status?: Database["public"]["Enums"]["machine_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machines_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      productions: {
+        Row: {
+          article_id: string | null
+          article_name: string | null
+          company_id: string
+          created_at: string
+          date: string
+          efficiency: number
+          id: string
+          machine_id: string | null
+          machine_name: string | null
+          revenue: number
+          rolls_produced: number
+          rpm: number
+          shift: string
+          weaver_id: string | null
+          weaver_name: string | null
+          weight_kg: number
+        }
+        Insert: {
+          article_id?: string | null
+          article_name?: string | null
+          company_id: string
+          created_at?: string
+          date: string
+          efficiency?: number
+          id?: string
+          machine_id?: string | null
+          machine_name?: string | null
+          revenue?: number
+          rolls_produced?: number
+          rpm?: number
+          shift: string
+          weaver_id?: string | null
+          weaver_name?: string | null
+          weight_kg?: number
+        }
+        Update: {
+          article_id?: string | null
+          article_name?: string | null
+          company_id?: string
+          created_at?: string
+          date?: string
+          efficiency?: number
+          id?: string
+          machine_id?: string | null
+          machine_name?: string | null
+          revenue?: number
+          rolls_produced?: number
+          rpm?: number
+          shift?: string
+          weaver_id?: string | null
+          weaver_name?: string | null
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "productions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productions_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productions_weaver_id_fkey"
+            columns: ["weaver_id"]
+            isOneToOne: false
+            referencedRelation: "weavers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weavers: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string
+          end_time: string | null
+          fixed_shift: string | null
+          id: string
+          name: string
+          phone: string | null
+          shift_type: string
+          start_time: string | null
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string
+          end_time?: string | null
+          fixed_shift?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          shift_type?: string
+          start_time?: string | null
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string
+          end_time?: string | null
+          fixed_shift?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          shift_type?: string
+          start_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weavers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +354,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      machine_status:
+        | "ativa"
+        | "manutencao_preventiva"
+        | "manutencao_corretiva"
+        | "troca_artigo"
+        | "inativa"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +486,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      machine_status: [
+        "ativa",
+        "manutencao_preventiva",
+        "manutencao_corretiva",
+        "troca_artigo",
+        "inativa",
+      ],
+    },
   },
 } as const
