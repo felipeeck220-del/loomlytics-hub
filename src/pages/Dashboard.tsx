@@ -1,18 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useCompanyData } from '@/hooks/useCompanyData';
-import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production } from '@/types';
+import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
-import { CalendarIcon, BarChart3, Scale, DollarSign, Gauge, Clock, Settings2, Users, FileText, ClipboardList } from 'lucide-react';
+import { CalendarIcon, BarChart3, Scale, DollarSign, Gauge, Clock, Settings2, Users, FileText, ClipboardList, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
-  const { getProductions, getMachines, getClients, getArticles } = useCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, loading } = useCompanyData();
   const productions = getProductions();
   const machines = getMachines();
   const clients = getClients();
@@ -72,6 +71,15 @@ export default function Dashboard() {
   });
 
   const activeMachines = machines.filter(m => m.status === 'ativa').length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-3 text-muted-foreground">Carregando dados...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -190,7 +198,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Shift Production */}
         <div className="stat-card">
           <span className="text-sm font-medium text-muted-foreground">Produção por Turno</span>
           <div className="mt-3 space-y-2">
