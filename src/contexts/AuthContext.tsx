@@ -92,38 +92,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: signUpError?.message || 'Erro ao criar conta' };
     }
 
-    const userId = authData.user.id;
-
-    // 2. Create company
-    const { data: company, error: companyError } = await (supabase.from as any)('companies')
-      .insert({
-        name: data.company_name,
+    // 2. Call edge function to create company + profile (uses service role to bypass RLS)
+    const { data: result, error: fnError } = await supabase.functions.invoke('create-company-profile', {
+      body: {
+        user_id: authData.user.id,
         admin_name: data.admin_name,
         admin_email: data.admin_email,
-        whatsapp: data.whatsapp || null,
-      })
-      .select('id')
-      .single();
+        company_name: data.company_name,
+        whatsapp: data.whatsapp,
+      },
+    });
 
-    if (companyError || !company) {
-      return { success: false, error: 'Erro ao criar empresa' };
+    if (fnError || result?.error) {
+      return { success: false, error: result?.error || 'Erro ao criar empresa' };
     }
 
-    // 3. Create profile
-    const { error: profileError } = await (supabase.from as any)('profiles')
-      .insert({
-        id: userId,
-        company_id: company.id,
-        name: data.admin_name,
-        email: data.admin_email,
-        role: 'admin',
-      });
-
-    if (profileError) {
-      return { success: false, error: 'Erro ao criar perfil' };
-    }
-
-    // 4. Fetch full profile to set in state
+    // 3. Fetch full profile to set in state
     const appUser = await fetchProfile(authData.user);
     setUser(appUser);
 
