@@ -213,6 +213,126 @@ export type Database = {
           },
         ]
       }
+      outsource_companies: {
+        Row: {
+          company_id: string
+          contact: string | null
+          created_at: string
+          id: string
+          name: string
+          observations: string | null
+        }
+        Insert: {
+          company_id: string
+          contact?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          observations?: string | null
+        }
+        Update: {
+          company_id?: string
+          contact?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          observations?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outsource_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outsource_productions: {
+        Row: {
+          article_id: string
+          article_name: string | null
+          client_name: string | null
+          client_value_per_kg: number
+          company_id: string
+          created_at: string
+          date: string
+          id: string
+          observations: string | null
+          outsource_company_id: string
+          outsource_company_name: string | null
+          outsource_value_per_kg: number
+          profit_per_kg: number
+          rolls: number
+          total_cost: number
+          total_profit: number
+          total_revenue: number
+          weight_kg: number
+        }
+        Insert: {
+          article_id: string
+          article_name?: string | null
+          client_name?: string | null
+          client_value_per_kg?: number
+          company_id: string
+          created_at?: string
+          date: string
+          id?: string
+          observations?: string | null
+          outsource_company_id: string
+          outsource_company_name?: string | null
+          outsource_value_per_kg?: number
+          profit_per_kg?: number
+          rolls?: number
+          total_cost?: number
+          total_profit?: number
+          total_revenue?: number
+          weight_kg?: number
+        }
+        Update: {
+          article_id?: string
+          article_name?: string | null
+          client_name?: string | null
+          client_value_per_kg?: number
+          company_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          observations?: string | null
+          outsource_company_id?: string
+          outsource_company_name?: string | null
+          outsource_value_per_kg?: number
+          profit_per_kg?: number
+          rolls?: number
+          total_cost?: number
+          total_profit?: number
+          total_revenue?: number
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outsource_productions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outsource_productions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outsource_productions_outsource_company_id_fkey"
+            columns: ["outsource_company_id"]
+            isOneToOne: false
+            referencedRelation: "outsource_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productions: {
         Row: {
           article_id: string | null
