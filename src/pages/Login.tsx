@@ -17,12 +17,12 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const success = await login(email, password);
+    const result = await login(email, password);
     setLoading(false);
-    if (success) {
+    if (result.success) {
       navigate('/');
     } else {
-      toast.error('Email ou senha incorretos');
+      toast.error(result.error || 'Email ou senha incorretos');
     }
   };
 
