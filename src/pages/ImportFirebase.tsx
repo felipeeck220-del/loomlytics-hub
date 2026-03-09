@@ -14,8 +14,34 @@ async function batchInsert(table: string, rows: any[], batchSize = 200) {
   for (let i = 0; i < rows.length; i += batchSize) {
     const batch = rows.slice(i, i + batchSize);
     const { error } = await (supabase.from as any)(table).insert(batch);
-    if (error) throw new Error(`Erro inserindo ${table} (batch ${Math.floor(i/batchSize)+1}): ${error.message}`);
+    if (error) throw new Error(`Erro inserindo ${table} (batch ${Math.floor(i / batchSize) + 1}): ${error.message}`);
   }
+}
+
+function parseLocalizedNumber(value: unknown): number {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+
+  let str = String(value).trim();
+  str = str.replace(/[¤$€£¥\s]/g, '');
+
+  const lastComma = str.lastIndexOf(',');
+  const lastDot = str.lastIndexOf('.');
+  const isCommaDecimal = lastComma > lastDot;
+
+  if (isCommaDecimal) {
+    str = str.replace(/\./g, '');
+    str = str.replace(',', '.');
+  } else {
+    str = str.replace(/,/g, '');
+  }
+
+  const parsed = Number.parseFloat(str);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function toInt(value: unknown): number {
+  return Math.round(parseLocalizedNumber(value));
 }
 
 export default function ImportFirebase() {
