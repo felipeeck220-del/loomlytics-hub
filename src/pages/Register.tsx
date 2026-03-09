@@ -30,7 +30,7 @@ export default function Register() {
       return;
     }
     setLoading(true);
-    const success = await register({
+    const result = await register({
       admin_name: form.admin_name,
       admin_email: form.admin_email,
       company_name: form.company_name,
@@ -38,11 +38,11 @@ export default function Register() {
       password: form.password,
     });
     setLoading(false);
-    if (success) {
+    if (result.success) {
       toast.success('Conta criada com sucesso!');
       navigate('/');
     } else {
-      toast.error('Este email já está cadastrado');
+      toast.error(result.error || 'Erro ao criar conta');
     }
   };
 

@@ -17,34 +17,21 @@ export function useCompanyData() {
   const [productions, setProductions] = useState<Production[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Find company UUID from localStorage company_id
-  const [dbCompanyId, setDbCompanyId] = useState<string | null>(null);
-
+  // Load all data once we have the company ID from the authenticated user
   useEffect(() => {
-    if (!user?.email) return;
-    (async () => {
-      // Try to find company by admin_email
-      const { data } = await sb('companies').select('id').eq('admin_email', user.email).maybeSingle();
-      if (data) {
-        setDbCompanyId(data.id);
-      } else {
-        setLoading(false);
-      }
-    })();
-  }, [user?.email]);
-
-  // Load all data once we have the company ID
-  useEffect(() => {
-    if (!dbCompanyId) return;
+    if (!companyId) {
+      setLoading(false);
+      return;
+    }
     (async () => {
       setLoading(true);
       const [mRes, mlRes, cRes, aRes, wRes, pRes] = await Promise.all([
-        sb('machines').select('*').eq('company_id', dbCompanyId).order('number'),
+        sb('machines').select('*').eq('company_id', companyId).order('number'),
         sb('machine_logs').select('*'),
-        sb('clients').select('*').eq('company_id', dbCompanyId).order('name'),
-        sb('articles').select('*').eq('company_id', dbCompanyId).order('name'),
-        sb('weavers').select('*').eq('company_id', dbCompanyId).order('code'),
-        sb('productions').select('*').eq('company_id', dbCompanyId).order('date', { ascending: false }),
+        sb('clients').select('*').eq('company_id', companyId).order('name'),
+        sb('articles').select('*').eq('company_id', companyId).order('name'),
+        sb('weavers').select('*').eq('company_id', companyId).order('code'),
+        sb('productions').select('*').eq('company_id', companyId).order('date', { ascending: false }),
       ]);
 
       if (mRes.data) setMachines(mRes.data.map(mapMachine));
@@ -55,7 +42,7 @@ export function useCompanyData() {
       if (pRes.data) setProductions(pRes.data.map(mapProduction));
       setLoading(false);
     })();
-  }, [dbCompanyId]);
+  }, [companyId]);
 
   // Mappers from DB rows to app types
   const mapMachine = (r: any): Machine => ({
@@ -103,23 +90,21 @@ export function useCompanyData() {
 
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {
-    if (!dbCompanyId) return;
-    // Delete all and re-insert (simple approach for now)
-    await sb('machines').delete().eq('company_id', dbCompanyId);
+    if (!companyId) return;
+    await sb('machines').delete().eq('company_id', companyId);
     if (data.length > 0) {
       const rows = data.map(m => ({
-        id: m.id, company_id: dbCompanyId, number: m.number, name: m.name,
+        id: m.id, company_id: companyId, number: m.number, name: m.name,
         rpm: m.rpm, status: m.status, article_id: m.article_id || null,
         observations: m.observations || null, created_at: m.created_at,
       }));
       await sb('machines').insert(rows);
     }
     setMachines(data);
-  }, [dbCompanyId]);
+  }, [companyId]);
 
   const saveMachineLogs = useCallback(async (data: MachineLog[]) => {
-    if (!dbCompanyId) return;
-    // For logs, we upsert
+    if (!companyId) return;
     const rows = data.map(l => ({
       id: l.id, machine_id: l.machine_id, status: l.status,
       started_at: l.started_at, ended_at: l.ended_at || null,
@@ -128,27 +113,27 @@ export function useCompanyData() {
       await sb('machine_logs').upsert(rows);
     }
     setMachineLogs(data);
-  }, [dbCompanyId]);
+  }, [companyId]);
 
   const saveClients = useCallback(async (data: Client[]) => {
-    if (!dbCompanyId) return;
-    await sb('clients').delete().eq('company_id', dbCompanyId);
+    if (!companyId) return;
+    await sb('clients').delete().eq('company_id', companyId);
     if (data.length > 0) {
       const rows = data.map(c => ({
-        id: c.id, company_id: dbCompanyId, name: c.name,
+        id: c.id, company_id: companyId, name: c.name,
         contact: c.contact || null, observations: c.observations || null, created_at: c.created_at,
       }));
       await sb('clients').insert(rows);
     }
     setClients(data);
-  }, [dbCompanyId]);
+  }, [companyId]);
 
   const saveArticles = useCallback(async (data: Article[]) => {
-    if (!dbCompanyId) return;
-    await sb('articles').delete().eq('company_id', dbCompanyId);
+    if (!companyId) return;
+    await sb('articles').delete().eq('company_id', companyId);
     if (data.length > 0) {
       const rows = data.map(a => ({
-        id: a.id, company_id: dbCompanyId, name: a.name, client_id: a.client_id || null,
+        id: a.id, company_id: companyId, name: a.name, client_id: a.client_id || null,
         client_name: a.client_name || null, weight_per_roll: a.weight_per_roll,
         value_per_kg: a.value_per_kg, turns_per_roll: a.turns_per_roll,
         observations: a.observations || null, created_at: a.created_at,
@@ -156,14 +141,14 @@ export function useCompanyData() {
       await sb('articles').insert(rows);
     }
     setArticles(data);
-  }, [dbCompanyId]);
+  }, [companyId]);
 
   const saveWeavers = useCallback(async (data: Weaver[]) => {
-    if (!dbCompanyId) return;
-    await sb('weavers').delete().eq('company_id', dbCompanyId);
+    if (!companyId) return;
+    await sb('weavers').delete().eq('company_id', companyId);
     if (data.length > 0) {
       const rows = data.map(w => ({
-        id: w.id, company_id: dbCompanyId, code: w.code, name: w.name,
+        id: w.id, company_id: companyId, code: w.code, name: w.name,
         phone: w.phone || null, shift_type: w.shift_type,
         fixed_shift: w.fixed_shift || null, start_time: w.start_time || null,
         end_time: w.end_time || null, created_at: w.created_at,
@@ -171,17 +156,16 @@ export function useCompanyData() {
       await sb('weavers').insert(rows);
     }
     setWeavers(data);
-  }, [dbCompanyId]);
+  }, [companyId]);
 
   const saveProductions = useCallback(async (data: Production[]) => {
-    if (!dbCompanyId) return;
-    await sb('productions').delete().eq('company_id', dbCompanyId);
+    if (!companyId) return;
+    await sb('productions').delete().eq('company_id', companyId);
     if (data.length > 0) {
-      // Batch insert for large datasets
       const batchSize = 500;
       for (let i = 0; i < data.length; i += batchSize) {
         const batch = data.slice(i, i + batchSize).map(p => ({
-          id: p.id, company_id: dbCompanyId, date: p.date, shift: p.shift,
+          id: p.id, company_id: companyId, date: p.date, shift: p.shift,
           machine_id: p.machine_id || null, machine_name: p.machine_name || null,
           weaver_id: p.weaver_id || null, weaver_name: p.weaver_name || null,
           article_id: p.article_id || null, article_name: p.article_name || null,
@@ -192,11 +176,11 @@ export function useCompanyData() {
       }
     }
     setProductions(data);
-  }, [dbCompanyId]);
+  }, [companyId]);
 
   return {
     loading,
-    dbCompanyId,
+    dbCompanyId: companyId,
     getMachines, saveMachines,
     getMachineLogs, saveMachineLogs,
     getClients, saveClients,
