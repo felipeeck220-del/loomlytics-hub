@@ -49,7 +49,7 @@ const App = () => (
               <Route path="production" element={<ProductionPage />} />
               <Route path="weavers" element={<Weavers />} />
               <Route path="reports" element={<Reports />} />
-              <Route path="import-firebase" element={<ImportFirebase />} />
+              
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
