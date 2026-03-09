@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { Machine, Client, Article, Weaver, Production, MachineLog } from '@/types';
 
-const sb = supabase.from as any;
+const sb = (table: string) => (supabase.from as any)(table);
 
 export function useCompanyData() {
   const { user } = useAuth();
