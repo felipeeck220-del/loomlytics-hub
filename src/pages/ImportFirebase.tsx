@@ -37,8 +37,7 @@ export default function ImportFirebase() {
       addLog('Configurando empresa...');
 
       let companyId: string;
-      const { data: existingCompany } = await supabase
-        .from('companies')
+      const { data: existingCompany } = await (supabase.from as any)('companies')
         .select('id')
         .eq('admin_email', user.email)
         .maybeSingle();
