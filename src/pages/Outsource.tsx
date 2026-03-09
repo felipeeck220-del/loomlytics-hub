@@ -132,8 +132,8 @@ export default function Outsource() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KpiCard icon={Package} label="Rolos" value={formatNumber(totals.totalRolls)} color="border-l-amber-500" />
         <KpiCard icon={Scale} label="Peso Total" value={formatWeight(totals.totalWeight)} color="border-l-orange-500" />
-        <KpiCard icon={DollarSign} label="Receita (Cliente)" value={formatCurrency(totals.totalRevenue)} color="border-l-emerald-500" />
-        <KpiCard icon={DollarSign} label="Custo (Repasse)" value={formatCurrency(totals.totalCost)} color="border-l-red-500" />
+        <KpiCard icon={DollarSign} label="Receita (Repasse)" value={formatCurrency(totals.totalRevenue)} color="border-l-emerald-500" />
+        <KpiCard icon={DollarSign} label="Custo (Artigo)" value={formatCurrency(totals.totalCost)} color="border-l-red-500" />
         <KpiCard icon={TrendingUp} label="Lucro" value={formatCurrency(totals.totalProfit)} color="border-l-primary" />
       </div>
 
@@ -345,9 +345,9 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
   const clientValuePerKg = selectedArticle ? Number(selectedArticle.value_per_kg) : 0;
   const outsourceValuePerKg = Number(form.outsource_value_per_kg) || 0;
   const weightKg = Number(form.weight_kg) || 0;
-  const profitPerKg = clientValuePerKg - outsourceValuePerKg;
-  const totalRevenue = weightKg * clientValuePerKg;
-  const totalCost = weightKg * outsourceValuePerKg;
+  const profitPerKg = outsourceValuePerKg - clientValuePerKg;
+  const totalRevenue = weightKg * outsourceValuePerKg;
+  const totalCost = weightKg * clientValuePerKg;
   const totalProfit = weightKg * profitPerKg;
 
   const saveMutation = useMutation({
@@ -485,11 +485,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                   <Separator />
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground text-xs">Valor Cliente</p>
+                      <p className="text-muted-foreground text-xs">Custo Artigo</p>
                       <p className="font-semibold text-foreground">{formatCurrency(clientValuePerKg)}/kg</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-xs">Valor Repasse</p>
+                      <p className="text-muted-foreground text-xs">Valor Cobrado (Repasse)</p>
                       <p className="font-semibold text-foreground">{formatCurrency(outsourceValuePerKg)}/kg</p>
                     </div>
                     <div>
@@ -502,11 +502,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                   <Separator />
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground text-xs">Receita Total</p>
+                      <p className="text-muted-foreground text-xs">Receita (Repasse)</p>
                       <p className="font-bold text-foreground">{formatCurrency(totalRevenue)}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-xs">Custo Total</p>
+                      <p className="text-muted-foreground text-xs">Custo (Artigo)</p>
                       <p className="font-bold text-foreground">{formatCurrency(totalCost)}</p>
                     </div>
                     <div>
