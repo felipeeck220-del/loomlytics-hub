@@ -12,6 +12,7 @@ import ClientsArticles from "./pages/ClientsArticles";
 import ProductionPage from "./pages/Production";
 import Weavers from "./pages/Weavers";
 import Reports from "./pages/Reports";
+import Outsource from "./pages/Outsource";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="machines" element={<Machines />} />
               <Route path="clients-articles" element={<ClientsArticles />} />
               <Route path="production" element={<ProductionPage />} />
+              <Route path="outsource" element={<Outsource />} />
               <Route path="weavers" element={<Weavers />} />
               <Route path="reports" element={<Reports />} />
               

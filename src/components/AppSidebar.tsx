@@ -13,6 +13,7 @@ const items = [
   { title: 'Máquinas', url: '/machines', icon: Settings2 },
   { title: 'Clientes & Artigos', url: '/clients-articles', icon: Users },
   { title: 'Produção', url: '/production', icon: ClipboardList },
+  { title: 'Terceirizado', url: '/outsource', icon: Factory },
   { title: 'Tecelões', url: '/weavers', icon: HardHat },
   { title: 'Relatórios', url: '/reports', icon: FileText },
 ];
