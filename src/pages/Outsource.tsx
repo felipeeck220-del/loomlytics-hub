@@ -345,9 +345,9 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
   const clientValuePerKg = selectedArticle ? Number(selectedArticle.value_per_kg) : 0;
   const outsourceValuePerKg = Number(form.outsource_value_per_kg) || 0;
   const weightKg = Number(form.weight_kg) || 0;
-  const profitPerKg = clientValuePerKg - outsourceValuePerKg;
-  const totalRevenue = weightKg * clientValuePerKg;
-  const totalCost = weightKg * outsourceValuePerKg;
+  const profitPerKg = outsourceValuePerKg - clientValuePerKg;
+  const totalRevenue = weightKg * outsourceValuePerKg;
+  const totalCost = weightKg * clientValuePerKg;
   const totalProfit = weightKg * profitPerKg;
 
   const saveMutation = useMutation({
