@@ -15,6 +15,7 @@ const items = [
   { title: 'Produção', url: '/production', icon: ClipboardList },
   { title: 'Tecelões', url: '/weavers', icon: HardHat },
   { title: 'Relatórios', url: '/reports', icon: FileText },
+  { title: 'Importar Firebase', url: '/import-firebase', icon: Download },
 ];
 
 export function AppSidebar() {
