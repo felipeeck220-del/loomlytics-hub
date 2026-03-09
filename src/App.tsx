@@ -12,6 +12,7 @@ import ClientsArticles from "./pages/ClientsArticles";
 import ProductionPage from "./pages/Production";
 import Weavers from "./pages/Weavers";
 import Reports from "./pages/Reports";
+import Outsource from "./pages/Outsource";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
