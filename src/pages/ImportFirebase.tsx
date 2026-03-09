@@ -124,9 +124,9 @@ export default function ImportFirebase() {
             name: a.nome || '',
             client_id: clientIdMap[a.clienteId] || null,
             client_name: a.clienteNome || '',
-            weight_per_roll: a.pesoRoloKg || 0,
-            value_per_kg: a.valorKgGanho || 0,
-            turns_per_roll: a.voltasPorRolo || 0,
+            weight_per_roll: parseLocalizedNumber(a.pesoRoloKg),
+            value_per_kg: parseLocalizedNumber(a.valorKgGanho),
+            turns_per_roll: toInt(a.voltasPorRolo),
             observations: a.observacoes || '',
             created_at: a.criadoEm || new Date().toISOString(),
           };
