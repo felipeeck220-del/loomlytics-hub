@@ -13,7 +13,7 @@ type ImportStep = 'idle' | 'company' | 'clients' | 'articles' | 'machines' | 'we
 async function batchInsert(table: string, rows: any[], batchSize = 200) {
   for (let i = 0; i < rows.length; i += batchSize) {
     const batch = rows.slice(i, i + batchSize);
-    const { error } = await supabase.from(table).insert(batch);
+    const { error } = await (supabase.from as any)(table).insert(batch);
     if (error) throw new Error(`Erro inserindo ${table} (batch ${Math.floor(i/batchSize)+1}): ${error.message}`);
   }
 }
