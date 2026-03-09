@@ -485,11 +485,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                   <Separator />
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground text-xs">Valor Cliente</p>
+                      <p className="text-muted-foreground text-xs">Custo Artigo</p>
                       <p className="font-semibold text-foreground">{formatCurrency(clientValuePerKg)}/kg</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-xs">Valor Repasse</p>
+                      <p className="text-muted-foreground text-xs">Valor Cobrado (Repasse)</p>
                       <p className="font-semibold text-foreground">{formatCurrency(outsourceValuePerKg)}/kg</p>
                     </div>
                     <div>
