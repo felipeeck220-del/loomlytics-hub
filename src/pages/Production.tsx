@@ -237,7 +237,7 @@ export default function ProductionPage() {
       </div>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] flex flex-col">
+        <DialogContent className="w-[80vw] max-w-[80vw] max-h-[80vh] flex flex-col p-5">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-3">
               {editing ? 'Editar Produção' : 'Registrar Produção'}
