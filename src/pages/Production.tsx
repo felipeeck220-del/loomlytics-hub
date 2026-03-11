@@ -116,6 +116,7 @@ export default function ProductionPage() {
       rolls: '',
     });
     setArticleSearch('');
+    setWeaverSearch('');
     setShowModal(true);
   };
 
