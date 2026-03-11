@@ -28,6 +28,7 @@ export default function ProductionPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Production | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
+  const [weaverSearch, setWeaverSearch] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
@@ -76,6 +77,7 @@ export default function ProductionPage() {
         article_id: '',
       }));
       setArticleSearch('');
+      setWeaverSearch('');
     } else {
       // Wrap to first machine, next shift
       const nextShiftIdx = currentShiftIndex + 1;
@@ -91,6 +93,7 @@ export default function ProductionPage() {
           article_id: '',
         }));
         setArticleSearch('');
+        setWeaverSearch('');
         toast.info(`Avançou para ${SHIFT_LABELS[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
       } else {
         // All shifts done
@@ -113,6 +116,7 @@ export default function ProductionPage() {
       rolls: '',
     });
     setArticleSearch('');
+    setWeaverSearch('');
     setShowModal(true);
   };
 
@@ -237,7 +241,7 @@ export default function ProductionPage() {
       </div>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="w-[80vw] max-w-[80vw] max-h-[80vh] flex flex-col p-5">
+        <DialogContent className="w-[85vw] max-w-[85vw] h-[85vh] max-h-[85vh] flex flex-col p-5">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-3">
               {editing ? 'Editar Produção' : 'Registrar Produção'}
@@ -296,9 +300,12 @@ export default function ProductionPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Tecelão</Label>
-                <Select value={form.weaver_id} onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}>
+                <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Tecelão" /></SelectTrigger>
-                  <SelectContent>{weavers.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    <div className="p-1"><Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => { e.stopPropagation(); setWeaverSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
+                    {weavers.filter(w => `${w.code} ${w.name}`.toLowerCase().includes(weaverSearch.toLowerCase())).map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -307,7 +314,7 @@ export default function ProductionPage() {
                 <Select value={form.article_id} onValueChange={v => { setForm(p => ({ ...p, article_id: v })); setArticleSearch(''); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
                   <SelectContent>
-                    <div className="p-1"><Input placeholder="Buscar..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="h-7 text-xs" /></div>
+                    <div className="p-1"><Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => { e.stopPropagation(); setArticleSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
                     {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
                   </SelectContent>
                 </Select>
