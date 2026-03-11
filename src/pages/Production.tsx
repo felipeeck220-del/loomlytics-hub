@@ -93,6 +93,7 @@ export default function ProductionPage() {
           article_id: '',
         }));
         setArticleSearch('');
+        setWeaverSearch('');
         toast.info(`Avançou para ${SHIFT_LABELS[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
       } else {
         // All shifts done
