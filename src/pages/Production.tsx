@@ -297,9 +297,12 @@ export default function ProductionPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Tecelão</Label>
-                <Select value={form.weaver_id} onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}>
+                <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Tecelão" /></SelectTrigger>
-                  <SelectContent>{weavers.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    <div className="p-1"><Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => { e.stopPropagation(); setWeaverSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
+                    {weavers.filter(w => `${w.code} ${w.name}`.toLowerCase().includes(weaverSearch.toLowerCase())).map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
 
@@ -308,7 +311,7 @@ export default function ProductionPage() {
                 <Select value={form.article_id} onValueChange={v => { setForm(p => ({ ...p, article_id: v })); setArticleSearch(''); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
                   <SelectContent>
-                    <div className="p-1"><Input placeholder="Buscar..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="h-7 text-xs" /></div>
+                    <div className="p-1"><Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => { e.stopPropagation(); setArticleSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
                     {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
                   </SelectContent>
                 </Select>
