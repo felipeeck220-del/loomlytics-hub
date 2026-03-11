@@ -237,7 +237,7 @@ export default function ProductionPage() {
       </div>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] flex flex-col">
+        <DialogContent className="w-[80vw] max-w-[80vw] max-h-[80vh] flex flex-col p-5">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-3">
               {editing ? 'Editar Produção' : 'Registrar Produção'}
@@ -255,14 +255,14 @@ export default function ProductionPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Data</Label>
+          <div className="flex-1 flex flex-col gap-3 min-h-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Data</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left">
-                      <CalendarIcon className="mr-2 h-4 w-4" />{format(form.date, 'dd/MM/yyyy')}
+                    <Button variant="outline" className="w-full justify-start text-left h-9 text-sm">
+                      <CalendarIcon className="mr-2 h-3 w-3" />{format(form.date, 'dd/MM/yyyy')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -271,64 +271,67 @@ export default function ProductionPage() {
                 </Popover>
               </div>
 
-              <div className="space-y-2">
-                <Label>Turno</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Turno</Label>
                 <Select value={form.shift} onValueChange={v => setForm(p => ({ ...p, shift: v as ShiftType }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o turno" /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Turno" /></SelectTrigger>
                   <SelectContent>{Object.entries(SHIFT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Máquina</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Máquina</Label>
                 <Select value={form.machine_id} onValueChange={handleMachineChange}>
-                  <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
                   <SelectContent>{sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
 
-              {form.machine_id && (
-                <div className="space-y-2">
-                  <Label>RPM</Label>
-                  <Input type="number" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} />
-                  <p className="text-xs text-muted-foreground">Padrão: {selectedMachine?.rpm}</p>
-                </div>
-              )}
+              <div className="space-y-1">
+                <Label className="text-xs">RPM</Label>
+                <Input type="number" className="h-9" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} placeholder={selectedMachine ? String(selectedMachine.rpm) : ''} />
+              </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label>Tecelão</Label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Tecelão</Label>
                 <Select value={form.weaver_id} onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o tecelão" /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Tecelão" /></SelectTrigger>
                   <SelectContent>{weavers.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Artigo</Label>
-                <Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="mb-2" />
-                <Select value={form.article_id} onValueChange={v => setForm(p => ({ ...p, article_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o artigo" /></SelectTrigger>
-                  <SelectContent>{filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}</SelectContent>
+              <div className="space-y-1">
+                <Label className="text-xs">Artigo</Label>
+                <Select value={form.article_id} onValueChange={v => { setForm(p => ({ ...p, article_id: v })); setArticleSearch(''); }}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
+                  <SelectContent>
+                    <div className="p-1"><Input placeholder="Buscar..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="h-7 text-xs" /></div>
+                    {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Rolos Produzidos</Label>
-                <Input ref={rollsRef} type="number" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Quantidade de rolos" />
+              <div className="space-y-1">
+                <Label className="text-xs">Rolos Produzidos</Label>
+                <Input ref={rollsRef} type="number" className="h-9" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Qtd rolos" />
               </div>
             </div>
 
-            {preview && (
-              <div className={cn("p-4 rounded-lg border mt-4", effBg(preview.efficiency))}>
-                <p className="text-sm font-medium text-foreground mb-2">Preview da Produção</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                  <div><span className="text-muted-foreground">Rolos:</span> <strong>{preview.rolls}</strong></div>
-                  <div><span className="text-muted-foreground">Kg:</span> <strong>{preview.weightKg.toFixed(1)}</strong></div>
-                  <div><span className="text-muted-foreground">Valor:</span> <strong>R$ {preview.revenue.toFixed(2)}</strong></div>
-                  <div><span className="text-muted-foreground">Eficiência:</span> <strong className={effColor(preview.efficiency)}>{preview.efficiency.toFixed(1)}%</strong></div>
+            {/* Preview - always visible */}
+            <div className={cn("p-3 rounded-lg border", preview ? effBg(preview.efficiency) : 'bg-muted/30')}>
+              {preview ? (
+                <div className="grid grid-cols-4 gap-3 text-sm">
+                  <div className="text-center"><p className="text-xs text-muted-foreground">Rolos</p><p className="font-bold text-foreground">{preview.rolls}</p></div>
+                  <div className="text-center"><p className="text-xs text-muted-foreground">Peso (kg)</p><p className="font-bold text-foreground">{preview.weightKg.toFixed(1)}</p></div>
+                  <div className="text-center"><p className="text-xs text-muted-foreground">Valor</p><p className="font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p></div>
+                  <div className="text-center"><p className="text-xs text-muted-foreground">Eficiência</p><p className={cn("font-bold", effColor(preview.efficiency))}>{preview.efficiency.toFixed(1)}%</p></div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-1">Preencha os campos para ver o preview</p>
+              )}
+            </div>
           </div>
 
           <div className="flex-shrink-0 flex items-center justify-between border-t pt-4">
