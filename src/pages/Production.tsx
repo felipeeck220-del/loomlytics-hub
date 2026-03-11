@@ -28,6 +28,7 @@ export default function ProductionPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Production | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
+  const [weaverSearch, setWeaverSearch] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
