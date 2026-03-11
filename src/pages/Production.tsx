@@ -1,18 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { Plus, CalendarIcon, Pencil, Loader2 } from 'lucide-react';
+import { Plus, CalendarIcon, Pencil, Loader2, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production } from '@/types';
+
+const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
 export default function ProductionPage() {
   const { getProductions, saveProductions, getMachines, getWeavers, getArticles, loading } = useCompanyData();
@@ -21,16 +23,25 @@ export default function ProductionPage() {
   const weavers = getWeavers();
   const articles = getArticles();
 
+  const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
+
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Production | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
   });
 
+  const rollsRef = useRef<HTMLInputElement>(null);
+
   const selectedMachine = machines.find(m => m.id === form.machine_id);
   const selectedArticle = articles.find(a => a.id === form.article_id);
+
+  // Get current machine index and shift index for auto-advance
+  const currentMachineIndex = sortedMachines.findIndex(m => m.id === form.machine_id);
+  const currentShiftIndex = SHIFTS.indexOf(form.shift as ShiftType);
 
   const handleMachineChange = (id: string) => {
     const m = machines.find(x => x.id === id);
@@ -50,9 +61,57 @@ export default function ProductionPage() {
     return { efficiency: Math.min(efficiency, 100), weightKg, revenue, rolls };
   }, [form.shift, form.rpm, form.rolls, selectedArticle]);
 
+  const advanceToNext = useCallback(() => {
+    if (sortedMachines.length === 0) return;
+    const nextMachineIdx = currentMachineIndex + 1;
+    if (nextMachineIdx < sortedMachines.length) {
+      // Next machine, same shift
+      const nextMachine = sortedMachines[nextMachineIdx];
+      setForm(p => ({
+        ...p,
+        machine_id: nextMachine.id,
+        rpm: String(nextMachine.rpm),
+        rolls: '',
+        weaver_id: '',
+        article_id: '',
+      }));
+      setArticleSearch('');
+    } else {
+      // Wrap to first machine, next shift
+      const nextShiftIdx = currentShiftIndex + 1;
+      if (nextShiftIdx < SHIFTS.length) {
+        const firstMachine = sortedMachines[0];
+        setForm(p => ({
+          ...p,
+          shift: SHIFTS[nextShiftIdx],
+          machine_id: firstMachine.id,
+          rpm: String(firstMachine.rpm),
+          rolls: '',
+          weaver_id: '',
+          article_id: '',
+        }));
+        setArticleSearch('');
+        toast.info(`Avançou para ${SHIFT_LABELS[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
+      } else {
+        // All shifts done
+        toast.success('Todos os turnos registrados!');
+        setShowModal(false);
+      }
+    }
+  }, [sortedMachines, currentMachineIndex, currentShiftIndex]);
+
   const openNew = () => {
     setEditing(null);
-    setForm({ date: new Date(), shift: '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '' });
+    const firstMachine = sortedMachines[0];
+    setForm({
+      date: new Date(),
+      shift: SHIFTS[0],
+      machine_id: firstMachine?.id || '',
+      weaver_id: '',
+      article_id: '',
+      rpm: firstMachine ? String(firstMachine.rpm) : '',
+      rolls: '',
+    });
     setArticleSearch('');
     setShowModal(true);
   };
@@ -63,12 +122,13 @@ export default function ProductionPage() {
     setShowModal(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!form.shift || !form.machine_id || !form.article_id || !form.rolls) {
       toast.error('Preencha todos os campos obrigatórios'); return;
     }
-    if (!preview) return;
+    if (!preview || saving) return;
 
+    setSaving(true);
     const all = [...productions];
     const machineName = selectedMachine?.name || '';
     const weaverName = weavers.find(w => w.id === form.weaver_id)?.name || '';
@@ -99,11 +159,40 @@ export default function ProductionPage() {
       toast.success('Produção atualizada');
     } else {
       all.push(record);
-      toast.success('Produção registrada');
+      toast.success(`Produção registrada — ${machineName}`);
     }
     await saveProductions(all);
-    setShowModal(false);
-  };
+    setSaving(false);
+
+    if (editing) {
+      setShowModal(false);
+    } else {
+      advanceToNext();
+    }
+  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, saveProductions, advanceToNext]);
+
+  // Enter key handler
+  useEffect(() => {
+    if (!showModal) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        // Don't trigger if inside a select/popover
+        const target = e.target as HTMLElement;
+        if (target.closest('[role="listbox"]') || target.closest('[role="option"]') || target.closest('[data-radix-collection-item]')) return;
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showModal, handleSave]);
+
+  // Focus rolls input when machine changes
+  useEffect(() => {
+    if (showModal && rollsRef.current) {
+      setTimeout(() => rollsRef.current?.focus(), 100);
+    }
+  }, [form.machine_id, showModal]);
 
   const filteredArticles = articles.filter(a => a.name.toLowerCase().includes(articleSearch.toLowerCase()));
   const effColor = (eff: number) => eff >= 80 ? 'text-success' : eff >= 75 ? 'text-warning' : 'text-destructive';
@@ -148,66 +237,91 @@ export default function ProductionPage() {
       </div>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? 'Editar Produção' : 'Registrar Produção'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Data</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left">
-                    <CalendarIcon className="mr-2 h-4 w-4" />{format(form.date, 'dd/MM/yyyy')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={form.date} onSelect={d => d && setForm(p => ({ ...p, date: d }))} className="pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label>Turno</Label>
-              <Select value={form.shift} onValueChange={v => setForm(p => ({ ...p, shift: v as ShiftType }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione o turno" /></SelectTrigger>
-                <SelectContent>{Object.entries(SHIFT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Máquina</Label>
-              <Select value={form.machine_id} onValueChange={handleMachineChange}>
-                <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
-                <SelectContent>{machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            {form.machine_id && (
+        <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center gap-3">
+              {editing ? 'Editar Produção' : 'Registrar Produção'}
+              {!editing && form.shift && selectedMachine && (
+                <span className="text-sm font-normal text-muted-foreground flex items-center gap-1">
+                  <ChevronRight className="h-3 w-3" />
+                  {SHIFT_LABELS[form.shift as ShiftType]?.split(' (')[0]} · {selectedMachine.name}
+                  {currentMachineIndex >= 0 && (
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {currentMachineIndex + 1}/{sortedMachines.length}
+                    </Badge>
+                  )}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>RPM</Label>
-                <Input type="number" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} />
-                <p className="text-xs text-muted-foreground">RPM padrão da máquina: {selectedMachine?.rpm}</p>
+                <Label>Data</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      <CalendarIcon className="mr-2 h-4 w-4" />{format(form.date, 'dd/MM/yyyy')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={form.date} onSelect={d => d && setForm(p => ({ ...p, date: d }))} className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
               </div>
-            )}
-            <div className="space-y-2">
-              <Label>Tecelão</Label>
-              <Select value={form.weaver_id} onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione o tecelão" /></SelectTrigger>
-                <SelectContent>{weavers.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}</SelectContent>
-              </Select>
+
+              <div className="space-y-2">
+                <Label>Turno</Label>
+                <Select value={form.shift} onValueChange={v => setForm(p => ({ ...p, shift: v as ShiftType }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o turno" /></SelectTrigger>
+                  <SelectContent>{Object.entries(SHIFT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Máquina</Label>
+                <Select value={form.machine_id} onValueChange={handleMachineChange}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+                  <SelectContent>{sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+
+              {form.machine_id && (
+                <div className="space-y-2">
+                  <Label>RPM</Label>
+                  <Input type="number" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} />
+                  <p className="text-xs text-muted-foreground">Padrão: {selectedMachine?.rpm}</p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Tecelão</Label>
+                <Select value={form.weaver_id} onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o tecelão" /></SelectTrigger>
+                  <SelectContent>{weavers.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Artigo</Label>
+                <Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="mb-2" />
+                <Select value={form.article_id} onValueChange={v => setForm(p => ({ ...p, article_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o artigo" /></SelectTrigger>
+                  <SelectContent>{filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Rolos Produzidos</Label>
+                <Input ref={rollsRef} type="number" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Quantidade de rolos" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Artigo</Label>
-              <Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="mb-2" />
-              <Select value={form.article_id} onValueChange={v => setForm(p => ({ ...p, article_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione o artigo" /></SelectTrigger>
-                <SelectContent>{filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Rolos Produzidos</Label>
-              <Input type="number" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} />
-            </div>
+
             {preview && (
-              <div className={cn("p-4 rounded-lg border", effBg(preview.efficiency))}>
+              <div className={cn("p-4 rounded-lg border mt-4", effBg(preview.efficiency))}>
                 <p className="text-sm font-medium text-foreground mb-2">Preview da Produção</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                   <div><span className="text-muted-foreground">Rolos:</span> <strong>{preview.rolls}</strong></div>
                   <div><span className="text-muted-foreground">Kg:</span> <strong>{preview.weightKg.toFixed(1)}</strong></div>
                   <div><span className="text-muted-foreground">Valor:</span> <strong>R$ {preview.revenue.toFixed(2)}</strong></div>
@@ -216,10 +330,17 @@ export default function ProductionPage() {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancelar</Button>
-            <Button onClick={handleSave} className="btn-gradient">Salvar</Button>
-          </DialogFooter>
+
+          <div className="flex-shrink-0 flex items-center justify-between border-t pt-4">
+            <p className="text-xs text-muted-foreground">Pressione <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-mono border">Enter</kbd> para salvar</p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowModal(false)}>Fechar</Button>
+              <Button onClick={handleSave} className="btn-gradient" disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                {editing ? 'Salvar' : 'Registrar e Próximo'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
