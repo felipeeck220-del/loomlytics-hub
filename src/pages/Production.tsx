@@ -77,6 +77,7 @@ export default function ProductionPage() {
         article_id: '',
       }));
       setArticleSearch('');
+      setWeaverSearch('');
     } else {
       // Wrap to first machine, next shift
       const nextShiftIdx = currentShiftIndex + 1;
