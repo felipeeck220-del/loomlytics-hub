@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
