@@ -36,7 +36,7 @@ export default function ProductionPage() {
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
-  const [filterDate, setFilterDate] = useState('');
+  const [filterDate, setFilterDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [filterMachine, setFilterMachine] = useState('');
   const [filterArticle, setFilterArticle] = useState('');
 
