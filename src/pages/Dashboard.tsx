@@ -327,7 +327,7 @@ export default function Dashboard() {
                     <Factory className="h-4 w-4 text-muted-foreground" />
                     Top Máquinas
                   </CardTitle>
-                  <Button variant="ghost" size="sm" className="text-xs text-primary h-7" onClick={() => navigate('/machines')}>
+                  <Button variant="ghost" size="sm" className="text-xs text-primary h-7" onClick={() => setShowAllMachines(true)}>
                     Ver Todas
                   </Button>
                 </div>
