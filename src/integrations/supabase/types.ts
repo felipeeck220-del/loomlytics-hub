@@ -161,6 +161,7 @@ export type Database = {
           admin_name: string
           created_at: string
           id: string
+          logo_url: string | null
           name: string
           whatsapp: string | null
         }
@@ -169,6 +170,7 @@ export type Database = {
           admin_name: string
           created_at?: string
           id?: string
+          logo_url?: string | null
           name: string
           whatsapp?: string | null
         }
@@ -177,6 +179,7 @@ export type Database = {
           admin_name?: string
           created_at?: string
           id?: string
+          logo_url?: string | null
           name?: string
           whatsapp?: string | null
         }

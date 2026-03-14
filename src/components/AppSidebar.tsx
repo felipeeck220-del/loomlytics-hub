@@ -2,7 +2,9 @@ import {
   LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
-import { useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar,
@@ -22,14 +24,31 @@ const items = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
+  const { user } = useAuth();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.company_id) return;
+    (supabase.from as any)('companies')
+      .select('logo_url')
+      .eq('id', user.company_id)
+      .single()
+      .then(({ data }: any) => {
+        if (data?.logo_url) setLogoUrl(data.logo_url);
+      });
+  }, [user?.company_id]);
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-            <Factory className="h-4 w-4 text-sidebar-primary-foreground" />
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-8 w-8 rounded-lg object-contain shrink-0" />
+          ) : (
+            <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
+              <Factory className="h-4 w-4 text-sidebar-primary-foreground" />
+            </div>
+          )}
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-sm font-display font-bold text-sidebar-foreground tracking-tight">

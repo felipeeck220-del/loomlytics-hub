@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -58,6 +58,48 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 2MB.'); return; }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${user.company_id}/logo.${ext}`;
+      await supabase.storage.from('company-logos').remove([path]);
+      const { error: upErr } = await supabase.storage.from('company-logos').upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('company-logos').getPublicUrl(path);
+      const logoUrl = urlData.publicUrl + '?t=' + Date.now();
+      await (supabase.from as any)('companies').update({ logo_url: logoUrl }).eq('id', user.company_id);
+      setCompany((prev: any) => prev ? { ...prev, logo_url: logoUrl } : prev);
+      toast.success('Logo atualizada com sucesso');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar logo');
+    }
+    setUploadingLogo(false);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!user) return;
+    setUploadingLogo(true);
+    try {
+      const { data: files } = await supabase.storage.from('company-logos').list(user.company_id);
+      if (files?.length) {
+        await supabase.storage.from('company-logos').remove(files.map(f => `${user.company_id}/${f.name}`));
+      }
+      await (supabase.from as any)('companies').update({ logo_url: null }).eq('id', user.company_id);
+      setCompany((prev: any) => prev ? { ...prev, logo_url: null } : prev);
+      toast.success('Logo removida');
+    } catch (err: any) {
+      toast.error('Erro ao remover logo');
+    }
+    setUploadingLogo(false);
+  };
 
   // Fetch profiles and company
   useEffect(() => {
@@ -356,8 +398,52 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left: Company info */}
+              {/* Left: Company info + Logo */}
               <div className="space-y-5">
+                {/* Logo Upload */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Logo da Empresa</p>
+                  <div className="flex items-start gap-4">
+                    <div className="h-24 w-24 rounded-xl border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                      {company?.logo_url ? (
+                        <img src={company.logo_url} alt="Logo" className="h-full w-full object-contain" />
+                      ) : (
+                        <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={uploadingLogo}
+                      >
+                        {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+                        {company?.logo_url ? 'Alterar Logo' : 'Enviar Logo'}
+                      </Button>
+                      {company?.logo_url && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={handleRemoveLogo}
+                          disabled={uploadingLogo}
+                        >
+                          <X className="h-4 w-4 mr-1" /> Remover
+                        </Button>
+                      )}
+                      <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Máx 2MB.<br/>Aparece no menu lateral e nos PDFs.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <p className="text-sm text-muted-foreground">Nome da Empresa</p>
                   <p className="text-lg font-display font-bold text-foreground">{company?.name || '—'}</p>

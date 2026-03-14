@@ -1,5 +1,7 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useCompanyData } from '@/hooks/useCompanyData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -36,10 +38,24 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 
 export default function Reports() {
   const { getProductions, getMachines, getClients, getArticles, loading } = useCompanyData();
+  const { user } = useAuth();
   const productions = getProductions();
   const machines = getMachines();
   const clients = getClients();
   const articles = getArticles();
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+
+  // Fetch company logo
+  useEffect(() => {
+    if (!user?.company_id) return;
+    (supabase.from as any)('companies')
+      .select('logo_url')
+      .eq('id', user.company_id)
+      .single()
+      .then(({ data }: any) => {
+        if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
+      });
+  }, [user?.company_id]);
 
   // Filters
   const [dayRange, setDayRange] = useState(30);
@@ -673,7 +689,7 @@ export default function Reports() {
             <ExportButton
               label="Relatório Completo"
               description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
-              onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
+              onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
             />
           </div>
 
@@ -683,22 +699,22 @@ export default function Reports() {
               <ExportButton
                 label="Por Artigo"
                 description="Rolos, Kg, Valor"
-                onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
+                onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
               />
               <ExportButton
                 label="Por Máquina"
                 description="Performance individual"
-                onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
+                onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
               />
               <ExportButton
                 label="Por Turno"
                 description="Análise comparativa"
-                onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
+                onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
               />
               <ExportButton
                 label="Por Cliente"
                 description="Produção por cliente"
-                onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
+                onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
               />
             </div>
           </div>
@@ -762,6 +778,7 @@ function handleExport(
   byMachine: any[],
   byClient: any[],
   periodLabel: string,
+  logoUrl?: string | null,
 ) {
   const isAdmin = mode === 'admin';
 
@@ -907,8 +924,9 @@ function handleExport(
       @page { margin: 20mm; size: A4; }
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a2e; background: #fff; padding: 0; }
-      .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 28px 32px; border-radius: 0 0 12px 12px; margin-bottom: 24px; }
-      .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+      .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 28px 32px; border-radius: 0 0 12px 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 20px; }
+      .header-logo { height: 48px; width: 48px; border-radius: 8px; object-fit: contain; background: rgba(255,255,255,0.15); padding: 4px; }
+      .header-text h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
       .header .meta { font-size: 12px; opacity: 0.85; display: flex; gap: 16px; }
       .section { margin-bottom: 28px; break-inside: avoid; }
       .section h2 { font-size: 15px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
@@ -922,11 +940,14 @@ function handleExport(
       .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #94a3b8; text-align: center; }
     </style></head><body>
       <div class="header">
-        <h1>Relatório de Produção</h1>
-        <div class="meta">
-          <span>Período: ${periodLabel}</span>
-          <span>Modo: ${modeLabel}</span>
-          <span>Gerado em: ${date}</span>
+        ${logoUrl ? `<img src="${logoUrl}" class="header-logo" />` : ''}
+        <div class="header-text">
+          <h1>Relatório de Produção</h1>
+          <div class="meta">
+            <span>Período: ${periodLabel}</span>
+            <span>Modo: ${modeLabel}</span>
+            <span>Gerado em: ${date}</span>
+          </div>
         </div>
       </div>
       ${tablesHtml}
