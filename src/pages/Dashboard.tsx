@@ -409,7 +409,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: 'Máquinas Ativas', value: activeMachines.length },
+                { label: 'Máquinas Ativas', value: machines.filter(m => m.status === 'ativa').length },
                 { label: 'Total de Clientes', value: clients.length },
                 { label: 'Artigos Cadastrados', value: articles.length },
                 { label: 'Registros de Produção', value: formatNumber(productions.length) },
