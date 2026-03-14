@@ -756,59 +756,34 @@ function handleExport(
   type: string,
   mode: 'admin' | 'employee',
   _includeCharts: boolean,
+  exportFormat: 'pdf' | 'csv',
   filtered: any[],
   byShift: any[],
   byMachine: any[],
   byClient: any[],
+  periodLabel: string,
 ) {
   const isAdmin = mode === 'admin';
-  let csvContent = '';
-  const BOM = '\uFEFF';
 
-  const addLine = (values: (string | number)[]) => {
-    csvContent += values.map(v => `"${v}"`).join(';') + '\n';
-  };
+  // Build table data
+  const sections: { title: string; headers: string[]; rows: (string | number)[][] }[] = [];
 
   if (type === 'completo' || type === 'turno') {
-    addLine(isAdmin
-      ? ['Turno', 'Rolos', 'Peso (kg)', 'Faturamento']
-      : ['Turno', 'Rolos', 'Peso (kg)']
-    );
-    byShift.forEach(s => {
-      addLine(isAdmin
-        ? [s.name, s.rolos, s.kg.toFixed(2), s.faturamento.toFixed(2)]
-        : [s.name, s.rolos, s.kg.toFixed(2)]
-      );
-    });
-    csvContent += '\n';
+    const headers = isAdmin ? ['Turno', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Turno', 'Rolos', 'Peso (kg)'];
+    const rows = byShift.map(s => isAdmin ? [s.name, s.rolos, s.kg.toFixed(2), s.faturamento.toFixed(2)] : [s.name, s.rolos, s.kg.toFixed(2)]);
+    sections.push({ title: 'Por Turno', headers, rows });
   }
 
   if (type === 'completo' || type === 'maquina') {
-    addLine(isAdmin
-      ? ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento']
-      : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)']
-    );
-    byMachine.forEach(m => {
-      addLine(isAdmin
-        ? [m.name, m.rolos, m.kg.toFixed(2), m.eficiencia.toFixed(1), m.faturamento.toFixed(2)]
-        : [m.name, m.rolos, m.kg.toFixed(2), m.eficiencia.toFixed(1)]
-      );
-    });
-    csvContent += '\n';
+    const headers = isAdmin ? ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento'] : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)'];
+    const rows = byMachine.map(m => isAdmin ? [m.name, m.rolos, m.kg.toFixed(2), m.eficiencia.toFixed(1), m.faturamento.toFixed(2)] : [m.name, m.rolos, m.kg.toFixed(2), m.eficiencia.toFixed(1)]);
+    sections.push({ title: 'Por Máquina', headers, rows });
   }
 
   if (type === 'completo' || type === 'cliente') {
-    addLine(isAdmin
-      ? ['Cliente', 'Rolos', 'Peso (kg)', 'Faturamento']
-      : ['Cliente', 'Rolos', 'Peso (kg)']
-    );
-    byClient.forEach(c => {
-      addLine(isAdmin
-        ? [c.name, c.rolos, c.kg.toFixed(2), c.faturamento.toFixed(2)]
-        : [c.name, c.rolos, c.kg.toFixed(2)]
-      );
-    });
-    csvContent += '\n';
+    const headers = isAdmin ? ['Cliente', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Cliente', 'Rolos', 'Peso (kg)'];
+    const rows = byClient.map(c => isAdmin ? [c.name, c.rolos, c.kg.toFixed(2), c.faturamento.toFixed(2)] : [c.name, c.rolos, c.kg.toFixed(2)]);
+    sections.push({ title: 'Por Cliente', headers, rows });
   }
 
   if (type === 'completo' || type === 'artigo') {
@@ -820,23 +795,77 @@ function handleExport(
       articleMap[key].kg += p.weight_kg;
       articleMap[key].faturamento += p.revenue;
     });
-    addLine(isAdmin
-      ? ['Artigo', 'Rolos', 'Peso (kg)', 'Faturamento']
-      : ['Artigo', 'Rolos', 'Peso (kg)']
-    );
-    Object.values(articleMap).sort((a, b) => b.rolos - a.rolos).forEach(a => {
-      addLine(isAdmin
-        ? [a.name, a.rolos, a.kg.toFixed(2), a.faturamento.toFixed(2)]
-        : [a.name, a.rolos, a.kg.toFixed(2)]
-      );
-    });
+    const headers = isAdmin ? ['Artigo', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Artigo', 'Rolos', 'Peso (kg)'];
+    const rows = Object.values(articleMap).sort((a, b) => b.rolos - a.rolos).map(a => isAdmin ? [a.name, a.rolos, a.kg.toFixed(2), a.faturamento.toFixed(2)] : [a.name, a.rolos, a.kg.toFixed(2)]);
+    sections.push({ title: 'Por Artigo', headers, rows });
   }
 
-  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `relatorio-${type}-${mode}-${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  if (exportFormat === 'csv') {
+    let csvContent = '';
+    const BOM = '\uFEFF';
+    const addLine = (values: (string | number)[]) => { csvContent += values.map(v => `"${v}"`).join(';') + '\n'; };
+    sections.forEach(sec => {
+      addLine([sec.title]);
+      addLine(sec.headers);
+      sec.rows.forEach(r => addLine(r));
+      csvContent += '\n';
+    });
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `relatorio-${type}-${mode}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } else {
+    // PDF via styled print window
+    const modeLabel = mode === 'admin' ? 'Administrador' : 'Funcionários';
+    const date = new Date().toLocaleDateString('pt-BR');
+    
+    let tablesHtml = sections.map(sec => `
+      <div class="section">
+        <h2>${sec.title}</h2>
+        <table>
+          <thead><tr>${sec.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>${sec.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>
+      </div>
+    `).join('');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório</title>
+    <style>
+      @page { margin: 20mm; size: A4; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a2e; background: #fff; padding: 0; }
+      .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 28px 32px; border-radius: 0 0 12px 12px; margin-bottom: 24px; }
+      .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+      .header .meta { font-size: 12px; opacity: 0.85; display: flex; gap: 16px; }
+      .section { margin-bottom: 24px; break-inside: avoid; }
+      .section h2 { font-size: 15px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th { background: #f1f5f9; color: #475569; font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #e2e8f0; }
+      td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; }
+      tr:nth-child(even) td { background: #fafbfc; }
+      tr:hover td { background: #f0f4ff; }
+      .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #94a3b8; text-align: center; }
+    </style></head><body>
+      <div class="header">
+        <h1>Relatório de Produção</h1>
+        <div class="meta">
+          <span>Período: ${periodLabel}</span>
+          <span>Modo: ${modeLabel}</span>
+          <span>Gerado em: ${date}</span>
+        </div>
+      </div>
+      ${tablesHtml}
+      <div class="footer">Relatório gerado automaticamente pelo sistema MalhaGest · ${date}</div>
+    </body></html>`;
+
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      setTimeout(() => win.print(), 400);
+    }
+  }
 }
