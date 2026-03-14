@@ -424,6 +424,15 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+
+      <MachinePerformanceModal
+        open={showAllMachines}
+        onOpenChange={setShowAllMachines}
+        machines={machines}
+        productions={productions}
+        clients={clients}
+        articles={articles}
+      />
     </div>
   );
 }
