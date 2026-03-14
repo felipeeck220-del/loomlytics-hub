@@ -917,6 +917,7 @@ function handleExport(
       td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; }
       tr:nth-child(even) td { background: #fafbfc; }
       tr:hover td { background: #f0f4ff; }
+      .total-row td { background: #e2e8f0 !important; font-weight: 700; border-top: 2px solid #94a3b8; }
       svg { display: block; }
       .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #94a3b8; text-align: center; }
     </style></head><body>
