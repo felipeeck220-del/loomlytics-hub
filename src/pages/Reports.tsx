@@ -765,24 +765,28 @@ function handleExport(
 ) {
   const isAdmin = mode === 'admin';
 
+  const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmtK = (v: number) => fmtN(v, 2);
+  const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
+
   // Build table data
   const sections: { title: string; headers: string[]; rows: (string | number)[][] }[] = [];
 
   if (type === 'completo' || type === 'turno') {
     const headers = isAdmin ? ['Turno', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Turno', 'Rolos', 'Peso (kg)'];
-    const rows = byShift.map(s => isAdmin ? [s.name, s.rolos, s.kg.toFixed(2), s.faturamento.toFixed(2)] : [s.name, s.rolos, s.kg.toFixed(2)]);
+    const rows = byShift.map(s => isAdmin ? [s.name, fmtN(s.rolos), fmtK(s.kg), fmtR(s.faturamento)] : [s.name, fmtN(s.rolos), fmtK(s.kg)]);
     sections.push({ title: 'Por Turno', headers, rows });
   }
 
   if (type === 'completo' || type === 'maquina') {
     const headers = isAdmin ? ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento'] : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)'];
-    const rows = byMachine.map(m => isAdmin ? [m.name, m.rolos, m.kg.toFixed(2), m.eficiencia.toFixed(1), m.faturamento.toFixed(2)] : [m.name, m.rolos, m.kg.toFixed(2), m.eficiencia.toFixed(1)]);
+    const rows = byMachine.map(m => isAdmin ? [m.name, fmtN(m.rolos), fmtK(m.kg), fmtN(m.eficiencia, 1), fmtR(m.faturamento)] : [m.name, fmtN(m.rolos), fmtK(m.kg), fmtN(m.eficiencia, 1)]);
     sections.push({ title: 'Por Máquina', headers, rows });
   }
 
   if (type === 'completo' || type === 'cliente') {
     const headers = isAdmin ? ['Cliente', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Cliente', 'Rolos', 'Peso (kg)'];
-    const rows = byClient.map(c => isAdmin ? [c.name, c.rolos, c.kg.toFixed(2), c.faturamento.toFixed(2)] : [c.name, c.rolos, c.kg.toFixed(2)]);
+    const rows = byClient.map(c => isAdmin ? [c.name, fmtN(c.rolos), fmtK(c.kg), fmtR(c.faturamento)] : [c.name, fmtN(c.rolos), fmtK(c.kg)]);
     sections.push({ title: 'Por Cliente', headers, rows });
   }
 
@@ -796,7 +800,7 @@ function handleExport(
       articleMap[key].faturamento += p.revenue;
     });
     const headers = isAdmin ? ['Artigo', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Artigo', 'Rolos', 'Peso (kg)'];
-    const rows = Object.values(articleMap).sort((a, b) => b.rolos - a.rolos).map(a => isAdmin ? [a.name, a.rolos, a.kg.toFixed(2), a.faturamento.toFixed(2)] : [a.name, a.rolos, a.kg.toFixed(2)]);
+    const rows = Object.values(articleMap).sort((a, b) => b.rolos - a.rolos).map(a => isAdmin ? [a.name, fmtN(a.rolos), fmtK(a.kg), fmtR(a.faturamento)] : [a.name, fmtN(a.rolos), fmtK(a.kg)]);
     sections.push({ title: 'Por Artigo', headers, rows });
   }
 
