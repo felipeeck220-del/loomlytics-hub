@@ -896,7 +896,7 @@ function handleExport(
           ${chartHtml}
           <table>
             <thead><tr>${sec.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-            <tbody>${sec.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+            <tbody>${sec.rows.map((r, ri) => `<tr class="${ri === sec.rows.length - 1 ? 'total-row' : ''}">${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
           </table>
         </div>
       `;
