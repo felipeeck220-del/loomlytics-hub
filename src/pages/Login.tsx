@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Factory, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Factory, Mail, Lock, ArrowRight, BarChart3, Settings2, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Login() {
@@ -28,33 +28,34 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left brand panel */}
-      <div className="hidden lg:flex lg:w-[45%] sidebar-gradient items-center justify-center p-16 relative overflow-hidden">
-        {/* Subtle grid pattern */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: 'linear-gradient(hsl(210 40% 98%) 1px, transparent 1px), linear-gradient(90deg, hsl(210 40% 98%) 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
+      {/* Left brand panel - gradient dark */}
+      <div className="hidden lg:flex lg:w-[48%] relative items-center justify-center p-16 overflow-hidden" style={{ background: 'linear-gradient(195deg, hsl(220 15% 20%), hsl(220 18% 10%))' }}>
+        {/* Soft grid */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
+          backgroundSize: '50px 50px'
         }} />
-
-        <div className="relative text-center max-w-md">
-          <div className="h-16 w-16 rounded-2xl bg-sidebar-primary/20 flex items-center justify-center mx-auto mb-8 border border-sidebar-primary/30">
-            <Factory className="w-8 h-8 text-sidebar-primary" />
+        
+        <div className="relative text-center max-w-md z-10">
+          <div className="icon-box icon-box-primary mx-auto mb-8" style={{ width: 64, height: 64 }}>
+            <Factory className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-4xl font-display font-bold text-sidebar-foreground mb-4 tracking-tight">
+          <h1 className="text-4xl font-display font-bold text-white mb-3 tracking-tight">
             MalhaGest
           </h1>
-          <p className="text-base text-sidebar-foreground/60 leading-relaxed">
+          <p className="text-base text-white/50 leading-relaxed font-light">
             Sistema completo de gerenciamento para malharias. Controle produção, máquinas, clientes e muito mais.
           </p>
-          <div className="mt-10 grid grid-cols-3 gap-4">
+          <div className="mt-12 grid grid-cols-3 gap-4">
             {[
-              { label: 'Produção', desc: 'Controle total' },
-              { label: 'Máquinas', desc: 'Monitoramento' },
-              { label: 'Relatórios', desc: 'Análise completa' },
+              { label: 'Produção', desc: 'Controle total', icon: ClipboardList },
+              { label: 'Máquinas', desc: 'Monitoramento', icon: Settings2 },
+              { label: 'Relatórios', desc: 'Análise completa', icon: BarChart3 },
             ].map(f => (
-              <div key={f.label} className="text-left p-3 rounded-lg bg-sidebar-accent/50 border border-sidebar-border">
-                <p className="text-xs font-semibold text-sidebar-foreground/90">{f.label}</p>
-                <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">{f.desc}</p>
+              <div key={f.label} className="text-left p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <f.icon className="h-5 w-5 text-primary mb-2" />
+                <p className="text-xs font-medium text-white/90">{f.label}</p>
+                <p className="text-[10px] text-white/40 mt-0.5">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -65,38 +66,38 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Factory className="w-5 h-5 text-primary" />
+            <div className="icon-box icon-box-primary" style={{ width: 40, height: 40 }}>
+              <Factory className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-2xl font-display font-bold text-foreground tracking-tight">MalhaGest</h1>
           </div>
 
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-display font-bold text-foreground tracking-tight">Bem-vindo de volta</h2>
-              <p className="text-sm text-muted-foreground mt-1">Faça login para acessar sua conta</p>
+              <h2 className="text-2xl font-display font-bold text-foreground">Bem-vindo de volta</h2>
+              <p className="text-sm text-muted-foreground mt-1 font-light">Faça login para acessar sua conta</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-medium">Email</Label>
+                <Label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" placeholder="seu@email.com" className="pl-10 h-10"
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
+                  <Input id="email" type="email" placeholder="seu@email.com" className="pl-10 h-11 rounded-lg border-border/60 focus:border-primary"
                     value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-xs font-medium">Senha</Label>
+                <Label htmlFor="password" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Senha</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" placeholder="••••••••" className="pl-10 h-10"
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
+                  <Input id="password" type="password" placeholder="••••••••" className="pl-10 h-11 rounded-lg border-border/60 focus:border-primary"
                     value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full btn-gradient h-10" disabled={loading}>
+              <Button type="submit" className="w-full btn-gradient h-11 text-sm" disabled={loading}>
                 {loading ? 'Entrando...' : (
                   <>Entrar <ArrowRight className="h-4 w-4 ml-1" /></>
                 )}
@@ -105,7 +106,7 @@ export default function Login() {
 
             <p className="text-center text-sm text-muted-foreground">
               Não tem uma conta?{' '}
-              <Link to="/register" className="text-primary font-semibold hover:underline">
+              <Link to="/register" className="text-primary font-medium hover:underline">
                 Cadastre-se
               </Link>
             </p>
