@@ -323,6 +323,17 @@ export default function Dashboard() {
                     <span className="text-sm font-semibold text-foreground">{formatCurrency(s.revenue)}</span>
                   </div>
                 ))}
+                {/* Total */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10">
+                  <div className="flex items-center gap-3">
+                    <span className="w-2.5 h-2.5 rounded-full bg-foreground/60" />
+                    <div>
+                      <p className="text-sm font-bold text-foreground">Total</p>
+                      <p className="text-xs text-muted-foreground">{formatNumber(totalRolls)} rolos · {formatNumber(totalWeight, 1)} kg</p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-foreground">{formatCurrency(totalRevenue)}</span>
+                </div>
               </CardContent>
             </Card>
 
