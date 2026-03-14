@@ -853,7 +853,7 @@ function handleExport(
     URL.revokeObjectURL(url);
   } else {
     // PDF via styled print window
-    const modeLabel = mode === 'admin' ? 'Administrador' : 'Funcionários';
+    const modeLabel = mode === 'admin' ? 'Administrador' : 'Equipe';
     const date = new Date().toLocaleDateString('pt-BR');
 
     // Generate SVG bar chart HTML for a section
