@@ -126,11 +126,13 @@ export default function Reports() {
   // By shift
   const byShift = (['manha', 'tarde', 'noite'] as ShiftType[]).map(s => {
     const sp = filtered.filter(p => p.shift === s);
+    const eff = sp.length ? sp.reduce((sum, p) => sum + p.efficiency, 0) / sp.length : 0;
     return {
       name: SHIFT_LABELS[s].split(' (')[0],
       rolos: sp.reduce((sum, p) => sum + p.rolls_produced, 0),
       kg: sp.reduce((sum, p) => sum + p.weight_kg, 0),
       faturamento: sp.reduce((sum, p) => sum + p.revenue, 0),
+      eficiencia: eff,
     };
   });
 
