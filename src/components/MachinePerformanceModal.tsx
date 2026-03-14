@@ -220,7 +220,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-bold text-foreground">{m.name}</h3>
-                    <span className="text-xs font-medium bg-muted px-2.5 py-1 rounded-lg text-muted-foreground">{m.articleName}</span>
+                    <span className={cn("text-[11px] font-medium px-2.5 py-1 rounded-lg", m.statusColor)}>{m.statusLabel}</span>
                   </div>
 
                   {/* Efficiency Badge */}
