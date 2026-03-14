@@ -21,24 +21,30 @@ const items = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const location = useLocation();
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <Factory className="h-7 w-7 text-sidebar-primary shrink-0" />
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
+            <Factory className="h-4 w-4 text-sidebar-primary-foreground" />
+          </div>
           {!collapsed && (
-            <span className="text-lg font-display font-bold text-sidebar-foreground">
-              MalhaGest
-            </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-display font-bold text-sidebar-foreground tracking-tight">
+                MalhaGest
+              </span>
+              <span className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-widest">
+                Gestão Têxtil
+              </span>
+            </div>
           )}
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider">
-            {!collapsed && 'Menu'}
+          <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] uppercase tracking-widest font-semibold">
+            {!collapsed && 'Navegação'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -48,11 +54,11 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === '/'}
-                      className="hover:bg-sidebar-accent/50 transition-colors"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      className="hover:bg-sidebar-accent transition-colors rounded-md"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
                     >
-                      <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
+                      <item.icon className="mr-2.5 h-4 w-4 shrink-0" />
+                      {!collapsed && <span className="text-sm">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
