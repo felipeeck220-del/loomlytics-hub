@@ -709,7 +709,7 @@ export default function Reports() {
               <ExportButton
                 label="Por Turno"
                 description="Análise comparativa"
-                onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
+                onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
               />
               <ExportButton
                 label="Por Cliente"
