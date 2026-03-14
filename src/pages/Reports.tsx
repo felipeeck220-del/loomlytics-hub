@@ -672,8 +672,8 @@ export default function Reports() {
             <p className="text-sm font-semibold text-foreground mb-3">Exportação Geral</p>
             <ExportButton
               label="Relatório Completo"
-              description={exportMode === 'admin' ? 'Todos os dados em um PDF' : 'Dados de produção em um PDF'}
-              onClick={() => handleExport('completo', exportMode, includeCharts, filtered, byShift, byMachine, byClient)}
+              description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
+              onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
             />
           </div>
 
@@ -683,22 +683,22 @@ export default function Reports() {
               <ExportButton
                 label="Por Artigo"
                 description="Rolos, Kg, Valor"
-                onClick={() => handleExport('artigo', exportMode, includeCharts, filtered, byShift, byMachine, byClient)}
+                onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
               />
               <ExportButton
                 label="Por Máquina"
                 description="Performance individual"
-                onClick={() => handleExport('maquina', exportMode, includeCharts, filtered, byShift, byMachine, byClient)}
+                onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
               />
               <ExportButton
                 label="Por Turno"
                 description="Análise comparativa"
-                onClick={() => handleExport('turno', exportMode, includeCharts, filtered, byShift, byMachine, byClient)}
+                onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
               />
               <ExportButton
                 label="Por Cliente"
                 description="Produção por cliente"
-                onClick={() => handleExport('cliente', exportMode, includeCharts, filtered, byShift, byMachine, byClient)}
+                onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
               />
             </div>
           </div>
