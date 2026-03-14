@@ -624,14 +624,37 @@ export default function Reports() {
               </div>
             </div>
 
+            <div className="flex items-center gap-3">
+              <Label className="text-sm font-medium">Formato:</Label>
+              <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                <Button
+                  size="sm"
+                  variant={exportFormat === 'pdf' ? 'default' : 'ghost'}
+                  className="h-7 text-xs"
+                  onClick={() => setExportFormat('pdf')}
+                >
+                  PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant={exportFormat === 'csv' ? 'default' : 'ghost'}
+                  className="h-7 text-xs"
+                  onClick={() => setExportFormat('csv')}
+                >
+                  CSV
+                </Button>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
               <Switch
                 id="include-charts"
                 checked={includeCharts}
                 onCheckedChange={setIncludeCharts}
+                disabled={exportFormat === 'csv'}
               />
-              <Label htmlFor="include-charts" className="text-sm cursor-pointer">
-                Incluir gráficos
+              <Label htmlFor="include-charts" className={cn("text-sm cursor-pointer", exportFormat === 'csv' && "text-muted-foreground/50")}>
+                Incluir gráficos {exportFormat === 'csv' && '(só PDF)'}
               </Label>
             </div>
           </div>
