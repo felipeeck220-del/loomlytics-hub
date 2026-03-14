@@ -14,6 +14,58 @@ export type Database = {
   }
   public: {
     Tables: {
+      article_machine_turns: {
+        Row: {
+          article_id: string
+          company_id: string
+          created_at: string
+          id: string
+          machine_id: string
+          observations: string | null
+          turns_per_roll: number
+        }
+        Insert: {
+          article_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          machine_id: string
+          observations?: string | null
+          turns_per_roll: number
+        }
+        Update: {
+          article_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          machine_id?: string
+          observations?: string | null
+          turns_per_roll?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_machine_turns_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_machine_turns_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_machine_turns_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       articles: {
         Row: {
           client_id: string | null

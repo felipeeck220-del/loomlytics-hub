@@ -9,12 +9,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Client, Article } from '@/types';
+import type { Client, Article, ArticleMachineTurns } from '@/types';
+
+interface MachineTurnRow {
+  id: string;
+  machine_id: string;
+  turns_per_roll: string;
+  observations: string;
+}
 
 export default function ClientsArticles() {
-  const { getClients, saveClients, getArticles, saveArticles, loading } = useCompanyData();
+  const { getClients, saveClients, getArticles, saveArticles, getMachines, getArticleMachineTurns, saveArticleMachineTurns, loading } = useCompanyData();
   const clients = getClients();
   const articles = getArticles();
+  const machines = getMachines();
+  const allMachineTurns = getArticleMachineTurns();
   const [tab, setTab] = useState('clients');
   const [clientSearch, setClientSearch] = useState('');
   const [articleSearch, setArticleSearch] = useState('');
@@ -29,6 +38,63 @@ export default function ClientsArticles() {
 
   const [showDelete, setShowDelete] = useState<{ type: 'client' | 'article'; item: any } | null>(null);
   const [deleteWord, setDeleteWord] = useState('');
+
+  // Turns config modal
+  const [turnsArticle, setTurnsArticle] = useState<Article | null>(null);
+  const [turnsDefault, setTurnsDefault] = useState('');
+  const [turnsRows, setTurnsRows] = useState<MachineTurnRow[]>([]);
+
+  const openTurnsModal = (article: Article) => {
+    setTurnsArticle(article);
+    setTurnsDefault(String(article.turns_per_roll));
+    const existing = allMachineTurns.filter(t => t.article_id === article.id);
+    setTurnsRows(existing.map(t => ({
+      id: t.id,
+      machine_id: t.machine_id,
+      turns_per_roll: String(t.turns_per_roll),
+      observations: t.observations || '',
+    })));
+  };
+
+  const addTurnsRow = () => {
+    setTurnsRows(prev => [...prev, { id: crypto.randomUUID(), machine_id: '', turns_per_roll: '', observations: '' }]);
+  };
+
+  const removeTurnsRow = (id: string) => {
+    setTurnsRows(prev => prev.filter(r => r.id !== id));
+  };
+
+  const handleSaveTurns = async () => {
+    if (!turnsArticle) return;
+    const defaultVal = Number(turnsDefault);
+    if (!defaultVal) { toast.error('Voltas padrão é obrigatório'); return; }
+
+    // Save default turns on article
+    const allArticles = [...articles];
+    const idx = allArticles.findIndex(a => a.id === turnsArticle.id);
+    if (idx >= 0) {
+      allArticles[idx] = { ...allArticles[idx], turns_per_roll: defaultVal };
+      await saveArticles(allArticles);
+    }
+
+    // Save machine-specific turns
+    const validRows = turnsRows.filter(r => r.machine_id && r.turns_per_roll);
+    const turnsData: ArticleMachineTurns[] = validRows.map(r => ({
+      id: r.id,
+      article_id: turnsArticle.id,
+      machine_id: r.machine_id,
+      company_id: '',
+      turns_per_roll: Number(r.turns_per_roll),
+      observations: r.observations || undefined,
+      created_at: new Date().toISOString(),
+    }));
+    await saveArticleMachineTurns(turnsArticle.id, turnsData);
+    toast.success('Configurações de voltas salvas');
+    setTurnsArticle(null);
+  };
+
+  // Get machines already used in turns rows (to prevent duplicates)
+  const usedMachineIds = turnsRows.map(r => r.machine_id).filter(Boolean);
 
   const openNewClient = () => { setEditingClient(null); setClientForm({ name: '', contact: '', observations: '' }); setShowClientModal(true); };
   const openEditClient = (c: Client) => { setEditingClient(c); setClientForm({ name: c.name, contact: c.contact || '', observations: c.observations || '' }); setShowClientModal(true); };
@@ -119,17 +185,10 @@ export default function ClientsArticles() {
               <h2 className="font-display font-semibold text-foreground">Lista de Clientes</h2>
               <p className="text-sm text-muted-foreground">{filteredClients.length} de {clients.length} clientes</p>
             </div>
-
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Pesquisar clientes por nome, contato ou endereço..."
-                value={clientSearch}
-                onChange={e => setClientSearch(e.target.value)}
-                className="pl-9"
-              />
+              <Input placeholder="Pesquisar clientes por nome, contato ou endereço..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="pl-9" />
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredClients.map(c => (
                 <div key={c.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
@@ -161,17 +220,10 @@ export default function ClientsArticles() {
               <h2 className="font-display font-semibold text-foreground">Lista de Artigos</h2>
               <p className="text-sm text-muted-foreground">{filteredArticles.length} de {articles.length} artigos</p>
             </div>
-
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Pesquisar artigos por nome, cliente ou observações..."
-                value={articleSearch}
-                onChange={e => setArticleSearch(e.target.value)}
-                className="pl-9"
-              />
+              <Input placeholder="Pesquisar artigos por nome, cliente ou observações..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="pl-9" />
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredArticles.map(a => (
                 <div key={a.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
@@ -184,7 +236,7 @@ export default function ClientsArticles() {
                     <p className="text-muted-foreground">Valor/Kg: <span className="font-semibold text-foreground">R$ {a.value_per_kg}</span></p>
                   </div>
                   <div className="flex items-center gap-2 pt-1 border-t border-border">
-                    <Button variant="outline" size="sm" className="text-xs" onClick={() => openEditArticle(a)}>
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => openTurnsModal(a)}>
                       <Settings className="h-3 w-3 mr-1" /> Voltas
                     </Button>
                     <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditArticle(a)}>
@@ -243,6 +295,125 @@ export default function ClientsArticles() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowArticleModal(false)}>Cancelar</Button>
             <Button onClick={handleSaveArticle} className="btn-gradient">{editingArticle ? 'Salvar' : 'Cadastrar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Turns Config Modal */}
+      <Dialog open={!!turnsArticle} onOpenChange={() => setTurnsArticle(null)}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-display">Configurar Voltas por Máquina</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Gerencie as voltas por rolo para o artigo "{turnsArticle?.name}" em cada máquina.
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Default turns section */}
+            <div className="rounded-lg border border-border bg-muted/30 p-5 space-y-3">
+              <div>
+                <p className="font-semibold text-foreground">Voltas por Rolo (Padrão)</p>
+                <p className="text-sm text-muted-foreground">Este valor será usado como padrão para máquinas que não tenham configuração específica.</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Voltas por Rolo (Padrão) <span className="text-destructive">*</span></Label>
+                <Input
+                  type="number"
+                  value={turnsDefault}
+                  onChange={e => setTurnsDefault(e.target.value)}
+                  placeholder="Ex: 800"
+                />
+              </div>
+            </div>
+
+            {/* Machine-specific section */}
+            <div className="rounded-lg border border-border bg-muted/30 p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-semibold text-foreground">Configurações Específicas por Máquina</p>
+                  <p className="text-sm text-muted-foreground">Defina voltas específicas para cada máquina. Se não configurado, o valor padrão será usado.</p>
+                </div>
+              </div>
+
+              {turnsRows.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Settings className="h-12 w-12 text-muted-foreground/40 mb-3" />
+                  <p className="font-semibold text-foreground">Nenhuma configuração específica</p>
+                  <p className="text-sm text-muted-foreground mb-4">Todas as máquinas usarão o valor padrão de voltas por rolo.</p>
+                  <Button variant="outline" onClick={addTurnsRow}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar Configuração para Máquina
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {turnsRows.map((row) => (
+                    <div key={row.id} className="rounded-lg border border-border bg-background p-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold">Máquina <span className="text-destructive">*</span></Label>
+                          <Select
+                            value={row.machine_id}
+                            onValueChange={v => setTurnsRows(prev => prev.map(r => r.id === row.id ? { ...r, machine_id: v } : r))}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+                            <SelectContent>
+                              {machines.map(m => (
+                                <SelectItem
+                                  key={m.id}
+                                  value={m.id}
+                                  disabled={usedMachineIds.includes(m.id) && row.machine_id !== m.id}
+                                >
+                                  {m.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold">Voltas por Rolo <span className="text-destructive">*</span></Label>
+                          <Input
+                            type="number"
+                            value={row.turns_per_roll}
+                            onChange={e => setTurnsRows(prev => prev.map(r => r.id === row.id ? { ...r, turns_per_roll: e.target.value } : r))}
+                            placeholder="Ex: 850"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold">Observações</Label>
+                          <Input
+                            value={row.observations}
+                            onChange={e => setTurnsRows(prev => prev.map(r => r.id === row.id ? { ...r, observations: e.target.value } : r))}
+                            placeholder="Observações específicas"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 text-destructive hover:text-destructive shrink-0"
+                          onClick={() => removeTurnsRow(row.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button variant="outline" className="w-full" onClick={addTurnsRow}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar Outra Máquina
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 mt-2">
+            <Button onClick={handleSaveTurns} className="btn-gradient w-full sm:w-auto sm:flex-1">
+              Salvar Configurações
+            </Button>
+            <Button variant="outline" onClick={() => setTurnsArticle(null)} className="w-full sm:w-auto sm:flex-1">
+              Cancelar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

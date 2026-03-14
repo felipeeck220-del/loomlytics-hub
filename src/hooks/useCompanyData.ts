@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { Machine, Client, Article, Weaver, Production, MachineLog } from '@/types';
+import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns } from '@/types';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
@@ -15,6 +15,7 @@ export function useCompanyData() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [weavers, setWeavers] = useState<Weaver[]>([]);
   const [productions, setProductions] = useState<Production[]>([]);
+  const [articleMachineTurns, setArticleMachineTurns] = useState<ArticleMachineTurns[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch all rows from a table, paginating past the 1000-row default limit
@@ -47,13 +48,14 @@ export function useCompanyData() {
     }
     (async () => {
       setLoading(true);
-      const [mData, cData, aData, wData, pData, mlRes] = await Promise.all([
+      const [mData, cData, aData, wData, pData, mlRes, amtData] = await Promise.all([
         fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
         fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
         fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
         sb('machine_logs').select('*'),
+        fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
       ]);
 
       setMachines(mData.map(mapMachine));
@@ -62,6 +64,7 @@ export function useCompanyData() {
       setArticles(aData.map(mapArticle));
       setWeavers(wData.map(mapWeaver));
       setProductions(pData.map(mapProduction));
+      setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
       setLoading(false);
     })();
   }, [companyId]);
@@ -101,6 +104,11 @@ export function useCompanyData() {
     weight_kg: Number(r.weight_kg), revenue: Number(r.revenue),
     efficiency: Number(r.efficiency), created_at: r.created_at,
   });
+  const mapArticleMachineTurns = (r: any): ArticleMachineTurns => ({
+    id: r.id, article_id: r.article_id, machine_id: r.machine_id,
+    company_id: r.company_id, turns_per_roll: Number(r.turns_per_roll),
+    observations: r.observations || undefined, created_at: r.created_at,
+  });
 
   // Getters (return current state)
   const getMachines = useCallback(() => machines, [machines]);
@@ -109,6 +117,7 @@ export function useCompanyData() {
   const getArticles = useCallback(() => articles, [articles]);
   const getWeavers = useCallback(() => weavers, [weavers]);
   const getProductions = useCallback(() => productions, [productions]);
+  const getArticleMachineTurns = useCallback(() => articleMachineTurns, [articleMachineTurns]);
 
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {
@@ -200,6 +209,22 @@ export function useCompanyData() {
     setProductions(data);
   }, [companyId]);
 
+  const saveArticleMachineTurns = useCallback(async (articleId: string, data: ArticleMachineTurns[]) => {
+    if (!companyId) return;
+    await sb('article_machine_turns').delete().eq('article_id', articleId);
+    if (data.length > 0) {
+      const rows = data.map(t => ({
+        id: t.id, article_id: t.article_id, machine_id: t.machine_id,
+        company_id: companyId, turns_per_roll: t.turns_per_roll,
+        observations: t.observations || null, created_at: t.created_at,
+      }));
+      await sb('article_machine_turns').insert(rows);
+    }
+    // Refresh all article machine turns
+    const amtData = await fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at');
+    setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
+  }, [companyId]);
+
   return {
     loading,
     dbCompanyId: companyId,
@@ -209,5 +234,6 @@ export function useCompanyData() {
     getArticles, saveArticles,
     getWeavers, saveWeavers,
     getProductions, saveProductions,
+    getArticleMachineTurns, saveArticleMachineTurns,
   };
 }
