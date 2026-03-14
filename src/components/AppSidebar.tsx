@@ -40,13 +40,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
+      <SidebarHeader className="px-4 py-5 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
           {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="h-8 w-8 rounded-lg object-contain shrink-0" />
+            <img src={logoUrl} alt="Logo" className="h-9 w-9 rounded-xl object-contain shrink-0" />
           ) : (
-            <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-              <Factory className="h-4 w-4 text-sidebar-primary-foreground" />
+            <div className="icon-box icon-box-primary shrink-0" style={{ width: 36, height: 36 }}>
+              <Factory className="h-4 w-4 text-white" />
             </div>
           )}
           {!collapsed && (
@@ -54,31 +54,31 @@ export function AppSidebar() {
               <span className="text-sm font-display font-bold text-sidebar-foreground tracking-tight">
                 MalhaGest
               </span>
-              <span className="text-[10px] font-medium text-sidebar-foreground/40 uppercase tracking-widest">
+              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-widest">
                 Gestão Têxtil
               </span>
             </div>
           )}
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-2 py-3">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] uppercase tracking-widest font-semibold">
+          <SidebarGroupLabel className="text-muted-foreground/60 text-[10px] uppercase tracking-widest font-medium px-3 mb-1">
             {!collapsed && 'Navegação'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-0.5">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
                       end={item.url === '/'}
-                      className="hover:bg-sidebar-accent transition-colors rounded-md"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm"
                     >
-                      <item.icon className="mr-2.5 h-4 w-4 shrink-0" />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
+                      <item.icon className="h-[18px] w-[18px] shrink-0" />
+                      {!collapsed && <span className="text-[13px]">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
