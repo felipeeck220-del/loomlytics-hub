@@ -884,7 +884,9 @@ function handleExport(
       if (_includeCharts) {
         // Determine chart data based on section title
         if (sec.title === 'Por Turno') {
-          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Rolos por Turno</p>';
+          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Eficiência por Turno (%)</p>';
+          chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.eficiencia })), '#f59e0b', '%');
+          chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Rolos por Turno</p>';
           chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.rolos })), '#2563eb', '');
           if (isAdmin) {
             chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Faturamento por Turno</p>';
