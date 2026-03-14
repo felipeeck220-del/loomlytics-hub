@@ -140,14 +140,14 @@
 
   .btn-gradient {
     background: var(--gradient-primary);
-    @apply text-primary-foreground font-medium rounded-lg;
-    box-shadow: var(--shadow-gradient);
+    @apply text-primary-foreground font-semibold rounded-lg;
+    box-shadow: 0 4px 16px hsl(210 100% 52% / 0.4);
     transition: all 0.2s ease;
   }
 
   .btn-gradient:hover {
     filter: brightness(1.08);
-    box-shadow: 0 6px 24px hsl(210 100% 52% / 0.35);
+    box-shadow: 0 6px 24px hsl(210 100% 52% / 0.45);
     transform: translateY(-1px);
   }
 
