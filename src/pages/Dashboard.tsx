@@ -223,34 +223,35 @@ export default function Dashboard() {
       </Card>
 
       {/* KPI Cards - Material style with gradient icon boxes */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MaterialKpi
-          icon={<Package className="h-6 w-6 text-white" />}
+          icon={<Package className="h-5 w-5 text-white" />}
           iconClass="icon-box-dark"
           label="Rolos"
           value={formatNumber(totalRolls)}
           footer={`${filtered.length} registros`}
         />
         <MaterialKpi
-          icon={<Scale className="h-6 w-6 text-white" />}
+          icon={<Scale className="h-5 w-5 text-white" />}
           iconClass="icon-box-success"
           label="Peso Total"
           value={`${formatNumber(totalWeight, 1)} kg`}
           footer={`${formatNumber(kgPerHour, 2)} kg/hora`}
         />
         <MaterialKpi
-          icon={<DollarSign className="h-6 w-6 text-white" />}
+          icon={<DollarSign className="h-5 w-5 text-white" />}
           iconClass="icon-box-primary"
           label="Faturamento"
           value={formatCurrency(totalRevenue)}
           footer={`${formatCurrency(revenuePerHour)}/hora`}
         />
         <MaterialKpi
-          icon={<Gauge className="h-6 w-6 text-white" />}
+          icon={<Gauge className="h-5 w-5 text-white" />}
           iconClass={avgEfficiency >= 80 ? "icon-box-success" : avgEfficiency >= 70 ? "icon-box-warning" : "icon-box-danger"}
           label="Eficiência"
           value={formatPercent(avgEfficiency)}
           footer={avgEfficiency >= 80 ? 'Dentro da meta' : 'Abaixo da meta'}
+          efficiencyValue={avgEfficiency}
         />
       </div>
 
