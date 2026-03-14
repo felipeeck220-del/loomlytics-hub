@@ -1,15 +1,21 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Clock, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import type { Weaver, ShiftType } from '@/types';
 import { SHIFT_LABELS } from '@/types';
+
+const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
+  manha: '05:00 às 13:30',
+  tarde: '13:30 às 22:00',
+  noite: '22:00 às 05:00',
+};
 
 export default function Weavers() {
   const { getWeavers, saveWeavers, loading } = useCompanyData();
@@ -24,6 +30,16 @@ export default function Weavers() {
     name: '', phone: '', shift_type: 'fixo' as 'fixo' | 'especifico',
     fixed_shift: '' as ShiftType | '', start_time: '', end_time: '',
   });
+
+  // Counts
+  const counts = useMemo(() => {
+    const fixo = weavers.filter(w => w.shift_type === 'fixo');
+    const especifico = weavers.filter(w => w.shift_type === 'especifico');
+    const manha = fixo.filter(w => w.fixed_shift === 'manha');
+    const tarde = fixo.filter(w => w.fixed_shift === 'tarde');
+    const noite = fixo.filter(w => w.fixed_shift === 'noite');
+    return { total: weavers.length, fixo: fixo.length, especifico: especifico.length, manha, tarde, noite };
+  }, [weavers]);
 
   const generateCode = () => {
     const existing = weavers.map(w => parseInt(w.code.replace('#', '')));
@@ -70,42 +86,114 @@ export default function Weavers() {
     setShowDelete(null); setDeleteWord(''); toast.success('Tecelão excluído');
   };
 
+  const renderWeaverCard = (w: Weaver) => (
+    <div key={w.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-2">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-display font-bold text-foreground">{w.name}</p>
+            <Badge variant="outline" className="font-mono text-xs font-bold text-primary">{w.code}</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mt-0.5">{w.phone || 'Sem telefone'}</p>
+          <Badge variant="secondary" className="text-xs mt-1">
+            {w.shift_type === 'fixo' ? 'Turno Fixo' : `${w.start_time} - ${w.end_time}`}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(w)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(w); setDeleteWord(''); }}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderShiftSection = (title: string, subtitle: string, weaverList: Weaver[], emptyMsg: string) => (
+    <div className="card-glass p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <Clock className="h-5 w-5 text-muted-foreground" />
+        <div>
+          <p className="font-display font-semibold text-foreground">{title}</p>
+          <p className="text-sm text-muted-foreground">{subtitle} - {weaverList.length} tecelões</p>
+        </div>
+      </div>
+      {weaverList.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {weaverList.map(renderWeaverCard)}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <Users className="h-10 w-10 text-muted-foreground/40 mb-2" />
+          <p className="text-muted-foreground">{emptyMsg}</p>
+        </div>
+      )}
+    </div>
+  );
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-3 text-muted-foreground">Carregando...</span></div>;
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Tecelões</h1>
-          <p className="text-muted-foreground text-sm">{weavers.length} tecelões cadastrados</p>
+          <p className="text-muted-foreground text-sm">Gerencie os tecelões e seus turnos de trabalho</p>
         </div>
         <Button onClick={openNew} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Tecelão</Button>
       </div>
 
-      <div className="grid gap-3">
-        {weavers.map(w => (
-          <div key={w.id} className="card-glass p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="font-mono font-bold text-primary">{w.code}</Badge>
-              <div>
-                <p className="font-display font-semibold text-foreground">{w.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {w.shift_type === 'fixo' ? (w.fixed_shift ? SHIFT_LABELS[w.fixed_shift] : 'Turno não definido') : `${w.start_time} - ${w.end_time}`}
-                  {w.phone && ` · ${w.phone}`}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => openEdit(w)}><Pencil className="h-3 w-3" /></Button>
-              <Button variant="outline" size="sm" onClick={() => { setShowDelete(w); setDeleteWord(''); }}><Trash2 className="h-3 w-3" /></Button>
-            </div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Total</span>
+            <Users className="h-5 w-5 text-muted-foreground" />
           </div>
-        ))}
-        {weavers.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhum tecelão cadastrado</p>}
+          <span className="text-3xl font-display font-bold text-foreground">{counts.total}</span>
+        </div>
+        <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Turno Fixo</span>
+            <Clock className="h-5 w-5 text-blue-500" />
+          </div>
+          <span className="text-3xl font-display font-bold text-blue-600">{counts.fixo}</span>
+        </div>
+        <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Carga Horária</span>
+            <Clock className="h-5 w-5 text-emerald-500" />
+          </div>
+          <span className="text-3xl font-display font-bold text-emerald-600">{counts.especifico}</span>
+        </div>
+        <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Manhã</span>
+            <Clock className="h-5 w-5 text-yellow-500" />
+          </div>
+          <span className="text-3xl font-display font-bold text-yellow-600">{counts.manha.length}</span>
+        </div>
       </div>
 
+      {/* Shift Sections */}
+      {renderShiftSection('Turno Manhã', SHIFT_TIME_LABELS.manha, counts.manha, 'Nenhum tecelão neste turno')}
+      {renderShiftSection('Turno Tarde', SHIFT_TIME_LABELS.tarde, counts.tarde, 'Nenhum tecelão neste turno')}
+      {renderShiftSection('Turno Noite', SHIFT_TIME_LABELS.noite, counts.noite, 'Nenhum tecelão neste turno')}
+
+      {/* Specific hours section */}
+      {renderShiftSection(
+        'Carga Horária Específica',
+        'Tecelões com horários personalizados',
+        weavers.filter(w => w.shift_type === 'especifico'),
+        'Nenhum tecelão com carga horária específica'
+      )}
+
+      {/* Add/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Editar Tecelão' : 'Novo Tecelão'}</DialogTitle></DialogHeader>
@@ -145,6 +233,7 @@ export default function Weavers() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Modal */}
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Excluir {showDelete?.name}?</DialogTitle></DialogHeader>
