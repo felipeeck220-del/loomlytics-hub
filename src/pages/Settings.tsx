@@ -58,6 +58,48 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 2MB.'); return; }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${user.company_id}/logo.${ext}`;
+      await supabase.storage.from('company-logos').remove([path]);
+      const { error: upErr } = await supabase.storage.from('company-logos').upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from('company-logos').getPublicUrl(path);
+      const logoUrl = urlData.publicUrl + '?t=' + Date.now();
+      await (supabase.from as any)('companies').update({ logo_url: logoUrl }).eq('id', user.company_id);
+      setCompany((prev: any) => prev ? { ...prev, logo_url: logoUrl } : prev);
+      toast.success('Logo atualizada com sucesso');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao enviar logo');
+    }
+    setUploadingLogo(false);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!user) return;
+    setUploadingLogo(true);
+    try {
+      const { data: files } = await supabase.storage.from('company-logos').list(user.company_id);
+      if (files?.length) {
+        await supabase.storage.from('company-logos').remove(files.map(f => `${user.company_id}/${f.name}`));
+      }
+      await (supabase.from as any)('companies').update({ logo_url: null }).eq('id', user.company_id);
+      setCompany((prev: any) => prev ? { ...prev, logo_url: null } : prev);
+      toast.success('Logo removida');
+    } catch (err: any) {
+      toast.error('Erro ao remover logo');
+    }
+    setUploadingLogo(false);
+  };
 
   // Fetch profiles and company
   useEffect(() => {
