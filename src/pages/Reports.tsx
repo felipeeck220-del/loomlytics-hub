@@ -699,7 +699,7 @@ export default function Reports() {
               <ExportButton
                 label="Por Artigo"
                 description="Rolos, Kg, Valor"
-                onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
+                onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
               />
               <ExportButton
                 label="Por Máquina"
