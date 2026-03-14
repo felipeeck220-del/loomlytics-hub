@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ADMIN_PASSWORD = "o'm\"{m7CP>3)Y4x~";
+const ADMIN_PASSWORD = Deno.env.get('ADMIN_PASSWORD')!;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
