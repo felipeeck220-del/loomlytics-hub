@@ -1,1 +1,4 @@
 project_id = "etsaleegdpswwsprwyzv"
+
+[functions.admin-api]
+verify_jwt = false

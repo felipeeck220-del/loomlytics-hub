@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CompanyDataProvider } from "@/contexts/CompanyDataContext";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -15,6 +17,7 @@ import Weavers from "./pages/Weavers";
 import Reports from "./pages/Reports";
 import Outsource from "./pages/Outsource";
 import SettingsPage from "./pages/Settings";
+import Admin from "./pages/Admin";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
@@ -23,8 +26,43 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  const [platformBlocked, setPlatformBlocked] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+
+  useEffect(() => {
+    if (!user?.company_id) {
+      setCheckingAccess(false);
+      return;
+    }
+    (supabase.from as any)('company_settings')
+      .select('platform_active')
+      .eq('company_id', user.company_id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data && data.platform_active === false) {
+          setPlatformBlocked(true);
+        }
+        setCheckingAccess(false);
+      });
+  }, [user?.company_id]);
+
+  if (loading || checkingAccess) return null;
   if (!user) return <Navigate to="/login" replace />;
+  if (platformBlocked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="mx-auto h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+            <svg className="h-8 w-8 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">Acesso Bloqueado</h1>
+          <p className="text-muted-foreground">O acesso à plataforma foi desativado para sua empresa. Entre em contato com o administrador do sistema.</p>
+        </div>
+      </div>
+    );
+  }
   return <>{children}</>;
 }
 
@@ -55,6 +93,7 @@ const App = () => (
               <Route path="reports" element={<Reports />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
