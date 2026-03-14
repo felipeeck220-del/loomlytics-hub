@@ -398,8 +398,52 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left: Company info */}
+              {/* Left: Company info + Logo */}
               <div className="space-y-5">
+                {/* Logo Upload */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Logo da Empresa</p>
+                  <div className="flex items-start gap-4">
+                    <div className="h-24 w-24 rounded-xl border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                      {company?.logo_url ? (
+                        <img src={company.logo_url} alt="Logo" className="h-full w-full object-contain" />
+                      ) : (
+                        <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={uploadingLogo}
+                      >
+                        {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+                        {company?.logo_url ? 'Alterar Logo' : 'Enviar Logo'}
+                      </Button>
+                      {company?.logo_url && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={handleRemoveLogo}
+                          disabled={uploadingLogo}
+                        >
+                          <X className="h-4 w-4 mr-1" /> Remover
+                        </Button>
+                      )}
+                      <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Máx 2MB.<br/>Aparece no menu lateral e nos PDFs.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <p className="text-sm text-muted-foreground">Nome da Empresa</p>
                   <p className="text-lg font-display font-bold text-foreground">{company?.name || '—'}</p>
