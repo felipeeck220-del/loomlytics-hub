@@ -426,23 +426,30 @@ export default function Dashboard() {
   );
 }
 
-function MaterialKpi({ icon, iconClass, label, value, footer }: {
-  icon: React.ReactNode; iconClass: string; label: string; value: string; footer: string;
+function MaterialKpi({ icon, iconClass, label, value, footer, efficiencyValue }: {
+  icon: React.ReactNode; iconClass: string; label: string; value: string; footer: string; efficiencyValue?: number;
 }) {
+  const effBg = efficiencyValue !== undefined
+    ? efficiencyValue >= 80 ? 'bg-success/10' : efficiencyValue >= 70 ? 'bg-warning/10' : 'bg-destructive/10'
+    : '';
+  const effText = efficiencyValue !== undefined
+    ? efficiencyValue >= 80 ? 'text-success' : efficiencyValue >= 70 ? 'text-warning' : 'text-destructive'
+    : 'text-foreground';
+
   return (
-    <Card className="shadow-material border-0 overflow-visible pt-4">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between -mt-10 mb-3">
-          <div className={cn("icon-box", iconClass)}>
+    <Card className={cn("shadow-material border-0 overflow-visible pt-4", effBg)}>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className={cn("icon-box shrink-0", iconClass)}>
             {icon}
           </div>
-          <div className="text-right pt-6">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="text-2xl font-display font-bold text-foreground mt-0.5">{value}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">{label}</p>
+            <p className={cn("text-lg font-display font-bold whitespace-nowrap", effText)}>{value}</p>
           </div>
         </div>
-        <div className="pt-2 border-t border-border/50">
-          <p className="text-xs text-muted-foreground font-light">{footer}</p>
+        <div className="pt-2 mt-2 border-t border-border/50">
+          <p className="text-[11px] text-muted-foreground font-light whitespace-nowrap">{footer}</p>
         </div>
       </CardContent>
     </Card>
