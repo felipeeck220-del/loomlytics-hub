@@ -185,6 +185,44 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          enabled_nav_items: Json
+          id: string
+          monthly_plan_value: number
+          platform_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          enabled_nav_items?: Json
+          id?: string
+          monthly_plan_value?: number
+          platform_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          enabled_nav_items?: Json
+          id?: string
+          monthly_plan_value?: number
+          platform_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machine_logs: {
         Row: {
           ended_at: string | null
