@@ -13,6 +13,7 @@ import ProductionPage from "./pages/Production";
 import Weavers from "./pages/Weavers";
 import Reports from "./pages/Reports";
 import Outsource from "./pages/Outsource";
+import SettingsPage from "./pages/Settings";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
@@ -51,7 +52,7 @@ const App = () => (
               <Route path="outsource" element={<Outsource />} />
               <Route path="weavers" element={<Weavers />} />
               <Route path="reports" element={<Reports />} />
-              
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

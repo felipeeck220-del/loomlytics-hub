@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -16,6 +16,7 @@ const items = [
   { title: 'Terceirizado', url: '/outsource', icon: Factory },
   { title: 'Tecelões', url: '/weavers', icon: HardHat },
   { title: 'Relatórios', url: '/reports', icon: FileText },
+  { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 
 export function AppSidebar() {
