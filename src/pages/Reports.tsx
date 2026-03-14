@@ -921,10 +921,10 @@ function handleExport(
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório</title>
     <style>
-      @page { margin: 20mm; size: A4; }
+      @page { margin: 15mm 20mm; size: A4; }
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a2e; background: #fff; padding: 0; }
-      .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 28px 32px; border-radius: 0 0 12px 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 20px; }
+      .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 20px 24px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
       .header-logo { height: 48px; width: 48px; border-radius: 8px; object-fit: contain; background: rgba(255,255,255,0.15); padding: 4px; }
       .header-text h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
       .header .meta { font-size: 12px; opacity: 0.85; display: flex; gap: 16px; }
