@@ -94,11 +94,12 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
         const revenuePerHour = totalHours > 0 ? revenue / totalHours : 0;
         const kgPerHour = totalHours > 0 ? kg / totalHours : 0;
 
-        // Find current article name
         const currentArticle = m.article_id ? articles.find(a => a.id === m.article_id) : null;
-        const articleName = currentArticle?.name || 'Desconhecido';
+        const articleName = currentArticle?.name || 'Sem artigo';
+        const statusLabel = MACHINE_STATUS_LABELS[m.status as MachineStatus] || m.status;
+        const statusColor = MACHINE_STATUS_COLORS[m.status as MachineStatus] || 'bg-muted text-muted-foreground';
 
-        return { id: m.id, name: m.name, articleName, rolls, kg, revenue, efficiency: eff, revenuePerHour, kgPerHour, records: mp.length };
+        return { id: m.id, name: m.name, articleName, statusLabel, statusColor, rolls, kg, revenue, efficiency: eff, revenuePerHour, kgPerHour, records: mp.length };
       })
       .filter(m => !search || m.name.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
