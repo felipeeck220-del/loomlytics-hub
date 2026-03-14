@@ -36,10 +36,24 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 
 export default function Reports() {
   const { getProductions, getMachines, getClients, getArticles, loading } = useCompanyData();
+  const { user } = useAuth();
   const productions = getProductions();
   const machines = getMachines();
   const clients = getClients();
   const articles = getArticles();
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+
+  // Fetch company logo
+  useEffect(() => {
+    if (!user?.company_id) return;
+    (supabase.from as any)('companies')
+      .select('logo_url')
+      .eq('id', user.company_id)
+      .single()
+      .then(({ data }: any) => {
+        if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
+      });
+  }, [user?.company_id]);
 
   // Filters
   const [dayRange, setDayRange] = useState(30);
