@@ -104,12 +104,7 @@ export default function Login() {
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground">
-              Não tem uma conta?{' '}
-              <Link to="/register" className="text-primary font-medium hover:underline">
-                Cadastre-se
-              </Link>
-            </p>
+            {/* Cadastro temporariamente desativado */}
           </div>
         </div>
       </div>
