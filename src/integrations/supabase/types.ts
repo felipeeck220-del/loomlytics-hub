@@ -426,6 +426,27 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       productions: {
         Row: {
           article_id: string | null
@@ -603,6 +624,7 @@ export type Database = {
     }
     Functions: {
       get_user_company_id: { Args: never; Returns: string }
+      is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       machine_status:

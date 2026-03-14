@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
-import { Lock, Building2, Users, Calendar, Mail, Phone, Shield } from 'lucide-react';
+import { Lock, Building2, Users, Calendar, Mail, Phone, Shield, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const NAV_ITEMS = [
@@ -40,8 +40,9 @@ interface CompanyWithSettings {
 
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [storedPassword, setStoredPassword] = useState('');
   const [companies, setCompanies] = useState<CompanyWithSettings[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<CompanyWithSettings | null>(null);
@@ -53,9 +54,36 @@ export default function Admin() {
   const [enabledNavItems, setEnabledNavItems] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    checkExistingSession();
+  }, []);
+
+  const checkExistingSession = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Check if user is platform admin
+        const { data: adminCheck } = await supabase
+          .from('platform_admins')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (adminCheck) {
+          setAuthenticated(true);
+          loadCompanies();
+        }
+      }
+    } catch {
+      // Not authenticated
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
+
   const callAdmin = async (action: string, params: any = {}) => {
     const { data, error } = await supabase.functions.invoke('admin-api', {
-      body: { action, password: storedPassword, ...params },
+      body: { action, ...params },
     });
     if (error) throw new Error(error.message);
     if (data?.error) throw new Error(data.error);
@@ -65,21 +93,44 @@ export default function Admin() {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-api', {
-        body: { action: 'list_companies', password },
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      if (error || data?.error) {
-        toast({ title: 'Erro', description: data?.error || 'Senha inválida', variant: 'destructive' });
+
+      if (authError) {
+        toast({ title: 'Erro', description: 'Email ou senha inválidos', variant: 'destructive' });
         return;
       }
-      setStoredPassword(password);
-      setCompanies(data);
+
+      // Check if user is platform admin
+      const { data: adminCheck } = await supabase
+        .from('platform_admins')
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .single();
+
+      if (!adminCheck) {
+        await supabase.auth.signOut();
+        toast({ title: 'Erro', description: 'Você não tem permissão de administrador da plataforma.', variant: 'destructive' });
+        return;
+      }
+
       setAuthenticated(true);
+      loadCompanies();
     } catch {
-      toast({ title: 'Erro', description: 'Senha inválida', variant: 'destructive' });
+      toast({ title: 'Erro', description: 'Erro ao fazer login', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setAuthenticated(false);
+    setCompanies([]);
+    setEmail('');
+    setPassword('');
   };
 
   const loadCompanies = async () => {
@@ -129,6 +180,14 @@ export default function Admin() {
     }
   };
 
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Verificando autenticação...</p>
+      </div>
+    );
+  }
+
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -138,9 +197,16 @@ export default function Admin() {
               <Shield className="h-6 w-6 text-primary" />
             </div>
             <CardTitle>Painel Administrativo</CardTitle>
-            <p className="text-sm text-muted-foreground">Digite a senha de acesso</p>
+            <p className="text-sm text-muted-foreground">Faça login com sua conta de administrador</p>
           </CardHeader>
           <CardContent className="space-y-4">
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            />
             <Input
               type="password"
               placeholder="Senha"
@@ -148,7 +214,7 @@ export default function Admin() {
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
             />
-            <Button className="w-full" onClick={handleLogin} disabled={loading || !password}>
+            <Button className="w-full" onClick={handleLogin} disabled={loading || !email || !password}>
               <Lock className="h-4 w-4 mr-2" />
               {loading ? 'Verificando...' : 'Entrar'}
             </Button>
@@ -166,7 +232,13 @@ export default function Admin() {
             <Shield className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-bold">Painel Administrativo</h1>
           </div>
-          <Badge variant="outline">{companies.length} empresas</Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline">{companies.length} empresas</Badge>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -234,7 +306,6 @@ export default function Admin() {
         </Card>
       </div>
 
-      {/* Company Settings Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -246,7 +317,6 @@ export default function Admin() {
 
           {selectedCompany && (
             <div className="space-y-6">
-              {/* Company Info */}
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-4 w-4" />
@@ -272,7 +342,6 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Plan Value */}
               <div className="space-y-2">
                 <Label>Valor do Plano Mensal (R$)</Label>
                 <Input
@@ -284,13 +353,11 @@ export default function Admin() {
                 />
               </div>
 
-              {/* Platform Access */}
               <div className="flex items-center justify-between">
                 <Label>Acesso à Plataforma</Label>
                 <Switch checked={platformActive} onCheckedChange={setPlatformActive} />
               </div>
 
-              {/* Nav Items */}
               <div className="space-y-3">
                 <Label>Itens de Navegação</Label>
                 <div className="grid grid-cols-2 gap-2">
