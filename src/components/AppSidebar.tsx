@@ -16,6 +16,7 @@ const items = [
   { title: 'Terceirizado', url: '/outsource', icon: Factory },
   { title: 'Tecelões', url: '/weavers', icon: HardHat },
   { title: 'Relatórios', url: '/reports', icon: FileText },
+  { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 
 export function AppSidebar() {

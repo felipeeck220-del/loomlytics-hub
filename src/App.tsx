@@ -52,7 +52,7 @@ const App = () => (
               <Route path="outsource" element={<Outsource />} />
               <Route path="weavers" element={<Weavers />} />
               <Route path="reports" element={<Reports />} />
-              
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
