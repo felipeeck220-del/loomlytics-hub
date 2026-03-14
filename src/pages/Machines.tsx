@@ -249,36 +249,109 @@ export default function Machines() {
 
       {/* Add/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editing ? 'Editar Máquina' : 'Nova Máquina'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Número da Máquina</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-muted-foreground">TEAR</span>
-                <Input type="number" value={form.number} onChange={e => setForm(p => ({ ...p, number: e.target.value }))} />
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-display">Informações Básicas</DialogTitle>
+            <p className="text-sm text-muted-foreground">Dados principais da máquina</p>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            {/* Row: Número + RPM */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-semibold">Número da Máquina <span className="text-destructive">*</span></Label>
+                <div className="flex items-center gap-0">
+                  <span className="inline-flex items-center justify-center h-10 px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm font-semibold text-foreground">TEAR</span>
+                  <Input
+                    type="number"
+                    value={form.number}
+                    onChange={e => setForm(p => ({ ...p, number: e.target.value }))}
+                    className="rounded-l-none"
+                    placeholder="01"
+                  />
+                </div>
+                {form.number && (
+                  <p className="text-xs text-muted-foreground">Nome completo: TEAR {form.number.padStart(2, '0')}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">RPM Padrão <span className="text-destructive">*</span></Label>
+                <Input type="number" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} placeholder="27" />
               </div>
             </div>
-            <div className="space-y-2"><Label>RPM Padrão</Label><Input type="number" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} /></div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v as MachineStatus }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{MACHINE_STATUS_LABELS[s]}</SelectItem>)}</SelectContent>
-              </Select>
+
+            {/* Row: Status + Artigo */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-semibold">Status</Label>
+                <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v as MachineStatus }))}>
+                  <SelectTrigger>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "h-2 w-2 rounded-full",
+                        form.status === 'ativa' ? 'bg-emerald-500' :
+                        form.status === 'inativa' ? 'bg-destructive' : 'bg-orange-400'
+                      )} />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>{ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{MACHINE_STATUS_LABELS[s]}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Artigo Atual</Label>
+                <Select value={form.article_id} onValueChange={v => setForm(p => ({ ...p, article_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione um artigo" /></SelectTrigger>
+                  <SelectContent>{articles.map(a => {
+                    const client = a.client_name ? ` (${a.client_name})` : '';
+                    return <SelectItem key={a.id} value={a.id}>{a.name}{client}</SelectItem>;
+                  })}</SelectContent>
+                </Select>
+              </div>
             </div>
+
+            {/* Selected Article Details */}
+            {(() => {
+              const selectedArticle = articles.find(a => a.id === form.article_id);
+              if (!selectedArticle) return null;
+              return (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+                  <p className="text-sm font-semibold text-foreground">Artigo Selecionado:</p>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Cliente:</p>
+                      <p className="font-medium text-foreground">{selectedArticle.client_name || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Peso por rolo:</p>
+                      <p className="font-medium text-foreground">{selectedArticle.weight_per_roll} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Valor por kg:</p>
+                      <p className="font-medium text-foreground">R$ {selectedArticle.value_per_kg}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Observações */}
             <div className="space-y-2">
-              <Label>Artigo</Label>
-              <Select value={form.article_id} onValueChange={v => setForm(p => ({ ...p, article_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione um artigo" /></SelectTrigger>
-                <SelectContent>{articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <Label className="font-semibold">Observações</Label>
+              <Textarea
+                value={form.observations}
+                onChange={e => setForm(p => ({ ...p, observations: e.target.value }))}
+                placeholder="Observações sobre a máquina..."
+                rows={3}
+              />
             </div>
-            <div className="space-y-2"><Label>Observações</Label><Textarea value={form.observations} onChange={e => setForm(p => ({ ...p, observations: e.target.value }))} /></div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancelar</Button>
-            <Button onClick={handleSave} className="btn-gradient">{editing ? 'Salvar' : 'Cadastrar'}</Button>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 mt-2">
+            <Button onClick={handleSave} className="btn-gradient w-full sm:w-auto">
+              {editing ? 'Atualizar Máquina' : 'Cadastrar Máquina'}
+            </Button>
+            <Button variant="outline" onClick={() => setShowModal(false)} className="w-full sm:w-auto">Cancelar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
