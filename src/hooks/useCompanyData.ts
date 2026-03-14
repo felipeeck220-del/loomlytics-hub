@@ -104,6 +104,11 @@ export function useCompanyData() {
     weight_kg: Number(r.weight_kg), revenue: Number(r.revenue),
     efficiency: Number(r.efficiency), created_at: r.created_at,
   });
+  const mapArticleMachineTurns = (r: any): ArticleMachineTurns => ({
+    id: r.id, article_id: r.article_id, machine_id: r.machine_id,
+    company_id: r.company_id, turns_per_roll: Number(r.turns_per_roll),
+    observations: r.observations || undefined, created_at: r.created_at,
+  });
 
   // Getters (return current state)
   const getMachines = useCallback(() => machines, [machines]);
@@ -112,6 +117,7 @@ export function useCompanyData() {
   const getArticles = useCallback(() => articles, [articles]);
   const getWeavers = useCallback(() => weavers, [weavers]);
   const getProductions = useCallback(() => productions, [productions]);
+  const getArticleMachineTurns = useCallback(() => articleMachineTurns, [articleMachineTurns]);
 
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {
