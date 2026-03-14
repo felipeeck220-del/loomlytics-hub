@@ -681,7 +681,7 @@ export default function Reports() {
             {exportMode === 'admin' ? (
               <p>📊 <strong>Modo Admin:</strong> Inclui todos os dados financeiros (faturamento, valor por kg, receitas) além de rolos, peso e eficiência.</p>
             ) : (
-              <p>👷 <strong>Modo Funcionários:</strong> Inclui apenas dados de produção (rolos, peso, eficiência). Dados financeiros são omitidos.</p>
+              <p>👷 <strong>Modo Equipe:</strong> Inclui apenas dados de produção (rolos, peso, eficiência). Dados financeiros são omitidos.</p>
             )}
           </div>
 
