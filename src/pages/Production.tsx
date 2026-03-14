@@ -25,7 +25,7 @@ const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
 };
 
 export default function ProductionPage() {
-  const { getProductions, saveProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, loading } = useCompanyData();
+  const { getProductions, saveProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, loading } = useSharedCompanyData();
   const productions = getProductions();
   const machines = getMachines();
   const weavers = getWeavers();

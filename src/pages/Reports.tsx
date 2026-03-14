@@ -37,7 +37,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 };
 
 export default function Reports() {
-  const { getProductions, getMachines, getClients, getArticles, loading } = useCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, loading } = useSharedCompanyData();
   const { user } = useAuth();
   const productions = getProductions();
   const machines = getMachines();

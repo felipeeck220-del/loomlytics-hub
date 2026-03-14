@@ -44,7 +44,7 @@ const FILTER_OPTIONS = [
 ];
 
 export default function Machines() {
-  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, loading } = useCompanyData();
+  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, loading } = useSharedCompanyData();
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();

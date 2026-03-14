@@ -18,7 +18,7 @@ const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
 };
 
 export default function Weavers() {
-  const { getWeavers, saveWeavers, loading } = useCompanyData();
+  const { getWeavers, saveWeavers, loading } = useSharedCompanyData();
   const weavers = getWeavers();
 
   const [showModal, setShowModal] = useState(false);

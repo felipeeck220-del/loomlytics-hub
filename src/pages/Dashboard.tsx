@@ -30,7 +30,7 @@ function getCurrentShift(): ShiftType {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { getProductions, getMachines, getClients, getArticles, getWeavers, loading } = useCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, getWeavers, loading } = useSharedCompanyData();
   const productions = getProductions();
   const machines = getMachines();
   const clients = getClients();
