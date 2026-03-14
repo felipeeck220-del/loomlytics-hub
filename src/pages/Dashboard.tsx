@@ -93,14 +93,16 @@ export default function Dashboard() {
   const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
 
   const calendarHours = useMemo(() => {
-    if (customDate) return 24;
-    if (filterMonth !== 'all') {
-      const [y, m] = filterMonth.split('-').map(Number);
-      const daysInMonth = new Date(y, m, 0).getDate();
-      return daysInMonth * 24;
+    const days = customDate ? 1
+      : filterMonth !== 'all' ? new Date(...filterMonth.split('-').map(Number) as [number, number], 0).getDate()
+      : dayRange;
+
+    if (filterShift !== 'all') {
+      const shiftMinutes = SHIFT_MINUTES[filterShift as ShiftType] || 480;
+      return days * (shiftMinutes / 60);
     }
-    return dayRange * 24;
-  }, [customDate, filterMonth, dayRange]);
+    return days * 24;
+  }, [customDate, filterMonth, dayRange, filterShift]);
 
   const revenuePerHour = calendarHours > 0 ? totalRevenue / calendarHours : 0;
   const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
