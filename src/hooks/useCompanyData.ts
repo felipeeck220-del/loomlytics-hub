@@ -209,6 +209,22 @@ export function useCompanyData() {
     setProductions(data);
   }, [companyId]);
 
+  const saveArticleMachineTurns = useCallback(async (articleId: string, data: ArticleMachineTurns[]) => {
+    if (!companyId) return;
+    await sb('article_machine_turns').delete().eq('article_id', articleId);
+    if (data.length > 0) {
+      const rows = data.map(t => ({
+        id: t.id, article_id: t.article_id, machine_id: t.machine_id,
+        company_id: companyId, turns_per_roll: t.turns_per_roll,
+        observations: t.observations || null, created_at: t.created_at,
+      }));
+      await sb('article_machine_turns').insert(rows);
+    }
+    // Refresh all article machine turns
+    const amtData = await fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at');
+    setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
+  }, [companyId]);
+
   return {
     loading,
     dbCompanyId: companyId,
@@ -218,5 +234,6 @@ export function useCompanyData() {
     getArticles, saveArticles,
     getWeavers, saveWeavers,
     getProductions, saveProductions,
+    getArticleMachineTurns, saveArticleMachineTurns,
   };
 }
