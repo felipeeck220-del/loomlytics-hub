@@ -111,12 +111,11 @@ export default function Dashboard() {
     };
   });
 
-  const activeMachines = machines.filter(m => m.status === 'ativa');
-  const machinePerf = activeMachines.map(m => {
+  const machinePerf = machines.map(m => {
     const mp = filtered.filter(p => p.machine_id === m.id);
     const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
     return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length };
-  }).filter(m => m.records > 0).sort((a, b) => b.records - a.records).slice(0, 5);
+  }).filter(m => m.records > 0).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
 
   const trendData = useMemo(() => {
     const byDate: Record<string, number> = {};
@@ -410,7 +409,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: 'Máquinas Ativas', value: activeMachines.length },
+                { label: 'Máquinas Ativas', value: machines.filter(m => m.status === 'ativa').length },
                 { label: 'Total de Clientes', value: clients.length },
                 { label: 'Artigos Cadastrados', value: articles.length },
                 { label: 'Registros de Produção', value: formatNumber(productions.length) },
