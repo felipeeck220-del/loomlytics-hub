@@ -1,0 +1,1 @@
+UPDATE productions SET date = '2025-07-19' WHERE date = '20225-07-19';
