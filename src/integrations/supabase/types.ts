@@ -479,6 +479,7 @@ export type Database = {
           id: string
           name: string
           role: string
+          status: string
         }
         Insert: {
           company_id: string
@@ -487,6 +488,7 @@ export type Database = {
           id: string
           name: string
           role?: string
+          status?: string
         }
         Update: {
           company_id?: string
@@ -495,6 +497,7 @@ export type Database = {
           id?: string
           name?: string
           role?: string
+          status?: string
         }
         Relationships: [
           {
