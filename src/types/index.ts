@@ -67,6 +67,16 @@ export interface Article {
   created_at: string;
 }
 
+export interface ArticleMachineTurns {
+  id: string;
+  article_id: string;
+  machine_id: string;
+  company_id: string;
+  turns_per_roll: number;
+  observations?: string;
+  created_at: string;
+}
+
 export type ShiftType = 'manha' | 'tarde' | 'noite';
 
 export const SHIFT_LABELS: Record<ShiftType, string> = {
