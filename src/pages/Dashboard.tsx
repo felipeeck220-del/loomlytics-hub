@@ -19,6 +19,7 @@ import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib
 import {
   Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
 } from 'recharts';
+import MachinePerformanceModal from '@/components/MachinePerformanceModal';
 
 function getCurrentShift(): ShiftType {
   const h = new Date().getHours();
@@ -42,6 +43,7 @@ export default function Dashboard() {
   const [filterShift, setFilterShift] = useState<string>('all');
   const [filterClient, setFilterClient] = useState<string>('all');
   const [filterArticle, setFilterArticle] = useState<string>('all');
+  const [showAllMachines, setShowAllMachines] = useState(false);
 
   const currentShift = getCurrentShift();
 
@@ -325,7 +327,7 @@ export default function Dashboard() {
                     <Factory className="h-4 w-4 text-muted-foreground" />
                     Top Máquinas
                   </CardTitle>
-                  <Button variant="ghost" size="sm" className="text-xs text-primary h-7" onClick={() => navigate('/machines')}>
+                  <Button variant="ghost" size="sm" className="text-xs text-primary h-7" onClick={() => setShowAllMachines(true)}>
                     Ver Todas
                   </Button>
                 </div>
@@ -422,6 +424,15 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+
+      <MachinePerformanceModal
+        open={showAllMachines}
+        onOpenChange={setShowAllMachines}
+        machines={machines}
+        productions={productions}
+        clients={clients}
+        articles={articles}
+      />
     </div>
   );
 }
