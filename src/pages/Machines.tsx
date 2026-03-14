@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, FileBarChart, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileBarChart, Loader2, Monitor, CheckCircle2, XCircle, Wrench, Settings, AlertCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import type { Machine, MachineStatus, MachineLog } from '@/types';
@@ -15,6 +15,33 @@ import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 
 const ALL_STATUSES: MachineStatus[] = ['ativa', 'manutencao_preventiva', 'manutencao_corretiva', 'troca_artigo', 'inativa'];
+
+const STATUS_ICONS: Record<MachineStatus | 'total', React.ReactNode> = {
+  total: <Monitor className="h-6 w-6 text-muted-foreground" />,
+  ativa: <CheckCircle2 className="h-6 w-6 text-emerald-500" />,
+  inativa: <AlertCircle className="h-6 w-6 text-destructive" />,
+  manutencao_preventiva: <Wrench className="h-6 w-6 text-orange-400" />,
+  manutencao_corretiva: <Wrench className="h-6 w-6 text-rose-400" />,
+  troca_artigo: <Settings className="h-6 w-6 text-blue-400" />,
+};
+
+const STATUS_CARD_LABELS: Record<string, string> = {
+  total: 'Total',
+  ativa: 'Ativas',
+  inativa: 'Inativas',
+  manutencao_preventiva: 'Manutenção Preventiva',
+  manutencao_corretiva: 'Manutenção Corretiva',
+  troca_artigo: 'Troca de Artigo',
+};
+
+const FILTER_OPTIONS = [
+  { value: 'all', label: 'Todos' },
+  { value: 'ativa', label: 'Ativas' },
+  { value: 'inativa', label: 'Inativas' },
+  { value: 'manutencao_preventiva', label: 'Manutenção Preventiva' },
+  { value: 'manutencao_corretiva', label: 'Manutenção Corretiva' },
+  { value: 'troca_artigo', label: 'Troca de Artigo' },
+];
 
 export default function Machines() {
   const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, loading } = useCompanyData();
@@ -28,6 +55,7 @@ export default function Machines() {
   const [deleteWord, setDeleteWord] = useState('');
   const [showReport, setShowReport] = useState<Machine | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [form, setForm] = useState({ number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: '', observations: '' });
 
   const openNew = () => {
@@ -87,8 +115,12 @@ export default function Machines() {
     toast.success('Máquina excluída');
   };
 
-  const filtered = statusFilter === 'all' ? machines : machines.filter(m => m.status === statusFilter);
   const statusCounts = ALL_STATUSES.reduce((acc, s) => ({ ...acc, [s]: machines.filter(m => m.status === s).length }), {} as Record<string, number>);
+
+  const filtered = machines
+    .filter(m => statusFilter === 'all' || m.status === statusFilter)
+    .filter(m => !searchTerm || m.name.toLowerCase().includes(searchTerm.toLowerCase()) || String(m.number).includes(searchTerm));
+
   const machineReportLogs = showReport ? logs.filter(l => l.machine_id === showReport.id).sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()) : [];
 
   if (loading) {
@@ -97,45 +129,125 @@ export default function Machines() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Máquinas</h1>
-          <p className="text-muted-foreground text-sm">{machines.length} máquinas cadastradas</p>
+          <p className="text-muted-foreground text-sm">Gerencie as máquinas da sua malharia</p>
         </div>
-        <Button onClick={openNew} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Nova Máquina</Button>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar máquina..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9 w-52"
+            />
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-1.5">
+            {FILTER_OPTIONS.map(f => (
+              <Button
+                key={f.value}
+                variant={statusFilter === f.value ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter(f.value)}
+                className="text-xs"
+              >
+                {f.label}
+              </Button>
+            ))}
+          </div>
+
+          <Button onClick={openNew} className="btn-gradient">
+            <Plus className="h-4 w-4 mr-1" /> Nova Máquina
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant={statusFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('all')}>
-          Todas ({machines.length})
-        </Button>
+      {/* Status Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Total */}
+        <div className="card-glass p-4 flex flex-col justify-between min-h-[100px]">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground font-medium">Total</span>
+            {STATUS_ICONS.total}
+          </div>
+          <span className="text-3xl font-display font-bold text-foreground">{machines.length}</span>
+        </div>
+
         {ALL_STATUSES.map(s => (
-          <Button key={s} variant={statusFilter === s ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter(s)}>
-            {MACHINE_STATUS_LABELS[s]} ({statusCounts[s] || 0})
-          </Button>
+          <div
+            key={s}
+            className={cn(
+              "card-glass p-4 flex flex-col justify-between min-h-[100px] cursor-pointer transition-all hover:shadow-md",
+              statusFilter === s && "ring-2 ring-primary"
+            )}
+            onClick={() => setStatusFilter(statusFilter === s ? 'all' : s)}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground font-medium leading-tight">{STATUS_CARD_LABELS[s]}</span>
+              {STATUS_ICONS[s]}
+            </div>
+            <span className={cn(
+              "text-3xl font-display font-bold",
+              s === 'ativa' ? 'text-emerald-500' : s === 'inativa' ? 'text-destructive' : 'text-orange-500'
+            )}>
+              {statusCounts[s] || 0}
+            </span>
+          </div>
         ))}
       </div>
 
-      <div className="grid gap-3">
+      {/* Machine Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(m => (
-          <div key={m.id} className="card-glass p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-4">
-              <div>
-                <p className="font-display font-semibold text-foreground">{m.name}</p>
-                <p className="text-xs text-muted-foreground">RPM: {m.rpm} · Cadastro: {format(new Date(m.created_at), 'dd/MM/yyyy')}</p>
+          <div key={m.id} className="card-glass p-5 flex flex-col gap-4">
+            {/* Card Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {STATUS_ICONS[m.status]}
+                <span className="font-display font-bold text-foreground text-lg">{m.name}</span>
               </div>
               <Badge className={cn("text-xs", MACHINE_STATUS_COLORS[m.status])}>{MACHINE_STATUS_LABELS[m.status]}</Badge>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => openEdit(m)}><Pencil className="h-3 w-3" /></Button>
-              <Button variant="outline" size="sm" onClick={() => setShowReport(m)}><FileBarChart className="h-3 w-3" /></Button>
-              <Button variant="outline" size="sm" onClick={() => { setShowDelete(m); setDeleteWord(''); }}><Trash2 className="h-3 w-3" /></Button>
+
+            {/* Card Info */}
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">RPM:</span>
+                <span className="font-semibold text-foreground">{m.rpm}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cadastrada:</span>
+                <span className="font-semibold text-foreground">{format(new Date(m.created_at), 'dd/MM/yyyy')}</span>
+              </div>
+            </div>
+
+            {/* Card Actions */}
+            <div className="flex items-center gap-2 pt-1 border-t border-border">
+              <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEdit(m)}>
+                <Pencil className="h-3 w-3 mr-1" /> Editar
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setShowReport(m)}>
+                <FileBarChart className="h-3 w-3 mr-1" /> Relatórios
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(m); setDeleteWord(''); }}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
         ))}
-        {filtered.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhuma máquina encontrada</p>}
+        {filtered.length === 0 && (
+          <div className="col-span-full text-center text-muted-foreground py-12">Nenhuma máquina encontrada</div>
+        )}
       </div>
 
+      {/* Add/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Editar Máquina' : 'Nova Máquina'}</DialogTitle></DialogHeader>
@@ -171,6 +283,7 @@ export default function Machines() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation */}
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Excluir {showDelete?.name}?</DialogTitle></DialogHeader>
@@ -183,6 +296,7 @@ export default function Machines() {
         </DialogContent>
       </Dialog>
 
+      {/* Report Modal */}
       <Dialog open={!!showReport} onOpenChange={() => setShowReport(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Relatório - {showReport?.name}</DialogTitle></DialogHeader>
