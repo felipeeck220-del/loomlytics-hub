@@ -704,7 +704,7 @@ export default function Reports() {
               <ExportButton
                 label="Por Máquina"
                 description="Performance individual"
-                onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel)}
+                onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
               />
               <ExportButton
                 label="Por Turno"
