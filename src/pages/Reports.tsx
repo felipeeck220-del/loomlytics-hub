@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -37,7 +37,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 };
 
 export default function Reports() {
-  const { getProductions, getMachines, getClients, getArticles, loading } = useCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, loading } = useSharedCompanyData();
   const { user } = useAuth();
   const productions = getProductions();
   const machines = getMachines();

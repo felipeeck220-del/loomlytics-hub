@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,7 +30,7 @@ function getCurrentShift(): ShiftType {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { getProductions, getMachines, getClients, getArticles, getWeavers, loading } = useCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, getWeavers, loading } = useSharedCompanyData();
   const productions = getProductions();
   const machines = getMachines();
   const clients = getClients();

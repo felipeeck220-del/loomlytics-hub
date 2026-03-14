@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +25,7 @@ const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
 };
 
 export default function ProductionPage() {
-  const { getProductions, saveProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, loading } = useCompanyData();
+  const { getProductions, saveProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, loading } = useSharedCompanyData();
   const productions = getProductions();
   const machines = getMachines();
   const weavers = getWeavers();

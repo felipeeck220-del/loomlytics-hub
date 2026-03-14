@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,7 @@ const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
 };
 
 export default function Weavers() {
-  const { getWeavers, saveWeavers, loading } = useCompanyData();
+  const { getWeavers, saveWeavers, loading } = useSharedCompanyData();
   const weavers = getWeavers();
 
   const [showModal, setShowModal] = useState(false);

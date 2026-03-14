@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,7 +44,7 @@ const FILTER_OPTIONS = [
 ];
 
 export default function Machines() {
-  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, loading } = useCompanyData();
+  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, loading } = useSharedCompanyData();
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
