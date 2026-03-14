@@ -637,7 +637,7 @@ export default function Reports() {
                   className="h-7 text-xs"
                   onClick={() => setExportMode('employee')}
                 >
-                  Funcionários
+                  Equipe
                 </Button>
               </div>
             </div>
