@@ -825,16 +825,71 @@ function handleExport(
     // PDF via styled print window
     const modeLabel = mode === 'admin' ? 'Administrador' : 'Funcionários';
     const date = new Date().toLocaleDateString('pt-BR');
-    
-    let tablesHtml = sections.map(sec => `
-      <div class="section">
-        <h2>${sec.title}</h2>
-        <table>
-          <thead><tr>${sec.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-          <tbody>${sec.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
-        </table>
-      </div>
-    `).join('');
+
+    // Generate SVG bar chart HTML for a section
+    const buildChart = (data: { label: string; value: number }[], color: string, unit: string) => {
+      if (data.length === 0) return '';
+      const maxVal = Math.max(...data.map(d => d.value), 1);
+      const barH = 28;
+      const gap = 6;
+      const chartH = data.length * (barH + gap) + 10;
+      const labelW = 120;
+      const chartW = 500;
+      const bars = data.map((d, i) => {
+        const w = Math.max((d.value / maxVal) * (chartW - labelW - 60), 2);
+        const y = i * (barH + gap) + 5;
+        const valLabel = unit === 'R$' ? `R$ ${fmtN(d.value, 2)}` : fmtN(d.value, unit === '%' ? 1 : 0) + (unit === '%' ? '%' : unit === 'kg' ? ' kg' : '');
+        return `
+          <g>
+            <text x="${labelW - 8}" y="${y + barH / 2 + 4}" text-anchor="end" font-size="11" fill="#475569">${d.label}</text>
+            <rect x="${labelW}" y="${y}" width="${w}" height="${barH}" rx="4" fill="${color}" opacity="0.85"/>
+            <text x="${labelW + w + 6}" y="${y + barH / 2 + 4}" font-size="11" fill="#1e293b" font-weight="500">${valLabel}</text>
+          </g>`;
+      }).join('');
+      return `<svg width="${chartW}" height="${chartH}" xmlns="http://www.w3.org/2000/svg" style="margin:12px 0 8px 0;">${bars}</svg>`;
+    };
+
+    let tablesHtml = sections.map(sec => {
+      let chartHtml = '';
+      if (_includeCharts) {
+        // Determine chart data based on section title
+        if (sec.title === 'Por Turno') {
+          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Rolos por Turno</p>';
+          chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.rolos })), '#2563eb', '');
+          if (isAdmin) {
+            chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Faturamento por Turno</p>';
+            chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.faturamento })), '#16a34a', 'R$');
+          }
+        } else if (sec.title === 'Por Máquina') {
+          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Eficiência por Máquina (%)</p>';
+          chartHtml += buildChart(byMachine.slice(0, 10).map(m => ({ label: m.name, value: m.eficiencia })), '#f59e0b', '%');
+          chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Rolos por Máquina</p>';
+          chartHtml += buildChart(byMachine.slice(0, 10).map(m => ({ label: m.name, value: m.rolos })), '#2563eb', '');
+        } else if (sec.title === 'Por Cliente') {
+          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Peso por Cliente (kg)</p>';
+          chartHtml += buildChart(byClient.slice(0, 8).map(c => ({ label: c.name, value: c.kg })), '#8b5cf6', 'kg');
+          if (isAdmin) {
+            chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Faturamento por Cliente</p>';
+            chartHtml += buildChart(byClient.slice(0, 8).map(c => ({ label: c.name, value: c.faturamento })), '#16a34a', 'R$');
+          }
+        } else if (sec.title === 'Por Artigo') {
+          const articleRows = sec.rows.slice(0, 10);
+          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Rolos por Artigo</p>';
+          chartHtml += buildChart(articleRows.map(r => ({ label: String(r[0]), value: parseFloat(String(r[1]).replace(/\./g, '').replace(',', '.')) || 0 })), '#0ea5e9', '');
+        }
+      }
+
+      return `
+        <div class="section">
+          <h2>${sec.title}</h2>
+          ${chartHtml}
+          <table>
+            <thead><tr>${sec.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+            <tbody>${sec.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório</title>
     <style>
@@ -844,13 +899,14 @@ function handleExport(
       .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 28px 32px; border-radius: 0 0 12px 12px; margin-bottom: 24px; }
       .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
       .header .meta { font-size: 12px; opacity: 0.85; display: flex; gap: 16px; }
-      .section { margin-bottom: 24px; break-inside: avoid; }
+      .section { margin-bottom: 28px; break-inside: avoid; }
       .section h2 { font-size: 15px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
       table { width: 100%; border-collapse: collapse; font-size: 12px; }
       th { background: #f1f5f9; color: #475569; font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #e2e8f0; }
       td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; }
       tr:nth-child(even) td { background: #fafbfc; }
       tr:hover td { background: #f0f4ff; }
+      svg { display: block; }
       .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #94a3b8; text-align: center; }
     </style></head><body>
       <div class="header">
