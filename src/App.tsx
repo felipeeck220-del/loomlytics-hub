@@ -15,6 +15,7 @@ import Weavers from "./pages/Weavers";
 import Reports from "./pages/Reports";
 import Outsource from "./pages/Outsource";
 import SettingsPage from "./pages/Settings";
+import Admin from "./pages/Admin";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
