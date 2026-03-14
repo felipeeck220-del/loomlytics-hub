@@ -146,7 +146,7 @@ export default function Reports() {
       eficiencia: eff,
       records: mp.length,
     };
-  }).filter(m => m.records > 0).sort((a, b) => b.eficiencia - a.eficiencia);
+  }).filter(m => m.records > 0).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
 
   // By client
   const byClient = clients.map(c => {
