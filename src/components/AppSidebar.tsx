@@ -10,15 +10,15 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar,
 } from '@/components/ui/sidebar';
 
-const items = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'Máquinas', url: '/machines', icon: Settings2 },
-  { title: 'Clientes & Artigos', url: '/clients-articles', icon: Users },
-  { title: 'Produção', url: '/production', icon: ClipboardList },
-  { title: 'Terceirizado', url: '/outsource', icon: Factory },
-  { title: 'Tecelões', url: '/weavers', icon: HardHat },
-  { title: 'Relatórios', url: '/reports', icon: FileText },
-  { title: 'Configurações', url: '/settings', icon: Settings },
+const allItems = [
+  { title: 'Dashboard', url: '/', icon: LayoutDashboard, key: 'dashboard' },
+  { title: 'Máquinas', url: '/machines', icon: Settings2, key: 'machines' },
+  { title: 'Clientes & Artigos', url: '/clients-articles', icon: Users, key: 'clients-articles' },
+  { title: 'Produção', url: '/production', icon: ClipboardList, key: 'production' },
+  { title: 'Terceirizado', url: '/outsource', icon: Factory, key: 'outsource' },
+  { title: 'Tecelões', url: '/weavers', icon: HardHat, key: 'weavers' },
+  { title: 'Relatórios', url: '/reports', icon: FileText, key: 'reports' },
+  { title: 'Configurações', url: '/settings', icon: Settings, key: 'settings' },
 ];
 
 export function AppSidebar() {
@@ -26,6 +26,7 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { user } = useAuth();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
 
   useEffect(() => {
     if (!user?.company_id) return;
@@ -36,7 +37,22 @@ export function AppSidebar() {
       .then(({ data }: any) => {
         if (data?.logo_url) setLogoUrl(data.logo_url);
       });
+
+    // Load company settings for nav filtering
+    (supabase.from as any)('company_settings')
+      .select('enabled_nav_items')
+      .eq('company_id', user.company_id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data?.enabled_nav_items) {
+          setEnabledNavItems(data.enabled_nav_items);
+        }
+      });
   }, [user?.company_id]);
+
+  const items = enabledNavItems
+    ? allItems.filter(item => enabledNavItems.includes(item.key))
+    : allItems;
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
