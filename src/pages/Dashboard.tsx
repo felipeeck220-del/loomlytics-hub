@@ -19,6 +19,7 @@ import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib
 import {
   Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
 } from 'recharts';
+import MachinePerformanceModal from '@/components/MachinePerformanceModal';
 
 function getCurrentShift(): ShiftType {
   const h = new Date().getHours();
