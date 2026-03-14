@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Client, Article } from '@/types';
 
@@ -16,6 +16,8 @@ export default function ClientsArticles() {
   const clients = getClients();
   const articles = getArticles();
   const [tab, setTab] = useState('clients');
+  const [clientSearch, setClientSearch] = useState('');
+  const [articleSearch, setArticleSearch] = useState('');
 
   const [showClientModal, setShowClientModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -73,64 +75,136 @@ export default function ClientsArticles() {
     setShowDelete(null); setDeleteWord(''); toast.success('Excluído com sucesso');
   };
 
+  const filteredClients = clients.filter(c =>
+    !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) || (c.contact || '').toLowerCase().includes(clientSearch.toLowerCase())
+  );
+
+  const filteredArticles = articles.filter(a =>
+    !articleSearch || a.name.toLowerCase().includes(articleSearch.toLowerCase()) || (a.client_name || '').toLowerCase().includes(articleSearch.toLowerCase()) || (a.observations || '').toLowerCase().includes(articleSearch.toLowerCase())
+  );
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-3 text-muted-foreground">Carregando...</span></div>;
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Clientes & Artigos</h1>
-          <p className="text-muted-foreground text-sm">{clients.length} clientes · {articles.length} artigos</p>
+          <p className="text-muted-foreground text-sm">Gerencie seus clientes e os artigos produzidos</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={openNewClient} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Cliente</Button>
-          <Button onClick={openNewArticle} variant="outline"><Plus className="h-4 w-4 mr-1" /> Novo Artigo</Button>
+          <Button onClick={openNewArticle} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Artigo</Button>
         </div>
       </div>
 
+      {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="clients">Clientes ({clients.length})</TabsTrigger>
-          <TabsTrigger value="articles">Artigos ({articles.length})</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="clients" className="flex items-center gap-2">
+            <Users className="h-4 w-4" /> Clientes
+          </TabsTrigger>
+          <TabsTrigger value="articles" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" /> Artigos
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="clients" className="space-y-3 mt-4">
-          {clients.map(c => (
-            <div key={c.id} className="card-glass p-4 flex items-center justify-between">
-              <div>
-                <p className="font-display font-semibold text-foreground">{c.name}</p>
-                {c.contact && <p className="text-xs text-muted-foreground">{c.contact}</p>}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => openEditClient(c)}><Pencil className="h-3 w-3" /></Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowDelete({ type: 'client', item: c }); setDeleteWord(''); }}><Trash2 className="h-3 w-3" /></Button>
-              </div>
+        {/* Clients Tab */}
+        <TabsContent value="clients" className="mt-4">
+          <div className="card-glass p-5 space-y-4">
+            <div>
+              <h2 className="font-display font-semibold text-foreground">Lista de Clientes</h2>
+              <p className="text-sm text-muted-foreground">{filteredClients.length} de {clients.length} clientes</p>
             </div>
-          ))}
-          {clients.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado</p>}
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar clientes por nome, contato ou endereço..."
+                value={clientSearch}
+                onChange={e => setClientSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredClients.map(c => (
+                <div key={c.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
+                  <div>
+                    <p className="font-display font-semibold text-foreground">{c.name}</p>
+                    <p className="text-sm text-muted-foreground">{c.contact || 'Sem contato'}</p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditClient(c)}>
+                      <Pencil className="h-3 w-3 mr-1" /> Editar
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete({ type: 'client', item: c }); setDeleteWord(''); }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {filteredClients.length === 0 && (
+                <div className="col-span-full text-center text-muted-foreground py-8">Nenhum cliente encontrado</div>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
-        <TabsContent value="articles" className="space-y-3 mt-4">
-          {articles.map(a => (
-            <div key={a.id} className="card-glass p-4 flex items-center justify-between">
-              <div>
-                <p className="font-display font-semibold text-foreground">{a.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  Cliente: {a.client_name} · {a.weight_per_roll}kg/rolo · R${a.value_per_kg}/kg · {a.turns_per_roll} voltas/rolo
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => openEditArticle(a)}><Pencil className="h-3 w-3" /></Button>
-                <Button variant="outline" size="sm" onClick={() => { setShowDelete({ type: 'article', item: a }); setDeleteWord(''); }}><Trash2 className="h-3 w-3" /></Button>
-              </div>
+        {/* Articles Tab */}
+        <TabsContent value="articles" className="mt-4">
+          <div className="card-glass p-5 space-y-4">
+            <div>
+              <h2 className="font-display font-semibold text-foreground">Lista de Artigos</h2>
+              <p className="text-sm text-muted-foreground">{filteredArticles.length} de {articles.length} artigos</p>
             </div>
-          ))}
-          {articles.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhum artigo cadastrado</p>}
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar artigos por nome, cliente ou observações..."
+                value={articleSearch}
+                onChange={e => setArticleSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredArticles.map(a => (
+                <div key={a.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
+                  <div>
+                    <p className="font-display font-semibold text-foreground">{a.name}</p>
+                    <p className="text-sm text-muted-foreground">Cliente: {a.client_name || '—'}</p>
+                  </div>
+                  <div className="text-sm space-y-0.5">
+                    <p className="text-muted-foreground">Peso Rolo: <span className="font-semibold text-foreground">{a.weight_per_roll} kg</span></p>
+                    <p className="text-muted-foreground">Valor/Kg: <span className="font-semibold text-foreground">R$ {a.value_per_kg}</span></p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => openEditArticle(a)}>
+                      <Settings className="h-3 w-3 mr-1" /> Voltas
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditArticle(a)}>
+                      <Pencil className="h-3 w-3 mr-1" /> Editar
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete({ type: 'article', item: a }); setDeleteWord(''); }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {filteredArticles.length === 0 && (
+                <div className="col-span-full text-center text-muted-foreground py-8">Nenhum artigo encontrado</div>
+              )}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 
+      {/* Client Modal */}
       <Dialog open={showClientModal} onOpenChange={setShowClientModal}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle></DialogHeader>
@@ -146,6 +220,7 @@ export default function ClientsArticles() {
         </DialogContent>
       </Dialog>
 
+      {/* Article Modal */}
       <Dialog open={showArticleModal} onOpenChange={setShowArticleModal}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</DialogTitle></DialogHeader>
@@ -172,6 +247,7 @@ export default function ClientsArticles() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Modal */}
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Excluir {showDelete?.item?.name}?</DialogTitle></DialogHeader>
