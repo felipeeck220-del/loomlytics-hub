@@ -126,11 +126,13 @@ export default function Reports() {
   // By shift
   const byShift = (['manha', 'tarde', 'noite'] as ShiftType[]).map(s => {
     const sp = filtered.filter(p => p.shift === s);
+    const eff = sp.length ? sp.reduce((sum, p) => sum + p.efficiency, 0) / sp.length : 0;
     return {
       name: SHIFT_LABELS[s].split(' (')[0],
       rolos: sp.reduce((sum, p) => sum + p.rolls_produced, 0),
       kg: sp.reduce((sum, p) => sum + p.weight_kg, 0),
       faturamento: sp.reduce((sum, p) => sum + p.revenue, 0),
+      eficiencia: eff,
     };
   });
 
@@ -635,7 +637,7 @@ export default function Reports() {
                   className="h-7 text-xs"
                   onClick={() => setExportMode('employee')}
                 >
-                  Funcionários
+                  Equipe
                 </Button>
               </div>
             </div>
@@ -679,7 +681,7 @@ export default function Reports() {
             {exportMode === 'admin' ? (
               <p>📊 <strong>Modo Admin:</strong> Inclui todos os dados financeiros (faturamento, valor por kg, receitas) além de rolos, peso e eficiência.</p>
             ) : (
-              <p>👷 <strong>Modo Funcionários:</strong> Inclui apenas dados de produção (rolos, peso, eficiência). Dados financeiros são omitidos.</p>
+              <p>👷 <strong>Modo Equipe:</strong> Inclui apenas dados de produção (rolos, peso, eficiência). Dados financeiros são omitidos.</p>
             )}
           </div>
 
@@ -851,7 +853,7 @@ function handleExport(
     URL.revokeObjectURL(url);
   } else {
     // PDF via styled print window
-    const modeLabel = mode === 'admin' ? 'Administrador' : 'Funcionários';
+    const modeLabel = mode === 'admin' ? 'Administrador' : 'Equipe';
     const date = new Date().toLocaleDateString('pt-BR');
 
     // Generate SVG bar chart HTML for a section
@@ -882,7 +884,9 @@ function handleExport(
       if (_includeCharts) {
         // Determine chart data based on section title
         if (sec.title === 'Por Turno') {
-          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Rolos por Turno</p>';
+          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Eficiência por Turno (%)</p>';
+          chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.eficiencia })), '#f59e0b', '%');
+          chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Rolos por Turno</p>';
           chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.rolos })), '#2563eb', '');
           if (isAdmin) {
             chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Faturamento por Turno</p>';
