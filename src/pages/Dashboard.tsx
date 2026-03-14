@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [filterShift, setFilterShift] = useState<string>('all');
   const [filterClient, setFilterClient] = useState<string>('all');
   const [filterArticle, setFilterArticle] = useState<string>('all');
+  const [showAllMachines, setShowAllMachines] = useState(false);
 
   const currentShift = getCurrentShift();
 
