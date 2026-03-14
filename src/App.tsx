@@ -13,6 +13,7 @@ import ProductionPage from "./pages/Production";
 import Weavers from "./pages/Weavers";
 import Reports from "./pages/Reports";
 import Outsource from "./pages/Outsource";
+import SettingsPage from "./pages/Settings";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
