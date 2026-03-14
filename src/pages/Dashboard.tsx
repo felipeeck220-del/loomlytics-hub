@@ -92,13 +92,18 @@ export default function Dashboard() {
   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
   const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
 
-  const totalMachineHours = filtered.reduce((s, p) => {
-    const minutes = SHIFT_MINUTES[p.shift as ShiftType] || 480;
-    return s + (minutes / 60);
-  }, 0);
+  const calendarHours = useMemo(() => {
+    if (customDate) return 24;
+    if (filterMonth !== 'all') {
+      const [y, m] = filterMonth.split('-').map(Number);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      return daysInMonth * 24;
+    }
+    return dayRange * 24;
+  }, [customDate, filterMonth, dayRange]);
 
-  const revenuePerHour = totalMachineHours > 0 ? totalRevenue / totalMachineHours : 0;
-  const kgPerHour = totalMachineHours > 0 ? totalWeight / totalMachineHours : 0;
+  const revenuePerHour = calendarHours > 0 ? totalRevenue / calendarHours : 0;
+  const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
 
   const shiftData = (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
     const sp = filtered.filter(p => p.shift === shift);
