@@ -17,6 +17,28 @@ export function useCompanyData() {
   const [productions, setProductions] = useState<Production[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch all rows from a table, paginating past the 1000-row default limit
+  const fetchAll = async (table: string, query: { column: string; value: string }, orderCol: string, ascending = true) => {
+    const PAGE_SIZE = 1000;
+    let allData: any[] = [];
+    let from = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await sb(table)
+        .select('*')
+        .eq(query.column, query.value)
+        .order(orderCol, { ascending })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error || !data) break;
+      allData = allData.concat(data);
+      hasMore = data.length === PAGE_SIZE;
+      from += PAGE_SIZE;
+    }
+    return allData;
+  };
+
   // Load all data once we have the company ID from the authenticated user
   useEffect(() => {
     if (!companyId) {
@@ -25,21 +47,21 @@ export function useCompanyData() {
     }
     (async () => {
       setLoading(true);
-      const [mRes, mlRes, cRes, aRes, wRes, pRes] = await Promise.all([
-        sb('machines').select('*').eq('company_id', companyId).order('number'),
+      const [mData, cData, aData, wData, pData, mlRes] = await Promise.all([
+        fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
+        fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
+        fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
+        fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
+        fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
         sb('machine_logs').select('*'),
-        sb('clients').select('*').eq('company_id', companyId).order('name'),
-        sb('articles').select('*').eq('company_id', companyId).order('name'),
-        sb('weavers').select('*').eq('company_id', companyId).order('code'),
-        sb('productions').select('*').eq('company_id', companyId).order('date', { ascending: false }),
       ]);
 
-      if (mRes.data) setMachines(mRes.data.map(mapMachine));
+      setMachines(mData.map(mapMachine));
       if (mlRes.data) setMachineLogs(mlRes.data.map(mapMachineLog));
-      if (cRes.data) setClients(cRes.data.map(mapClient));
-      if (aRes.data) setArticles(aRes.data.map(mapArticle));
-      if (wRes.data) setWeavers(wRes.data.map(mapWeaver));
-      if (pRes.data) setProductions(pRes.data.map(mapProduction));
+      setClients(cData.map(mapClient));
+      setArticles(aData.map(mapArticle));
+      setWeavers(wData.map(mapWeaver));
+      setProductions(pData.map(mapProduction));
       setLoading(false);
     })();
   }, [companyId]);
