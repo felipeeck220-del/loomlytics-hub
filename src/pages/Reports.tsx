@@ -53,6 +53,7 @@ export default function Reports() {
   // Export settings
   const [exportMode, setExportMode] = useState<'admin' | 'employee'>('admin');
   const [includeCharts, setIncludeCharts] = useState(true);
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'csv'>('pdf');
 
   // Active analysis tab
   const [activeTab, setActiveTab] = useState('turno');
