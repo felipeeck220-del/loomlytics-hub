@@ -180,6 +180,32 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                     ))}
                   </SelectContent>
                 </Select>
+
+                <div className="w-px h-6 bg-border mx-1" />
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("rounded-lg", !dateFrom && 'text-muted-foreground')}>
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      {dateFrom ? format(dateFrom, 'dd/MM/yyyy') : 'De'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setFilterMonth('all'); setFilterYear('all'); setCustomDate(undefined); }} locale={ptBR} className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("rounded-lg", !dateTo && 'text-muted-foreground')}>
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      {dateTo ? format(dateTo, 'dd/MM/yyyy') : 'Até'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setFilterMonth('all'); setFilterYear('all'); setCustomDate(undefined); }} locale={ptBR} className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
