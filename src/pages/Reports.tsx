@@ -60,6 +60,8 @@ export default function Reports() {
   // Filters
   const [dayRange, setDayRange] = useState(30);
   const [customDate, setCustomDate] = useState<Date>();
+  const [dateFrom, setDateFrom] = useState<Date>();
+  const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterShift, setFilterShift] = useState<string>('all');
   const [filterClient, setFilterClient] = useState<string>('all');
