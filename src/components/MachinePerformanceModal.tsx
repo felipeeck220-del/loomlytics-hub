@@ -48,6 +48,8 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
   const clearFilters = () => {
     setDayRange(7);
     setCustomDate(undefined);
+    setDateFrom(undefined);
+    setDateTo(undefined);
     setFilterMonth('all');
     setFilterYear('all');
     setFilterShift('all');
