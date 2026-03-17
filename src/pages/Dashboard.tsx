@@ -183,7 +183,7 @@ export default function Dashboard() {
                 key={d}
                 size="sm"
                 variant={dayRange === d && filterMonth === 'all' && !customDate ? 'default' : 'outline'}
-                onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); }}
+                onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
                 className={cn("min-w-[60px] rounded-lg", dayRange === d && filterMonth === 'all' && !customDate && 'btn-gradient')}
               >
                 {d} dia{d > 1 ? 's' : ''}
