@@ -81,6 +81,8 @@ export default function Reports() {
   const clearFilters = () => {
     setDayRange(30);
     setCustomDate(undefined);
+    setDateFrom(undefined);
+    setDateTo(undefined);
     setFilterMonth('all');
     setFilterShift('all');
     setFilterClient('all');
