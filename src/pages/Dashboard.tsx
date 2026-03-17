@@ -98,7 +98,7 @@ export default function Dashboard() {
     }
     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
     return data;
-  }, [productions, dayRange, customDate, filterMonth, filterShift, filterClient, filterArticle, articles]);
+  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, articles]);
 
   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
   const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
