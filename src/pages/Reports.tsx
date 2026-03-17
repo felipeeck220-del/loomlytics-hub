@@ -60,6 +60,8 @@ export default function Reports() {
   // Filters
   const [dayRange, setDayRange] = useState(30);
   const [customDate, setCustomDate] = useState<Date>();
+  const [dateFrom, setDateFrom] = useState<Date>();
+  const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterShift, setFilterShift] = useState<string>('all');
   const [filterClient, setFilterClient] = useState<string>('all');
@@ -74,11 +76,13 @@ export default function Reports() {
   // Active analysis tab
   const [activeTab, setActiveTab] = useState('turno');
 
-  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all';
+  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
     setDayRange(30);
     setCustomDate(undefined);
+    setDateFrom(undefined);
+    setDateTo(undefined);
     setFilterMonth('all');
     setFilterShift('all');
     setFilterClient('all');
@@ -95,7 +99,16 @@ export default function Reports() {
     let data = [...productions];
     const today = new Date();
 
-    if (filterMonth !== 'all') {
+    if (dateFrom || dateTo) {
+      if (dateFrom) {
+        const startStr = format(dateFrom, 'yyyy-MM-dd');
+        data = data.filter(p => p.date >= startStr);
+      }
+      if (dateTo) {
+        const endStr = format(dateTo, 'yyyy-MM-dd');
+        data = data.filter(p => p.date <= endStr);
+      }
+    } else if (filterMonth !== 'all') {
       data = data.filter(p => p.date.startsWith(filterMonth));
     } else if (customDate) {
       const dateStr = format(customDate, 'yyyy-MM-dd');
@@ -114,7 +127,7 @@ export default function Reports() {
     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
     if (filterMachine !== 'all') data = data.filter(p => p.machine_id === filterMachine);
     return data;
-  }, [productions, dayRange, customDate, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles]);
+  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles]);
 
   // KPIs
   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
@@ -180,7 +193,13 @@ export default function Reports() {
   }, [filtered]);
 
   // Period label
-  const periodLabel = filterMonth !== 'all'
+  const periodLabel = dateFrom && dateTo
+    ? `${format(dateFrom, 'dd/MM/yyyy')} - ${format(dateTo, 'dd/MM/yyyy')}`
+    : dateFrom
+    ? `A partir de ${format(dateFrom, 'dd/MM/yyyy')}`
+    : dateTo
+    ? `Até ${format(dateTo, 'dd/MM/yyyy')}`
+    : filterMonth !== 'all'
     ? format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR })
     : customDate
     ? format(customDate, 'dd/MM/yyyy')
@@ -221,7 +240,7 @@ export default function Reports() {
                 key={d}
                 size="sm"
                 variant={dayRange === d && filterMonth === 'all' && !customDate ? 'default' : 'outline'}
-                onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); }}
+                onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
               >
                 {d === 1 ? '1 Dia' : d === 7 ? '7 Dias' : '1 Mês'}
               </Button>
@@ -230,7 +249,7 @@ export default function Reports() {
             <Button
               size="sm"
               variant={dayRange === 9999 && filterMonth === 'all' && !customDate ? 'default' : 'outline'}
-              onClick={() => { setDayRange(9999); setCustomDate(undefined); setFilterMonth('all'); }}
+              onClick={() => { setDayRange(9999); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
             >
               Total
             </Button>
@@ -247,7 +266,7 @@ export default function Reports() {
               </PopoverContent>
             </Popover>
 
-            <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); }}>
+            <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
               <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Escolher mês" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
@@ -258,6 +277,32 @@ export default function Reports() {
                 ))}
               </SelectContent>
             </Select>
+
+            <div className="w-px h-6 bg-border mx-1" />
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn(!dateFrom && 'text-muted-foreground')}>
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  {dateFrom ? format(dateFrom, 'dd/MM/yyyy') : 'De'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setFilterMonth('all'); setCustomDate(undefined); }} locale={ptBR} className="pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn(!dateTo && 'text-muted-foreground')}>
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  {dateTo ? format(dateTo, 'dd/MM/yyyy') : 'Até'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setFilterMonth('all'); setCustomDate(undefined); }} locale={ptBR} className="pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
 
             <div className="w-px h-6 bg-border mx-1" />
 

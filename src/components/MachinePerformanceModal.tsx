@@ -26,6 +26,8 @@ interface Props {
 export default function MachinePerformanceModal({ open, onOpenChange, machines, productions, clients, articles }: Props) {
   const [dayRange, setDayRange] = useState(7);
   const [customDate, setCustomDate] = useState<Date>();
+  const [dateFrom, setDateFrom] = useState<Date>();
+  const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState('all');
   const [filterYear, setFilterYear] = useState('all');
   const [filterShift, setFilterShift] = useState('all');
@@ -46,6 +48,8 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
   const clearFilters = () => {
     setDayRange(7);
     setCustomDate(undefined);
+    setDateFrom(undefined);
+    setDateTo(undefined);
     setFilterMonth('all');
     setFilterYear('all');
     setFilterShift('all');
@@ -58,15 +62,26 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
     let data = [...productions];
     const today = new Date();
 
-    if (filterYear !== 'all') {
+    if (dateFrom || dateTo) {
+      if (dateFrom) {
+        const startStr = format(dateFrom, 'yyyy-MM-dd');
+        data = data.filter(p => p.date >= startStr);
+      }
+      if (dateTo) {
+        const endStr = format(dateTo, 'yyyy-MM-dd');
+        data = data.filter(p => p.date <= endStr);
+      }
+    } else if (filterYear !== 'all') {
       data = data.filter(p => p.date.startsWith(filterYear));
-    }
-    if (filterMonth !== 'all') {
+      if (filterMonth !== 'all') {
+        data = data.filter(p => p.date.startsWith(filterMonth));
+      }
+    } else if (filterMonth !== 'all') {
       data = data.filter(p => p.date.startsWith(filterMonth));
     } else if (customDate) {
       const dateStr = format(customDate, 'yyyy-MM-dd');
       data = data.filter(p => p.date === dateStr);
-    } else if (filterYear === 'all') {
+    } else {
       const start = format(subDays(today, dayRange), 'yyyy-MM-dd');
       const end = format(today, 'yyyy-MM-dd');
       data = data.filter(p => p.date >= start && p.date <= end);
@@ -79,7 +94,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
     }
     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
     return data;
-  }, [productions, dayRange, customDate, filterMonth, filterYear, filterShift, filterClient, filterArticle, articles]);
+  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterYear, filterShift, filterClient, filterArticle, articles]);
 
   const machinePerf = useMemo(() => {
     return machines
@@ -127,7 +142,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                     key={d}
                     size="sm"
                     variant={dayRange === d && filterMonth === 'all' && !customDate && filterYear === 'all' ? 'default' : 'outline'}
-                    onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setFilterYear('all'); }}
+                    onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setFilterYear('all'); setDateFrom(undefined); setDateTo(undefined); }}
                     className={cn("min-w-[60px] rounded-lg", dayRange === d && filterMonth === 'all' && !customDate && filterYear === 'all' && 'btn-gradient')}
                   >
                     {d} dia{d > 1 ? 's' : ''}
@@ -142,11 +157,11 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={customDate} onSelect={(d) => { setCustomDate(d); setFilterMonth('all'); setFilterYear('all'); }} locale={ptBR} className="pointer-events-auto" />
+                    <Calendar mode="single" selected={customDate} onSelect={(d) => { setCustomDate(d); setFilterMonth('all'); setFilterYear('all'); setDateFrom(undefined); setDateTo(undefined); }} locale={ptBR} className="pointer-events-auto" />
                   </PopoverContent>
                 </Popover>
 
-                <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); }}>
+                <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
                   <SelectTrigger className="w-[120px] h-9 rounded-lg"><SelectValue placeholder="Mês" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Mês</SelectItem>
@@ -156,7 +171,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   </SelectContent>
                 </Select>
 
-                <Select value={filterYear} onValueChange={(v) => { setFilterYear(v); setCustomDate(undefined); }}>
+                <Select value={filterYear} onValueChange={(v) => { setFilterYear(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
                   <SelectTrigger className="w-[100px] h-9 rounded-lg"><SelectValue placeholder="Ano" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Ano</SelectItem>
@@ -165,6 +180,32 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                     ))}
                   </SelectContent>
                 </Select>
+
+                <div className="w-px h-6 bg-border mx-1" />
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("rounded-lg", !dateFrom && 'text-muted-foreground')}>
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      {dateFrom ? format(dateFrom, 'dd/MM/yyyy') : 'De'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setFilterMonth('all'); setFilterYear('all'); setCustomDate(undefined); }} locale={ptBR} className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("rounded-lg", !dateTo && 'text-muted-foreground')}>
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      {dateTo ? format(dateTo, 'dd/MM/yyyy') : 'Até'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setFilterMonth('all'); setFilterYear('all'); setCustomDate(undefined); }} locale={ptBR} className="pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">

@@ -39,6 +39,8 @@ export default function Dashboard() {
 
   const [dayRange, setDayRange] = useState(15);
   const [customDate, setCustomDate] = useState<Date>();
+  const [dateFrom, setDateFrom] = useState<Date>();
+  const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterShift, setFilterShift] = useState<string>('all');
   const [filterClient, setFilterClient] = useState<string>('all');
@@ -50,13 +52,15 @@ export default function Dashboard() {
   const clearFilters = () => {
     setDayRange(15);
     setCustomDate(undefined);
+    setDateFrom(undefined);
+    setDateTo(undefined);
     setFilterMonth('all');
     setFilterShift('all');
     setFilterClient('all');
     setFilterArticle('all');
   };
 
-  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMonth !== 'all';
+  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const availableMonths = useMemo(() => {
     const months = new Set(productions.map(p => p.date.substring(0, 7)));
@@ -67,7 +71,16 @@ export default function Dashboard() {
     let data = [...productions];
     const today = new Date();
 
-    if (filterMonth !== 'all') {
+    if (dateFrom || dateTo) {
+      if (dateFrom) {
+        const startStr = format(dateFrom, 'yyyy-MM-dd');
+        data = data.filter(p => p.date >= startStr);
+      }
+      if (dateTo) {
+        const endStr = format(dateTo, 'yyyy-MM-dd');
+        data = data.filter(p => p.date <= endStr);
+      }
+    } else if (filterMonth !== 'all') {
       data = data.filter(p => p.date.startsWith(filterMonth));
     } else if (customDate) {
       const dateStr = format(customDate, 'yyyy-MM-dd');
@@ -85,7 +98,7 @@ export default function Dashboard() {
     }
     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
     return data;
-  }, [productions, dayRange, customDate, filterMonth, filterShift, filterClient, filterArticle, articles]);
+  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, articles]);
 
   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
   const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
@@ -170,7 +183,7 @@ export default function Dashboard() {
                 key={d}
                 size="sm"
                 variant={dayRange === d && filterMonth === 'all' && !customDate ? 'default' : 'outline'}
-                onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); }}
+                onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
                 className={cn("min-w-[60px] rounded-lg", dayRange === d && filterMonth === 'all' && !customDate && 'btn-gradient')}
               >
                 {d} dia{d > 1 ? 's' : ''}
@@ -189,7 +202,7 @@ export default function Dashboard() {
               </PopoverContent>
             </Popover>
 
-            <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); }}>
+            <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
               <SelectTrigger className="w-[130px] h-9 rounded-lg"><SelectValue placeholder="Mês" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
@@ -198,6 +211,32 @@ export default function Dashboard() {
                 ))}
               </SelectContent>
             </Select>
+
+            <div className="w-px h-6 bg-border mx-1" />
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("rounded-lg", !dateFrom && 'text-muted-foreground')}>
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  {dateFrom ? format(dateFrom, 'dd/MM/yyyy') : 'De'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setFilterMonth('all'); setCustomDate(undefined); setDayRange(15); }} locale={ptBR} className="pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("rounded-lg", !dateTo && 'text-muted-foreground')}>
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  {dateTo ? format(dateTo, 'dd/MM/yyyy') : 'Até'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setFilterMonth('all'); setCustomDate(undefined); setDayRange(15); }} locale={ptBR} className="pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
 
             <div className="w-px h-6 bg-border mx-1" />
 
