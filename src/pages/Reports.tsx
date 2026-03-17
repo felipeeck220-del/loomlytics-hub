@@ -76,7 +76,7 @@ export default function Reports() {
   // Active analysis tab
   const [activeTab, setActiveTab] = useState('turno');
 
-  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all';
+  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
     setDayRange(30);
