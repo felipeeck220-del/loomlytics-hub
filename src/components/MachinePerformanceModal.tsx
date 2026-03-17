@@ -161,7 +161,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   </PopoverContent>
                 </Popover>
 
-                <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); }}>
+                <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
                   <SelectTrigger className="w-[120px] h-9 rounded-lg"><SelectValue placeholder="Mês" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Mês</SelectItem>
