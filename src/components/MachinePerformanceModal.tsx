@@ -26,6 +26,8 @@ interface Props {
 export default function MachinePerformanceModal({ open, onOpenChange, machines, productions, clients, articles }: Props) {
   const [dayRange, setDayRange] = useState(7);
   const [customDate, setCustomDate] = useState<Date>();
+  const [dateFrom, setDateFrom] = useState<Date>();
+  const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState('all');
   const [filterYear, setFilterYear] = useState('all');
   const [filterShift, setFilterShift] = useState('all');
