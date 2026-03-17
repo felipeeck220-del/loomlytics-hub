@@ -62,15 +62,26 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
     let data = [...productions];
     const today = new Date();
 
-    if (filterYear !== 'all') {
+    if (dateFrom || dateTo) {
+      if (dateFrom) {
+        const startStr = format(dateFrom, 'yyyy-MM-dd');
+        data = data.filter(p => p.date >= startStr);
+      }
+      if (dateTo) {
+        const endStr = format(dateTo, 'yyyy-MM-dd');
+        data = data.filter(p => p.date <= endStr);
+      }
+    } else if (filterYear !== 'all') {
       data = data.filter(p => p.date.startsWith(filterYear));
-    }
-    if (filterMonth !== 'all') {
+      if (filterMonth !== 'all') {
+        data = data.filter(p => p.date.startsWith(filterMonth));
+      }
+    } else if (filterMonth !== 'all') {
       data = data.filter(p => p.date.startsWith(filterMonth));
     } else if (customDate) {
       const dateStr = format(customDate, 'yyyy-MM-dd');
       data = data.filter(p => p.date === dateStr);
-    } else if (filterYear === 'all') {
+    } else {
       const start = format(subDays(today, dayRange), 'yyyy-MM-dd');
       const end = format(today, 'yyyy-MM-dd');
       data = data.filter(p => p.date >= start && p.date <= end);
