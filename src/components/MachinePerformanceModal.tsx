@@ -157,7 +157,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={customDate} onSelect={(d) => { setCustomDate(d); setFilterMonth('all'); setFilterYear('all'); }} locale={ptBR} className="pointer-events-auto" />
+                    <Calendar mode="single" selected={customDate} onSelect={(d) => { setCustomDate(d); setFilterMonth('all'); setFilterYear('all'); setDateFrom(undefined); setDateTo(undefined); }} locale={ptBR} className="pointer-events-auto" />
                   </PopoverContent>
                 </Popover>
 
