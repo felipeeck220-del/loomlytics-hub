@@ -99,7 +99,16 @@ export default function Reports() {
     let data = [...productions];
     const today = new Date();
 
-    if (filterMonth !== 'all') {
+    if (dateFrom || dateTo) {
+      if (dateFrom) {
+        const startStr = format(dateFrom, 'yyyy-MM-dd');
+        data = data.filter(p => p.date >= startStr);
+      }
+      if (dateTo) {
+        const endStr = format(dateTo, 'yyyy-MM-dd');
+        data = data.filter(p => p.date <= endStr);
+      }
+    } else if (filterMonth !== 'all') {
       data = data.filter(p => p.date.startsWith(filterMonth));
     } else if (customDate) {
       const dateStr = format(customDate, 'yyyy-MM-dd');
