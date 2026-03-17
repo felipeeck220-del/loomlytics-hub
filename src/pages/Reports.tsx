@@ -193,7 +193,13 @@ export default function Reports() {
   }, [filtered]);
 
   // Period label
-  const periodLabel = filterMonth !== 'all'
+  const periodLabel = dateFrom && dateTo
+    ? `${format(dateFrom, 'dd/MM/yyyy')} - ${format(dateTo, 'dd/MM/yyyy')}`
+    : dateFrom
+    ? `A partir de ${format(dateFrom, 'dd/MM/yyyy')}`
+    : dateTo
+    ? `Até ${format(dateTo, 'dd/MM/yyyy')}`
+    : filterMonth !== 'all'
     ? format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR })
     : customDate
     ? format(customDate, 'dd/MM/yyyy')
