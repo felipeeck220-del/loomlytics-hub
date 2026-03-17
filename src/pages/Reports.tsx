@@ -266,7 +266,7 @@ export default function Reports() {
               </PopoverContent>
             </Popover>
 
-            <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); }}>
+            <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
               <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Escolher mês" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
@@ -277,6 +277,32 @@ export default function Reports() {
                 ))}
               </SelectContent>
             </Select>
+
+            <div className="w-px h-6 bg-border mx-1" />
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn(!dateFrom && 'text-muted-foreground')}>
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  {dateFrom ? format(dateFrom, 'dd/MM/yyyy') : 'De'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d); setFilterMonth('all'); setCustomDate(undefined); }} locale={ptBR} className="pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn(!dateTo && 'text-muted-foreground')}>
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  {dateTo ? format(dateTo, 'dd/MM/yyyy') : 'Até'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d); setFilterMonth('all'); setCustomDate(undefined); }} locale={ptBR} className="pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
 
             <div className="w-px h-6 bg-border mx-1" />
 

@@ -171,7 +171,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   </SelectContent>
                 </Select>
 
-                <Select value={filterYear} onValueChange={(v) => { setFilterYear(v); setCustomDate(undefined); }}>
+                <Select value={filterYear} onValueChange={(v) => { setFilterYear(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
                   <SelectTrigger className="w-[100px] h-9 rounded-lg"><SelectValue placeholder="Ano" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Ano</SelectItem>
