@@ -52,6 +52,8 @@ export default function Dashboard() {
   const clearFilters = () => {
     setDayRange(15);
     setCustomDate(undefined);
+    setDateFrom(undefined);
+    setDateTo(undefined);
     setFilterMonth('all');
     setFilterShift('all');
     setFilterClient('all');
