@@ -94,7 +94,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
     }
     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
     return data;
-  }, [productions, dayRange, customDate, filterMonth, filterYear, filterShift, filterClient, filterArticle, articles]);
+  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterYear, filterShift, filterClient, filterArticle, articles]);
 
   const machinePerf = useMemo(() => {
     return machines
