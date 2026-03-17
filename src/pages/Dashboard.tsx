@@ -60,7 +60,7 @@ export default function Dashboard() {
     setFilterArticle('all');
   };
 
-  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMonth !== 'all';
+  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const availableMonths = useMemo(() => {
     const months = new Set(productions.map(p => p.date.substring(0, 7)));
