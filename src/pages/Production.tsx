@@ -272,15 +272,61 @@ export default function ProductionPage() {
     return result;
   }, [productions, filterDate, filterMachine, filterArticle]);
 
-  // Group by shift
-  const shiftProductions = useMemo(() => {
-    return filteredProductions
+  // Group by shift, then group multi-article productions into single entries
+  type ProductionGroup = {
+    key: string;
+    items: typeof filteredProductions;
+    machine_id: string;
+    machine_name: string;
+    weaver_name: string;
+    date: string;
+    shift: string;
+    created_at: string;
+    rpm: number;
+    totalRolls: number;
+    totalWeightKg: number;
+    totalRevenue: number;
+    efficiency: number;
+  };
+
+  const shiftProductionGroups = useMemo(() => {
+    const shiftItems = filteredProductions
       .filter(p => p.shift === activeShift)
       .sort((a, b) => {
         const mA = machines.find(m => m.id === a.machine_id);
         const mB = machines.find(m => m.id === b.machine_id);
         return (mA?.number || 0) - (mB?.number || 0);
       });
+
+    // Group by machine_id + date + created_at (multi-article saves share exact created_at)
+    const groupMap = new Map<string, typeof shiftItems>();
+    for (const p of shiftItems) {
+      const key = `${p.machine_id}|${p.date}|${p.created_at}`;
+      if (!groupMap.has(key)) groupMap.set(key, []);
+      groupMap.get(key)!.push(p);
+    }
+
+    const groups: ProductionGroup[] = [];
+    for (const [key, items] of groupMap) {
+      const first = items[0];
+      groups.push({
+        key,
+        items,
+        machine_id: first.machine_id,
+        machine_name: first.machine_name || '',
+        weaver_name: first.weaver_name || 'Sem Tecelão',
+        date: first.date,
+        shift: first.shift,
+        created_at: first.created_at,
+        rpm: first.rpm,
+        totalRolls: items.reduce((s, p) => s + p.rolls_produced, 0),
+        totalWeightKg: items.reduce((s, p) => s + Number(p.weight_kg), 0),
+        totalRevenue: items.reduce((s, p) => s + Number(p.revenue), 0),
+        efficiency: first.efficiency, // all share the same combined efficiency
+      });
+    }
+
+    return groups;
   }, [filteredProductions, activeShift, machines]);
 
   // KPIs for active shift
