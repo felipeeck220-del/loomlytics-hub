@@ -80,7 +80,7 @@ export default function ProductionPage() {
 
   const preview = useMemo(() => {
     if (!form.shift || !form.rpm || !form.rolls || !selectedArticle) return null;
-    const shiftMinutes = SHIFT_MINUTES[form.shift as ShiftType];
+    const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
     const rpm = Number(form.rpm);
     const rolls = Number(form.rolls);
     const turnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
