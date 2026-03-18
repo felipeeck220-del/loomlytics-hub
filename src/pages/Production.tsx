@@ -135,7 +135,8 @@ export default function ProductionPage() {
     setSaving(true);
     const all = [...productions];
     const machineName = selectedMachine?.name || '';
-    const weaverName = weavers.find(w => w.id === form.weaver_id)?.name || '';
+    const actualWeaverId = form.weaver_id === 'sem_tecelao' ? '' : form.weaver_id;
+    const weaverName = weavers.find(w => w.id === actualWeaverId)?.name || 'Sem Tecelão';
     const articleName = selectedArticle?.name || '';
     const record: Production = {
       id: editing?.id || crypto.randomUUID(), company_id: '',
