@@ -385,11 +385,12 @@ export default function Reports() {
 
       {/* Analysis Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-5">
           <TabsTrigger value="turno">Por Turno</TabsTrigger>
           <TabsTrigger value="maquina">Por Máquina</TabsTrigger>
           <TabsTrigger value="cliente">Por Cliente</TabsTrigger>
           <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+          <TabsTrigger value="exportar" className="flex items-center gap-1"><Download className="h-3.5 w-3.5" />Exportar</TabsTrigger>
         </TabsList>
 
         {/* POR TURNO */}
@@ -652,122 +653,124 @@ export default function Reports() {
             )}
           </div>
         </TabsContent>
+
+        {/* EXPORTAR RELATÓRIOS */}
+        <TabsContent value="exportar" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Download className="h-4 w-4 text-muted-foreground" />
+                Exportar Relatórios
+              </CardTitle>
+              <CardDescription>Exporte relatórios detalhados em PDF com base nos filtros aplicados</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Export toggles */}
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm font-medium">Modo:</Label>
+                  <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                    <Button
+                      size="sm"
+                      variant={exportMode === 'admin' ? 'default' : 'ghost'}
+                      className="h-7 text-xs"
+                      onClick={() => setExportMode('admin')}
+                    >
+                      Admin
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={exportMode === 'employee' ? 'default' : 'ghost'}
+                      className="h-7 text-xs"
+                      onClick={() => setExportMode('employee')}
+                    >
+                      Equipe
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm font-medium">Formato:</Label>
+                  <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                    <Button
+                      size="sm"
+                      variant={exportFormat === 'pdf' ? 'default' : 'ghost'}
+                      className="h-7 text-xs"
+                      onClick={() => setExportFormat('pdf')}
+                    >
+                      PDF
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={exportFormat === 'csv' ? 'default' : 'ghost'}
+                      className="h-7 text-xs"
+                      onClick={() => setExportFormat('csv')}
+                    >
+                      CSV
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="include-charts"
+                    checked={includeCharts}
+                    onCheckedChange={setIncludeCharts}
+                    disabled={exportFormat === 'csv'}
+                  />
+                  <Label htmlFor="include-charts" className={cn("text-sm cursor-pointer", exportFormat === 'csv' && "text-muted-foreground/50")}>
+                    Incluir gráficos {exportFormat === 'csv' && '(só PDF)'}
+                  </Label>
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 border border-border">
+                {exportMode === 'admin' ? (
+                  <p>📊 <strong>Modo Admin:</strong> Inclui todos os dados financeiros (faturamento, valor por kg, receitas) além de rolos, peso e eficiência.</p>
+                ) : (
+                  <p>👷 <strong>Modo Equipe:</strong> Inclui apenas dados de produção (rolos, peso, eficiência). Dados financeiros são omitidos.</p>
+                )}
+              </div>
+
+              {/* Export options */}
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-3">Exportação Geral</p>
+                <ExportButton
+                  label="Relatório Completo"
+                  description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
+                  onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-3">Exportação Específica</p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <ExportButton
+                    label="Por Artigo"
+                    description="Rolos, Kg, Valor"
+                    onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
+                  />
+                  <ExportButton
+                    label="Por Máquina"
+                    description="Performance individual"
+                    onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
+                  />
+                  <ExportButton
+                    label="Por Turno"
+                    description="Análise comparativa"
+                    onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
+                  />
+                  <ExportButton
+                    label="Por Cliente"
+                    description="Produção por cliente"
+                    onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
-
-      {/* Export Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Download className="h-4 w-4 text-muted-foreground" />
-            Exportar Relatórios
-          </CardTitle>
-          <CardDescription>Exporte relatórios detalhados em PDF com base nos filtros aplicados</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Export toggles */}
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="flex items-center gap-3">
-              <Label className="text-sm font-medium">Modo:</Label>
-              <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                <Button
-                  size="sm"
-                  variant={exportMode === 'admin' ? 'default' : 'ghost'}
-                  className="h-7 text-xs"
-                  onClick={() => setExportMode('admin')}
-                >
-                  Admin
-                </Button>
-                <Button
-                  size="sm"
-                  variant={exportMode === 'employee' ? 'default' : 'ghost'}
-                  className="h-7 text-xs"
-                  onClick={() => setExportMode('employee')}
-                >
-                  Equipe
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Label className="text-sm font-medium">Formato:</Label>
-              <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                <Button
-                  size="sm"
-                  variant={exportFormat === 'pdf' ? 'default' : 'ghost'}
-                  className="h-7 text-xs"
-                  onClick={() => setExportFormat('pdf')}
-                >
-                  PDF
-                </Button>
-                <Button
-                  size="sm"
-                  variant={exportFormat === 'csv' ? 'default' : 'ghost'}
-                  className="h-7 text-xs"
-                  onClick={() => setExportFormat('csv')}
-                >
-                  CSV
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="include-charts"
-                checked={includeCharts}
-                onCheckedChange={setIncludeCharts}
-                disabled={exportFormat === 'csv'}
-              />
-              <Label htmlFor="include-charts" className={cn("text-sm cursor-pointer", exportFormat === 'csv' && "text-muted-foreground/50")}>
-                Incluir gráficos {exportFormat === 'csv' && '(só PDF)'}
-              </Label>
-            </div>
-          </div>
-
-          <div className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 border border-border">
-            {exportMode === 'admin' ? (
-              <p>📊 <strong>Modo Admin:</strong> Inclui todos os dados financeiros (faturamento, valor por kg, receitas) além de rolos, peso e eficiência.</p>
-            ) : (
-              <p>👷 <strong>Modo Equipe:</strong> Inclui apenas dados de produção (rolos, peso, eficiência). Dados financeiros são omitidos.</p>
-            )}
-          </div>
-
-          {/* Export options */}
-          <div>
-            <p className="text-sm font-semibold text-foreground mb-3">Exportação Geral</p>
-            <ExportButton
-              label="Relatório Completo"
-              description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
-              onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
-            />
-          </div>
-
-          <div>
-            <p className="text-sm font-semibold text-foreground mb-3">Exportação Específica</p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <ExportButton
-                label="Por Artigo"
-                description="Rolos, Kg, Valor"
-                onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
-              />
-              <ExportButton
-                label="Por Máquina"
-                description="Performance individual"
-                onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
-              />
-              <ExportButton
-                label="Por Turno"
-                description="Análise comparativa"
-                onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
-              />
-              <ExportButton
-                label="Por Cliente"
-                description="Produção por cliente"
-                onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {productions.length === 0 && (
         <div className="text-center py-12">
