@@ -21,9 +21,12 @@ interface Props {
   productions: Production[];
   clients: Client[];
   articles: Article[];
+  shiftSettings?: CompanyShiftSettings;
 }
 
-export default function MachinePerformanceModal({ open, onOpenChange, machines, productions, clients, articles }: Props) {
+export default function MachinePerformanceModal({ open, onOpenChange, machines, productions, clients, articles, shiftSettings }: Props) {
+  const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
+  const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const [dayRange, setDayRange] = useState(7);
   const [customDate, setCustomDate] = useState<Date>();
   const [dateFrom, setDateFrom] = useState<Date>();
