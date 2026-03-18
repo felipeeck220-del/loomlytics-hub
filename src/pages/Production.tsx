@@ -85,15 +85,39 @@ export default function ProductionPage() {
     if (!form.shift || !form.rpm || !form.rolls || !selectedArticle) return null;
     const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
     const rpm = Number(form.rpm);
-    const rolls = Number(form.rolls);
-    const turnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
     const maxTurns = rpm * shiftMinutes;
-    const producedTurns = rolls * turnsPerRoll;
-    const efficiency = maxTurns > 0 ? (producedTurns / maxTurns) * 100 : 0;
-    const weightKg = rolls * selectedArticle.weight_per_roll;
-    const revenue = weightKg * selectedArticle.value_per_kg;
-    return { efficiency: Math.min(efficiency, 100), weightKg, revenue, rolls };
-  }, [form.shift, form.rpm, form.rolls, selectedArticle, form.machine_id, articleMachineTurns]);
+
+    // Main article
+    const mainRolls = Number(form.rolls);
+    const mainTurnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
+    const mainProducedTurns = mainRolls * mainTurnsPerRoll;
+    const mainWeightKg = mainRolls * selectedArticle.weight_per_roll;
+    const mainRevenue = mainWeightKg * selectedArticle.value_per_kg;
+
+    // Extra articles
+    let totalProducedTurns = mainProducedTurns;
+    let totalWeightKg = mainWeightKg;
+    let totalRevenue = mainRevenue;
+    let totalRolls = mainRolls;
+
+    const extraPreviews = extraArticles.map(ea => {
+      const art = articles.find(a => a.id === ea.article_id);
+      const rolls = Number(ea.rolls) || 0;
+      if (!art || !rolls) return null;
+      const turnsPerRoll = getTurnsForMachine(art.id, form.machine_id);
+      const producedTurns = rolls * turnsPerRoll;
+      const weightKg = rolls * art.weight_per_roll;
+      const revenue = weightKg * art.value_per_kg;
+      totalProducedTurns += producedTurns;
+      totalWeightKg += weightKg;
+      totalRevenue += revenue;
+      totalRolls += rolls;
+      return { rolls, weightKg, revenue, producedTurns };
+    });
+
+    const efficiency = maxTurns > 0 ? (totalProducedTurns / maxTurns) * 100 : 0;
+    return { efficiency: Math.min(efficiency, 100), weightKg: totalWeightKg, revenue: totalRevenue, rolls: totalRolls, extraPreviews };
+  }, [form.shift, form.rpm, form.rolls, selectedArticle, form.machine_id, articleMachineTurns, extraArticles, articles, companyShiftMinutes]);
 
   const advanceToNext = useCallback(() => {
     if (sortedMachines.length === 0) return;
