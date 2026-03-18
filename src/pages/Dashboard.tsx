@@ -150,13 +150,21 @@ export default function Dashboard() {
   }).filter(m => m.records > 0).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
 
   const trendData = useMemo(() => {
-    const byDate: Record<string, number> = {};
+    const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
     filtered.forEach(p => {
-      byDate[p.date] = (byDate[p.date] || 0) + p.rolls_produced;
+      if (!byDate[p.date]) byDate[p.date] = { rolos: 0, kg: 0, faturamento: 0, effSum: 0, effCount: 0 };
+      byDate[p.date].rolos += p.rolls_produced;
+      byDate[p.date].kg += p.weight_kg;
+      byDate[p.date].faturamento += p.revenue;
+      byDate[p.date].effSum += p.efficiency;
+      byDate[p.date].effCount += 1;
     });
-    return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, rolls]) => ({
+    return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
       date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-      rolos: rolls,
+      rolos: d.rolos,
+      kg: Math.round(d.kg * 100) / 100,
+      faturamento: Math.round(d.faturamento * 100) / 100,
+      eficiencia: d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0,
     }));
   }, [filtered]);
 
