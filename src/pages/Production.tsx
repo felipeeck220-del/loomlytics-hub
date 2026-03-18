@@ -97,13 +97,13 @@ export default function ProductionPage() {
     const nextMachineIdx = currentMachineIndex + 1;
     if (nextMachineIdx < sortedMachines.length) {
       const nextMachine = sortedMachines[nextMachineIdx];
-      setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: '', article_id: '' }));
+      setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '' }));
       setArticleSearch(''); setWeaverSearch('');
     } else {
       const nextShiftIdx = currentShiftIndex + 1;
       if (nextShiftIdx < SHIFTS.length) {
         const firstMachine = sortedMachines[0];
-        setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: '', article_id: '' }));
+        setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '' }));
         setArticleSearch(''); setWeaverSearch('');
         toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
       } else {
@@ -116,7 +116,7 @@ export default function ProductionPage() {
   const openNew = () => {
     setEditing(null);
     const firstMachine = sortedMachines[0];
-    setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: '', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '' });
+    setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: 'sem_tecelao', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '' });
     setArticleSearch(''); setWeaverSearch('');
     setShowModal(true);
   };
@@ -135,13 +135,14 @@ export default function ProductionPage() {
     setSaving(true);
     const all = [...productions];
     const machineName = selectedMachine?.name || '';
-    const weaverName = weavers.find(w => w.id === form.weaver_id)?.name || '';
+    const actualWeaverId = form.weaver_id === 'sem_tecelao' ? '' : form.weaver_id;
+    const weaverName = weavers.find(w => w.id === actualWeaverId)?.name || 'Sem Tecelão';
     const articleName = selectedArticle?.name || '';
     const record: Production = {
       id: editing?.id || crypto.randomUUID(), company_id: '',
       date: format(form.date, 'yyyy-MM-dd'), shift: form.shift as ShiftType,
       machine_id: form.machine_id, machine_name: machineName,
-      weaver_id: form.weaver_id, weaver_name: weaverName,
+      weaver_id: actualWeaverId, weaver_name: weaverName,
       article_id: form.article_id, article_name: articleName,
       rpm: Number(form.rpm), rolls_produced: Number(form.rolls),
       weight_kg: preview.weightKg, revenue: preview.revenue,
@@ -598,8 +599,9 @@ export default function ProductionPage() {
                 <Label className="text-xs">Tecelão</Label>
                 <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Tecelão" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                     <div className="p-1"><Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => { e.stopPropagation(); setWeaverSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
+                    <SelectItem value="sem_tecelao">Sem Tecelão</SelectItem>
                     {weavers.filter(w => `${w.code} ${w.name}`.toLowerCase().includes(weaverSearch.toLowerCase())).map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -608,7 +610,7 @@ export default function ProductionPage() {
                 <Label className="text-xs">Artigo</Label>
                 <Select value={form.article_id} onValueChange={v => { setForm(p => ({ ...p, article_id: v })); setArticleSearch(''); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                     <div className="p-1"><Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => { e.stopPropagation(); setArticleSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
                     {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
                   </SelectContent>
