@@ -182,9 +182,9 @@ export default function Dashboard() {
               <Button
                 key={d}
                 size="sm"
-                variant={dayRange === d && filterMonth === 'all' && !customDate ? 'default' : 'outline'}
+                variant={dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
                 onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
-                className={cn("min-w-[60px] rounded-lg", dayRange === d && filterMonth === 'all' && !customDate && 'btn-gradient')}
+                className={cn("min-w-[60px] rounded-lg", dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo && 'btn-gradient')}
               >
                 {d} dia{d > 1 ? 's' : ''}
               </Button>
