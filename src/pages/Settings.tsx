@@ -47,6 +47,7 @@ const getRoleLabel = (role: string) => ROLES.find(r => r.value === role)?.label 
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
+  const { shiftSettings, saveShiftSettings } = useSharedCompanyData();
   const [tab, setTab] = useState('profile');
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
