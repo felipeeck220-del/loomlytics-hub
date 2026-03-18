@@ -142,7 +142,7 @@ export default function ProductionPage() {
       id: editing?.id || crypto.randomUUID(), company_id: '',
       date: format(form.date, 'yyyy-MM-dd'), shift: form.shift as ShiftType,
       machine_id: form.machine_id, machine_name: machineName,
-      weaver_id: form.weaver_id, weaver_name: weaverName,
+      weaver_id: actualWeaverId, weaver_name: weaverName,
       article_id: form.article_id, article_name: articleName,
       rpm: Number(form.rpm), rolls_produced: Number(form.rolls),
       weight_kg: preview.weightKg, revenue: preview.revenue,
