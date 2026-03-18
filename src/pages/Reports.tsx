@@ -18,7 +18,7 @@ import {
   Package, TrendingUp, DollarSign, Gauge, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SHIFT_LABELS, type ShiftType } from '@/types';
+import { SHIFT_LABELS, type ShiftType, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
