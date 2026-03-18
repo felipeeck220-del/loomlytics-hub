@@ -251,7 +251,7 @@ export default function ProductionPage() {
     setExtraArticles([]);
     if (editing) setShowModal(false);
     else advanceToNext();
-  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, saveProductions, advanceToNext, extraArticles, articles]);
+  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, saveProductions, advanceToNext, extraArticles, articles]);
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
