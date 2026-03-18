@@ -100,7 +100,9 @@ export default function Reports() {
     let data = [...productions];
     const today = new Date();
 
-    if (dateFrom || dateTo) {
+    if (dayRange === 0) {
+      // Todo período — no date filter
+    } else if (dateFrom || dateTo) {
       if (dateFrom) {
         const startStr = format(dateFrom, 'yyyy-MM-dd');
         data = data.filter(p => p.date >= startStr);
@@ -194,17 +196,21 @@ export default function Reports() {
   }, [filtered]);
 
   // Period label
-  const periodLabel = dateFrom && dateTo
-    ? `${format(dateFrom, 'dd/MM/yyyy')} - ${format(dateTo, 'dd/MM/yyyy')}`
-    : dateFrom
-    ? `A partir de ${format(dateFrom, 'dd/MM/yyyy')}`
-    : dateTo
-    ? `Até ${format(dateTo, 'dd/MM/yyyy')}`
-    : filterMonth !== 'all'
-    ? format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR })
-    : customDate
-    ? format(customDate, 'dd/MM/yyyy')
-    : `${dayRange} dias`;
+  const periodLabel = (() => {
+    if (dayRange === 0) {
+      if (filtered.length > 0) {
+        const dates = filtered.map(p => p.date).sort();
+        return `Todo período · ${format(new Date(dates[0] + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(dates[dates.length - 1] + 'T12:00:00'), 'dd/MM/yyyy')}`;
+      }
+      return 'Todo período';
+    }
+    if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} - ${format(dateTo, 'dd/MM/yyyy')}`;
+    if (dateFrom) return `A partir de ${format(dateFrom, 'dd/MM/yyyy')}`;
+    if (dateTo) return `Até ${format(dateTo, 'dd/MM/yyyy')}`;
+    if (filterMonth !== 'all') return format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
+    if (customDate) return format(customDate, 'dd/MM/yyyy');
+    return `${dayRange} dias`;
+  })();
 
   if (loading) {
     return (
@@ -249,10 +255,10 @@ export default function Reports() {
 
             <Button
               size="sm"
-              variant={dayRange === 9999 && filterMonth === 'all' && !customDate ? 'default' : 'outline'}
-              onClick={() => { setDayRange(9999); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
+              variant={dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
+              onClick={() => { setDayRange(0); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
             >
-              Total
+              Todo período
             </Button>
 
             <Popover>

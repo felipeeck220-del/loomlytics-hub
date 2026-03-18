@@ -73,7 +73,9 @@ export default function Dashboard() {
     let data = [...productions];
     const today = new Date();
 
-    if (dateFrom || dateTo) {
+    if (dayRange === 0) {
+      // Todo período — no date filter
+    } else if (dateFrom || dateTo) {
       if (dateFrom) {
         const startStr = format(dateFrom, 'yyyy-MM-dd');
         data = data.filter(p => p.date >= startStr);
@@ -109,7 +111,15 @@ export default function Dashboard() {
 
   const calendarHours = useMemo(() => {
     let days: number;
-    if (dateFrom && dateTo) {
+    if (dayRange === 0) {
+      // All data — calculate from actual data range
+      if (filtered.length > 0) {
+        const dates = filtered.map(p => p.date).sort();
+        days = differenceInCalendarDays(new Date(dates[dates.length - 1] + 'T12:00:00'), new Date(dates[0] + 'T12:00:00')) + 1;
+      } else {
+        days = 1;
+      }
+    } else if (dateFrom && dateTo) {
       days = differenceInCalendarDays(dateTo, dateFrom) + 1;
     } else if (dateFrom) {
       days = differenceInCalendarDays(new Date(), dateFrom) + 1;
@@ -187,6 +197,13 @@ export default function Dashboard() {
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">
             Visão geral da produção · {(() => {
+              if (dayRange === 0) {
+                if (filtered.length > 0) {
+                  const dates = filtered.map(p => p.date).sort();
+                  return `Todo período · ${format(new Date(dates[0] + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(dates[dates.length - 1] + 'T12:00:00'), 'dd/MM/yyyy')}`;
+                }
+                return 'Todo período';
+              }
               if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
               if (dateFrom) return `A partir de ${format(dateFrom, 'dd/MM/yyyy')}`;
               if (dateTo) return `Até ${format(dateTo, 'dd/MM/yyyy')}`;
@@ -219,6 +236,15 @@ export default function Dashboard() {
                 {d} dia{d > 1 ? 's' : ''}
               </Button>
             ))}
+
+            <Button
+              size="sm"
+              variant={dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
+              onClick={() => { setDayRange(0); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
+              className={cn("min-w-[60px] rounded-lg", dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo && 'btn-gradient')}
+            >
+              Todo período
+            </Button>
 
             <Popover>
               <PopoverTrigger asChild>
