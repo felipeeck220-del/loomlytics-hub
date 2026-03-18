@@ -125,7 +125,7 @@ export default function ProductionPage() {
     if (nextMachineIdx < sortedMachines.length) {
       const nextMachine = sortedMachines[nextMachineIdx];
       setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '' }));
-      setArticleSearch(''); setWeaverSearch('');
+      setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
     } else {
       const nextShiftIdx = currentShiftIndex + 1;
       if (nextShiftIdx < SHIFTS.length) {
