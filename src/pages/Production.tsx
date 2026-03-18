@@ -688,6 +688,35 @@ export default function ProductionPage() {
               </div>
             </div>
 
+            {/* Extra Articles */}
+            {extraArticles.map((ea, idx) => (
+              <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end border-t border-dashed border-border/50 pt-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Artigo Adicional {idx + 2}</Label>
+                  <Select value={ea.article_id} onValueChange={v => setExtraArticles(prev => prev.map((e, i) => i === idx ? { ...e, article_id: v, search: '' } : e))}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
+                    <SelectContent position="popper" side="bottom" className="max-h-[200px]">
+                      <div className="p-1"><Input placeholder="Buscar artigo..." value={ea.search} onChange={e => { e.stopPropagation(); setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, search: e.target.value } : ex)); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
+                      {articles.filter(a => a.name.toLowerCase().includes(ea.search.toLowerCase())).map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Rolos</Label>
+                  <Input type="number" className="h-9" value={ea.rolls} onChange={e => setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, rolls: e.target.value } : ex))} placeholder="Qtd" />
+                </div>
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={() => setExtraArticles(prev => prev.filter((_, i) => i !== idx))}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            {!editing && (
+              <Button variant="outline" size="sm" className="w-full rounded-lg" onClick={() => setExtraArticles(prev => [...prev, { article_id: '', rolls: '', search: '' }])}>
+                <Plus className="h-4 w-4 mr-1" /> Adicionar Artigo
+              </Button>
+            )}
+
             {/* Preview */}
             <div className={cn("p-3 rounded-lg border", preview ? effBg(preview.efficiency) : 'bg-muted/30')}>
               {preview ? (
