@@ -148,10 +148,14 @@ export default function ProductionPage() {
     setShowModal(true);
   };
 
-  const openEdit = (p: Production) => {
-    setEditing(p);
-    setForm({ date: new Date(p.date), shift: p.shift, machine_id: p.machine_id, weaver_id: p.weaver_id || 'sem_tecelao', article_id: p.article_id, rpm: String(p.rpm), rolls: String(p.rolls_produced) });
-    setExtraArticles([]);
+  const openEditGroup = (group: ProductionGroup) => {
+    const first = group.items[0];
+    setEditing(first);
+    setForm({ date: new Date(first.date), shift: first.shift, machine_id: first.machine_id, weaver_id: first.weaver_id || 'sem_tecelao', article_id: first.article_id, rpm: String(first.rpm), rolls: String(first.rolls_produced) });
+    // Load additional articles from the group
+    const extras = group.items.slice(1).map(p => ({ article_id: p.article_id, rolls: String(p.rolls_produced), search: '' }));
+    setExtraArticles(extras);
+    setEditingGroupItems(group.items);
     setShowModal(true);
   };
 
