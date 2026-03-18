@@ -57,6 +57,9 @@ export default function ProductionPage() {
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
   });
 
+  // Extra articles (for split-shift production)
+  const [extraArticles, setExtraArticles] = useState<{ article_id: string; rolls: string; search: string }[]>([]);
+
   const rollsRef = useRef<HTMLInputElement>(null);
 
   const selectedMachine = machines.find(m => m.id === form.machine_id);
@@ -82,15 +85,39 @@ export default function ProductionPage() {
     if (!form.shift || !form.rpm || !form.rolls || !selectedArticle) return null;
     const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
     const rpm = Number(form.rpm);
-    const rolls = Number(form.rolls);
-    const turnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
     const maxTurns = rpm * shiftMinutes;
-    const producedTurns = rolls * turnsPerRoll;
-    const efficiency = maxTurns > 0 ? (producedTurns / maxTurns) * 100 : 0;
-    const weightKg = rolls * selectedArticle.weight_per_roll;
-    const revenue = weightKg * selectedArticle.value_per_kg;
-    return { efficiency: Math.min(efficiency, 100), weightKg, revenue, rolls };
-  }, [form.shift, form.rpm, form.rolls, selectedArticle, form.machine_id, articleMachineTurns]);
+
+    // Main article
+    const mainRolls = Number(form.rolls);
+    const mainTurnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
+    const mainProducedTurns = mainRolls * mainTurnsPerRoll;
+    const mainWeightKg = mainRolls * selectedArticle.weight_per_roll;
+    const mainRevenue = mainWeightKg * selectedArticle.value_per_kg;
+
+    // Extra articles
+    let totalProducedTurns = mainProducedTurns;
+    let totalWeightKg = mainWeightKg;
+    let totalRevenue = mainRevenue;
+    let totalRolls = mainRolls;
+
+    const extraPreviews = extraArticles.map(ea => {
+      const art = articles.find(a => a.id === ea.article_id);
+      const rolls = Number(ea.rolls) || 0;
+      if (!art || !rolls) return null;
+      const turnsPerRoll = getTurnsForMachine(art.id, form.machine_id);
+      const producedTurns = rolls * turnsPerRoll;
+      const weightKg = rolls * art.weight_per_roll;
+      const revenue = weightKg * art.value_per_kg;
+      totalProducedTurns += producedTurns;
+      totalWeightKg += weightKg;
+      totalRevenue += revenue;
+      totalRolls += rolls;
+      return { rolls, weightKg, revenue, producedTurns };
+    });
+
+    const efficiency = maxTurns > 0 ? (totalProducedTurns / maxTurns) * 100 : 0;
+    return { efficiency: Math.min(efficiency, 100), weightKg: totalWeightKg, revenue: totalRevenue, rolls: totalRolls, extraPreviews };
+  }, [form.shift, form.rpm, form.rolls, selectedArticle, form.machine_id, articleMachineTurns, extraArticles, articles, companyShiftMinutes]);
 
   const advanceToNext = useCallback(() => {
     if (sortedMachines.length === 0) return;
@@ -98,13 +125,13 @@ export default function ProductionPage() {
     if (nextMachineIdx < sortedMachines.length) {
       const nextMachine = sortedMachines[nextMachineIdx];
       setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '' }));
-      setArticleSearch(''); setWeaverSearch('');
+      setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
     } else {
       const nextShiftIdx = currentShiftIndex + 1;
       if (nextShiftIdx < SHIFTS.length) {
         const firstMachine = sortedMachines[0];
         setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '' }));
-        setArticleSearch(''); setWeaverSearch('');
+        setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
         toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
       } else {
         toast.success('Todos os turnos registrados!');
@@ -117,13 +144,14 @@ export default function ProductionPage() {
     setEditing(null);
     const firstMachine = sortedMachines[0];
     setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: 'sem_tecelao', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '' });
-    setArticleSearch(''); setWeaverSearch('');
+    setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
     setShowModal(true);
   };
 
   const openEdit = (p: Production) => {
     setEditing(p);
-    setForm({ date: new Date(p.date), shift: p.shift, machine_id: p.machine_id, weaver_id: p.weaver_id, article_id: p.article_id, rpm: String(p.rpm), rolls: String(p.rolls_produced) });
+    setForm({ date: new Date(p.date), shift: p.shift, machine_id: p.machine_id, weaver_id: p.weaver_id || 'sem_tecelao', article_id: p.article_id, rpm: String(p.rpm), rolls: String(p.rolls_produced) });
+    setExtraArticles([]);
     setShowModal(true);
   };
 
@@ -137,30 +165,68 @@ export default function ProductionPage() {
     const machineName = selectedMachine?.name || '';
     const actualWeaverId = form.weaver_id === 'sem_tecelao' ? '' : form.weaver_id;
     const weaverName = weavers.find(w => w.id === actualWeaverId)?.name || 'Sem Tecelão';
-    const articleName = selectedArticle?.name || '';
-    const record: Production = {
+    const dateStr = format(form.date, 'yyyy-MM-dd');
+    const shiftVal = form.shift as ShiftType;
+    const rpmVal = Number(form.rpm);
+    const combinedEfficiency = preview.efficiency;
+    const now = new Date().toISOString();
+
+    // Main article record
+    const mainArticleName = selectedArticle?.name || '';
+    const mainRolls = Number(form.rolls);
+    const mainWeightKg = selectedArticle ? mainRolls * selectedArticle.weight_per_roll : 0;
+    const mainRevenue = selectedArticle ? mainWeightKg * selectedArticle.value_per_kg : 0;
+
+    const mainRecord: Production = {
       id: editing?.id || crypto.randomUUID(), company_id: '',
-      date: format(form.date, 'yyyy-MM-dd'), shift: form.shift as ShiftType,
+      date: dateStr, shift: shiftVal,
       machine_id: form.machine_id, machine_name: machineName,
       weaver_id: actualWeaverId, weaver_name: weaverName,
-      article_id: form.article_id, article_name: articleName,
-      rpm: Number(form.rpm), rolls_produced: Number(form.rolls),
-      weight_kg: preview.weightKg, revenue: preview.revenue,
-      efficiency: preview.efficiency, created_at: editing?.created_at || new Date().toISOString(),
+      article_id: form.article_id, article_name: mainArticleName,
+      rpm: rpmVal, rolls_produced: mainRolls,
+      weight_kg: mainWeightKg, revenue: mainRevenue,
+      efficiency: combinedEfficiency, created_at: editing?.created_at || now,
     };
+
     if (editing) {
       const idx = all.findIndex(p => p.id === editing.id);
-      all[idx] = record;
+      all[idx] = mainRecord;
+    } else {
+      all.push(mainRecord);
+    }
+
+    // Extra article records
+    for (const ea of extraArticles) {
+      const art = articles.find(a => a.id === ea.article_id);
+      const rolls = Number(ea.rolls) || 0;
+      if (!art || !rolls) continue;
+      const weightKg = rolls * art.weight_per_roll;
+      const revenue = weightKg * art.value_per_kg;
+      all.push({
+        id: crypto.randomUUID(), company_id: '',
+        date: dateStr, shift: shiftVal,
+        machine_id: form.machine_id, machine_name: machineName,
+        weaver_id: actualWeaverId, weaver_name: weaverName,
+        article_id: ea.article_id, article_name: art.name,
+        rpm: rpmVal, rolls_produced: rolls,
+        weight_kg: weightKg, revenue,
+        efficiency: combinedEfficiency, created_at: now,
+      });
+    }
+
+    const extraCount = extraArticles.filter(ea => ea.article_id && Number(ea.rolls) > 0).length;
+    if (editing) {
       toast.success('Produção atualizada');
     } else {
-      all.push(record);
-      toast.success(`Produção registrada — ${machineName}`);
+      toast.success(`Produção registrada — ${machineName}${extraCount > 0 ? ` (${1 + extraCount} artigos)` : ''}`);
     }
+
     await saveProductions(all);
     setSaving(false);
+    setExtraArticles([]);
     if (editing) setShowModal(false);
     else advanceToNext();
-  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, saveProductions, advanceToNext]);
+  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, saveProductions, advanceToNext, extraArticles, articles]);
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
@@ -621,6 +687,35 @@ export default function ProductionPage() {
                 <Input ref={rollsRef} type="number" className="h-9" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Qtd rolos" />
               </div>
             </div>
+
+            {/* Extra Articles */}
+            {extraArticles.map((ea, idx) => (
+              <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end border-t border-dashed border-border/50 pt-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Artigo Adicional {idx + 2}</Label>
+                  <Select value={ea.article_id} onValueChange={v => setExtraArticles(prev => prev.map((e, i) => i === idx ? { ...e, article_id: v, search: '' } : e))}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
+                    <SelectContent position="popper" side="bottom" className="max-h-[200px]">
+                      <div className="p-1"><Input placeholder="Buscar artigo..." value={ea.search} onChange={e => { e.stopPropagation(); setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, search: e.target.value } : ex)); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
+                      {articles.filter(a => a.name.toLowerCase().includes(ea.search.toLowerCase())).map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Rolos</Label>
+                  <Input type="number" className="h-9" value={ea.rolls} onChange={e => setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, rolls: e.target.value } : ex))} placeholder="Qtd" />
+                </div>
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={() => setExtraArticles(prev => prev.filter((_, i) => i !== idx))}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            {!editing && (
+              <Button variant="outline" size="sm" className="w-full rounded-lg" onClick={() => setExtraArticles(prev => [...prev, { article_id: '', rolls: '', search: '' }])}>
+                <Plus className="h-4 w-4 mr-1" /> Adicionar Artigo
+              </Button>
+            )}
 
             {/* Preview */}
             <div className={cn("p-3 rounded-lg border", preview ? effBg(preview.efficiency) : 'bg-muted/30')}>
