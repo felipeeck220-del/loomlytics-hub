@@ -73,7 +73,9 @@ export default function Dashboard() {
     let data = [...productions];
     const today = new Date();
 
-    if (dateFrom || dateTo) {
+    if (dayRange === 0) {
+      // Todo período — no date filter
+    } else if (dateFrom || dateTo) {
       if (dateFrom) {
         const startStr = format(dateFrom, 'yyyy-MM-dd');
         data = data.filter(p => p.date >= startStr);
