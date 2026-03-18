@@ -231,7 +231,7 @@ export default function ProductionPage() {
     const article = articles.find(a => a.id === p.article_id);
     if (!article) return { meta80: 0, meta100: 0, metaRolls: 0 };
     const turnsPerRoll = getTurnsForMachine(p.article_id, p.machine_id);
-    const shiftMinutes = SHIFT_MINUTES[p.shift] || 510;
+    const shiftMinutes = companyShiftMinutes[p.shift] || 510;
     const maxTurns = p.rpm * shiftMinutes;
     const metaRolls = turnsPerRoll > 0 ? maxTurns / turnsPerRoll : 0;
     return { meta80: metaRolls * 0.8, meta100: metaRolls, metaRolls };
