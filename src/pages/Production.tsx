@@ -52,6 +52,7 @@ export default function ProductionPage() {
   const [articleSearch, setArticleSearch] = useState('');
   const [weaverSearch, setWeaverSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingGroupItems, setEditingGroupItems] = useState<Production[]>([]);
 
   const [form, setForm] = useState({
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
@@ -144,14 +145,18 @@ export default function ProductionPage() {
     setEditing(null);
     const firstMachine = sortedMachines[0];
     setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: 'sem_tecelao', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '' });
-    setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
+    setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]); setEditingGroupItems([]);
     setShowModal(true);
   };
 
-  const openEdit = (p: Production) => {
-    setEditing(p);
-    setForm({ date: new Date(p.date), shift: p.shift, machine_id: p.machine_id, weaver_id: p.weaver_id || 'sem_tecelao', article_id: p.article_id, rpm: String(p.rpm), rolls: String(p.rolls_produced) });
-    setExtraArticles([]);
+  const openEditGroup = (group: ProductionGroup) => {
+    const first = group.items[0];
+    setEditing(first);
+    setForm({ date: new Date(first.date), shift: first.shift, machine_id: first.machine_id, weaver_id: first.weaver_id || 'sem_tecelao', article_id: first.article_id, rpm: String(first.rpm), rolls: String(first.rolls_produced) });
+    // Load additional articles from the group
+    const extras = group.items.slice(1).map(p => ({ article_id: p.article_id, rolls: String(p.rolls_produced), search: '' }));
+    setExtraArticles(extras);
+    setEditingGroupItems(group.items);
     setShowModal(true);
   };
 
@@ -161,7 +166,7 @@ export default function ProductionPage() {
     }
     if (!preview || saving) return;
     setSaving(true);
-    const all = [...productions];
+    let all = [...productions];
     const machineName = selectedMachine?.name || '';
     const actualWeaverId = form.weaver_id === 'sem_tecelao' ? '' : form.weaver_id;
     const weaverName = weavers.find(w => w.id === actualWeaverId)?.name || 'Sem Tecelão';
@@ -189,29 +194,49 @@ export default function ProductionPage() {
     };
 
     if (editing) {
-      const idx = all.findIndex(p => p.id === editing.id);
-      all[idx] = mainRecord;
+      // Remove all old group items
+      const oldIds = new Set(editingGroupItems.map(i => i.id));
+      const filtered = all.filter(p => !oldIds.has(p.id));
+      filtered.push(mainRecord);
+      // Add extra articles with same created_at
+      for (const ea of extraArticles) {
+        const art = articles.find(a => a.id === ea.article_id);
+        const rolls = Number(ea.rolls) || 0;
+        if (!art || !rolls) continue;
+        const weightKg = rolls * art.weight_per_roll;
+        const revenue = weightKg * art.value_per_kg;
+        filtered.push({
+          id: crypto.randomUUID(), company_id: '',
+          date: dateStr, shift: shiftVal,
+          machine_id: form.machine_id, machine_name: machineName,
+          weaver_id: actualWeaverId, weaver_name: weaverName,
+          article_id: ea.article_id, article_name: art.name,
+          rpm: rpmVal, rolls_produced: rolls,
+          weight_kg: weightKg, revenue,
+          efficiency: combinedEfficiency, created_at: editing.created_at || now,
+        });
+      }
+      all = filtered;
     } else {
       all.push(mainRecord);
-    }
-
-    // Extra article records
-    for (const ea of extraArticles) {
-      const art = articles.find(a => a.id === ea.article_id);
-      const rolls = Number(ea.rolls) || 0;
-      if (!art || !rolls) continue;
-      const weightKg = rolls * art.weight_per_roll;
-      const revenue = weightKg * art.value_per_kg;
-      all.push({
-        id: crypto.randomUUID(), company_id: '',
-        date: dateStr, shift: shiftVal,
-        machine_id: form.machine_id, machine_name: machineName,
-        weaver_id: actualWeaverId, weaver_name: weaverName,
-        article_id: ea.article_id, article_name: art.name,
-        rpm: rpmVal, rolls_produced: rolls,
-        weight_kg: weightKg, revenue,
-        efficiency: combinedEfficiency, created_at: now,
-      });
+      // Extra article records
+      for (const ea of extraArticles) {
+        const art = articles.find(a => a.id === ea.article_id);
+        const rolls = Number(ea.rolls) || 0;
+        if (!art || !rolls) continue;
+        const weightKg = rolls * art.weight_per_roll;
+        const revenue = weightKg * art.value_per_kg;
+        all.push({
+          id: crypto.randomUUID(), company_id: '',
+          date: dateStr, shift: shiftVal,
+          machine_id: form.machine_id, machine_name: machineName,
+          weaver_id: actualWeaverId, weaver_name: weaverName,
+          article_id: ea.article_id, article_name: art.name,
+          rpm: rpmVal, rolls_produced: rolls,
+          weight_kg: weightKg, revenue,
+          efficiency: combinedEfficiency, created_at: now,
+        });
+      }
     }
 
     const extraCount = extraArticles.filter(ea => ea.article_id && Number(ea.rolls) > 0).length;
@@ -226,7 +251,7 @@ export default function ProductionPage() {
     setExtraArticles([]);
     if (editing) setShowModal(false);
     else advanceToNext();
-  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, saveProductions, advanceToNext, extraArticles, articles]);
+  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, saveProductions, advanceToNext, extraArticles, articles]);
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
@@ -555,7 +580,7 @@ export default function ProductionPage() {
                         </div>
 
                         <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(firstItem)}>
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditGroup(group)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(firstItem); setDeleteWord(''); }}>
