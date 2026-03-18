@@ -175,7 +175,6 @@ export default function ProductionPage() {
     if (!preview || saving) return;
 
     const isEditing = !!editing;
-    let all = [...productions];
     const machineName = selectedMachine?.name || '';
     const actualWeaverId = form.weaver_id === 'sem_tecelao' ? '' : form.weaver_id;
     const weaverName = weavers.find(w => w.id === actualWeaverId)?.name || 'Sem Tecelão';
@@ -185,13 +184,27 @@ export default function ProductionPage() {
     const combinedEfficiency = preview.efficiency;
     const now = new Date().toISOString();
 
-    // Main article record
+    // Check for duplicate: same machine + date + shift (only for new records)
+    if (!isEditing) {
+      const existingForMachineShift = productions.find(
+        p => p.machine_id === form.machine_id && p.date === dateStr && p.shift === shiftVal
+      );
+      if (existingForMachineShift) {
+        toast.error(`Já existe produção cadastrada para ${machineName} no turno ${companyShiftLabels[shiftVal]?.split(' (')[0]} em ${format(form.date, 'dd/MM/yyyy')}`, {
+          duration: 5000,
+        });
+        return;
+      }
+    }
+
+    // Build records
     const mainArticleName = selectedArticle?.name || '';
     const mainRolls = Number(form.rolls);
     const mainWeightKg = selectedArticle ? mainRolls * selectedArticle.weight_per_roll : 0;
     const mainRevenue = selectedArticle ? mainWeightKg * selectedArticle.value_per_kg : 0;
 
-    const mainRecord: Production = {
+    const newRecords: Production[] = [];
+    newRecords.push({
       id: editing?.id || crypto.randomUUID(), company_id: '',
       date: dateStr, shift: shiftVal,
       machine_id: form.machine_id, machine_name: machineName,
@@ -200,59 +213,39 @@ export default function ProductionPage() {
       rpm: rpmVal, rolls_produced: mainRolls,
       weight_kg: mainWeightKg, revenue: mainRevenue,
       efficiency: combinedEfficiency, created_at: editing?.created_at || now,
-    };
+    });
 
-    if (isEditing) {
-      const oldIds = new Set(editingGroupItems.map(i => i.id));
-      const filtered = all.filter(p => !oldIds.has(p.id));
-      filtered.push(mainRecord);
-      for (const ea of extraArticles) {
-        const art = articles.find(a => a.id === ea.article_id);
-        const rolls = Number(ea.rolls) || 0;
-        if (!art || !rolls) continue;
-        const weightKg = rolls * art.weight_per_roll;
-        const revenue = weightKg * art.value_per_kg;
-        filtered.push({
-          id: crypto.randomUUID(), company_id: '',
-          date: dateStr, shift: shiftVal,
-          machine_id: form.machine_id, machine_name: machineName,
-          weaver_id: actualWeaverId, weaver_name: weaverName,
-          article_id: ea.article_id, article_name: art.name,
-          rpm: rpmVal, rolls_produced: rolls,
-          weight_kg: weightKg, revenue,
-          efficiency: combinedEfficiency, created_at: editing.created_at || now,
-        });
-      }
-      all = filtered;
-    } else {
-      all.push(mainRecord);
-      for (const ea of extraArticles) {
-        const art = articles.find(a => a.id === ea.article_id);
-        const rolls = Number(ea.rolls) || 0;
-        if (!art || !rolls) continue;
-        const weightKg = rolls * art.weight_per_roll;
-        const revenue = weightKg * art.value_per_kg;
-        all.push({
-          id: crypto.randomUUID(), company_id: '',
-          date: dateStr, shift: shiftVal,
-          machine_id: form.machine_id, machine_name: machineName,
-          weaver_id: actualWeaverId, weaver_name: weaverName,
-          article_id: ea.article_id, article_name: art.name,
-          rpm: rpmVal, rolls_produced: rolls,
-          weight_kg: weightKg, revenue,
-          efficiency: combinedEfficiency, created_at: now,
-        });
-      }
+    for (const ea of extraArticles) {
+      const art = articles.find(a => a.id === ea.article_id);
+      const rolls = Number(ea.rolls) || 0;
+      if (!art || !rolls) continue;
+      const weightKg = rolls * art.weight_per_roll;
+      const revenue = weightKg * art.value_per_kg;
+      newRecords.push({
+        id: crypto.randomUUID(), company_id: '',
+        date: dateStr, shift: shiftVal,
+        machine_id: form.machine_id, machine_name: machineName,
+        weaver_id: actualWeaverId, weaver_name: weaverName,
+        article_id: ea.article_id, article_name: art.name,
+        rpm: rpmVal, rolls_produced: rolls,
+        weight_kg: weightKg, revenue,
+        efficiency: combinedEfficiency, created_at: editing?.created_at || now,
+      });
     }
 
-    // For editing: save synchronously, close modal
+    // For editing: update synchronously
     if (isEditing) {
       setSaving(true);
-      await saveProductions(all);
+      try {
+        const oldIds = editingGroupItems.map(i => i.id);
+        await updateProductions(oldIds, newRecords);
+        toast.success('Produção atualizada');
+      } catch {
+        toast.error('Erro ao atualizar produção');
+      }
       setSaving(false);
       setExtraArticles([]);
       setShowModal(false);
-      toast.success('Produção atualizada');
       return;
     }
 
@@ -262,10 +255,8 @@ export default function ProductionPage() {
     setExtraArticles([]);
     advanceToNext();
 
-    // Fire-and-forget background save
-    saveProductions(all).then(() => {
+    addProductions(newRecords).then(() => {
       setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'done' } : q));
-      // Auto-remove after 3 seconds
       setTimeout(() => {
         setSaveQueue(prev => prev.filter(q => q.id !== queueId));
       }, 3000);
@@ -273,7 +264,7 @@ export default function ProductionPage() {
       setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'error' } : q));
       toast.error(`Erro ao salvar produção — ${machineName}`);
     });
-  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, saveProductions, advanceToNext, extraArticles, articles]);
+  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, addProductions, updateProductions, advanceToNext, extraArticles, articles, companyShiftLabels]);
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
