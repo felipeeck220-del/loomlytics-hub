@@ -227,7 +227,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   <SelectTrigger className="w-[130px] h-9 rounded-lg"><SelectValue placeholder="Todos os turnos" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os</SelectItem>
-                    {Object.entries(SHIFT_LABELS).map(([k, v]) => (
+                    {Object.entries(companyShiftLabels).map(([k, v]) => (
                       <SelectItem key={k} value={k}>{v.split(' (')[0]}</SelectItem>
                     ))}
                   </SelectContent>
