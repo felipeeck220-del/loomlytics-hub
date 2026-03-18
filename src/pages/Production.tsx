@@ -371,8 +371,8 @@ export default function ProductionPage() {
             {/* Shift Info */}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span className="font-semibold text-foreground">Produção do Turno {SHIFT_LABELS[shift].split(' (')[0]}</span>
-              <span>{SHIFT_TIME_LABELS[shift]} - {shiftKPIs.count} registros</span>
+              <span className="font-semibold text-foreground">Produção do Turno {companyShiftLabels[shift].split(' (')[0]}</span>
+              <span>{companyShiftLabels[shift].match(/\((.+)\)/)?.[1] || ''} - {shiftKPIs.count} registros</span>
             </div>
 
             {/* Production Rows */}
