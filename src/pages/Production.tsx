@@ -546,7 +546,7 @@ export default function ProductionPage() {
 
       {/* Register/Edit Modal */}
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) return; setShowModal(open); }}>
-        <DialogContent className="sm:max-w-3xl flex flex-col">
+        <DialogContent className="sm:max-w-3xl flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-3">
               {editing ? 'Editar Produção' : 'Registrar Produção'}
