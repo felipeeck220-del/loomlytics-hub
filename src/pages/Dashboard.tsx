@@ -17,7 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import {
-  Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import MachinePerformanceModal from '@/components/MachinePerformanceModal';
 
