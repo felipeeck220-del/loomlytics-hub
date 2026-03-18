@@ -331,13 +331,13 @@ export default function ProductionPage() {
 
   // KPIs for active shift
   const shiftKPIs = useMemo(() => {
-    const prods = shiftProductions;
-    const totalRolls = prods.reduce((s, p) => s + p.rolls_produced, 0);
-    const totalWeight = prods.reduce((s, p) => s + Number(p.weight_kg), 0);
-    const totalRevenue = prods.reduce((s, p) => s + Number(p.revenue), 0);
-    const avgEfficiency = prods.length > 0 ? prods.reduce((s, p) => s + p.efficiency, 0) / prods.length : 0;
-    return { totalRolls, totalWeight, totalRevenue, avgEfficiency, count: prods.length };
-  }, [shiftProductions]);
+    const allProds = shiftProductionGroups.flatMap(g => g.items);
+    const totalRolls = allProds.reduce((s, p) => s + p.rolls_produced, 0);
+    const totalWeight = allProds.reduce((s, p) => s + Number(p.weight_kg), 0);
+    const totalRevenue = allProds.reduce((s, p) => s + Number(p.revenue), 0);
+    const avgEfficiency = shiftProductionGroups.length > 0 ? shiftProductionGroups.reduce((s, g) => s + g.efficiency, 0) / shiftProductionGroups.length : 0;
+    return { totalRolls, totalWeight, totalRevenue, avgEfficiency, count: shiftProductionGroups.length };
+  }, [shiftProductionGroups]);
 
   // Calculate meta for a production record
   const calcMeta = (p: Production) => {
