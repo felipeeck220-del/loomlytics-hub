@@ -105,7 +105,7 @@ export default function ProductionPage() {
         const firstMachine = sortedMachines[0];
         setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: '', article_id: '' }));
         setArticleSearch(''); setWeaverSearch('');
-        toast.info(`Avançou para ${SHIFT_LABELS[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
+        toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
       } else {
         toast.success('Todos os turnos registrados!');
         setShowModal(false);
