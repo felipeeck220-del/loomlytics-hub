@@ -165,30 +165,68 @@ export default function ProductionPage() {
     const machineName = selectedMachine?.name || '';
     const actualWeaverId = form.weaver_id === 'sem_tecelao' ? '' : form.weaver_id;
     const weaverName = weavers.find(w => w.id === actualWeaverId)?.name || 'Sem Tecelão';
-    const articleName = selectedArticle?.name || '';
-    const record: Production = {
+    const dateStr = format(form.date, 'yyyy-MM-dd');
+    const shiftVal = form.shift as ShiftType;
+    const rpmVal = Number(form.rpm);
+    const combinedEfficiency = preview.efficiency;
+    const now = new Date().toISOString();
+
+    // Main article record
+    const mainArticleName = selectedArticle?.name || '';
+    const mainRolls = Number(form.rolls);
+    const mainWeightKg = selectedArticle ? mainRolls * selectedArticle.weight_per_roll : 0;
+    const mainRevenue = selectedArticle ? mainWeightKg * selectedArticle.value_per_kg : 0;
+
+    const mainRecord: Production = {
       id: editing?.id || crypto.randomUUID(), company_id: '',
-      date: format(form.date, 'yyyy-MM-dd'), shift: form.shift as ShiftType,
+      date: dateStr, shift: shiftVal,
       machine_id: form.machine_id, machine_name: machineName,
       weaver_id: actualWeaverId, weaver_name: weaverName,
-      article_id: form.article_id, article_name: articleName,
-      rpm: Number(form.rpm), rolls_produced: Number(form.rolls),
-      weight_kg: preview.weightKg, revenue: preview.revenue,
-      efficiency: preview.efficiency, created_at: editing?.created_at || new Date().toISOString(),
+      article_id: form.article_id, article_name: mainArticleName,
+      rpm: rpmVal, rolls_produced: mainRolls,
+      weight_kg: mainWeightKg, revenue: mainRevenue,
+      efficiency: combinedEfficiency, created_at: editing?.created_at || now,
     };
+
     if (editing) {
       const idx = all.findIndex(p => p.id === editing.id);
-      all[idx] = record;
+      all[idx] = mainRecord;
+    } else {
+      all.push(mainRecord);
+    }
+
+    // Extra article records
+    for (const ea of extraArticles) {
+      const art = articles.find(a => a.id === ea.article_id);
+      const rolls = Number(ea.rolls) || 0;
+      if (!art || !rolls) continue;
+      const weightKg = rolls * art.weight_per_roll;
+      const revenue = weightKg * art.value_per_kg;
+      all.push({
+        id: crypto.randomUUID(), company_id: '',
+        date: dateStr, shift: shiftVal,
+        machine_id: form.machine_id, machine_name: machineName,
+        weaver_id: actualWeaverId, weaver_name: weaverName,
+        article_id: ea.article_id, article_name: art.name,
+        rpm: rpmVal, rolls_produced: rolls,
+        weight_kg: weightKg, revenue,
+        efficiency: combinedEfficiency, created_at: now,
+      });
+    }
+
+    const extraCount = extraArticles.filter(ea => ea.article_id && Number(ea.rolls) > 0).length;
+    if (editing) {
       toast.success('Produção atualizada');
     } else {
-      all.push(record);
-      toast.success(`Produção registrada — ${machineName}`);
+      toast.success(`Produção registrada — ${machineName}${extraCount > 0 ? ` (${1 + extraCount} artigos)` : ''}`);
     }
+
     await saveProductions(all);
     setSaving(false);
+    setExtraArticles([]);
     if (editing) setShowModal(false);
     else advanceToNext();
-  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, saveProductions, advanceToNext]);
+  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, saveProductions, advanceToNext, extraArticles, articles]);
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
