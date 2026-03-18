@@ -125,11 +125,11 @@ export default function Dashboard() {
     }
 
     if (filterShift !== 'all') {
-      const shiftMinutes = SHIFT_MINUTES[filterShift as ShiftType] || 480;
+      const shiftMinutes = companyShiftMinutes[filterShift as ShiftType] || 480;
       return days * (shiftMinutes / 60);
     }
     return days * 24;
-  }, [customDate, filterMonth, dayRange, filterShift, dateFrom, dateTo]);
+  }, [customDate, filterMonth, dayRange, filterShift, dateFrom, dateTo, companyShiftMinutes]);
 
   const revenuePerHour = calendarHours > 0 ? totalRevenue / calendarHours : 0;
   const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
