@@ -540,6 +540,7 @@ export default function Dashboard() {
         productions={productions}
         clients={clients}
         articles={articles}
+        shiftSettings={shiftSettings}
       />
     </div>
   );
