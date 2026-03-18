@@ -186,7 +186,15 @@ export default function Dashboard() {
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">
-            Visão geral da produção · Últimos {dayRange} dias · Turno: {companyShiftLabels[currentShift].split(' (')[0]}
+            Visão geral da produção · {(() => {
+              if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
+              if (dateFrom) return `A partir de ${format(dateFrom, 'dd/MM/yyyy')}`;
+              if (dateTo) return `Até ${format(dateTo, 'dd/MM/yyyy')}`;
+              if (customDate) return format(customDate, 'dd/MM/yyyy');
+              if (filterMonth !== 'all') return format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
+              const start = subDays(new Date(), dayRange);
+              return `${format(start, 'dd/MM/yyyy')} a ${format(new Date(), 'dd/MM/yyyy')}`;
+            })()}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType].split(' (')[0]}` : ''}
           </p>
         </div>
         {hasActiveFilters && (
