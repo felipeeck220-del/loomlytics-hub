@@ -609,7 +609,7 @@ export default function ProductionPage() {
                 <Label className="text-xs">Artigo</Label>
                 <Select value={form.article_id} onValueChange={v => { setForm(p => ({ ...p, article_id: v })); setArticleSearch(''); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                     <div className="p-1"><Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => { e.stopPropagation(); setArticleSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
                     {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
                   </SelectContent>
