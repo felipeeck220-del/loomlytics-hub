@@ -569,7 +569,8 @@ export default function ProductionPage() {
                               <p className="text-xs font-medium text-muted-foreground">Registro</p>
                               <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                             </div>
-                            <p className="text-sm font-semibold text-foreground mt-1">{format(new Date(p.date), 'dd/MM/yyyy')}</p>
+                             <p className="text-sm font-semibold text-foreground mt-1">{format(new Date(p.date), 'dd/MM/yyyy')}</p>
+                             <p className="text-xs text-muted-foreground mt-0.5">Cadastrado em: {p.created_at ? format(new Date(p.created_at), 'dd/MM/yyyy HH:mm') : '—'}</p>
                           </div>
                           <div className={cn("rounded-lg border p-3", p.efficiency < 80 ? 'border-red-200 bg-red-50' : 'border-border bg-background')}>
                             <div className="flex items-center justify-between">
