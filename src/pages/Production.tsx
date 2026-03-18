@@ -9,12 +9,18 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, CalendarIcon, Pencil, Loader2, ChevronRight, ChevronDown, ChevronUp, Filter, X, Trash2, Clock, FileText, TrendingUp, Target, AlertTriangle } from 'lucide-react';
+import { Plus, CalendarIcon, Pencil, Loader2, ChevronRight, ChevronDown, ChevronUp, Filter, X, Trash2, Clock, FileText, TrendingUp, Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
+
+type SaveQueueItem = {
+  id: string;
+  machineName: string;
+  status: 'saving' | 'done' | 'error';
+};
 
 const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
@@ -53,6 +59,8 @@ export default function ProductionPage() {
   const [weaverSearch, setWeaverSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingGroupItems, setEditingGroupItems] = useState<Production[]>([]);
+  const [saveQueue, setSaveQueue] = useState<SaveQueueItem[]>([]);
+  const hasPendingSaves = saveQueue.some(q => q.status === 'saving');
 
   const [form, setForm] = useState({
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
@@ -145,7 +153,7 @@ export default function ProductionPage() {
     setEditing(null);
     const firstMachine = sortedMachines[0];
     setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: 'sem_tecelao', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '' });
-    setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]); setEditingGroupItems([]);
+    setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]); setEditingGroupItems([]); setSaveQueue([]);
     setShowModal(true);
   };
 
@@ -165,7 +173,8 @@ export default function ProductionPage() {
       toast.error('Preencha todos os campos obrigatórios'); return;
     }
     if (!preview || saving) return;
-    setSaving(true);
+
+    const isEditing = !!editing;
     let all = [...productions];
     const machineName = selectedMachine?.name || '';
     const actualWeaverId = form.weaver_id === 'sem_tecelao' ? '' : form.weaver_id;
@@ -193,12 +202,10 @@ export default function ProductionPage() {
       efficiency: combinedEfficiency, created_at: editing?.created_at || now,
     };
 
-    if (editing) {
-      // Remove all old group items
+    if (isEditing) {
       const oldIds = new Set(editingGroupItems.map(i => i.id));
       const filtered = all.filter(p => !oldIds.has(p.id));
       filtered.push(mainRecord);
-      // Add extra articles with same created_at
       for (const ea of extraArticles) {
         const art = articles.find(a => a.id === ea.article_id);
         const rolls = Number(ea.rolls) || 0;
@@ -219,7 +226,6 @@ export default function ProductionPage() {
       all = filtered;
     } else {
       all.push(mainRecord);
-      // Extra article records
       for (const ea of extraArticles) {
         const art = articles.find(a => a.id === ea.article_id);
         const rolls = Number(ea.rolls) || 0;
@@ -239,18 +245,34 @@ export default function ProductionPage() {
       }
     }
 
-    const extraCount = extraArticles.filter(ea => ea.article_id && Number(ea.rolls) > 0).length;
-    if (editing) {
+    // For editing: save synchronously, close modal
+    if (isEditing) {
+      setSaving(true);
+      await saveProductions(all);
+      setSaving(false);
+      setExtraArticles([]);
+      setShowModal(false);
       toast.success('Produção atualizada');
-    } else {
-      toast.success(`Produção registrada — ${machineName}${extraCount > 0 ? ` (${1 + extraCount} artigos)` : ''}`);
+      return;
     }
 
-    await saveProductions(all);
-    setSaving(false);
+    // For new records: save in background, advance immediately
+    const queueId = crypto.randomUUID();
+    setSaveQueue(prev => [...prev, { id: queueId, machineName, status: 'saving' }]);
     setExtraArticles([]);
-    if (editing) setShowModal(false);
-    else advanceToNext();
+    advanceToNext();
+
+    // Fire-and-forget background save
+    saveProductions(all).then(() => {
+      setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'done' } : q));
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+        setSaveQueue(prev => prev.filter(q => q.id !== queueId));
+      }, 3000);
+    }).catch(() => {
+      setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'error' } : q));
+      toast.error(`Erro ao salvar produção — ${machineName}`);
+    });
   }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, saveProductions, advanceToNext, extraArticles, articles]);
 
   const handleDelete = async () => {
@@ -712,7 +734,7 @@ export default function ProductionPage() {
       </Tabs>
 
       {/* Register/Edit Modal */}
-      <Dialog open={showModal} onOpenChange={(open) => { if (!open) return; setShowModal(open); }}>
+      <Dialog open={showModal} onOpenChange={(open) => { if (!open && hasPendingSaves) return; if (!open) return; setShowModal(open); }}>
         <DialogContent className="sm:max-w-3xl flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-3">
@@ -836,14 +858,37 @@ export default function ProductionPage() {
             </div>
           </div>
 
-          <div className="flex-shrink-0 flex items-center justify-between border-t pt-4">
-            <p className="text-xs text-muted-foreground">Pressione <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-mono border">Enter</kbd> para salvar</p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowModal(false)}>Fechar</Button>
-              <Button onClick={handleSave} className="btn-gradient" disabled={saving}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                {editing ? 'Salvar' : 'Registrar e Próximo'}
-              </Button>
+          <div className="flex-shrink-0 border-t pt-4 space-y-3">
+            {/* Save Queue Status */}
+            {saveQueue.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {saveQueue.map(q => (
+                  <div key={q.id} className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+                    q.status === 'saving' && "bg-muted border-border text-muted-foreground",
+                    q.status === 'done' && "bg-emerald-50 border-emerald-200 text-emerald-700",
+                    q.status === 'error' && "bg-destructive/10 border-destructive/30 text-destructive",
+                  )}>
+                    {q.status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {q.status === 'done' && <CheckCircle2 className="h-3 w-3" />}
+                    {q.status === 'error' && <AlertTriangle className="h-3 w-3" />}
+                    {q.machineName}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Pressione <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-mono border">Enter</kbd> para salvar</p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowModal(false)} disabled={hasPendingSaves}>
+                  {hasPendingSaves ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando...</> : 'Fechar'}
+                </Button>
+                <Button onClick={handleSave} className="btn-gradient" disabled={saving}>
+                  {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                  {editing ? 'Salvar' : 'Registrar e Próximo'}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
