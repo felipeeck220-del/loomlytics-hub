@@ -331,10 +331,10 @@ export default function Dashboard() {
             <Card className="shadow-material border-0 pt-10 overflow-visible">
               <div className="material-card-header mx-4 -mt-10" style={{ background: 'linear-gradient(195deg, hsl(210 100% 52%), hsl(210 100% 38%))' }}>
                 <p className="text-sm font-medium">Tendência de Produção</p>
-                <p className="text-xs text-white/60 font-light">Rolos produzidos por dia</p>
+                <p className="text-xs text-white/60 font-light">Rolos, Kg, Faturamento e Eficiência por dia</p>
               </div>
               <CardContent className="pt-4 pb-2">
-                <div className="h-[260px]">
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                       <defs>
@@ -342,15 +342,45 @@ export default function Dashboard() {
                           <stop offset="5%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0.15} />
                           <stop offset="95%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0} />
                         </linearGradient>
+                        <linearGradient id="colorKg" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="colorFat" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="colorEff" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0} />
+                        </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" />
                       <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} />
-                      <YAxis tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} />
+                      <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} domain={[0, 100]} />
                       <RechartsTooltip
-                        contentStyle={{ borderRadius: '10px', border: '1px solid hsl(220, 15%, 90%)', fontSize: '13px', boxShadow: '0 4px 20px hsl(0 0% 0% / 0.08)' }}
-                        formatter={(v: number) => [formatNumber(v), 'Rolos']}
+                        contentStyle={{ borderRadius: '10px', border: '1px solid hsl(220, 15%, 90%)', fontSize: '12px', boxShadow: '0 4px 20px hsl(0 0% 0% / 0.08)' }}
+                        formatter={(v: number, name: string) => {
+                          if (name === 'rolos') return [formatNumber(v), 'Rolos'];
+                          if (name === 'kg') return [formatNumber(v, 2) + ' kg', 'Peso'];
+                          if (name === 'faturamento') return [formatCurrency(v), 'Faturamento'];
+                          if (name === 'eficiencia') return [formatPercent(v), 'Eficiência'];
+                          return [v, name];
+                        }}
                       />
-                      <Area type="monotone" dataKey="rolos" stroke="hsl(210, 100%, 52%)" strokeWidth={2.5} fill="url(#colorRolos)" />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={30}
+                        formatter={(value: string) => {
+                          const labels: Record<string, string> = { rolos: 'Rolos', kg: 'Kg', faturamento: 'Faturamento', eficiencia: 'Eficiência' };
+                          return <span style={{ fontSize: '11px', color: 'hsl(220, 9%, 55%)' }}>{labels[value] || value}</span>;
+                        }}
+                      />
+                      <Area yAxisId="left" type="monotone" dataKey="rolos" stroke="hsl(210, 100%, 52%)" strokeWidth={2} fill="url(#colorRolos)" />
+                      <Area yAxisId="left" type="monotone" dataKey="kg" stroke="hsl(142, 71%, 45%)" strokeWidth={2} fill="url(#colorKg)" />
+                      <Area yAxisId="left" type="monotone" dataKey="faturamento" stroke="hsl(38, 92%, 50%)" strokeWidth={2} fill="url(#colorFat)" />
+                      <Area yAxisId="right" type="monotone" dataKey="eficiencia" stroke="hsl(0, 84%, 60%)" strokeWidth={2} fill="url(#colorEff)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
