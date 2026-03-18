@@ -13,16 +13,10 @@ import { Plus, CalendarIcon, Pencil, Loader2, ChevronRight, ChevronDown, Chevron
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production } from '@/types';
+import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
 
 const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
-
-const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
-  manha: '5:00 às 13:30',
-  tarde: '13:30 às 22:00',
-  noite: '22:00 às 05:00',
-};
 
 export default function ProductionPage() {
   const { getProductions, saveProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, loading } = useSharedCompanyData();
