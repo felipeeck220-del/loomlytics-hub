@@ -236,7 +236,8 @@ export function useCompanyData() {
     }));
     const { error } = await sb('productions').insert(rows);
     if (error) throw error;
-    setProductions(prev => [...prev, ...newRecords]);
+    const withCompanyId = newRecords.map(r => ({ ...r, company_id: companyId }));
+    setProductions(prev => [...prev, ...withCompanyId]);
   }, [companyId]);
 
   // Incremental: delete specific records and insert replacements
