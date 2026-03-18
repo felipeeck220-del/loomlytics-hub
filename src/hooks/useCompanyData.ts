@@ -223,6 +223,52 @@ export function useCompanyData() {
     setProductions(data);
   }, [companyId]);
 
+  // Incremental: insert only new records (no delete-all)
+  const addProductions = useCallback(async (newRecords: Production[]) => {
+    if (!companyId || newRecords.length === 0) return;
+    const rows = newRecords.map(p => ({
+      id: p.id, company_id: companyId, date: p.date, shift: p.shift,
+      machine_id: p.machine_id || null, machine_name: p.machine_name || null,
+      weaver_id: p.weaver_id || null, weaver_name: p.weaver_name || null,
+      article_id: p.article_id || null, article_name: p.article_name || null,
+      rpm: p.rpm, rolls_produced: p.rolls_produced, weight_kg: p.weight_kg,
+      revenue: p.revenue, efficiency: p.efficiency, created_at: p.created_at,
+    }));
+    const { error } = await sb('productions').insert(rows);
+    if (error) throw error;
+    setProductions(prev => [...prev, ...newRecords]);
+  }, [companyId]);
+
+  // Incremental: delete specific records and insert replacements
+  const updateProductions = useCallback(async (idsToDelete: string[], newRecords: Production[]) => {
+    if (!companyId) return;
+    if (idsToDelete.length > 0) {
+      await sb('productions').delete().in('id', idsToDelete);
+    }
+    if (newRecords.length > 0) {
+      const rows = newRecords.map(p => ({
+        id: p.id, company_id: companyId, date: p.date, shift: p.shift,
+        machine_id: p.machine_id || null, machine_name: p.machine_name || null,
+        weaver_id: p.weaver_id || null, weaver_name: p.weaver_name || null,
+        article_id: p.article_id || null, article_name: p.article_name || null,
+        rpm: p.rpm, rolls_produced: p.rolls_produced, weight_kg: p.weight_kg,
+        revenue: p.revenue, efficiency: p.efficiency, created_at: p.created_at,
+      }));
+      await sb('productions').insert(rows);
+    }
+    setProductions(prev => {
+      const remaining = prev.filter(p => !idsToDelete.includes(p.id));
+      return [...remaining, ...newRecords];
+    });
+  }, [companyId]);
+
+  // Incremental: delete specific records
+  const deleteProductions = useCallback(async (ids: string[]) => {
+    if (!companyId || ids.length === 0) return;
+    await sb('productions').delete().in('id', ids);
+    setProductions(prev => prev.filter(p => !ids.includes(p.id)));
+  }, [companyId]);
+
   const saveArticleMachineTurns = useCallback(async (articleId: string, data: ArticleMachineTurns[]) => {
     if (!companyId) return;
     await sb('article_machine_turns').delete().eq('article_id', articleId);
@@ -257,7 +303,7 @@ export function useCompanyData() {
     getClients, saveClients,
     getArticles, saveArticles,
     getWeavers, saveWeavers,
-    getProductions, saveProductions,
+    getProductions, saveProductions, addProductions, updateProductions, deleteProductions,
     getArticleMachineTurns, saveArticleMachineTurns,
     saveShiftSettings,
   };
