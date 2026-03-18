@@ -32,6 +32,7 @@ export function useCompanyData() {
         .select('*')
         .eq(query.column, query.value)
         .order(orderCol, { ascending })
+        .order('id', { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
 
       if (error || !data) break;
