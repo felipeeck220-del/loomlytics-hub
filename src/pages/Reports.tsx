@@ -311,7 +311,7 @@ export default function Reports() {
               <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Todos os turnos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os turnos</SelectItem>
-                {Object.entries(SHIFT_LABELS).map(([k, v]) => (
+                {Object.entries(companyShiftLabels).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v.split(' (')[0]}</SelectItem>
                 ))}
               </SelectContent>
