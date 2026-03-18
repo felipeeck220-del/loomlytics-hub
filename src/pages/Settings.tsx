@@ -62,6 +62,9 @@ export default function SettingsPage() {
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: '' });
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [editingShifts, setEditingShifts] = useState(false);
+  const [shiftForm, setShiftForm] = useState<CompanyShiftSettings>(shiftSettings);
+  const [savingShifts, setSavingShifts] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
