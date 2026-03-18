@@ -68,6 +68,16 @@ export function useCompanyData() {
       setWeavers(wData.map(mapWeaver));
       setProductions(pData.map(mapProduction));
       setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
+      if (csRes.data) {
+        setShiftSettings({
+          shift_manha_start: csRes.data.shift_manha_start || DEFAULT_SHIFT_SETTINGS.shift_manha_start,
+          shift_manha_end: csRes.data.shift_manha_end || DEFAULT_SHIFT_SETTINGS.shift_manha_end,
+          shift_tarde_start: csRes.data.shift_tarde_start || DEFAULT_SHIFT_SETTINGS.shift_tarde_start,
+          shift_tarde_end: csRes.data.shift_tarde_end || DEFAULT_SHIFT_SETTINGS.shift_tarde_end,
+          shift_noite_start: csRes.data.shift_noite_start || DEFAULT_SHIFT_SETTINGS.shift_noite_start,
+          shift_noite_end: csRes.data.shift_noite_end || DEFAULT_SHIFT_SETTINGS.shift_noite_end,
+        });
+      }
       setLoading(false);
     })();
   }, [companyId]);
