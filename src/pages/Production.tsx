@@ -858,14 +858,37 @@ export default function ProductionPage() {
             </div>
           </div>
 
-          <div className="flex-shrink-0 flex items-center justify-between border-t pt-4">
-            <p className="text-xs text-muted-foreground">Pressione <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-mono border">Enter</kbd> para salvar</p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowModal(false)}>Fechar</Button>
-              <Button onClick={handleSave} className="btn-gradient" disabled={saving}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                {editing ? 'Salvar' : 'Registrar e Próximo'}
-              </Button>
+          <div className="flex-shrink-0 border-t pt-4 space-y-3">
+            {/* Save Queue Status */}
+            {saveQueue.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {saveQueue.map(q => (
+                  <div key={q.id} className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+                    q.status === 'saving' && "bg-muted border-border text-muted-foreground",
+                    q.status === 'done' && "bg-emerald-50 border-emerald-200 text-emerald-700",
+                    q.status === 'error' && "bg-destructive/10 border-destructive/30 text-destructive",
+                  )}>
+                    {q.status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {q.status === 'done' && <CheckCircle2 className="h-3 w-3" />}
+                    {q.status === 'error' && <AlertTriangle className="h-3 w-3" />}
+                    {q.machineName}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Pressione <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-mono border">Enter</kbd> para salvar</p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowModal(false)} disabled={hasPendingSaves}>
+                  {hasPendingSaves ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando...</> : 'Fechar'}
+                </Button>
+                <Button onClick={handleSave} className="btn-gradient" disabled={saving}>
+                  {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                  {editing ? 'Salvar' : 'Registrar e Próximo'}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
