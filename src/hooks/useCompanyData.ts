@@ -17,6 +17,7 @@ export function useCompanyData() {
   const [weavers, setWeavers] = useState<Weaver[]>([]);
   const [productions, setProductions] = useState<Production[]>([]);
   const [articleMachineTurns, setArticleMachineTurns] = useState<ArticleMachineTurns[]>([]);
+  const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
   const [loading, setLoading] = useState(true);
 
   // Fetch all rows from a table, paginating past the 1000-row default limit
