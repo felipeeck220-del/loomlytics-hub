@@ -239,7 +239,7 @@ export default function Reports() {
               <Button
                 key={d}
                 size="sm"
-                variant={dayRange === d && filterMonth === 'all' && !customDate ? 'default' : 'outline'}
+                variant={dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
                 onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
               >
                 {d === 1 ? '1 Dia' : d === 7 ? '7 Dias' : '1 Mês'}

@@ -141,9 +141,9 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   <Button
                     key={d}
                     size="sm"
-                    variant={dayRange === d && filterMonth === 'all' && !customDate && filterYear === 'all' ? 'default' : 'outline'}
+                    variant={dayRange === d && filterMonth === 'all' && !customDate && filterYear === 'all' && !dateFrom && !dateTo ? 'default' : 'outline'}
                     onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setFilterYear('all'); setDateFrom(undefined); setDateTo(undefined); }}
-                    className={cn("min-w-[60px] rounded-lg", dayRange === d && filterMonth === 'all' && !customDate && filterYear === 'all' && 'btn-gradient')}
+                    className={cn("min-w-[60px] rounded-lg", dayRange === d && filterMonth === 'all' && !customDate && filterYear === 'all' && !dateFrom && !dateTo && 'btn-gradient')}
                   >
                     {d} dia{d > 1 ? 's' : ''}
                   </Button>
