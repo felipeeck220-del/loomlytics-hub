@@ -236,7 +236,8 @@ export function useCompanyData() {
     }));
     const { error } = await sb('productions').insert(rows);
     if (error) throw error;
-    setProductions(prev => [...prev, ...newRecords]);
+    const withCompanyId = newRecords.map(r => ({ ...r, company_id: companyId }));
+    setProductions(prev => [...prev, ...withCompanyId]);
   }, [companyId]);
 
   // Incremental: delete specific records and insert replacements
@@ -256,9 +257,10 @@ export function useCompanyData() {
       }));
       await sb('productions').insert(rows);
     }
+    const withCompanyId = newRecords.map(r => ({ ...r, company_id: companyId }));
     setProductions(prev => {
       const remaining = prev.filter(p => !idsToDelete.includes(p.id));
-      return [...remaining, ...newRecords];
+      return [...remaining, ...withCompanyId];
     });
   }, [companyId]);
 
