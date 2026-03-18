@@ -30,7 +30,9 @@ function getCurrentShift(): ShiftType {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { getProductions, getMachines, getClients, getArticles, getWeavers, loading } = useSharedCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, getWeavers, shiftSettings, loading } = useSharedCompanyData();
+  const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
+  const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const productions = getProductions();
   const machines = getMachines();
   const clients = getClients();
