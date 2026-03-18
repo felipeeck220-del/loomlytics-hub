@@ -108,7 +108,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
         const kg = mp.reduce((s, p) => s + p.weight_kg, 0);
         const revenue = mp.reduce((s, p) => s + p.revenue, 0);
         const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
-        const totalHours = mp.reduce((s, p) => s + ((SHIFT_MINUTES[p.shift as ShiftType] || 480) / 60), 0);
+        const totalHours = mp.reduce((s, p) => s + ((companyShiftMinutes[p.shift as ShiftType] || 480) / 60), 0);
         const revenuePerHour = totalHours > 0 ? revenue / totalHours : 0;
         const kgPerHour = totalHours > 0 ? kg / totalHours : 0;
 
