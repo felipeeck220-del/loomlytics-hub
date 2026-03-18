@@ -145,7 +145,7 @@ export default function ProductionPage() {
     setEditing(null);
     const firstMachine = sortedMachines[0];
     setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: 'sem_tecelao', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '' });
-    setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
+    setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]); setEditingGroupItems([]);
     setShowModal(true);
   };
 
