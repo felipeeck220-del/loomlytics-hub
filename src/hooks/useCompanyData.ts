@@ -303,7 +303,7 @@ export function useCompanyData() {
     getClients, saveClients,
     getArticles, saveArticles,
     getWeavers, saveWeavers,
-    getProductions, saveProductions,
+    getProductions, saveProductions, addProductions, updateProductions, deleteProductions,
     getArticleMachineTurns, saveArticleMachineTurns,
     saveShiftSettings,
   };
