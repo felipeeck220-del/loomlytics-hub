@@ -108,9 +108,9 @@ export default function Dashboard() {
   const calendarHours = useMemo(() => {
     let days: number;
     if (dateFrom && dateTo) {
-      days = Math.max(1, Math.round((dateTo.getTime() - dateFrom.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      days = differenceInCalendarDays(dateTo, dateFrom) + 1;
     } else if (dateFrom) {
-      days = Math.max(1, Math.round((new Date().getTime() - dateFrom.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      days = differenceInCalendarDays(new Date(), dateFrom) + 1;
     } else if (dateTo) {
       days = 1;
     } else if (customDate) {
