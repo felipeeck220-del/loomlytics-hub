@@ -230,7 +230,11 @@ export default function ProductionPage() {
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
-    const all = productions.filter(p => p.id !== showDelete?.id);
+    if (!showDelete) return;
+    // Find the group this item belongs to and delete all items in the group
+    const group = shiftProductionGroups.find(g => g.items.some(i => i.id === showDelete.id));
+    const idsToDelete = group ? group.items.map(i => i.id) : [showDelete.id];
+    const all = productions.filter(p => !idsToDelete.includes(p.id));
     await saveProductions(all);
     setShowDelete(null); setDeleteWord('');
     toast.success('Produção excluída');
@@ -272,26 +276,72 @@ export default function ProductionPage() {
     return result;
   }, [productions, filterDate, filterMachine, filterArticle]);
 
-  // Group by shift
-  const shiftProductions = useMemo(() => {
-    return filteredProductions
+  // Group by shift, then group multi-article productions into single entries
+  type ProductionGroup = {
+    key: string;
+    items: typeof filteredProductions;
+    machine_id: string;
+    machine_name: string;
+    weaver_name: string;
+    date: string;
+    shift: string;
+    created_at: string;
+    rpm: number;
+    totalRolls: number;
+    totalWeightKg: number;
+    totalRevenue: number;
+    efficiency: number;
+  };
+
+  const shiftProductionGroups = useMemo(() => {
+    const shiftItems = filteredProductions
       .filter(p => p.shift === activeShift)
       .sort((a, b) => {
         const mA = machines.find(m => m.id === a.machine_id);
         const mB = machines.find(m => m.id === b.machine_id);
         return (mA?.number || 0) - (mB?.number || 0);
       });
+
+    // Group by machine_id + date + created_at (multi-article saves share exact created_at)
+    const groupMap = new Map<string, typeof shiftItems>();
+    for (const p of shiftItems) {
+      const key = `${p.machine_id}|${p.date}|${p.created_at}`;
+      if (!groupMap.has(key)) groupMap.set(key, []);
+      groupMap.get(key)!.push(p);
+    }
+
+    const groups: ProductionGroup[] = [];
+    for (const [key, items] of groupMap) {
+      const first = items[0];
+      groups.push({
+        key,
+        items,
+        machine_id: first.machine_id,
+        machine_name: first.machine_name || '',
+        weaver_name: first.weaver_name || 'Sem Tecelão',
+        date: first.date,
+        shift: first.shift,
+        created_at: first.created_at,
+        rpm: first.rpm,
+        totalRolls: items.reduce((s, p) => s + p.rolls_produced, 0),
+        totalWeightKg: items.reduce((s, p) => s + Number(p.weight_kg), 0),
+        totalRevenue: items.reduce((s, p) => s + Number(p.revenue), 0),
+        efficiency: first.efficiency, // all share the same combined efficiency
+      });
+    }
+
+    return groups;
   }, [filteredProductions, activeShift, machines]);
 
   // KPIs for active shift
   const shiftKPIs = useMemo(() => {
-    const prods = shiftProductions;
-    const totalRolls = prods.reduce((s, p) => s + p.rolls_produced, 0);
-    const totalWeight = prods.reduce((s, p) => s + Number(p.weight_kg), 0);
-    const totalRevenue = prods.reduce((s, p) => s + Number(p.revenue), 0);
-    const avgEfficiency = prods.length > 0 ? prods.reduce((s, p) => s + p.efficiency, 0) / prods.length : 0;
-    return { totalRolls, totalWeight, totalRevenue, avgEfficiency, count: prods.length };
-  }, [shiftProductions]);
+    const allProds = shiftProductionGroups.flatMap(g => g.items);
+    const totalRolls = allProds.reduce((s, p) => s + p.rolls_produced, 0);
+    const totalWeight = allProds.reduce((s, p) => s + Number(p.weight_kg), 0);
+    const totalRevenue = allProds.reduce((s, p) => s + Number(p.revenue), 0);
+    const avgEfficiency = shiftProductionGroups.length > 0 ? shiftProductionGroups.reduce((s, g) => s + g.efficiency, 0) / shiftProductionGroups.length : 0;
+    return { totalRolls, totalWeight, totalRevenue, avgEfficiency, count: shiftProductionGroups.length };
+  }, [shiftProductionGroups]);
 
   // Calculate meta for a production record
   const calcMeta = (p: Production) => {
@@ -444,28 +494,49 @@ export default function ProductionPage() {
 
             {/* Production Rows */}
             <div className="space-y-2">
-              {shiftProductions.map(p => {
-                const isExpanded = expandedId === p.id;
-                const meta = calcMeta(p);
-                const article = articles.find(a => a.id === p.article_id);
-                const meta80Reached = p.rolls_produced >= meta.meta80;
-                const meta100Reached = p.rolls_produced >= meta.meta100;
+              {shiftProductionGroups.map(group => {
+                const isExpanded = expandedId === group.key;
+                const isMultiArticle = group.items.length > 1;
+                const firstItem = group.items[0];
+                
+                // For meta calculation, use combined turns approach
+                const calcGroupMeta = () => {
+                  const shiftMinutes = companyShiftMinutes[group.shift as ShiftType] || 510;
+                  const maxTurns = group.rpm * shiftMinutes;
+                  const metaRolls80 = group.items.reduce((sum, p) => {
+                    const turnsPerRoll = getTurnsForMachine(p.article_id, p.machine_id);
+                    const articleMaxTurns = maxTurns; // shared RPM
+                    const articleMetaRolls = turnsPerRoll > 0 ? articleMaxTurns / turnsPerRoll : 0;
+                    return sum + articleMetaRolls * 0.8 * (p.rolls_produced / (group.totalRolls || 1));
+                  }, 0);
+                  // Use the first item's article for simple meta display
+                  const mainArticle = articles.find(a => a.id === firstItem.article_id);
+                  const mainTurnsPerRoll = getTurnsForMachine(firstItem.article_id, firstItem.machine_id);
+                  const mainMetaRolls = mainTurnsPerRoll > 0 ? maxTurns / mainTurnsPerRoll : 0;
+                  return { meta80: mainMetaRolls * 0.8, meta100: mainMetaRolls, metaRolls: mainMetaRolls };
+                };
+                const meta = calcGroupMeta();
+                const meta80Reached = group.totalRolls >= meta.meta80;
+
+                // Articles description
+                const articlesDesc = group.items.map(p => p.article_name).join(' + ');
+                const registrationTime = group.created_at ? format(new Date(group.created_at), 'dd/MM/yyyy HH:mm') : '';
 
                 return (
-                  <div key={p.id} className="card-glass overflow-hidden">
+                  <div key={group.key} className="card-glass overflow-hidden">
                     {/* Row Header */}
                     <div className="p-4 flex items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="font-display font-bold text-foreground text-lg">{p.machine_name}</p>
+                        <p className="font-display font-bold text-foreground text-lg">{group.machine_name}</p>
                         <p className="text-sm text-muted-foreground truncate">
-                          {p.weaver_name || 'Sem tecelão definido'} -- Artigo: {p.article_name}
+                          {group.weaver_name}{registrationTime ? ` — ${registrationTime}` : ''} -- {isMultiArticle ? 'Artigos' : 'Artigo'}: {articlesDesc}
                         </p>
                       </div>
 
                       <div className="flex items-center gap-4 shrink-0">
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground">Rolos</p>
-                          <p className="font-bold text-foreground">{p.rolls_produced}</p>
+                          <p className="font-bold text-foreground">{group.totalRolls}</p>
                         </div>
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground">Meta 80%</p>
@@ -478,19 +549,19 @@ export default function ProductionPage() {
                         </div>
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground">% Atingida</p>
-                          <Badge className={cn("text-xs font-bold", effBg(p.efficiency), effColor(p.efficiency))}>
-                            {formatNumber(p.efficiency, 2)}%
+                          <Badge className={cn("text-xs font-bold", effBg(group.efficiency), effColor(group.efficiency))}>
+                            {formatNumber(group.efficiency, 2)}%
                           </Badge>
                         </div>
 
                         <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(firstItem)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(p); setDeleteWord(''); }}>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(firstItem); setDeleteWord(''); }}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setExpandedId(isExpanded ? null : p.id)}>
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setExpandedId(isExpanded ? null : group.key)}>
                             {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                           </Button>
                         </div>
@@ -500,25 +571,32 @@ export default function ProductionPage() {
                     {/* Expanded Details */}
                     {isExpanded && (
                       <div className="border-t border-border p-5 space-y-4 bg-muted/20">
-                        {/* Article */}
+                        {/* Articles List */}
                         <div>
-                          <p className="text-sm font-semibold text-foreground mb-1">Artigo:</p>
-                          <p className="text-sm text-muted-foreground">{p.article_name} {article?.client_name ? `(${article.client_name})` : ''}</p>
+                          <p className="text-sm font-semibold text-foreground mb-2">{isMultiArticle ? 'Artigos:' : 'Artigo:'}</p>
+                          {group.items.map((p, idx) => {
+                            const article = articles.find(a => a.id === p.article_id);
+                            return (
+                              <div key={p.id} className={cn("text-sm text-muted-foreground", idx > 0 && "mt-1")}>
+                                {p.article_name} {article?.client_name ? `(${article.client_name})` : ''} — {p.rolls_produced} rolos, {formatNumber(Number(p.weight_kg), 2)} kg, {formatCurrency(Number(p.revenue))}
+                              </div>
+                            );
+                          })}
                         </div>
 
-                        {/* Main metrics */}
+                        {/* Main metrics (combined) */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
                             <p className="text-xs text-blue-600 font-medium">Rolos</p>
-                            <p className="text-xl font-display font-bold text-blue-800">{p.rolls_produced}</p>
+                            <p className="text-xl font-display font-bold text-blue-800">{group.totalRolls}</p>
                           </div>
                           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
                             <p className="text-xs text-blue-600 font-medium">Peso</p>
-                            <p className="text-xl font-display font-bold text-blue-800">{formatNumber(Number(p.weight_kg), 2)} kg</p>
+                            <p className="text-xl font-display font-bold text-blue-800">{formatNumber(group.totalWeightKg, 2)} kg</p>
                           </div>
                           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
                             <p className="text-xs text-blue-600 font-medium">Valor</p>
-                            <p className="text-xl font-display font-bold text-blue-800">{formatCurrency(Number(p.revenue))}</p>
+                            <p className="text-xl font-display font-bold text-blue-800">{formatCurrency(group.totalRevenue)}</p>
                           </div>
                           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
                             <p className="text-xs text-blue-600 font-medium">Meta</p>
@@ -538,24 +616,24 @@ export default function ProductionPage() {
                               {meta80Reached ? '✓ Atingida' : '✗ Não atingida'}
                             </p>
                           </div>
-                          <div className={cn("rounded-lg border p-3", meta100Reached ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
+                          <div className={cn("rounded-lg border p-3", group.totalRolls >= meta.meta100 ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
                             <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", meta100Reached ? 'text-emerald-600' : 'text-yellow-700')}>Meta 100%</p>
-                              <Target className={cn("h-4 w-4", meta100Reached ? 'text-emerald-500' : 'text-yellow-500')} />
+                              <p className={cn("text-xs font-medium", group.totalRolls >= meta.meta100 ? 'text-emerald-600' : 'text-yellow-700')}>Meta 100%</p>
+                              <Target className={cn("h-4 w-4", group.totalRolls >= meta.meta100 ? 'text-emerald-500' : 'text-yellow-500')} />
                             </div>
-                            <p className={cn("text-lg font-bold", meta100Reached ? 'text-emerald-700' : 'text-yellow-800')}>{formatNumber(meta.meta100, 2)} rolos</p>
-                            <p className={cn("text-xs", meta100Reached ? 'text-emerald-600' : 'text-yellow-600')}>
-                              {meta100Reached ? '✓ Atingida' : '✗ Não atingida'}
+                            <p className={cn("text-lg font-bold", group.totalRolls >= meta.meta100 ? 'text-emerald-700' : 'text-yellow-800')}>{formatNumber(meta.meta100, 2)} rolos</p>
+                            <p className={cn("text-xs", group.totalRolls >= meta.meta100 ? 'text-emerald-600' : 'text-yellow-600')}>
+                              {group.totalRolls >= meta.meta100 ? '✓ Atingida' : '✗ Não atingida'}
                             </p>
                           </div>
-                          <div className={cn("rounded-lg border p-3", effBg(p.efficiency), p.efficiency >= 80 ? 'border-emerald-200' : p.efficiency >= 75 ? 'border-yellow-200' : 'border-red-200')}>
+                          <div className={cn("rounded-lg border p-3", effBg(group.efficiency), group.efficiency >= 80 ? 'border-emerald-200' : group.efficiency >= 75 ? 'border-yellow-200' : 'border-red-200')}>
                             <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", effColor(p.efficiency))}>% Produção</p>
-                              <TrendingUp className={cn("h-4 w-4", effColor(p.efficiency))} />
+                              <p className={cn("text-xs font-medium", effColor(group.efficiency))}>% Produção</p>
+                              <TrendingUp className={cn("h-4 w-4", effColor(group.efficiency))} />
                             </div>
-                            <p className={cn("text-lg font-bold", effColor(p.efficiency))}>{formatNumber(p.efficiency, 2)}%</p>
-                            <p className={cn("text-xs flex items-center gap-1", effColor(p.efficiency))}>
-                              {p.efficiency >= 80 ? '✓ Dentro da meta' : (
+                            <p className={cn("text-lg font-bold", effColor(group.efficiency))}>{formatNumber(group.efficiency, 2)}%</p>
+                            <p className={cn("text-xs flex items-center gap-1", effColor(group.efficiency))}>
+                              {group.efficiency >= 80 ? '✓ Dentro da meta' : (
                                 <><AlertTriangle className="h-3 w-3" /> Abaixo da meta</>
                               )}
                             </p>
@@ -569,26 +647,26 @@ export default function ProductionPage() {
                               <p className="text-xs font-medium text-muted-foreground">Registro</p>
                               <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                             </div>
-                             <p className="text-sm font-semibold text-foreground mt-1">{format(new Date(p.date), 'dd/MM/yyyy')}</p>
-                             <p className="text-xs text-muted-foreground mt-0.5">Cadastrado em: {p.created_at ? format(new Date(p.created_at), 'dd/MM/yyyy HH:mm') : '—'}</p>
+                             <p className="text-sm font-semibold text-foreground mt-1">{format(new Date(group.date), 'dd/MM/yyyy')}</p>
+                             <p className="text-xs text-muted-foreground mt-0.5">Cadastrado em: {registrationTime || '—'}</p>
                           </div>
-                          <div className={cn("rounded-lg border p-3", p.efficiency < 80 ? 'border-red-200 bg-red-50' : 'border-border bg-background')}>
+                          <div className={cn("rounded-lg border p-3", group.efficiency < 80 ? 'border-red-200 bg-red-50' : 'border-border bg-background')}>
                             <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", p.efficiency < 80 ? 'text-red-600' : 'text-muted-foreground')}>Tempo Parada</p>
-                              <Clock className={cn("h-4 w-4", p.efficiency < 80 ? 'text-red-500' : 'text-muted-foreground')} />
+                              <p className={cn("text-xs font-medium", group.efficiency < 80 ? 'text-red-600' : 'text-muted-foreground')}>Tempo Parada</p>
+                              <Clock className={cn("h-4 w-4", group.efficiency < 80 ? 'text-red-500' : 'text-muted-foreground')} />
                             </div>
                             {(() => {
-                              const shiftMin = companyShiftMinutes[p.shift] || 510;
-                              const usedMin = shiftMin * (p.efficiency / 100);
+                              const shiftMin = companyShiftMinutes[group.shift as ShiftType] || 510;
+                              const usedMin = shiftMin * (group.efficiency / 100);
                               const downMin = shiftMin - usedMin;
                               const hours = Math.floor(downMin / 60);
                               const mins = Math.round(downMin % 60);
                               return (
                                 <>
-                                  <p className={cn("text-lg font-bold mt-1", p.efficiency < 80 ? 'text-red-700' : 'text-foreground')}>
+                                  <p className={cn("text-lg font-bold mt-1", group.efficiency < 80 ? 'text-red-700' : 'text-foreground')}>
                                     {hours}h{mins > 0 ? `${mins}min` : ''}
                                   </p>
-                                  <p className={cn("text-xs", p.efficiency < 80 ? 'text-red-600' : 'text-muted-foreground')}>Tempo inativo</p>
+                                  <p className={cn("text-xs", group.efficiency < 80 ? 'text-red-600' : 'text-muted-foreground')}>Tempo inativo</p>
                                 </>
                               );
                             })()}
@@ -600,7 +678,7 @@ export default function ProductionPage() {
                 );
               })}
 
-              {shiftProductions.length === 0 && (
+              {shiftProductionGroups.length === 0 && (
                 <div className="text-center text-muted-foreground py-12">Nenhum registro de produção para este turno</div>
               )}
             </div>
