@@ -11,7 +11,7 @@ import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { formatNumber, formatCurrency, formatPercent } from '@/lib/formatters';
-import { SHIFT_LABELS, SHIFT_MINUTES, MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type ShiftType, type MachineStatus } from '@/types';
+import { SHIFT_LABELS, SHIFT_MINUTES, MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type ShiftType, type MachineStatus, type CompanyShiftSettings, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
 import type { Machine, Production, Client, Article } from '@/types';
 
 interface Props {
