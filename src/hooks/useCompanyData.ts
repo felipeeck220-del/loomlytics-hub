@@ -238,9 +238,19 @@ export function useCompanyData() {
     setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
   }, [companyId]);
 
+  const saveShiftSettings = useCallback(async (data: CompanyShiftSettings) => {
+    if (!companyId) return;
+    const { error } = await sb('company_settings')
+      .update(data)
+      .eq('company_id', companyId);
+    if (error) throw error;
+    setShiftSettings(data);
+  }, [companyId]);
+
   return {
     loading,
     dbCompanyId: companyId,
+    shiftSettings,
     getMachines, saveMachines,
     getMachineLogs, saveMachineLogs,
     getClients, saveClients,
@@ -248,5 +258,6 @@ export function useCompanyData() {
     getWeavers, saveWeavers,
     getProductions, saveProductions,
     getArticleMachineTurns, saveArticleMachineTurns,
+    saveShiftSettings,
   };
 }
