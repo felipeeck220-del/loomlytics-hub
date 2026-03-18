@@ -57,6 +57,9 @@ export default function ProductionPage() {
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
   });
 
+  // Extra articles (for split-shift production)
+  const [extraArticles, setExtraArticles] = useState<{ article_id: string; rolls: string; search: string }[]>([]);
+
   const rollsRef = useRef<HTMLInputElement>(null);
 
   const selectedMachine = machines.find(m => m.id === form.machine_id);
