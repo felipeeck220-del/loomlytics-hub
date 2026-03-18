@@ -150,7 +150,8 @@ export default function ProductionPage() {
 
   const openEdit = (p: Production) => {
     setEditing(p);
-    setForm({ date: new Date(p.date), shift: p.shift, machine_id: p.machine_id, weaver_id: p.weaver_id, article_id: p.article_id, rpm: String(p.rpm), rolls: String(p.rolls_produced) });
+    setForm({ date: new Date(p.date), shift: p.shift, machine_id: p.machine_id, weaver_id: p.weaver_id || 'sem_tecelao', article_id: p.article_id, rpm: String(p.rpm), rolls: String(p.rolls_produced) });
+    setExtraArticles([]);
     setShowModal(true);
   };
 
