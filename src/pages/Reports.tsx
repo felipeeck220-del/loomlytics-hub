@@ -18,7 +18,7 @@ import {
   Package, TrendingUp, DollarSign, Gauge, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SHIFT_LABELS, type ShiftType } from '@/types';
+import { SHIFT_LABELS, type ShiftType, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -37,7 +37,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 };
 
 export default function Reports() {
-  const { getProductions, getMachines, getClients, getArticles, loading } = useSharedCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, shiftSettings, loading } = useSharedCompanyData();
+  const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { user } = useAuth();
   const productions = getProductions();
   const machines = getMachines();
@@ -141,7 +142,7 @@ export default function Reports() {
     const sp = filtered.filter(p => p.shift === s);
     const eff = sp.length ? sp.reduce((sum, p) => sum + p.efficiency, 0) / sp.length : 0;
     return {
-      name: SHIFT_LABELS[s].split(' (')[0],
+      name: companyShiftLabels[s].split(' (')[0],
       rolos: sp.reduce((sum, p) => sum + p.rolls_produced, 0),
       kg: sp.reduce((sum, p) => sum + p.weight_kg, 0),
       faturamento: sp.reduce((sum, p) => sum + p.revenue, 0),
@@ -310,7 +311,7 @@ export default function Reports() {
               <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Todos os turnos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os turnos</SelectItem>
-                {Object.entries(SHIFT_LABELS).map(([k, v]) => (
+                {Object.entries(companyShiftLabels).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v.split(' (')[0]}</SelectItem>
                 ))}
               </SelectContent>

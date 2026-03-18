@@ -13,19 +13,15 @@ import { Plus, CalendarIcon, Pencil, Loader2, ChevronRight, ChevronDown, Chevron
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production } from '@/types';
+import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
 
 const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
-const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
-  manha: '5:00 às 13:30',
-  tarde: '13:30 às 22:00',
-  noite: '22:00 às 05:00',
-};
-
 export default function ProductionPage() {
-  const { getProductions, saveProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, loading } = useSharedCompanyData();
+  const { getProductions, saveProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, shiftSettings, loading } = useSharedCompanyData();
+  const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
+  const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const productions = getProductions();
   const machines = getMachines();
   const weavers = getWeavers();
@@ -84,7 +80,7 @@ export default function ProductionPage() {
 
   const preview = useMemo(() => {
     if (!form.shift || !form.rpm || !form.rolls || !selectedArticle) return null;
-    const shiftMinutes = SHIFT_MINUTES[form.shift as ShiftType];
+    const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
     const rpm = Number(form.rpm);
     const rolls = Number(form.rolls);
     const turnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
@@ -109,7 +105,7 @@ export default function ProductionPage() {
         const firstMachine = sortedMachines[0];
         setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: '', article_id: '' }));
         setArticleSearch(''); setWeaverSearch('');
-        toast.info(`Avançou para ${SHIFT_LABELS[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
+        toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
       } else {
         toast.success('Todos os turnos registrados!');
         setShowModal(false);
@@ -235,7 +231,7 @@ export default function ProductionPage() {
     const article = articles.find(a => a.id === p.article_id);
     if (!article) return { meta80: 0, meta100: 0, metaRolls: 0 };
     const turnsPerRoll = getTurnsForMachine(p.article_id, p.machine_id);
-    const shiftMinutes = SHIFT_MINUTES[p.shift] || 510;
+    const shiftMinutes = companyShiftMinutes[p.shift] || 510;
     const maxTurns = p.rpm * shiftMinutes;
     const metaRolls = turnsPerRoll > 0 ? maxTurns / turnsPerRoll : 0;
     return { meta80: metaRolls * 0.8, meta100: metaRolls, metaRolls };
@@ -331,7 +327,7 @@ export default function ProductionPage() {
         <TabsList className="w-full grid grid-cols-3">
           {SHIFTS.map(s => (
             <TabsTrigger key={s} value={s} className="flex items-center gap-2">
-              <Clock className="h-4 w-4" /> {SHIFT_LABELS[s].split(' (')[0]}
+              <Clock className="h-4 w-4" /> {companyShiftLabels[s].split(' (')[0]}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -375,8 +371,8 @@ export default function ProductionPage() {
             {/* Shift Info */}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span className="font-semibold text-foreground">Produção do Turno {SHIFT_LABELS[shift].split(' (')[0]}</span>
-              <span>{SHIFT_TIME_LABELS[shift]} - {shiftKPIs.count} registros</span>
+              <span className="font-semibold text-foreground">Produção do Turno {companyShiftLabels[shift].split(' (')[0]}</span>
+              <span>{companyShiftLabels[shift].match(/\((.+)\)/)?.[1] || ''} - {shiftKPIs.count} registros</span>
             </div>
 
             {/* Production Rows */}
@@ -514,7 +510,7 @@ export default function ProductionPage() {
                               <Clock className={cn("h-4 w-4", p.efficiency < 80 ? 'text-red-500' : 'text-muted-foreground')} />
                             </div>
                             {(() => {
-                              const shiftMin = SHIFT_MINUTES[p.shift] || 510;
+                              const shiftMin = companyShiftMinutes[p.shift] || 510;
                               const usedMin = shiftMin * (p.efficiency / 100);
                               const downMin = shiftMin - usedMin;
                               const hours = Math.floor(downMin / 60);
@@ -553,7 +549,7 @@ export default function ProductionPage() {
               {!editing && form.shift && selectedMachine && (
                 <span className="text-sm font-normal text-muted-foreground flex items-center gap-1">
                   <ChevronRight className="h-3 w-3" />
-                  {SHIFT_LABELS[form.shift as ShiftType]?.split(' (')[0]} · {selectedMachine.name}
+                  {companyShiftLabels[form.shift as ShiftType]?.split(' (')[0]} · {selectedMachine.name}
                   {currentMachineIndex >= 0 && (
                     <Badge variant="outline" className="ml-2 text-xs">{currentMachineIndex + 1}/{sortedMachines.length}</Badge>
                   )}
@@ -581,7 +577,7 @@ export default function ProductionPage() {
                 <Label className="text-xs">Turno</Label>
                 <Select value={form.shift} onValueChange={v => setForm(p => ({ ...p, shift: v as ShiftType }))}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Turno" /></SelectTrigger>
-                  <SelectContent>{Object.entries(SHIFT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                  <SelectContent>{Object.entries(companyShiftLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">

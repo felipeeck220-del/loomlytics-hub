@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
-import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType } from '@/types';
+import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,9 @@ function getCurrentShift(): ShiftType {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { getProductions, getMachines, getClients, getArticles, getWeavers, loading } = useSharedCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, getWeavers, shiftSettings, loading } = useSharedCompanyData();
+  const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
+  const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const productions = getProductions();
   const machines = getMachines();
   const clients = getClients();
@@ -123,11 +125,11 @@ export default function Dashboard() {
     }
 
     if (filterShift !== 'all') {
-      const shiftMinutes = SHIFT_MINUTES[filterShift as ShiftType] || 480;
+      const shiftMinutes = companyShiftMinutes[filterShift as ShiftType] || 480;
       return days * (shiftMinutes / 60);
     }
     return days * 24;
-  }, [customDate, filterMonth, dayRange, filterShift, dateFrom, dateTo]);
+  }, [customDate, filterMonth, dayRange, filterShift, dateFrom, dateTo, companyShiftMinutes]);
 
   const revenuePerHour = calendarHours > 0 ? totalRevenue / calendarHours : 0;
   const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
@@ -136,7 +138,7 @@ export default function Dashboard() {
     const sp = filtered.filter(p => p.shift === shift);
     return {
       shift,
-      label: SHIFT_LABELS[shift].split(' (')[0],
+      label: companyShiftLabels[shift].split(' (')[0],
       rolls: sp.reduce((s, p) => s + p.rolls_produced, 0),
       kg: sp.reduce((s, p) => s + p.weight_kg, 0),
       revenue: sp.reduce((s, p) => s + p.revenue, 0),
@@ -184,7 +186,7 @@ export default function Dashboard() {
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">
-            Visão geral da produção · Últimos {dayRange} dias · Turno: {SHIFT_LABELS[currentShift].split(' (')[0]}
+            Visão geral da produção · Últimos {dayRange} dias · Turno: {companyShiftLabels[currentShift].split(' (')[0]}
           </p>
         </div>
         {hasActiveFilters && (
@@ -264,7 +266,7 @@ export default function Dashboard() {
               <SelectTrigger className="w-[150px] h-9 rounded-lg"><SelectValue placeholder="Todos os turnos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os turnos</SelectItem>
-                {Object.entries(SHIFT_LABELS).map(([k, v]) => (
+                {Object.entries(companyShiftLabels).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v.split(' (')[0]}</SelectItem>
                 ))}
               </SelectContent>
@@ -538,6 +540,7 @@ export default function Dashboard() {
         productions={productions}
         clients={clients}
         articles={articles}
+        shiftSettings={shiftSettings}
       />
     </div>
   );

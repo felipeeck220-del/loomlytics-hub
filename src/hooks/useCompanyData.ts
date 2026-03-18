@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns } from '@/types';
+import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns, CompanyShiftSettings } from '@/types';
+import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
@@ -16,6 +17,7 @@ export function useCompanyData() {
   const [weavers, setWeavers] = useState<Weaver[]>([]);
   const [productions, setProductions] = useState<Production[]>([]);
   const [articleMachineTurns, setArticleMachineTurns] = useState<ArticleMachineTurns[]>([]);
+  const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
   const [loading, setLoading] = useState(true);
 
   // Fetch all rows from a table, paginating past the 1000-row default limit
@@ -48,7 +50,7 @@ export function useCompanyData() {
     }
     (async () => {
       setLoading(true);
-      const [mData, cData, aData, wData, pData, mlRes, amtData] = await Promise.all([
+      const [mData, cData, aData, wData, pData, mlRes, amtData, csRes] = await Promise.all([
         fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
         fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
@@ -56,6 +58,7 @@ export function useCompanyData() {
         fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
         sb('machine_logs').select('*'),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
+        sb('company_settings').select('*').eq('company_id', companyId).single(),
       ]);
 
       setMachines(mData.map(mapMachine));
@@ -65,6 +68,16 @@ export function useCompanyData() {
       setWeavers(wData.map(mapWeaver));
       setProductions(pData.map(mapProduction));
       setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
+      if (csRes.data) {
+        setShiftSettings({
+          shift_manha_start: csRes.data.shift_manha_start || DEFAULT_SHIFT_SETTINGS.shift_manha_start,
+          shift_manha_end: csRes.data.shift_manha_end || DEFAULT_SHIFT_SETTINGS.shift_manha_end,
+          shift_tarde_start: csRes.data.shift_tarde_start || DEFAULT_SHIFT_SETTINGS.shift_tarde_start,
+          shift_tarde_end: csRes.data.shift_tarde_end || DEFAULT_SHIFT_SETTINGS.shift_tarde_end,
+          shift_noite_start: csRes.data.shift_noite_start || DEFAULT_SHIFT_SETTINGS.shift_noite_start,
+          shift_noite_end: csRes.data.shift_noite_end || DEFAULT_SHIFT_SETTINGS.shift_noite_end,
+        });
+      }
       setLoading(false);
     })();
   }, [companyId]);
@@ -225,9 +238,19 @@ export function useCompanyData() {
     setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
   }, [companyId]);
 
+  const saveShiftSettings = useCallback(async (data: CompanyShiftSettings) => {
+    if (!companyId) return;
+    const { error } = await sb('company_settings')
+      .update(data)
+      .eq('company_id', companyId);
+    if (error) throw error;
+    setShiftSettings(data);
+  }, [companyId]);
+
   return {
     loading,
     dbCompanyId: companyId,
+    shiftSettings,
     getMachines, saveMachines,
     getMachineLogs, saveMachineLogs,
     getClients, saveClients,
@@ -235,5 +258,6 @@ export function useCompanyData() {
     getWeavers, saveWeavers,
     getProductions, saveProductions,
     getArticleMachineTurns, saveArticleMachineTurns,
+    saveShiftSettings,
   };
 }

@@ -193,6 +193,12 @@ export type Database = {
           id: string
           monthly_plan_value: number
           platform_active: boolean
+          shift_manha_end: string
+          shift_manha_start: string
+          shift_noite_end: string
+          shift_noite_start: string
+          shift_tarde_end: string
+          shift_tarde_start: string
           updated_at: string
         }
         Insert: {
@@ -202,6 +208,12 @@ export type Database = {
           id?: string
           monthly_plan_value?: number
           platform_active?: boolean
+          shift_manha_end?: string
+          shift_manha_start?: string
+          shift_noite_end?: string
+          shift_noite_start?: string
+          shift_tarde_end?: string
+          shift_tarde_start?: string
           updated_at?: string
         }
         Update: {
@@ -211,6 +223,12 @@ export type Database = {
           id?: string
           monthly_plan_value?: number
           platform_active?: boolean
+          shift_manha_end?: string
+          shift_manha_start?: string
+          shift_noite_end?: string
+          shift_noite_start?: string
+          shift_tarde_end?: string
+          shift_tarde_start?: string
           updated_at?: string
         }
         Relationships: [

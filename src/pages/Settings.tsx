@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { supabase } from '@/integrations/supabase/client';
+import type { CompanyShiftSettings } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +47,7 @@ const getRoleLabel = (role: string) => ROLES.find(r => r.value === role)?.label 
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
+  const { shiftSettings, saveShiftSettings } = useSharedCompanyData();
   const [tab, setTab] = useState('profile');
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
@@ -59,6 +62,9 @@ export default function SettingsPage() {
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: '' });
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [editingShifts, setEditingShifts] = useState(false);
+  const [shiftForm, setShiftForm] = useState<CompanyShiftSettings>(shiftSettings);
+  const [savingShifts, setSavingShifts] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -461,20 +467,61 @@ export default function SettingsPage() {
               {/* Right: Shifts + Roles */}
               <div className="space-y-6">
                 <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-3">Turnos de Trabalho</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold text-muted-foreground">Turnos de Trabalho</p>
+                    {isAdmin && !editingShifts && (
+                      <Button variant="outline" size="sm" onClick={() => { setShiftForm(shiftSettings); setEditingShifts(true); }}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                    )}
+                    {editingShifts && (
+                      <div className="flex gap-1">
+                        <Button variant="outline" size="sm" onClick={() => setEditingShifts(false)}>Cancelar</Button>
+                        <Button size="sm" className="btn-gradient" disabled={savingShifts} onClick={async () => {
+                          setSavingShifts(true);
+                          try {
+                            await saveShiftSettings(shiftForm);
+                            toast.success('Turnos atualizados com sucesso');
+                            setEditingShifts(false);
+                          } catch { toast.error('Erro ao salvar turnos'); }
+                          setSavingShifts(false);
+                        }}>
+                          {savingShifts && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
-                      <span className="font-medium text-foreground">Manhã</span>
-                      <span className="text-sm text-muted-foreground">06:00 - 14:00</span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
-                      <span className="font-medium text-foreground">Tarde</span>
-                      <span className="text-sm text-muted-foreground">14:00 - 22:00</span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
-                      <span className="font-medium text-foreground">Noite</span>
-                      <span className="text-sm text-muted-foreground">22:00 - 06:00</span>
-                    </div>
+                    {([
+                      { label: 'Manhã', startKey: 'shift_manha_start', endKey: 'shift_manha_end' },
+                      { label: 'Tarde', startKey: 'shift_tarde_start', endKey: 'shift_tarde_end' },
+                      { label: 'Noite', startKey: 'shift_noite_start', endKey: 'shift_noite_end' },
+                    ] as { label: string; startKey: keyof CompanyShiftSettings; endKey: keyof CompanyShiftSettings }[]).map(shift => (
+                      <div key={shift.label} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+                        <span className="font-medium text-foreground">{shift.label}</span>
+                        {editingShifts ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="time"
+                              value={shiftForm[shift.startKey]}
+                              onChange={e => setShiftForm(p => ({ ...p, [shift.startKey]: e.target.value }))}
+                              className="w-[110px] h-8 text-sm"
+                            />
+                            <span className="text-muted-foreground text-sm">-</span>
+                            <Input
+                              type="time"
+                              value={shiftForm[shift.endKey]}
+                              onChange={e => setShiftForm(p => ({ ...p, [shift.endKey]: e.target.value }))}
+                              className="w-[110px] h-8 text-sm"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            {shiftSettings[shift.startKey]} - {shiftSettings[shift.endKey]}
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
 

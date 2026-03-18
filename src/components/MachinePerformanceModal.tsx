@@ -11,7 +11,7 @@ import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { formatNumber, formatCurrency, formatPercent } from '@/lib/formatters';
-import { SHIFT_LABELS, SHIFT_MINUTES, MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type ShiftType, type MachineStatus } from '@/types';
+import { SHIFT_LABELS, SHIFT_MINUTES, MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type ShiftType, type MachineStatus, type CompanyShiftSettings, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
 import type { Machine, Production, Client, Article } from '@/types';
 
 interface Props {
@@ -21,9 +21,12 @@ interface Props {
   productions: Production[];
   clients: Client[];
   articles: Article[];
+  shiftSettings?: CompanyShiftSettings;
 }
 
-export default function MachinePerformanceModal({ open, onOpenChange, machines, productions, clients, articles }: Props) {
+export default function MachinePerformanceModal({ open, onOpenChange, machines, productions, clients, articles, shiftSettings }: Props) {
+  const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
+  const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const [dayRange, setDayRange] = useState(7);
   const [customDate, setCustomDate] = useState<Date>();
   const [dateFrom, setDateFrom] = useState<Date>();
@@ -105,7 +108,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
         const kg = mp.reduce((s, p) => s + p.weight_kg, 0);
         const revenue = mp.reduce((s, p) => s + p.revenue, 0);
         const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
-        const totalHours = mp.reduce((s, p) => s + ((SHIFT_MINUTES[p.shift as ShiftType] || 480) / 60), 0);
+        const totalHours = mp.reduce((s, p) => s + ((companyShiftMinutes[p.shift as ShiftType] || 480) / 60), 0);
         const revenuePerHour = totalHours > 0 ? revenue / totalHours : 0;
         const kgPerHour = totalHours > 0 ? kg / totalHours : 0;
 
@@ -224,7 +227,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   <SelectTrigger className="w-[130px] h-9 rounded-lg"><SelectValue placeholder="Todos os turnos" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os</SelectItem>
-                    {Object.entries(SHIFT_LABELS).map(([k, v]) => (
+                    {Object.entries(companyShiftLabels).map(([k, v]) => (
                       <SelectItem key={k} value={k}>{v.split(' (')[0]}</SelectItem>
                     ))}
                   </SelectContent>
