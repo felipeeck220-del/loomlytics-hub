@@ -385,11 +385,12 @@ export default function Reports() {
 
       {/* Analysis Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-5">
           <TabsTrigger value="turno">Por Turno</TabsTrigger>
           <TabsTrigger value="maquina">Por Máquina</TabsTrigger>
           <TabsTrigger value="cliente">Por Cliente</TabsTrigger>
           <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+          <TabsTrigger value="exportar" className="flex items-center gap-1"><Download className="h-3.5 w-3.5" />Exportar</TabsTrigger>
         </TabsList>
 
         {/* POR TURNO */}
