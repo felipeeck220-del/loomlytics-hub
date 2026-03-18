@@ -166,7 +166,7 @@ export default function ProductionPage() {
     }
     if (!preview || saving) return;
     setSaving(true);
-    const all = [...productions];
+    let all = [...productions];
     const machineName = selectedMachine?.name || '';
     const actualWeaverId = form.weaver_id === 'sem_tecelao' ? '' : form.weaver_id;
     const weaverName = weavers.find(w => w.id === actualWeaverId)?.name || 'Sem Tecelão';
