@@ -138,7 +138,7 @@ export default function Dashboard() {
     const sp = filtered.filter(p => p.shift === shift);
     return {
       shift,
-      label: SHIFT_LABELS[shift].split(' (')[0],
+      label: companyShiftLabels[shift].split(' (')[0],
       rolls: sp.reduce((s, p) => s + p.rolls_produced, 0),
       kg: sp.reduce((s, p) => s + p.weight_kg, 0),
       revenue: sp.reduce((s, p) => s + p.revenue, 0),
