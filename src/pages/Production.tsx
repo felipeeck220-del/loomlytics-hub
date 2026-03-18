@@ -577,7 +577,7 @@ export default function ProductionPage() {
                 <Label className="text-xs">Turno</Label>
                 <Select value={form.shift} onValueChange={v => setForm(p => ({ ...p, shift: v as ShiftType }))}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Turno" /></SelectTrigger>
-                  <SelectContent>{Object.entries(SHIFT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                  <SelectContent>{Object.entries(companyShiftLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
