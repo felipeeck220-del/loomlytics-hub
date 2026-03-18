@@ -230,7 +230,11 @@ export default function ProductionPage() {
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
-    const all = productions.filter(p => p.id !== showDelete?.id);
+    if (!showDelete) return;
+    // Find the group this item belongs to and delete all items in the group
+    const group = shiftProductionGroups.find(g => g.items.some(i => i.id === showDelete.id));
+    const idsToDelete = group ? group.items.map(i => i.id) : [showDelete.id];
+    const all = productions.filter(p => !idsToDelete.includes(p.id));
     await saveProductions(all);
     setShowDelete(null); setDeleteWord('');
     toast.success('Produção excluída');
