@@ -197,6 +197,13 @@ export default function Dashboard() {
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">
             Visão geral da produção · {(() => {
+              if (dayRange === 0) {
+                if (filtered.length > 0) {
+                  const dates = filtered.map(p => p.date).sort();
+                  return `Todo período · ${format(new Date(dates[0] + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(dates[dates.length - 1] + 'T12:00:00'), 'dd/MM/yyyy')}`;
+                }
+                return 'Todo período';
+              }
               if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
               if (dateFrom) return `A partir de ${format(dateFrom, 'dd/MM/yyyy')}`;
               if (dateTo) return `Até ${format(dateTo, 'dd/MM/yyyy')}`;
