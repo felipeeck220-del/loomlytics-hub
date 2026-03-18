@@ -598,8 +598,9 @@ export default function ProductionPage() {
                 <Label className="text-xs">Tecelão</Label>
                 <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Tecelão" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                     <div className="p-1"><Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => { e.stopPropagation(); setWeaverSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
+                    <SelectItem value="sem_tecelao">Sem Tecelão</SelectItem>
                     {weavers.filter(w => `${w.code} ${w.name}`.toLowerCase().includes(weaverSearch.toLowerCase())).map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
