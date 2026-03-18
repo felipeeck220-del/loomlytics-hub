@@ -560,7 +560,7 @@ export default function ProductionPage() {
                         </div>
 
                         <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(firstItem)}>
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditGroup(group)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(firstItem); setDeleteWord(''); }}>
