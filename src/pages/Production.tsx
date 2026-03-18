@@ -51,7 +51,8 @@ export default function ProductionPage() {
   const [editing, setEditing] = useState<Production | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
   const [weaverSearch, setWeaverSearch] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = false;
+  const [editingGroupItems, setEditingGroupItems] = useState<Production[]>([]);
 
   const [form, setForm] = useState({
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
