@@ -255,10 +255,10 @@ export default function Reports() {
 
             <Button
               size="sm"
-              variant={dayRange === 9999 && filterMonth === 'all' && !customDate ? 'default' : 'outline'}
-              onClick={() => { setDayRange(9999); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
+              variant={dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
+              onClick={() => { setDayRange(0); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
             >
-              Total
+              Todo período
             </Button>
 
             <Popover>
