@@ -186,7 +186,7 @@ export default function Dashboard() {
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">
-            Visão geral da produção · Últimos {dayRange} dias · Turno: {SHIFT_LABELS[currentShift].split(' (')[0]}
+            Visão geral da produção · Últimos {dayRange} dias · Turno: {companyShiftLabels[currentShift].split(' (')[0]}
           </p>
         </div>
         {hasActiveFilters && (
