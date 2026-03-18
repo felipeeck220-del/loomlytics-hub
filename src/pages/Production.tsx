@@ -173,7 +173,8 @@ export default function ProductionPage() {
       toast.error('Preencha todos os campos obrigatórios'); return;
     }
     if (!preview || saving) return;
-    setSaving(true);
+
+    const isEditing = !!editing;
     let all = [...productions];
     const machineName = selectedMachine?.name || '';
     const actualWeaverId = form.weaver_id === 'sem_tecelao' ? '' : form.weaver_id;
@@ -201,12 +202,10 @@ export default function ProductionPage() {
       efficiency: combinedEfficiency, created_at: editing?.created_at || now,
     };
 
-    if (editing) {
-      // Remove all old group items
+    if (isEditing) {
       const oldIds = new Set(editingGroupItems.map(i => i.id));
       const filtered = all.filter(p => !oldIds.has(p.id));
       filtered.push(mainRecord);
-      // Add extra articles with same created_at
       for (const ea of extraArticles) {
         const art = articles.find(a => a.id === ea.article_id);
         const rolls = Number(ea.rolls) || 0;
@@ -227,7 +226,6 @@ export default function ProductionPage() {
       all = filtered;
     } else {
       all.push(mainRecord);
-      // Extra article records
       for (const ea of extraArticles) {
         const art = articles.find(a => a.id === ea.article_id);
         const rolls = Number(ea.rolls) || 0;
@@ -247,18 +245,34 @@ export default function ProductionPage() {
       }
     }
 
-    const extraCount = extraArticles.filter(ea => ea.article_id && Number(ea.rolls) > 0).length;
-    if (editing) {
+    // For editing: save synchronously, close modal
+    if (isEditing) {
+      setSaving(true);
+      await saveProductions(all);
+      setSaving(false);
+      setExtraArticles([]);
+      setShowModal(false);
       toast.success('Produção atualizada');
-    } else {
-      toast.success(`Produção registrada — ${machineName}${extraCount > 0 ? ` (${1 + extraCount} artigos)` : ''}`);
+      return;
     }
 
-    await saveProductions(all);
-    setSaving(false);
+    // For new records: save in background, advance immediately
+    const queueId = crypto.randomUUID();
+    setSaveQueue(prev => [...prev, { id: queueId, machineName, status: 'saving' }]);
     setExtraArticles([]);
-    if (editing) setShowModal(false);
-    else advanceToNext();
+    advanceToNext();
+
+    // Fire-and-forget background save
+    saveProductions(all).then(() => {
+      setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'done' } : q));
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+        setSaveQueue(prev => prev.filter(q => q.id !== queueId));
+      }, 3000);
+    }).catch(() => {
+      setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'error' } : q));
+      toast.error(`Erro ao salvar produção — ${machineName}`);
+    });
   }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, saveProductions, advanceToNext, extraArticles, articles]);
 
   const handleDelete = async () => {
