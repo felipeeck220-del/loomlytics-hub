@@ -549,7 +549,7 @@ export default function ProductionPage() {
               {!editing && form.shift && selectedMachine && (
                 <span className="text-sm font-normal text-muted-foreground flex items-center gap-1">
                   <ChevronRight className="h-3 w-3" />
-                  {SHIFT_LABELS[form.shift as ShiftType]?.split(' (')[0]} · {selectedMachine.name}
+                  {companyShiftLabels[form.shift as ShiftType]?.split(' (')[0]} · {selectedMachine.name}
                   {currentMachineIndex >= 0 && (
                     <Badge variant="outline" className="ml-2 text-xs">{currentMachineIndex + 1}/{sortedMachines.length}</Badge>
                   )}
