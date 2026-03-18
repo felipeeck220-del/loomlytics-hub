@@ -327,7 +327,7 @@ export default function ProductionPage() {
         <TabsList className="w-full grid grid-cols-3">
           {SHIFTS.map(s => (
             <TabsTrigger key={s} value={s} className="flex items-center gap-2">
-              <Clock className="h-4 w-4" /> {SHIFT_LABELS[s].split(' (')[0]}
+              <Clock className="h-4 w-4" /> {companyShiftLabels[s].split(' (')[0]}
             </TabsTrigger>
           ))}
         </TabsList>
