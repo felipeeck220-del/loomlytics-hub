@@ -50,7 +50,7 @@ export function useCompanyData() {
     }
     (async () => {
       setLoading(true);
-      const [mData, cData, aData, wData, pData, mlRes, amtData] = await Promise.all([
+      const [mData, cData, aData, wData, pData, mlRes, amtData, csRes] = await Promise.all([
         fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
         fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
@@ -58,6 +58,7 @@ export function useCompanyData() {
         fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
         sb('machine_logs').select('*'),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
+        sb('company_settings').select('*').eq('company_id', companyId).single(),
       ]);
 
       setMachines(mData.map(mapMachine));
