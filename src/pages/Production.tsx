@@ -19,7 +19,9 @@ import { formatNumber, formatCurrency } from '@/lib/formatters';
 const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
 export default function ProductionPage() {
-  const { getProductions, saveProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, loading } = useSharedCompanyData();
+  const { getProductions, saveProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, shiftSettings, loading } = useSharedCompanyData();
+  const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
+  const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const productions = getProductions();
   const machines = getMachines();
   const weavers = getWeavers();
