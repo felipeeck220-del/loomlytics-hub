@@ -257,9 +257,10 @@ export function useCompanyData() {
       }));
       await sb('productions').insert(rows);
     }
+    const withCompanyId = newRecords.map(r => ({ ...r, company_id: companyId }));
     setProductions(prev => {
       const remaining = prev.filter(p => !idsToDelete.includes(p.id));
-      return [...remaining, ...newRecords];
+      return [...remaining, ...withCompanyId];
     });
   }, [companyId]);
 
