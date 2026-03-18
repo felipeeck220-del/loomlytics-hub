@@ -208,7 +208,7 @@ export default function Dashboard() {
       <Card className="shadow-material border-0">
         <CardContent className="py-4">
           <div className="flex flex-wrap items-center gap-2">
-            {[1, 7, 15, 30].map(d => (
+            {[7, 15, 30].map(d => (
               <Button
                 key={d}
                 size="sm"
