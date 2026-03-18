@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, subDays } from 'date-fns';
+import { format, subDays, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CalendarIcon, Scale, DollarSign, Gauge, Clock,
@@ -107,10 +107,12 @@ export default function Dashboard() {
 
   const calendarHours = useMemo(() => {
     let days: number;
-    if (dateFrom || dateTo) {
-      const start = dateFrom || new Date();
-      const end = dateTo || new Date();
-      days = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    if (dateFrom && dateTo) {
+      days = differenceInCalendarDays(dateTo, dateFrom) + 1;
+    } else if (dateFrom) {
+      days = differenceInCalendarDays(new Date(), dateFrom) + 1;
+    } else if (dateTo) {
+      days = 1;
     } else if (customDate) {
       days = 1;
     } else if (filterMonth !== 'all') {
