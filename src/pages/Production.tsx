@@ -194,29 +194,49 @@ export default function ProductionPage() {
     };
 
     if (editing) {
-      const idx = all.findIndex(p => p.id === editing.id);
-      all[idx] = mainRecord;
+      // Remove all old group items
+      const oldIds = new Set(editingGroupItems.map(i => i.id));
+      const filtered = all.filter(p => !oldIds.has(p.id));
+      filtered.push(mainRecord);
+      // Add extra articles with same created_at
+      for (const ea of extraArticles) {
+        const art = articles.find(a => a.id === ea.article_id);
+        const rolls = Number(ea.rolls) || 0;
+        if (!art || !rolls) continue;
+        const weightKg = rolls * art.weight_per_roll;
+        const revenue = weightKg * art.value_per_kg;
+        filtered.push({
+          id: crypto.randomUUID(), company_id: '',
+          date: dateStr, shift: shiftVal,
+          machine_id: form.machine_id, machine_name: machineName,
+          weaver_id: actualWeaverId, weaver_name: weaverName,
+          article_id: ea.article_id, article_name: art.name,
+          rpm: rpmVal, rolls_produced: rolls,
+          weight_kg: weightKg, revenue,
+          efficiency: combinedEfficiency, created_at: editing.created_at || now,
+        });
+      }
+      all = filtered;
     } else {
       all.push(mainRecord);
-    }
-
-    // Extra article records
-    for (const ea of extraArticles) {
-      const art = articles.find(a => a.id === ea.article_id);
-      const rolls = Number(ea.rolls) || 0;
-      if (!art || !rolls) continue;
-      const weightKg = rolls * art.weight_per_roll;
-      const revenue = weightKg * art.value_per_kg;
-      all.push({
-        id: crypto.randomUUID(), company_id: '',
-        date: dateStr, shift: shiftVal,
-        machine_id: form.machine_id, machine_name: machineName,
-        weaver_id: actualWeaverId, weaver_name: weaverName,
-        article_id: ea.article_id, article_name: art.name,
-        rpm: rpmVal, rolls_produced: rolls,
-        weight_kg: weightKg, revenue,
-        efficiency: combinedEfficiency, created_at: now,
-      });
+      // Extra article records
+      for (const ea of extraArticles) {
+        const art = articles.find(a => a.id === ea.article_id);
+        const rolls = Number(ea.rolls) || 0;
+        if (!art || !rolls) continue;
+        const weightKg = rolls * art.weight_per_roll;
+        const revenue = weightKg * art.value_per_kg;
+        all.push({
+          id: crypto.randomUUID(), company_id: '',
+          date: dateStr, shift: shiftVal,
+          machine_id: form.machine_id, machine_name: machineName,
+          weaver_id: actualWeaverId, weaver_name: weaverName,
+          article_id: ea.article_id, article_name: art.name,
+          rpm: rpmVal, rolls_produced: rolls,
+          weight_kg: weightKg, revenue,
+          efficiency: combinedEfficiency, created_at: now,
+        });
+      }
     }
 
     const extraCount = extraArticles.filter(ea => ea.article_id && Number(ea.rolls) > 0).length;
