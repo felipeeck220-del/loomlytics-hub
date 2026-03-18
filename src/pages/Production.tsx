@@ -510,7 +510,7 @@ export default function ProductionPage() {
                               <Clock className={cn("h-4 w-4", p.efficiency < 80 ? 'text-red-500' : 'text-muted-foreground')} />
                             </div>
                             {(() => {
-                              const shiftMin = SHIFT_MINUTES[p.shift] || 510;
+                              const shiftMin = companyShiftMinutes[p.shift] || 510;
                               const usedMin = shiftMin * (p.efficiency / 100);
                               const downMin = shiftMin - usedMin;
                               const hours = Math.floor(downMin / 60);
