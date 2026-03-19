@@ -724,130 +724,192 @@ export default function ProductionPage() {
 
       {/* Register/Edit Modal */}
       <Dialog open={showModal} onOpenChange={(open) => { if (!open && hasPendingSaves) return; if (!open) return; setShowModal(open); }}>
-        <DialogContent className="sm:max-w-3xl flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-3">
-              {editing ? 'Editar Produção' : 'Registrar Produção'}
-              {!editing && form.shift && selectedMachine && (
-                <span className="text-sm font-normal text-muted-foreground flex items-center gap-1">
-                  <ChevronRight className="h-3 w-3" />
-                  {companyShiftLabels[form.shift as ShiftType]?.split(' (')[0]} · {selectedMachine.name}
-                  {currentMachineIndex >= 0 && (
-                    <Badge variant="outline" className="ml-2 text-xs">{currentMachineIndex + 1}/{sortedMachines.length}</Badge>
+        <DialogContent className="w-[90vw] max-w-[90vw] h-[90vh] max-h-[90vh] flex flex-col p-0" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
+          {/* Header */}
+          <div className="flex-shrink-0 px-8 pt-6 pb-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-display font-bold text-foreground flex items-center gap-3">
+                  {editing ? 'Editar Produção' : 'Registrar Produção'}
+                  {!editing && currentMachineIndex >= 0 && (
+                    <Badge variant="outline" className="text-xs font-mono">{currentMachineIndex + 1}/{sortedMachines.length}</Badge>
                   )}
-                </span>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex-1 flex flex-col gap-3 min-h-0">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Data</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left h-9 text-sm">
-                      <CalendarIcon className="mr-2 h-3 w-3" />{format(form.date, 'dd/MM/yyyy')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={form.date} onSelect={d => d && setForm(p => ({ ...p, date: d }))} className="pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground mt-0.5">Registre a produção de rolos por máquina e turno</p>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Turno</Label>
-                <Select value={form.shift} onValueChange={v => setForm(p => ({ ...p, shift: v as ShiftType }))}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Turno" /></SelectTrigger>
-                  <SelectContent>{Object.entries(companyShiftLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Máquina</Label>
-                <Select value={form.machine_id} onValueChange={handleMachineChange}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
-                  <SelectContent>{sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">RPM</Label>
-                <Input type="number" className="h-9" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Tecelão</Label>
-                <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Tecelão" /></SelectTrigger>
-                  <SelectContent position="popper" side="bottom" className="max-h-[200px]">
-                    <div className="p-1"><Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => { e.stopPropagation(); setWeaverSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                    <SelectItem value="sem_tecelao">Sem Tecelão</SelectItem>
-                    {weavers.filter(w => `${w.code} ${w.name}`.toLowerCase().includes(weaverSearch.toLowerCase())).map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Artigo</Label>
-                <Select value={form.article_id} onValueChange={v => { setForm(p => ({ ...p, article_id: v })); setArticleSearch(''); }}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
-                  <SelectContent position="popper" side="bottom" className="max-h-[200px]">
-                    <div className="p-1"><Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => { e.stopPropagation(); setArticleSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                    {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Rolos Produzidos</Label>
-                <Input ref={rollsRef} type="number" className="h-9" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Qtd rolos" />
-              </div>
-            </div>
-
-            {/* Extra Articles */}
-            {extraArticles.map((ea, idx) => (
-              <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end border-t border-dashed border-border/50 pt-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Artigo Adicional {idx + 2}</Label>
-                  <Select value={ea.article_id} onValueChange={v => setExtraArticles(prev => prev.map((e, i) => i === idx ? { ...e, article_id: v, search: '' } : e))}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
-                    <SelectContent position="popper" side="bottom" className="max-h-[200px]">
-                      <div className="p-1"><Input placeholder="Buscar artigo..." value={ea.search} onChange={e => { e.stopPropagation(); setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, search: e.target.value } : ex)); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                      {articles.filter(a => a.name.toLowerCase().includes(ea.search.toLowerCase())).map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Rolos</Label>
-                  <Input type="number" className="h-9" value={ea.rolls} onChange={e => setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, rolls: e.target.value } : ex))} placeholder="Qtd" />
-                </div>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={() => setExtraArticles(prev => prev.filter((_, i) => i !== idx))}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-
-            {!editing && (
-              <Button variant="outline" size="sm" className="w-full rounded-lg" onClick={() => setExtraArticles(prev => [...prev, { article_id: '', rolls: '', search: '' }])}>
-                <Plus className="h-4 w-4 mr-1" /> Adicionar Artigo
-              </Button>
-            )}
-
-            {/* Preview */}
-            <div className={cn("p-3 rounded-lg border", preview ? effBg(preview.efficiency) : 'bg-muted/30')}>
-              {preview ? (
-                <div className="grid grid-cols-4 gap-3 text-sm">
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Rolos</p><p className="font-bold text-foreground">{preview.rolls}</p></div>
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Peso (kg)</p><p className="font-bold text-foreground">{preview.weightKg.toFixed(1)}</p></div>
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Valor</p><p className="font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p></div>
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Eficiência</p><p className={cn("font-bold", effColor(preview.efficiency))}>{preview.efficiency.toFixed(1)}%</p></div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-1">Preencha os campos para ver o preview</p>
-              )}
             </div>
           </div>
 
-          <div className="flex-shrink-0 border-t pt-4 space-y-3">
+          {/* Body - Two Column Layout */}
+          <div className="flex-1 overflow-y-auto px-8 py-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+              {/* Left Column - Form Fields */}
+              <div className="space-y-6">
+                {/* Data e Turno */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-foreground">Data</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start text-left h-10">
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />{format(form.date, 'dd/MM/yyyy')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={form.date} onSelect={d => d && setForm(p => ({ ...p, date: d }))} className="pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-foreground">Turno</Label>
+                    <Select value={form.shift} onValueChange={v => setForm(p => ({ ...p, shift: v as ShiftType }))}>
+                      <SelectTrigger className="h-10"><SelectValue placeholder="Selecione o turno..." /></SelectTrigger>
+                      <SelectContent>{Object.entries(companyShiftLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Máquina */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">Máquina</Label>
+                  <Select value={form.machine_id} onValueChange={handleMachineChange}>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Selecione a máquina..." /></SelectTrigger>
+                    <SelectContent>{sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+
+                {/* RPM da Máquina */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">RPM da Máquina</Label>
+                  <div className="flex items-center gap-3">
+                    <Input type="number" className="h-10 flex-1" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} disabled={!editing} />
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+                      <span>Editar</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Tecelão */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">Tecelão</Label>
+                  <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Selecione o tecelão..." /></SelectTrigger>
+                    <SelectContent position="popper" side="bottom" className="max-h-[200px]">
+                      <div className="p-2"><Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => { e.stopPropagation(); setWeaverSearch(e.target.value); }} className="h-8 text-sm" onKeyDown={e => e.stopPropagation()} /></div>
+                      <SelectItem value="sem_tecelao">Sem Tecelão</SelectItem>
+                      {weavers.filter(w => `${w.code} ${w.name}`.toLowerCase().includes(weaverSearch.toLowerCase())).map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-primary">Você pode pesquisar pelo nome do tecelão ou pelo código (ex: #123)</p>
+                </div>
+
+                {/* Observações */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">Observações</Label>
+                  <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y" placeholder="Observações sobre a produção..." />
+                </div>
+              </div>
+
+              {/* Right Column - Articles & Preview */}
+              <div className="space-y-6">
+                {/* Artigos Produzidos */}
+                <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-display font-bold text-foreground">Artigos Produzidos</h3>
+                    {!editing && (
+                      <Button variant="outline" size="sm" onClick={() => setExtraArticles(prev => [...prev, { article_id: '', rolls: '', search: '' }])}>
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar Artigo
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Main Article */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-foreground">Artigo</Label>
+                      <Select value={form.article_id} onValueChange={v => { setForm(p => ({ ...p, article_id: v })); setArticleSearch(''); }}>
+                        <SelectTrigger className="h-10"><SelectValue placeholder="Selecione o artigo..." /></SelectTrigger>
+                        <SelectContent position="popper" side="bottom" className="max-h-[200px]">
+                          <div className="p-2"><Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => { e.stopPropagation(); setArticleSearch(e.target.value); }} className="h-8 text-sm" onKeyDown={e => e.stopPropagation()} /></div>
+                          {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-foreground">Rolos Produzidos</Label>
+                      <Input ref={rollsRef} type="number" className="h-10" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Quantidade de rolos" />
+                    </div>
+                  </div>
+
+                  {/* Extra Articles */}
+                  {extraArticles.map((ea, idx) => (
+                    <div key={idx} className="border-t border-dashed border-border pt-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-semibold text-foreground">Artigo {idx + 2}</Label>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setExtraArticles(prev => prev.filter((_, i) => i !== idx))}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <Select value={ea.article_id} onValueChange={v => setExtraArticles(prev => prev.map((e, i) => i === idx ? { ...e, article_id: v, search: '' } : e))}>
+                        <SelectTrigger className="h-10"><SelectValue placeholder="Selecione o artigo..." /></SelectTrigger>
+                        <SelectContent position="popper" side="bottom" className="max-h-[200px]">
+                          <div className="p-2"><Input placeholder="Buscar artigo..." value={ea.search} onChange={e => { e.stopPropagation(); setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, search: e.target.value } : ex)); }} className="h-8 text-sm" onKeyDown={e => e.stopPropagation()} /></div>
+                          {articles.filter(a => a.name.toLowerCase().includes(ea.search.toLowerCase())).map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-foreground">Rolos Produzidos</Label>
+                        <Input type="number" className="h-10" value={ea.rolls} onChange={e => setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, rolls: e.target.value } : ex))} placeholder="Quantidade de rolos" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Preview da Produção */}
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Target className="h-4 w-4 text-primary" />
+                    </div>
+                    <h3 className="text-base font-display font-bold text-foreground">Preview da Produção</h3>
+                  </div>
+                  {preview ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-lg bg-muted/50 p-3 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Rolos</p>
+                        <p className="text-xl font-display font-bold text-foreground">{preview.rolls}</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 p-3 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Peso (kg)</p>
+                        <p className="text-xl font-display font-bold text-foreground">{preview.weightKg.toFixed(1)}</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 p-3 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Valor</p>
+                        <p className="text-xl font-display font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p>
+                      </div>
+                      <div className={cn("rounded-lg p-3 text-center", effBg(preview.efficiency))}>
+                        <p className="text-xs text-muted-foreground mb-1">Eficiência</p>
+                        <p className={cn("text-xl font-display font-bold", effColor(preview.efficiency))}>{preview.efficiency.toFixed(1)}%</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                      <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mb-3">
+                        <Target className="h-6 w-6" />
+                      </div>
+                      <p className="text-sm">Preencha os dados para ver o preview</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex-shrink-0 px-8 py-4 border-t border-border space-y-3">
             {/* Save Queue Status */}
             {saveQueue.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -869,13 +931,13 @@ export default function ProductionPage() {
 
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">Pressione <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-mono border">Enter</kbd> para salvar</p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowModal(false)} disabled={hasPendingSaves}>
-                  {hasPendingSaves ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando...</> : 'Fechar'}
+              <div className="flex gap-3">
+                <Button variant="outline" size="lg" onClick={() => setShowModal(false)} disabled={hasPendingSaves}>
+                  {hasPendingSaves ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando...</> : 'Cancelar'}
                 </Button>
-                <Button onClick={handleSave} className="btn-gradient" disabled={saving}>
+                <Button onClick={handleSave} size="lg" className="btn-gradient px-8" disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                  {editing ? 'Salvar' : 'Registrar e Próximo'}
+                  {editing ? 'Salvar Produção' : 'Registrar Produção'}
                 </Button>
               </div>
             </div>
