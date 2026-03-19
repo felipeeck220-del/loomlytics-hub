@@ -486,14 +486,14 @@ export default function Reports() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Top Máquinas</CardTitle>
-                <CardDescription>Máquinas com melhor desempenho</CardDescription>
+                <CardTitle className="text-base">Todas as Máquinas</CardTitle>
+                <CardDescription>Desempenho completo por máquina</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
                 {byMachine.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
                 ) : (
-                  byMachine.slice(0, 10).map(m => (
+                  byMachine.map(m => (
                     <div key={m.name} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
                       <div>
                         <p className="font-semibold text-foreground">{m.name}</p>
@@ -521,14 +521,14 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 {byMachine.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={byMachine.slice(0, 10)} layout="vertical">
+                  <ResponsiveContainer width="100%" height={Math.max(300, byMachine.length * 35)}>
+                    <BarChart data={byMachine} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                       <XAxis type="number" domain={[0, 100]} fontSize={12} />
                       <YAxis type="category" dataKey="name" fontSize={11} width={80} />
                       <Tooltip formatter={(v: number) => formatPercent(v)} />
                       <Bar dataKey="eficiencia" name="Eficiência" radius={[0, 4, 4, 0]}>
-                        {byMachine.slice(0, 10).map((entry, i) => (
+                        {byMachine.map((entry, i) => (
                           <Cell key={i} fill={entry.eficiencia >= 80 ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= 70 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
                         ))}
                       </Bar>
@@ -547,14 +547,14 @@ export default function Reports() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Top Clientes</CardTitle>
-                <CardDescription>Clientes com maior faturamento</CardDescription>
+                <CardTitle className="text-base">Todos os Clientes</CardTitle>
+                <CardDescription>Faturamento completo por cliente</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
                 {byClient.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
                 ) : (
-                  byClient.slice(0, 10).map(c => (
+                  byClient.map(c => (
                     <div key={c.name} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
                       <div>
                         <p className="font-semibold text-foreground">{c.name}</p>
@@ -577,7 +577,7 @@ export default function Reports() {
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={byClient.slice(0, 6)}
+                        data={byClient}
                         cx="50%"
                         cy="50%"
                         outerRadius={90}
@@ -585,7 +585,7 @@ export default function Reports() {
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         labelLine={true}
                       >
-                        {byClient.slice(0, 6).map((_, i) => (
+                        {byClient.map((_, i) => (
                           <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                         ))}
                       </Pie>
