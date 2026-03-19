@@ -547,14 +547,14 @@ export default function Reports() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Top Clientes</CardTitle>
-                <CardDescription>Clientes com maior faturamento</CardDescription>
+                <CardTitle className="text-base">Todos os Clientes</CardTitle>
+                <CardDescription>Faturamento completo por cliente</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
                 {byClient.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
                 ) : (
-                  byClient.slice(0, 10).map(c => (
+                  byClient.map(c => (
                     <div key={c.name} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
                       <div>
                         <p className="font-semibold text-foreground">{c.name}</p>
