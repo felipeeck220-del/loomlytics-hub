@@ -57,25 +57,27 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="px-4 py-5 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="h-9 w-9 rounded-xl object-contain shrink-0" />
-          ) : (
+        {logoUrl ? (
+          <div className="flex items-center justify-center w-full">
+            <img src={logoUrl} alt="Logo" className="max-h-12 w-full object-contain rounded-xl" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
             <div className="icon-box icon-box-primary shrink-0" style={{ width: 36, height: 36 }}>
               <Factory className="h-4 w-4 text-white" />
             </div>
-          )}
-          {!collapsed && (
-            <div className="flex flex-col">
-              <span className="text-sm font-display font-bold text-sidebar-foreground tracking-tight">
-                MalhaGest
-              </span>
-              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-widest">
-                Gestão Têxtil
-              </span>
-            </div>
-          )}
-        </div>
+            {!collapsed && (
+              <div className="flex flex-col">
+                <span className="text-sm font-display font-bold text-sidebar-foreground tracking-tight">
+                  MalhaGest
+                </span>
+                <span className="text-[10px] font-light text-muted-foreground uppercase tracking-widest">
+                  Gestão Têxtil
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent className="px-2 py-3">
         <SidebarGroup>
