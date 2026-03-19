@@ -486,14 +486,14 @@ export default function Reports() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Top Máquinas</CardTitle>
-                <CardDescription>Máquinas com melhor desempenho</CardDescription>
+                <CardTitle className="text-base">Todas as Máquinas</CardTitle>
+                <CardDescription>Desempenho completo por máquina</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
                 {byMachine.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
                 ) : (
-                  byMachine.slice(0, 10).map(m => (
+                  byMachine.map(m => (
                     <div key={m.name} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
                       <div>
                         <p className="font-semibold text-foreground">{m.name}</p>
