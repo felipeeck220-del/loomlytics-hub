@@ -577,7 +577,7 @@ export default function Reports() {
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={byClient.slice(0, 6)}
+                        data={byClient}
                         cx="50%"
                         cy="50%"
                         outerRadius={90}
@@ -585,7 +585,7 @@ export default function Reports() {
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         labelLine={true}
                       >
-                        {byClient.slice(0, 6).map((_, i) => (
+                        {byClient.map((_, i) => (
                           <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                         ))}
                       </Pie>
