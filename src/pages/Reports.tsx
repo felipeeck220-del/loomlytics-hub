@@ -521,14 +521,14 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 {byMachine.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={byMachine.slice(0, 10)} layout="vertical">
+                  <ResponsiveContainer width="100%" height={Math.max(300, byMachine.length * 35)}>
+                    <BarChart data={byMachine} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                       <XAxis type="number" domain={[0, 100]} fontSize={12} />
                       <YAxis type="category" dataKey="name" fontSize={11} width={80} />
                       <Tooltip formatter={(v: number) => formatPercent(v)} />
                       <Bar dataKey="eficiencia" name="Eficiência" radius={[0, 4, 4, 0]}>
-                        {byMachine.slice(0, 10).map((entry, i) => (
+                        {byMachine.map((entry, i) => (
                           <Cell key={i} fill={entry.eficiencia >= 80 ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= 70 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
                         ))}
                       </Bar>
