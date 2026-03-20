@@ -1,1 +1,0 @@
-UPDATE productions SET date = '2025-07-19' WHERE company_id = '5f9c3749-39e8-4caf-a3af-2f6affb92711' AND date = '20225-07-19';

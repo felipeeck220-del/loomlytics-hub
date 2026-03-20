@@ -1,1 +1,0 @@
-INSERT INTO company_settings (company_id) VALUES ('5f9c3749-39e8-4caf-a3af-2f6affb92711') ON CONFLICT (company_id) DO NOTHING;
