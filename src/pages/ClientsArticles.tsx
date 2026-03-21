@@ -122,7 +122,7 @@ export default function ClientsArticles() {
     const clientName = clients.find(c => c.id === articleForm.client_id)?.name || '';
     if (editingArticle) {
       const idx = all.findIndex(a => a.id === editingArticle.id);
-      all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), observations: articleForm.observations || undefined };
+      all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined };
       await saveArticles(all); toast.success('Artigo atualizado');
     } else {
       all.push({ id: crypto.randomUUID(), company_id: '', name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), observations: articleForm.observations || undefined, created_at: new Date().toISOString() });
