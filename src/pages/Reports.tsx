@@ -139,6 +139,17 @@ export default function Reports() {
   const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
   const uniqueDays = new Set(filtered.map(p => p.date)).size || 1;
 
+  // Calculate weighted average target efficiency
+  const avgTargetEfficiency = useMemo(() => {
+    if (!filtered.length) return 80;
+    let total = 0;
+    filtered.forEach(p => {
+      const article = articles.find(a => a.id === p.article_id);
+      total += (article?.target_efficiency || 80);
+    });
+    return total / filtered.length;
+  }, [filtered, articles]);
+
   // By shift
   const byShift = (['manha', 'tarde', 'noite'] as ShiftType[]).map(s => {
     const sp = filtered.filter(p => p.shift === s);
