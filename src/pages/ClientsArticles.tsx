@@ -34,7 +34,7 @@ export default function ClientsArticles() {
 
   const [showArticleModal, setShowArticleModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', observations: '' });
+  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' });
 
   const [showDelete, setShowDelete] = useState<{ type: 'client' | 'article'; item: any } | null>(null);
   const [deleteWord, setDeleteWord] = useState('');
@@ -113,8 +113,8 @@ export default function ClientsArticles() {
     setShowClientModal(false);
   };
 
-  const openNewArticle = () => { setEditingArticle(null); setArticleForm({ name: '', client_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', observations: '' }); setShowArticleModal(true); };
-  const openEditArticle = (a: Article) => { setEditingArticle(a); setArticleForm({ name: a.name, client_id: a.client_id, weight_per_roll: String(a.weight_per_roll), value_per_kg: String(a.value_per_kg), turns_per_roll: String(a.turns_per_roll), observations: a.observations || '' }); setShowArticleModal(true); };
+  const openNewArticle = () => { setEditingArticle(null); setArticleForm({ name: '', client_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' }); setShowArticleModal(true); };
+  const openEditArticle = (a: Article) => { setEditingArticle(a); setArticleForm({ name: a.name, client_id: a.client_id, weight_per_roll: String(a.weight_per_roll), value_per_kg: String(a.value_per_kg), turns_per_roll: String(a.turns_per_roll), target_efficiency: String(a.target_efficiency || 80), observations: a.observations || '' }); setShowArticleModal(true); };
 
   const handleSaveArticle = async () => {
     if (!articleForm.name || !articleForm.client_id) { toast.error('Nome e cliente são obrigatórios'); return; }
@@ -122,10 +122,10 @@ export default function ClientsArticles() {
     const clientName = clients.find(c => c.id === articleForm.client_id)?.name || '';
     if (editingArticle) {
       const idx = all.findIndex(a => a.id === editingArticle.id);
-      all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), observations: articleForm.observations || undefined };
+      all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined };
       await saveArticles(all); toast.success('Artigo atualizado');
     } else {
-      all.push({ id: crypto.randomUUID(), company_id: '', name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), observations: articleForm.observations || undefined, created_at: new Date().toISOString() });
+      all.push({ id: crypto.randomUUID(), company_id: '', name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined, created_at: new Date().toISOString() });
       await saveArticles(all); toast.success('Artigo cadastrado');
     }
     setShowArticleModal(false);
@@ -234,6 +234,7 @@ export default function ClientsArticles() {
                   <div className="text-sm space-y-0.5">
                     <p className="text-muted-foreground">Peso Rolo: <span className="font-semibold text-foreground">{a.weight_per_roll} kg</span></p>
                     <p className="text-muted-foreground">Valor/Kg: <span className="font-semibold text-foreground">R$ {a.value_per_kg}</span></p>
+                    <p className="text-muted-foreground">Eficiência Exigida: <span className="font-semibold text-foreground">{a.target_efficiency || 80}%</span></p>
                   </div>
                   <div className="flex items-center gap-2 pt-1 border-t border-border">
                     <Button variant="outline" size="sm" className="text-xs" onClick={() => openTurnsModal(a)}>
@@ -285,10 +286,13 @@ export default function ClientsArticles() {
                 <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Peso/Rolo (kg)</Label><Input type="number" value={articleForm.weight_per_roll} onChange={e => setArticleForm(p => ({ ...p, weight_per_roll: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Valor/kg (R$)</Label><Input type="number" step="0.01" value={articleForm.value_per_kg} onChange={e => setArticleForm(p => ({ ...p, value_per_kg: e.target.value }))} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Voltas/Rolo</Label><Input type="number" value={articleForm.turns_per_roll} onChange={e => setArticleForm(p => ({ ...p, turns_per_roll: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Eficiência Média Exigida (%)</Label><Input type="number" min="0" max="100" value={articleForm.target_efficiency} onChange={e => setArticleForm(p => ({ ...p, target_efficiency: e.target.value }))} /></div>
             </div>
             <div className="space-y-2"><Label>Observações</Label><Textarea value={articleForm.observations} onChange={e => setArticleForm(p => ({ ...p, observations: e.target.value }))} /></div>
           </div>

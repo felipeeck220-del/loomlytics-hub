@@ -1,0 +1,1 @@
+ALTER TABLE public.articles ADD COLUMN target_efficiency numeric NOT NULL DEFAULT 80;

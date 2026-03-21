@@ -109,6 +109,20 @@ export default function Dashboard() {
   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
   const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
 
+  // Calculate weighted average target efficiency from articles used in filtered productions
+  const avgTargetEfficiency = useMemo(() => {
+    if (!filtered.length) return 80;
+    let totalTarget = 0;
+    let count = 0;
+    filtered.forEach(p => {
+      const article = articles.find(a => a.id === p.article_id);
+      const target = article?.target_efficiency || 80;
+      totalTarget += target;
+      count++;
+    });
+    return count > 0 ? totalTarget / count : 80;
+  }, [filtered, articles]);
+
   const calendarHours = useMemo(() => {
     let days: number;
     if (dayRange === 0) {
@@ -358,11 +372,12 @@ export default function Dashboard() {
         />
         <MaterialKpi
           icon={<Gauge className="h-5 w-5 text-white" />}
-          iconClass={avgEfficiency >= 80 ? "icon-box-success" : avgEfficiency >= 70 ? "icon-box-warning" : "icon-box-danger"}
+          iconClass={avgEfficiency >= avgTargetEfficiency ? "icon-box-success" : avgEfficiency >= (avgTargetEfficiency - 10) ? "icon-box-warning" : "icon-box-danger"}
           label="Eficiência"
           value={formatPercent(avgEfficiency)}
-          footer={avgEfficiency >= 80 ? 'Dentro da meta' : 'Abaixo da meta'}
+          footer={avgEfficiency >= avgTargetEfficiency ? `Dentro da meta (${formatPercent(avgTargetEfficiency)})` : `Abaixo da meta (${formatPercent(avgTargetEfficiency)})`}
           efficiencyValue={avgEfficiency}
+          targetEfficiency={avgTargetEfficiency}
         />
       </div>
 
@@ -588,14 +603,15 @@ export default function Dashboard() {
   );
 }
 
-function MaterialKpi({ icon, iconClass, label, value, footer, efficiencyValue }: {
-  icon: React.ReactNode; iconClass: string; label: string; value: string; footer: string; efficiencyValue?: number;
+function MaterialKpi({ icon, iconClass, label, value, footer, efficiencyValue, targetEfficiency }: {
+  icon: React.ReactNode; iconClass: string; label: string; value: string; footer: string; efficiencyValue?: number; targetEfficiency?: number;
 }) {
+  const target = targetEfficiency || 80;
   const effBg = efficiencyValue !== undefined
-    ? efficiencyValue >= 80 ? 'bg-success/10' : efficiencyValue >= 70 ? 'bg-warning/10' : 'bg-destructive/10'
+    ? efficiencyValue >= target ? 'bg-success/10' : efficiencyValue >= (target - 10) ? 'bg-warning/10' : 'bg-destructive/10'
     : '';
   const effText = efficiencyValue !== undefined
-    ? efficiencyValue >= 80 ? 'text-success' : efficiencyValue >= 70 ? 'text-warning' : 'text-destructive'
+    ? efficiencyValue >= target ? 'text-success' : efficiencyValue >= (target - 10) ? 'text-warning' : 'text-destructive'
     : 'text-foreground';
 
   return (

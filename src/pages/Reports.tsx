@@ -139,6 +139,17 @@ export default function Reports() {
   const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
   const uniqueDays = new Set(filtered.map(p => p.date)).size || 1;
 
+  // Calculate weighted average target efficiency
+  const avgTargetEfficiency = useMemo(() => {
+    if (!filtered.length) return 80;
+    let total = 0;
+    filtered.forEach(p => {
+      const article = articles.find(a => a.id === p.article_id);
+      total += (article?.target_efficiency || 80);
+    });
+    return total / filtered.length;
+  }, [filtered, articles]);
+
   // By shift
   const byShift = (['manha', 'tarde', 'noite'] as ShiftType[]).map(s => {
     const sp = filtered.filter(p => p.shift === s);
@@ -376,14 +387,14 @@ export default function Reports() {
         <KpiCard
           label="Eficiência Média"
           value={formatPercent(avgEfficiency)}
-          subtitle={avgEfficiency >= 80 ? undefined : undefined}
+          subtitle={`Meta: ${formatPercent(avgTargetEfficiency)}`}
           icon={<Gauge className="h-5 w-5 text-destructive" />}
           borderColor="border-l-destructive"
           extra={
-            avgEfficiency < 80 ? (
-              <Badge variant="destructive" className="text-[10px] mt-1">Abaixo da meta</Badge>
+            avgEfficiency < avgTargetEfficiency ? (
+              <Badge variant="destructive" className="text-[10px] mt-1">Abaixo da meta ({formatPercent(avgTargetEfficiency)})</Badge>
             ) : (
-              <Badge className="bg-success/10 text-success border-success/20 text-[10px] mt-1">Dentro da meta</Badge>
+              <Badge className="bg-success/10 text-success border-success/20 text-[10px] mt-1">Dentro da meta ({formatPercent(avgTargetEfficiency)})</Badge>
             )
           }
         />
