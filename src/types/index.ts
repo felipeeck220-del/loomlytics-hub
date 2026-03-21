@@ -63,6 +63,7 @@ export interface Article {
   weight_per_roll: number; // kg
   value_per_kg: number; // R$
   turns_per_roll: number;
+  target_efficiency: number; // % (e.g. 80, 90)
   observations?: string;
   created_at: string;
 }
