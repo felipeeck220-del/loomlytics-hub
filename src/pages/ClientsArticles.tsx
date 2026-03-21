@@ -34,7 +34,7 @@ export default function ClientsArticles() {
 
   const [showArticleModal, setShowArticleModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', observations: '' });
+  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' });
 
   const [showDelete, setShowDelete] = useState<{ type: 'client' | 'article'; item: any } | null>(null);
   const [deleteWord, setDeleteWord] = useState('');
