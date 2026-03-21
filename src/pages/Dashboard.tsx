@@ -128,8 +128,16 @@ export default function Dashboard() {
     } else if (customDate) {
       days = 1;
     } else if (filterMonth !== 'all') {
-      const [y, m] = filterMonth.split('-').map(Number);
-      days = new Date(y, m, 0).getDate();
+      const now = new Date();
+      const currentMonthStr = format(now, 'yyyy-MM');
+      if (filterMonth === currentMonthStr) {
+        // Current month: use only days that have production records
+        const uniqueDaysWithProduction = new Set(filtered.map(p => p.date)).size;
+        days = uniqueDaysWithProduction || 1;
+      } else {
+        const [y, m] = filterMonth.split('-').map(Number);
+        days = new Date(y, m, 0).getDate();
+      }
     } else {
       days = dayRange;
     }
@@ -139,7 +147,7 @@ export default function Dashboard() {
       return days * (shiftMinutes / 60);
     }
     return days * 24;
-  }, [customDate, filterMonth, dayRange, filterShift, dateFrom, dateTo, companyShiftMinutes]);
+  }, [customDate, filterMonth, dayRange, filterShift, dateFrom, dateTo, companyShiftMinutes, filtered]);
 
   const revenuePerHour = calendarHours > 0 ? totalRevenue / calendarHours : 0;
   const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
