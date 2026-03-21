@@ -75,6 +75,7 @@ export type Database = {
           id: string
           name: string
           observations: string | null
+          target_efficiency: number
           turns_per_roll: number
           value_per_kg: number
           weight_per_roll: number
@@ -87,6 +88,7 @@ export type Database = {
           id?: string
           name: string
           observations?: string | null
+          target_efficiency?: number
           turns_per_roll?: number
           value_per_kg?: number
           weight_per_roll?: number
@@ -99,6 +101,7 @@ export type Database = {
           id?: string
           name?: string
           observations?: string | null
+          target_efficiency?: number
           turns_per_roll?: number
           value_per_kg?: number
           weight_per_roll?: number
