@@ -377,6 +377,7 @@ export default function Dashboard() {
           value={formatPercent(avgEfficiency)}
           footer={avgEfficiency >= avgTargetEfficiency ? `Dentro da meta (${formatPercent(avgTargetEfficiency)})` : `Abaixo da meta (${formatPercent(avgTargetEfficiency)})`}
           efficiencyValue={avgEfficiency}
+          targetEfficiency={avgTargetEfficiency}
         />
       </div>
 
