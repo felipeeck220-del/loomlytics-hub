@@ -109,6 +109,20 @@ export default function Dashboard() {
   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
   const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
 
+  // Calculate weighted average target efficiency from articles used in filtered productions
+  const avgTargetEfficiency = useMemo(() => {
+    if (!filtered.length) return 80;
+    let totalTarget = 0;
+    let count = 0;
+    filtered.forEach(p => {
+      const article = articles.find(a => a.id === p.article_id);
+      const target = article?.target_efficiency || 80;
+      totalTarget += target;
+      count++;
+    });
+    return count > 0 ? totalTarget / count : 80;
+  }, [filtered, articles]);
+
   const calendarHours = useMemo(() => {
     let days: number;
     if (dayRange === 0) {
