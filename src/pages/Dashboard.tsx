@@ -372,10 +372,10 @@ export default function Dashboard() {
         />
         <MaterialKpi
           icon={<Gauge className="h-5 w-5 text-white" />}
-          iconClass={avgEfficiency >= 80 ? "icon-box-success" : avgEfficiency >= 70 ? "icon-box-warning" : "icon-box-danger"}
+          iconClass={avgEfficiency >= avgTargetEfficiency ? "icon-box-success" : avgEfficiency >= (avgTargetEfficiency - 10) ? "icon-box-warning" : "icon-box-danger"}
           label="Eficiência"
           value={formatPercent(avgEfficiency)}
-          footer={avgEfficiency >= 80 ? 'Dentro da meta' : 'Abaixo da meta'}
+          footer={avgEfficiency >= avgTargetEfficiency ? `Dentro da meta (${formatPercent(avgTargetEfficiency)})` : `Abaixo da meta (${formatPercent(avgTargetEfficiency)})`}
           efficiencyValue={avgEfficiency}
         />
       </div>
