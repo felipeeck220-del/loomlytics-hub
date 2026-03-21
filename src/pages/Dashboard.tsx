@@ -602,14 +602,15 @@ export default function Dashboard() {
   );
 }
 
-function MaterialKpi({ icon, iconClass, label, value, footer, efficiencyValue }: {
-  icon: React.ReactNode; iconClass: string; label: string; value: string; footer: string; efficiencyValue?: number;
+function MaterialKpi({ icon, iconClass, label, value, footer, efficiencyValue, targetEfficiency }: {
+  icon: React.ReactNode; iconClass: string; label: string; value: string; footer: string; efficiencyValue?: number; targetEfficiency?: number;
 }) {
+  const target = targetEfficiency || 80;
   const effBg = efficiencyValue !== undefined
-    ? efficiencyValue >= 80 ? 'bg-success/10' : efficiencyValue >= 70 ? 'bg-warning/10' : 'bg-destructive/10'
+    ? efficiencyValue >= target ? 'bg-success/10' : efficiencyValue >= (target - 10) ? 'bg-warning/10' : 'bg-destructive/10'
     : '';
   const effText = efficiencyValue !== undefined
-    ? efficiencyValue >= 80 ? 'text-success' : efficiencyValue >= 70 ? 'text-warning' : 'text-destructive'
+    ? efficiencyValue >= target ? 'text-success' : efficiencyValue >= (target - 10) ? 'text-warning' : 'text-destructive'
     : 'text-foreground';
 
   return (
