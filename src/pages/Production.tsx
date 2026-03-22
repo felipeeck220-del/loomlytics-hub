@@ -379,15 +379,16 @@ export default function ProductionPage() {
     return { totalRolls, totalWeight, totalRevenue, avgEfficiency, count: shiftProductionGroups.length };
   }, [shiftProductionGroups]);
 
-  // Calculate meta for a production record
+  // Calculate meta for a production record using article's target_efficiency
   const calcMeta = (p: Production) => {
     const article = articles.find(a => a.id === p.article_id);
-    if (!article) return { meta80: 0, meta100: 0, metaRolls: 0 };
+    if (!article) return { metaTarget: 0, meta100: 0, metaRolls: 0, targetEfficiency: 80 };
     const turnsPerRoll = getTurnsForMachine(p.article_id, p.machine_id);
     const shiftMinutes = companyShiftMinutes[p.shift] || 510;
     const maxTurns = p.rpm * shiftMinutes;
     const metaRolls = turnsPerRoll > 0 ? maxTurns / turnsPerRoll : 0;
-    return { meta80: metaRolls * 0.8, meta100: metaRolls, metaRolls };
+    const targetEff = article.target_efficiency || 80;
+    return { metaTarget: metaRolls * (targetEff / 100), meta100: metaRolls, metaRolls, targetEfficiency: targetEff };
   };
 
   const clearFilters = () => {
