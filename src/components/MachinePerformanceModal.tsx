@@ -282,11 +282,11 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   <div className="flex justify-center">
                     <span className={cn(
                       "text-sm font-bold px-5 py-1.5 rounded-full text-white",
-                      m.efficiency >= 80 ? "bg-success" :
-                      m.efficiency >= 70 ? "bg-warning" :
+                      m.efficiency >= m.targetEfficiency ? "bg-success" :
+                      m.efficiency >= m.targetEfficiency * 0.875 ? "bg-warning" :
                       "bg-destructive"
                     )}>
-                      {formatPercent(m.efficiency)}
+                      {formatPercent(m.efficiency)} (Meta {Math.round(m.targetEfficiency)}%)
                     </span>
                   </div>
 
