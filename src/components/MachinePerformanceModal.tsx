@@ -129,9 +129,6 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
       })
       .filter(m => !search || m.name.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
-      })
-      .filter(m => !search || m.name.toLowerCase().includes(search.toLowerCase()))
-      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
   }, [machines, filtered, articles, search]);
 
   return (
