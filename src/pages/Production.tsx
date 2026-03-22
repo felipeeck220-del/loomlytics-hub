@@ -688,7 +688,7 @@ export default function ProductionPage() {
                              <p className="text-sm font-semibold text-foreground mt-1">{format(new Date(group.date), 'dd/MM/yyyy')}</p>
                              <p className="text-xs text-muted-foreground mt-0.5">Cadastrado em: {registrationTime || '—'}</p>
                           </div>
-                          <div className={cn("rounded-lg border p-3", group.efficiency < 80 ? 'border-red-200 bg-red-50' : 'border-border bg-background')}>
+                          <div className={cn("rounded-lg border p-3", group.efficiency < meta.targetEfficiency ? 'border-red-200 bg-red-50' : 'border-border bg-background')}>
                             <div className="flex items-center justify-between">
                               <p className={cn("text-xs font-medium", group.efficiency < 80 ? 'text-red-600' : 'text-muted-foreground')}>Tempo Parada</p>
                               <Clock className={cn("h-4 w-4", group.efficiency < 80 ? 'text-red-500' : 'text-muted-foreground')} />
