@@ -544,7 +544,7 @@ export default function Reports() {
                       <Tooltip formatter={(v: number) => formatPercent(v)} />
                       <Bar dataKey="eficiencia" name="Eficiência" radius={[0, 4, 4, 0]}>
                         {byMachine.map((entry, i) => (
-                          <Cell key={i} fill={entry.eficiencia >= 80 ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= 70 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
+                          <Cell key={i} fill={entry.eficiencia >= entry.targetEfficiency ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= entry.targetEfficiency * 0.875 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
                         ))}
                       </Bar>
                     </BarChart>
