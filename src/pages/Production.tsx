@@ -701,10 +701,10 @@ export default function ProductionPage() {
                               const mins = Math.round(downMin % 60);
                               return (
                                 <>
-                                  <p className={cn("text-lg font-bold mt-1", group.efficiency < 80 ? 'text-red-700' : 'text-foreground')}>
+                                  <p className={cn("text-lg font-bold mt-1", group.efficiency < meta.targetEfficiency ? 'text-red-700' : 'text-foreground')}>
                                     {hours}h{mins > 0 ? `${mins}min` : ''}
                                   </p>
-                                  <p className={cn("text-xs", group.efficiency < 80 ? 'text-red-600' : 'text-muted-foreground')}>Tempo inativo</p>
+                                  <p className={cn("text-xs", group.efficiency < meta.targetEfficiency ? 'text-red-600' : 'text-muted-foreground')}>Tempo inativo</p>
                                 </>
                               );
                             })()}
