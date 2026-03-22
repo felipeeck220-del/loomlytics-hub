@@ -298,8 +298,8 @@ export default function ProductionPage() {
   }, [form.machine_id, showModal]);
 
   const filteredArticles = articles.filter(a => a.name.toLowerCase().includes(articleSearch.toLowerCase()));
-  const effColor = (eff: number) => eff >= 80 ? 'text-emerald-600' : eff >= 75 ? 'text-warning' : 'text-destructive';
-  const effBg = (eff: number) => eff >= 80 ? 'bg-emerald-50' : eff >= 75 ? 'bg-yellow-50' : 'bg-red-50';
+  const effColor = (eff: number, target = 80) => eff >= target ? 'text-emerald-600' : eff >= target * 0.9 ? 'text-warning' : 'text-destructive';
+  const effBg = (eff: number, target = 80) => eff >= target ? 'bg-emerald-50' : eff >= target * 0.9 ? 'bg-yellow-50' : 'bg-red-50';
 
   // Filter productions
   const hasActiveFilters = filterDate || filterMachine || filterArticle;
