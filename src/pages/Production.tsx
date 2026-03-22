@@ -690,7 +690,7 @@ export default function ProductionPage() {
                           </div>
                           <div className={cn("rounded-lg border p-3", group.efficiency < meta.targetEfficiency ? 'border-red-200 bg-red-50' : 'border-border bg-background')}>
                             <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", group.efficiency < 80 ? 'text-red-600' : 'text-muted-foreground')}>Tempo Parada</p>
+                              <p className={cn("text-xs font-medium", group.efficiency < meta.targetEfficiency ? 'text-red-600' : 'text-muted-foreground')}>Tempo Parada</p>
                               <Clock className={cn("h-4 w-4", group.efficiency < 80 ? 'text-red-500' : 'text-muted-foreground')} />
                             </div>
                             {(() => {
