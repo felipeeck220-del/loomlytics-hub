@@ -180,7 +180,10 @@ export default function Dashboard() {
   const machinePerf = machines.map(m => {
     const mp = filtered.filter(p => p.machine_id === m.id);
     const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
-    return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length };
+    const avgTargetEff = mp.length > 0
+      ? mp.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mp.length
+      : 80;
+    return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length, targetEfficiency: avgTargetEff };
   }).filter(m => m.records > 0).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
 
   const trendData = useMemo(() => {
