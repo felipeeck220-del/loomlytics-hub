@@ -517,7 +517,7 @@ export default function Reports() {
                       <div className="text-right flex items-center gap-3">
                         <Badge className={cn(
                           "text-xs",
-                          m.eficiencia >= 80 ? "bg-success/10 text-success" : m.eficiencia >= 70 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                          m.eficiencia >= m.targetEfficiency ? "bg-success/10 text-success" : m.eficiencia >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
                         )}>
                           {formatPercent(m.eficiencia)}
                         </Badge>
