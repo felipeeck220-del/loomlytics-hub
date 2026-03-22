@@ -577,17 +577,17 @@ export default function ProductionPage() {
                           <p className="font-bold text-foreground">{group.totalRolls}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-muted-foreground">Meta 80%</p>
+                          <p className="text-xs text-muted-foreground">Meta {formatNumber(meta.targetEfficiency, 0)}%</p>
                           <div className="flex items-center gap-1">
-                            <span className={meta80Reached ? 'text-emerald-500' : 'text-destructive'}>
-                              {meta80Reached ? '✓' : '✗'}
+                            <span className={metaTargetReached ? 'text-emerald-500' : 'text-destructive'}>
+                              {metaTargetReached ? '✓' : '✗'}
                             </span>
-                            <span className="font-bold text-foreground">{formatNumber(meta.meta80, 2)}</span>
+                            <span className="font-bold text-foreground">{formatNumber(meta.metaTarget, 2)}</span>
                           </div>
                         </div>
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground">% Atingida</p>
-                          <Badge className={cn("text-xs font-bold", effBg(group.efficiency), effColor(group.efficiency))}>
+                          <Badge className={cn("text-xs font-bold", effBg(group.efficiency, meta.targetEfficiency), effColor(group.efficiency, meta.targetEfficiency))}>
                             {formatNumber(group.efficiency, 2)}%
                           </Badge>
                         </div>
