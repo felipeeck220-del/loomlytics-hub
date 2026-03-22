@@ -536,24 +536,25 @@ export default function ProductionPage() {
                 const isMultiArticle = group.items.length > 1;
                 const firstItem = group.items[0];
                 
-                // For meta calculation, use combined turns approach
+                // For meta calculation, use article target_efficiency
                 const calcGroupMeta = () => {
                   const shiftMinutes = companyShiftMinutes[group.shift as ShiftType] || 510;
                   const maxTurns = group.rpm * shiftMinutes;
-                  const metaRolls80 = group.items.reduce((sum, p) => {
-                    const turnsPerRoll = getTurnsForMachine(p.article_id, p.machine_id);
-                    const articleMaxTurns = maxTurns; // shared RPM
-                    const articleMetaRolls = turnsPerRoll > 0 ? articleMaxTurns / turnsPerRoll : 0;
-                    return sum + articleMetaRolls * 0.8 * (p.rolls_produced / (group.totalRolls || 1));
-                  }, 0);
+                  
+                  // Weighted average target efficiency based on each article
+                  const articleTargets = group.items.map(p => {
+                    const art = articles.find(a => a.id === p.article_id);
+                    return art?.target_efficiency || 80;
+                  });
+                  const avgTargetEff = articleTargets.reduce((s, t) => s + t, 0) / articleTargets.length;
+                  
                   // Use the first item's article for simple meta display
-                  const mainArticle = articles.find(a => a.id === firstItem.article_id);
                   const mainTurnsPerRoll = getTurnsForMachine(firstItem.article_id, firstItem.machine_id);
                   const mainMetaRolls = mainTurnsPerRoll > 0 ? maxTurns / mainTurnsPerRoll : 0;
-                  return { meta80: mainMetaRolls * 0.8, meta100: mainMetaRolls, metaRolls: mainMetaRolls };
+                  return { metaTarget: mainMetaRolls * (avgTargetEff / 100), meta100: mainMetaRolls, metaRolls: mainMetaRolls, targetEfficiency: avgTargetEff };
                 };
                 const meta = calcGroupMeta();
-                const meta80Reached = group.totalRolls >= meta.meta80;
+                const metaTargetReached = group.totalRolls >= meta.metaTarget;
 
                 // Articles description
                 const articlesDesc = group.items.map(p => p.article_name).join(' + ');
