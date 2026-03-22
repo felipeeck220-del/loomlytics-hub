@@ -167,6 +167,9 @@ export default function Reports() {
   const byMachine = machines.map(m => {
     const mp = filtered.filter(p => p.machine_id === m.id);
     const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
+    const avgTargetEff = mp.length > 0
+      ? mp.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mp.length
+      : 80;
     return {
       name: m.name,
       rolos: mp.reduce((s, p) => s + p.rolls_produced, 0),
@@ -174,6 +177,7 @@ export default function Reports() {
       faturamento: mp.reduce((s, p) => s + p.revenue, 0),
       eficiencia: eff,
       records: mp.length,
+      targetEfficiency: avgTargetEff,
     };
   }).filter(m => m.records > 0).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
 
