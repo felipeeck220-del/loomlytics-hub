@@ -511,8 +511,8 @@ export default function Dashboard() {
                     </div>
                     <span className={cn(
                       "text-xs font-semibold px-3 py-1.5 rounded-lg",
-                      m.efficiency >= 80 ? "bg-success/10 text-success" :
-                      m.efficiency >= 70 ? "bg-warning/10 text-warning" :
+                      m.efficiency >= m.targetEfficiency ? "bg-success/10 text-success" :
+                      m.efficiency >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" :
                       "bg-destructive/10 text-destructive"
                     )}>
                       {formatPercent(m.efficiency)}
