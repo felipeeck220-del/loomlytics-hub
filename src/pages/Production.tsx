@@ -298,8 +298,8 @@ export default function ProductionPage() {
   }, [form.machine_id, showModal]);
 
   const filteredArticles = articles.filter(a => a.name.toLowerCase().includes(articleSearch.toLowerCase()));
-  const effColor = (eff: number) => eff >= 80 ? 'text-emerald-600' : eff >= 75 ? 'text-warning' : 'text-destructive';
-  const effBg = (eff: number) => eff >= 80 ? 'bg-emerald-50' : eff >= 75 ? 'bg-yellow-50' : 'bg-red-50';
+  const effColor = (eff: number, target = 80) => eff >= target ? 'text-emerald-600' : eff >= target * 0.9 ? 'text-warning' : 'text-destructive';
+  const effBg = (eff: number, target = 80) => eff >= target ? 'bg-emerald-50' : eff >= target * 0.9 ? 'bg-yellow-50' : 'bg-red-50';
 
   // Filter productions
   const hasActiveFilters = filterDate || filterMachine || filterArticle;
@@ -379,15 +379,16 @@ export default function ProductionPage() {
     return { totalRolls, totalWeight, totalRevenue, avgEfficiency, count: shiftProductionGroups.length };
   }, [shiftProductionGroups]);
 
-  // Calculate meta for a production record
+  // Calculate meta for a production record using article's target_efficiency
   const calcMeta = (p: Production) => {
     const article = articles.find(a => a.id === p.article_id);
-    if (!article) return { meta80: 0, meta100: 0, metaRolls: 0 };
+    if (!article) return { metaTarget: 0, meta100: 0, metaRolls: 0, targetEfficiency: 80 };
     const turnsPerRoll = getTurnsForMachine(p.article_id, p.machine_id);
     const shiftMinutes = companyShiftMinutes[p.shift] || 510;
     const maxTurns = p.rpm * shiftMinutes;
     const metaRolls = turnsPerRoll > 0 ? maxTurns / turnsPerRoll : 0;
-    return { meta80: metaRolls * 0.8, meta100: metaRolls, metaRolls };
+    const targetEff = article.target_efficiency || 80;
+    return { metaTarget: metaRolls * (targetEff / 100), meta100: metaRolls, metaRolls, targetEfficiency: targetEff };
   };
 
   const clearFilters = () => {
@@ -535,24 +536,25 @@ export default function ProductionPage() {
                 const isMultiArticle = group.items.length > 1;
                 const firstItem = group.items[0];
                 
-                // For meta calculation, use combined turns approach
+                // For meta calculation, use article target_efficiency
                 const calcGroupMeta = () => {
                   const shiftMinutes = companyShiftMinutes[group.shift as ShiftType] || 510;
                   const maxTurns = group.rpm * shiftMinutes;
-                  const metaRolls80 = group.items.reduce((sum, p) => {
-                    const turnsPerRoll = getTurnsForMachine(p.article_id, p.machine_id);
-                    const articleMaxTurns = maxTurns; // shared RPM
-                    const articleMetaRolls = turnsPerRoll > 0 ? articleMaxTurns / turnsPerRoll : 0;
-                    return sum + articleMetaRolls * 0.8 * (p.rolls_produced / (group.totalRolls || 1));
-                  }, 0);
+                  
+                  // Weighted average target efficiency based on each article
+                  const articleTargets = group.items.map(p => {
+                    const art = articles.find(a => a.id === p.article_id);
+                    return art?.target_efficiency || 80;
+                  });
+                  const avgTargetEff = articleTargets.reduce((s, t) => s + t, 0) / articleTargets.length;
+                  
                   // Use the first item's article for simple meta display
-                  const mainArticle = articles.find(a => a.id === firstItem.article_id);
                   const mainTurnsPerRoll = getTurnsForMachine(firstItem.article_id, firstItem.machine_id);
                   const mainMetaRolls = mainTurnsPerRoll > 0 ? maxTurns / mainTurnsPerRoll : 0;
-                  return { meta80: mainMetaRolls * 0.8, meta100: mainMetaRolls, metaRolls: mainMetaRolls };
+                  return { metaTarget: mainMetaRolls * (avgTargetEff / 100), meta100: mainMetaRolls, metaRolls: mainMetaRolls, targetEfficiency: avgTargetEff };
                 };
                 const meta = calcGroupMeta();
-                const meta80Reached = group.totalRolls >= meta.meta80;
+                const metaTargetReached = group.totalRolls >= meta.metaTarget;
 
                 // Articles description
                 const articlesDesc = group.items.map(p => p.article_name).join(' + ');
@@ -575,17 +577,17 @@ export default function ProductionPage() {
                           <p className="font-bold text-foreground">{group.totalRolls}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-xs text-muted-foreground">Meta 80%</p>
+                          <p className="text-xs text-muted-foreground">Meta {formatNumber(meta.targetEfficiency, 0)}%</p>
                           <div className="flex items-center gap-1">
-                            <span className={meta80Reached ? 'text-emerald-500' : 'text-destructive'}>
-                              {meta80Reached ? '✓' : '✗'}
+                            <span className={metaTargetReached ? 'text-emerald-500' : 'text-destructive'}>
+                              {metaTargetReached ? '✓' : '✗'}
                             </span>
-                            <span className="font-bold text-foreground">{formatNumber(meta.meta80, 2)}</span>
+                            <span className="font-bold text-foreground">{formatNumber(meta.metaTarget, 2)}</span>
                           </div>
                         </div>
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground">% Atingida</p>
-                          <Badge className={cn("text-xs font-bold", effBg(group.efficiency), effColor(group.efficiency))}>
+                          <Badge className={cn("text-xs font-bold", effBg(group.efficiency, meta.targetEfficiency), effColor(group.efficiency, meta.targetEfficiency))}>
                             {formatNumber(group.efficiency, 2)}%
                           </Badge>
                         </div>
@@ -642,14 +644,14 @@ export default function ProductionPage() {
 
                         {/* Meta status + efficiency */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div className={cn("rounded-lg border p-3", meta80Reached ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
+                          <div className={cn("rounded-lg border p-3", metaTargetReached ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
                             <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", meta80Reached ? 'text-emerald-600' : 'text-yellow-700')}>Meta 80%</p>
-                              <Target className={cn("h-4 w-4", meta80Reached ? 'text-emerald-500' : 'text-yellow-500')} />
+                              <p className={cn("text-xs font-medium", metaTargetReached ? 'text-emerald-600' : 'text-yellow-700')}>Meta {formatNumber(meta.targetEfficiency, 0)}%</p>
+                              <Target className={cn("h-4 w-4", metaTargetReached ? 'text-emerald-500' : 'text-yellow-500')} />
                             </div>
-                            <p className={cn("text-lg font-bold", meta80Reached ? 'text-emerald-700' : 'text-yellow-800')}>{formatNumber(meta.meta80, 2)} rolos</p>
-                            <p className={cn("text-xs", meta80Reached ? 'text-emerald-600' : 'text-yellow-600')}>
-                              {meta80Reached ? '✓ Atingida' : '✗ Não atingida'}
+                            <p className={cn("text-lg font-bold", metaTargetReached ? 'text-emerald-700' : 'text-yellow-800')}>{formatNumber(meta.metaTarget, 2)} rolos</p>
+                            <p className={cn("text-xs", metaTargetReached ? 'text-emerald-600' : 'text-yellow-600')}>
+                              {metaTargetReached ? '✓ Atingida' : '✗ Não atingida'}
                             </p>
                           </div>
                           <div className={cn("rounded-lg border p-3", group.totalRolls >= meta.meta100 ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
@@ -662,14 +664,14 @@ export default function ProductionPage() {
                               {group.totalRolls >= meta.meta100 ? '✓ Atingida' : '✗ Não atingida'}
                             </p>
                           </div>
-                          <div className={cn("rounded-lg border p-3", effBg(group.efficiency), group.efficiency >= 80 ? 'border-emerald-200' : group.efficiency >= 75 ? 'border-yellow-200' : 'border-red-200')}>
+                          <div className={cn("rounded-lg border p-3", effBg(group.efficiency, meta.targetEfficiency), group.efficiency >= meta.targetEfficiency ? 'border-emerald-200' : group.efficiency >= meta.targetEfficiency * 0.9 ? 'border-yellow-200' : 'border-red-200')}>
                             <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", effColor(group.efficiency))}>% Produção</p>
-                              <TrendingUp className={cn("h-4 w-4", effColor(group.efficiency))} />
+                              <p className={cn("text-xs font-medium", effColor(group.efficiency, meta.targetEfficiency))}>% Produção</p>
+                              <TrendingUp className={cn("h-4 w-4", effColor(group.efficiency, meta.targetEfficiency))} />
                             </div>
-                            <p className={cn("text-lg font-bold", effColor(group.efficiency))}>{formatNumber(group.efficiency, 2)}%</p>
-                            <p className={cn("text-xs flex items-center gap-1", effColor(group.efficiency))}>
-                              {group.efficiency >= 80 ? '✓ Dentro da meta' : (
+                            <p className={cn("text-lg font-bold", effColor(group.efficiency, meta.targetEfficiency))}>{formatNumber(group.efficiency, 2)}%</p>
+                            <p className={cn("text-xs flex items-center gap-1", effColor(group.efficiency, meta.targetEfficiency))}>
+                              {group.efficiency >= meta.targetEfficiency ? '✓ Dentro da meta' : (
                                 <><AlertTriangle className="h-3 w-3" /> Abaixo da meta</>
                               )}
                             </p>
@@ -686,10 +688,10 @@ export default function ProductionPage() {
                              <p className="text-sm font-semibold text-foreground mt-1">{format(new Date(group.date), 'dd/MM/yyyy')}</p>
                              <p className="text-xs text-muted-foreground mt-0.5">Cadastrado em: {registrationTime || '—'}</p>
                           </div>
-                          <div className={cn("rounded-lg border p-3", group.efficiency < 80 ? 'border-red-200 bg-red-50' : 'border-border bg-background')}>
+                          <div className={cn("rounded-lg border p-3", group.efficiency < meta.targetEfficiency ? 'border-red-200 bg-red-50' : 'border-border bg-background')}>
                             <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", group.efficiency < 80 ? 'text-red-600' : 'text-muted-foreground')}>Tempo Parada</p>
-                              <Clock className={cn("h-4 w-4", group.efficiency < 80 ? 'text-red-500' : 'text-muted-foreground')} />
+                              <p className={cn("text-xs font-medium", group.efficiency < meta.targetEfficiency ? 'text-red-600' : 'text-muted-foreground')}>Tempo Parada</p>
+                              <Clock className={cn("h-4 w-4", group.efficiency < meta.targetEfficiency ? 'text-red-500' : 'text-muted-foreground')} />
                             </div>
                             {(() => {
                               const shiftMin = companyShiftMinutes[group.shift as ShiftType] || 510;
@@ -699,10 +701,10 @@ export default function ProductionPage() {
                               const mins = Math.round(downMin % 60);
                               return (
                                 <>
-                                  <p className={cn("text-lg font-bold mt-1", group.efficiency < 80 ? 'text-red-700' : 'text-foreground')}>
+                                  <p className={cn("text-lg font-bold mt-1", group.efficiency < meta.targetEfficiency ? 'text-red-700' : 'text-foreground')}>
                                     {hours}h{mins > 0 ? `${mins}min` : ''}
                                   </p>
-                                  <p className={cn("text-xs", group.efficiency < 80 ? 'text-red-600' : 'text-muted-foreground')}>Tempo inativo</p>
+                                  <p className={cn("text-xs", group.efficiency < meta.targetEfficiency ? 'text-red-600' : 'text-muted-foreground')}>Tempo inativo</p>
                                 </>
                               );
                             })()}
@@ -833,18 +835,57 @@ export default function ProductionPage() {
             )}
 
             {/* Preview */}
-            <div className={cn("p-3 rounded-lg border", preview ? effBg(preview.efficiency) : 'bg-muted/30')}>
-              {preview ? (
-                <div className="grid grid-cols-4 gap-3 text-sm">
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Rolos</p><p className="font-bold text-foreground">{preview.rolls}</p></div>
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Peso (kg)</p><p className="font-bold text-foreground">{preview.weightKg.toFixed(1)}</p></div>
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Valor</p><p className="font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p></div>
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Eficiência</p><p className={cn("font-bold", effColor(preview.efficiency))}>{preview.efficiency.toFixed(1)}%</p></div>
+            {(() => {
+              // Calculate weighted target efficiency for preview
+              const previewTargetEff = (() => {
+                if (!selectedArticle) return 80;
+                const targets = [selectedArticle.target_efficiency || 80];
+                for (const ea of extraArticles) {
+                  const art = articles.find(a => a.id === ea.article_id);
+                  if (art) targets.push(art.target_efficiency || 80);
+                }
+                return targets.reduce((s, t) => s + t, 0) / targets.length;
+              })();
+
+              return (
+                <div className={cn("p-3 rounded-lg border", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
+                  {preview ? (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-4 gap-3 text-sm">
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Rolos</p><p className="font-bold text-foreground">{preview.rolls}</p></div>
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Peso (kg)</p><p className="font-bold text-foreground">{preview.weightKg.toFixed(1)}</p></div>
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Valor</p><p className="font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p></div>
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Eficiência</p><p className={cn("font-bold", effColor(preview.efficiency, previewTargetEff))}>{preview.efficiency.toFixed(1)}%</p></div>
+                      </div>
+                      {/* Show per-article target info */}
+                      <div className="flex flex-wrap gap-2 justify-center text-xs">
+                        {selectedArticle && (
+                          <span className={cn("px-2 py-0.5 rounded-full", effBg(preview.efficiency, selectedArticle.target_efficiency || 80))}>
+                            {selectedArticle.name}: Meta {selectedArticle.target_efficiency || 80}%
+                          </span>
+                        )}
+                        {extraArticles.map((ea, idx) => {
+                          const art = articles.find(a => a.id === ea.article_id);
+                          if (!art) return null;
+                          return (
+                            <span key={idx} className={cn("px-2 py-0.5 rounded-full", effBg(preview.efficiency, art.target_efficiency || 80))}>
+                              {art.name}: Meta {art.target_efficiency || 80}%
+                            </span>
+                          );
+                        })}
+                        {extraArticles.some(ea => articles.find(a => a.id === ea.article_id)) && (
+                          <span className="px-2 py-0.5 rounded-full bg-muted font-semibold">
+                            Média: {formatNumber(previewTargetEff, 0)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-1">Preencha os campos para ver o preview</p>
+                  )}
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-1">Preencha os campos para ver o preview</p>
-              )}
-            </div>
+              );
+            })()}
           </div>
 
           <div className="flex-shrink-0 border-t pt-4 space-y-3">

@@ -112,12 +112,20 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
         const revenuePerHour = totalHours > 0 ? revenue / totalHours : 0;
         const kgPerHour = totalHours > 0 ? kg / totalHours : 0;
 
+        // Weighted average target efficiency from articles produced
+        const avgTargetEff = mp.length > 0
+          ? mp.reduce((s, p) => {
+              const art = articles.find(a => a.id === p.article_id);
+              return s + (art?.target_efficiency || 80);
+            }, 0) / mp.length
+          : 80;
+
         const currentArticle = m.article_id ? articles.find(a => a.id === m.article_id) : null;
         const articleName = currentArticle?.name || 'Sem artigo';
         const statusLabel = MACHINE_STATUS_LABELS[m.status as MachineStatus] || m.status;
         const statusColor = MACHINE_STATUS_COLORS[m.status as MachineStatus] || 'bg-muted text-muted-foreground';
 
-        return { id: m.id, name: m.name, articleName, statusLabel, statusColor, rolls, kg, revenue, efficiency: eff, revenuePerHour, kgPerHour, records: mp.length };
+        return { id: m.id, name: m.name, articleName, statusLabel, statusColor, rolls, kg, revenue, efficiency: eff, revenuePerHour, kgPerHour, records: mp.length, targetEfficiency: avgTargetEff };
       })
       .filter(m => !search || m.name.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
@@ -271,11 +279,11 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   <div className="flex justify-center">
                     <span className={cn(
                       "text-sm font-bold px-5 py-1.5 rounded-full text-white",
-                      m.efficiency >= 80 ? "bg-success" :
-                      m.efficiency >= 70 ? "bg-warning" :
+                      m.efficiency >= m.targetEfficiency ? "bg-success" :
+                      m.efficiency >= m.targetEfficiency * 0.875 ? "bg-warning" :
                       "bg-destructive"
                     )}>
-                      {formatPercent(m.efficiency)}
+                      {formatPercent(m.efficiency)} (Meta {Math.round(m.targetEfficiency)}%)
                     </span>
                   </div>
 

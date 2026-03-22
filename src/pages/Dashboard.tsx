@@ -180,7 +180,10 @@ export default function Dashboard() {
   const machinePerf = machines.map(m => {
     const mp = filtered.filter(p => p.machine_id === m.id);
     const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
-    return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length };
+    const avgTargetEff = mp.length > 0
+      ? mp.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mp.length
+      : 80;
+    return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length, targetEfficiency: avgTargetEff };
   }).filter(m => m.records > 0).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
 
   const trendData = useMemo(() => {
@@ -508,8 +511,8 @@ export default function Dashboard() {
                     </div>
                     <span className={cn(
                       "text-xs font-semibold px-3 py-1.5 rounded-lg",
-                      m.efficiency >= 80 ? "bg-success/10 text-success" :
-                      m.efficiency >= 70 ? "bg-warning/10 text-warning" :
+                      m.efficiency >= m.targetEfficiency ? "bg-success/10 text-success" :
+                      m.efficiency >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" :
                       "bg-destructive/10 text-destructive"
                     )}>
                       {formatPercent(m.efficiency)}

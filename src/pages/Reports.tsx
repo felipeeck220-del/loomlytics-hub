@@ -167,6 +167,9 @@ export default function Reports() {
   const byMachine = machines.map(m => {
     const mp = filtered.filter(p => p.machine_id === m.id);
     const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
+    const avgTargetEff = mp.length > 0
+      ? mp.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mp.length
+      : 80;
     return {
       name: m.name,
       rolos: mp.reduce((s, p) => s + p.rolls_produced, 0),
@@ -174,6 +177,7 @@ export default function Reports() {
       faturamento: mp.reduce((s, p) => s + p.revenue, 0),
       eficiencia: eff,
       records: mp.length,
+      targetEfficiency: avgTargetEff,
     };
   }).filter(m => m.records > 0).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
 
@@ -513,7 +517,7 @@ export default function Reports() {
                       <div className="text-right flex items-center gap-3">
                         <Badge className={cn(
                           "text-xs",
-                          m.eficiencia >= 80 ? "bg-success/10 text-success" : m.eficiencia >= 70 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                          m.eficiencia >= m.targetEfficiency ? "bg-success/10 text-success" : m.eficiencia >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
                         )}>
                           {formatPercent(m.eficiencia)}
                         </Badge>
@@ -540,7 +544,7 @@ export default function Reports() {
                       <Tooltip formatter={(v: number) => formatPercent(v)} />
                       <Bar dataKey="eficiencia" name="Eficiência" radius={[0, 4, 4, 0]}>
                         {byMachine.map((entry, i) => (
-                          <Cell key={i} fill={entry.eficiencia >= 80 ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= 70 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
+                          <Cell key={i} fill={entry.eficiencia >= entry.targetEfficiency ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= entry.targetEfficiency * 0.875 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
                         ))}
                       </Bar>
                     </BarChart>
