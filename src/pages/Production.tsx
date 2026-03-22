@@ -644,14 +644,14 @@ export default function ProductionPage() {
 
                         {/* Meta status + efficiency */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div className={cn("rounded-lg border p-3", meta80Reached ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
+                          <div className={cn("rounded-lg border p-3", metaTargetReached ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
                             <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", meta80Reached ? 'text-emerald-600' : 'text-yellow-700')}>Meta 80%</p>
-                              <Target className={cn("h-4 w-4", meta80Reached ? 'text-emerald-500' : 'text-yellow-500')} />
+                              <p className={cn("text-xs font-medium", metaTargetReached ? 'text-emerald-600' : 'text-yellow-700')}>Meta {formatNumber(meta.targetEfficiency, 0)}%</p>
+                              <Target className={cn("h-4 w-4", metaTargetReached ? 'text-emerald-500' : 'text-yellow-500')} />
                             </div>
-                            <p className={cn("text-lg font-bold", meta80Reached ? 'text-emerald-700' : 'text-yellow-800')}>{formatNumber(meta.meta80, 2)} rolos</p>
-                            <p className={cn("text-xs", meta80Reached ? 'text-emerald-600' : 'text-yellow-600')}>
-                              {meta80Reached ? '✓ Atingida' : '✗ Não atingida'}
+                            <p className={cn("text-lg font-bold", metaTargetReached ? 'text-emerald-700' : 'text-yellow-800')}>{formatNumber(meta.metaTarget, 2)} rolos</p>
+                            <p className={cn("text-xs", metaTargetReached ? 'text-emerald-600' : 'text-yellow-600')}>
+                              {metaTargetReached ? '✓ Atingida' : '✗ Não atingida'}
                             </p>
                           </div>
                           <div className={cn("rounded-lg border p-3", group.totalRolls >= meta.meta100 ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
@@ -664,14 +664,14 @@ export default function ProductionPage() {
                               {group.totalRolls >= meta.meta100 ? '✓ Atingida' : '✗ Não atingida'}
                             </p>
                           </div>
-                          <div className={cn("rounded-lg border p-3", effBg(group.efficiency), group.efficiency >= 80 ? 'border-emerald-200' : group.efficiency >= 75 ? 'border-yellow-200' : 'border-red-200')}>
+                          <div className={cn("rounded-lg border p-3", effBg(group.efficiency, meta.targetEfficiency), group.efficiency >= meta.targetEfficiency ? 'border-emerald-200' : group.efficiency >= meta.targetEfficiency * 0.9 ? 'border-yellow-200' : 'border-red-200')}>
                             <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", effColor(group.efficiency))}>% Produção</p>
-                              <TrendingUp className={cn("h-4 w-4", effColor(group.efficiency))} />
+                              <p className={cn("text-xs font-medium", effColor(group.efficiency, meta.targetEfficiency))}>% Produção</p>
+                              <TrendingUp className={cn("h-4 w-4", effColor(group.efficiency, meta.targetEfficiency))} />
                             </div>
-                            <p className={cn("text-lg font-bold", effColor(group.efficiency))}>{formatNumber(group.efficiency, 2)}%</p>
-                            <p className={cn("text-xs flex items-center gap-1", effColor(group.efficiency))}>
-                              {group.efficiency >= 80 ? '✓ Dentro da meta' : (
+                            <p className={cn("text-lg font-bold", effColor(group.efficiency, meta.targetEfficiency))}>{formatNumber(group.efficiency, 2)}%</p>
+                            <p className={cn("text-xs flex items-center gap-1", effColor(group.efficiency, meta.targetEfficiency))}>
+                              {group.efficiency >= meta.targetEfficiency ? '✓ Dentro da meta' : (
                                 <><AlertTriangle className="h-3 w-3" /> Abaixo da meta</>
                               )}
                             </p>
