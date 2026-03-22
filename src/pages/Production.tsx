@@ -835,18 +835,57 @@ export default function ProductionPage() {
             )}
 
             {/* Preview */}
-            <div className={cn("p-3 rounded-lg border", preview ? effBg(preview.efficiency) : 'bg-muted/30')}>
-              {preview ? (
-                <div className="grid grid-cols-4 gap-3 text-sm">
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Rolos</p><p className="font-bold text-foreground">{preview.rolls}</p></div>
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Peso (kg)</p><p className="font-bold text-foreground">{preview.weightKg.toFixed(1)}</p></div>
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Valor</p><p className="font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p></div>
-                  <div className="text-center"><p className="text-xs text-muted-foreground">Eficiência</p><p className={cn("font-bold", effColor(preview.efficiency))}>{preview.efficiency.toFixed(1)}%</p></div>
+            {(() => {
+              // Calculate weighted target efficiency for preview
+              const previewTargetEff = (() => {
+                if (!selectedArticle) return 80;
+                const targets = [selectedArticle.target_efficiency || 80];
+                for (const ea of extraArticles) {
+                  const art = articles.find(a => a.id === ea.article_id);
+                  if (art) targets.push(art.target_efficiency || 80);
+                }
+                return targets.reduce((s, t) => s + t, 0) / targets.length;
+              })();
+
+              return (
+                <div className={cn("p-3 rounded-lg border", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
+                  {preview ? (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-4 gap-3 text-sm">
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Rolos</p><p className="font-bold text-foreground">{preview.rolls}</p></div>
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Peso (kg)</p><p className="font-bold text-foreground">{preview.weightKg.toFixed(1)}</p></div>
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Valor</p><p className="font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p></div>
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Eficiência</p><p className={cn("font-bold", effColor(preview.efficiency, previewTargetEff))}>{preview.efficiency.toFixed(1)}%</p></div>
+                      </div>
+                      {/* Show per-article target info */}
+                      <div className="flex flex-wrap gap-2 justify-center text-xs">
+                        {selectedArticle && (
+                          <span className={cn("px-2 py-0.5 rounded-full", effBg(preview.efficiency, selectedArticle.target_efficiency || 80))}>
+                            {selectedArticle.name}: Meta {selectedArticle.target_efficiency || 80}%
+                          </span>
+                        )}
+                        {extraArticles.map((ea, idx) => {
+                          const art = articles.find(a => a.id === ea.article_id);
+                          if (!art) return null;
+                          return (
+                            <span key={idx} className={cn("px-2 py-0.5 rounded-full", effBg(preview.efficiency, art.target_efficiency || 80))}>
+                              {art.name}: Meta {art.target_efficiency || 80}%
+                            </span>
+                          );
+                        })}
+                        {extraArticles.some(ea => articles.find(a => a.id === ea.article_id)) && (
+                          <span className="px-2 py-0.5 rounded-full bg-muted font-semibold">
+                            Média: {formatNumber(previewTargetEff, 0)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-1">Preencha os campos para ver o preview</p>
+                  )}
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-1">Preencha os campos para ver o preview</p>
-              )}
-            </div>
+              );
+            })()}
           </div>
 
           <div className="flex-shrink-0 border-t pt-4 space-y-3">
