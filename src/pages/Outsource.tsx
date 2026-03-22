@@ -132,9 +132,9 @@ export default function Outsource() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KpiCard icon={Package} label="Rolos" value={formatNumber(totals.totalRolls)} color="border-l-amber-500" />
         <KpiCard icon={Scale} label="Peso Total" value={formatWeight(totals.totalWeight)} color="border-l-orange-500" />
-        <KpiCard icon={DollarSign} label="Receita (Repasse)" value={formatCurrency(totals.totalRevenue)} color="border-l-emerald-500" />
-        <KpiCard icon={DollarSign} label="Custo (Artigo)" value={formatCurrency(totals.totalCost)} color="border-l-red-500" />
-        <KpiCard icon={TrendingUp} label="Lucro" value={formatCurrency(totals.totalProfit)} color="border-l-primary" />
+        <KpiCard icon={DollarSign} label="Receita (Cliente)" value={formatCurrency(totals.totalRevenue)} color="border-l-emerald-500" />
+        <KpiCard icon={DollarSign} label="Custo (Repasse)" value={formatCurrency(totals.totalCost)} color="border-l-red-500" />
+        <KpiCard icon={TrendingUp} label="Lucro" value={formatCurrency(totals.totalProfit)} color={totals.totalProfit >= 0 ? "border-l-primary" : "border-l-destructive"} />
       </div>
 
       {/* Tabs */}
