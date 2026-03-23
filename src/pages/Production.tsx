@@ -386,7 +386,11 @@ export default function ProductionPage() {
     const turnsPerRoll = getTurnsForMachine(p.article_id, p.machine_id);
     const shiftMinutes = companyShiftMinutes[p.shift] || 510;
     const maxTurns = p.rpm * shiftMinutes;
-    const metaRolls = turnsPerRoll > 0 ? maxTurns / turnsPerRoll : 0;
+    let metaRolls = turnsPerRoll > 0 ? maxTurns / turnsPerRoll : 0;
+    // Fallback: back-calculate from stored efficiency if turnsPerRoll is 0
+    if (metaRolls === 0 && p.efficiency > 0 && p.rolls_produced > 0) {
+      metaRolls = p.rolls_produced / (p.efficiency / 100);
+    }
     const targetEff = article.target_efficiency || 80;
     return { metaTarget: metaRolls * (targetEff / 100), meta100: metaRolls, metaRolls, targetEfficiency: targetEff };
   };
@@ -548,10 +552,19 @@ export default function ProductionPage() {
                   });
                   const avgTargetEff = articleTargets.reduce((s, t) => s + t, 0) / articleTargets.length;
                   
-                  // Use the first item's article for simple meta display
-                  const mainTurnsPerRoll = getTurnsForMachine(firstItem.article_id, firstItem.machine_id);
-                  const mainMetaRolls = mainTurnsPerRoll > 0 ? maxTurns / mainTurnsPerRoll : 0;
-                  return { metaTarget: mainMetaRolls * (avgTargetEff / 100), meta100: mainMetaRolls, metaRolls: mainMetaRolls, targetEfficiency: avgTargetEff };
+                  // Calculate meta rolls for each item and sum
+                  let totalMetaRolls = 0;
+                  for (const item of group.items) {
+                    const turnsPerRoll = getTurnsForMachine(item.article_id, item.machine_id);
+                    if (turnsPerRoll > 0) {
+                      totalMetaRolls += maxTurns / turnsPerRoll;
+                    } else if (item.efficiency > 0 && item.rolls_produced > 0) {
+                      // Back-calculate from stored efficiency: rolls / (eff/100) = meta100
+                      totalMetaRolls += item.rolls_produced / (item.efficiency / 100);
+                    }
+                  }
+                  
+                  return { metaTarget: totalMetaRolls * (avgTargetEff / 100), meta100: totalMetaRolls, metaRolls: totalMetaRolls, targetEfficiency: avgTargetEff };
                 };
                 const meta = calcGroupMeta();
                 const metaTargetReached = group.totalRolls >= meta.metaTarget;
