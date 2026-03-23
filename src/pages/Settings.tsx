@@ -304,17 +304,44 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left: User info */}
               <div className="space-y-5">
-                <div>
-                  <p className="text-sm text-muted-foreground">Nome</p>
-                  <p className="text-lg font-display font-bold text-foreground">{user?.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-foreground">{user?.email}</p>
-                  </div>
-                </div>
+                {editingProfile ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Nome</Label>
+                      <Input value={profileName} onChange={e => setProfileName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
+                      <p className="text-xs text-muted-foreground">Ao alterar o email, um código de confirmação será enviado ao novo endereço.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(user?.email || ''); }}>Cancelar</Button>
+                      <Button size="sm" className="btn-gradient" disabled={savingProfile} onClick={handleSaveProfile}>
+                        {savingProfile && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Nome</p>
+                        <p className="text-lg font-display font-bold text-foreground">{user?.name}</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setEditingProfile(true)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-foreground">{user?.email}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div>
                   <p className="text-sm text-muted-foreground">Função</p>
                   <div className="flex items-center gap-2 mt-1">
