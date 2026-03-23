@@ -386,7 +386,11 @@ export default function ProductionPage() {
     const turnsPerRoll = getTurnsForMachine(p.article_id, p.machine_id);
     const shiftMinutes = companyShiftMinutes[p.shift] || 510;
     const maxTurns = p.rpm * shiftMinutes;
-    const metaRolls = turnsPerRoll > 0 ? maxTurns / turnsPerRoll : 0;
+    let metaRolls = turnsPerRoll > 0 ? maxTurns / turnsPerRoll : 0;
+    // Fallback: back-calculate from stored efficiency if turnsPerRoll is 0
+    if (metaRolls === 0 && p.efficiency > 0 && p.rolls_produced > 0) {
+      metaRolls = p.rolls_produced / (p.efficiency / 100);
+    }
     const targetEff = article.target_efficiency || 80;
     return { metaTarget: metaRolls * (targetEff / 100), meta100: metaRolls, metaRolls, targetEfficiency: targetEff };
   };
