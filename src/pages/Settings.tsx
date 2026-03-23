@@ -67,6 +67,75 @@ export default function SettingsPage() {
   const [savingShifts, setSavingShifts] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
+  // Profile editing
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState(user?.name || '');
+  const [profileEmail, setProfileEmail] = useState(user?.email || '');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Company name editing
+  const [editingCompanyName, setEditingCompanyName] = useState(false);
+  const [companyNameForm, setCompanyNameForm] = useState('');
+  const [savingCompanyName, setSavingCompanyName] = useState(false);
+
+  useEffect(() => {
+    setProfileName(user?.name || '');
+    setProfileEmail(user?.email || '');
+  }, [user?.name, user?.email]);
+
+  const handleSaveProfile = async () => {
+    if (!user || !profileName.trim()) { toast.error('Nome não pode ser vazio'); return; }
+    setSavingProfile(true);
+    try {
+      const nameChanged = profileName.trim() !== user.name;
+      const emailChanged = profileEmail.trim() !== user.email;
+
+      if (nameChanged) {
+        const { error } = await (supabase.from as any)('profiles')
+          .update({ name: profileName.trim() })
+          .eq('id', user.id);
+        if (error) throw error;
+      }
+
+      if (emailChanged) {
+        if (!profileEmail.trim() || !/\S+@\S+\.\S+/.test(profileEmail.trim())) {
+          toast.error('Email inválido');
+          setSavingProfile(false);
+          return;
+        }
+        const { error } = await supabase.auth.updateUser({ email: profileEmail.trim() });
+        if (error) throw error;
+        toast.info('Um email de confirmação foi enviado para o novo endereço. Confirme para concluir a alteração.');
+      }
+
+      if (nameChanged) {
+        toast.success('Nome atualizado com sucesso');
+        await refreshProfiles();
+      }
+      setEditingProfile(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar perfil');
+    }
+    setSavingProfile(false);
+  };
+
+  const handleSaveCompanyName = async () => {
+    if (!user || !companyNameForm.trim()) { toast.error('Nome da empresa não pode ser vazio'); return; }
+    setSavingCompanyName(true);
+    try {
+      const { error } = await (supabase.from as any)('companies')
+        .update({ name: companyNameForm.trim() })
+        .eq('id', user.company_id);
+      if (error) throw error;
+      setCompany((prev: any) => prev ? { ...prev, name: companyNameForm.trim() } : prev);
+      toast.success('Nome da empresa atualizado');
+      setEditingCompanyName(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar');
+    }
+    setSavingCompanyName(false);
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -235,17 +304,44 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left: User info */}
               <div className="space-y-5">
-                <div>
-                  <p className="text-sm text-muted-foreground">Nome</p>
-                  <p className="text-lg font-display font-bold text-foreground">{user?.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-foreground">{user?.email}</p>
-                  </div>
-                </div>
+                {editingProfile ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Nome</Label>
+                      <Input value={profileName} onChange={e => setProfileName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
+                      <p className="text-xs text-muted-foreground">Ao alterar o email, um código de confirmação será enviado ao novo endereço.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(user?.email || ''); }}>Cancelar</Button>
+                      <Button size="sm" className="btn-gradient" disabled={savingProfile} onClick={handleSaveProfile}>
+                        {savingProfile && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Nome</p>
+                        <p className="text-lg font-display font-bold text-foreground">{user?.name}</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setEditingProfile(true)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-foreground">{user?.email}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div>
                   <p className="text-sm text-muted-foreground">Função</p>
                   <div className="flex items-center gap-2 mt-1">
@@ -452,7 +548,24 @@ export default function SettingsPage() {
 
                 <div>
                   <p className="text-sm text-muted-foreground">Nome da Empresa</p>
-                  <p className="text-lg font-display font-bold text-foreground">{company?.name || '—'}</p>
+                  {editingCompanyName ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input value={companyNameForm} onChange={e => setCompanyNameForm(e.target.value)} className="max-w-xs" />
+                      <Button variant="outline" size="sm" onClick={() => setEditingCompanyName(false)}>Cancelar</Button>
+                      <Button size="sm" className="btn-gradient" disabled={savingCompanyName} onClick={handleSaveCompanyName}>
+                        {savingCompanyName && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-display font-bold text-foreground">{company?.name || '—'}</p>
+                      {isAdmin && (
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => { setCompanyNameForm(company?.name || ''); setEditingCompanyName(true); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Setor</p>
