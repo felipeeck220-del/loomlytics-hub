@@ -548,7 +548,24 @@ export default function SettingsPage() {
 
                 <div>
                   <p className="text-sm text-muted-foreground">Nome da Empresa</p>
-                  <p className="text-lg font-display font-bold text-foreground">{company?.name || '—'}</p>
+                  {editingCompanyName ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input value={companyNameForm} onChange={e => setCompanyNameForm(e.target.value)} className="max-w-xs" />
+                      <Button variant="outline" size="sm" onClick={() => setEditingCompanyName(false)}>Cancelar</Button>
+                      <Button size="sm" className="btn-gradient" disabled={savingCompanyName} onClick={handleSaveCompanyName}>
+                        {savingCompanyName && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-display font-bold text-foreground">{company?.name || '—'}</p>
+                      {isAdmin && (
+                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => { setCompanyNameForm(company?.name || ''); setEditingCompanyName(true); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Setor</p>
