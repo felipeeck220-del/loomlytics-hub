@@ -67,6 +67,75 @@ export default function SettingsPage() {
   const [savingShifts, setSavingShifts] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
+  // Profile editing
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState(user?.name || '');
+  const [profileEmail, setProfileEmail] = useState(user?.email || '');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Company name editing
+  const [editingCompanyName, setEditingCompanyName] = useState(false);
+  const [companyNameForm, setCompanyNameForm] = useState('');
+  const [savingCompanyName, setSavingCompanyName] = useState(false);
+
+  useEffect(() => {
+    setProfileName(user?.name || '');
+    setProfileEmail(user?.email || '');
+  }, [user?.name, user?.email]);
+
+  const handleSaveProfile = async () => {
+    if (!user || !profileName.trim()) { toast.error('Nome não pode ser vazio'); return; }
+    setSavingProfile(true);
+    try {
+      const nameChanged = profileName.trim() !== user.name;
+      const emailChanged = profileEmail.trim() !== user.email;
+
+      if (nameChanged) {
+        const { error } = await (supabase.from as any)('profiles')
+          .update({ name: profileName.trim() })
+          .eq('id', user.id);
+        if (error) throw error;
+      }
+
+      if (emailChanged) {
+        if (!profileEmail.trim() || !/\S+@\S+\.\S+/.test(profileEmail.trim())) {
+          toast.error('Email inválido');
+          setSavingProfile(false);
+          return;
+        }
+        const { error } = await supabase.auth.updateUser({ email: profileEmail.trim() });
+        if (error) throw error;
+        toast.info('Um email de confirmação foi enviado para o novo endereço. Confirme para concluir a alteração.');
+      }
+
+      if (nameChanged) {
+        toast.success('Nome atualizado com sucesso');
+        await refreshProfiles();
+      }
+      setEditingProfile(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar perfil');
+    }
+    setSavingProfile(false);
+  };
+
+  const handleSaveCompanyName = async () => {
+    if (!user || !companyNameForm.trim()) { toast.error('Nome da empresa não pode ser vazio'); return; }
+    setSavingCompanyName(true);
+    try {
+      const { error } = await (supabase.from as any)('companies')
+        .update({ name: companyNameForm.trim() })
+        .eq('id', user.company_id);
+      if (error) throw error;
+      setCompany((prev: any) => prev ? { ...prev, name: companyNameForm.trim() } : prev);
+      toast.success('Nome da empresa atualizado');
+      setEditingCompanyName(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar');
+    }
+    setSavingCompanyName(false);
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
