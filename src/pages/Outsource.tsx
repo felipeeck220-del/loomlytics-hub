@@ -328,10 +328,22 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [articleSearch, setArticleSearch] = useState('');
+  const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
+  const articleSearchRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
     weight_kg: '', rolls: '', outsource_value_per_kg: '', observations: '',
   });
+
+  const filteredArticles = useMemo(() => {
+    if (!articleSearch.trim()) return articles;
+    const search = articleSearch.toLowerCase();
+    return articles.filter(a =>
+      a.name?.toLowerCase().includes(search) ||
+      a.client_name?.toLowerCase().includes(search)
+    );
+  }, [articles, articleSearch]);
 
   const resetForm = () => {
     setForm({
