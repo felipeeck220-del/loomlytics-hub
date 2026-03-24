@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -328,10 +328,22 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [articleSearch, setArticleSearch] = useState('');
+  const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
+  const articleSearchRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
     weight_kg: '', rolls: '', outsource_value_per_kg: '', observations: '',
   });
+
+  const filteredArticles = useMemo(() => {
+    if (!articleSearch.trim()) return articles;
+    const search = articleSearch.toLowerCase();
+    return articles.filter(a =>
+      a.name?.toLowerCase().includes(search) ||
+      a.client_name?.toLowerCase().includes(search)
+    );
+  }, [articles, articleSearch]);
 
   const resetForm = () => {
     setForm({
@@ -451,16 +463,38 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
 
               <div className="space-y-2">
                 <Label>Artigo *</Label>
-                <Select value={form.article_id} onValueChange={v => setForm(f => ({ ...f, article_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione um artigo" /></SelectTrigger>
-                  <SelectContent>
-                    {articles.map(a => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name} — {a.client_name || 'Sem cliente'} ({formatCurrency(Number(a.value_per_kg))}/kg)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Input
+                    ref={articleSearchRef}
+                    placeholder="Pesquisar artigo..."
+                    value={articleDropdownOpen ? articleSearch : (articles.find(a => a.id === form.article_id)?.name ? `${articles.find(a => a.id === form.article_id)?.name} — ${articles.find(a => a.id === form.article_id)?.client_name || 'Sem cliente'}` : '')}
+                    onChange={e => { setArticleSearch(e.target.value); setArticleDropdownOpen(true); }}
+                    onFocus={() => { setArticleDropdownOpen(true); setArticleSearch(''); }}
+                    className="w-full"
+                  />
+                  {articleDropdownOpen && (
+                    <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md">
+                      {filteredArticles.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum artigo encontrado</p>
+                      ) : (
+                        filteredArticles.map(a => (
+                          <button
+                            key={a.id}
+                            type="button"
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground ${form.article_id === a.id ? 'bg-accent text-accent-foreground' : ''}`}
+                            onClick={() => {
+                              setForm(f => ({ ...f, article_id: a.id }));
+                              setArticleDropdownOpen(false);
+                              setArticleSearch('');
+                            }}
+                          >
+                            {a.name} — {a.client_name || 'Sem cliente'} ({formatCurrency(Number(a.value_per_kg))}/kg)
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
