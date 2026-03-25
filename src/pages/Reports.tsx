@@ -93,6 +93,7 @@ export default function Reports() {
 
   const availableMonths = useMemo(() => {
     const months = new Set(productions.map(p => p.date.substring(0, 7)));
+    months.add(format(new Date(), 'yyyy-MM'));
     return Array.from(months).sort().reverse();
   }, [productions]);
 
