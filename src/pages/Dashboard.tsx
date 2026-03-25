@@ -66,6 +66,8 @@ export default function Dashboard() {
 
   const availableMonths = useMemo(() => {
     const months = new Set(productions.map(p => p.date.substring(0, 7)));
+    // Always include current month
+    months.add(format(new Date(), 'yyyy-MM'));
     return Array.from(months).sort().reverse();
   }, [productions]);
 
