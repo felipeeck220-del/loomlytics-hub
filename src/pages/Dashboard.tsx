@@ -90,7 +90,7 @@ export default function Dashboard() {
       const dateStr = format(customDate, 'yyyy-MM-dd');
       data = data.filter(p => p.date === dateStr);
     } else {
-      const start = format(subDays(today, dayRange), 'yyyy-MM-dd');
+      const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
       const end = format(today, 'yyyy-MM-dd');
       data = data.filter(p => p.date >= start && p.date <= end);
     }
@@ -234,7 +234,7 @@ export default function Dashboard() {
               if (dateTo) return `Até ${format(dateTo, 'dd/MM/yyyy')}`;
               if (customDate) return format(customDate, 'dd/MM/yyyy');
               if (filterMonth !== 'all') return format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
-              const start = subDays(new Date(), dayRange);
+              const start = subDays(new Date(), dayRange - 1);
               return `${format(start, 'dd/MM/yyyy')} a ${format(new Date(), 'dd/MM/yyyy')}`;
             })()}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType].split(' (')[0]}` : ''}
           </p>

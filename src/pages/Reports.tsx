@@ -117,7 +117,7 @@ export default function Reports() {
       const dateStr = format(customDate, 'yyyy-MM-dd');
       data = data.filter(p => p.date === dateStr);
     } else {
-      const start = format(subDays(today, dayRange), 'yyyy-MM-dd');
+      const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
       const end = format(today, 'yyyy-MM-dd');
       data = data.filter(p => p.date >= start && p.date <= end);
     }
