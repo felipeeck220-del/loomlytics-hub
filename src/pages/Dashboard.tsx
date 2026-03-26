@@ -207,6 +207,61 @@ export default function Dashboard() {
     }));
   }, [filtered]);
 
+  const periodSummary = useMemo(() => {
+    const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
+    const today = new Date();
+
+    if (dayRange === 0) {
+      if (filtered.length > 0) {
+        const dates = filtered.map(p => p.date).sort();
+        return {
+          label: `${format(toDisplayDate(dates[0]), 'dd/MM/yyyy')} a ${format(toDisplayDate(dates[dates.length - 1]), 'dd/MM/yyyy')}`,
+        };
+      }
+
+      return { label: 'Sem dados no período' };
+    }
+
+    if (dateFrom && dateTo) {
+      return {
+        label: `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`,
+      };
+    }
+
+    if (dateFrom) {
+      return {
+        label: `${format(dateFrom, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`,
+      };
+    }
+
+    if (dateTo) {
+      const dates = filtered.map(p => p.date).sort();
+      const startDate = dates.length > 0 ? toDisplayDate(dates[0]) : dateTo;
+      return {
+        label: `${format(startDate, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`,
+      };
+    }
+
+    if (customDate) {
+      const formattedDate = format(customDate, 'dd/MM/yyyy');
+      return { label: `${formattedDate} a ${formattedDate}` };
+    }
+
+    if (filterMonth !== 'all') {
+      const [year, month] = filterMonth.split('-').map(Number);
+      const startDate = new Date(year, month - 1, 1, 12);
+      const endDate = new Date(year, month, 0, 12);
+      return {
+        label: `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`,
+      };
+    }
+
+    const startDate = subDays(today, dayRange - 1);
+    return {
+      label: `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`,
+    };
+  }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -223,22 +278,7 @@ export default function Dashboard() {
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">
-            Visão geral da produção · {(() => {
-              if (dayRange === 0) {
-                if (filtered.length > 0) {
-                  const dates = filtered.map(p => p.date).sort();
-                  return `Todo período · ${format(new Date(dates[0] + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(dates[dates.length - 1] + 'T12:00:00'), 'dd/MM/yyyy')}`;
-                }
-                return 'Todo período';
-              }
-              if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
-              if (dateFrom) return `A partir de ${format(dateFrom, 'dd/MM/yyyy')}`;
-              if (dateTo) return `Até ${format(dateTo, 'dd/MM/yyyy')}`;
-              if (customDate) return format(customDate, 'dd/MM/yyyy');
-              if (filterMonth !== 'all') return format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
-              const start = subDays(new Date(), dayRange - 1);
-              return `${format(start, 'dd/MM/yyyy')} a ${format(new Date(), 'dd/MM/yyyy')}`;
-            })()}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType].split(' (')[0]}` : ''}
+            Visão geral da produção · {periodSummary.label}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType].split(' (')[0]}` : ''}
           </p>
         </div>
         {hasActiveFilters && (
