@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns, CompanyShiftSettings } from '@/types';
+import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns, CompanyShiftSettings, ShiftType } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
 const sb = (table: string) => (supabase.from as any)(table);
