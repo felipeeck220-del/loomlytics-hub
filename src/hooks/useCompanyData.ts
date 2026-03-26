@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns, CompanyShiftSettings } from '@/types';
+import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns, CompanyShiftSettings, ShiftType } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
 const sb = (table: string) => (supabase.from as any)(table);
@@ -110,8 +110,18 @@ export function useCompanyData() {
     fixed_shift: r.fixed_shift || undefined, start_time: r.start_time || undefined,
     end_time: r.end_time || undefined, created_at: r.created_at,
   });
+  const normalizeShift = (shift: string): ShiftType => {
+    if (!shift) return 'manha';
+    const lower = shift.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (lower.startsWith('manha')) return 'manha';
+    if (lower.startsWith('tarde')) return 'tarde';
+    if (lower.startsWith('noite')) return 'noite';
+    return 'manha';
+  };
+
   const mapProduction = (r: any): Production => ({
-    id: r.id, company_id: r.company_id, date: r.date, shift: r.shift,
+    id: r.id, company_id: r.company_id, date: r.date,
+    shift: normalizeShift(r.shift),
     machine_id: r.machine_id || '', machine_name: r.machine_name || '',
     weaver_id: r.weaver_id || '', weaver_name: r.weaver_name || '',
     article_id: r.article_id || '', article_name: r.article_name || '',
