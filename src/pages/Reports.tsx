@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { format, subDays, subMonths } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CalendarIcon, Loader2, RotateCcw, Download, Clock,
@@ -211,22 +211,43 @@ export default function Reports() {
       }));
   }, [filtered]);
 
-  // Period label
-  const periodLabel = (() => {
+  const periodLabel = useMemo(() => {
+    const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
+    const today = new Date();
+
     if (dayRange === 0) {
       if (filtered.length > 0) {
         const dates = filtered.map(p => p.date).sort();
-        return `Todo período · ${format(new Date(dates[0] + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(dates[dates.length - 1] + 'T12:00:00'), 'dd/MM/yyyy')}`;
+        return `${format(toDisplayDate(dates[0]), 'dd/MM/yyyy')} a ${format(toDisplayDate(dates[dates.length - 1]), 'dd/MM/yyyy')}`;
       }
-      return 'Todo período';
+
+      return 'Sem dados no período';
     }
-    if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} - ${format(dateTo, 'dd/MM/yyyy')}`;
-    if (dateFrom) return `A partir de ${format(dateFrom, 'dd/MM/yyyy')}`;
-    if (dateTo) return `Até ${format(dateTo, 'dd/MM/yyyy')}`;
-    if (filterMonth !== 'all') return format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
-    if (customDate) return format(customDate, 'dd/MM/yyyy');
-    return `${dayRange} dias`;
-  })();
+
+    if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
+    if (dateFrom) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
+
+    if (dateTo) {
+      const dates = filtered.map(p => p.date).sort();
+      const startDate = dates.length > 0 ? toDisplayDate(dates[0]) : dateTo;
+      return `${format(startDate, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
+    }
+
+    if (customDate) {
+      const formattedDate = format(customDate, 'dd/MM/yyyy');
+      return `${formattedDate} a ${formattedDate}`;
+    }
+
+    if (filterMonth !== 'all') {
+      const [year, month] = filterMonth.split('-').map(Number);
+      const startDate = new Date(year, month - 1, 1, 12);
+      const endDate = new Date(year, month, 0, 12);
+      return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
+    }
+
+    const startDate = subDays(today, dayRange - 1);
+    return `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
+  }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
   if (loading) {
     return (
@@ -243,7 +264,7 @@ export default function Reports() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Relatórios</h1>
-          <p className="page-subtitle">Produção - {periodLabel}</p>
+          <p className="page-subtitle">Produção · {periodLabel}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType].split(' (')[0]}` : ''}</p>
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
@@ -258,14 +279,14 @@ export default function Reports() {
       <Card>
         <CardContent className="py-4">
           <div className="flex flex-wrap items-center gap-2">
-            {[1, 7, 30].map(d => (
+            {[7, 15, 30].map(d => (
               <Button
                 key={d}
                 size="sm"
                 variant={dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
                 onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
               >
-                {d === 1 ? '1 Dia' : d === 7 ? '7 Dias' : '1 Mês'}
+                {d} Dias
               </Button>
             ))}
 
@@ -285,7 +306,7 @@ export default function Reports() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={customDate} onSelect={(d) => { setCustomDate(d); setFilterMonth('all'); }} locale={ptBR} className="pointer-events-auto" />
+                <Calendar mode="single" selected={customDate} onSelect={(d) => { setCustomDate(d); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }} locale={ptBR} className="pointer-events-auto" />
               </PopoverContent>
             </Popover>
 
