@@ -110,14 +110,25 @@ export function useCompanyData() {
     fixed_shift: r.fixed_shift || undefined, start_time: r.start_time || undefined,
     end_time: r.end_time || undefined, created_at: r.created_at,
   });
+  const normalizeShift = (shift: string): string => {
+    if (!shift) return 'manha';
+    const lower = shift.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (lower.startsWith('manha')) return 'manha';
+    if (lower.startsWith('tarde')) return 'tarde';
+    if (lower.startsWith('noite')) return 'noite';
+    return lower;
+  };
+
   const mapProduction = (r: any): Production => ({
     id: r.id, company_id: r.company_id, date: r.date, shift: r.shift,
+    // Note: shift is normalized below after spread
     machine_id: r.machine_id || '', machine_name: r.machine_name || '',
     weaver_id: r.weaver_id || '', weaver_name: r.weaver_name || '',
     article_id: r.article_id || '', article_name: r.article_name || '',
     rpm: Number(r.rpm), rolls_produced: Number(r.rolls_produced),
     weight_kg: Number(r.weight_kg), revenue: Number(r.revenue),
     efficiency: Number(r.efficiency), created_at: r.created_at,
+    shift: normalizeShift(r.shift),
   });
   const mapArticleMachineTurns = (r: any): ArticleMachineTurns => ({
     id: r.id, article_id: r.article_id, machine_id: r.machine_id,
