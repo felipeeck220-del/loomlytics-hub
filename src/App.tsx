@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import CompanyLogin from "./pages/CompanyLogin";
 import Dashboard from "./pages/Dashboard";
 import Machines from "./pages/Machines";
 import ClientsArticles from "./pages/ClientsArticles";
@@ -119,6 +120,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/:slug/login" element={<CompanyLogin />} />
             <Route path="/:slug" element={<CompanyRoute />}>
               <Route index element={<Dashboard />} />
               <Route path="machines" element={<Machines />} />
