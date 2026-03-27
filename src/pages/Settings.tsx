@@ -53,6 +53,7 @@ import { Badge } from '@/components/ui/badge';
 import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
+import ProductionModeModal from '@/components/ProductionModeModal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -89,7 +90,7 @@ const getRoleLabel = (role: string) => ROLES.find(r => r.value === role)?.label 
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
-  const { shiftSettings, saveShiftSettings } = useSharedCompanyData();
+  const { shiftSettings, saveShiftSettings, getMachines, saveMachines } = useSharedCompanyData();
   const [tab, setTab] = useState('profile');
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
@@ -108,7 +109,7 @@ export default function SettingsPage() {
   const [shiftForm, setShiftForm] = useState<CompanyShiftSettings>(shiftSettings);
   const [savingShifts, setSavingShifts] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
-
+  const [showProductionMode, setShowProductionMode] = useState(false);
   // Profile editing
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileName, setProfileName] = useState(user?.name || '');
@@ -717,6 +718,18 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 </div>
+
+                {isAdmin && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-muted-foreground">Modo de Registro de Produção</p>
+                      <Button variant="outline" size="sm" onClick={() => setShowProductionMode(true)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Configurar
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Configure se cada máquina registra produção por <strong>rolos</strong> ou por <strong>voltas</strong>.</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -801,6 +814,14 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Production Mode Modal */}
+      <ProductionModeModal
+        open={showProductionMode}
+        onOpenChange={setShowProductionMode}
+        machines={getMachines()}
+        onSave={saveMachines}
+      />
     </div>
   );
 }

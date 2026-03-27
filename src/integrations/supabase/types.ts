@@ -288,6 +288,7 @@ export type Database = {
           name: string
           number: number
           observations: string | null
+          production_mode: string
           rpm: number
           status: Database["public"]["Enums"]["machine_status"]
         }
@@ -299,6 +300,7 @@ export type Database = {
           name: string
           number: number
           observations?: string | null
+          production_mode?: string
           rpm?: number
           status?: Database["public"]["Enums"]["machine_status"]
         }
@@ -310,6 +312,7 @@ export type Database = {
           name?: string
           number?: number
           observations?: string | null
+          production_mode?: string
           rpm?: number
           status?: Database["public"]["Enums"]["machine_status"]
         }

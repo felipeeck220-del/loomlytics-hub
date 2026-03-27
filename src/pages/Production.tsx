@@ -66,6 +66,7 @@ export default function ProductionPage() {
 
   const [form, setForm] = useState({
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
+    voltas_inicio: '', voltas_fim: '',
   });
 
   // Extra articles (for split-shift production)
@@ -75,14 +76,29 @@ export default function ProductionPage() {
 
   const selectedMachine = machines.find(m => m.id === form.machine_id);
   const selectedArticle = articles.find(a => a.id === form.article_id);
+  const machineMode = selectedMachine?.production_mode || 'rolos';
 
   const currentMachineIndex = sortedMachines.findIndex(m => m.id === form.machine_id);
   const currentShiftIndex = SHIFTS.indexOf(form.shift as ShiftType);
 
   const handleMachineChange = (id: string) => {
     const m = machines.find(x => x.id === id);
-    setForm(p => ({ ...p, machine_id: id, rpm: m ? String(m.rpm) : '' }));
+    setForm(p => ({ ...p, machine_id: id, rpm: m ? String(m.rpm) : '', voltas_inicio: '', voltas_fim: '', rolls: '' }));
   };
+
+  // Auto-calculate rolls from voltas
+  useEffect(() => {
+    if (machineMode !== 'voltas') return;
+    const inicio = Number(form.voltas_inicio);
+    const fim = Number(form.voltas_fim);
+    if (!inicio || !fim || !form.article_id || !form.machine_id) { setForm(p => ({ ...p, rolls: '' })); return; }
+    const totalVoltas = fim - inicio;
+    if (totalVoltas <= 0) { setForm(p => ({ ...p, rolls: '' })); return; }
+    const turnsPerRoll = getTurnsForMachine(form.article_id, form.machine_id);
+    if (turnsPerRoll <= 0) { setForm(p => ({ ...p, rolls: '' })); return; }
+    const calculatedRolls = Math.floor(totalVoltas / turnsPerRoll);
+    setForm(p => ({ ...p, rolls: String(calculatedRolls) }));
+  }, [form.voltas_inicio, form.voltas_fim, form.article_id, form.machine_id, machineMode]);
 
   // Get turns for a specific article+machine combo
   const getTurnsForMachine = (articleId: string, machineId: string): number => {
@@ -93,10 +109,26 @@ export default function ProductionPage() {
   };
 
   const preview = useMemo(() => {
-    if (!form.shift || !form.rpm || !form.rolls || !selectedArticle) return null;
+    if (!form.shift || !form.rpm || !selectedArticle) return null;
     const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
     const rpm = Number(form.rpm);
     const maxTurns = rpm * shiftMinutes;
+
+    // In voltas mode, use actual voltas for efficiency
+    if (machineMode === 'voltas') {
+      const inicio = Number(form.voltas_inicio);
+      const fim = Number(form.voltas_fim);
+      if (!inicio || !fim || fim <= inicio) return null;
+      const totalVoltas = fim - inicio;
+      const turnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
+      const rolls = turnsPerRoll > 0 ? Math.floor(totalVoltas / turnsPerRoll) : 0;
+      const weightKg = rolls * selectedArticle.weight_per_roll;
+      const revenue = weightKg * selectedArticle.value_per_kg;
+      const efficiency = maxTurns > 0 ? (totalVoltas / maxTurns) * 100 : 0;
+      return { efficiency: Math.min(efficiency, 100), weightKg, revenue, rolls, extraPreviews: [], totalVoltas };
+    }
+
+    if (!form.rolls) return null;
 
     // Main article
     const mainRolls = Number(form.rolls);
@@ -128,20 +160,20 @@ export default function ProductionPage() {
 
     const efficiency = maxTurns > 0 ? (totalProducedTurns / maxTurns) * 100 : 0;
     return { efficiency: Math.min(efficiency, 100), weightKg: totalWeightKg, revenue: totalRevenue, rolls: totalRolls, extraPreviews };
-  }, [form.shift, form.rpm, form.rolls, selectedArticle, form.machine_id, articleMachineTurns, extraArticles, articles, companyShiftMinutes]);
+  }, [form.shift, form.rpm, form.rolls, form.voltas_inicio, form.voltas_fim, machineMode, selectedArticle, form.machine_id, articleMachineTurns, extraArticles, articles, companyShiftMinutes]);
 
   const advanceToNext = useCallback(() => {
     if (sortedMachines.length === 0) return;
     const nextMachineIdx = currentMachineIndex + 1;
     if (nextMachineIdx < sortedMachines.length) {
       const nextMachine = sortedMachines[nextMachineIdx];
-      setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '' }));
+      setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '', voltas_inicio: '', voltas_fim: '' }));
       setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
     } else {
       const nextShiftIdx = currentShiftIndex + 1;
       if (nextShiftIdx < SHIFTS.length) {
         const firstMachine = sortedMachines[0];
-        setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '' }));
+        setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '', voltas_inicio: '', voltas_fim: '' }));
         setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
         toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
       } else {
@@ -154,7 +186,7 @@ export default function ProductionPage() {
   const openNew = () => {
     setEditing(null);
     const firstMachine = sortedMachines[0];
-    setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: 'sem_tecelao', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '' });
+    setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: 'sem_tecelao', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '', voltas_inicio: '', voltas_fim: '' });
     setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]); setEditingGroupItems([]); setSaveQueue([]);
     setShowModal(true);
   };
@@ -162,7 +194,7 @@ export default function ProductionPage() {
   const openEditGroup = (group: ProductionGroup) => {
     const first = group.items[0];
     setEditing(first);
-    setForm({ date: new Date(first.date + 'T12:00:00'), shift: first.shift, machine_id: first.machine_id, weaver_id: first.weaver_id || 'sem_tecelao', article_id: first.article_id, rpm: String(first.rpm), rolls: String(first.rolls_produced) });
+    setForm({ date: new Date(first.date + 'T12:00:00'), shift: first.shift, machine_id: first.machine_id, weaver_id: first.weaver_id || 'sem_tecelao', article_id: first.article_id, rpm: String(first.rpm), rolls: String(first.rolls_produced), voltas_inicio: '', voltas_fim: '' });
     // Load additional articles from the group
     const extras = group.items.slice(1).map(p => ({ article_id: p.article_id, rolls: String(p.rolls_produced), search: '' }));
     setExtraArticles(extras);
@@ -171,8 +203,15 @@ export default function ProductionPage() {
   };
 
   const handleSave = useCallback(async () => {
-    if (!form.shift || !form.machine_id || !form.article_id || !form.rolls) {
+    if (!form.shift || !form.machine_id || !form.article_id) {
       toast.error('Preencha todos os campos obrigatórios'); return;
+    }
+    if (machineMode === 'voltas') {
+      if (!form.voltas_inicio || !form.voltas_fim || Number(form.voltas_fim) <= Number(form.voltas_inicio)) {
+        toast.error('Preencha as voltas de início e fim corretamente'); return;
+      }
+    } else if (!form.rolls) {
+      toast.error('Preencha a quantidade de rolos'); return;
     }
     if (!preview || saving) return;
 
@@ -266,7 +305,7 @@ export default function ProductionPage() {
       setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'error' } : q));
       toast.error(`Erro ao salvar produção — ${machineName}`);
     });
-  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, addProductions, updateProductions, advanceToNext, extraArticles, articles, companyShiftLabels]);
+  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, addProductions, updateProductions, advanceToNext, extraArticles, articles, companyShiftLabels, machineMode]);
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
@@ -785,6 +824,11 @@ export default function ProductionPage() {
                   <SelectTrigger className="h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
                   <SelectContent>{sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {selectedMachine && (
+                  <Badge variant="outline" className="text-xs mt-0.5">
+                    Modo: {machineMode === 'voltas' ? 'Voltas' : 'Rolos'}
+                  </Badge>
+                )}
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">RPM</Label>
@@ -792,7 +836,7 @@ export default function ProductionPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className={cn("grid gap-3", machineMode === 'voltas' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-3')}>
               <div className="space-y-1">
                 <Label className="text-xs">Tecelão</Label>
                 <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
@@ -814,10 +858,34 @@ export default function ProductionPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Rolos Produzidos</Label>
-                <Input ref={rollsRef} type="number" className="h-9" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Qtd rolos" />
-              </div>
+              {machineMode === 'voltas' ? (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Voltas Início</Label>
+                    <Input type="number" className="h-9" value={form.voltas_inicio} onChange={e => setForm(p => ({ ...p, voltas_inicio: e.target.value }))} placeholder="Ex: 10000" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Voltas Fim</Label>
+                    <Input ref={rollsRef} type="number" className="h-9" value={form.voltas_fim} onChange={e => setForm(p => ({ ...p, voltas_fim: e.target.value }))} placeholder="Ex: 22000" />
+                  </div>
+                  {form.voltas_inicio && form.voltas_fim && Number(form.voltas_fim) > Number(form.voltas_inicio) && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Peças (calculado)</Label>
+                      <div className="h-9 flex items-center px-3 rounded-md border border-border bg-muted/50 text-sm font-bold text-foreground">
+                        {form.rolls || '—'}
+                        <span className="ml-1 text-xs text-muted-foreground font-normal">
+                          ({Number(form.voltas_fim) - Number(form.voltas_inicio)} voltas)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-1">
+                  <Label className="text-xs">Rolos Produzidos</Label>
+                  <Input ref={rollsRef} type="number" className="h-9" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Qtd rolos" />
+                </div>
+              )}
             </div>
 
             {/* Extra Articles */}

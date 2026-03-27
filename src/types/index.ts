@@ -7,6 +7,13 @@ export interface Company {
   created_at: string;
 }
 
+export type ProductionMode = 'rolos' | 'voltas';
+
+export const PRODUCTION_MODE_LABELS: Record<ProductionMode, string> = {
+  rolos: 'Rolos',
+  voltas: 'Voltas',
+};
+
 export interface Machine {
   id: string;
   company_id: string;
@@ -16,6 +23,7 @@ export interface Machine {
   status: MachineStatus;
   article_id?: string;
   observations?: string;
+  production_mode: ProductionMode;
   created_at: string;
 }
 

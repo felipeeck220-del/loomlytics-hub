@@ -87,7 +87,8 @@ export function useCompanyData() {
   const mapMachine = (r: any): Machine => ({
     id: r.id, company_id: r.company_id, number: r.number, name: r.name,
     rpm: r.rpm, status: r.status, article_id: r.article_id || undefined,
-    observations: r.observations || undefined, created_at: r.created_at,
+    observations: r.observations || undefined, production_mode: r.production_mode || 'rolos',
+    created_at: r.created_at,
   });
   const mapMachineLog = (r: any): MachineLog => ({
     id: r.id, machine_id: r.machine_id, status: r.status,
@@ -152,7 +153,8 @@ export function useCompanyData() {
       const rows = data.map(m => ({
         id: m.id, company_id: companyId, number: m.number, name: m.name,
         rpm: m.rpm, status: m.status, article_id: m.article_id || null,
-        observations: m.observations || null, created_at: m.created_at,
+        observations: m.observations || null, production_mode: m.production_mode || 'rolos',
+        created_at: m.created_at,
       }));
       await sb('machines').insert(rows);
     }
