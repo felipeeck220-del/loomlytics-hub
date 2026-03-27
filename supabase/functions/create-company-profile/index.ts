@@ -6,6 +6,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function generateSlug(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'empresa';
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,13 +32,22 @@ serve(async (req) => {
       });
     }
 
-    // Use service role to bypass RLS
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // 1. Create company
+    // Generate unique slug
+    let slug = generateSlug(company_name);
+    let counter = 0;
+    while (true) {
+      const checkSlug = counter === 0 ? slug : `${slug}-${counter}`;
+      const { data } = await supabaseAdmin.from('companies').select('id').eq('slug', checkSlug).maybeSingle();
+      if (!data) { slug = checkSlug; break; }
+      counter++;
+    }
+
+    // 1. Create company with slug
     const { data: company, error: companyError } = await supabaseAdmin
       .from("companies")
       .insert({
@@ -35,6 +55,7 @@ serve(async (req) => {
         admin_name,
         admin_email,
         whatsapp: whatsapp || null,
+        slug,
       })
       .select("id")
       .single();
@@ -50,7 +71,7 @@ serve(async (req) => {
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
-        id: user_id,
+        user_id: user_id,
         company_id: company.id,
         name: admin_name,
         email: admin_email,
@@ -64,8 +85,14 @@ serve(async (req) => {
       });
     }
 
+    // 3. Set active company
+    await supabaseAdmin
+      .from("user_active_company")
+      .insert({ user_id, company_id: company.id })
+      .then(() => {});
+
     return new Response(
-      JSON.stringify({ company_id: company.id }),
+      JSON.stringify({ company_id: company.id, slug }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
