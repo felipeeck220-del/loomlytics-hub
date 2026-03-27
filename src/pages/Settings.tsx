@@ -718,6 +718,18 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 </div>
+
+                {isAdmin && (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-muted-foreground">Modo de Registro de Produção</p>
+                      <Button variant="outline" size="sm" onClick={() => setShowProductionMode(true)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Configurar
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Configure se cada máquina registra produção por <strong>rolos</strong> ou por <strong>voltas</strong>.</p>
+                  </div>
+                )}
               </div>
             </div>
 
