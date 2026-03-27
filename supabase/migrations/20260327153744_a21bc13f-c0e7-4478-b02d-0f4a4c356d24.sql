@@ -1,0 +1,1 @@
+ALTER TABLE public.machines ADD COLUMN production_mode text NOT NULL DEFAULT 'rolos';
