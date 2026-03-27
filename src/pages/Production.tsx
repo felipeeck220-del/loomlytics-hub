@@ -83,8 +83,22 @@ export default function ProductionPage() {
 
   const handleMachineChange = (id: string) => {
     const m = machines.find(x => x.id === id);
-    setForm(p => ({ ...p, machine_id: id, rpm: m ? String(m.rpm) : '' }));
+    setForm(p => ({ ...p, machine_id: id, rpm: m ? String(m.rpm) : '', voltas_inicio: '', voltas_fim: '', rolls: '' }));
   };
+
+  // Auto-calculate rolls from voltas
+  useEffect(() => {
+    if (machineMode !== 'voltas') return;
+    const inicio = Number(form.voltas_inicio);
+    const fim = Number(form.voltas_fim);
+    if (!inicio || !fim || !form.article_id || !form.machine_id) { setForm(p => ({ ...p, rolls: '' })); return; }
+    const totalVoltas = fim - inicio;
+    if (totalVoltas <= 0) { setForm(p => ({ ...p, rolls: '' })); return; }
+    const turnsPerRoll = getTurnsForMachine(form.article_id, form.machine_id);
+    if (turnsPerRoll <= 0) { setForm(p => ({ ...p, rolls: '' })); return; }
+    const calculatedRolls = Math.floor(totalVoltas / turnsPerRoll);
+    setForm(p => ({ ...p, rolls: String(calculatedRolls) }));
+  }, [form.voltas_inicio, form.voltas_fim, form.article_id, form.machine_id, machineMode]);
 
   // Get turns for a specific article+machine combo
   const getTurnsForMachine = (articleId: string, machineId: string): number => {
