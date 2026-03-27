@@ -305,7 +305,7 @@ export default function ProductionPage() {
       setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'error' } : q));
       toast.error(`Erro ao salvar produção — ${machineName}`);
     });
-  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, addProductions, updateProductions, advanceToNext, extraArticles, articles, companyShiftLabels]);
+  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, addProductions, updateProductions, advanceToNext, extraArticles, articles, companyShiftLabels, machineMode]);
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
