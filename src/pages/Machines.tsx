@@ -93,7 +93,7 @@ export default function Machines() {
       const newMachine: Machine = {
         id: crypto.randomUUID(), company_id: '', number: Number(form.number), name: `TEAR ${form.number}`,
         rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined,
-        observations: form.observations || undefined, created_at: new Date().toISOString(),
+        observations: form.observations || undefined, production_mode: 'rolos', created_at: new Date().toISOString(),
       };
       all.push(newMachine);
       await saveMachines(all);
