@@ -168,7 +168,7 @@ export default function Reports() {
 
   // By machine
   const byMachine = machines.map(m => {
-    const mp = filtered.filter(p => p.machine_id === m.id);
+    const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
     const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
     const avgTargetEff = mp.length > 0
       ? mp.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mp.length
