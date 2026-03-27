@@ -188,7 +188,7 @@ export default function Dashboard() {
       ? mp.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mp.length
       : 80;
     return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length, targetEfficiency: avgTargetEff };
-  }).filter(m => m.records > 0).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
+  }).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
 
   const trendData = useMemo(() => {
     const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
