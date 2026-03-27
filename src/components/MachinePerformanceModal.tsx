@@ -105,7 +105,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
   const machinePerf = useMemo(() => {
     return machines
       .map(m => {
-        const mp = filtered.filter(p => p.machine_id === m.id);
+        const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
         const rolls = mp.reduce((s, p) => s + p.rolls_produced, 0);
         const kg = mp.reduce((s, p) => s + p.weight_kg, 0);
         const revenue = mp.reduce((s, p) => s + p.revenue, 0);
