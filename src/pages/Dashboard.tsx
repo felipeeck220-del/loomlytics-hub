@@ -516,6 +516,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <span className="text-sm font-semibold text-foreground">{formatCurrency(s.revenue)}</span>
+                    {/* Financial hidden for non-admin */}
                   </div>
                 ))}
                 {/* Total */}
@@ -528,6 +529,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span className="text-sm font-bold text-foreground">{formatCurrency(totalRevenue)}</span>
+                  {/* Financial hidden for non-admin */}
                 </div>
               </CardContent>
             </Card>
