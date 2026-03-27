@@ -76,6 +76,7 @@ export default function ProductionPage() {
 
   const selectedMachine = machines.find(m => m.id === form.machine_id);
   const selectedArticle = articles.find(a => a.id === form.article_id);
+  const machineMode = selectedMachine?.production_mode || 'rolos';
 
   const currentMachineIndex = sortedMachines.findIndex(m => m.id === form.machine_id);
   const currentShiftIndex = SHIFTS.indexOf(form.shift as ShiftType);
