@@ -27,7 +27,7 @@ interface Props {
 export default function MachinePerformanceModal({ open, onOpenChange, machines, productions, clients, articles, shiftSettings }: Props) {
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
-  const [dayRange, setDayRange] = useState(7);
+  const [dayRange, setDayRange] = useState(0);
   const [customDate, setCustomDate] = useState<Date>();
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
@@ -66,7 +66,9 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
     let data = [...productions];
     const today = new Date();
 
-    if (dateFrom || dateTo) {
+    if (dayRange === 0 && filterYear === 'all' && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
+      // Todo período — no date filter
+    } else if (dateFrom || dateTo) {
       if (dateFrom) {
         const startStr = format(dateFrom, 'yyyy-MM-dd');
         data = data.filter(p => p.date >= startStr);
@@ -85,7 +87,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
     } else if (customDate) {
       const dateStr = format(customDate, 'yyyy-MM-dd');
       data = data.filter(p => p.date === dateStr);
-    } else {
+    } else if (dayRange > 0) {
       const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
       const end = format(today, 'yyyy-MM-dd');
       data = data.filter(p => p.date >= start && p.date <= end);
