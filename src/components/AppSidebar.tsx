@@ -3,6 +3,7 @@ import {
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -25,6 +26,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { user } = useAuth();
+  const { filterNavItems } = usePermissions();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
 
@@ -52,14 +54,16 @@ export function AppSidebar() {
   }, [user?.company_id]);
 
   const items = useMemo(() => {
-    const filtered = enabledNavItems
+    // First filter by company-level enabled items, then by role permissions
+    const companyFiltered = enabledNavItems
       ? allItems.filter(item => enabledNavItems.includes(item.key))
       : allItems;
-    return filtered.map(item => ({
+    const roleFiltered = filterNavItems(companyFiltered);
+    return roleFiltered.map(item => ({
       ...item,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [enabledNavItems, slugPrefix]);
+  }, [enabledNavItems, slugPrefix, filterNavItems]);
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">

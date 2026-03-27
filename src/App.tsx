@@ -5,8 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CompanyDataProvider } from "@/contexts/CompanyDataContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePermissions } from "@/hooks/usePermissions";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import CompanyLogin from "./pages/CompanyLogin";
@@ -27,9 +28,21 @@ const queryClient = new QueryClient();
 
 function RootRedirect() {
   const { user, loading } = useAuth();
+  const { defaultRoute } = usePermissions();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  return <Navigate to={`/${user.company_slug}`} replace />;
+  const target = defaultRoute ? `/${user.company_slug}/${defaultRoute}` : `/${user.company_slug}`;
+  return <Navigate to={target} replace />;
+}
+
+function ProtectedRoute({ routeKey, children }: { routeKey: string; children: React.ReactNode }) {
+  const { canAccess, defaultRoute } = usePermissions();
+  const { user } = useAuth();
+  if (!canAccess(routeKey)) {
+    const fallback = defaultRoute ? `/${user?.company_slug}/${defaultRoute}` : `/${user?.company_slug}`;
+    return <Navigate to={fallback} replace />;
+  }
+  return <>{children}</>;
 }
 
 function CompanyRoute() {
@@ -122,14 +135,14 @@ const App = () => (
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/:slug/login" element={<CompanyLogin />} />
             <Route path="/:slug" element={<CompanyRoute />}>
-              <Route index element={<Dashboard />} />
-              <Route path="machines" element={<Machines />} />
-              <Route path="clients-articles" element={<ClientsArticles />} />
-              <Route path="production" element={<ProductionPage />} />
-              <Route path="outsource" element={<Outsource />} />
-              <Route path="weavers" element={<Weavers />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="settings" element={<SettingsPage />} />
+              <Route index element={<ProtectedRoute routeKey="dashboard"><Dashboard /></ProtectedRoute>} />
+              <Route path="machines" element={<ProtectedRoute routeKey="machines"><Machines /></ProtectedRoute>} />
+              <Route path="clients-articles" element={<ProtectedRoute routeKey="clients-articles"><ClientsArticles /></ProtectedRoute>} />
+              <Route path="production" element={<ProtectedRoute routeKey="production"><ProductionPage /></ProtectedRoute>} />
+              <Route path="outsource" element={<ProtectedRoute routeKey="outsource"><Outsource /></ProtectedRoute>} />
+              <Route path="weavers" element={<ProtectedRoute routeKey="weavers"><Weavers /></ProtectedRoute>} />
+              <Route path="reports" element={<ProtectedRoute routeKey="reports"><Reports /></ProtectedRoute>} />
+              <Route path="settings" element={<ProtectedRoute routeKey="settings"><SettingsPage /></ProtectedRoute>} />
             </Route>
             <Route path="/admin" element={<Admin />} />
             <Route path="/" element={<RootRedirect />} />
