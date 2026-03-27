@@ -53,6 +53,7 @@ import { Badge } from '@/components/ui/badge';
 import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
+import ProductionModeModal from '@/components/ProductionModeModal';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -89,7 +90,7 @@ const getRoleLabel = (role: string) => ROLES.find(r => r.value === role)?.label 
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
-  const { shiftSettings, saveShiftSettings } = useSharedCompanyData();
+  const { shiftSettings, saveShiftSettings, getMachines, saveMachines } = useSharedCompanyData();
   const [tab, setTab] = useState('profile');
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
@@ -108,7 +109,7 @@ export default function SettingsPage() {
   const [shiftForm, setShiftForm] = useState<CompanyShiftSettings>(shiftSettings);
   const [savingShifts, setSavingShifts] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
-
+  const [showProductionMode, setShowProductionMode] = useState(false);
   // Profile editing
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileName, setProfileName] = useState(user?.name || '');
