@@ -96,8 +96,8 @@ export default function ProductionPage() {
     if (totalVoltas <= 0) { setForm(p => ({ ...p, rolls: '' })); return; }
     const turnsPerRoll = getTurnsForMachine(form.article_id, form.machine_id);
     if (turnsPerRoll <= 0) { setForm(p => ({ ...p, rolls: '' })); return; }
-    const calculatedRolls = Math.floor(totalVoltas / turnsPerRoll);
-    setForm(p => ({ ...p, rolls: String(calculatedRolls) }));
+    const calculatedRolls = totalVoltas / turnsPerRoll;
+    setForm(p => ({ ...p, rolls: String(Math.round(calculatedRolls * 100) / 100) }));
   }, [form.voltas_inicio, form.voltas_fim, form.article_id, form.machine_id, machineMode]);
 
   // Get turns for a specific article+machine combo
@@ -121,7 +121,7 @@ export default function ProductionPage() {
       if (!inicio || !fim || fim <= inicio) return null;
       const totalVoltas = fim - inicio;
       const turnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
-      const rolls = turnsPerRoll > 0 ? Math.floor(totalVoltas / turnsPerRoll) : 0;
+      const rolls = turnsPerRoll > 0 ? totalVoltas / turnsPerRoll : 0;
       const weightKg = rolls * selectedArticle.weight_per_roll;
       const revenue = weightKg * selectedArticle.value_per_kg;
       const efficiency = maxTurns > 0 ? (totalVoltas / maxTurns) * 100 : 0;
