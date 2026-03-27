@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CompanyDataProvider } from "@/contexts/CompanyDataContext";
 import { useState, useEffect } from "react";
@@ -24,14 +24,45 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function RootRedirect() {
   const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={`/${user.company_slug}`} replace />;
+}
+
+function CompanyRoute() {
+  const { user, loading, companies, setActiveCompany } = useAuth();
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [platformBlocked, setPlatformBlocked] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
+  const [companyResolved, setCompanyResolved] = useState(false);
 
+  // Resolve company from slug
   useEffect(() => {
-    if (!user?.company_id) {
-      setCheckingAccess(false);
+    if (!user || !slug || !companies.length) return;
+    
+    const company = companies.find(c => c.company_slug === slug);
+    if (!company) {
+      // Invalid slug, redirect to user's first company
+      navigate(`/${companies[0].company_slug}`, { replace: true });
+      return;
+    }
+    
+    if (company.company_id !== user.company_id) {
+      // Switch to the company matching the URL slug
+      setActiveCompany(company.company_id).then(() => {
+        setCompanyResolved(true);
+      });
+    } else {
+      setCompanyResolved(true);
+    }
+  }, [slug, user?.company_id, companies]);
+
+  // Check platform access
+  useEffect(() => {
+    if (!user?.company_id || !companyResolved) {
       return;
     }
     (supabase.from as any)('company_settings')
@@ -44,9 +75,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         }
         setCheckingAccess(false);
       });
-  }, [user?.company_id]);
+  }, [user?.company_id, companyResolved]);
 
-  if (loading || checkingAccess) return null;
+  if (loading || checkingAccess || !companyResolved) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (platformBlocked) {
     return (
@@ -63,13 +94,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  return <>{children}</>;
+
+  return (
+    <CompanyDataProvider>
+      <AppLayout />
+    </CompanyDataProvider>
+  );
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to={`/${user.company_slug}`} replace />;
   return <>{children}</>;
 }
 
@@ -83,7 +119,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-            <Route path="/" element={<ProtectedRoute><CompanyDataProvider><AppLayout /></CompanyDataProvider></ProtectedRoute>}>
+            <Route path="/:slug" element={<CompanyRoute />}>
               <Route index element={<Dashboard />} />
               <Route path="machines" element={<Machines />} />
               <Route path="clients-articles" element={<ClientsArticles />} />
@@ -94,6 +130,7 @@ const App = () => (
               <Route path="settings" element={<SettingsPage />} />
             </Route>
             <Route path="/admin" element={<Admin />} />
+            <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

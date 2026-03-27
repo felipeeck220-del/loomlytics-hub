@@ -4,21 +4,21 @@ import {
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar,
 } from '@/components/ui/sidebar';
 
 const allItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard, key: 'dashboard' },
-  { title: 'Máquinas', url: '/machines', icon: Settings2, key: 'machines' },
-  { title: 'Clientes & Artigos', url: '/clients-articles', icon: Users, key: 'clients-articles' },
-  { title: 'Produção', url: '/production', icon: ClipboardList, key: 'production' },
-  { title: 'Terceirizado', url: '/outsource', icon: Factory, key: 'outsource' },
-  { title: 'Tecelões', url: '/weavers', icon: HardHat, key: 'weavers' },
-  { title: 'Relatórios', url: '/reports', icon: FileText, key: 'reports' },
-  { title: 'Configurações', url: '/settings', icon: Settings, key: 'settings' },
+  { title: 'Dashboard', path: '', icon: LayoutDashboard, key: 'dashboard' },
+  { title: 'Máquinas', path: 'machines', icon: Settings2, key: 'machines' },
+  { title: 'Clientes & Artigos', path: 'clients-articles', icon: Users, key: 'clients-articles' },
+  { title: 'Produção', path: 'production', icon: ClipboardList, key: 'production' },
+  { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
+  { title: 'Tecelões', path: 'weavers', icon: HardHat, key: 'weavers' },
+  { title: 'Relatórios', path: 'reports', icon: FileText, key: 'reports' },
+  { title: 'Configurações', path: 'settings', icon: Settings, key: 'settings' },
 ];
 
 export function AppSidebar() {
@@ -27,6 +27,8 @@ export function AppSidebar() {
   const { user } = useAuth();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
+
+  const slugPrefix = `/${user?.company_slug || ''}`;
 
   useEffect(() => {
     if (!user?.company_id) return;
@@ -38,7 +40,6 @@ export function AppSidebar() {
         if (data?.logo_url) setLogoUrl(data.logo_url);
       });
 
-    // Load company settings for nav filtering
     (supabase.from as any)('company_settings')
       .select('enabled_nav_items')
       .eq('company_id', user.company_id)
@@ -50,9 +51,15 @@ export function AppSidebar() {
       });
   }, [user?.company_id]);
 
-  const items = enabledNavItems
-    ? allItems.filter(item => enabledNavItems.includes(item.key))
-    : allItems;
+  const items = useMemo(() => {
+    const filtered = enabledNavItems
+      ? allItems.filter(item => enabledNavItems.includes(item.key))
+      : allItems;
+    return filtered.map(item => ({
+      ...item,
+      url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
+    }));
+  }, [enabledNavItems, slugPrefix]);
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -87,11 +94,11 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5">
               {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.key}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === '/'}
+                      end={item.path === ''}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200"
                       activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm"
                     >

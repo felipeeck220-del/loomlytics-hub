@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
 
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('company_id, id');
+        .select('company_id, user_id');
 
       const settingsMap = new Map((settings || []).map((s: any) => [s.company_id, s]));
       const profileCounts = new Map<string, number>();

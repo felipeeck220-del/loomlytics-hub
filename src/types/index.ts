@@ -178,5 +178,6 @@ export interface User {
   name: string;
   company_id: string;
   company_name: string;
+  company_slug: string;
   role: string;
 }

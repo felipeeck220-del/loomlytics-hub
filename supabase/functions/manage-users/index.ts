@@ -40,7 +40,10 @@ serve(async (req) => {
     const { data: callerProfile } = await supabaseAdmin
       .from("profiles")
       .select("role, company_id")
-      .eq("id", callingUser.id)
+      .eq("user_id", callingUser.id)
+      .eq("company_id", (
+        await supabaseAdmin.from("user_active_company").select("company_id").eq("user_id", callingUser.id).single()
+      ).data?.company_id)
       .single();
 
     if (!callerProfile || callerProfile.role !== "admin") {
@@ -62,25 +65,70 @@ serve(async (req) => {
         });
       }
 
-      // Create auth user
+      let userId: string;
+
+      // Try to create auth user
       const { data: authData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
       });
 
-      if (signUpError || !authData.user) {
-        return new Response(JSON.stringify({ error: signUpError?.message || "Failed to create user" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (signUpError) {
+        // Check if email already exists
+        if (signUpError.message.includes('already') || signUpError.message.includes('exists') || signUpError.message.includes('registered')) {
+          // Find existing user by checking profiles
+          const { data: existingProfile } = await supabaseAdmin
+            .from("profiles")
+            .select("user_id")
+            .eq("email", email)
+            .limit(1)
+            .maybeSingle();
+
+          if (!existingProfile) {
+            return new Response(JSON.stringify({ error: "Email já registrado em outro sistema. Não foi possível vincular." }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          userId = existingProfile.user_id;
+
+          // Check if user already has a profile in this company
+          const { data: existingInCompany } = await supabaseAdmin
+            .from("profiles")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("company_id", callerProfile.company_id)
+            .maybeSingle();
+
+          if (existingInCompany) {
+            return new Response(JSON.stringify({ error: "Este usuário já está cadastrado nesta empresa" }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          return new Response(JSON.stringify({ error: signUpError.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        userId = authData.user!.id;
+        
+        // Set active company for new user
+        await supabaseAdmin
+          .from("user_active_company")
+          .insert({ user_id: userId, company_id: callerProfile.company_id })
+          .then(() => {});
       }
 
-      // Create profile
+      // Create profile in the caller's company
       const { error: profileError } = await supabaseAdmin
         .from("profiles")
         .insert({
-          id: authData.user.id,
+          user_id: userId,
           company_id: callerProfile.company_id,
           name,
           email,
@@ -95,7 +143,7 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ success: true, user_id: authData.user.id }), {
+      return new Response(JSON.stringify({ success: true, user_id: userId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -117,7 +165,7 @@ serve(async (req) => {
       const { error } = await supabaseAdmin
         .from("profiles")
         .update(updates)
-        .eq("id", user_id)
+        .eq("user_id", user_id)
         .eq("company_id", callerProfile.company_id);
 
       if (error) {
@@ -149,15 +197,24 @@ serve(async (req) => {
         });
       }
 
-      // Delete profile first
+      // Delete profile from this company
       await supabaseAdmin
         .from("profiles")
         .delete()
-        .eq("id", user_id)
+        .eq("user_id", user_id)
         .eq("company_id", callerProfile.company_id);
 
-      // Delete auth user
-      await supabaseAdmin.auth.admin.deleteUser(user_id);
+      // Check if user has profiles in other companies
+      const { data: otherProfiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user_id);
+
+      // Only delete auth user if no more profiles exist
+      if (!otherProfiles || otherProfiles.length === 0) {
+        await supabaseAdmin.auth.admin.deleteUser(user_id);
+        await supabaseAdmin.from("user_active_company").delete().eq("user_id", user_id);
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
