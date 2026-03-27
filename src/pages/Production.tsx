@@ -830,10 +830,34 @@ export default function ProductionPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Rolos Produzidos</Label>
-                <Input ref={rollsRef} type="number" className="h-9" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Qtd rolos" />
-              </div>
+              {machineMode === 'voltas' ? (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Voltas Início</Label>
+                    <Input type="number" className="h-9" value={form.voltas_inicio} onChange={e => setForm(p => ({ ...p, voltas_inicio: e.target.value }))} placeholder="Ex: 10000" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Voltas Fim</Label>
+                    <Input ref={rollsRef} type="number" className="h-9" value={form.voltas_fim} onChange={e => setForm(p => ({ ...p, voltas_fim: e.target.value }))} placeholder="Ex: 22000" />
+                  </div>
+                  {form.voltas_inicio && form.voltas_fim && Number(form.voltas_fim) > Number(form.voltas_inicio) && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Peças (calculado)</Label>
+                      <div className="h-9 flex items-center px-3 rounded-md border border-border bg-muted/50 text-sm font-bold text-foreground">
+                        {form.rolls || '—'}
+                        <span className="ml-1 text-xs text-muted-foreground font-normal">
+                          ({Number(form.voltas_fim) - Number(form.voltas_inicio)} voltas)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-1">
+                  <Label className="text-xs">Rolos Produzidos</Label>
+                  <Input ref={rollsRef} type="number" className="h-9" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Qtd rolos" />
+                </div>
+              )}
             </div>
 
             {/* Extra Articles */}
