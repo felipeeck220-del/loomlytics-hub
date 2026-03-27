@@ -91,8 +91,9 @@ function CompanyRoute() {
       });
   }, [user?.company_id, companyResolved]);
 
-  if (loading || checkingAccess || !companyResolved) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  if (loading) return null;
+  if (!user) return <Navigate to={`/${slug}/login`} replace />;
+  if (checkingAccess || !companyResolved) return null;
   if (platformBlocked) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
