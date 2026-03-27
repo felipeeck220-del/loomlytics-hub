@@ -411,7 +411,7 @@ export default function Reports() {
           subtitle="Valor total faturado"
           icon={<DollarSign className="h-5 w-5 text-success" />}
           borderColor="border-l-success"
-        />
+        />}
         <KpiCard
           label="Eficiência Média"
           value={formatPercent(avgEfficiency)}
