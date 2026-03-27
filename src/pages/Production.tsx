@@ -203,8 +203,15 @@ export default function ProductionPage() {
   };
 
   const handleSave = useCallback(async () => {
-    if (!form.shift || !form.machine_id || !form.article_id || !form.rolls) {
+    if (!form.shift || !form.machine_id || !form.article_id) {
       toast.error('Preencha todos os campos obrigatórios'); return;
+    }
+    if (machineMode === 'voltas') {
+      if (!form.voltas_inicio || !form.voltas_fim || Number(form.voltas_fim) <= Number(form.voltas_inicio)) {
+        toast.error('Preencha as voltas de início e fim corretamente'); return;
+      }
+    } else if (!form.rolls) {
+      toast.error('Preencha a quantidade de rolos'); return;
     }
     if (!preview || saving) return;
 
