@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, type ShiftType, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area,
@@ -39,6 +40,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 export default function Reports() {
   const { getProductions, getMachines, getClients, getArticles, shiftSettings, loading } = useSharedCompanyData();
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
+  const { canSeeFinancial } = usePermissions();
   const { user } = useAuth();
   const productions = getProductions();
   const machines = getMachines();
@@ -403,7 +405,7 @@ export default function Reports() {
           icon={<TrendingUp className="h-5 w-5 text-accent" />}
           borderColor="border-l-accent"
         />
-        <KpiCard
+        {canSeeFinancial && <KpiCard
           label="Valor Total"
           value={formatCurrency(totalRevenue)}
           subtitle="Valor total faturado"
@@ -509,7 +511,7 @@ export default function Reports() {
                     <div key={s.name} className="p-4 rounded-lg border border-border hover:bg-muted/30 transition-colors">
                       <p className="font-semibold text-foreground">{s.name}</p>
                       <p className="text-sm text-muted-foreground mt-1">{formatNumber(s.rolos)} rolos · {formatNumber(s.kg, 2)} kg</p>
-                      <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(s.faturamento)}</p>
+                      {canSeeFinancial && <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(s.faturamento)}</p>}
                     </div>
                   ))}
                 </div>
@@ -543,7 +545,7 @@ export default function Reports() {
                         )}>
                           {formatPercent(m.eficiencia)}
                         </Badge>
-                        <span className="text-sm font-semibold text-success">{formatCurrency(m.faturamento)}</span>
+                        {canSeeFinancial && <span className="text-sm font-semibold text-success">{formatCurrency(m.faturamento)}</span>}
                       </div>
                     </div>
                   ))

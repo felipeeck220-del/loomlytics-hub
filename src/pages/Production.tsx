@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type SaveQueueItem = {
   id: string;
@@ -28,6 +29,7 @@ export default function ProductionPage() {
   const { getProductions, addProductions, updateProductions, deleteProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, shiftSettings, loading } = useSharedCompanyData();
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
+  const { canSeeFinancial } = usePermissions();
   const productions = getProductions();
   const machines = getMachines();
   const weavers = getWeavers();
@@ -629,7 +631,7 @@ export default function ProductionPage() {
                             const article = articles.find(a => a.id === p.article_id);
                             return (
                               <div key={p.id} className={cn("text-sm text-muted-foreground", idx > 0 && "mt-1")}>
-                                {p.article_name} {article?.client_name ? `(${article.client_name})` : ''} — {p.rolls_produced} rolos, {formatNumber(Number(p.weight_kg), 2)} kg, {formatCurrency(Number(p.revenue))}
+                                {p.article_name} {article?.client_name ? `(${article.client_name})` : ''} — {p.rolls_produced} rolos, {formatNumber(Number(p.weight_kg), 2)} kg{canSeeFinancial ? `, ${formatCurrency(Number(p.revenue))}` : ''}
                               </div>
                             );
                           })}
@@ -645,10 +647,10 @@ export default function ProductionPage() {
                             <p className="text-xs text-blue-600 font-medium">Peso</p>
                             <p className="text-xl font-display font-bold text-blue-800">{formatNumber(group.totalWeightKg, 2)} kg</p>
                           </div>
-                          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
+                          {canSeeFinancial && <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
                             <p className="text-xs text-blue-600 font-medium">Valor</p>
                             <p className="text-xl font-display font-bold text-blue-800">{formatCurrency(group.totalRevenue)}</p>
-                          </div>
+                          </div>}
                           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
                             <p className="text-xs text-blue-600 font-medium">Meta</p>
                             <p className="text-xl font-display font-bold text-blue-800">{formatNumber(meta.metaRolls, 2)} rolos</p>

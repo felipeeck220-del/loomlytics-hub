@@ -1,3 +1,43 @@
+
+const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> = {
+  admin: {
+    allowed: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Gestão de Tecelões', 'Relatórios e Análises', 'Configurações do Sistema', 'Financeiro'],
+    denied: [],
+  },
+  lider: {
+    allowed: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Gestão de Tecelões', 'Relatórios e Análises', 'Configurações do Sistema'],
+    denied: ['Financeiro'],
+  },
+  mecanico: {
+    allowed: ['Máquinas e Manutenção', 'Configurações do Sistema'],
+    denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Gestão de Tecelões', 'Relatórios e Análises', 'Financeiro'],
+  },
+  revisador: {
+    allowed: ['Registro de Produção', 'Configurações do Sistema'],
+    denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Clientes e Artigos', 'Gestão de Tecelões', 'Relatórios e Análises', 'Financeiro'],
+  },
+};
+
+function RolePermissionsDisplay({ role }: { role: string }) {
+  const perms = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.admin;
+  return (
+    <div className="space-y-2">
+      {perms.allowed.map(perm => (
+        <div key={perm} className="flex items-center gap-2 rounded-lg border border-border bg-background p-3">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
+          <span className="text-sm text-foreground">{perm}</span>
+        </div>
+      ))}
+      {perms.denied.map(perm => (
+        <div key={perm} className="flex items-center gap-2 rounded-lg border border-border bg-background p-3 opacity-50">
+          <span className="h-2.5 w-2.5 rounded-full bg-destructive shrink-0" />
+          <span className="text-sm text-foreground line-through">{perm}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
@@ -12,6 +52,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/usePermissions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -302,9 +343,9 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-3">
+        <TabsList className={`w-full grid ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="profile">Meu Perfil</TabsTrigger>
-          <TabsTrigger value="users">Usuários</TabsTrigger>
+          {isAdmin && <TabsTrigger value="users">Usuários</TabsTrigger>}
           <TabsTrigger value="company">Empresa</TabsTrigger>
         </TabsList>
 
@@ -401,14 +442,7 @@ export default function SettingsPage() {
               {/* Right: Permissions */}
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-muted-foreground">Permissões de Acesso</p>
-                <div className="space-y-2">
-                  {PERMISSIONS.map(perm => (
-                    <div key={perm} className="flex items-center gap-2 rounded-lg border border-border bg-background p-3">
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
-                      <span className="text-sm text-foreground">{perm}</span>
-                    </div>
-                  ))}
-                </div>
+                <RolePermissionsDisplay role={user?.role || 'admin'} />
                 <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 mt-4">
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-yellow-600" />
