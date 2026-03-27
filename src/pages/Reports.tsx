@@ -1026,7 +1026,7 @@ function handleExport(
       .header-logo { height: 48px; width: 48px; border-radius: 8px; object-fit: contain; background: rgba(255,255,255,0.15); padding: 4px; }
       .header-text h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
       .header .meta { font-size: 12px; opacity: 0.85; display: flex; gap: 16px; }
-      .section { margin-bottom: 28px; break-inside: avoid; }
+      .section { margin-bottom: 28px; }
       .section h2 { font-size: 15px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
       table { width: 100%; border-collapse: collapse; font-size: 12px; }
       th { background: #f1f5f9; color: #475569; font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #e2e8f0; }
