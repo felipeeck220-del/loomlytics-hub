@@ -17,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 
 interface Profile {
   id: string;
+  user_id: string;
   name: string;
   email: string;
   role: string;
@@ -70,8 +71,10 @@ export default function SettingsPage() {
   // Profile editing
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileName, setProfileName] = useState(user?.name || '');
-  const [profileEmail, setProfileEmail] = useState(user?.email || '');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profilePassword, setProfilePassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+  const [showProfilePassword, setShowProfilePassword] = useState(false);
 
   // Company name editing
   const [editingCompanyName, setEditingCompanyName] = useState(false);
@@ -80,7 +83,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setProfileName(user?.name || '');
-    setProfileEmail(user?.email || '');
+    setProfileEmail('');
+    setProfilePassword('');
   }, [user?.name, user?.email]);
 
   const handleSaveProfile = async () => {
@@ -88,31 +92,45 @@ export default function SettingsPage() {
     setSavingProfile(true);
     try {
       const nameChanged = profileName.trim() !== user.name;
-      const emailChanged = profileEmail.trim() !== user.email;
+      const emailChanged = profileEmail.trim() !== '' && profileEmail.trim() !== user.email;
 
       if (nameChanged) {
         const { error } = await (supabase.from as any)('profiles')
           .update({ name: profileName.trim() })
-          .eq('id', user.id);
+          .eq('user_id', user.id);
         if (error) throw error;
       }
 
       if (emailChanged) {
-        if (!profileEmail.trim() || !/\S+@\S+\.\S+/.test(profileEmail.trim())) {
+        if (!/\S+@\S+\.\S+/.test(profileEmail.trim())) {
           toast.error('Email inválido');
           setSavingProfile(false);
           return;
         }
-        const { error } = await supabase.auth.updateUser({ email: profileEmail.trim() });
-        if (error) throw error;
-        toast.info('Um email de confirmação foi enviado para o novo endereço. Confirme para concluir a alteração.');
+        if (!profilePassword) {
+          toast.error('Digite sua senha atual para alterar o email');
+          setSavingProfile(false);
+          return;
+        }
+        // Call edge function to verify password and update email
+        const { data, error } = await supabase.functions.invoke('update-user-email', {
+          body: { new_email: profileEmail.trim(), password: profilePassword },
+        });
+        if (error || data?.error) {
+          toast.error(data?.error || error?.message || 'Erro ao alterar email');
+          setSavingProfile(false);
+          return;
+        }
+        toast.success('Email alterado com sucesso');
       }
 
-      if (nameChanged) {
+      if (nameChanged && !emailChanged) {
         toast.success('Nome atualizado com sucesso');
-        await refreshProfiles();
       }
+      await refreshProfiles();
       setEditingProfile(false);
+      setProfileEmail('');
+      setProfilePassword('');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar perfil');
     }
@@ -311,12 +329,28 @@ export default function SettingsPage() {
                       <Input value={profileName} onChange={e => setProfileName(e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
-                      <p className="text-xs text-muted-foreground">Ao alterar o email, um código de confirmação será enviado ao novo endereço.</p>
+                      <Label>Novo Email</Label>
+                      <Input type="email" placeholder={user?.email || 'Novo email'} value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
+                      <p className="text-xs text-muted-foreground">Deixe em branco para manter o email atual.</p>
                     </div>
+                    {profileEmail.trim() !== '' && profileEmail.trim() !== user?.email && (
+                      <div className="space-y-2">
+                        <Label>Senha Atual (obrigatória para alterar email)</Label>
+                        <div className="relative">
+                          <Input
+                            type={showProfilePassword ? 'text' : 'password'}
+                            value={profilePassword}
+                            onChange={e => setProfilePassword(e.target.value)}
+                            placeholder="Digite sua senha atual"
+                          />
+                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowProfilePassword(!showProfilePassword)}>
+                            {showProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(user?.email || ''); }}>Cancelar</Button>
+                      <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(''); setProfilePassword(''); }}>Cancelar</Button>
                       <Button size="sm" className="btn-gradient" disabled={savingProfile} onClick={handleSaveProfile}>
                         {savingProfile && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
                       </Button>
@@ -356,8 +390,8 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <p className="text-foreground">
-                      {profiles.find(p => p.id === user?.id)?.created_at
-                        ? format(new Date(profiles.find(p => p.id === user?.id)!.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                      {profiles.find(p => p.user_id === user?.id)?.created_at
+                        ? format(new Date(profiles.find(p => p.user_id === user?.id)!.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
                         : '—'}
                     </p>
                   </div>
@@ -470,7 +504,7 @@ export default function SettingsPage() {
                       >
                         <XCircle className="h-3.5 w-3.5 text-warning" />
                       </Button>
-                      {p.id !== user?.id && (
+                      {p.user_id !== user?.id && (
                         <Button
                           variant="outline"
                           size="icon"
