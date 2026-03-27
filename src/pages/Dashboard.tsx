@@ -20,6 +20,7 @@ import {
   Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import MachinePerformanceModal from '@/components/MachinePerformanceModal';
+import { usePermissions } from '@/hooks/usePermissions';
 
 function getCurrentShift(): ShiftType {
   const h = new Date().getHours();
@@ -31,6 +32,7 @@ function getCurrentShift(): ShiftType {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { getProductions, getMachines, getClients, getArticles, getWeavers, shiftSettings, loading } = useSharedCompanyData();
+  const { canSeeFinancial } = usePermissions();
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const productions = getProductions();
