@@ -872,7 +872,7 @@ export default function ProductionPage() {
                     <div className="space-y-1">
                       <Label className="text-xs">Peças (calculado)</Label>
                       <div className="h-9 flex items-center px-3 rounded-md border border-border bg-muted/50 text-sm font-bold text-foreground">
-                        {form.rolls || '—'}
+                        {form.rolls ? (Math.round(Number(form.rolls) * 100) / 100).toFixed(2) : '—'}
                         <span className="ml-1 text-xs text-muted-foreground font-normal">
                           ({Number(form.voltas_fim) - Number(form.voltas_inicio)} voltas)
                         </span>
