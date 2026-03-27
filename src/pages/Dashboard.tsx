@@ -485,7 +485,7 @@ export default function Dashboard() {
                       />
                       <Area yAxisId="left" type="monotone" dataKey="rolos" stroke="hsl(210, 100%, 52%)" strokeWidth={2} fill="url(#colorRolos)" />
                       <Area yAxisId="left" type="monotone" dataKey="kg" stroke="hsl(142, 71%, 45%)" strokeWidth={2} fill="url(#colorKg)" />
-                      <Area yAxisId="left" type="monotone" dataKey="faturamento" stroke="hsl(38, 92%, 50%)" strokeWidth={2} fill="url(#colorFat)" />
+                      {canSeeFinancial && <Area yAxisId="left" type="monotone" dataKey="faturamento" stroke="hsl(38, 92%, 50%)" strokeWidth={2} fill="url(#colorFat)" />}
                       <Area yAxisId="right" type="monotone" dataKey="eficiencia" stroke="hsl(0, 84%, 60%)" strokeWidth={2} fill="url(#colorEff)" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -515,8 +515,7 @@ export default function Dashboard() {
                         <p className="text-xs text-muted-foreground">{formatNumber(s.rolls)} rolos · {formatNumber(s.kg, 1)} kg</p>
                       </div>
                     </div>
-                    <span className="text-sm font-semibold text-foreground">{formatCurrency(s.revenue)}</span>
-                    {/* Financial hidden for non-admin */}
+                    {canSeeFinancial && <span className="text-sm font-semibold text-foreground">{formatCurrency(s.revenue)}</span>}
                   </div>
                 ))}
                 {/* Total */}
@@ -528,8 +527,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">{formatNumber(totalRolls)} rolos · {formatNumber(totalWeight, 1)} kg</p>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-foreground">{formatCurrency(totalRevenue)}</span>
-                  {/* Financial hidden for non-admin */}
+                  {canSeeFinancial && <span className="text-sm font-bold text-foreground">{formatCurrency(totalRevenue)}</span>}
                 </div>
               </CardContent>
             </Card>
@@ -581,10 +579,10 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-warning/5 border border-warning/10">
+              {canSeeFinancial && <div className="flex items-center justify-between p-3 rounded-xl bg-warning/5 border border-warning/10">
                 <span className="text-sm text-foreground">Faturamento/Hora</span>
                 <span className="text-sm font-bold text-warning">{formatCurrency(revenuePerHour)}</span>
-              </div>
+              </div>}
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
                 <span className="text-sm text-foreground">Kg/Hora</span>
                 <span className="text-sm font-bold text-foreground">{formatNumber(kgPerHour, 2)}</span>
