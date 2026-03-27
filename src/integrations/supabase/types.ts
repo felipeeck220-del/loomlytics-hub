@@ -166,6 +166,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          slug: string
           whatsapp: string | null
         }
         Insert: {
@@ -175,6 +176,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          slug: string
           whatsapp?: string | null
         }
         Update: {
@@ -184,6 +186,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          slug?: string
           whatsapp?: string | null
         }
         Relationships: []
@@ -563,15 +566,17 @@ export type Database = {
           name: string
           role: string
           status: string
+          user_id: string
         }
         Insert: {
           company_id: string
           created_at?: string
           email: string
-          id: string
+          id?: string
           name: string
           role?: string
           status?: string
+          user_id: string
         }
         Update: {
           company_id?: string
@@ -581,10 +586,34 @@ export type Database = {
           name?: string
           role?: string
           status?: string
+          user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_active_company: {
+        Row: {
+          company_id: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_active_company_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -644,8 +673,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_companies: {
+        Args: never
+        Returns: {
+          company_id: string
+          company_name: string
+          company_slug: string
+          role: string
+        }[]
+      }
       get_user_company_id: { Args: never; Returns: string }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      set_active_company: { Args: { _company_id: string }; Returns: undefined }
     }
     Enums: {
       machine_status:
