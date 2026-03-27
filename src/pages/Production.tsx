@@ -109,10 +109,26 @@ export default function ProductionPage() {
   };
 
   const preview = useMemo(() => {
-    if (!form.shift || !form.rpm || !form.rolls || !selectedArticle) return null;
+    if (!form.shift || !form.rpm || !selectedArticle) return null;
     const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
     const rpm = Number(form.rpm);
     const maxTurns = rpm * shiftMinutes;
+
+    // In voltas mode, use actual voltas for efficiency
+    if (machineMode === 'voltas') {
+      const inicio = Number(form.voltas_inicio);
+      const fim = Number(form.voltas_fim);
+      if (!inicio || !fim || fim <= inicio) return null;
+      const totalVoltas = fim - inicio;
+      const turnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
+      const rolls = turnsPerRoll > 0 ? Math.floor(totalVoltas / turnsPerRoll) : 0;
+      const weightKg = rolls * selectedArticle.weight_per_roll;
+      const revenue = weightKg * selectedArticle.value_per_kg;
+      const efficiency = maxTurns > 0 ? (totalVoltas / maxTurns) * 100 : 0;
+      return { efficiency: Math.min(efficiency, 100), weightKg, revenue, rolls, extraPreviews: [], totalVoltas };
+    }
+
+    if (!form.rolls) return null;
 
     // Main article
     const mainRolls = Number(form.rolls);
