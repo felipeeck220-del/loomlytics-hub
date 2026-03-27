@@ -136,13 +136,13 @@ export default function ProductionPage() {
     const nextMachineIdx = currentMachineIndex + 1;
     if (nextMachineIdx < sortedMachines.length) {
       const nextMachine = sortedMachines[nextMachineIdx];
-      setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '' }));
+      setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '', voltas_inicio: '', voltas_fim: '' }));
       setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
     } else {
       const nextShiftIdx = currentShiftIndex + 1;
       if (nextShiftIdx < SHIFTS.length) {
         const firstMachine = sortedMachines[0];
-        setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '' }));
+        setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '', voltas_inicio: '', voltas_fim: '' }));
         setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
         toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
       } else {
@@ -155,7 +155,7 @@ export default function ProductionPage() {
   const openNew = () => {
     setEditing(null);
     const firstMachine = sortedMachines[0];
-    setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: 'sem_tecelao', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '' });
+    setForm({ date: new Date(), shift: SHIFTS[0], machine_id: firstMachine?.id || '', weaver_id: 'sem_tecelao', article_id: '', rpm: firstMachine ? String(firstMachine.rpm) : '', rolls: '', voltas_inicio: '', voltas_fim: '' });
     setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]); setEditingGroupItems([]); setSaveQueue([]);
     setShowModal(true);
   };
@@ -163,7 +163,7 @@ export default function ProductionPage() {
   const openEditGroup = (group: ProductionGroup) => {
     const first = group.items[0];
     setEditing(first);
-    setForm({ date: new Date(first.date + 'T12:00:00'), shift: first.shift, machine_id: first.machine_id, weaver_id: first.weaver_id || 'sem_tecelao', article_id: first.article_id, rpm: String(first.rpm), rolls: String(first.rolls_produced) });
+    setForm({ date: new Date(first.date + 'T12:00:00'), shift: first.shift, machine_id: first.machine_id, weaver_id: first.weaver_id || 'sem_tecelao', article_id: first.article_id, rpm: String(first.rpm), rolls: String(first.rolls_produced), voltas_inicio: '', voltas_fim: '' });
     // Load additional articles from the group
     const extras = group.items.slice(1).map(p => ({ article_id: p.article_id, rolls: String(p.rolls_produced), search: '' }));
     setExtraArticles(extras);
