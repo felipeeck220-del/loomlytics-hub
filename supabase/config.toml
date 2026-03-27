@@ -2,6 +2,3 @@ project_id = "etsaleegdpswwsprwyzv"
 
 [functions.admin-api]
 verify_jwt = false
-
-[functions.cleanup-db]
-verify_jwt = false
