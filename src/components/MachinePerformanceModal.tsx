@@ -104,7 +104,6 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
 
   const machinePerf = useMemo(() => {
     return machines
-      .filter(m => m.status === 'ativa')
       .map(m => {
         const mp = filtered.filter(p => p.machine_id === m.id);
         const rolls = mp.reduce((s, p) => s + p.rolls_produced, 0);
