@@ -38,9 +38,9 @@ export default function Register() {
       password: form.password,
     });
     setLoading(false);
-    if (result.success) {
+    if (result.success && result.slug) {
       toast.success('Conta criada com sucesso!');
-      navigate('/');
+      navigate(`/${result.slug}`);
     } else {
       toast.error(result.error || 'Erro ao criar conta');
     }
