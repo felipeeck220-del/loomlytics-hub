@@ -801,6 +801,11 @@ export default function ProductionPage() {
                   <SelectTrigger className="h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
                   <SelectContent>{sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {selectedMachine && (
+                  <Badge variant="outline" className="text-xs mt-0.5">
+                    Modo: {machineMode === 'voltas' ? 'Voltas' : 'Rolos'}
+                  </Badge>
+                )}
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">RPM</Label>
