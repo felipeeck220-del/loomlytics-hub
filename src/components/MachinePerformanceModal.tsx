@@ -50,7 +50,7 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
   }, [productions]);
 
   const clearFilters = () => {
-    setDayRange(7);
+    setDayRange(0);
     setCustomDate(undefined);
     setDateFrom(undefined);
     setDateTo(undefined);
@@ -162,7 +162,14 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                     {d} dia{d > 1 ? 's' : ''}
                   </Button>
                 ))}
-
+                <Button
+                  size="sm"
+                  variant={dayRange === 0 && filterMonth === 'all' && !customDate && filterYear === 'all' && !dateFrom && !dateTo ? 'default' : 'outline'}
+                  onClick={() => { setDayRange(0); setCustomDate(undefined); setFilterMonth('all'); setFilterYear('all'); setDateFrom(undefined); setDateTo(undefined); }}
+                  className={cn("min-w-[60px] rounded-lg", dayRange === 0 && filterMonth === 'all' && !customDate && filterYear === 'all' && !dateFrom && !dateTo && 'btn-gradient')}
+                >
+                  Todo período
+                </Button>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" size="sm" className={cn("rounded-lg", !customDate && 'text-muted-foreground')}>
