@@ -66,6 +66,7 @@ export default function ProductionPage() {
 
   const [form, setForm] = useState({
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
+    voltas_inicio: '', voltas_fim: '',
   });
 
   // Extra articles (for split-shift production)
