@@ -1,0 +1,1 @@
+ALTER TABLE public.productions ALTER COLUMN rolls_produced TYPE numeric USING rolls_produced::numeric;

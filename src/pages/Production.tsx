@@ -96,8 +96,8 @@ export default function ProductionPage() {
     if (totalVoltas <= 0) { setForm(p => ({ ...p, rolls: '' })); return; }
     const turnsPerRoll = getTurnsForMachine(form.article_id, form.machine_id);
     if (turnsPerRoll <= 0) { setForm(p => ({ ...p, rolls: '' })); return; }
-    const calculatedRolls = Math.floor(totalVoltas / turnsPerRoll);
-    setForm(p => ({ ...p, rolls: String(calculatedRolls) }));
+    const calculatedRolls = totalVoltas / turnsPerRoll;
+    setForm(p => ({ ...p, rolls: String(Math.round(calculatedRolls * 100) / 100) }));
   }, [form.voltas_inicio, form.voltas_fim, form.article_id, form.machine_id, machineMode]);
 
   // Get turns for a specific article+machine combo
@@ -121,7 +121,7 @@ export default function ProductionPage() {
       if (!inicio || !fim || fim <= inicio) return null;
       const totalVoltas = fim - inicio;
       const turnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
-      const rolls = turnsPerRoll > 0 ? Math.floor(totalVoltas / turnsPerRoll) : 0;
+      const rolls = turnsPerRoll > 0 ? totalVoltas / turnsPerRoll : 0;
       const weightKg = rolls * selectedArticle.weight_per_roll;
       const revenue = weightKg * selectedArticle.value_per_kg;
       const efficiency = maxTurns > 0 ? (totalVoltas / maxTurns) * 100 : 0;
@@ -872,7 +872,7 @@ export default function ProductionPage() {
                     <div className="space-y-1">
                       <Label className="text-xs">Peças (calculado)</Label>
                       <div className="h-9 flex items-center px-3 rounded-md border border-border bg-muted/50 text-sm font-bold text-foreground">
-                        {form.rolls || '—'}
+                        {form.rolls ? (Math.round(Number(form.rolls) * 100) / 100).toFixed(2) : '—'}
                         <span className="ml-1 text-xs text-muted-foreground font-normal">
                           ({Number(form.voltas_fim) - Number(form.voltas_inicio)} voltas)
                         </span>
