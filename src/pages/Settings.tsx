@@ -814,6 +814,14 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Production Mode Modal */}
+      <ProductionModeModal
+        open={showProductionMode}
+        onOpenChange={setShowProductionMode}
+        machines={getMachines()}
+        onSave={saveMachines}
+      />
     </div>
   );
 }
