@@ -316,11 +316,11 @@ export default function SettingsPage() {
     setLoadingSub(false);
   };
 
-  const handleCheckout = async (priceId: string) => {
+  const handleCheckout = async (plan: 'monthly' | 'annual') => {
     setCheckingOut(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { price_id: priceId },
+        body: { plan },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
       if (data?.url) window.open(data.url, '_blank');
