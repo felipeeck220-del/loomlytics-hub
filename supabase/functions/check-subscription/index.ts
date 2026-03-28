@@ -55,6 +55,17 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Check if subscription is already active (paid via Pix or other method)
+    if (settings?.subscription_status === 'active') {
+      return new Response(JSON.stringify({
+        status: 'active',
+        plan: settings.subscription_plan,
+        blocked: false,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     // Check trial status
     if (settings?.trial_end_date) {
