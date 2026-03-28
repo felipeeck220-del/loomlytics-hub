@@ -793,7 +793,7 @@ export default function ProductionPage() {
       </Tabs>
 
       {/* Register/Edit Modal */}
-      <Dialog open={showModal} onOpenChange={(open) => { if (!open && hasPendingSaves) return; if (!open) return; setShowModal(open); }}>
+      <Dialog open={showModal} onOpenChange={(open) => { if (!open && hasPendingSaves) return; setShowModal(open); }}>
         <DialogContent
           className="flex h-[90vh] max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col overflow-hidden p-4 sm:h-[80vh] sm:max-h-[80vh] sm:w-[80vw] sm:max-w-[80vw] sm:p-6"
           onPointerDownOutside={(e) => e.preventDefault()}
