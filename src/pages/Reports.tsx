@@ -1070,6 +1070,127 @@ export default function Reports() {
           )}
         </TabsContent>
 
+        {/* TERCEIRIZADO */}
+        <TabsContent value="terceirizado" className="mt-6 space-y-6">
+          {/* KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <KpiCard label="Rolos" value={formatNumber(outsourceTotals.totalRolls)} subtitle={`${filteredOutsource.length} registros`} icon={<Package className="h-5 w-5 text-primary" />} borderColor="border-l-primary" />
+            <KpiCard label="Peso Total" value={formatWeight(outsourceTotals.totalWeight)} subtitle="Produção terceirizada" icon={<TrendingUp className="h-5 w-5 text-accent" />} borderColor="border-l-accent" />
+            {canSeeFinancial && <>
+              <KpiCard label="Receita" value={formatCurrency(outsourceTotals.totalRevenue)} subtitle="Valor do cliente" icon={<DollarSign className="h-5 w-5 text-success" />} borderColor="border-l-success" />
+              <KpiCard label="Custo" value={formatCurrency(outsourceTotals.totalCost)} subtitle="Valor pago à malharia" icon={<DollarSign className="h-5 w-5 text-destructive" />} borderColor="border-l-destructive" />
+              <KpiCard label="Lucro" value={formatCurrency(outsourceTotals.totalProfit)} subtitle={outsourceTotals.totalRevenue > 0 ? `Margem: ${formatPercent(outsourceTotals.totalProfit / outsourceTotals.totalRevenue * 100)}` : '—'} icon={<TrendingUp className="h-5 w-5 text-success" />} borderColor="border-l-success" />
+            </>}
+          </div>
+
+          {/* By Company */}
+          {outsourceTotals.byCompany.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Factory className="h-4 w-4 text-muted-foreground" />Por Malharia</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2 px-3 text-muted-foreground font-medium">Malharia</th>
+                        <th className="text-right py-2 px-3 text-muted-foreground font-medium">Rolos</th>
+                        <th className="text-right py-2 px-3 text-muted-foreground font-medium">Peso (kg)</th>
+                        {canSeeFinancial && <>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Receita</th>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Custo</th>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Lucro</th>
+                        </>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {outsourceTotals.byCompany.map((c, i) => (
+                        <tr key={i} className="border-b border-border/50 hover:bg-muted/30">
+                          <td className="py-2 px-3 font-medium">{c.name}</td>
+                          <td className="py-2 px-3 text-right">{formatNumber(c.rolls)}</td>
+                          <td className="py-2 px-3 text-right">{formatWeight(c.kg)}</td>
+                          {canSeeFinancial && <>
+                            <td className="py-2 px-3 text-right">{formatCurrency(c.revenue)}</td>
+                            <td className="py-2 px-3 text-right">{formatCurrency(c.cost)}</td>
+                            <td className={cn("py-2 px-3 text-right font-semibold", c.profit >= 0 ? "text-success" : "text-destructive")}>{formatCurrency(c.profit)}</td>
+                          </>}
+                        </tr>
+                      ))}
+                      <tr className="bg-muted/50 font-bold">
+                        <td className="py-2 px-3">TOTAL</td>
+                        <td className="py-2 px-3 text-right">{formatNumber(outsourceTotals.totalRolls)}</td>
+                        <td className="py-2 px-3 text-right">{formatWeight(outsourceTotals.totalWeight)}</td>
+                        {canSeeFinancial && <>
+                          <td className="py-2 px-3 text-right">{formatCurrency(outsourceTotals.totalRevenue)}</td>
+                          <td className="py-2 px-3 text-right">{formatCurrency(outsourceTotals.totalCost)}</td>
+                          <td className={cn("py-2 px-3 text-right", outsourceTotals.totalProfit >= 0 ? "text-success" : "text-destructive")}>{formatCurrency(outsourceTotals.totalProfit)}</td>
+                        </>}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* By Article */}
+          {outsourceTotals.byArticle.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4 text-muted-foreground" />Por Artigo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2 px-3 text-muted-foreground font-medium">Artigo</th>
+                        <th className="text-left py-2 px-3 text-muted-foreground font-medium">Cliente</th>
+                        <th className="text-right py-2 px-3 text-muted-foreground font-medium">Rolos</th>
+                        <th className="text-right py-2 px-3 text-muted-foreground font-medium">Peso (kg)</th>
+                        {canSeeFinancial && <>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Receita</th>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Custo</th>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Lucro</th>
+                        </>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {outsourceTotals.byArticle.map((a, i) => (
+                        <tr key={i} className="border-b border-border/50 hover:bg-muted/30">
+                          <td className="py-2 px-3 font-medium">{a.name}</td>
+                          <td className="py-2 px-3 text-muted-foreground">{a.client}</td>
+                          <td className="py-2 px-3 text-right">{formatNumber(a.rolls)}</td>
+                          <td className="py-2 px-3 text-right">{formatWeight(a.kg)}</td>
+                          {canSeeFinancial && <>
+                            <td className="py-2 px-3 text-right">{formatCurrency(a.revenue)}</td>
+                            <td className="py-2 px-3 text-right">{formatCurrency(a.cost)}</td>
+                            <td className={cn("py-2 px-3 text-right font-semibold", a.profit >= 0 ? "text-success" : "text-destructive")}>{formatCurrency(a.profit)}</td>
+                          </>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Export PDF button */}
+          <div className="flex justify-end">
+            <Button onClick={() => handleOutsourceExport(outsourceTotals, periodLabel, companyLogoUrl, canSeeFinancial)} className="btn-gradient">
+              <Download className="h-4 w-4 mr-2" /> Exportar PDF Terceirizado
+            </Button>
+          </div>
+
+          {filteredOutsource.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Nenhum registro de terceirizado no período selecionado</p>
+            </div>
+          )}
+        </TabsContent>
+
         {/* EXPORTAR RELATÓRIOS */}
         <TabsContent value="exportar" className="mt-4">
           <Card>
