@@ -1043,18 +1043,26 @@ export default function SettingsPage() {
                     </p>
                   </>
                 )}
-                {subStatus.status === 'active' && (
+                {(subStatus.status === 'active' || subStatus.status === 'cancelling') && (
                   <>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">
-                        <Crown className="h-3 w-3 mr-1" /> Assinatura Ativa
+                        <Crown className="h-3 w-3 mr-1" /> {subStatus.status === 'cancelling' ? 'Assinatura Cancelada' : 'Assinatura Ativa'}
                       </Badge>
                     </div>
                     {paymentHistory.length > 0 && paymentHistory[0].next_billing_date && (
                       <p className="text-sm text-muted-foreground">
-                        Próxima cobrança: <strong className="text-foreground">{new Date(paymentHistory[0].next_billing_date).toLocaleDateString('pt-BR')}</strong>
-                        {' · '}Plano: <strong className="text-foreground">{paymentHistory[0].plan === 'annual' ? 'Anual' : 'Mensal'}</strong>
+                        {subStatus.status === 'cancelling'
+                          ? <>Acesso até: <strong className="text-foreground">{new Date(paymentHistory[0].next_billing_date).toLocaleDateString('pt-BR')}</strong> · Não haverá cobranças futuras.</>
+                          : <>Próxima cobrança: <strong className="text-foreground">{new Date(paymentHistory[0].next_billing_date).toLocaleDateString('pt-BR')}</strong>
+                            {' · '}Plano: <strong className="text-foreground">{paymentHistory[0].plan === 'annual' ? 'Anual' : 'Mensal'}</strong></>
+                        }
                       </p>
+                    )}
+                    {subStatus.status === 'active' && (
+                      <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 mt-2 w-fit" onClick={() => setShowCancelDialog(true)}>
+                        Cancelar assinatura
+                      </Button>
                     )}
                   </>
                 )}
