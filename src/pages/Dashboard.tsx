@@ -395,7 +395,7 @@ export default function Dashboard() {
       </Card>
 
       {/* KPI Cards - Material style with gradient icon boxes */}
-      <div className={cn("grid grid-cols-2 gap-4", canSeeFinancial ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
+      <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4", canSeeFinancial ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
         <MaterialKpi
           icon={<Package className="h-5 w-5 text-white" />}
           iconClass="icon-box-dark"

@@ -390,7 +390,7 @@ export default function Reports() {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           label="Total de Rolos"
           value={formatNumber(totalRolls)}
@@ -789,7 +789,7 @@ export default function Reports() {
 
               <div>
                 <p className="text-sm font-semibold text-foreground mb-3">Exportação Específica</p>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <ExportButton
                     label="Por Artigo"
                     description="Rolos, Kg, Valor"
