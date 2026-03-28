@@ -105,6 +105,10 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: '' });
   const [saving, setSaving] = useState(false);
+  const [changePasswordUser, setChangePasswordUser] = useState<Profile | null>(null);
+  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [showAdminNewPw, setShowAdminNewPw] = useState(false);
+  const [savingAdminPw, setSavingAdminPw] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [editingShifts, setEditingShifts] = useState(false);
   const [shiftForm, setShiftForm] = useState<CompanyShiftSettings>(shiftSettings);
