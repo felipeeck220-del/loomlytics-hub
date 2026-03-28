@@ -89,6 +89,59 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === 'list_users') {
+      // Fetch all profiles with company info
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*, companies:company_id(name, slug)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch company settings for nav items info
+      const { data: settings } = await supabase
+        .from('company_settings')
+        .select('company_id, enabled_nav_items, platform_active');
+
+      const settingsMap = new Map((settings || []).map((s: any) => [s.company_id, s]));
+
+      const result = (profiles || []).map((p: any) => ({
+        id: p.id,
+        user_id: p.user_id,
+        name: p.name,
+        email: p.email,
+        role: p.role,
+        status: p.status,
+        company_id: p.company_id,
+        company_name: p.companies?.name || '',
+        company_slug: p.companies?.slug || '',
+        created_at: p.created_at,
+        settings: settingsMap.get(p.company_id) || null,
+      }));
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'update_user_nav_items') {
+      const { company_id, enabled_nav_items } = params;
+
+      const { error } = await supabase
+        .from('company_settings')
+        .upsert({
+          company_id,
+          enabled_nav_items,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'company_id' });
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (action === 'update_settings') {
       const { company_id, monthly_plan_value, platform_active, enabled_nav_items } = params;
 
