@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  CalendarIcon, Loader2, RotateCcw, Download, Clock,
+  CalendarIcon, Loader2, RotateCcw, Download, Clock, Search,
   Package, TrendingUp, DollarSign, Gauge, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -78,6 +79,9 @@ export default function Reports() {
 
   // Active analysis tab
   const [activeTab, setActiveTab] = useState('turno');
+  const [searchMachine, setSearchMachine] = useState('');
+  const [searchClient, setSearchClient] = useState('');
+  const [searchArticle, setSearchArticle] = useState('');
 
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
@@ -616,12 +620,20 @@ export default function Reports() {
             return (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Detalhamento por Máquina</CardTitle>
-                  <CardDescription>Todos os dados de cada máquina no período</CardDescription>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <CardTitle className="text-base">Detalhamento por Máquina</CardTitle>
+                      <CardDescription>Todos os dados de cada máquina no período</CardDescription>
+                    </div>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="Buscar máquina..." value={searchMachine} onChange={e => setSearchMachine(e.target.value)} className="pl-9 h-9 text-sm" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byMachine.map(m => {
+                    {byMachine.filter(m => m.name.toLowerCase().includes(searchMachine.toLowerCase())).map(m => {
                       const pctRolls = totalMachineRolls > 0 ? (m.rolos / totalMachineRolls * 100) : 0;
                       const pctRevenue = totalMachineRevenue > 0 ? (m.faturamento / totalMachineRevenue * 100) : 0;
                       return (
@@ -684,12 +696,20 @@ export default function Reports() {
             return (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Detalhamento por Cliente</CardTitle>
-                  <CardDescription>Todos os dados de cada cliente no período</CardDescription>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <CardTitle className="text-base">Detalhamento por Cliente</CardTitle>
+                      <CardDescription>Todos os dados de cada cliente no período</CardDescription>
+                    </div>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="Buscar cliente..." value={searchClient} onChange={e => setSearchClient(e.target.value)} className="pl-9 h-9 text-sm" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byClient.map(c => {
+                    {byClient.filter(c => c.name.toLowerCase().includes(searchClient.toLowerCase())).map(c => {
                       const pctRolls = totalClientRolls > 0 ? (c.rolos / totalClientRolls * 100) : 0;
                       const pctKg = totalClientKg > 0 ? (c.kg / totalClientKg * 100) : 0;
                       const pctRevenue = totalClientRevenue > 0 ? (c.faturamento / totalClientRevenue * 100) : 0;
@@ -744,12 +764,20 @@ export default function Reports() {
             return (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Detalhamento por Artigo</CardTitle>
-                  <CardDescription>Todos os dados de cada artigo no período</CardDescription>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <CardTitle className="text-base">Detalhamento por Artigo</CardTitle>
+                      <CardDescription>Todos os dados de cada artigo no período</CardDescription>
+                    </div>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="Buscar artigo..." value={searchArticle} onChange={e => setSearchArticle(e.target.value)} className="pl-9 h-9 text-sm" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byArticle.map(a => {
+                    {byArticle.filter(a => a.name.toLowerCase().includes(searchArticle.toLowerCase()) || a.clientName.toLowerCase().includes(searchArticle.toLowerCase())).map(a => {
                       const pctRolls = totalArticleRolls > 0 ? (a.rolos / totalArticleRolls * 100) : 0;
                       const pctKg = totalArticleKg > 0 ? (a.kg / totalArticleKg * 100) : 0;
                       const pctRevenue = totalArticleRevenue > 0 ? (a.faturamento / totalArticleRevenue * 100) : 0;
