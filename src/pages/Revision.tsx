@@ -45,6 +45,7 @@ export default function RevisionPage() {
     machine_id: '',
     weaver_id: '',
     article_id: '',
+    defect_name: '',
     measure_type: 'kg' as MeasureType,
     measure_value: '',
     observations: '',
@@ -86,14 +87,14 @@ export default function RevisionPage() {
   }, [filtered]);
 
   const openNew = () => {
-    setForm({ date: new Date(), shift: '', machine_id: '', weaver_id: '', article_id: '', measure_type: 'kg', measure_value: '', observations: '' });
+    setForm({ date: new Date(), shift: '', machine_id: '', weaver_id: '', article_id: '', defect_name: '', measure_type: 'kg', measure_value: '', observations: '' });
     setArticleSearch('');
     setWeaverSearch('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.shift || !form.machine_id || !form.article_id || !form.weaver_id || !form.measure_value) {
+    if (!form.shift || !form.machine_id || !form.article_id || !form.weaver_id || !form.measure_value || !form.defect_name) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
@@ -116,7 +117,7 @@ export default function RevisionPage() {
         machine_name: machine?.name,
         article_name: article?.name,
         weaver_name: weaver?.name,
-        observations: form.observations || undefined,
+        observations: form.observations ? `[${form.defect_name}] ${form.observations}` : form.defect_name,
         created_at: new Date().toISOString(),
       };
 
