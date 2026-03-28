@@ -53,6 +53,7 @@ export default function Machines() {
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
+  const { logAction } = useAuditLog();
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Machine | null>(null);
