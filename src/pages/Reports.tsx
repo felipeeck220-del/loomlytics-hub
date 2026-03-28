@@ -132,7 +132,11 @@ export default function Reports() {
 
     if (filterShift !== 'all') data = data.filter(p => p.shift === filterShift);
     if (filterClient !== 'all') {
-      const clientArticles = articles.filter(a => a.client_id === filterClient).map(a => a.id);
+      const selectedClient = clients.find(c => c.id === filterClient);
+      const clientArticles = articles.filter(a => 
+        a.client_id === filterClient || 
+        (selectedClient && a.client_name === selectedClient.name)
+      ).map(a => a.id);
       data = data.filter(p => clientArticles.includes(p.article_id));
     }
     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
