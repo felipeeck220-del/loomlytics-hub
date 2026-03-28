@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   LayoutDashboard, Settings2, Users, ClipboardList, Factory, FileText,
   HardHat, Search, CheckCircle2, X, ArrowRight, Zap, Shield, BarChart3,
-  Clock, TrendingUp
+  Clock, TrendingUp, Wrench
 } from 'lucide-react';
 import spreadsheetImg from '@/assets/spreadsheet-old.jpg';
 import notebookImg from '@/assets/notebook-old.jpg';
@@ -47,6 +47,11 @@ const features = [
     icon: Search,
     title: 'Revisão de Qualidade',
     description: 'Registre defeitos por máquina, artigo e tecelão. Mantenha o controle de qualidade rigoroso.',
+  },
+  {
+    icon: Wrench,
+    title: 'Mecânica',
+    description: 'Calendário de manutenções, histórico completo por máquina, acompanhamento em tempo real com observações.',
   },
   {
     icon: FileText,
