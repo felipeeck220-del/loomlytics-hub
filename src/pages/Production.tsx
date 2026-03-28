@@ -850,7 +850,31 @@ export default function ProductionPage() {
               </div>
             </div>
 
-            <div className={cn("grid gap-3", machineMode === 'voltas' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-3')}>
+            {/* Downtime Info */}
+            {downtimeInfo && downtimeInfo.events.length > 0 && (
+              <div className="rounded-lg border border-warning/50 bg-warning/10 p-3 space-y-1">
+                <div className="flex items-center gap-2">
+                  <PauseCircle className="h-4 w-4 text-warning" />
+                  <span className="text-sm font-semibold text-warning">Máquina parada neste turno</span>
+                  <Badge variant="outline" className="text-xs border-warning/50 text-warning">
+                    -{formatDowntimeMinutes(downtimeInfo.totalDowntimeMinutes)}
+                  </Badge>
+                </div>
+                {downtimeInfo.events.map((evt, idx) => (
+                  <p key={idx} className="text-xs text-muted-foreground ml-6">
+                    {evt.label}: {formatDowntimeMinutes(evt.minutes)}
+                    <span className="ml-1 opacity-70">
+                      ({format(evt.startedAt, 'HH:mm')} — {format(evt.endedAt, 'HH:mm')})
+                    </span>
+                  </p>
+                ))}
+                <p className="text-xs font-medium text-foreground ml-6">
+                  Tempo efetivo do turno: {formatDowntimeMinutes(downtimeInfo.effectiveShiftMinutes)}
+                  <span className="text-muted-foreground ml-1">(de {formatDowntimeMinutes(companyShiftMinutes[form.shift as ShiftType])})</span>
+                </p>
+              </div>
+            )}
+
               <div className="space-y-1">
                 <Label className="text-xs">Tecelão</Label>
                 <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
