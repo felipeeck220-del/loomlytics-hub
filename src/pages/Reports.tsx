@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CalendarIcon, Loader2, RotateCcw, Download, Clock, Search,
-  Package, TrendingUp, DollarSign, Gauge, FileText,
+  Package, TrendingUp, DollarSign, Gauge, FileText, Factory,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, type ShiftType, getCompanyShiftLabels } from '@/types';
@@ -60,6 +61,29 @@ export default function Reports() {
         if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
       });
   }, [user?.company_id]);
+
+  // Fetch outsource productions
+  const sb = (table: string) => (supabase.from as any)(table);
+  const { data: outsourceProductions = [] } = useQuery({
+    queryKey: ['outsource_productions_report', user?.company_id],
+    queryFn: async () => {
+      const { data, error } = await sb('outsource_productions')
+        .select('*').eq('company_id', user!.company_id).order('date', { ascending: false });
+      if (error) throw error;
+      return (data || []).map((p: any) => ({
+        ...p,
+        weight_kg: Number(p.weight_kg),
+        rolls: Number(p.rolls),
+        client_value_per_kg: Number(p.client_value_per_kg),
+        outsource_value_per_kg: Number(p.outsource_value_per_kg),
+        profit_per_kg: Number(p.profit_per_kg),
+        total_revenue: Number(p.total_revenue),
+        total_cost: Number(p.total_cost),
+        total_profit: Number(p.total_profit),
+      }));
+    },
+    enabled: !!user?.company_id,
+  });
 
   // Filters
   const [dayRange, setDayRange] = useState(30);
@@ -238,6 +262,53 @@ export default function Reports() {
         eficiencia: vals.effCount > 0 ? vals.effSum / vals.effCount : 0,
       }));
   }, [filtered]);
+
+  // Filtered outsource productions (reuses same date filters)
+  const filteredOutsource = useMemo(() => {
+    let data = [...outsourceProductions];
+    const today = new Date();
+    if (dayRange === 0) { /* all */ }
+    else if (dateFrom || dateTo) {
+      if (dateFrom) { const s = format(dateFrom, 'yyyy-MM-dd'); data = data.filter(p => p.date >= s); }
+      if (dateTo) { const e = format(dateTo, 'yyyy-MM-dd'); data = data.filter(p => p.date <= e); }
+    } else if (filterMonth !== 'all') {
+      data = data.filter(p => p.date.startsWith(filterMonth));
+    } else if (customDate) {
+      data = data.filter(p => p.date === format(customDate, 'yyyy-MM-dd'));
+    } else {
+      const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+      const end = format(today, 'yyyy-MM-dd');
+      data = data.filter(p => p.date >= start && p.date <= end);
+    }
+    return data;
+  }, [outsourceProductions, dayRange, customDate, dateFrom, dateTo, filterMonth]);
+
+  const outsourceTotals = useMemo(() => {
+    const tw = filteredOutsource.reduce((s, p) => s + p.weight_kg, 0);
+    const tr = filteredOutsource.reduce((s, p) => s + p.rolls, 0);
+    const tRev = filteredOutsource.reduce((s, p) => s + p.total_revenue, 0);
+    const tCost = filteredOutsource.reduce((s, p) => s + p.total_cost, 0);
+    const tProfit = filteredOutsource.reduce((s, p) => s + p.total_profit, 0);
+    const byCompanyMap: Record<string, { name: string; kg: number; rolls: number; revenue: number; cost: number; profit: number }> = {};
+    filteredOutsource.forEach(p => {
+      const k = p.outsource_company_id;
+      if (!byCompanyMap[k]) byCompanyMap[k] = { name: p.outsource_company_name || 'Sem nome', kg: 0, rolls: 0, revenue: 0, cost: 0, profit: 0 };
+      byCompanyMap[k].kg += p.weight_kg; byCompanyMap[k].rolls += p.rolls;
+      byCompanyMap[k].revenue += p.total_revenue; byCompanyMap[k].cost += p.total_cost; byCompanyMap[k].profit += p.total_profit;
+    });
+    const byArticleMap: Record<string, { name: string; client: string; kg: number; rolls: number; revenue: number; cost: number; profit: number }> = {};
+    filteredOutsource.forEach(p => {
+      const k = p.article_id;
+      if (!byArticleMap[k]) byArticleMap[k] = { name: p.article_name || 'Sem artigo', client: p.client_name || '—', kg: 0, rolls: 0, revenue: 0, cost: 0, profit: 0 };
+      byArticleMap[k].kg += p.weight_kg; byArticleMap[k].rolls += p.rolls;
+      byArticleMap[k].revenue += p.total_revenue; byArticleMap[k].cost += p.total_cost; byArticleMap[k].profit += p.total_profit;
+    });
+    return {
+      totalWeight: tw, totalRolls: tr, totalRevenue: tRev, totalCost: tCost, totalProfit: tProfit,
+      byCompany: Object.values(byCompanyMap).sort((a, b) => b.profit - a.profit),
+      byArticle: Object.values(byArticleMap).sort((a, b) => b.profit - a.profit),
+    };
+  }, [filteredOutsource]);
 
   const periodLabel = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
@@ -456,12 +527,13 @@ export default function Reports() {
 
       {/* Analysis Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-6 gap-1 p-1">
+        <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-7 gap-1 p-1">
           <TabsTrigger value="turno">Por Turno</TabsTrigger>
           <TabsTrigger value="maquina">Por Máquina</TabsTrigger>
           <TabsTrigger value="cliente">Por Cliente</TabsTrigger>
           <TabsTrigger value="artigo">Por Artigo</TabsTrigger>
           <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+          <TabsTrigger value="terceirizado" className="flex items-center gap-1"><Factory className="h-3.5 w-3.5" />Terceirizado</TabsTrigger>
           <TabsTrigger value="exportar" className="flex items-center gap-1"><Download className="h-3.5 w-3.5" />Exportar</TabsTrigger>
         </TabsList>
 
@@ -998,6 +1070,127 @@ export default function Reports() {
           )}
         </TabsContent>
 
+        {/* TERCEIRIZADO */}
+        <TabsContent value="terceirizado" className="mt-6 space-y-6">
+          {/* KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <KpiCard label="Rolos" value={formatNumber(outsourceTotals.totalRolls)} subtitle={`${filteredOutsource.length} registros`} icon={<Package className="h-5 w-5 text-primary" />} borderColor="border-l-primary" />
+            <KpiCard label="Peso Total" value={formatWeight(outsourceTotals.totalWeight)} subtitle="Produção terceirizada" icon={<TrendingUp className="h-5 w-5 text-accent" />} borderColor="border-l-accent" />
+            {canSeeFinancial && <>
+              <KpiCard label="Receita" value={formatCurrency(outsourceTotals.totalRevenue)} subtitle="Valor do cliente" icon={<DollarSign className="h-5 w-5 text-success" />} borderColor="border-l-success" />
+              <KpiCard label="Custo" value={formatCurrency(outsourceTotals.totalCost)} subtitle="Valor pago à malharia" icon={<DollarSign className="h-5 w-5 text-destructive" />} borderColor="border-l-destructive" />
+              <KpiCard label="Lucro" value={formatCurrency(outsourceTotals.totalProfit)} subtitle={outsourceTotals.totalRevenue > 0 ? `Margem: ${formatPercent(outsourceTotals.totalProfit / outsourceTotals.totalRevenue * 100)}` : '—'} icon={<TrendingUp className="h-5 w-5 text-success" />} borderColor="border-l-success" />
+            </>}
+          </div>
+
+          {/* By Company */}
+          {outsourceTotals.byCompany.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Factory className="h-4 w-4 text-muted-foreground" />Por Malharia</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2 px-3 text-muted-foreground font-medium">Malharia</th>
+                        <th className="text-right py-2 px-3 text-muted-foreground font-medium">Rolos</th>
+                        <th className="text-right py-2 px-3 text-muted-foreground font-medium">Peso (kg)</th>
+                        {canSeeFinancial && <>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Receita</th>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Custo</th>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Lucro</th>
+                        </>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {outsourceTotals.byCompany.map((c, i) => (
+                        <tr key={i} className="border-b border-border/50 hover:bg-muted/30">
+                          <td className="py-2 px-3 font-medium">{c.name}</td>
+                          <td className="py-2 px-3 text-right">{formatNumber(c.rolls)}</td>
+                          <td className="py-2 px-3 text-right">{formatWeight(c.kg)}</td>
+                          {canSeeFinancial && <>
+                            <td className="py-2 px-3 text-right">{formatCurrency(c.revenue)}</td>
+                            <td className="py-2 px-3 text-right">{formatCurrency(c.cost)}</td>
+                            <td className={cn("py-2 px-3 text-right font-semibold", c.profit >= 0 ? "text-success" : "text-destructive")}>{formatCurrency(c.profit)}</td>
+                          </>}
+                        </tr>
+                      ))}
+                      <tr className="bg-muted/50 font-bold">
+                        <td className="py-2 px-3">TOTAL</td>
+                        <td className="py-2 px-3 text-right">{formatNumber(outsourceTotals.totalRolls)}</td>
+                        <td className="py-2 px-3 text-right">{formatWeight(outsourceTotals.totalWeight)}</td>
+                        {canSeeFinancial && <>
+                          <td className="py-2 px-3 text-right">{formatCurrency(outsourceTotals.totalRevenue)}</td>
+                          <td className="py-2 px-3 text-right">{formatCurrency(outsourceTotals.totalCost)}</td>
+                          <td className={cn("py-2 px-3 text-right", outsourceTotals.totalProfit >= 0 ? "text-success" : "text-destructive")}>{formatCurrency(outsourceTotals.totalProfit)}</td>
+                        </>}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* By Article */}
+          {outsourceTotals.byArticle.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4 text-muted-foreground" />Por Artigo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2 px-3 text-muted-foreground font-medium">Artigo</th>
+                        <th className="text-left py-2 px-3 text-muted-foreground font-medium">Cliente</th>
+                        <th className="text-right py-2 px-3 text-muted-foreground font-medium">Rolos</th>
+                        <th className="text-right py-2 px-3 text-muted-foreground font-medium">Peso (kg)</th>
+                        {canSeeFinancial && <>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Receita</th>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Custo</th>
+                          <th className="text-right py-2 px-3 text-muted-foreground font-medium">Lucro</th>
+                        </>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {outsourceTotals.byArticle.map((a, i) => (
+                        <tr key={i} className="border-b border-border/50 hover:bg-muted/30">
+                          <td className="py-2 px-3 font-medium">{a.name}</td>
+                          <td className="py-2 px-3 text-muted-foreground">{a.client}</td>
+                          <td className="py-2 px-3 text-right">{formatNumber(a.rolls)}</td>
+                          <td className="py-2 px-3 text-right">{formatWeight(a.kg)}</td>
+                          {canSeeFinancial && <>
+                            <td className="py-2 px-3 text-right">{formatCurrency(a.revenue)}</td>
+                            <td className="py-2 px-3 text-right">{formatCurrency(a.cost)}</td>
+                            <td className={cn("py-2 px-3 text-right font-semibold", a.profit >= 0 ? "text-success" : "text-destructive")}>{formatCurrency(a.profit)}</td>
+                          </>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Export PDF button */}
+          <div className="flex justify-end">
+            <Button onClick={() => handleOutsourceExport(outsourceTotals, periodLabel, companyLogoUrl, canSeeFinancial)} className="btn-gradient">
+              <Download className="h-4 w-4 mr-2" /> Exportar PDF Terceirizado
+            </Button>
+          </div>
+
+          {filteredOutsource.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Nenhum registro de terceirizado no período selecionado</p>
+            </div>
+          )}
+        </TabsContent>
+
         {/* EXPORTAR RELATÓRIOS */}
         <TabsContent value="exportar" className="mt-4">
           <Card>
@@ -1357,5 +1550,104 @@ function handleExport(
       win.document.close();
       setTimeout(() => win.print(), 400);
     }
+  }
+}
+
+function handleOutsourceExport(
+  totals: { totalWeight: number; totalRolls: number; totalRevenue: number; totalCost: number; totalProfit: number; byCompany: any[]; byArticle: any[] },
+  periodLabel: string,
+  logoUrl?: string | null,
+  canSeeFinancial = true,
+) {
+  const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmtK = (v: number) => fmtN(v, 2);
+  const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
+  const date = new Date().toLocaleDateString('pt-BR');
+
+  const companyHeaders = canSeeFinancial
+    ? ['Malharia', 'Rolos', 'Peso (kg)', 'Receita', 'Custo', 'Lucro']
+    : ['Malharia', 'Rolos', 'Peso (kg)'];
+  const companyRows = totals.byCompany.map(c => canSeeFinancial
+    ? [c.name, fmtN(c.rolls), fmtK(c.kg), fmtR(c.revenue), fmtR(c.cost), fmtR(c.profit)]
+    : [c.name, fmtN(c.rolls), fmtK(c.kg)]);
+  const companyTotal = canSeeFinancial
+    ? ['TOTAL', fmtN(totals.totalRolls), fmtK(totals.totalWeight), fmtR(totals.totalRevenue), fmtR(totals.totalCost), fmtR(totals.totalProfit)]
+    : ['TOTAL', fmtN(totals.totalRolls), fmtK(totals.totalWeight)];
+  companyRows.push(companyTotal);
+
+  const articleHeaders = canSeeFinancial
+    ? ['Artigo', 'Cliente', 'Rolos', 'Peso (kg)', 'Receita', 'Custo', 'Lucro']
+    : ['Artigo', 'Cliente', 'Rolos', 'Peso (kg)'];
+  const articleRows = totals.byArticle.map(a => canSeeFinancial
+    ? [a.name, a.client, fmtN(a.rolls), fmtK(a.kg), fmtR(a.revenue), fmtR(a.cost), fmtR(a.profit)]
+    : [a.name, a.client, fmtN(a.rolls), fmtK(a.kg)]);
+
+  const buildTable = (headers: string[], rows: (string | number)[][]) => `
+    <table>
+      <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r, ri) => `<tr class="${ri === rows.length - 1 && r[0] === 'TOTAL' ? 'total-row' : ''}">${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório Terceirizado</title>
+  <style>
+    @page { margin: 15mm 20mm; size: A4; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a2e; background: #fff; }
+    .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 20px 24px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
+    .header-logo { height: 48px; width: 48px; border-radius: 8px; object-fit: contain; background: rgba(255,255,255,0.15); padding: 4px; }
+    .header-text h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .header .meta { font-size: 12px; opacity: 0.85; display: flex; gap: 16px; }
+    .section { margin-bottom: 28px; }
+    .section h2 { font-size: 15px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
+    .kpis { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    .kpi { flex: 1; min-width: 140px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; }
+    .kpi-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+    .profit { color: #16a34a; }
+    .loss { color: #dc2626; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: #f1f5f9; color: #475569; font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .total-row td { background: #e2e8f0 !important; font-weight: 700; border-top: 2px solid #94a3b8; }
+    .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #94a3b8; text-align: center; }
+  </style></head><body>
+    <div class="header">
+      ${logoUrl ? `<img src="${logoUrl}" class="header-logo" />` : ''}
+      <div class="header-text">
+        <h1>Relatório de Terceirizado</h1>
+        <div class="meta">
+          <span>Período: ${periodLabel}</span>
+          <span>Gerado em: ${date}</span>
+        </div>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">Rolos</div><div class="kpi-value">${fmtN(totals.totalRolls)}</div></div>
+      <div class="kpi"><div class="kpi-label">Peso Total</div><div class="kpi-value">${fmtK(totals.totalWeight)} kg</div></div>
+      ${canSeeFinancial ? `
+        <div class="kpi"><div class="kpi-label">Receita</div><div class="kpi-value">${fmtR(totals.totalRevenue)}</div></div>
+        <div class="kpi"><div class="kpi-label">Custo</div><div class="kpi-value">${fmtR(totals.totalCost)}</div></div>
+        <div class="kpi"><div class="kpi-label">Lucro</div><div class="kpi-value ${totals.totalProfit >= 0 ? 'profit' : 'loss'}">${fmtR(totals.totalProfit)}</div></div>
+      ` : ''}
+    </div>
+    <div class="section">
+      <h2>Por Malharia</h2>
+      ${buildTable(companyHeaders, companyRows)}
+    </div>
+    ${articleRows.length > 0 ? `
+      <div class="section">
+        <h2>Por Artigo</h2>
+        ${buildTable(articleHeaders, articleRows)}
+      </div>
+    ` : ''}
+    <div class="footer">Relatório gerado automaticamente pelo sistema MalhaGest · ${date}</div>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
   }
 }
