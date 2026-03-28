@@ -17,7 +17,7 @@ import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CalendarIcon, Loader2, RotateCcw, Download, Clock, Search,
-  Package, TrendingUp, DollarSign, Gauge, FileText,
+  Package, TrendingUp, DollarSign, Gauge, FileText, Factory,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, type ShiftType, getCompanyShiftLabels } from '@/types';
