@@ -319,9 +319,14 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
                 <SelectValue placeholder="Selecione um tecelão" />
               </SelectTrigger>
               <SelectContent>
-                {weavers.map(w => (
-                  <SelectItem key={w.id} value={w.id}>{w.code} — {w.name}</SelectItem>
-                ))}
+                {weavers.map(w => {
+                  const shiftLabel = w.shift_type === 'fixo'
+                    ? w.fixed_shift === 'manha' ? '1º Turno' : w.fixed_shift === 'tarde' ? '2º Turno' : w.fixed_shift === 'noite' ? '3º Turno' : ''
+                    : 'Horário Específico';
+                  return (
+                    <SelectItem key={w.id} value={w.id}>{w.code} — {w.name} - {shiftLabel}</SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
