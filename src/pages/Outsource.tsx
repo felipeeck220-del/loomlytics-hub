@@ -813,13 +813,11 @@ function ReportsTab({ productions, loading }: {
         )}
 
         {/* Export PDF */}
-        {filtered.length > 0 && (
-          <div className="flex justify-end pt-2">
-            <Button onClick={() => exportOutsourcePdf(filtered, totals)} className="btn-gradient">
-              <Download className="h-4 w-4 mr-2" /> Exportar PDF
-            </Button>
-          </div>
-        )}
+        <div className="flex justify-end pt-2">
+          <Button onClick={() => exportOutsourcePdf(filtered, totals)} className="btn-gradient" disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 mr-2" /> Exportar PDF
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
