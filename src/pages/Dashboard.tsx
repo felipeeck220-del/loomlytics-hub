@@ -52,8 +52,40 @@ export default function Dashboard() {
   const [filterClient, setFilterClient] = useState<string>('all');
   const [filterArticle, setFilterArticle] = useState<string>('all');
   const [showAllMachines, setShowAllMachines] = useState(false);
+  const [machineLogs, setMachineLogs] = useState<Record<string, string>>({});
+  const [nowTick, setNowTick] = useState(new Date());
 
   const currentShift = getCurrentShift();
+
+  // Machines that are stopped (not ativa, not inativa)
+  const stoppedMachines = useMemo(() => 
+    machines.filter(m => m.status !== 'ativa' && m.status !== 'inativa'),
+    [machines]
+  );
+
+  // Fetch latest machine_log for stopped machines to get stop start time
+  useEffect(() => {
+    if (stoppedMachines.length === 0) return;
+    const ids = stoppedMachines.map(m => m.id);
+    (supabase.from as any)('machine_logs')
+      .select('machine_id, started_at, status')
+      .in('machine_id', ids)
+      .is('ended_at', null)
+      .then(({ data }: any) => {
+        if (data) {
+          const logs: Record<string, string> = {};
+          data.forEach((log: any) => { logs[log.machine_id] = log.started_at; });
+          setMachineLogs(logs);
+        }
+      });
+  }, [stoppedMachines]);
+
+  // Real-time tick for elapsed time
+  useEffect(() => {
+    if (stoppedMachines.length === 0) return;
+    const interval = setInterval(() => setNowTick(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, [stoppedMachines.length]);
 
   const clearFilters = () => {
     setDayRange(15);
