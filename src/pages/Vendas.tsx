@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import {
   LayoutDashboard, Settings2, Users, ClipboardList, Factory, FileText,
   HardHat, Search, CheckCircle2, X, ArrowRight, Zap, Shield, BarChart3,
@@ -71,7 +73,20 @@ const benefits = [
 
 export default function Vendas() {
   const navigate = useNavigate();
+  const [trialDays, setTrialDays] = useState(90);
+  const [monthlyPrice, setMonthlyPrice] = useState(47);
 
+  useEffect(() => {
+    supabase.from('platform_settings').select('key, value').then(({ data }) => {
+      (data || []).forEach((row: any) => {
+        if (row.key === 'trial_days') setTrialDays(Number(row.value));
+        if (row.key === 'monthly_price') setMonthlyPrice(Number(row.value));
+      });
+    });
+  }, []);
+
+  const trialMonths = Math.round(trialDays / 30);
+  const annualPrice = monthlyPrice * 12 * 0.6;
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -263,12 +278,21 @@ export default function Vendas() {
         <div className="max-w-3xl mx-auto px-4 text-center">
           <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-10 md:p-14">
             <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">
-              Teste grátis por 3 meses
+              Teste grátis por {trialMonths} {trialMonths === 1 ? 'mês' : 'meses'}
             </h2>
-            <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
+            <p className="text-muted-foreground text-lg mb-4 max-w-xl mx-auto">
               Sem compromisso, sem cartão de crédito. Experimente todos os módulos e veja
               sua gestão têxtil se transformar.
             </p>
+            <div className="mb-8 space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Após o período grátis: <span className="font-semibold text-foreground">R$ {monthlyPrice.toFixed(2)}/mês</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Plano anual: <span className="font-semibold text-primary">R$ {annualPrice.toFixed(2)}/ano</span>{' '}
+                <Badge variant="secondary" className="text-xs">40% OFF</Badge>
+              </p>
+            </div>
             <Button
               size="lg"
               className="text-lg px-10 py-6 h-auto font-bold shadow-lg hover:shadow-xl transition-all"
@@ -278,7 +302,7 @@ export default function Vendas() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <p className="text-xs text-muted-foreground mt-4">
-              3 meses grátis • Sem cartão de crédito • Cancele quando quiser
+              {trialMonths} {trialMonths === 1 ? 'mês' : 'meses'} grátis • Sem cartão de crédito • Cancele quando quiser
             </p>
           </div>
         </div>

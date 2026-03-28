@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Lock, Building2, Users, Calendar, Mail, Phone, Shield, LogOut, User } from 'lucide-react';
+import { Lock, Building2, Users, Calendar, Mail, Phone, Shield, LogOut, User, Settings2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const NAV_ITEMS = [
@@ -80,6 +80,11 @@ export default function Admin() {
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [userNavItems, setUserNavItems] = useState<string[]>([]);
   const [savingUser, setSavingUser] = useState(false);
+
+  // Platform settings
+  const [trialDays, setTrialDays] = useState('90');
+  const [monthlyPrice, setMonthlyPrice] = useState('47.00');
+  const [savingPlatform, setSavingPlatform] = useState(false);
 
   useEffect(() => {
     checkExistingSession();
@@ -157,12 +162,15 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [companiesData, usersData] = await Promise.all([
+      const [companiesData, usersData, platformData] = await Promise.all([
         callAdmin('list_companies'),
         callAdmin('list_users'),
+        callAdmin('get_platform_settings'),
       ]);
       setCompanies(companiesData);
       setUsers(usersData);
+      if (platformData?.trial_days) setTrialDays(platformData.trial_days);
+      if (platformData?.monthly_price) setMonthlyPrice(platformData.monthly_price);
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     } finally {
@@ -237,6 +245,22 @@ export default function Admin() {
     }
   };
 
+  const handleSavePlatformSettings = async () => {
+    setSavingPlatform(true);
+    try {
+      await callAdmin('update_platform_settings', {
+        settings: { trial_days: trialDays, monthly_price: monthlyPrice },
+      });
+      toast({ title: 'Salvo', description: 'Configurações da plataforma atualizadas.' });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingPlatform(false);
+    }
+  };
+
+  const annualPrice = Number(monthlyPrice) * 12 * 0.6;
+
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -310,6 +334,10 @@ export default function Admin() {
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               Usuários
+            </TabsTrigger>
+            <TabsTrigger value="platform-settings" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Configurações
             </TabsTrigger>
           </TabsList>
 
@@ -454,6 +482,59 @@ export default function Admin() {
                     )}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="platform-settings">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings2 className="h-5 w-5" />
+                  Configurações da Plataforma
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6 max-w-lg">
+                <div className="space-y-2">
+                  <Label>Dias de Teste Grátis (novos cadastros)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={trialDays}
+                    onChange={e => setTrialDays(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Exibido na página de vendas e aplicado a novos registros. Atualmente: {trialDays} dias ({Math.round(Number(trialDays) / 30)} meses)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Preço Mensal (R$) — Novos Usuários</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={monthlyPrice}
+                    onChange={e => setMonthlyPrice(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Aplicado somente a novos cadastros. Empresas já existentes mantêm o valor atual.
+                  </p>
+                </div>
+
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-1">
+                  <p className="text-sm font-medium">Cálculo Plano Anual (40% de desconto)</p>
+                  <p className="text-sm text-muted-foreground">
+                    Mensal: R$ {Number(monthlyPrice).toFixed(2)} × 12 = R$ {(Number(monthlyPrice) * 12).toFixed(2)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Com 40% desconto: <span className="font-semibold text-primary">R$ {annualPrice.toFixed(2)}/ano</span>{' '}
+                    (R$ {(annualPrice / 12).toFixed(2)}/mês)
+                  </p>
+                </div>
+
+                <Button onClick={handleSavePlatformSettings} disabled={savingPlatform}>
+                  {savingPlatform ? 'Salvando...' : 'Salvar Configurações'}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

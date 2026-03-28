@@ -162,6 +162,38 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === 'get_platform_settings') {
+      const { data, error } = await supabase
+        .from('platform_settings')
+        .select('*');
+
+      if (error) throw error;
+
+      const result: Record<string, string> = {};
+      (data || []).forEach((row: any) => {
+        result[row.key] = row.value;
+      });
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'update_platform_settings') {
+      const { settings } = params;
+
+      for (const [key, value] of Object.entries(settings)) {
+        const { error } = await supabase
+          .from('platform_settings')
+          .upsert({ key, value: String(value), updated_at: new Date().toISOString() }, { onConflict: 'key' });
+        if (error) throw error;
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'Ação inválida' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
