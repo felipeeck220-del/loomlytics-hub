@@ -172,8 +172,8 @@ export default function MecanicaPage() {
   const formatWeight = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`;
 
   const handleAddLog = async () => {
-    if (!addMachineId || !addStartDate) {
-      toast.error('Selecione uma máquina e data de início.');
+    if (!addMachineId || !addStartDate || !addStartTime || !addEndDate || !addEndTime) {
+      toast.error('Preencha todos os campos obrigatórios.');
       return;
     }
     setSaving(true);
@@ -183,7 +183,7 @@ export default function MecanicaPage() {
         machine_id: addMachineId,
         status: addStatus as MachineStatus,
         started_at: new Date(`${addStartDate}T${addStartTime}:00`).toISOString(),
-        ended_at: addEndDate ? new Date(`${addEndDate}T${addEndTime || '08:00'}:00`).toISOString() : undefined,
+        ended_at: new Date(`${addEndDate}T${addEndTime}:00`).toISOString(),
       };
       const updatedLogs = [...machineLogs, newLog];
       await saveMachineLogs(updatedLogs);
