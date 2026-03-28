@@ -687,40 +687,40 @@ function ReportsTab({ productions, loading }: {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 rounded-lg border bg-muted/30 p-4">
-          <div className="flex items-end gap-3 flex-wrap">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Período</Label>
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal h-9", !startDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
-                      {startDate ? format(startDate, 'dd/MM/yy') : 'Início'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-                <span className="text-xs text-muted-foreground">até</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal h-9", !endDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
-                      {endDate ? format(endDate, 'dd/MM/yy') : 'Fim'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={endDate} onSelect={setEndDate} className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-              </div>
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Período</Label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !startDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                    {startDate ? format(startDate, 'dd/MM/yy') : 'Início'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={startDate} onSelect={setStartDate} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">até</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !endDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                    {endDate ? format(endDate, 'dd/MM/yy') : 'Fim'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={endDate} onSelect={setEndDate} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
             </div>
+          </div>
+          <div className="flex items-end gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Resultado</Label>
               <Select value={profitFilter} onValueChange={(v: any) => setProfitFilter(v)}>
-                <SelectTrigger className="w-[130px] h-9 text-sm">
+                <SelectTrigger className="w-[120px] h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -730,12 +730,12 @@ function ReportsTab({ productions, loading }: {
                 </SelectContent>
               </Select>
             </div>
+            {(startDate || endDate || profitFilter !== 'all') && (
+              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); }}>
+                ✕ Limpar
+              </Button>
+            )}
           </div>
-          {(startDate || endDate || profitFilter !== 'all') && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); }}>
-              ✕ Limpar
-            </Button>
-          )}
         </div>
 
         {/* Summary cards */}
