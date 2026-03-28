@@ -263,6 +263,53 @@ export default function Reports() {
       }));
   }, [filtered]);
 
+  // Filtered outsource productions (reuses same date filters)
+  const filteredOutsource = useMemo(() => {
+    let data = [...outsourceProductions];
+    const today = new Date();
+    if (dayRange === 0) { /* all */ }
+    else if (dateFrom || dateTo) {
+      if (dateFrom) { const s = format(dateFrom, 'yyyy-MM-dd'); data = data.filter(p => p.date >= s); }
+      if (dateTo) { const e = format(dateTo, 'yyyy-MM-dd'); data = data.filter(p => p.date <= e); }
+    } else if (filterMonth !== 'all') {
+      data = data.filter(p => p.date.startsWith(filterMonth));
+    } else if (customDate) {
+      data = data.filter(p => p.date === format(customDate, 'yyyy-MM-dd'));
+    } else {
+      const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+      const end = format(today, 'yyyy-MM-dd');
+      data = data.filter(p => p.date >= start && p.date <= end);
+    }
+    return data;
+  }, [outsourceProductions, dayRange, customDate, dateFrom, dateTo, filterMonth]);
+
+  const outsourceTotals = useMemo(() => {
+    const tw = filteredOutsource.reduce((s, p) => s + p.weight_kg, 0);
+    const tr = filteredOutsource.reduce((s, p) => s + p.rolls, 0);
+    const tRev = filteredOutsource.reduce((s, p) => s + p.total_revenue, 0);
+    const tCost = filteredOutsource.reduce((s, p) => s + p.total_cost, 0);
+    const tProfit = filteredOutsource.reduce((s, p) => s + p.total_profit, 0);
+    const byCompanyMap: Record<string, { name: string; kg: number; rolls: number; revenue: number; cost: number; profit: number }> = {};
+    filteredOutsource.forEach(p => {
+      const k = p.outsource_company_id;
+      if (!byCompanyMap[k]) byCompanyMap[k] = { name: p.outsource_company_name || 'Sem nome', kg: 0, rolls: 0, revenue: 0, cost: 0, profit: 0 };
+      byCompanyMap[k].kg += p.weight_kg; byCompanyMap[k].rolls += p.rolls;
+      byCompanyMap[k].revenue += p.total_revenue; byCompanyMap[k].cost += p.total_cost; byCompanyMap[k].profit += p.total_profit;
+    });
+    const byArticleMap: Record<string, { name: string; client: string; kg: number; rolls: number; revenue: number; cost: number; profit: number }> = {};
+    filteredOutsource.forEach(p => {
+      const k = p.article_id;
+      if (!byArticleMap[k]) byArticleMap[k] = { name: p.article_name || 'Sem artigo', client: p.client_name || '—', kg: 0, rolls: 0, revenue: 0, cost: 0, profit: 0 };
+      byArticleMap[k].kg += p.weight_kg; byArticleMap[k].rolls += p.rolls;
+      byArticleMap[k].revenue += p.total_revenue; byArticleMap[k].cost += p.total_cost; byArticleMap[k].profit += p.total_profit;
+    });
+    return {
+      totalWeight: tw, totalRolls: tr, totalRevenue: tRev, totalCost: tCost, totalProfit: tProfit,
+      byCompany: Object.values(byCompanyMap).sort((a, b) => b.profit - a.profit),
+      byArticle: Object.values(byArticleMap).sort((a, b) => b.profit - a.profit),
+    };
+  }, [filteredOutsource]);
+
   const periodLabel = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
     const today = new Date();
