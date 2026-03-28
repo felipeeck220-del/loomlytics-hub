@@ -551,7 +551,7 @@ export default function MecanicaPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Data Fim (opcional)</Label>
+                <Label>Data Fim</Label>
                 <Input type="date" value={addEndDate} onChange={e => setAddEndDate(e.target.value)} />
               </div>
               <div>
