@@ -272,6 +272,43 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
             </CardContent>
           </Card>
 
+          {/* Active date range label */}
+          {(() => {
+            const today = new Date();
+            let startLabel = '';
+            let endLabel = '';
+            if (dateFrom || dateTo) {
+              startLabel = dateFrom ? format(dateFrom, 'dd/MM/yyyy') : '...';
+              endLabel = dateTo ? format(dateTo, 'dd/MM/yyyy') : format(today, 'dd/MM/yyyy');
+            } else if (customDate) {
+              startLabel = format(customDate, 'dd/MM/yyyy');
+              endLabel = startLabel;
+            } else if (filterMonth !== 'all') {
+              const [y, mo] = filterMonth.split('-').map(Number);
+              startLabel = format(new Date(y, mo - 1, 1), 'dd/MM/yyyy');
+              endLabel = format(new Date(y, mo, 0), 'dd/MM/yyyy');
+            } else if (filterYear !== 'all') {
+              startLabel = `01/01/${filterYear}`;
+              endLabel = `31/12/${filterYear}`;
+            } else if (dayRange > 0) {
+              startLabel = format(subDays(today, dayRange - 1), 'dd/MM/yyyy');
+              endLabel = format(today, 'dd/MM/yyyy');
+            } else {
+              // Todo período
+              if (filtered.length > 0) {
+                const dates = filtered.map(p => p.date).sort();
+                startLabel = format(new Date(dates[0] + 'T12:00:00'), 'dd/MM/yyyy');
+                endLabel = format(new Date(dates[dates.length - 1] + 'T12:00:00'), 'dd/MM/yyyy');
+              }
+            }
+            if (!startLabel) return null;
+            return (
+              <p className="text-sm text-muted-foreground">
+                Exibindo dados de <span className="font-medium text-foreground">{startLabel}</span> até <span className="font-medium text-foreground">{endLabel}</span>
+              </p>
+            );
+          })()}
+
           {/* Machine Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {machinePerf.map(m => (
