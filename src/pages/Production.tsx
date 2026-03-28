@@ -1043,9 +1043,6 @@ export default function ProductionPage() {
                 <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">Enter</kbd> para salvar
               </p>
               <div className="flex w-full gap-2 sm:w-auto">
-                <Button variant="outline" onClick={() => setShowModal(false)} disabled={hasPendingSaves} className="flex-1 sm:flex-none">
-                  {hasPendingSaves ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Salvando...</> : 'Fechar'}
-                </Button>
                 <Button onClick={handleSave} className="btn-gradient flex-1 sm:flex-none" disabled={saving}>
                   {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
                   <span className="truncate">{editing ? 'Salvar' : 'Registrar e Próximo'}</span>
