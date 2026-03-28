@@ -119,12 +119,22 @@ export default function MaintenanceViewModal({ machine, currentLog, open, onClos
               </Badge>
             </div>
             {currentLog && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground font-medium">Início</span>
-                <span className="text-sm font-semibold text-foreground">
-                  {format(new Date(currentLog.started_at), 'dd/MM/yyyy HH:mm')}
-                </span>
-              </div>
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground font-medium">Início</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {format(new Date(currentLog.started_at), 'dd/MM/yyyy HH:mm')}
+                  </span>
+                </div>
+                {currentLog.started_by_name && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground font-medium">Iniciado por</span>
+                    <span className="text-sm font-semibold text-primary">
+                      {currentLog.started_by_name}{currentLog.started_by_code ? ` #${currentLog.started_by_code}` : ''}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,7 +54,7 @@ export default function Machines() {
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
-  const { logAction } = useAuditLog();
+  const { logAction, userName, userCode } = useAuditLog();
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Machine | null>(null);
@@ -90,8 +91,12 @@ export default function Machines() {
       if (oldStatus !== form.status) {
         const allLogs = [...logs];
         const openLog = allLogs.find(l => l.machine_id === editing.id && !l.ended_at);
-        if (openLog) openLog.ended_at = new Date().toISOString();
-        allLogs.push({ id: crypto.randomUUID(), machine_id: editing.id, status: form.status, started_at: new Date().toISOString() });
+        if (openLog) {
+          openLog.ended_at = new Date().toISOString();
+          openLog.ended_by_name = userName || undefined;
+          openLog.ended_by_code = userCode || undefined;
+        }
+        allLogs.push({ id: crypto.randomUUID(), machine_id: editing.id, status: form.status, started_at: new Date().toISOString(), started_by_name: userName || undefined, started_by_code: userCode || undefined });
         try {
           await saveMachineLogs(allLogs);
         } catch (err) {
@@ -115,7 +120,7 @@ export default function Machines() {
       await saveMachines(all);
 
       const allLogs = [...logs];
-      allLogs.push({ id: crypto.randomUUID(), machine_id: newMachine.id, status: form.status, started_at: new Date().toISOString() });
+      allLogs.push({ id: crypto.randomUUID(), machine_id: newMachine.id, status: form.status, started_at: new Date().toISOString(), started_by_name: userName || undefined, started_by_code: userCode || undefined });
       try {
         await saveMachineLogs(allLogs);
       } catch (err) {
@@ -404,11 +409,19 @@ export default function Machines() {
           <div className="max-h-80 overflow-auto space-y-2">
             {machineReportLogs.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">Nenhum registro encontrado</p>}
             {machineReportLogs.map(l => (
-              <div key={l.id} className="flex justify-between items-center text-sm p-2 rounded bg-muted/50">
-                <Badge className={cn("text-xs", MACHINE_STATUS_COLORS[l.status])}>{MACHINE_STATUS_LABELS[l.status]}</Badge>
-                <div className="text-right text-muted-foreground text-xs">
-                  <p>Início: {format(new Date(l.started_at), 'dd/MM/yyyy HH:mm')}</p>
-                  {l.ended_at && <p>Fim: {format(new Date(l.ended_at), 'dd/MM/yyyy HH:mm')}</p>}
+              <div key={l.id} className="flex flex-col gap-1 text-sm p-3 rounded bg-muted/50">
+                <div className="flex justify-between items-center">
+                  <Badge className={cn("text-xs", MACHINE_STATUS_COLORS[l.status])}>{MACHINE_STATUS_LABELS[l.status]}</Badge>
+                </div>
+                <div className="text-muted-foreground text-xs space-y-0.5">
+                  <p>Início: {format(new Date(l.started_at), 'dd/MM/yyyy HH:mm')}
+                    {l.started_by_name && <span className="text-primary font-medium"> — {l.started_by_name}{l.started_by_code ? ` #${l.started_by_code}` : ''}</span>}
+                  </p>
+                  {l.ended_at && (
+                    <p>Fim: {format(new Date(l.ended_at), 'dd/MM/yyyy HH:mm')}
+                      {l.ended_by_name && <span className="text-primary font-medium"> — {l.ended_by_name}{l.ended_by_code ? ` #${l.ended_by_code}` : ''}</span>}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

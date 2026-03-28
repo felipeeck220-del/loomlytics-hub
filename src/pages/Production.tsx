@@ -38,7 +38,7 @@ export default function ProductionPage() {
   const articles = getArticles();
   const articleMachineTurns = getArticleMachineTurns();
   const machineLogs = getMachineLogs();
-  const { logAction } = useAuditLog();
+  const { logAction, userName, userCode } = useAuditLog();
 
   const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
 
@@ -270,6 +270,7 @@ export default function ProductionPage() {
       rpm: rpmVal, rolls_produced: mainRolls,
       weight_kg: mainWeightKg, revenue: mainRevenue,
       efficiency: combinedEfficiency, created_at: editing?.created_at || now,
+      created_by_name: userName || undefined, created_by_code: userCode || undefined,
     });
 
     for (const ea of extraArticles) {
@@ -287,6 +288,7 @@ export default function ProductionPage() {
         rpm: rpmVal, rolls_produced: rolls,
         weight_kg: weightKg, revenue,
         efficiency: combinedEfficiency, created_at: editing?.created_at || now,
+        created_by_name: userName || undefined, created_by_code: userCode || undefined,
       });
     }
 
@@ -641,6 +643,9 @@ export default function ProductionPage() {
                         <p className="font-display font-bold text-foreground text-lg">{group.machine_name}</p>
                         <p className="text-sm text-muted-foreground truncate">
                           {group.weaver_name}{registrationTime ? ` — ${registrationTime}` : ''} -- {isMultiArticle ? 'Artigos' : 'Artigo'}: {articlesDesc}
+                          {firstItem.created_by_name && (
+                            <span className="text-primary font-medium"> — por {firstItem.created_by_name}{firstItem.created_by_code ? ` #${firstItem.created_by_code}` : ''}</span>
+                          )}
                         </p>
                       </div>
 

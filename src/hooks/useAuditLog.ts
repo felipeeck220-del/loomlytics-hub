@@ -1,32 +1,44 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useAuditLog() {
   const { user } = useAuth();
+  const [userCode, setUserCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    (supabase.from as any)('profiles')
+      .select('code')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        setUserCode(data?.code || null);
+      });
+  }, [user?.id]);
 
   const logAction = useCallback(async (action: string, details?: Record<string, any>) => {
     if (!user?.company_id) return;
     try {
-      // Get user code from profiles
-      const { data: profile } = await (supabase.from as any)('profiles')
-        .select('code')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
       await (supabase.from as any)('audit_logs').insert({
         company_id: user.company_id,
         user_id: user.id,
         user_name: user.name,
         user_role: user.role,
-        user_code: profile?.code || null,
+        user_code: userCode,
         action,
         details: details || {},
       });
     } catch (err) {
       console.error('Audit log error:', err);
     }
-  }, [user]);
+  }, [user, userCode]);
 
-  return { logAction };
+  // User tracking info for embedding in records
+  const userTrackingInfo = {
+    created_by_name: user?.name || null,
+    created_by_code: userCode,
+  };
+
+  return { logAction, userCode, userName: user?.name || null, userTrackingInfo };
 }

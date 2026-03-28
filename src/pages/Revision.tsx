@@ -25,7 +25,7 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 export default function RevisionPage() {
   const { getMachines, getWeavers, getArticles, getDefectRecords, addDefectRecords, deleteDefectRecords, shiftSettings, loading } = useSharedCompanyData();
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
-  const { logAction } = useAuditLog();
+  const { logAction, userName, userCode } = useAuditLog();
 
   const machines = getMachines();
   const weavers = getWeavers();
@@ -120,6 +120,8 @@ export default function RevisionPage() {
         article_name: article?.name,
         weaver_name: weaver?.name,
         observations: form.observations ? `[${form.defect_name}] ${form.observations}` : form.defect_name,
+        created_by_name: userName || undefined,
+        created_by_code: userCode || undefined,
         created_at: new Date().toISOString(),
       };
 
@@ -218,13 +220,14 @@ export default function RevisionPage() {
               <TableHead>Tipo</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Obs</TableHead>
+              <TableHead>Registrado por</TableHead>
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                   Nenhuma falha registrada{filterDate ? ' nesta data' : ''}
                 </TableCell>
               </TableRow>
@@ -238,6 +241,9 @@ export default function RevisionPage() {
                 <TableCell><Badge variant={d.measure_type === 'kg' ? 'secondary' : 'outline'}>{d.measure_type === 'kg' ? 'Kg' : 'Metro'}</Badge></TableCell>
                 <TableCell className="text-right font-mono">{formatNumber(d.measure_value)} {d.measure_type === 'kg' ? 'kg' : 'm'}</TableCell>
                 <TableCell className="max-w-[120px] truncate text-muted-foreground text-xs">{d.observations || '—'}</TableCell>
+                <TableCell className="text-xs text-primary font-medium whitespace-nowrap">
+                  {d.created_by_name ? `${d.created_by_name}${d.created_by_code ? ` #${d.created_by_code}` : ''}` : '—'}
+                </TableCell>
                 <TableCell>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { setShowDelete(d); setDeleteWord(''); }}>
                     <Trash2 className="h-4 w-4" />
