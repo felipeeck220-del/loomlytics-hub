@@ -977,18 +977,30 @@ export default function ProductionPage() {
               })();
 
               return (
-                <div className={cn("rounded-lg border p-3 overflow-x-hidden", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
+                <div className={cn("rounded-xl border p-4 overflow-x-hidden", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
                   {preview ? (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-                        <div className="text-center"><p className="text-xs text-muted-foreground">Rolos</p><p className="break-words font-bold text-foreground">{preview.rolls}</p></div>
-                        <div className="text-center"><p className="text-xs text-muted-foreground">Peso (kg)</p><p className="break-words font-bold text-foreground">{preview.weightKg.toFixed(1)}</p></div>
-                        <div className="text-center"><p className="text-xs text-muted-foreground">Valor</p><p className="break-words font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p></div>
-                        <div className="text-center"><p className="text-xs text-muted-foreground">Eficiência</p><p className={cn("break-words font-bold", effColor(preview.efficiency, previewTargetEff))}>{preview.efficiency.toFixed(1)}%</p></div>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="rounded-lg border border-border/60 bg-background/80 p-3 text-center">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Rolos</p>
+                          <p className="mt-1 break-words text-2xl font-bold text-foreground">{preview.rolls}</p>
+                        </div>
+                        <div className="rounded-lg border border-border/60 bg-background/80 p-3 text-center">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Peso (kg)</p>
+                          <p className="mt-1 break-words text-2xl font-bold text-foreground">{preview.weightKg.toFixed(1)}</p>
+                        </div>
+                        <div className="rounded-lg border border-border/60 bg-background/80 p-3 text-center">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Valor</p>
+                          <p className="mt-1 break-words text-2xl font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p>
+                        </div>
+                        <div className="rounded-lg border border-border/60 bg-background/80 p-3 text-center">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Eficiência</p>
+                          <p className={cn("mt-1 break-words text-2xl font-bold", effColor(preview.efficiency, previewTargetEff))}>{preview.efficiency.toFixed(1)}%</p>
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2 text-xs sm:justify-center">
                         {selectedArticle && (
-                          <span className={cn("rounded-full px-2 py-0.5", effBg(preview.efficiency, selectedArticle.target_efficiency || 80))}>
+                          <span className={cn("rounded-full px-3 py-1", effBg(preview.efficiency, selectedArticle.target_efficiency || 80))}>
                             {selectedArticle.name}: Meta {selectedArticle.target_efficiency || 80}%
                           </span>
                         )}
@@ -996,20 +1008,20 @@ export default function ProductionPage() {
                           const art = articles.find(a => a.id === ea.article_id);
                           if (!art) return null;
                           return (
-                            <span key={idx} className={cn("rounded-full px-2 py-0.5", effBg(preview.efficiency, art.target_efficiency || 80))}>
+                            <span key={idx} className={cn("rounded-full px-3 py-1", effBg(preview.efficiency, art.target_efficiency || 80))}>
                               {art.name}: Meta {art.target_efficiency || 80}%
                             </span>
                           );
                         })}
                         {extraArticles.some(ea => articles.find(a => a.id === ea.article_id)) && (
-                          <span className="rounded-full bg-muted px-2 py-0.5 font-semibold">
+                          <span className="rounded-full bg-muted px-3 py-1 font-semibold">
                             Média: {formatNumber(previewTargetEff, 0)}%
                           </span>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <p className="py-1 text-center text-xs text-muted-foreground">Preencha os campos para ver o preview</p>
+                    <p className="py-3 text-center text-sm text-muted-foreground">Preencha os campos para ver o preview</p>
                   )}
                 </div>
               );
