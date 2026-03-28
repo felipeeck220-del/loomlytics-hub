@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Wrench, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Wrench, ChevronLeft, ChevronRight, Search, History } from 'lucide-react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ export default function MecanicaPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [detailsSearch, setDetailsSearch] = useState('');
+  const [historyMachineId, setHistoryMachineId] = useState<string | null>(null);
 
   const activeMachines = useMemo(() => machines.filter(m => m.status !== 'inativa'), [machines]);
 
@@ -128,6 +129,40 @@ export default function MecanicaPage() {
       };
     });
   }, [activeMachines, productions, machineLogs]);
+
+  // History: all maintenance logs for a specific machine with revenue/kg between each period
+  const historyData = useMemo(() => {
+    if (!historyMachineId) return [];
+    const machineProductions = productions.filter(p => p.machine_id === historyMachineId);
+    
+    const relevantLogs = machineLogs
+      .filter(l => l.machine_id === historyMachineId && (l.status === 'manutencao_preventiva' || l.status === 'troca_agulhas'))
+      .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
+
+    return relevantLogs.map((log, idx) => {
+      const logDate = format(new Date(log.started_at), 'yyyy-MM-dd');
+      // Next log of same type (the one before this chronologically)
+      const nextLogOfSameType = relevantLogs
+        .filter(l => l.status === log.status)
+        .find((l, i2) => {
+          const sameLogs = relevantLogs.filter(ll => ll.status === log.status);
+          const currentIdx = sameLogs.indexOf(log);
+          return sameLogs.indexOf(l) === currentIdx + 1;
+        });
+      
+      const fromDate = nextLogOfSameType 
+        ? format(new Date(nextLogOfSameType.started_at), 'yyyy-MM-dd')
+        : '2000-01-01';
+
+      const periodProductions = machineProductions.filter(p => p.date >= fromDate && p.date <= logDate);
+      const revenue = periodProductions.reduce((sum, p) => sum + p.revenue, 0);
+      const weight = periodProductions.reduce((sum, p) => sum + p.weight_kg, 0);
+
+      return { log, revenue, weight, fromDate };
+    });
+  }, [historyMachineId, machineLogs, productions]);
+
+  const historyMachineName = historyMachineId ? getMachineName(historyMachineId) : '';
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -343,6 +378,15 @@ export default function MecanicaPage() {
                         </div>
                       </div>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-1"
+                      onClick={() => setHistoryMachineId(machine.id)}
+                    >
+                      <History className="h-4 w-4 mr-1" />
+                      Ver Todos
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -378,6 +422,48 @@ export default function MecanicaPage() {
                       Início: {format(new Date(log.started_at), "HH:mm", { locale: ptBR })}
                       {log.ended_at && ` — Fim: ${format(new Date(log.ended_at), "HH:mm", { locale: ptBR })}`}
                     </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* History modal */}
+      <Dialog open={!!historyMachineId} onOpenChange={(open) => !open && setHistoryMachineId(null)}>
+        <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Histórico — {historyMachineName}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-3">
+            {historyData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro de manutenção preventiva ou troca de agulhas.</p>
+            ) : (
+              historyData.map(({ log, revenue, weight, fromDate }) => (
+                <div key={log.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card">
+                  <div className="flex items-center gap-2 sm:w-48 shrink-0">
+                    <Badge className={cn('shrink-0', MACHINE_STATUS_COLORS[log.status as MachineStatus])}>
+                      {MACHINE_STATUS_LABELS[log.status as MachineStatus]}
+                    </Badge>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">
+                      {format(new Date(log.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Período: {fromDate !== '2000-01-01' ? format(new Date(fromDate), 'dd/MM/yyyy') : 'Início'} → {format(new Date(log.started_at), 'dd/MM/yyyy')}
+                    </p>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-foreground">{formatCurrency(revenue)}</p>
+                      <p className="text-[10px] text-muted-foreground">Faturamento</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-foreground">{formatWeight(weight)}</p>
+                      <p className="text-[10px] text-muted-foreground">Peso</p>
+                    </div>
                   </div>
                 </div>
               ))
