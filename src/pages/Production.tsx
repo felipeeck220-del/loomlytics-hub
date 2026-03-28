@@ -80,6 +80,18 @@ export default function ProductionPage() {
   const selectedArticle = articles.find(a => a.id === form.article_id);
   const machineMode = selectedMachine?.production_mode || 'rolos';
 
+  // Calculate downtime for selected machine/date/shift
+  const downtimeInfo = useMemo((): ShiftDowntimeInfo | null => {
+    if (!form.machine_id || !form.shift || !form.date) return null;
+    const dateStr = format(form.date, 'yyyy-MM-dd');
+    const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
+    if (!shiftMinutes) return null;
+    return calculateShiftDowntime(machineLogs, form.machine_id, dateStr, form.shift as ShiftType, shiftSettings, shiftMinutes);
+  }, [form.machine_id, form.shift, form.date, machineLogs, shiftSettings, companyShiftMinutes]);
+
+  // Effective shift minutes (discounting downtime)
+  const effectiveShiftMinutes = downtimeInfo ? downtimeInfo.effectiveShiftMinutes : (form.shift ? companyShiftMinutes[form.shift as ShiftType] : 510);
+
   const currentMachineIndex = sortedMachines.findIndex(m => m.id === form.machine_id);
   const currentShiftIndex = SHIFTS.indexOf(form.shift as ShiftType);
 
