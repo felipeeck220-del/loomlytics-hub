@@ -328,6 +328,7 @@ export default function Admin() {
                       <TableHead>Empresa</TableHead>
                       <TableHead>Admin</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>WhatsApp</TableHead>
                       <TableHead>Usuários</TableHead>
                       <TableHead>Plano (R$)</TableHead>
                       <TableHead>Status</TableHead>
