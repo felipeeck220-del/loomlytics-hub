@@ -317,6 +317,7 @@ export default function SettingsPage() {
     };
     fetchData();
     checkSubscription();
+    fetchPaymentHistory();
   }, [user]);
 
   const checkSubscription = async () => {
