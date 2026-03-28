@@ -52,6 +52,7 @@ export default function AppLayout() {
   const [now, setNow] = useState(new Date());
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
@@ -64,11 +65,16 @@ export default function AppLayout() {
       .select('subscription_status, trial_end_date')
       .eq('company_id', user.company_id)
       .maybeSingle();
-    if (data?.subscription_status === 'trial' && data?.trial_end_date) {
+    if (data?.subscription_status === 'active' || data?.subscription_status === 'cancelling') {
+      setSubscriptionActive(true);
+      setTrialDaysLeft(null);
+    } else if (data?.subscription_status === 'trial' && data?.trial_end_date) {
+      setSubscriptionActive(false);
       const end = new Date(data.trial_end_date);
       const diff = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       setTrialDaysLeft(Math.max(0, diff));
     } else {
+      setSubscriptionActive(false);
       setTrialDaysLeft(null);
     }
   };
