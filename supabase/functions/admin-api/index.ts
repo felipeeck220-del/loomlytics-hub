@@ -54,7 +54,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { action, ...params } = await req.json();
+    const body = await req.json();
+    const { action, ...params } = body;
+    console.log('Action received:', action, typeof action);
 
     if (action === 'list_companies') {
       const { data: companies, error } = await supabase
