@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CalendarIcon, Loader2, RotateCcw, Download, Clock, Search,
-  Package, TrendingUp, DollarSign, Gauge, FileText, Factory,
+  Package, TrendingUp, DollarSign, Gauge, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, type ShiftType, getCompanyShiftLabels } from '@/types';
