@@ -53,6 +53,10 @@ export interface MachineLog {
   status: MachineStatus;
   started_at: string;
   ended_at?: string;
+  started_by_name?: string;
+  started_by_code?: string;
+  ended_by_name?: string;
+  ended_by_code?: string;
 }
 
 export interface Client {
@@ -179,6 +183,8 @@ export interface Production {
   weight_kg: number;
   revenue: number;
   efficiency: number;
+  created_by_name?: string;
+  created_by_code?: string;
   created_at: string;
 }
 
@@ -203,6 +209,8 @@ export interface DefectRecord {
   article_name?: string;
   weaver_name?: string;
   observations?: string;
+  created_by_name?: string;
+  created_by_code?: string;
   created_at: string;
 }
 
