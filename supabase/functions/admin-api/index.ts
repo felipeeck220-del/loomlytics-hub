@@ -74,16 +74,28 @@ Deno.serve(async (req) => {
         .from('profiles')
         .select('company_id, user_id');
 
+      const { data: emailHistory } = await supabase
+        .from('email_history')
+        .select('*')
+        .order('created_at', { ascending: false });
+
       const settingsMap = new Map((settings || []).map((s: any) => [s.company_id, s]));
       const profileCounts = new Map<string, number>();
       (profiles || []).forEach((p: any) => {
         profileCounts.set(p.company_id, (profileCounts.get(p.company_id) || 0) + 1);
+      });
+      const historyMap = new Map<string, any[]>();
+      (emailHistory || []).forEach((h: any) => {
+        const list = historyMap.get(h.company_id) || [];
+        list.push(h);
+        historyMap.set(h.company_id, list);
       });
 
       const result = companies.map((c: any) => ({
         ...c,
         settings: settingsMap.get(c.id) || null,
         user_count: profileCounts.get(c.id) || 0,
+        email_history: historyMap.get(c.id) || [],
       }));
 
       return new Response(JSON.stringify(result), {
