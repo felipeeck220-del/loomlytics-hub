@@ -138,6 +138,18 @@ export default function SettingsPage() {
   const [platformSettings, setPlatformSettings] = useState<Record<string, string>>({});
   const [companyPlanValue, setCompanyPlanValue] = useState<number | null>(null);
 
+  // Pix payment state
+  const [pixModal, setPixModal] = useState(false);
+  const [pixCode, setPixCode] = useState('');
+  const [pixIdentifier, setPixIdentifier] = useState('');
+  const [pixAmount, setPixAmount] = useState(0);
+  const [pixPlanName, setPixPlanName] = useState('');
+  const [pixStatus, setPixStatus] = useState<string>('pending');
+  const [checkingPixStatus, setCheckingPixStatus] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const pixPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Company name editing
   const [editingCompanyName, setEditingCompanyName] = useState(false);
   const [companyNameForm, setCompanyNameForm] = useState('');
@@ -305,6 +317,7 @@ export default function SettingsPage() {
     };
     fetchData();
     checkSubscription();
+    fetchPaymentHistory();
   }, [user]);
 
   const checkSubscription = async () => {
@@ -319,26 +332,64 @@ export default function SettingsPage() {
   const handleCheckout = async (plan: 'monthly' | 'annual') => {
     setCheckingOut(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const { data, error } = await supabase.functions.invoke('create-pix-checkout', {
         body: { plan },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
-      if (data?.url) window.open(data.url, '_blank');
+      setPixCode(data.pix_code);
+      setPixIdentifier(data.identifier);
+      setPixAmount(data.amount);
+      setPixPlanName(data.plan_name);
+      setPixStatus('pending');
+      setPixModal(true);
+      // Start polling for payment status
+      startPixPolling(data.identifier);
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao criar checkout');
+      toast.error(err.message || 'Erro ao gerar Pix');
     }
     setCheckingOut(false);
   };
 
-  const handleManageSubscription = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      if (error || data?.error) throw new Error(data?.error || error?.message);
-      if (data?.url) window.open(data.url, '_blank');
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao abrir portal');
-    }
+  const startPixPolling = (identifier: string) => {
+    if (pixPollRef.current) clearInterval(pixPollRef.current);
+    pixPollRef.current = setInterval(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('check-pix-payment', {
+          body: { identifier },
+        });
+        if (!error && data) {
+          if (data.status === 'paid') {
+            setPixStatus('paid');
+            if (pixPollRef.current) clearInterval(pixPollRef.current);
+            toast.success('Pagamento confirmado!');
+            checkSubscription();
+            fetchPaymentHistory();
+          } else if (data.status === 'failed') {
+            setPixStatus('failed');
+            if (pixPollRef.current) clearInterval(pixPollRef.current);
+          }
+        }
+      } catch {}
+    }, 5000);
   };
+
+  const fetchPaymentHistory = async () => {
+    if (!user) return;
+    setLoadingHistory(true);
+    const { data } = await (supabase.from as any)('payment_history')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (data) setPaymentHistory(data);
+    setLoadingHistory(false);
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pixPollRef.current) clearInterval(pixPollRef.current);
+    };
+  }, []);
 
   const refreshProfiles = async () => {
     const { data } = await (supabase.from as any)('profiles').select('*').order('created_at');
@@ -993,12 +1044,12 @@ export default function SettingsPage() {
                         <Crown className="h-3 w-3 mr-1" /> Assinatura Ativa
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Seu plano está ativo até <strong className="text-foreground">{new Date(subStatus.subscription_end).toLocaleDateString('pt-BR')}</strong>.
-                    </p>
-                    <Button variant="outline" size="sm" onClick={handleManageSubscription}>
-                      Gerenciar Assinatura
-                    </Button>
+                    {paymentHistory.length > 0 && paymentHistory[0].next_billing_date && (
+                      <p className="text-sm text-muted-foreground">
+                        Próxima cobrança: <strong className="text-foreground">{new Date(paymentHistory[0].next_billing_date).toLocaleDateString('pt-BR')}</strong>
+                        {' · '}Plano: <strong className="text-foreground">{paymentHistory[0].plan === 'annual' ? 'Anual' : 'Mensal'}</strong>
+                      </p>
+                    )}
                   </>
                 )}
                 {subStatus.status === 'blocked' && (
@@ -1019,13 +1070,13 @@ export default function SettingsPage() {
             {/* Plans - hide when free or still loading */}
             {!loadingSub && subStatus?.status !== 'free' && (
             <div className="space-y-3">
-              <h3 className="font-semibold text-foreground">Escolha seu plano</h3>
+              <h3 className="font-semibold text-foreground">Escolha seu plano (Pagamento via Pix)</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Monthly Plan */}
                 <div className="rounded-xl border p-5 space-y-4 hover:border-primary/30 transition-colors">
                   <div>
                     <h4 className="font-bold text-lg">Mensal</h4>
-                    <p className="text-sm text-muted-foreground">Pague mês a mês, cancele quando quiser</p>
+                    <p className="text-sm text-muted-foreground">Pague mês a mês via Pix</p>
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-foreground">
@@ -1037,6 +1088,7 @@ export default function SettingsPage() {
                     <li>✓ Acesso a todos os módulos</li>
                     <li>✓ Suporte por WhatsApp</li>
                     <li>✓ Sem fidelidade</li>
+                    <li>✓ Pagamento via Pix</li>
                   </ul>
                   <Button
                     className="w-full"
@@ -1044,7 +1096,7 @@ export default function SettingsPage() {
                     disabled={checkingOut || subStatus?.status === 'active'}
                   >
                     {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Assinar Mensal'}
+                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Pagar via Pix'}
                   </Button>
                 </div>
 
@@ -1053,7 +1105,7 @@ export default function SettingsPage() {
                   <Badge className="absolute -top-3 right-4 bg-primary text-primary-foreground">40% OFF</Badge>
                   <div>
                     <h4 className="font-bold text-lg">Anual</h4>
-                    <p className="text-sm text-muted-foreground">Economize 40% — parcele em até 12x no cartão</p>
+                    <p className="text-sm text-muted-foreground">Economize 40% — pagamento único via Pix</p>
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-primary">
@@ -1062,12 +1114,12 @@ export default function SettingsPage() {
                     <span className="text-muted-foreground text-sm">/ano</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    ou 12x de R$ {((companyPlanValue !== null ? companyPlanValue : Number(platformSettings.monthly_price || '147.00')) * 12 * 0.6 / 12).toFixed(2)}/mês no cartão
+                    equivale a R$ {((companyPlanValue !== null ? companyPlanValue : Number(platformSettings.monthly_price || '147.00')) * 0.6).toFixed(2)}/mês
                   </p>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     <li>✓ Tudo do plano mensal</li>
                     <li>✓ 40% de economia</li>
-                    <li>✓ Parcele em até 12x</li>
+                    <li>✓ Pagamento único via Pix</li>
                   </ul>
                   <Button
                     className="w-full btn-gradient"
@@ -1075,15 +1127,40 @@ export default function SettingsPage() {
                     disabled={checkingOut || subStatus?.status === 'active'}
                   >
                     {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Assinar Anual'}
+                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Pagar via Pix'}
                   </Button>
                 </div>
               </div>
             </div>
             )}
 
+            {/* Payment History */}
+            {paymentHistory.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-foreground">Histórico de Pagamentos</h3>
+                <div className="space-y-2">
+                  {paymentHistory.map((ph: any) => (
+                    <div key={ph.id} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium text-foreground">
+                          {ph.plan === 'annual' ? 'Plano Anual' : 'Plano Mensal'} — R$ {Number(ph.amount).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(ph.created_at), "dd/MM/yyyy 'às' HH:mm")}
+                          {ph.next_billing_date && ` · Próx. cobrança: ${format(new Date(ph.next_billing_date), 'dd/MM/yyyy')}`}
+                        </p>
+                      </div>
+                      <Badge variant={ph.status === 'paid' ? 'default' : ph.status === 'pending' ? 'secondary' : 'destructive'}>
+                        {ph.status === 'paid' ? 'Pago' : ph.status === 'pending' ? 'Pendente' : ph.status === 'failed' ? 'Falhou' : ph.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={checkSubscription} disabled={loadingSub}>
+              <Button variant="outline" size="sm" onClick={() => { checkSubscription(); fetchPaymentHistory(); }} disabled={loadingSub}>
                 {loadingSub ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                 Atualizar Status
               </Button>
@@ -1204,6 +1281,81 @@ export default function SettingsPage() {
         machines={getMachines()}
         onSave={saveMachines}
       />
+
+      {/* Pix QR Code Modal */}
+      <Dialog open={pixModal} onOpenChange={(open) => {
+        setPixModal(open);
+        if (!open && pixPollRef.current) {
+          clearInterval(pixPollRef.current);
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" /> Pagamento via Pix
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-center">
+            {pixStatus === 'pending' && (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {pixPlanName} — <strong className="text-foreground">R$ {pixAmount.toFixed(2)}</strong>
+                </p>
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <p className="text-xs text-muted-foreground mb-2">Copie o código Pix abaixo:</p>
+                  <div className="bg-background border border-border rounded-lg p-3 break-all text-xs font-mono text-foreground select-all max-h-32 overflow-y-auto">
+                    {pixCode}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixCode);
+                      toast.success('Código Pix copiado!');
+                    }}
+                  >
+                    Copiar Código Pix
+                  </Button>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Aguardando pagamento...
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  O pagamento será confirmado automaticamente assim que identificado.
+                </p>
+              </>
+            )}
+            {pixStatus === 'paid' && (
+              <div className="space-y-3 py-4">
+                <div className="mx-auto h-16 w-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <Crown className="h-8 w-8 text-emerald-500" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Pagamento Confirmado!</h3>
+                <p className="text-sm text-muted-foreground">Sua assinatura foi ativada com sucesso.</p>
+              </div>
+            )}
+            {pixStatus === 'failed' && (
+              <div className="space-y-3 py-4">
+                <div className="mx-auto h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <XCircle className="h-8 w-8 text-destructive" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Pagamento Falhou</h3>
+                <p className="text-sm text-muted-foreground">Tente novamente ou entre em contato com o suporte.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setPixModal(false);
+              if (pixPollRef.current) clearInterval(pixPollRef.current);
+            }}>
+              {pixStatus === 'paid' ? 'Fechar' : 'Cancelar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
