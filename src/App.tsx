@@ -151,6 +151,7 @@ const App = () => (
               <Route path="settings" element={<ProtectedRoute routeKey="settings"><SettingsPage /></ProtectedRoute>} />
             </Route>
             <Route path="/admin" element={<Admin />} />
+            <Route path="/vendas" element={<Vendas />} />
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
