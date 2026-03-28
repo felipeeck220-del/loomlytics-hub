@@ -1044,12 +1044,12 @@ export default function SettingsPage() {
                         <Crown className="h-3 w-3 mr-1" /> Assinatura Ativa
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Seu plano está ativo até <strong className="text-foreground">{new Date(subStatus.subscription_end).toLocaleDateString('pt-BR')}</strong>.
-                    </p>
-                    <Button variant="outline" size="sm" onClick={handleManageSubscription}>
-                      Gerenciar Assinatura
-                    </Button>
+                    {paymentHistory.length > 0 && paymentHistory[0].next_billing_date && (
+                      <p className="text-sm text-muted-foreground">
+                        Próxima cobrança: <strong className="text-foreground">{new Date(paymentHistory[0].next_billing_date).toLocaleDateString('pt-BR')}</strong>
+                        {' · '}Plano: <strong className="text-foreground">{paymentHistory[0].plan === 'annual' ? 'Anual' : 'Mensal'}</strong>
+                      </p>
+                    )}
                   </>
                 )}
                 {subStatus.status === 'blocked' && (
@@ -1070,13 +1070,13 @@ export default function SettingsPage() {
             {/* Plans - hide when free or still loading */}
             {!loadingSub && subStatus?.status !== 'free' && (
             <div className="space-y-3">
-              <h3 className="font-semibold text-foreground">Escolha seu plano</h3>
+              <h3 className="font-semibold text-foreground">Escolha seu plano (Pagamento via Pix)</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Monthly Plan */}
                 <div className="rounded-xl border p-5 space-y-4 hover:border-primary/30 transition-colors">
                   <div>
                     <h4 className="font-bold text-lg">Mensal</h4>
-                    <p className="text-sm text-muted-foreground">Pague mês a mês, cancele quando quiser</p>
+                    <p className="text-sm text-muted-foreground">Pague mês a mês via Pix</p>
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-foreground">
@@ -1088,6 +1088,7 @@ export default function SettingsPage() {
                     <li>✓ Acesso a todos os módulos</li>
                     <li>✓ Suporte por WhatsApp</li>
                     <li>✓ Sem fidelidade</li>
+                    <li>✓ Pagamento via Pix</li>
                   </ul>
                   <Button
                     className="w-full"
@@ -1095,7 +1096,7 @@ export default function SettingsPage() {
                     disabled={checkingOut || subStatus?.status === 'active'}
                   >
                     {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Assinar Mensal'}
+                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Pagar via Pix'}
                   </Button>
                 </div>
 
@@ -1104,7 +1105,7 @@ export default function SettingsPage() {
                   <Badge className="absolute -top-3 right-4 bg-primary text-primary-foreground">40% OFF</Badge>
                   <div>
                     <h4 className="font-bold text-lg">Anual</h4>
-                    <p className="text-sm text-muted-foreground">Economize 40% — parcele em até 12x no cartão</p>
+                    <p className="text-sm text-muted-foreground">Economize 40% — pagamento único via Pix</p>
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-primary">
@@ -1113,12 +1114,12 @@ export default function SettingsPage() {
                     <span className="text-muted-foreground text-sm">/ano</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    ou 12x de R$ {((companyPlanValue !== null ? companyPlanValue : Number(platformSettings.monthly_price || '147.00')) * 12 * 0.6 / 12).toFixed(2)}/mês no cartão
+                    equivale a R$ {((companyPlanValue !== null ? companyPlanValue : Number(platformSettings.monthly_price || '147.00')) * 0.6).toFixed(2)}/mês
                   </p>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     <li>✓ Tudo do plano mensal</li>
                     <li>✓ 40% de economia</li>
-                    <li>✓ Parcele em até 12x</li>
+                    <li>✓ Pagamento único via Pix</li>
                   </ul>
                   <Button
                     className="w-full btn-gradient"
@@ -1126,15 +1127,40 @@ export default function SettingsPage() {
                     disabled={checkingOut || subStatus?.status === 'active'}
                   >
                     {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Assinar Anual'}
+                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Pagar via Pix'}
                   </Button>
                 </div>
               </div>
             </div>
             )}
 
+            {/* Payment History */}
+            {paymentHistory.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-foreground">Histórico de Pagamentos</h3>
+                <div className="space-y-2">
+                  {paymentHistory.map((ph: any) => (
+                    <div key={ph.id} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium text-foreground">
+                          {ph.plan === 'annual' ? 'Plano Anual' : 'Plano Mensal'} — R$ {Number(ph.amount).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(ph.created_at), "dd/MM/yyyy 'às' HH:mm")}
+                          {ph.next_billing_date && ` · Próx. cobrança: ${format(new Date(ph.next_billing_date), 'dd/MM/yyyy')}`}
+                        </p>
+                      </div>
+                      <Badge variant={ph.status === 'paid' ? 'default' : ph.status === 'pending' ? 'secondary' : 'destructive'}>
+                        {ph.status === 'paid' ? 'Pago' : ph.status === 'pending' ? 'Pendente' : ph.status === 'failed' ? 'Falhou' : ph.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={checkSubscription} disabled={loadingSub}>
+              <Button variant="outline" size="sm" onClick={() => { checkSubscription(); fetchPaymentHistory(); }} disabled={loadingSub}>
                 {loadingSub ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                 Atualizar Status
               </Button>
