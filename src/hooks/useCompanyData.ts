@@ -57,7 +57,7 @@ export function useCompanyData() {
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
         fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
-        sb('machine_logs').select('*'),
+        sb('machine_logs').select('*').order('started_at', { ascending: false }).limit(1000),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
         sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
       ]);
@@ -148,7 +148,13 @@ export function useCompanyData() {
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {
     if (!companyId) return;
-    await sb('machines').delete().eq('company_id', companyId);
+    // Find machines to delete (present in DB but not in new data)
+    const currentIds = machines.map(m => m.id);
+    const newIds = data.map(m => m.id);
+    const idsToDelete = currentIds.filter(id => !newIds.includes(id));
+    if (idsToDelete.length > 0) {
+      await sb('machines').delete().in('id', idsToDelete);
+    }
     if (data.length > 0) {
       const rows = data.map(m => ({
         id: m.id, company_id: companyId, number: m.number, name: m.name,
@@ -156,10 +162,11 @@ export function useCompanyData() {
         observations: m.observations || null, production_mode: m.production_mode || 'rolos',
         created_at: m.created_at,
       }));
-      await sb('machines').insert(rows);
+      const { error } = await sb('machines').upsert(rows);
+      if (error) { console.error('Error saving machines:', error); throw error; }
     }
     setMachines(data);
-  }, [companyId]);
+  }, [companyId, machines]);
 
   const saveMachineLogs = useCallback(async (data: MachineLog[]) => {
     if (!companyId) return;
@@ -168,7 +175,11 @@ export function useCompanyData() {
       started_at: l.started_at, ended_at: l.ended_at || null,
     }));
     if (rows.length > 0) {
-      await sb('machine_logs').upsert(rows);
+      const { error } = await sb('machine_logs').upsert(rows);
+      if (error) {
+        console.error('Error saving machine logs:', error);
+        throw error;
+      }
     }
     setMachineLogs(data);
   }, [companyId]);
