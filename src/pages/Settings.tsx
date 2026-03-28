@@ -285,10 +285,11 @@ export default function SettingsPage() {
     if (!user) return;
     const fetchData = async () => {
       setLoadingProfiles(true);
-      const [profilesRes, companyRes, platformRes] = await Promise.all([
+      const [profilesRes, companyRes, platformRes, companySettingsRes] = await Promise.all([
         (supabase.from as any)('profiles').select('*').order('created_at'),
         (supabase.from as any)('companies').select('*').eq('id', user.company_id).single(),
         (supabase.from as any)('platform_settings').select('key, value'),
+        (supabase.from as any)('company_settings').select('monthly_plan_value').eq('company_id', user.company_id).single(),
       ]);
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (companyRes.data) setCompany(companyRes.data);
@@ -296,6 +297,9 @@ export default function SettingsPage() {
         const map: Record<string, string> = {};
         platformRes.data.forEach((r: any) => { map[r.key] = r.value; });
         setPlatformSettings(map);
+      }
+      if (companySettingsRes.data?.monthly_plan_value) {
+        setCompanyPlanValue(Number(companySettingsRes.data.monthly_plan_value));
       }
       setLoadingProfiles(false);
     };
