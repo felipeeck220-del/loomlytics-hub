@@ -45,6 +45,16 @@ serve(async (req) => {
       .single();
 
     const now = new Date();
+
+    // Check if free user
+    if (settings?.subscription_status === 'free') {
+      return new Response(JSON.stringify({
+        status: 'free',
+        blocked: false,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     // Check trial status
     if (settings?.trial_end_date) {
