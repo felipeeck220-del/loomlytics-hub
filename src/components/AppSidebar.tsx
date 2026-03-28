@@ -68,7 +68,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarHeader className="px-4 py-4 border-b border-sidebar-border">
+      <SidebarHeader className="px-4 h-14 flex items-center border-b border-sidebar-border">
         {logoUrl ? (
           <div className="flex items-center justify-center w-full">
             <img src={logoUrl} alt="Logo" className="max-h-10 w-full object-contain rounded-lg" />
