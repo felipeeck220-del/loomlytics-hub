@@ -45,6 +45,7 @@ export default function RevisionPage() {
     machine_id: '',
     weaver_id: '',
     article_id: '',
+    defect_name: '',
     measure_type: 'kg' as MeasureType,
     measure_value: '',
     observations: '',
@@ -86,14 +87,14 @@ export default function RevisionPage() {
   }, [filtered]);
 
   const openNew = () => {
-    setForm({ date: new Date(), shift: '', machine_id: '', weaver_id: '', article_id: '', measure_type: 'kg', measure_value: '', observations: '' });
+    setForm({ date: new Date(), shift: '', machine_id: '', weaver_id: '', article_id: '', defect_name: '', measure_type: 'kg', measure_value: '', observations: '' });
     setArticleSearch('');
     setWeaverSearch('');
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.shift || !form.machine_id || !form.article_id || !form.weaver_id || !form.measure_value) {
+    if (!form.shift || !form.machine_id || !form.article_id || !form.weaver_id || !form.measure_value || !form.defect_name) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
@@ -116,7 +117,7 @@ export default function RevisionPage() {
         machine_name: machine?.name,
         article_name: article?.name,
         weaver_name: weaver?.name,
-        observations: form.observations || undefined,
+        observations: form.observations ? `[${form.defect_name}] ${form.observations}` : form.defect_name,
         created_at: new Date().toISOString(),
       };
 
@@ -250,75 +251,81 @@ export default function RevisionPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Registrar Falha</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {/* Date */}
-            <div className="space-y-1.5">
-              <Label>Data</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start gap-2">
-                    <CalendarIcon className="h-4 w-4" />
-                    {format(form.date, 'dd/MM/yyyy')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={form.date} onSelect={d => d && setForm(f => ({ ...f, date: d }))} locale={ptBR} />
-                </PopoverContent>
-              </Popover>
+          <div className="space-y-5">
+            {/* Row 1: Date + Shift */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Data</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      {format(form.date, 'dd/MM/yyyy')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={form.date} onSelect={d => d && setForm(f => ({ ...f, date: d }))} locale={ptBR} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Turno *</Label>
+                <Select value={form.shift} onValueChange={v => setForm(f => ({ ...f, shift: v as ShiftType }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o turno" /></SelectTrigger>
+                  <SelectContent>
+                    {SHIFTS.map(s => <SelectItem key={s} value={s}>{companyShiftLabels[s]}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Shift */}
-            <div className="space-y-1.5">
-              <Label>Turno *</Label>
-              <Select value={form.shift} onValueChange={v => setForm(f => ({ ...f, shift: v as ShiftType }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione o turno" /></SelectTrigger>
-                <SelectContent>
-                  {SHIFTS.map(s => <SelectItem key={s} value={s}>{companyShiftLabels[s]}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            {/* Row 2: Machine + Article */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Máquina *</Label>
+                <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+                  <SelectContent>
+                    {sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Artigo *</Label>
+                <Select value={form.article_id} onValueChange={v => { setForm(f => ({ ...f, article_id: v })); setArticleSearch(''); }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o artigo" /></SelectTrigger>
+                  <SelectContent>
+                    <div className="px-2 pb-2">
+                      <Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="h-8" />
+                    </div>
+                    {filteredArticlesModal.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Machine */}
-            <div className="space-y-1.5">
-              <Label>Máquina *</Label>
-              <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
-                <SelectContent>
-                  {sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            {/* Row 3: Weaver + Defect Name */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Tecelão *</Label>
+                <Select value={form.weaver_id} onValueChange={v => { setForm(f => ({ ...f, weaver_id: v })); setWeaverSearch(''); }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o tecelão" /></SelectTrigger>
+                  <SelectContent>
+                    <div className="px-2 pb-2">
+                      <Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => setWeaverSearch(e.target.value)} className="h-8" />
+                    </div>
+                    {filteredWeaversModal.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Falha (Nome) *</Label>
+                <Input placeholder="Ex: Furo, Mancha, Barramento..." value={form.defect_name} onChange={e => setForm(f => ({ ...f, defect_name: e.target.value }))} />
+              </div>
             </div>
 
-            {/* Article with search */}
-            <div className="space-y-1.5">
-              <Label>Artigo *</Label>
-              <Select value={form.article_id} onValueChange={v => { setForm(f => ({ ...f, article_id: v })); setArticleSearch(''); }}>
-                <SelectTrigger><SelectValue placeholder="Selecione o artigo" /></SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 pb-2">
-                    <Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="h-8" />
-                  </div>
-                  {filteredArticlesModal.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Weaver with search */}
-            <div className="space-y-1.5">
-              <Label>Tecelão *</Label>
-              <Select value={form.weaver_id} onValueChange={v => { setForm(f => ({ ...f, weaver_id: v })); setWeaverSearch(''); }}>
-                <SelectTrigger><SelectValue placeholder="Selecione o tecelão" /></SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 pb-2">
-                    <Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => setWeaverSearch(e.target.value)} className="h-8" />
-                  </div>
-                  {filteredWeaversModal.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Measure type + value */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Row 4: Measure type + value + observations */}
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label>Tipo de Medida *</Label>
                 <Select value={form.measure_type} onValueChange={v => setForm(f => ({ ...f, measure_type: v as MeasureType }))}>
@@ -333,15 +340,13 @@ export default function RevisionPage() {
                 <Label>Valor *</Label>
                 <Input type="number" step="0.01" min="0" placeholder={form.measure_type === 'kg' ? 'Ex: 2.5' : 'Ex: 10'} value={form.measure_value} onChange={e => setForm(f => ({ ...f, measure_value: e.target.value }))} />
               </div>
+              <div className="space-y-1.5">
+                <Label>Observações</Label>
+                <Input placeholder="Detalhes adicionais..." value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+              </div>
             </div>
 
-            {/* Observations */}
-            <div className="space-y-1.5">
-              <Label>Observações</Label>
-              <Textarea placeholder="Descreva o defeito..." value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} rows={2} />
-            </div>
-
-            <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
+            <Button onClick={handleSave} disabled={saving} className="w-full gap-2 mt-2">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Registrar Falha
             </Button>
