@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Wrench, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -19,16 +20,16 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 ];
 
 export default function MecanicaPage() {
-  const { getMachines, getMachineLogs } = useSharedCompanyData();
+  const { getMachines, getMachineLogs, getProductions } = useSharedCompanyData();
   const machines = getMachines();
   const machineLogs = getMachineLogs();
+  const productions = getProductions();
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   const activeMachines = useMemo(() => machines.filter(m => m.status !== 'inativa'), [machines]);
 
-  // Filter logs for maintenance-related statuses
   const maintenanceLogs = useMemo(() => {
     return machineLogs.filter(log => {
       const status = log.status as MachineStatus;
@@ -38,30 +39,30 @@ export default function MecanicaPage() {
     });
   }, [machineLogs, selectedMachineId]);
 
-  // Last preventive maintenance and last needle change for selected machine
-  const lastPreventive = useMemo(() => {
-    if (selectedMachineId === 'all') return null;
-    const logs = maintenanceLogs
-      .filter(l => l.machine_id === selectedMachineId && l.status === 'manutencao_preventiva')
+  // Per-machine: last preventive & last needle change
+  const getLastLogByStatus = (machineId: string, status: MachineStatus) => {
+    const logs = machineLogs
+      .filter(l => l.machine_id === machineId && l.status === status)
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
     return logs[0] || null;
-  }, [maintenanceLogs, selectedMachineId]);
+  };
+
+  const lastPreventive = useMemo(() => {
+    if (selectedMachineId === 'all') return null;
+    return getLastLogByStatus(selectedMachineId, 'manutencao_preventiva');
+  }, [machineLogs, selectedMachineId]);
 
   const lastNeedleChange = useMemo(() => {
     if (selectedMachineId === 'all') return null;
-    const logs = maintenanceLogs
-      .filter(l => l.machine_id === selectedMachineId && l.status === 'troca_agulhas')
-      .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
-    return logs[0] || null;
-  }, [maintenanceLogs, selectedMachineId]);
+    return getLastLogByStatus(selectedMachineId, 'troca_agulhas');
+  }, [machineLogs, selectedMachineId]);
 
-  // Calendar days
+  // Calendar
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const startDayOfWeek = getDay(monthStart); // 0=Sunday
+  const startDayOfWeek = getDay(monthStart);
 
-  // Map days with events
   const dayEventsMap = useMemo(() => {
     const map = new Map<string, typeof maintenanceLogs>();
     maintenanceLogs.forEach(log => {
@@ -82,13 +83,60 @@ export default function MecanicaPage() {
     return machines.find(m => m.id === machineId)?.name || 'Máquina desconhecida';
   };
 
+  // Detalhes tab: revenue per machine since last preventive and last needle change
+  const detailsData = useMemo(() => {
+    return activeMachines.map(machine => {
+      const lastPrev = getLastLogByStatus(machine.id, 'manutencao_preventiva');
+      const lastNeedle = getLastLogByStatus(machine.id, 'troca_agulhas');
+
+      const machineProductions = productions.filter(p => p.machine_id === machine.id);
+
+      const revenueSincePreventive = lastPrev
+        ? machineProductions
+            .filter(p => p.date >= format(new Date(lastPrev.started_at), 'yyyy-MM-dd'))
+            .reduce((sum, p) => sum + p.revenue, 0)
+        : machineProductions.reduce((sum, p) => sum + p.revenue, 0);
+
+      const revenueSinceNeedle = lastNeedle
+        ? machineProductions
+            .filter(p => p.date >= format(new Date(lastNeedle.started_at), 'yyyy-MM-dd'))
+            .reduce((sum, p) => sum + p.revenue, 0)
+        : machineProductions.reduce((sum, p) => sum + p.revenue, 0);
+
+      const weightSincePreventive = lastPrev
+        ? machineProductions
+            .filter(p => p.date >= format(new Date(lastPrev.started_at), 'yyyy-MM-dd'))
+            .reduce((sum, p) => sum + p.weight_kg, 0)
+        : machineProductions.reduce((sum, p) => sum + p.weight_kg, 0);
+
+      const weightSinceNeedle = lastNeedle
+        ? machineProductions
+            .filter(p => p.date >= format(new Date(lastNeedle.started_at), 'yyyy-MM-dd'))
+            .reduce((sum, p) => sum + p.weight_kg, 0)
+        : machineProductions.reduce((sum, p) => sum + p.weight_kg, 0);
+
+      return {
+        machine,
+        lastPrev,
+        lastNeedle,
+        revenueSincePreventive,
+        revenueSinceNeedle,
+        weightSincePreventive,
+        weightSinceNeedle,
+      };
+    });
+  }, [activeMachines, productions, machineLogs]);
+
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const formatWeight = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-          <Wrench className="h-5 w-5 text-purple-600" />
+        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Wrench className="h-5 w-5 text-primary" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Mecânica</h1>
@@ -139,92 +187,160 @@ export default function MecanicaPage() {
         </CardContent>
       </Card>
 
-      {/* Calendar */}
-      <Card className="w-full">
-        <CardHeader className="pb-2 px-3 sm:px-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-xs sm:text-sm font-medium min-w-[110px] sm:min-w-[140px] text-center capitalize">
-                {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-              </span>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-6">
-          {/* Legend */}
-          <div className="flex flex-wrap gap-2 sm:gap-3 mb-3">
-            {MAINTENANCE_STATUSES.map(status => (
-              <div key={status} className="flex items-center gap-1.5">
-                <div className={cn('h-3 w-3 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])} />
-                <span className="text-xs text-muted-foreground">{MACHINE_STATUS_LABELS[status]}</span>
-              </div>
-            ))}
-          </div>
+      {/* Tabs */}
+      <Tabs defaultValue="calendario" className="w-full">
+        <TabsList>
+          <TabsTrigger value="calendario">Calendário</TabsTrigger>
+          <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+        </TabsList>
 
-          {/* Week headers */}
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {weekDays.map(d => (
-              <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1">{d}</div>
-            ))}
-          </div>
-
-          {/* Days grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {/* Empty cells for offset */}
-            {Array.from({ length: startDayOfWeek }).map((_, i) => (
-              <div key={`empty-${i}`} className="aspect-square" />
-            ))}
-
-            {daysInMonth.map(day => {
-              const key = format(day, 'yyyy-MM-dd');
-              const events = dayEventsMap.get(key) || [];
-              const hasEvents = events.length > 0;
-              const isToday = isSameDay(day, new Date());
-
-              // Get unique statuses for this day
-              const dayStatuses = [...new Set(events.map(e => e.status as MachineStatus))];
-
-              return (
-                <button
-                  key={key}
-                  onClick={() => hasEvents && setSelectedDay(day)}
-                  className={cn(
-                    'rounded-md border flex flex-col items-center justify-center gap-0.5 transition-all text-xs relative p-1.5',
-                    isToday && 'border-primary',
-                    hasEvents
-                      ? 'border-warning/50 bg-warning/5 hover:bg-warning/10 cursor-pointer'
-                      : 'border-border hover:bg-accent/50 cursor-default',
-                  )}
-                >
-                  <span className={cn(
-                    'font-medium',
-                    isToday ? 'text-primary' : 'text-foreground',
-                  )}>
-                    {format(day, 'd')}
+        {/* Calendário Tab */}
+        <TabsContent value="calendario">
+          <Card className="w-full">
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs sm:text-sm font-medium min-w-[110px] sm:min-w-[140px] text-center capitalize">
+                    {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
                   </span>
-                  {hasEvents && (
-                    <div className="flex gap-0.5">
-            {dayStatuses.map((status, idx) => (
-                        <div
-                          key={idx}
-                          className={cn('h-1.5 w-1.5 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])}
-                        />
-                      ))}
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-2 sm:px-6">
+              <div className="flex flex-wrap gap-2 sm:gap-3 mb-3">
+                {MAINTENANCE_STATUSES.map(status => (
+                  <div key={status} className="flex items-center gap-1.5">
+                    <div className={cn('h-3 w-3 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])} />
+                    <span className="text-xs text-muted-foreground">{MACHINE_STATUS_LABELS[status]}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {weekDays.map(d => (
+                  <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1">{d}</div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: startDayOfWeek }).map((_, i) => (
+                  <div key={`empty-${i}`} className="aspect-square" />
+                ))}
+
+                {daysInMonth.map(day => {
+                  const key = format(day, 'yyyy-MM-dd');
+                  const events = dayEventsMap.get(key) || [];
+                  const hasEvents = events.length > 0;
+                  const isToday = isSameDay(day, new Date());
+                  const dayStatuses = [...new Set(events.map(e => e.status as MachineStatus))];
+
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => hasEvents && setSelectedDay(day)}
+                      className={cn(
+                        'rounded-md border flex flex-col items-center justify-center gap-0.5 transition-all text-xs relative p-1.5',
+                        isToday && 'border-primary',
+                        hasEvents
+                          ? 'border-warning/50 bg-warning/5 hover:bg-warning/10 cursor-pointer'
+                          : 'border-border hover:bg-accent/50 cursor-default',
+                      )}
+                    >
+                      <span className={cn('font-medium', isToday ? 'text-primary' : 'text-foreground')}>
+                        {format(day, 'd')}
+                      </span>
+                      {hasEvents && (
+                        <div className="flex gap-0.5">
+                          {dayStatuses.map((status, idx) => (
+                            <div key={idx} className={cn('h-1.5 w-1.5 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])} />
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Detalhes Tab */}
+        <TabsContent value="detalhes">
+          <div className="space-y-3">
+            {detailsData.map(({ machine, lastPrev, lastNeedle, revenueSincePreventive, revenueSinceNeedle, weightSincePreventive, weightSinceNeedle }) => (
+              <Card key={machine.id}>
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className={cn(MACHINE_STATUS_COLORS[machine.status as MachineStatus])}>
+                        {MACHINE_STATUS_LABELS[machine.status as MachineStatus]}
+                      </Badge>
+                      <span className="font-semibold text-foreground">{machine.name}</span>
                     </div>
-                  )}
-                </button>
-              );
-            })}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Since last preventive */}
+                      <div className="rounded-lg border border-border p-3 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Desde última Manutenção Preventiva
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {lastPrev
+                            ? format(new Date(lastPrev.started_at), "dd/MM/yyyy", { locale: ptBR })
+                            : 'Sem registro'}
+                        </p>
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <p className="text-lg font-bold text-foreground">{formatCurrency(revenueSincePreventive)}</p>
+                            <p className="text-[10px] text-muted-foreground">Faturamento</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-foreground">{formatWeight(weightSincePreventive)}</p>
+                            <p className="text-[10px] text-muted-foreground">Peso produzido</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Since last needle change */}
+                      <div className="rounded-lg border border-border p-3 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Desde última Troca de Agulhas
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {lastNeedle
+                            ? format(new Date(lastNeedle.started_at), "dd/MM/yyyy", { locale: ptBR })
+                            : 'Sem registro'}
+                        </p>
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <p className="text-lg font-bold text-foreground">{formatCurrency(revenueSinceNeedle)}</p>
+                            <p className="text-[10px] text-muted-foreground">Faturamento</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-foreground">{formatWeight(weightSinceNeedle)}</p>
+                            <p className="text-[10px] text-muted-foreground">Peso produzido</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {detailsData.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma máquina ativa encontrada.</p>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Day detail modal */}
       <Dialog open={!!selectedDay} onOpenChange={(open) => !open && setSelectedDay(null)}>
