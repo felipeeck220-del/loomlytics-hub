@@ -13,7 +13,11 @@ import {
   CalendarIcon, Scale, DollarSign, Gauge, Clock,
   Settings2, Users, FileText, ClipboardList, Loader2,
   Factory, RotateCcw, Plus, Eye, BarChart3 as ChartIcon, Package, TrendingUp,
+  AlertTriangle, Wrench, RefreshCw, PauseCircle,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import {
