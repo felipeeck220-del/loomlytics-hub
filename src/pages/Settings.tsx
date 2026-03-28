@@ -208,7 +208,31 @@ export default function SettingsPage() {
     setSavingCompanyName(false);
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword) { toast.error('Preencha a senha atual e a nova senha'); return; }
+    if (newPassword.length < 6) { toast.error('A nova senha deve ter pelo menos 6 caracteres'); return; }
+    setSavingPassword(true);
+    try {
+      // Verify current password by signing in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user!.email,
+        password: currentPassword,
+      });
+      if (signInError) throw new Error('Senha atual incorreta');
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success('Senha alterada com sucesso');
+      setChangingPassword(false);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao alterar senha');
+    }
+    setSavingPassword(false);
+  };
+
+
     const file = e.target.files?.[0];
     if (!file || !user) return;
     if (file.size > 2 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 2MB.'); return; }
