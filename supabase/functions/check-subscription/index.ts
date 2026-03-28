@@ -66,6 +66,17 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Check if subscription was cancelled but still within paid period
+    if (settings?.subscription_status === 'cancelling') {
+      return new Response(JSON.stringify({
+        status: 'cancelling',
+        plan: settings.subscription_plan,
+        blocked: false,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     // Check trial status
     if (settings?.trial_end_date) {
