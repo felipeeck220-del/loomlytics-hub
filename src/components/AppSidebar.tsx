@@ -1,9 +1,10 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -29,6 +30,7 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { user } = useAuth();
   const { filterNavItems } = usePermissions();
+  const { sidebarLocked } = useSubscription();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
 
@@ -100,22 +102,35 @@ export function AppSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0.5">
-              {items.map((item) => (
-                <SidebarMenuItem key={item.key}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.path === ''}
-                      onClick={() => { if (isMobile) setOpenMobile(false); }}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-150 text-[13px]"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const isLocked = sidebarLocked && item.key !== 'settings';
+                return (
+                  <SidebarMenuItem key={item.key}>
+                    <SidebarMenuButton asChild>
+                      {isLocked ? (
+                        <div
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted-foreground/40 cursor-not-allowed transition-all duration-150 text-[13px]"
+                          title="Assinatura inativa"
+                        >
+                          <Lock className="h-4 w-4 shrink-0" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </div>
+                      ) : (
+                        <NavLink
+                          to={item.url}
+                          end={item.path === ''}
+                          onClick={() => { if (isMobile) setOpenMobile(false); }}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-150 text-[13px]"
+                          activeClassName="bg-primary/10 text-primary font-medium"
+                        >
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </NavLink>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
