@@ -246,7 +246,7 @@ export default function RevisionPage() {
 
       {/* Register Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="sm:max-w-lg" onPointerDownOutside={e => e.preventDefault()}>
+        <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] overflow-y-auto" onPointerDownOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Registrar Falha</DialogTitle>
           </DialogHeader>
