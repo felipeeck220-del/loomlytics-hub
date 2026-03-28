@@ -942,6 +942,7 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+            )}
 
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={checkSubscription} disabled={loadingSub}>
