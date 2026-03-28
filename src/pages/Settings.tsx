@@ -1029,7 +1029,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-foreground">
-                      R$ {Number(platformSettings.monthly_price || '47.00').toFixed(2)}
+                      R$ {(companyPlanValue || Number(platformSettings.monthly_price || '47.00')).toFixed(2)}
                     </span>
                     <span className="text-muted-foreground text-sm">/mês</span>
                   </div>
@@ -1057,12 +1057,12 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-primary">
-                      R$ {(Number(platformSettings.monthly_price || '47.00') * 12 * 0.6).toFixed(2)}
+                      R$ {((companyPlanValue || Number(platformSettings.monthly_price || '47.00')) * 12 * 0.6).toFixed(2)}
                     </span>
                     <span className="text-muted-foreground text-sm">/ano</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    ou 12x de R$ {(Number(platformSettings.monthly_price || '47.00') * 12 * 0.6 / 12).toFixed(2)}/mês no cartão
+                    ou 12x de R$ {((companyPlanValue || Number(platformSettings.monthly_price || '47.00')) * 12 * 0.6 / 12).toFixed(2)}/mês no cartão
                   </p>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     <li>✓ Tudo do plano mensal</li>
