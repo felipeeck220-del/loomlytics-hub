@@ -457,6 +457,7 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
 // ─── Weaver Defects Tab ──────────────────────────────────────
 function WeaverDefectsTab({ weavers, defectRecords }: { weavers: Weaver[]; defectRecords: DefectRecord[] }) {
   const [selectedWeaverId, setSelectedWeaverId] = useState('');
+  const [weaverSearch, setWeaverSearch] = useState('');
 
   const weaverDefects = useMemo(() => {
     if (!selectedWeaverId) return [];
@@ -511,10 +512,24 @@ function WeaverDefectsTab({ weavers, defectRecords }: { weavers: Weaver[]; defec
         {/* Detail selector */}
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">Detalhes do Tecelão</Label>
-          <Select value={selectedWeaverId} onValueChange={setSelectedWeaverId}>
+          <Select value={selectedWeaverId} onValueChange={v => { setSelectedWeaverId(v); setWeaverSearch(''); }}>
             <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione um tecelão" /></SelectTrigger>
-            <SelectContent>
-              {weavers.map(w => <SelectItem key={w.id} value={w.id}>{w.code} — {w.name}</SelectItem>)}
+            <SelectContent side="bottom" align="start">
+              <div className="px-2 pb-2">
+                <Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => setWeaverSearch(e.target.value)} className="h-8" />
+              </div>
+              {weavers
+                .filter(w => {
+                  if (!weaverSearch) return true;
+                  const s = weaverSearch.toLowerCase();
+                  return w.name.toLowerCase().includes(s) || w.code.toLowerCase().includes(s);
+                })
+                .map(w => {
+                  const shiftLabel = w.shift_type === 'fixo'
+                    ? w.fixed_shift === 'manha' ? '1º Turno' : w.fixed_shift === 'tarde' ? '2º Turno' : w.fixed_shift === 'noite' ? '3º Turno' : ''
+                    : 'Horário Específico';
+                  return <SelectItem key={w.id} value={w.id}>{w.code} — {w.name} — {shiftLabel}</SelectItem>;
+                })}
             </SelectContent>
           </Select>
         </div>
