@@ -514,7 +514,7 @@ function WeaverDefectsTab({ weavers, defectRecords }: { weavers: Weaver[]; defec
           <Label className="text-xs font-medium text-muted-foreground">Detalhes do Tecelão</Label>
           <Select value={selectedWeaverId} onValueChange={v => { setSelectedWeaverId(v); setWeaverSearch(''); }}>
             <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione um tecelão" /></SelectTrigger>
-            <SelectContent side="bottom" align="start">
+            <SelectContent side="bottom" avoidCollisions={false}>
               <div className="px-2 pb-2">
                 <Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => setWeaverSearch(e.target.value)} className="h-8" />
               </div>
