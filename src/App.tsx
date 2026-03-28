@@ -8,6 +8,7 @@ import { CompanyDataProvider } from "@/contexts/CompanyDataContext";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
+import { ThemeProvider } from "./components/ThemeProvider";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import CompanyLogin from "./pages/CompanyLogin";
@@ -125,6 +126,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
+  <ThemeProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -153,6 +155,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
