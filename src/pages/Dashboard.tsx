@@ -682,7 +682,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {stoppedMachines.map(m => {
-                const startedAt = machineLogs[m.id];
+                const startedAt = stopStartTimes[m.id];
                 const elapsed = startedAt ? Math.floor((nowTick.getTime() - new Date(startedAt).getTime()) / 1000) : null;
                 const hours = elapsed !== null ? Math.floor(elapsed / 3600) : 0;
                 const minutes = elapsed !== null ? Math.floor((elapsed % 3600) / 60) : 0;
