@@ -24,7 +24,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMemo, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import type { ShiftType } from '@/types';
+import { AlertTriangle } from 'lucide-react';
 
 function getCurrentShift(): ShiftType {
   const now = new Date();
