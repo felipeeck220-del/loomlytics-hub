@@ -96,6 +96,10 @@ export function useCompanyData() {
   const mapMachineLog = (r: any): MachineLog => ({
     id: r.id, machine_id: r.machine_id, status: r.status,
     started_at: r.started_at, ended_at: r.ended_at || undefined,
+    started_by_name: r.started_by_name || undefined,
+    started_by_code: r.started_by_code || undefined,
+    ended_by_name: r.ended_by_name || undefined,
+    ended_by_code: r.ended_by_code || undefined,
   });
   const mapClient = (r: any): Client => ({
     id: r.id, company_id: r.company_id, name: r.name,
