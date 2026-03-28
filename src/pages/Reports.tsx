@@ -439,32 +439,75 @@ export default function Reports() {
         </TabsList>
 
         {/* POR TURNO */}
-        <TabsContent value="turno" className="mt-6">
+        <TabsContent value="turno" className="mt-6 space-y-6">
+          {/* Shift summary cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {byShift.map((s, i) => {
+              const shiftColor = s.name === 'Manhã' ? 'hsl(38, 92%, 50%)' : s.name === 'Tarde' ? 'hsl(25, 95%, 53%)' : 'hsl(221, 83%, 53%)';
+              const totalShiftRolls = byShift.reduce((sum, sh) => sum + sh.rolos, 0);
+              const pct = totalShiftRolls > 0 ? (s.rolos / totalShiftRolls * 100) : 0;
+              return (
+                <Card key={s.name} className="relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: shiftColor }} />
+                  <CardContent className="pt-5 pb-4 pl-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="font-display font-bold text-foreground text-lg">{s.name}</p>
+                      <Badge variant="secondary" className="text-xs font-mono">{pct.toFixed(0)}%</Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peças</p>
+                        <p className="text-base font-bold text-foreground">{formatNumber(s.rolos)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peso</p>
+                        <p className="text-base font-bold text-foreground">{formatWeight(s.kg)}</p>
+                      </div>
+                      {canSeeFinancial && (
+                        <div>
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Faturamento</p>
+                          <p className="text-base font-bold text-success">{formatCurrency(s.faturamento)}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Eficiência</p>
+                        <p className={cn("text-base font-bold", s.eficiencia >= 80 ? "text-success" : s.eficiencia >= 70 ? "text-warning" : "text-destructive")}>
+                          {formatPercent(s.eficiencia)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Bar chart - Rolos & Kg comparison */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  Produção por Turno
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  Peças e Peso por Turno
                 </CardTitle>
-                <CardDescription>Distribuição da produção entre os turnos</CardDescription>
+                <CardDescription>Comparativo de produção entre turnos</CardDescription>
               </CardHeader>
               <CardContent>
                 {byShift.some(s => s.rolos > 0) ? (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <AreaChart data={byShift}>
-                      <defs>
-                        <linearGradient id="shiftGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={byShift} barGap={8}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                       <XAxis dataKey="name" fontSize={12} />
                       <YAxis fontSize={12} />
-                      <Tooltip formatter={(v: number, name: string) => [name === 'faturamento' ? formatCurrency(v) : formatNumber(v), name === 'rolos' ? 'Rolos' : name === 'kg' ? 'Kg' : 'Faturamento']} />
-                      <Area type="monotone" dataKey="rolos" stroke="hsl(221, 83%, 53%)" fill="url(#shiftGrad)" strokeWidth={2} name="rolos" />
-                    </AreaChart>
+                      <Tooltip formatter={(v: number, name: string) => [formatNumber(v, 1), name === 'rolos' ? 'Peças' : 'Kg']} />
+                      <Legend formatter={(value) => value === 'rolos' ? 'Peças' : 'Peso (kg)'} />
+                      {byShift.map((entry) => null)}
+                      <Bar dataKey="rolos" name="rolos" radius={[4, 4, 0, 0]}>
+                        {byShift.map((entry, i) => (
+                          <Cell key={i} fill={SHIFT_CHART_COLORS[entry.name] || CHART_COLORS[i]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
@@ -472,49 +515,72 @@ export default function Reports() {
               </CardContent>
             </Card>
 
-            <Card>
+            {/* Pie chart - Revenue distribution */}
+            {canSeeFinancial && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    Faturamento por Turno
+                  </CardTitle>
+                  <CardDescription>Distribuição do faturamento</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {byShift.some(s => s.faturamento > 0) ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={byShift.filter(s => s.faturamento > 0)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={95}
+                          dataKey="faturamento"
+                          label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
+                          labelLine={true}
+                          paddingAngle={3}
+                        >
+                          {byShift.filter(s => s.faturamento > 0).map((entry, i) => (
+                            <Cell key={i} fill={SHIFT_CHART_COLORS[entry.name] || CHART_COLORS[i % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Efficiency comparison */}
+            <Card className={cn(canSeeFinancial ? "lg:col-span-2" : "")}>
               <CardHeader>
-                <CardTitle className="text-base">Valor por Turno</CardTitle>
-                <CardDescription>Distribuição do valor lucrado por turno</CardDescription>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Gauge className="h-4 w-4 text-muted-foreground" />
+                  Eficiência por Turno
+                </CardTitle>
+                <CardDescription>Comparativo de eficiência média</CardDescription>
               </CardHeader>
               <CardContent>
-                {byShift.some(s => s.faturamento > 0) ? (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
-                      <Pie
-                        data={byShift.filter(s => s.faturamento > 0)}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={90}
-                        dataKey="faturamento"
-                        label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
-                        labelLine={true}
-                      >
-                        {byShift.filter(s => s.faturamento > 0).map((entry, i) => (
-                          <Cell key={i} fill={SHIFT_CHART_COLORS[entry.name] || CHART_COLORS[i % CHART_COLORS.length]} />
+                {byShift.some(s => s.eficiencia > 0) ? (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={byShift} barSize={50}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                      <XAxis dataKey="name" fontSize={12} />
+                      <YAxis domain={[0, 100]} fontSize={12} tickFormatter={(v) => `${v}%`} />
+                      <Tooltip formatter={(v: number) => [`${formatPercent(v)}`, 'Eficiência']} />
+                      <Bar dataKey="eficiencia" name="Eficiência" radius={[4, 4, 0, 0]}>
+                        {byShift.map((entry, i) => (
+                          <Cell key={i} fill={entry.eficiencia >= 80 ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= 70 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
                         ))}
-                      </Pie>
-                      <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                    </PieChart>
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Shift detail list */}
-            <Card className="lg:col-span-2">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {byShift.map(s => (
-                    <div key={s.name} className="p-4 rounded-lg border border-border hover:bg-muted/30 transition-colors">
-                      <p className="font-semibold text-foreground">{s.name}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{formatNumber(s.rolos)} rolos · {formatNumber(s.kg, 2)} kg</p>
-                      {canSeeFinancial && <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(s.faturamento)}</p>}
-                    </div>
-                  ))}
-                </div>
               </CardContent>
             </Card>
           </div>
