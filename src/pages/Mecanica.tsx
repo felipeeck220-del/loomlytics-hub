@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Wrench, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Wrench, ChevronLeft, ChevronRight, Search, History } from 'lucide-react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ export default function MecanicaPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [detailsSearch, setDetailsSearch] = useState('');
+  const [historyMachineId, setHistoryMachineId] = useState<string | null>(null);
 
   const activeMachines = useMemo(() => machines.filter(m => m.status !== 'inativa'), [machines]);
 
