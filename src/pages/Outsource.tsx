@@ -653,6 +653,8 @@ function ReportsTab({ productions, loading }: {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [profitFilter, setProfitFilter] = useState<'all' | 'profit' | 'loss'>('all');
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let result = [...productions];
