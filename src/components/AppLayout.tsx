@@ -24,7 +24,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMemo, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import type { ShiftType } from '@/types';
+import { AlertTriangle } from 'lucide-react';
 
 function getCurrentShift(): ShiftType {
   const now = new Date();
@@ -49,11 +51,29 @@ export default function AppLayout() {
   const { theme, toggleTheme } = useTheme();
   const [now, setNow] = useState(new Date());
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!user?.company_id) return;
+    (async () => {
+      const { data } = await (supabase.from as any)('company_settings')
+        .select('subscription_status, trial_end_date')
+        .eq('company_id', user.company_id)
+        .maybeSingle();
+      if (data?.subscription_status === 'trial' && data?.trial_end_date) {
+        const end = new Date(data.trial_end_date);
+        const diff = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        setTrialDaysLeft(Math.max(0, diff));
+      } else {
+        setTrialDaysLeft(null);
+      }
+    })();
+  }, [user?.company_id]);
 
   const currentShift = useMemo(() => getCurrentShift(), [now]);
 
@@ -75,6 +95,14 @@ export default function AppLayout() {
                 </Badge>
                 <span className="text-muted-foreground text-xs">{formatDate(now)}</span>
               </div>
+
+              {/* Trial badge */}
+              {trialDaysLeft !== null && (
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 font-medium text-xs px-2.5 py-0.5 gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span className="hidden sm:inline">Teste grátis •</span> {trialDaysLeft}d
+                </Badge>
+              )}
 
               <div className="h-5 w-px bg-border hidden sm:block" />
 
