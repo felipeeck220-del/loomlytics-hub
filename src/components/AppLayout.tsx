@@ -2,10 +2,10 @@ import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { LogOut, User, ChevronDown, Bell, Search } from 'lucide-react';
+import { LogOut, User, ChevronDown, Bell, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useTheme } from '@/components/ThemeProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +36,7 @@ function formatDate(date: Date): string {
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -50,18 +51,15 @@ export default function AppLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-16 bg-card/60 backdrop-blur-md flex items-center justify-between px-6 shrink-0 sticky top-0 z-10 border-b border-border/40">
-            <div className="flex items-center gap-4">
+          <header className="h-14 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10">
+            <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
-              <span className="text-sm font-medium text-foreground hidden md:inline">
-                Sistema de Gestão de Produção
-              </span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {/* Shift + Date */}
               <div className="hidden sm:flex items-center gap-2 text-sm">
-                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-medium text-xs px-3 py-1">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 font-medium text-xs px-2.5 py-0.5">
                   {SHIFT_DISPLAY[currentShift]}
                 </Badge>
                 <span className="text-muted-foreground text-xs">{formatDate(now)}</span>
@@ -69,17 +67,27 @@ export default function AppLayout() {
 
               <div className="h-5 w-px bg-border hidden sm:block" />
 
-              {/* Notifications placeholder */}
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
+              {/* Theme Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+
+              {/* Notifications */}
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                 <Bell className="h-4 w-4" />
               </Button>
 
               {/* User dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2 h-9 px-2 hover:bg-muted/50">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
+                  <Button variant="ghost" size="sm" className="gap-2 h-9 px-2 hover:bg-accent/50">
+                    <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center">
+                      <User className="h-3.5 w-3.5 text-primary" />
                     </div>
                     <div className="text-left hidden md:block">
                       <p className="text-xs font-medium text-foreground leading-tight">{user?.name}</p>
@@ -103,7 +111,7 @@ export default function AppLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-5 md:p-8">
+          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
             <Outlet />
           </main>
         </div>

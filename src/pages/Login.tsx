@@ -29,7 +29,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left brand panel - gradient dark */}
-      <div className="hidden lg:flex lg:w-[48%] relative items-center justify-center p-16 overflow-hidden" style={{ background: 'linear-gradient(195deg, hsl(220 15% 20%), hsl(220 18% 10%))' }}>
+      <div className="hidden lg:flex lg:w-[48%] relative items-center justify-center p-16 overflow-hidden" style={{ background: 'linear-gradient(195deg, hsl(215 28% 12%), hsl(215 28% 7%))' }}>
         {/* Soft grid */}
         <div className="absolute inset-0 opacity-[0.04]" style={{
           backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
