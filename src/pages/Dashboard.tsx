@@ -42,6 +42,7 @@ export default function Dashboard() {
   const clients = getClients();
   const articles = getArticles();
   const weavers = getWeavers();
+  const allMachineLogs = getMachineLogs();
 
   const [dayRange, setDayRange] = useState(15);
   const [customDate, setCustomDate] = useState<Date>();
@@ -52,7 +53,6 @@ export default function Dashboard() {
   const [filterClient, setFilterClient] = useState<string>('all');
   const [filterArticle, setFilterArticle] = useState<string>('all');
   const [showAllMachines, setShowAllMachines] = useState(false);
-  const [machineLogs, setMachineLogs] = useState<Record<string, string>>({});
   const [nowTick, setNowTick] = useState(new Date());
 
   const currentShift = getCurrentShift();
@@ -63,22 +63,20 @@ export default function Dashboard() {
     [machines]
   );
 
-  // Fetch latest machine_log for stopped machines to get stop start time
-  useEffect(() => {
-    if (stoppedMachines.length === 0) return;
-    const ids = stoppedMachines.map(m => m.id);
-    (supabase.from as any)('machine_logs')
-      .select('machine_id, started_at, status')
-      .in('machine_id', ids)
-      .is('ended_at', null)
-      .then(({ data }: any) => {
-        if (data) {
-          const logs: Record<string, string> = {};
-          data.forEach((log: any) => { logs[log.machine_id] = log.started_at; });
-          setMachineLogs(logs);
-        }
-      });
-  }, [stoppedMachines]);
+  // Build a map of machine_id -> started_at from logs (latest open log per machine)
+  const stopStartTimes = useMemo(() => {
+    const map: Record<string, string> = {};
+    stoppedMachines.forEach(m => {
+      // Find the latest log for this machine that has no ended_at
+      const openLogs = allMachineLogs
+        .filter(l => l.machine_id === m.id && !l.ended_at)
+        .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
+      if (openLogs.length > 0) {
+        map[m.id] = openLogs[0].started_at;
+      }
+    });
+    return map;
+  }, [stoppedMachines, allMachineLogs]);
 
   // Real-time tick for elapsed time
   useEffect(() => {
