@@ -408,6 +408,15 @@ export default function Machines() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Maintenance View Modal */}
+      {maintenanceViewMachine && (
+        <MaintenanceViewModal
+          machine={maintenanceViewMachine}
+          currentLog={logs.find(l => l.machine_id === maintenanceViewMachine.id && !l.ended_at) || null}
+          open={!!maintenanceViewMachine}
+          onClose={() => setMaintenanceViewMachine(null)}
+        />
+      )}
     </div>
   );
 }
