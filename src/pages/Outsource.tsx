@@ -653,6 +653,8 @@ function ReportsTab({ productions, loading }: {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [profitFilter, setProfitFilter] = useState<'all' | 'profit' | 'loss'>('all');
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let result = [...productions];
@@ -691,7 +693,7 @@ function ReportsTab({ productions, loading }: {
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Período</Label>
             <div className="flex items-center gap-2 flex-wrap">
-              <Popover>
+              <Popover open={startOpen} onOpenChange={setStartOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !startDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
@@ -699,11 +701,11 @@ function ReportsTab({ productions, loading }: {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={startDate} onSelect={setStartDate} className="p-3 pointer-events-auto" />
+                  <Calendar mode="single" selected={startDate} onSelect={(d) => { setStartDate(d); setStartOpen(false); }} className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
               <span className="text-xs text-muted-foreground">até</span>
-              <Popover>
+              <Popover open={endOpen} onOpenChange={setEndOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !endDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
@@ -711,7 +713,7 @@ function ReportsTab({ productions, loading }: {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={endDate} onSelect={setEndDate} className="p-3 pointer-events-auto" />
+                  <Calendar mode="single" selected={endDate} onSelect={(d) => { setEndDate(d); setEndOpen(false); }} className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
             </div>
