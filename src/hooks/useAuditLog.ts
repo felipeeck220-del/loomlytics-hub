@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function useAuditLog() {
   const { user } = useAuth();
-  const [userCode, setUserCode] = useState<string | null>(null);
+  const [profileCode, setProfileCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -13,9 +13,11 @@ export function useAuditLog() {
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data }: any) => {
-        setUserCode(data?.code || null);
+        setProfileCode(data?.code || null);
       });
   }, [user?.id]);
+
+  const userCode = profileCode || (user?.role === 'admin' ? '1' : null);
 
   const logAction = useCallback(async (action: string, details?: Record<string, any>) => {
     if (!user?.company_id) return;
@@ -34,7 +36,6 @@ export function useAuditLog() {
     }
   }, [user, userCode]);
 
-  // User tracking info for embedding in records
   const userTrackingInfo = {
     created_by_name: user?.name || null,
     created_by_code: userCode,
