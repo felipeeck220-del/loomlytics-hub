@@ -145,17 +145,22 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'update_settings') {
-      const { company_id, monthly_plan_value, platform_active, enabled_nav_items } = params;
+      const { company_id, monthly_plan_value, platform_active, enabled_nav_items, subscription_status } = params;
+
+      const upsertData: any = {
+        company_id,
+        monthly_plan_value,
+        platform_active,
+        enabled_nav_items,
+        updated_at: new Date().toISOString(),
+      };
+      if (subscription_status) {
+        upsertData.subscription_status = subscription_status;
+      }
 
       const { error } = await supabase
         .from('company_settings')
-        .upsert({
-          company_id,
-          monthly_plan_value,
-          platform_active,
-          enabled_nav_items,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'company_id' });
+        .upsert(upsertData, { onConflict: 'company_id' });
 
       if (error) throw error;
 
