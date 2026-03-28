@@ -10,13 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, Pencil, Trash2, Loader2, Clock, Users, FileBarChart, CalendarIcon, Package, TrendingUp, Scale } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Clock, Users, FileBarChart, CalendarIcon, Package, TrendingUp, Scale, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { formatNumber, formatWeight, formatCurrency } from '@/lib/formatters';
-import type { Weaver, ShiftType, Production } from '@/types';
+import type { Weaver, ShiftType, Production, DefectRecord } from '@/types';
 import { SHIFT_LABELS } from '@/types';
 
 const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
@@ -26,9 +26,10 @@ const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
 };
 
 export default function Weavers() {
-  const { getWeavers, saveWeavers, getProductions, loading } = useSharedCompanyData();
+  const { getWeavers, saveWeavers, getProductions, getDefectRecords, loading } = useSharedCompanyData();
   const weavers = getWeavers();
   const productions = getProductions();
+  const defectRecords = getDefectRecords();
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Weaver | null>(null);
@@ -161,6 +162,9 @@ export default function Weavers() {
           <TabsTrigger value="weavers" className="gap-1.5">
             <Users className="h-4 w-4" /> Tecelões
           </TabsTrigger>
+          <TabsTrigger value="defects" className="gap-1.5">
+            <AlertTriangle className="h-4 w-4" /> Falhas
+          </TabsTrigger>
           <TabsTrigger value="reports" className="gap-1.5">
             <FileBarChart className="h-4 w-4" /> Relatórios
           </TabsTrigger>
@@ -208,6 +212,10 @@ export default function Weavers() {
           {renderShiftSection('Turno Tarde', SHIFT_TIME_LABELS.tarde, counts.tarde, 'Nenhum tecelão neste turno')}
           {renderShiftSection('Turno Noite', SHIFT_TIME_LABELS.noite, counts.noite, 'Nenhum tecelão neste turno')}
           {renderShiftSection('Carga Horária Específica', 'Tecelões com horários personalizados', weavers.filter(w => w.shift_type === 'especifico'), 'Nenhum tecelão com carga horária específica')}
+        </TabsContent>
+
+        <TabsContent value="defects">
+          <WeaverDefectsTab weavers={weavers} defectRecords={defectRecords} />
         </TabsContent>
 
         <TabsContent value="reports">
