@@ -19,7 +19,9 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 ];
 
 export default function MecanicaPage() {
-  const { machines, machineLogs } = useSharedCompanyData();
+  const { getMachines, getMachineLogs } = useSharedCompanyData();
+  const machines = getMachines();
+  const machineLogs = getMachineLogs();
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -209,9 +211,9 @@ export default function MecanicaPage() {
                   </span>
                   {hasEvents && (
                     <div className="flex gap-0.5">
-                      {dayStatuses.map(status => (
+            {dayStatuses.map((status, idx) => (
                         <div
-                          key={status}
+                          key={idx}
                           className={cn('h-1.5 w-1.5 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])}
                         />
                       ))}
