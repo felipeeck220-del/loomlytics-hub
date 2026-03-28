@@ -23,6 +23,7 @@ import SettingsPage from "./pages/Settings";
 import RevisionPage from "./pages/Revision";
 import Admin from "./pages/Admin";
 import Vendas from "./pages/Vendas";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
@@ -152,6 +153,7 @@ const App = () => (
             </Route>
             <Route path="/admin" element={<Admin />} />
             <Route path="/vendas" element={<Vendas />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

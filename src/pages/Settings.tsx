@@ -50,7 +50,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X } from 'lucide-react';
+import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
 import ProductionModeModal from '@/components/ProductionModeModal';
@@ -117,6 +117,12 @@ export default function SettingsPage() {
   const [profilePassword, setProfilePassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [showProfilePassword, setShowProfilePassword] = useState(false);
+
+  // Subscription state
+  const [subStatus, setSubStatus] = useState<any>(null);
+  const [loadingSub, setLoadingSub] = useState(true);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [platformSettings, setPlatformSettings] = useState<Record<string, string>>({});
 
   // Company name editing
   const [editingCompanyName, setEditingCompanyName] = useState(false);
@@ -236,21 +242,61 @@ export default function SettingsPage() {
     setUploadingLogo(false);
   };
 
-  // Fetch profiles and company
+  // Fetch profiles, company, and subscription
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
       setLoadingProfiles(true);
-      const [profilesRes, companyRes] = await Promise.all([
+      const [profilesRes, companyRes, platformRes] = await Promise.all([
         (supabase.from as any)('profiles').select('*').order('created_at'),
         (supabase.from as any)('companies').select('*').eq('id', user.company_id).single(),
+        (supabase.from as any)('platform_settings').select('key, value'),
       ]);
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (companyRes.data) setCompany(companyRes.data);
+      if (platformRes.data) {
+        const map: Record<string, string> = {};
+        platformRes.data.forEach((r: any) => { map[r.key] = r.value; });
+        setPlatformSettings(map);
+      }
       setLoadingProfiles(false);
     };
     fetchData();
+    checkSubscription();
   }, [user]);
+
+  const checkSubscription = async () => {
+    setLoadingSub(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      if (!error && data) setSubStatus(data);
+    } catch {}
+    setLoadingSub(false);
+  };
+
+  const handleCheckout = async (priceId: string) => {
+    setCheckingOut(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { price_id: priceId },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.url) window.open(data.url, '_blank');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao criar checkout');
+    }
+    setCheckingOut(false);
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.url) window.open(data.url, '_blank');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao abrir portal');
+    }
+  };
 
   const refreshProfiles = async () => {
     const { data } = await (supabase.from as any)('profiles').select('*').order('created_at');
@@ -344,10 +390,11 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className={`w-full grid ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <TabsList className={`w-full grid ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <TabsTrigger value="profile">Meu Perfil</TabsTrigger>
           {isAdmin && <TabsTrigger value="users">Usuários</TabsTrigger>}
           <TabsTrigger value="company">Empresa</TabsTrigger>
+          <TabsTrigger value="plans">Planos</TabsTrigger>
         </TabsList>
 
         {/* ===== MEU PERFIL ===== */}
@@ -739,6 +786,155 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground"><strong>Administrador:</strong> admin@admin.com</p>
               <p className="text-sm text-muted-foreground"><strong>Mecânicos:</strong> mecanico@[nome].com (ex: mecanico@mateus.com)</p>
               <p className="text-sm text-muted-foreground"><strong>Revisadores:</strong> revisador@[nome].com (ex: revisador@joao.com)</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ===== PLANOS ===== */}
+        <TabsContent value="plans" className="mt-4">
+          <div className="card-glass p-6 space-y-6">
+            <div className="flex items-center gap-3">
+              <CreditCard className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <h2 className="font-display font-semibold text-foreground">Plano & Assinatura</h2>
+                <p className="text-sm text-muted-foreground">Gerencie sua assinatura e veja o status do seu plano</p>
+              </div>
+            </div>
+
+            {/* Subscription Status */}
+            {loadingSub ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Verificando assinatura...
+              </div>
+            ) : subStatus ? (
+              <div className="rounded-lg border p-4 space-y-2">
+                {subStatus.status === 'trial' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-primary/10 text-primary border-primary/20">Período de Teste</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Você tem <strong className="text-foreground">{subStatus.days_left} dias</strong> restantes de teste grátis.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Termina em: {new Date(subStatus.trial_end).toLocaleDateString('pt-BR')}
+                    </p>
+                  </>
+                )}
+                {subStatus.status === 'grace' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="border-amber-300 text-amber-600 bg-amber-50">
+                        <AlertTriangle className="h-3 w-3 mr-1" /> Carência
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Seu teste expirou. Você tem <strong className="text-foreground">{subStatus.days_left} dias</strong> de carência para realizar o pagamento.
+                    </p>
+                    <p className="text-xs text-destructive font-medium">
+                      Após a carência, o acesso será bloqueado automaticamente.
+                    </p>
+                  </>
+                )}
+                {subStatus.status === 'active' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">
+                        <Crown className="h-3 w-3 mr-1" /> Assinatura Ativa
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Seu plano está ativo até <strong className="text-foreground">{new Date(subStatus.subscription_end).toLocaleDateString('pt-BR')}</strong>.
+                    </p>
+                    <Button variant="outline" size="sm" onClick={handleManageSubscription}>
+                      Gerenciar Assinatura
+                    </Button>
+                  </>
+                )}
+                {subStatus.status === 'blocked' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="destructive">
+                        <XCircle className="h-3 w-3 mr-1" /> Acesso Bloqueado
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-destructive">
+                      Seu período de teste e carência expiraram. Assine um plano para continuar usando o sistema.
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            {/* Plans */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-foreground">Escolha seu plano</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Monthly Plan */}
+                <div className="rounded-xl border p-5 space-y-4 hover:border-primary/30 transition-colors">
+                  <div>
+                    <h4 className="font-bold text-lg">Mensal</h4>
+                    <p className="text-sm text-muted-foreground">Pague mês a mês, cancele quando quiser</p>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-foreground">
+                      R$ {Number(platformSettings.monthly_price || '47.00').toFixed(2)}
+                    </span>
+                    <span className="text-muted-foreground text-sm">/mês</span>
+                  </div>
+                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                    <li>✓ Acesso a todos os módulos</li>
+                    <li>✓ Suporte por WhatsApp</li>
+                    <li>✓ Sem fidelidade</li>
+                  </ul>
+                  <Button
+                    className="w-full"
+                    onClick={() => handleCheckout('price_1TFw57KBxG6jcqUd6SXKLtWr')}
+                    disabled={checkingOut || subStatus?.status === 'active'}
+                  >
+                    {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Assinar Mensal'}
+                  </Button>
+                </div>
+
+                {/* Annual Plan */}
+                <div className="rounded-xl border-2 border-primary/30 p-5 space-y-4 relative bg-primary/[0.02]">
+                  <Badge className="absolute -top-3 right-4 bg-primary text-primary-foreground">40% OFF</Badge>
+                  <div>
+                    <h4 className="font-bold text-lg">Anual</h4>
+                    <p className="text-sm text-muted-foreground">Economize 40% — parcele em até 12x no cartão</p>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-primary">
+                      R$ {(Number(platformSettings.monthly_price || '47.00') * 12 * 0.6).toFixed(2)}
+                    </span>
+                    <span className="text-muted-foreground text-sm">/ano</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    ou 12x de R$ {(Number(platformSettings.monthly_price || '47.00') * 12 * 0.6 / 12).toFixed(2)}/mês no cartão
+                  </p>
+                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                    <li>✓ Tudo do plano mensal</li>
+                    <li>✓ 40% de economia</li>
+                    <li>✓ Parcele em até 12x</li>
+                  </ul>
+                  <Button
+                    className="w-full btn-gradient"
+                    onClick={() => handleCheckout('price_1TFw5WKBxG6jcqUd5Ti8l7OG')}
+                    disabled={checkingOut || subStatus?.status === 'active'}
+                  >
+                    {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {subStatus?.status === 'active' ? 'Plano Atual' : 'Assinar Anual'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={checkSubscription} disabled={loadingSub}>
+                {loadingSub ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                Atualizar Status
+              </Button>
             </div>
           </div>
         </TabsContent>
