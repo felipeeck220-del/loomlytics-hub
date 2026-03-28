@@ -5,10 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Loader2, Clock, Users } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Plus, Pencil, Trash2, Loader2, Clock, Users, FileBarChart, CalendarIcon, Package, TrendingUp, Scale } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import type { Weaver, ShiftType } from '@/types';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { formatNumber, formatWeight, formatCurrency } from '@/lib/formatters';
+import type { Weaver, ShiftType, Production } from '@/types';
 import { SHIFT_LABELS } from '@/types';
 
 const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
@@ -18,8 +26,9 @@ const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
 };
 
 export default function Weavers() {
-  const { getWeavers, saveWeavers, loading } = useSharedCompanyData();
+  const { getWeavers, saveWeavers, getProductions, loading } = useSharedCompanyData();
   const weavers = getWeavers();
+  const productions = getProductions();
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Weaver | null>(null);
@@ -145,53 +154,66 @@ export default function Weavers() {
           <h1 className="text-2xl font-display font-bold text-foreground">Tecelões</h1>
           <p className="text-muted-foreground text-sm">Gerencie os tecelões e seus turnos de trabalho</p>
         </div>
-        <Button onClick={openNew} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Tecelão</Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <Users className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <span className="text-3xl font-display font-bold text-foreground">{counts.total}</span>
-        </div>
-        <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Turno Fixo</span>
-            <Clock className="h-5 w-5 text-blue-500" />
-          </div>
-          <span className="text-3xl font-display font-bold text-blue-600">{counts.fixo}</span>
-        </div>
-        <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Carga Horária</span>
-            <Clock className="h-5 w-5 text-emerald-500" />
-          </div>
-          <span className="text-3xl font-display font-bold text-emerald-600">{counts.especifico}</span>
-        </div>
-        <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Manhã</span>
-            <Clock className="h-5 w-5 text-yellow-500" />
-          </div>
-          <span className="text-3xl font-display font-bold text-yellow-600">{counts.manha.length}</span>
-        </div>
-      </div>
+      <Tabs defaultValue="weavers" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="weavers" className="gap-1.5">
+            <Users className="h-4 w-4" /> Tecelões
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="gap-1.5">
+            <FileBarChart className="h-4 w-4" /> Relatórios
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Shift Sections */}
-      {renderShiftSection('Turno Manhã', SHIFT_TIME_LABELS.manha, counts.manha, 'Nenhum tecelão neste turno')}
-      {renderShiftSection('Turno Tarde', SHIFT_TIME_LABELS.tarde, counts.tarde, 'Nenhum tecelão neste turno')}
-      {renderShiftSection('Turno Noite', SHIFT_TIME_LABELS.noite, counts.noite, 'Nenhum tecelão neste turno')}
+        <TabsContent value="weavers" className="space-y-6">
+          <div className="flex justify-end">
+            <Button onClick={openNew} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Tecelão</Button>
+          </div>
 
-      {/* Specific hours section */}
-      {renderShiftSection(
-        'Carga Horária Específica',
-        'Tecelões com horários personalizados',
-        weavers.filter(w => w.shift_type === 'especifico'),
-        'Nenhum tecelão com carga horária específica'
-      )}
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <Users className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <span className="text-3xl font-display font-bold text-foreground">{counts.total}</span>
+            </div>
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Turno Fixo</span>
+                <Clock className="h-5 w-5 text-info" />
+              </div>
+              <span className="text-3xl font-display font-bold text-info">{counts.fixo}</span>
+            </div>
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Carga Horária</span>
+                <Clock className="h-5 w-5 text-success" />
+              </div>
+              <span className="text-3xl font-display font-bold text-success">{counts.especifico}</span>
+            </div>
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Manhã</span>
+                <Clock className="h-5 w-5 text-warning" />
+              </div>
+              <span className="text-3xl font-display font-bold text-warning">{counts.manha.length}</span>
+            </div>
+          </div>
+
+          {/* Shift Sections */}
+          {renderShiftSection('Turno Manhã', SHIFT_TIME_LABELS.manha, counts.manha, 'Nenhum tecelão neste turno')}
+          {renderShiftSection('Turno Tarde', SHIFT_TIME_LABELS.tarde, counts.tarde, 'Nenhum tecelão neste turno')}
+          {renderShiftSection('Turno Noite', SHIFT_TIME_LABELS.noite, counts.noite, 'Nenhum tecelão neste turno')}
+          {renderShiftSection('Carga Horária Específica', 'Tecelões com horários personalizados', weavers.filter(w => w.shift_type === 'especifico'), 'Nenhum tecelão com carga horária específica')}
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <WeaverReportsTab weavers={weavers} productions={productions} />
+        </TabsContent>
+      </Tabs>
 
       {/* Add/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
@@ -246,5 +268,175 @@ export default function Weavers() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ─── Weaver Reports Tab ──────────────────────────────────────
+function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; productions: Production[] }) {
+  const [selectedWeaverId, setSelectedWeaverId] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
+
+  const selectedWeaver = weavers.find(w => w.id === selectedWeaverId);
+
+  const filtered = useMemo(() => {
+    if (!selectedWeaverId) return [];
+    let result = productions.filter(p => p.weaver_id === selectedWeaverId);
+    if (startDate) {
+      const start = format(startDate, 'yyyy-MM-dd');
+      result = result.filter(p => p.date >= start);
+    }
+    if (endDate) {
+      const end = format(endDate, 'yyyy-MM-dd');
+      result = result.filter(p => p.date <= end);
+    }
+    return result.sort((a, b) => b.date.localeCompare(a.date));
+  }, [productions, selectedWeaverId, startDate, endDate]);
+
+  const totals = useMemo(() => ({
+    days: new Set(filtered.map(p => p.date)).size,
+    rolls: filtered.reduce((s, p) => s + p.rolls_produced, 0),
+    weight: filtered.reduce((s, p) => s + p.weight_kg, 0),
+    revenue: filtered.reduce((s, p) => s + p.revenue, 0),
+    avgEfficiency: filtered.length > 0 ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0,
+  }), [filtered]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2"><FileBarChart className="h-5 w-5" /> Relatório por Tecelão</CardTitle>
+        <CardDescription>Selecione um tecelão e filtre por período</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Filters */}
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Tecelão</Label>
+            <Select value={selectedWeaverId} onValueChange={setSelectedWeaverId}>
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue placeholder="Selecione um tecelão" />
+              </SelectTrigger>
+              <SelectContent>
+                {weavers.map(w => (
+                  <SelectItem key={w.id} value={w.id}>{w.code} — {w.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Período</Label>
+              <div className="flex items-center gap-2">
+                <Popover open={startOpen} onOpenChange={setStartOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !startDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                      {startDate ? format(startDate, 'dd/MM/yy') : 'Início'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={startDate} onSelect={(d) => { setStartDate(d); setStartOpen(false); }} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+                <span className="text-xs text-muted-foreground">até</span>
+                <Popover open={endOpen} onOpenChange={setEndOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !endDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                      {endDate ? format(endDate, 'dd/MM/yy') : 'Fim'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={endDate} onSelect={(d) => { setEndDate(d); setEndOpen(false); }} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            {(startDate || endDate) && (
+              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); }}>
+                ✕ Limpar datas
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {!selectedWeaverId ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Users className="h-10 w-10 text-muted-foreground/40 mb-2" />
+            <p className="text-muted-foreground">Selecione um tecelão para ver o relatório</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Nenhum registro de produção encontrado para este tecelão no período selecionado.</p>
+        ) : (
+          <>
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Dias</p>
+                <p className="text-lg font-bold text-foreground">{totals.days}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peças</p>
+                <p className="text-lg font-bold text-foreground">{formatNumber(totals.rolls, 1)}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peso</p>
+                <p className="text-lg font-bold text-foreground">{formatWeight(totals.weight)}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Faturamento</p>
+                <p className="text-lg font-bold text-foreground">{formatCurrency(totals.revenue)}</p>
+              </div>
+              <div className={cn("rounded-lg border p-3", totals.avgEfficiency >= 80 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-warning/30 bg-warning/5")}>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Eficiência Média</p>
+                <p className={cn("text-lg font-bold", totals.avgEfficiency >= 80 ? "text-success" : "text-warning")}>{totals.avgEfficiency.toFixed(1)}%</p>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-auto max-h-[500px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Turno</TableHead>
+                    <TableHead>Máquina</TableHead>
+                    <TableHead>Artigo</TableHead>
+                    <TableHead className="text-right">Peças</TableHead>
+                    <TableHead className="text-right">Peso (kg)</TableHead>
+                    <TableHead className="text-right">Faturamento</TableHead>
+                    <TableHead className="text-right">Eficiência</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map(p => (
+                    <TableRow key={p.id}>
+                      <TableCell className="whitespace-nowrap">{p.date}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-xs">
+                          {p.shift === 'manha' ? 'Manhã' : p.shift === 'tarde' ? 'Tarde' : 'Noite'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{p.machine_name || '—'}</TableCell>
+                      <TableCell>{p.article_name || '—'}</TableCell>
+                      <TableCell className="text-right font-medium">{formatNumber(p.rolls_produced, 1)}</TableCell>
+                      <TableCell className="text-right">{formatWeight(p.weight_kg)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(p.revenue)}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={p.efficiency >= 80 ? 'default' : 'destructive'} className={p.efficiency >= 80 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : ''}>
+                          {p.efficiency.toFixed(1)}%
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
