@@ -414,7 +414,7 @@ export default function SettingsPage() {
     setSavingAdminPw(false);
   };
 
-
+  const handleDeleteUser = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
     const { data, error } = await supabase.functions.invoke('manage-users', {
       body: { action: 'delete', user_id: showDeleteUser?.id },
