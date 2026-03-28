@@ -964,71 +964,41 @@ export default function ProductionPage() {
                 <Plus className="mr-1 h-4 w-4" /> Adicionar Artigo
               </Button>
             )}
-
-            {(() => {
-              const previewTargetEff = (() => {
-                if (!selectedArticle) return 80;
-                const targets = [selectedArticle.target_efficiency || 80];
-                for (const ea of extraArticles) {
-                  const art = articles.find(a => a.id === ea.article_id);
-                  if (art) targets.push(art.target_efficiency || 80);
-                }
-                return targets.reduce((s, t) => s + t, 0) / targets.length;
-              })();
-
-              return (
-                <div className={cn("rounded-xl border p-4 overflow-x-hidden", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
-                  {preview ? (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="rounded-lg border border-border/60 bg-background/80 p-3 text-center">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Rolos</p>
-                          <p className="mt-1 break-words text-2xl font-bold text-foreground">{preview.rolls}</p>
-                        </div>
-                        <div className="rounded-lg border border-border/60 bg-background/80 p-3 text-center">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Peso (kg)</p>
-                          <p className="mt-1 break-words text-2xl font-bold text-foreground">{preview.weightKg.toFixed(1)}</p>
-                        </div>
-                        <div className="rounded-lg border border-border/60 bg-background/80 p-3 text-center">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Valor</p>
-                          <p className="mt-1 break-words text-2xl font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p>
-                        </div>
-                        <div className="rounded-lg border border-border/60 bg-background/80 p-3 text-center">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Eficiência</p>
-                          <p className={cn("mt-1 break-words text-2xl font-bold", effColor(preview.efficiency, previewTargetEff))}>{preview.efficiency.toFixed(1)}%</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 text-xs sm:justify-center">
-                        {selectedArticle && (
-                          <span className={cn("rounded-full px-3 py-1", effBg(preview.efficiency, selectedArticle.target_efficiency || 80))}>
-                            {selectedArticle.name}: Meta {selectedArticle.target_efficiency || 80}%
-                          </span>
-                        )}
-                        {extraArticles.map((ea, idx) => {
-                          const art = articles.find(a => a.id === ea.article_id);
-                          if (!art) return null;
-                          return (
-                            <span key={idx} className={cn("rounded-full px-3 py-1", effBg(preview.efficiency, art.target_efficiency || 80))}>
-                              {art.name}: Meta {art.target_efficiency || 80}%
-                            </span>
-                          );
-                        })}
-                        {extraArticles.some(ea => articles.find(a => a.id === ea.article_id)) && (
-                          <span className="rounded-full bg-muted px-3 py-1 font-semibold">
-                            Média: {formatNumber(previewTargetEff, 0)}%
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="py-3 text-center text-sm text-muted-foreground">Preencha os campos para ver o preview</p>
-                  )}
-                </div>
-              );
-            })()}
           </div>
 
-          <div className="flex-shrink-0 space-y-3 border-t pt-4">
+          {/* Preview — fixed above footer, outside scroll */}
+          {(() => {
+            const previewTargetEff = (() => {
+              if (!selectedArticle) return 80;
+              const targets = [selectedArticle.target_efficiency || 80];
+              for (const ea of extraArticles) {
+                const art = articles.find(a => a.id === ea.article_id);
+                if (art) targets.push(art.target_efficiency || 80);
+              }
+              return targets.reduce((s, t) => s + t, 0) / targets.length;
+            })();
+
+            return (
+              <div className={cn("flex-shrink-0 rounded-lg border p-3", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
+                {preview ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                      <div><span className="text-xs text-muted-foreground">Rolos </span><span className="font-bold text-foreground">{preview.rolls}</span></div>
+                      <div><span className="text-xs text-muted-foreground">Peso </span><span className="font-bold text-foreground">{preview.weightKg.toFixed(1)} kg</span></div>
+                      <div><span className="text-xs text-muted-foreground">Valor </span><span className="font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</span></div>
+                    </div>
+                    <div className={cn("text-2xl font-bold", effColor(preview.efficiency, previewTargetEff))}>
+                      {preview.efficiency.toFixed(1)}%
+                    </div>
+                  </div>
+                ) : (
+                  <p className="py-1 text-center text-sm text-muted-foreground">Preencha os campos para ver o preview</p>
+                )}
+              </div>
+            );
+          })()}
+
+          <div className="flex-shrink-0 space-y-3 border-t pt-3">
             {saveQueue.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {saveQueue.map(q => (
@@ -1047,15 +1017,15 @@ export default function ProductionPage() {
               </div>
             )}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-muted-foreground">
-                Pressione <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">Enter</kbd> para salvar
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="hidden text-xs text-muted-foreground sm:block">
+                <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">Enter</kbd> para salvar
               </p>
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                <Button variant="outline" onClick={() => setShowModal(false)} disabled={hasPendingSaves} className="w-full sm:w-auto">
+              <div className="flex w-full gap-2 sm:w-auto">
+                <Button variant="outline" onClick={() => setShowModal(false)} disabled={hasPendingSaves} className="flex-1 sm:flex-none">
                   {hasPendingSaves ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Salvando...</> : 'Fechar'}
                 </Button>
-                <Button onClick={handleSave} className="btn-gradient w-full sm:w-auto" disabled={saving}>
+                <Button onClick={handleSave} className="btn-gradient flex-1 sm:flex-none" disabled={saving}>
                   {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
                   <span className="truncate">{editing ? 'Salvar' : 'Registrar e Próximo'}</span>
                 </Button>
