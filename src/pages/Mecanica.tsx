@@ -130,6 +130,40 @@ export default function MecanicaPage() {
     });
   }, [activeMachines, productions, machineLogs]);
 
+  // History: all maintenance logs for a specific machine with revenue/kg between each period
+  const historyData = useMemo(() => {
+    if (!historyMachineId) return [];
+    const machineProductions = productions.filter(p => p.machine_id === historyMachineId);
+    
+    const relevantLogs = machineLogs
+      .filter(l => l.machine_id === historyMachineId && (l.status === 'manutencao_preventiva' || l.status === 'troca_agulhas'))
+      .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
+
+    return relevantLogs.map((log, idx) => {
+      const logDate = format(new Date(log.started_at), 'yyyy-MM-dd');
+      // Next log of same type (the one before this chronologically)
+      const nextLogOfSameType = relevantLogs
+        .filter(l => l.status === log.status)
+        .find((l, i2) => {
+          const sameLogs = relevantLogs.filter(ll => ll.status === log.status);
+          const currentIdx = sameLogs.indexOf(log);
+          return sameLogs.indexOf(l) === currentIdx + 1;
+        });
+      
+      const fromDate = nextLogOfSameType 
+        ? format(new Date(nextLogOfSameType.started_at), 'yyyy-MM-dd')
+        : '2000-01-01';
+
+      const periodProductions = machineProductions.filter(p => p.date >= fromDate && p.date <= logDate);
+      const revenue = periodProductions.reduce((sum, p) => sum + p.revenue, 0);
+      const weight = periodProductions.reduce((sum, p) => sum + p.weight_kg, 0);
+
+      return { log, revenue, weight, fromDate };
+    });
+  }, [historyMachineId, machineLogs, productions]);
+
+  const historyMachineName = historyMachineId ? getMachineName(historyMachineId) : '';
+
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
