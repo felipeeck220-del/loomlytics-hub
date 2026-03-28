@@ -97,7 +97,7 @@ serve(async (req) => {
       .select('key, value');
     
     let trialDays = 90;
-    let monthlyPlanValue = 47;
+    let monthlyPlanValue = 147;
     (platformSettings || []).forEach((s: any) => {
       if (s.key === 'trial_days') trialDays = Number(s.value);
       if (s.key === 'monthly_price') monthlyPlanValue = Number(s.value);
