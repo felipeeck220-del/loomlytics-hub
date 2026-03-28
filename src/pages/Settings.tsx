@@ -138,6 +138,8 @@ export default function SettingsPage() {
   const [checkingOut, setCheckingOut] = useState<'monthly' | 'annual' | null>(null);
   const [platformSettings, setPlatformSettings] = useState<Record<string, string>>({});
   const [companyPlanValue, setCompanyPlanValue] = useState<number | null>(null);
+  const [cancellingSubscription, setCancellingSubscription] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   // Pix payment state
   const [pixModal, setPixModal] = useState(false);
