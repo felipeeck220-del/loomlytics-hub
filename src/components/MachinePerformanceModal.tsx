@@ -136,15 +136,14 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[90vw] max-h-[90vh] w-[90vw] h-[90vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="p-6 pb-4 shrink-0 border-b border-border/50">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <Factory className="h-5 w-5 text-muted-foreground" />
-            Performance de Todas as Máquinas
-          </DialogTitle>
-          <DialogDescription>Visualização completa do desempenho de todas as máquinas</DialogDescription>
-        </DialogHeader>
-
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Factory className="h-5 w-5 text-muted-foreground" />
+              Performance de Todas as Máquinas
+            </DialogTitle>
+            <DialogDescription>Visualização completa do desempenho de todas as máquinas</DialogDescription>
+          </DialogHeader>
           {/* Filters */}
           <Card className="shadow-material border-0">
             <CardContent className="py-4 space-y-3">
