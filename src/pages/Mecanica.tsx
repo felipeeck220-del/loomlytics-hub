@@ -140,7 +140,7 @@ export default function MecanicaPage() {
       </Card>
 
       {/* Calendar */}
-      <Card className="max-w-3xl">
+      <Card className="w-full">
         <CardHeader className="pb-2 px-3 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
