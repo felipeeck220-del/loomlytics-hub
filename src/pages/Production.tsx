@@ -979,20 +979,20 @@ export default function ProductionPage() {
             })();
 
             return (
-              <div className={cn("flex-shrink-0 rounded-lg border p-3", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
+              <div className={cn("flex-shrink-0 rounded-lg border p-2", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
                 {preview ? (
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                      <div><span className="text-xs text-muted-foreground">Rolos </span><span className="font-bold text-foreground">{preview.rolls}</span></div>
-                      <div><span className="text-xs text-muted-foreground">Peso </span><span className="font-bold text-foreground">{preview.weightKg.toFixed(1)} kg</span></div>
-                      <div><span className="text-xs text-muted-foreground">Valor </span><span className="font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</span></div>
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
+                      <div><span className="text-muted-foreground">Rolos </span><span className="font-semibold text-foreground">{preview.rolls}</span></div>
+                      <div><span className="text-muted-foreground">Peso </span><span className="font-semibold text-foreground">{preview.weightKg.toFixed(1)}kg</span></div>
+                      <div><span className="text-muted-foreground">Valor </span><span className="font-semibold text-foreground">R${preview.revenue.toFixed(2)}</span></div>
                     </div>
-                    <div className={cn("text-2xl font-bold", effColor(preview.efficiency, previewTargetEff))}>
+                    <div className={cn("text-base sm:text-lg font-bold", effColor(preview.efficiency, previewTargetEff))}>
                       {preview.efficiency.toFixed(1)}%
                     </div>
                   </div>
                 ) : (
-                  <p className="py-1 text-center text-sm text-muted-foreground">Preencha os campos para ver o preview</p>
+                  <p className="py-0.5 text-center text-[11px] text-muted-foreground">Preencha os campos para ver o preview</p>
                 )}
               </div>
             );
