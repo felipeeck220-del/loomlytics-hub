@@ -219,18 +219,23 @@ export default function Reports() {
   }).filter(a => a.records > 0).sort((a, b) => b.faturamento - a.faturamento);
 
   const byDate = useMemo(() => {
-    const acc: Record<string, { rolos: number; kg: number; faturamento: number }> = {};
+    const acc: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
     filtered.forEach(p => {
-      if (!acc[p.date]) acc[p.date] = { rolos: 0, kg: 0, faturamento: 0 };
+      if (!acc[p.date]) acc[p.date] = { rolos: 0, kg: 0, faturamento: 0, effSum: 0, effCount: 0 };
       acc[p.date].rolos += p.rolls_produced;
       acc[p.date].kg += p.weight_kg;
       acc[p.date].faturamento += p.revenue;
+      acc[p.date].effSum += p.efficiency;
+      acc[p.date].effCount += 1;
     });
     return Object.entries(acc)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, vals]) => ({
         date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-        ...vals,
+        rolos: vals.rolos,
+        kg: vals.kg,
+        faturamento: vals.faturamento,
+        eficiencia: vals.effCount > 0 ? vals.effSum / vals.effCount : 0,
       }));
   }, [filtered]);
 
