@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CompanyDataProvider } from "@/contexts/CompanyDataContext";
+import { SubscriptionProvider, useSubscription } from "@/contexts/SubscriptionContext";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -50,56 +51,14 @@ function ProtectedRoute({ routeKey, children }: { routeKey: string; children: Re
   return <>{children}</>;
 }
 
-function CompanyRoute() {
-  const { user, loading, companies, setActiveCompany } = useAuth();
-  const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const [platformBlocked, setPlatformBlocked] = useState(false);
-  const [checkingAccess, setCheckingAccess] = useState(true);
-  const [companyResolved, setCompanyResolved] = useState(false);
+function CompanyRouteInner() {
+  const { user } = useAuth();
+  const { fullyBlocked, loading: subLoading } = useSubscription();
 
-  // Resolve company from slug
-  useEffect(() => {
-    if (!user || !slug || !companies.length) return;
-    
-    const company = companies.find(c => c.company_slug === slug);
-    if (!company) {
-      // Invalid slug, redirect to user's first company
-      navigate(`/${companies[0].company_slug}`, { replace: true });
-      return;
-    }
-    
-    if (company.company_id !== user.company_id) {
-      // Switch to the company matching the URL slug
-      setActiveCompany(company.company_id).then(() => {
-        setCompanyResolved(true);
-      });
-    } else {
-      setCompanyResolved(true);
-    }
-  }, [slug, user?.company_id, companies]);
+  if (subLoading) return null;
 
-  // Check platform access
-  useEffect(() => {
-    if (!user?.company_id || !companyResolved) {
-      return;
-    }
-    (supabase.from as any)('company_settings')
-      .select('platform_active')
-      .eq('company_id', user.company_id)
-      .maybeSingle()
-      .then(({ data }: any) => {
-        if (data && data.platform_active === false) {
-          setPlatformBlocked(true);
-        }
-        setCheckingAccess(false);
-      });
-  }, [user?.company_id, companyResolved]);
-
-  if (loading) return null;
-  if (!user) return <Navigate to={`/${slug}/login`} replace />;
-  if (checkingAccess || !companyResolved) return null;
-  if (platformBlocked) {
+  // Non-admin users are fully blocked when subscription is expired
+  if (fullyBlocked) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center space-y-4 max-w-md">
@@ -109,15 +68,49 @@ function CompanyRoute() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-foreground">Acesso Bloqueado</h1>
-          <p className="text-muted-foreground">O acesso à plataforma foi desativado para sua empresa. Entre em contato com o administrador do sistema.</p>
+          <p className="text-muted-foreground">A assinatura da empresa está inativa. Solicite ao administrador que renove o plano para restaurar o acesso.</p>
         </div>
       </div>
     );
   }
 
+  return <AppLayout />;
+}
+
+function CompanyRoute() {
+  const { user, loading, companies, setActiveCompany } = useAuth();
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const [companyResolved, setCompanyResolved] = useState(false);
+
+  // Resolve company from slug
+  useEffect(() => {
+    if (!user || !slug || !companies.length) return;
+    
+    const company = companies.find(c => c.company_slug === slug);
+    if (!company) {
+      navigate(`/${companies[0].company_slug}`, { replace: true });
+      return;
+    }
+    
+    if (company.company_id !== user.company_id) {
+      setActiveCompany(company.company_id).then(() => {
+        setCompanyResolved(true);
+      });
+    } else {
+      setCompanyResolved(true);
+    }
+  }, [slug, user?.company_id, companies]);
+
+  if (loading) return null;
+  if (!user) return <Navigate to={`/${slug}/login`} replace />;
+  if (!companyResolved) return null;
+
   return (
     <CompanyDataProvider>
-      <AppLayout />
+      <SubscriptionProvider>
+        <CompanyRouteInner />
+      </SubscriptionProvider>
     </CompanyDataProvider>
   );
 }
