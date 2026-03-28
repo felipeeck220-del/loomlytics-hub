@@ -140,7 +140,7 @@ export default function MecanicaPage() {
       </Card>
 
       {/* Calendar */}
-      <Card>
+      <Card className="max-w-3xl">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Calendário de Manutenções</CardTitle>
@@ -171,7 +171,7 @@ export default function MecanicaPage() {
           {/* Week headers */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {weekDays.map(d => (
-              <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2">{d}</div>
+              <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1">{d}</div>
             ))}
           </div>
 
@@ -196,7 +196,7 @@ export default function MecanicaPage() {
                   key={key}
                   onClick={() => hasEvents && setSelectedDay(day)}
                   className={cn(
-                    'aspect-square rounded-lg border flex flex-col items-center justify-center gap-0.5 transition-all text-sm relative',
+                    'rounded-md border flex flex-col items-center justify-center gap-0.5 transition-all text-xs relative p-1.5',
                     isToday && 'border-primary',
                     hasEvents
                       ? 'border-warning/50 bg-warning/5 hover:bg-warning/10 cursor-pointer'
