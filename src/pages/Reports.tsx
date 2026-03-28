@@ -782,7 +782,7 @@ export default function Reports() {
                       const pctKg = totalArticleKg > 0 ? (a.kg / totalArticleKg * 100) : 0;
                       const pctRevenue = totalArticleRevenue > 0 ? (a.faturamento / totalArticleRevenue * 100) : 0;
                       return (
-                        <div key={a.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
+                        <div key={`${a.name}-${a.clientName}`} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="font-display font-bold text-foreground">{a.name}</p>
