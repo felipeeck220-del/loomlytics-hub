@@ -668,6 +668,9 @@ export default function SettingsPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-display font-bold text-foreground">{p.name}</p>
+                        {p.code && (
+                          <Badge variant="outline" className="text-xs font-mono">#{p.code}</Badge>
+                        )}
                         <Badge variant={p.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                           {p.status === 'active' ? 'Ativo' : 'Inativo'}
                         </Badge>
@@ -683,8 +686,11 @@ export default function SettingsPage() {
                   </div>
                   {isAdmin && (
                     <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditUser(p)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditUser(p)} title="Editar">
                         <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
+                        <Key className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="outline"
