@@ -18,8 +18,6 @@ import {
 import { cn } from '@/lib/utils';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
-import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import {
   Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
 } from 'recharts';
