@@ -84,7 +84,12 @@ export default function Machines() {
         const openLog = allLogs.find(l => l.machine_id === editing.id && !l.ended_at);
         if (openLog) openLog.ended_at = new Date().toISOString();
         allLogs.push({ id: crypto.randomUUID(), machine_id: editing.id, status: form.status, started_at: new Date().toISOString() });
-        await saveMachineLogs(allLogs);
+        try {
+          await saveMachineLogs(allLogs);
+        } catch (err) {
+          console.error('Failed to save machine logs:', err);
+          toast.error('Erro ao salvar log de status');
+        }
       }
 
       await saveMachines(all);
@@ -100,7 +105,12 @@ export default function Machines() {
 
       const allLogs = [...logs];
       allLogs.push({ id: crypto.randomUUID(), machine_id: newMachine.id, status: form.status, started_at: new Date().toISOString() });
-      await saveMachineLogs(allLogs);
+      try {
+        await saveMachineLogs(allLogs);
+      } catch (err) {
+        console.error('Failed to save machine logs:', err);
+        toast.error('Erro ao salvar log de status');
+      }
       toast.success('Máquina cadastrada');
     }
     setShowModal(false);
