@@ -1552,3 +1552,102 @@ function handleExport(
     }
   }
 }
+
+function handleOutsourceExport(
+  totals: { totalWeight: number; totalRolls: number; totalRevenue: number; totalCost: number; totalProfit: number; byCompany: any[]; byArticle: any[] },
+  periodLabel: string,
+  logoUrl?: string | null,
+  canSeeFinancial = true,
+) {
+  const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmtK = (v: number) => fmtN(v, 2);
+  const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
+  const date = new Date().toLocaleDateString('pt-BR');
+
+  const companyHeaders = canSeeFinancial
+    ? ['Malharia', 'Rolos', 'Peso (kg)', 'Receita', 'Custo', 'Lucro']
+    : ['Malharia', 'Rolos', 'Peso (kg)'];
+  const companyRows = totals.byCompany.map(c => canSeeFinancial
+    ? [c.name, fmtN(c.rolls), fmtK(c.kg), fmtR(c.revenue), fmtR(c.cost), fmtR(c.profit)]
+    : [c.name, fmtN(c.rolls), fmtK(c.kg)]);
+  const companyTotal = canSeeFinancial
+    ? ['TOTAL', fmtN(totals.totalRolls), fmtK(totals.totalWeight), fmtR(totals.totalRevenue), fmtR(totals.totalCost), fmtR(totals.totalProfit)]
+    : ['TOTAL', fmtN(totals.totalRolls), fmtK(totals.totalWeight)];
+  companyRows.push(companyTotal);
+
+  const articleHeaders = canSeeFinancial
+    ? ['Artigo', 'Cliente', 'Rolos', 'Peso (kg)', 'Receita', 'Custo', 'Lucro']
+    : ['Artigo', 'Cliente', 'Rolos', 'Peso (kg)'];
+  const articleRows = totals.byArticle.map(a => canSeeFinancial
+    ? [a.name, a.client, fmtN(a.rolls), fmtK(a.kg), fmtR(a.revenue), fmtR(a.cost), fmtR(a.profit)]
+    : [a.name, a.client, fmtN(a.rolls), fmtK(a.kg)]);
+
+  const buildTable = (headers: string[], rows: (string | number)[][]) => `
+    <table>
+      <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r, ri) => `<tr class="${ri === rows.length - 1 && r[0] === 'TOTAL' ? 'total-row' : ''}">${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório Terceirizado</title>
+  <style>
+    @page { margin: 15mm 20mm; size: A4; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a2e; background: #fff; }
+    .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 20px 24px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
+    .header-logo { height: 48px; width: 48px; border-radius: 8px; object-fit: contain; background: rgba(255,255,255,0.15); padding: 4px; }
+    .header-text h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .header .meta { font-size: 12px; opacity: 0.85; display: flex; gap: 16px; }
+    .section { margin-bottom: 28px; }
+    .section h2 { font-size: 15px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
+    .kpis { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    .kpi { flex: 1; min-width: 140px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; }
+    .kpi-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+    .profit { color: #16a34a; }
+    .loss { color: #dc2626; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: #f1f5f9; color: #475569; font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .total-row td { background: #e2e8f0 !important; font-weight: 700; border-top: 2px solid #94a3b8; }
+    .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #94a3b8; text-align: center; }
+  </style></head><body>
+    <div class="header">
+      ${logoUrl ? `<img src="${logoUrl}" class="header-logo" />` : ''}
+      <div class="header-text">
+        <h1>Relatório de Terceirizado</h1>
+        <div class="meta">
+          <span>Período: ${periodLabel}</span>
+          <span>Gerado em: ${date}</span>
+        </div>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">Rolos</div><div class="kpi-value">${fmtN(totals.totalRolls)}</div></div>
+      <div class="kpi"><div class="kpi-label">Peso Total</div><div class="kpi-value">${fmtK(totals.totalWeight)} kg</div></div>
+      ${canSeeFinancial ? `
+        <div class="kpi"><div class="kpi-label">Receita</div><div class="kpi-value">${fmtR(totals.totalRevenue)}</div></div>
+        <div class="kpi"><div class="kpi-label">Custo</div><div class="kpi-value">${fmtR(totals.totalCost)}</div></div>
+        <div class="kpi"><div class="kpi-label">Lucro</div><div class="kpi-value ${totals.totalProfit >= 0 ? 'profit' : 'loss'}">${fmtR(totals.totalProfit)}</div></div>
+      ` : ''}
+    </div>
+    <div class="section">
+      <h2>Por Malharia</h2>
+      ${buildTable(companyHeaders, companyRows)}
+    </div>
+    ${articleRows.length > 0 ? `
+      <div class="section">
+        <h2>Por Artigo</h2>
+        ${buildTable(articleHeaders, articleRows)}
+      </div>
+    ` : ''}
+    <div class="footer">Relatório gerado automaticamente pelo sistema MalhaGest · ${date}</div>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  }
+}
