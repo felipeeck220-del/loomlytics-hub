@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns, CompanyShiftSettings, ShiftType } from '@/types';
+import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns, CompanyShiftSettings, ShiftType, DefectRecord } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
 const sb = (table: string) => (supabase.from as any)(table);
@@ -17,6 +17,7 @@ export function useCompanyData() {
   const [weavers, setWeavers] = useState<Weaver[]>([]);
   const [productions, setProductions] = useState<Production[]>([]);
   const [articleMachineTurns, setArticleMachineTurns] = useState<ArticleMachineTurns[]>([]);
+  const [defectRecords, setDefectRecords] = useState<DefectRecord[]>([]);
   const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
   const [loading, setLoading] = useState(true);
 
@@ -51,7 +52,7 @@ export function useCompanyData() {
     }
     (async () => {
       setLoading(true);
-      const [mData, cData, aData, wData, pData, mlRes, amtData, csRes] = await Promise.all([
+      const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drData] = await Promise.all([
         fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
         fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
@@ -60,6 +61,7 @@ export function useCompanyData() {
         sb('machine_logs').select('*').order('started_at', { ascending: false }).limit(1000),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
         sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
+        fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false),
       ]);
 
       setMachines(mData.map(mapMachine));
@@ -69,6 +71,7 @@ export function useCompanyData() {
       setWeavers(wData.map(mapWeaver));
       setProductions(pData.map(mapProduction));
       setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
+      setDefectRecords(drData.map(mapDefectRecord));
       if (csRes.data) {
         setShiftSettings({
           shift_manha_start: csRes.data.shift_manha_start || DEFAULT_SHIFT_SETTINGS.shift_manha_start,
@@ -135,6 +138,15 @@ export function useCompanyData() {
     company_id: r.company_id, turns_per_roll: Number(r.turns_per_roll),
     observations: r.observations || undefined, created_at: r.created_at,
   });
+  const mapDefectRecord = (r: any): DefectRecord => ({
+    id: r.id, company_id: r.company_id, machine_id: r.machine_id || '',
+    article_id: r.article_id || '', weaver_id: r.weaver_id || '',
+    date: r.date, shift: normalizeShift(r.shift),
+    measure_type: r.measure_type || 'kg', measure_value: Number(r.measure_value),
+    machine_name: r.machine_name || undefined, article_name: r.article_name || undefined,
+    weaver_name: r.weaver_name || undefined, observations: r.observations || undefined,
+    created_at: r.created_at,
+  });
 
   // Getters (return current state)
   const getMachines = useCallback(() => machines, [machines]);
@@ -144,6 +156,7 @@ export function useCompanyData() {
   const getWeavers = useCallback(() => weavers, [weavers]);
   const getProductions = useCallback(() => productions, [productions]);
   const getArticleMachineTurns = useCallback(() => articleMachineTurns, [articleMachineTurns]);
+  const getDefectRecords = useCallback(() => defectRecords, [defectRecords]);
 
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {

@@ -20,6 +20,7 @@ import Weavers from "./pages/Weavers";
 import Reports from "./pages/Reports";
 import Outsource from "./pages/Outsource";
 import SettingsPage from "./pages/Settings";
+import RevisionPage from "./pages/Revision";
 import Admin from "./pages/Admin";
 
 import AppLayout from "./components/AppLayout";
@@ -142,6 +143,7 @@ const App = () => (
               <Route path="machines" element={<ProtectedRoute routeKey="machines"><Machines /></ProtectedRoute>} />
               <Route path="clients-articles" element={<ProtectedRoute routeKey="clients-articles"><ClientsArticles /></ProtectedRoute>} />
               <Route path="production" element={<ProtectedRoute routeKey="production"><ProductionPage /></ProtectedRoute>} />
+              <Route path="revision" element={<ProtectedRoute routeKey="revision"><RevisionPage /></ProtectedRoute>} />
               <Route path="outsource" element={<ProtectedRoute routeKey="outsource"><Outsource /></ProtectedRoute>} />
               <Route path="weavers" element={<ProtectedRoute routeKey="weavers"><Weavers /></ProtectedRoute>} />
               <Route path="reports" element={<ProtectedRoute routeKey="reports"><Reports /></ProtectedRoute>} />
