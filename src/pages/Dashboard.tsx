@@ -162,13 +162,9 @@ export default function Dashboard() {
   const calendarHours = useMemo(() => {
     let days: number;
     if (dayRange === 0) {
-      // All data — calculate from actual data range
-      if (filtered.length > 0) {
-        const dates = filtered.map(p => p.date).sort();
-        days = differenceInCalendarDays(new Date(dates[dates.length - 1] + 'T12:00:00'), new Date(dates[0] + 'T12:00:00')) + 1;
-      } else {
-        days = 1;
-      }
+      // All data — use only days that have production records
+      const uniqueDays = new Set(filtered.map(p => p.date)).size;
+      days = uniqueDays || 1;
     } else if (dateFrom && dateTo) {
       days = differenceInCalendarDays(dateTo, dateFrom) + 1;
     } else if (dateFrom) {
