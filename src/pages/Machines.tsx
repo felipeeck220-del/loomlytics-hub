@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
