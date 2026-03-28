@@ -138,6 +138,18 @@ export default function SettingsPage() {
   const [platformSettings, setPlatformSettings] = useState<Record<string, string>>({});
   const [companyPlanValue, setCompanyPlanValue] = useState<number | null>(null);
 
+  // Pix payment state
+  const [pixModal, setPixModal] = useState(false);
+  const [pixCode, setPixCode] = useState('');
+  const [pixIdentifier, setPixIdentifier] = useState('');
+  const [pixAmount, setPixAmount] = useState(0);
+  const [pixPlanName, setPixPlanName] = useState('');
+  const [pixStatus, setPixStatus] = useState<string>('pending');
+  const [checkingPixStatus, setCheckingPixStatus] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const pixPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Company name editing
   const [editingCompanyName, setEditingCompanyName] = useState(false);
   const [companyNameForm, setCompanyNameForm] = useState('');
