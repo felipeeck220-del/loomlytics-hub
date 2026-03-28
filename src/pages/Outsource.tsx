@@ -645,6 +645,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
 }
 
 // ─── Reports Tab ─────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-use-before-define
 function ReportsTab({ productions, loading }: {
   productions: OutsourceProduction[];
   loading: boolean;
