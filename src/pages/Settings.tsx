@@ -298,7 +298,7 @@ export default function SettingsPage() {
         platformRes.data.forEach((r: any) => { map[r.key] = r.value; });
         setPlatformSettings(map);
       }
-      if (companySettingsRes.data?.monthly_plan_value) {
+      if (companySettingsRes.data && companySettingsRes.data.monthly_plan_value != null) {
         setCompanyPlanValue(Number(companySettingsRes.data.monthly_plan_value));
       }
       setLoadingProfiles(false);
