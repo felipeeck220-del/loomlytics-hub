@@ -355,7 +355,7 @@ export default function Admin() {
                                 e.stopPropagation();
                                 const num = c.whatsapp!.replace(/\D/g, '');
                                 const fullNum = num.startsWith('55') ? num : `55${num}`;
-                                window.open(`https://api.whatsapp.com/send/?phone=${fullNum}&text&type=phone_number&app_absent=0`, '_blank');
+                                window.open(`https://wa.me/${fullNum}`, '_blank');
                               }}
                             >
                               <Phone className="h-3.5 w-3.5" />
