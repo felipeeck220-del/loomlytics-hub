@@ -390,6 +390,23 @@ export default function SettingsPage() {
     setLoadingHistory(false);
   };
 
+  const handleCancelSubscription = async () => {
+    if (!user) return;
+    setCancellingSubscription(true);
+    try {
+      await (supabase.from as any)('company_settings')
+        .update({ subscription_status: 'cancelling' })
+        .eq('company_id', user.company_id);
+      toast.success('Assinatura cancelada. Você terá acesso até o fim do período pago.');
+      setShowCancelDialog(false);
+      checkSubscription();
+      window.dispatchEvent(new Event('subscription-updated'));
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao cancelar assinatura');
+    }
+    setCancellingSubscription(false);
+  };
+
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
