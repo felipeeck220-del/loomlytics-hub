@@ -24,6 +24,13 @@ const NAV_ITEMS = [
   { key: 'settings', label: 'Configurações' },
 ];
 
+interface EmailHistoryEntry {
+  id: string;
+  old_email: string;
+  new_email: string;
+  created_at: string;
+}
+
 interface CompanyWithSettings {
   id: string;
   name: string;
@@ -33,6 +40,7 @@ interface CompanyWithSettings {
   logo_url: string | null;
   created_at: string;
   user_count: number;
+  email_history: EmailHistoryEntry[];
   settings: {
     monthly_plan_value: number;
     platform_active: boolean;
