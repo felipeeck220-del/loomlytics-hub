@@ -328,6 +328,7 @@ export default function Admin() {
                       <TableHead>Empresa</TableHead>
                       <TableHead>Admin</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>WhatsApp</TableHead>
                       <TableHead>Usuários</TableHead>
                       <TableHead>Plano (R$)</TableHead>
                       <TableHead>Status</TableHead>
@@ -344,6 +345,25 @@ export default function Admin() {
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell>{c.admin_name}</TableCell>
                         <TableCell>{c.admin_email}</TableCell>
+                        <TableCell>
+                          {c.whatsapp ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 text-emerald-600 hover:text-emerald-700 px-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const num = c.whatsapp!.replace(/\D/g, '');
+                                window.open(`https://wa.me/${num}`, '_blank');
+                              }}
+                            >
+                              <Phone className="h-3.5 w-3.5" />
+                              {c.whatsapp}
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="secondary">{c.user_count}</Badge>
                         </TableCell>
@@ -366,7 +386,7 @@ export default function Admin() {
                     ))}
                     {companies.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                           Nenhuma empresa cadastrada
                         </TableCell>
                       </TableRow>
