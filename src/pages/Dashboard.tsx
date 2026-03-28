@@ -671,6 +671,66 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Stopped Machines Section */}
+      {stoppedMachines.length > 0 && (
+        <Card className="shadow-material border-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <PauseCircle className="h-4 w-4 text-warning" />
+              Máquinas Paradas ({stoppedMachines.length})
+            </CardTitle>
+            <CardDescription className="text-xs">Máquinas fora de operação com tempo de parada em tempo real</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {stoppedMachines.map(m => {
+                const startedAt = machineLogs[m.id];
+                const elapsed = startedAt ? Math.floor((nowTick.getTime() - new Date(startedAt).getTime()) / 1000) : null;
+                const hours = elapsed !== null ? Math.floor(elapsed / 3600) : 0;
+                const minutes = elapsed !== null ? Math.floor((elapsed % 3600) / 60) : 0;
+                const seconds = elapsed !== null ? elapsed % 60 : 0;
+                const timeStr = elapsed !== null
+                  ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+                  : '--:--:--';
+
+                const statusLabels: Record<string, string> = {
+                  manutencao_preventiva: 'Manutenção Preventiva',
+                  manutencao_corretiva: 'Manutenção Corretiva',
+                  troca_artigo: 'Troca de Artigo',
+                };
+                const statusIcons: Record<string, React.ReactNode> = {
+                  manutencao_preventiva: <Wrench className="h-4 w-4" />,
+                  manutencao_corretiva: <AlertTriangle className="h-4 w-4" />,
+                  troca_artigo: <RefreshCw className="h-4 w-4" />,
+                };
+                const statusColors: Record<string, string> = {
+                  manutencao_preventiva: 'text-warning bg-warning/10 border-warning/20',
+                  manutencao_corretiva: 'text-destructive bg-destructive/10 border-destructive/20',
+                  troca_artigo: 'text-info bg-info/10 border-info/20',
+                };
+                const colorClass = statusColors[m.status] || 'text-muted-foreground bg-muted border-border';
+
+                return (
+                  <div key={m.id} className={cn("rounded-xl border p-4 space-y-2", colorClass)}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-sm">{m.name}</span>
+                      <span className="flex items-center gap-1 text-xs">
+                        {statusIcons[m.status]}
+                      </span>
+                    </div>
+                    <p className="text-xs opacity-80">{statusLabels[m.status] || m.status}</p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Clock className="h-3.5 w-3.5 opacity-70" />
+                      <span className="font-mono text-lg font-bold tracking-wider">{timeStr}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <MachinePerformanceModal
         open={showAllMachines}
         onOpenChange={setShowAllMachines}
