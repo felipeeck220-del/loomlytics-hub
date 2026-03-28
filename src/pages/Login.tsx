@@ -120,6 +120,12 @@ export default function Login() {
               </Button>
             </form>
 
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3 mt-4">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <span className="font-medium text-foreground">Colaboradores:</span> Se você é tecelão, mecânico, líder ou revisador, acesse pelo link exclusivo da sua empresa (ex: <span className="text-primary font-medium">/nome-empresa/login</span>). Este login é exclusivo para administradores.
+              </p>
+            </div>
+
             <p className="text-center text-sm text-muted-foreground mt-4">
               Não tem uma conta?{' '}
               <Link to="/register" className="text-primary font-medium hover:underline">Cadastre-se</Link>
