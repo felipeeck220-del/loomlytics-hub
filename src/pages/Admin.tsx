@@ -626,6 +626,24 @@ export default function Admin() {
                   ))}
                 </div>
               </div>
+              {selectedCompany.email_history && selectedCompany.email_history.length > 0 && (
+                <div className="space-y-3">
+                  <Label>Histórico de Emails</Label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {selectedCompany.email_history.map(entry => (
+                      <div key={entry.id} className="flex items-center justify-between p-2 rounded-lg border bg-card text-sm">
+                        <div className="flex flex-col">
+                          <span className="text-muted-foreground line-through">{entry.old_email}</span>
+                          <span className="text-foreground">→ {entry.new_email}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(entry.created_at).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
