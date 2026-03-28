@@ -643,6 +643,9 @@ export default function ProductionPage() {
                         <p className="font-display font-bold text-foreground text-lg">{group.machine_name}</p>
                         <p className="text-sm text-muted-foreground truncate">
                           {group.weaver_name}{registrationTime ? ` — ${registrationTime}` : ''} -- {isMultiArticle ? 'Artigos' : 'Artigo'}: {articlesDesc}
+                          {firstItem.created_by_name && (
+                            <span className="text-primary font-medium"> — por {firstItem.created_by_name}{firstItem.created_by_code ? ` #${firstItem.created_by_code}` : ''}</span>
+                          )}
                         </p>
                       </div>
 
