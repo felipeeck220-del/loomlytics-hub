@@ -330,7 +330,7 @@ export default function SettingsPage() {
   };
 
   const handleCheckout = async (plan: 'monthly' | 'annual') => {
-    setCheckingOut(true);
+    setCheckingOut(plan);
     try {
       const { data, error } = await supabase.functions.invoke('create-pix-checkout', {
         body: { plan },
@@ -347,7 +347,7 @@ export default function SettingsPage() {
     } catch (err: any) {
       toast.error(err.message || 'Erro ao gerar Pix');
     }
-    setCheckingOut(false);
+    setCheckingOut(null);
   };
 
   const startPixPolling = (identifier: string) => {
@@ -1093,9 +1093,9 @@ export default function SettingsPage() {
                   <Button
                     className="w-full"
                     onClick={() => handleCheckout('monthly')}
-                    disabled={checkingOut || subStatus?.status === 'active'}
+                    disabled={!!checkingOut || subStatus?.status === 'active'}
                   >
-                    {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {checkingOut === 'monthly' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     {subStatus?.status === 'active' ? 'Plano Atual' : 'Pagar via Pix'}
                   </Button>
                 </div>
@@ -1124,9 +1124,9 @@ export default function SettingsPage() {
                   <Button
                     className="w-full btn-gradient"
                     onClick={() => handleCheckout('annual')}
-                    disabled={checkingOut || subStatus?.status === 'active'}
+                    disabled={!!checkingOut || subStatus?.status === 'active'}
                   >
-                    {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {checkingOut === 'annual' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     {subStatus?.status === 'active' ? 'Plano Atual' : 'Pagar via Pix'}
                   </Button>
                 </div>
