@@ -186,6 +186,10 @@ export function useCompanyData() {
     const rows = data.map(l => ({
       id: l.id, machine_id: l.machine_id, status: l.status,
       started_at: l.started_at, ended_at: l.ended_at || null,
+      started_by_name: l.started_by_name || null,
+      started_by_code: l.started_by_code || null,
+      ended_by_name: l.ended_by_name || null,
+      ended_by_code: l.ended_by_code || null,
     }));
     if (rows.length > 0) {
       const { error } = await sb('machine_logs').upsert(rows);
