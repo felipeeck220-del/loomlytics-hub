@@ -466,7 +466,9 @@ export default function MecanicaPage() {
                     <p className="text-sm font-medium text-foreground">{getMachineName(log.machine_id)}</p>
                     <p className="text-xs text-muted-foreground">
                       Início: {format(new Date(log.started_at), "HH:mm", { locale: ptBR })}
+                      {log.started_by_name && <span className="text-primary font-medium"> — {log.started_by_name}{log.started_by_code ? ` #${log.started_by_code}` : ''}</span>}
                       {log.ended_at && ` — Fim: ${format(new Date(log.ended_at), "HH:mm", { locale: ptBR })}`}
+                      {log.ended_at && log.ended_by_name && <span className="text-primary font-medium"> — {log.ended_by_name}{log.ended_by_code ? ` #${log.ended_by_code}` : ''}</span>}
                     </p>
                   </div>
                 </div>
@@ -496,6 +498,7 @@ export default function MecanicaPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
                       {format(new Date(log.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {log.started_by_name && <span className="text-primary text-xs ml-1">— {log.started_by_name}{log.started_by_code ? ` #${log.started_by_code}` : ''}</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Período: {fromDate !== '2000-01-01' ? format(new Date(fromDate), 'dd/MM/yyyy') : 'Início'} → {format(new Date(log.started_at), 'dd/MM/yyyy')}
