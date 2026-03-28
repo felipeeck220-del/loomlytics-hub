@@ -5,9 +5,9 @@ export type AppRole = 'admin' | 'lider' | 'mecanico' | 'revisador';
 
 /** Which sidebar/route keys each role can access */
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
-  admin: ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'outsource', 'weavers', 'reports', 'settings'],
-  lider: ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'outsource', 'weavers', 'reports'],
-  mecanico: ['machines'],
+  admin: ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'settings'],
+  lider: ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports'],
+  mecanico: ['machines', 'mecanica'],
   revisador: ['production', 'revision'],
 };
 
@@ -18,6 +18,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   'clients-articles': 'clients-articles',
   production: 'production',
   revision: 'revision',
+  mecanica: 'mecanica',
   outsource: 'outsource',
   weavers: 'weavers',
   reports: 'reports',
