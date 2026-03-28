@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,19 +12,34 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const result = await login(email, password);
-    setLoading(false);
-    if (result.success) {
-      navigate('/');
-    } else {
+    if (!result.success) {
+      setLoading(false);
       toast.error(result.error || 'Email ou senha incorretos');
+      return;
     }
+
+    // After successful auth, verify this user is a company admin (creator)
+    // Only admins who created the company can login via /login
+    // Other users must use /:slug/login
+    const { data: companies } = await (supabase.rpc as any)('get_user_companies');
+    const isAdmin = companies?.some((c: any) => c.role === 'admin');
+
+    if (!isAdmin) {
+      await logout();
+      setLoading(false);
+      toast.error('Acesso negado. Colaboradores devem acessar pelo link da empresa (ex: /slug-empresa/login).');
+      return;
+    }
+
+    setLoading(false);
+    navigate('/');
   };
 
   return (
