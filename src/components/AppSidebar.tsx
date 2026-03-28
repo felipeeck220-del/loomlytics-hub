@@ -79,7 +79,7 @@ export function AppSidebar() {
               <Factory className="h-4 w-4 text-primary-foreground" />
             </div>
             {!collapsed && (
-              <div className="flex flex-col">
+              <div className="flex items-baseline gap-1.5">
                 <span className="text-sm font-semibold text-foreground tracking-tight">
                   MalhaGest
                 </span>
