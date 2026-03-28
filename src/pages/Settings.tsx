@@ -136,6 +136,7 @@ export default function SettingsPage() {
   const [loadingSub, setLoadingSub] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
   const [platformSettings, setPlatformSettings] = useState<Record<string, string>>({});
+  const [companyPlanValue, setCompanyPlanValue] = useState<number | null>(null);
 
   // Company name editing
   const [editingCompanyName, setEditingCompanyName] = useState(false);
