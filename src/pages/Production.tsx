@@ -174,7 +174,7 @@ export default function ProductionPage() {
 
     const efficiency = maxTurns > 0 ? (totalProducedTurns / maxTurns) * 100 : 0;
     return { efficiency: Math.min(efficiency, 100), weightKg: totalWeightKg, revenue: totalRevenue, rolls: totalRolls, extraPreviews };
-  }, [form.shift, form.rpm, form.rolls, form.voltas_inicio, form.voltas_fim, machineMode, selectedArticle, form.machine_id, articleMachineTurns, extraArticles, articles, companyShiftMinutes]);
+  }, [form.shift, form.rpm, form.rolls, form.voltas_inicio, form.voltas_fim, machineMode, selectedArticle, form.machine_id, articleMachineTurns, extraArticles, articles, effectiveShiftMinutes]);
 
   const advanceToNext = useCallback(() => {
     if (sortedMachines.length === 0) return;
