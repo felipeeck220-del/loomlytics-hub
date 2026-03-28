@@ -57,7 +57,7 @@ export function useCompanyData() {
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
         fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
-        sb('machine_logs').select('*'),
+        sb('machine_logs').select('*').order('started_at', { ascending: false }).limit(1000),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
         sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
       ]);
@@ -168,7 +168,11 @@ export function useCompanyData() {
       started_at: l.started_at, ended_at: l.ended_at || null,
     }));
     if (rows.length > 0) {
-      await sb('machine_logs').upsert(rows);
+      const { error } = await sb('machine_logs').upsert(rows);
+      if (error) {
+        console.error('Error saving machine logs:', error);
+        throw error;
+      }
     }
     setMachineLogs(data);
   }, [companyId]);
