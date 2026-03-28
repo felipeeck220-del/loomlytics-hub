@@ -360,9 +360,9 @@ export default function Dashboard() {
             </Popover>
 
             <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
-              <SelectTrigger className="w-[130px] h-9 rounded-lg"><SelectValue placeholder="Mês" /></SelectTrigger>
+              <SelectTrigger className="w-[150px] h-9 rounded-lg"><SelectValue placeholder="Todos os meses" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos os meses</SelectItem>
                 {availableMonths.map(m => (
                   <SelectItem key={m} value={m}>{format(new Date(m + '-01'), 'MMM yyyy', { locale: ptBR })}</SelectItem>
                 ))}
@@ -408,17 +408,17 @@ export default function Dashboard() {
             </Select>
 
             <Select value={filterClient} onValueChange={setFilterClient}>
-              <SelectTrigger className="w-[130px] h-9 rounded-lg"><SelectValue placeholder="Cliente" /></SelectTrigger>
+              <SelectTrigger className="w-[150px] h-9 rounded-lg"><SelectValue placeholder="Todos os clientes" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos os clientes</SelectItem>
                 {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
 
             <Select value={filterArticle} onValueChange={setFilterArticle}>
-              <SelectTrigger className="w-[130px] h-9 rounded-lg"><SelectValue placeholder="Artigo" /></SelectTrigger>
+              <SelectTrigger className="w-[150px] h-9 rounded-lg"><SelectValue placeholder="Todos os artigos" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos os artigos</SelectItem>
                 {articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
