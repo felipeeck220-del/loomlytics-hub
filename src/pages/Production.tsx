@@ -810,7 +810,7 @@ export default function ProductionPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 flex flex-col gap-3 min-h-0">
+          <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Data</Label>
