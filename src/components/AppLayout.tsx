@@ -1,8 +1,9 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown } from 'lucide-react';
+import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/components/ThemeProvider';
@@ -49,46 +50,26 @@ function formatDate(date: Date): string {
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { status: subStatus, trialDaysLeft, sidebarLocked } = useSubscription();
   const [now, setNow] = useState(new Date());
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
-  const [subscriptionActive, setSubscriptionActive] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const checkTrialStatus = async () => {
-    if (!user?.company_id) return;
-    const { data } = await (supabase.from as any)('company_settings')
-      .select('subscription_status, trial_end_date')
-      .eq('company_id', user.company_id)
-      .maybeSingle();
-    if (data?.subscription_status === 'active' || data?.subscription_status === 'cancelling') {
-      setSubscriptionActive(true);
-      setTrialDaysLeft(null);
-    } else if (data?.subscription_status === 'trial' && data?.trial_end_date) {
-      setSubscriptionActive(false);
-      const end = new Date(data.trial_end_date);
-      const diff = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      setTrialDaysLeft(Math.max(0, diff));
-    } else {
-      setSubscriptionActive(false);
-      setTrialDaysLeft(null);
+  // Redirect to settings if sidebar is locked and user is not on settings
+  useEffect(() => {
+    if (sidebarLocked && user?.company_slug) {
+      const settingsPath = `/${user.company_slug}/settings`;
+      if (!location.pathname.endsWith('/settings')) {
+        navigate(settingsPath, { replace: true });
+      }
     }
-  };
-
-  useEffect(() => {
-    checkTrialStatus();
-  }, [user?.company_id]);
-
-  // Listen for subscription changes from Settings page
-  useEffect(() => {
-    const handler = () => checkTrialStatus();
-    window.addEventListener('subscription-updated', handler);
-    return () => window.removeEventListener('subscription-updated', handler);
-  }, [user?.company_id]);
+  }, [sidebarLocked, location.pathname, user?.company_slug, navigate]);
 
   const currentShift = useMemo(() => getCurrentShift(), [now]);
 
@@ -112,13 +93,31 @@ export default function AppLayout() {
               </div>
 
               {/* Subscription badge */}
-              {subscriptionActive && (
+              {(subStatus === 'active' || subStatus === 'free') && (
                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 font-medium text-xs px-2.5 py-0.5 gap-1">
                   <Crown className="h-3 w-3" />
                   <span className="hidden sm:inline">Assinatura Ativa</span>
                 </Badge>
               )}
-              {trialDaysLeft !== null && (
+              {subStatus === 'cancelling' && (
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 font-medium text-xs px-2.5 py-0.5 gap-1">
+                  <XCircle className="h-3 w-3" />
+                  <span className="hidden sm:inline">Assinatura Cancelada</span>
+                </Badge>
+              )}
+              {(subStatus === 'cancelled' || subStatus === 'blocked') && (
+                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 font-medium text-xs px-2.5 py-0.5 gap-1">
+                  <XCircle className="h-3 w-3" />
+                  <span className="hidden sm:inline">Assinatura Cancelada</span>
+                </Badge>
+              )}
+              {(subStatus === 'overdue' || subStatus === 'grace') && (
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 font-medium text-xs px-2.5 py-0.5 gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span className="hidden sm:inline">Assinatura em Atraso</span>
+                </Badge>
+              )}
+              {subStatus === 'trial' && trialDaysLeft !== null && (
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 font-medium text-xs px-2.5 py-0.5 gap-1">
                   <AlertTriangle className="h-3 w-3" />
                   <span className="hidden sm:inline">Teste grátis •</span> {trialDaysLeft}d
