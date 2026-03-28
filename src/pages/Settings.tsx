@@ -808,6 +808,18 @@ export default function SettingsPage() {
               </div>
             ) : subStatus ? (
               <div className="rounded-lg border p-4 space-y-2">
+                {subStatus.status === 'free' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">
+                        <Crown className="h-3 w-3 mr-1" /> Plano Grátis
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Você possui acesso <strong className="text-foreground">gratuito e ilimitado</strong> à plataforma.
+                    </p>
+                  </>
+                )}
                 {subStatus.status === 'trial' && (
                   <>
                     <div className="flex items-center gap-2">

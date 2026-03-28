@@ -37,6 +37,7 @@ interface CompanyWithSettings {
     monthly_plan_value: number;
     platform_active: boolean;
     enabled_nav_items: string[];
+    subscription_status?: string;
   } | null;
 }
 
@@ -73,6 +74,7 @@ export default function Admin() {
   const [planValue, setPlanValue] = useState(0);
   const [platformActive, setPlatformActive] = useState(true);
   const [companyNavItems, setCompanyNavItems] = useState<string[]>([]);
+  const [freeUser, setFreeUser] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // User modal
@@ -185,6 +187,7 @@ export default function Admin() {
     setPlanValue(s?.monthly_plan_value || 0);
     setPlatformActive(s?.platform_active ?? true);
     setCompanyNavItems(s?.enabled_nav_items || NAV_ITEMS.map(n => n.key));
+    setFreeUser(s?.subscription_status === 'free');
     setCompanyModalOpen(true);
   };
 
@@ -201,8 +204,9 @@ export default function Admin() {
       await callAdmin('update_settings', {
         company_id: selectedCompany.id,
         monthly_plan_value: planValue,
-        platform_active: platformActive,
+        platform_active: freeUser ? true : platformActive,
         enabled_nav_items: companyNavItems,
+        subscription_status: freeUser ? 'free' : undefined,
       });
       toast({ title: 'Salvo', description: 'Configurações atualizadas com sucesso.' });
       setCompanyModalOpen(false);
@@ -587,8 +591,18 @@ export default function Admin() {
                 />
               </div>
               <div className="flex items-center justify-between">
+                <div>
+                  <Label>Usuário Grátis</Label>
+                  <p className="text-xs text-muted-foreground">Acesso ilimitado sem cobrança</p>
+                </div>
+                <Switch checked={freeUser} onCheckedChange={(v) => {
+                  setFreeUser(v);
+                  if (v) setPlatformActive(true);
+                }} />
+              </div>
+              <div className="flex items-center justify-between">
                 <Label>Acesso à Plataforma</Label>
-                <Switch checked={platformActive} onCheckedChange={setPlatformActive} />
+                <Switch checked={platformActive} onCheckedChange={setPlatformActive} disabled={freeUser} />
               </div>
               <div className="space-y-3">
                 <Label>Itens de Navegação</Label>
