@@ -124,6 +124,7 @@ export default function RevisionPage() {
       };
 
       await addDefectRecords([record]);
+      logAction('defect_create', { machine: machine?.name, article: article?.name, date: form.date, shift: form.shift });
       toast.success('Falha registrada com sucesso!');
       setShowModal(false);
     } catch (e) {
@@ -137,6 +138,7 @@ export default function RevisionPage() {
     if (!showDelete || deleteWord !== 'EXCLUIR') return;
     try {
       await deleteDefectRecords([showDelete.id]);
+      logAction('defect_delete', { machine: showDelete.machine_name, date: showDelete.date });
       toast.success('Registro excluído');
       setShowDelete(null);
       setDeleteWord('');

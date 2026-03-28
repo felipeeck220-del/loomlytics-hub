@@ -189,6 +189,8 @@ export default function MecanicaPage() {
       };
       const updatedLogs = [...machineLogs, newLog];
       await saveMachineLogs(updatedLogs);
+      const machineName = machines.find(m => m.id === addMachineId)?.name;
+      logAction('maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
       toast.success('Registro adicionado com sucesso!');
       setShowAddModal(false);
       setAddMachineId('');
