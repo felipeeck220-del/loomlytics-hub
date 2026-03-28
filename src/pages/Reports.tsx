@@ -764,12 +764,20 @@ export default function Reports() {
             return (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Detalhamento por Artigo</CardTitle>
-                  <CardDescription>Todos os dados de cada artigo no período</CardDescription>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <CardTitle className="text-base">Detalhamento por Artigo</CardTitle>
+                      <CardDescription>Todos os dados de cada artigo no período</CardDescription>
+                    </div>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="Buscar artigo..." value={searchArticle} onChange={e => setSearchArticle(e.target.value)} className="pl-9 h-9 text-sm" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byArticle.map(a => {
+                    {byArticle.filter(a => a.name.toLowerCase().includes(searchArticle.toLowerCase()) || a.clientName.toLowerCase().includes(searchArticle.toLowerCase())).map(a => {
                       const pctRolls = totalArticleRolls > 0 ? (a.rolos / totalArticleRolls * 100) : 0;
                       const pctKg = totalArticleKg > 0 ? (a.kg / totalArticleKg * 100) : 0;
                       const pctRevenue = totalArticleRevenue > 0 ? (a.faturamento / totalArticleRevenue * 100) : 0;
