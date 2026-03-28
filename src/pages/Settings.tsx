@@ -117,6 +117,12 @@ export default function SettingsPage() {
   const [profilePassword, setProfilePassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [showProfilePassword, setShowProfilePassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   // Subscription state
   const [subStatus, setSubStatus] = useState<any>(null);
@@ -200,6 +206,30 @@ export default function SettingsPage() {
       toast.error(err.message || 'Erro ao salvar');
     }
     setSavingCompanyName(false);
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword) { toast.error('Preencha a senha atual e a nova senha'); return; }
+    if (newPassword.length < 6) { toast.error('A nova senha deve ter pelo menos 6 caracteres'); return; }
+    setSavingPassword(true);
+    try {
+      // Verify current password by signing in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user!.email,
+        password: currentPassword,
+      });
+      if (signInError) throw new Error('Senha atual incorreta');
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success('Senha alterada com sucesso');
+      setChangingPassword(false);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao alterar senha');
+    }
+    setSavingPassword(false);
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -465,6 +495,60 @@ export default function SettingsPage() {
                     </div>
                   </>
                 )}
+
+                {/* Alterar Senha */}
+                <div className="border-t border-border pt-4">
+                  {changingPassword ? (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-foreground">Alterar Senha</p>
+                      <div className="space-y-2">
+                        <Label>Senha Atual</Label>
+                        <div className="relative">
+                          <Input
+                            type={showCurrentPw ? 'text' : 'password'}
+                            value={currentPassword}
+                            onChange={e => setCurrentPassword(e.target.value)}
+                            placeholder="Digite sua senha atual"
+                          />
+                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPw(!showCurrentPw)}>
+                            {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Nova Senha</Label>
+                        <div className="relative">
+                          <Input
+                            type={showNewPw ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={e => setNewPassword(e.target.value)}
+                            placeholder="Digite a nova senha (mín. 6 caracteres)"
+                          />
+                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPw(!showNewPw)}>
+                            {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => { setChangingPassword(false); setCurrentPassword(''); setNewPassword(''); }}>Cancelar</Button>
+                        <Button size="sm" className="btn-gradient" disabled={savingPassword} onClick={handleChangePassword}>
+                          {savingPassword && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar Senha
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Senha</p>
+                        <p className="text-foreground">••••••••</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setChangingPassword(true)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Alterar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <p className="text-sm text-muted-foreground">Função</p>
                   <div className="flex items-center gap-2 mt-1">
