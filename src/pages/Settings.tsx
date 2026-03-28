@@ -366,6 +366,8 @@ export default function SettingsPage() {
             toast.success('Pagamento confirmado!');
             checkSubscription();
             fetchPaymentHistory();
+            // Notify header to update trial badge
+            window.dispatchEvent(new Event('subscription-updated'));
           } else if (data.status === 'failed') {
             setPixStatus('failed');
             if (pixPollRef.current) clearInterval(pixPollRef.current);

@@ -58,21 +58,30 @@ export default function AppLayout() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
+  const checkTrialStatus = async () => {
     if (!user?.company_id) return;
-    (async () => {
-      const { data } = await (supabase.from as any)('company_settings')
-        .select('subscription_status, trial_end_date')
-        .eq('company_id', user.company_id)
-        .maybeSingle();
-      if (data?.subscription_status === 'trial' && data?.trial_end_date) {
-        const end = new Date(data.trial_end_date);
-        const diff = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-        setTrialDaysLeft(Math.max(0, diff));
-      } else {
-        setTrialDaysLeft(null);
-      }
-    })();
+    const { data } = await (supabase.from as any)('company_settings')
+      .select('subscription_status, trial_end_date')
+      .eq('company_id', user.company_id)
+      .maybeSingle();
+    if (data?.subscription_status === 'trial' && data?.trial_end_date) {
+      const end = new Date(data.trial_end_date);
+      const diff = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      setTrialDaysLeft(Math.max(0, diff));
+    } else {
+      setTrialDaysLeft(null);
+    }
+  };
+
+  useEffect(() => {
+    checkTrialStatus();
+  }, [user?.company_id]);
+
+  // Listen for subscription changes from Settings page
+  useEffect(() => {
+    const handler = () => checkTrialStatus();
+    window.addEventListener('subscription-updated', handler);
+    return () => window.removeEventListener('subscription-updated', handler);
   }, [user?.company_id]);
 
   const currentShift = useMemo(() => getCurrentShift(), [now]);
