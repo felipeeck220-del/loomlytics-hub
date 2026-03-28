@@ -132,7 +132,11 @@ export default function Reports() {
 
     if (filterShift !== 'all') data = data.filter(p => p.shift === filterShift);
     if (filterClient !== 'all') {
-      const clientArticles = articles.filter(a => a.client_id === filterClient).map(a => a.id);
+      const selectedClient = clients.find(c => c.id === filterClient);
+      const clientArticles = articles.filter(a => 
+        a.client_id === filterClient || 
+        (selectedClient && a.client_name === selectedClient.name)
+      ).map(a => a.id);
       data = data.filter(p => clientArticles.includes(p.article_id));
     }
     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
@@ -189,17 +193,36 @@ export default function Reports() {
     };
   }).filter(m => m.records > 0).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
 
-  // By client
-  const byClient = clients.map(c => {
-    const cArticles = articles.filter(a => a.client_id === c.id).map(a => a.id);
-    const cp = filtered.filter(p => cArticles.includes(p.article_id));
-    return {
-      name: c.name,
-      rolos: cp.reduce((s, p) => s + p.rolls_produced, 0),
-      kg: cp.reduce((s, p) => s + p.weight_kg, 0),
-      faturamento: cp.reduce((s, p) => s + p.revenue, 0),
-    };
-  }).filter(c => c.rolos > 0).sort((a, b) => b.faturamento - a.faturamento);
+  // By client — match via client_id OR client_name (fallback when client_id is null)
+  const byClient = useMemo(() => {
+    // Build a map: client name -> aggregated data
+    const clientMap: Record<string, { name: string; rolos: number; kg: number; faturamento: number }> = {};
+
+    // First, map articles to client names (prefer client from clients table, fallback to client_name on article)
+    const articleClientName: Record<string, string> = {};
+    articles.forEach(a => {
+      if (a.client_id) {
+        const client = clients.find(c => c.id === a.client_id);
+        if (client) articleClientName[a.id] = client.name;
+      }
+      if (!articleClientName[a.id] && a.client_name) {
+        articleClientName[a.id] = a.client_name;
+      }
+    });
+
+    filtered.forEach(p => {
+      const cName = articleClientName[p.article_id];
+      if (!cName) return;
+      if (!clientMap[cName]) clientMap[cName] = { name: cName, rolos: 0, kg: 0, faturamento: 0 };
+      clientMap[cName].rolos += p.rolls_produced;
+      clientMap[cName].kg += p.weight_kg;
+      clientMap[cName].faturamento += p.revenue;
+    });
+
+    return Object.values(clientMap)
+      .filter(c => c.rolos > 0)
+      .sort((a, b) => b.faturamento - a.faturamento);
+  }, [filtered, articles, clients]);
 
   // By article
   const byArticle = articles.map(a => {
