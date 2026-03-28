@@ -794,30 +794,39 @@ export default function ProductionPage() {
 
       {/* Register/Edit Modal */}
       <Dialog open={showModal} onOpenChange={(open) => { if (!open && hasPendingSaves) return; if (!open) return; setShowModal(open); }}>
-        <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] flex flex-col" onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-3">
-              {editing ? 'Editar Produção' : 'Registrar Produção'}
+        <DialogContent
+          className="flex h-[90vh] max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col overflow-hidden p-4 sm:h-[80vh] sm:max-h-[80vh] sm:w-[80vw] sm:max-w-[80vw] sm:p-6"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader className="flex-shrink-0 pr-6">
+            <DialogTitle className="flex flex-col gap-2 text-left sm:flex-row sm:items-center sm:gap-3">
+              <span className="leading-none">{editing ? 'Editar Produção' : 'Registrar Produção'}</span>
               {!editing && form.shift && selectedMachine && (
-                <span className="text-sm font-normal text-muted-foreground flex items-center gap-1">
-                  <ChevronRight className="h-3 w-3" />
-                  {companyShiftLabels[form.shift as ShiftType]?.split(' (')[0]} · {selectedMachine.name}
+                <span className="flex min-w-0 flex-wrap items-center gap-1 text-xs font-normal text-muted-foreground sm:text-sm">
+                  <ChevronRight className="h-3 w-3 shrink-0" />
+                  <span className="truncate">
+                    {companyShiftLabels[form.shift as ShiftType]?.split(' (')[0]} · {selectedMachine.name}
+                  </span>
                   {currentMachineIndex >= 0 && (
-                    <Badge variant="outline" className="ml-2 text-xs">{currentMachineIndex + 1}/{sortedMachines.length}</Badge>
+                    <Badge variant="outline" className="ml-0 text-xs sm:ml-2">
+                      {currentMachineIndex + 1}/{sortedMachines.length}
+                    </Badge>
                   )}
                 </span>
               )}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
               <div className="space-y-1">
                 <Label className="text-xs">Data</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left h-9 text-sm">
-                      <CalendarIcon className="mr-2 h-3 w-3" />{format(form.date, 'dd/MM/yyyy')}
+                    <Button variant="outline" className="h-9 w-full justify-start text-left text-sm">
+                      <CalendarIcon className="mr-2 h-3 w-3 shrink-0" />
+                      <span className="truncate">{format(form.date, 'dd/MM/yyyy')}</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -828,58 +837,59 @@ export default function ProductionPage() {
               <div className="space-y-1">
                 <Label className="text-xs">Turno</Label>
                 <Select value={form.shift} onValueChange={v => setForm(p => ({ ...p, shift: v as ShiftType }))}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Turno" /></SelectTrigger>
+                  <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Turno" /></SelectTrigger>
                   <SelectContent>{Object.entries(companyShiftLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Máquina</Label>
                 <Select value={form.machine_id} onValueChange={handleMachineChange}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
+                  <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Máquina" /></SelectTrigger>
                   <SelectContent>{sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                 </Select>
                 {selectedMachine && (
-                  <Badge variant="outline" className="text-xs mt-0.5">
-                    Modo: {machineMode === 'voltas' ? 'Voltas' : 'Rolos'}
+                  <Badge variant="outline" className="mt-0.5 w-fit max-w-full text-xs">
+                    <span className="truncate">Modo: {machineMode === 'voltas' ? 'Voltas' : 'Rolos'}</span>
                   </Badge>
                 )}
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">RPM</Label>
-                <Input type="number" className="h-9" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} />
+                <Input type="number" className="h-9 w-full" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} />
               </div>
             </div>
 
-            {/* Downtime Info */}
             {downtimeInfo && downtimeInfo.events.length > 0 && (
-              <div className="rounded-lg border border-warning/50 bg-warning/10 p-3 space-y-1">
-                <div className="flex items-center gap-2">
-                  <PauseCircle className="h-4 w-4 text-warning" />
+              <div className="space-y-2 rounded-lg border border-warning/50 bg-warning/10 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <PauseCircle className="h-4 w-4 shrink-0 text-warning" />
                   <span className="text-sm font-semibold text-warning">Máquina parada neste turno</span>
                   <Badge variant="outline" className="text-xs border-warning/50 text-warning">
                     -{formatDowntimeMinutes(downtimeInfo.totalDowntimeMinutes)}
                   </Badge>
                 </div>
                 {downtimeInfo.events.map((evt, idx) => (
-                  <p key={idx} className="text-xs text-muted-foreground ml-6">
+                  <p key={idx} className="break-words text-xs text-muted-foreground sm:ml-6">
                     {evt.label}: {formatDowntimeMinutes(evt.minutes)}
                     <span className="ml-1 opacity-70">
                       ({format(evt.startedAt, 'HH:mm')} — {format(evt.endedAt, 'HH:mm')})
                     </span>
                   </p>
                 ))}
-                <p className="text-xs font-medium text-foreground ml-6">
+                <p className="break-words text-xs font-medium text-foreground sm:ml-6">
                   Tempo efetivo do turno: {formatDowntimeMinutes(downtimeInfo.effectiveShiftMinutes)}
-                  <span className="text-muted-foreground ml-1">(de {formatDowntimeMinutes(companyShiftMinutes[form.shift as ShiftType])})</span>
+                  <span className="ml-1 text-muted-foreground">
+                    (de {formatDowntimeMinutes(companyShiftMinutes[form.shift as ShiftType])})
+                  </span>
                 </p>
               </div>
             )}
 
-            <div className={cn("grid gap-3", machineMode === 'voltas' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-3')}>
+            <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2", machineMode === 'voltas' ? 'md:grid-cols-5' : 'md:grid-cols-3')}>
               <div className="space-y-1">
                 <Label className="text-xs">Tecelão</Label>
                 <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Tecelão" /></SelectTrigger>
+                  <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Tecelão" /></SelectTrigger>
                   <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                     <div className="p-1"><Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => { e.stopPropagation(); setWeaverSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
                     <SelectItem value="sem_tecelao">Sem Tecelão</SelectItem>
@@ -890,7 +900,7 @@ export default function ProductionPage() {
               <div className="space-y-1">
                 <Label className="text-xs">Artigo</Label>
                 <Select value={form.article_id} onValueChange={v => { setForm(p => ({ ...p, article_id: v })); setArticleSearch(''); }}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
+                  <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Artigo" /></SelectTrigger>
                   <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                     <div className="p-1"><Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => { e.stopPropagation(); setArticleSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
                     {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
@@ -901,18 +911,18 @@ export default function ProductionPage() {
                 <>
                   <div className="space-y-1">
                     <Label className="text-xs">Voltas Início</Label>
-                    <Input type="number" className="h-9" value={form.voltas_inicio} onChange={e => setForm(p => ({ ...p, voltas_inicio: e.target.value }))} placeholder="Ex: 10000" />
+                    <Input type="number" className="h-9 w-full" value={form.voltas_inicio} onChange={e => setForm(p => ({ ...p, voltas_inicio: e.target.value }))} placeholder="Ex: 10000" />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Voltas Fim</Label>
-                    <Input ref={rollsRef} type="number" className="h-9" value={form.voltas_fim} onChange={e => setForm(p => ({ ...p, voltas_fim: e.target.value }))} placeholder="Ex: 22000" />
+                    <Input ref={rollsRef} type="number" className="h-9 w-full" value={form.voltas_fim} onChange={e => setForm(p => ({ ...p, voltas_fim: e.target.value }))} placeholder="Ex: 22000" />
                   </div>
                   {form.voltas_inicio && form.voltas_fim && Number(form.voltas_fim) > Number(form.voltas_inicio) && (
-                    <div className="space-y-1">
+                    <div className="space-y-1 sm:col-span-2 md:col-span-1">
                       <Label className="text-xs">Peças (calculado)</Label>
-                      <div className="h-9 flex items-center px-3 rounded-md border border-border bg-muted/50 text-sm font-bold text-foreground">
-                        {form.rolls ? (Math.round(Number(form.rolls) * 100) / 100).toFixed(2) : '—'}
-                        <span className="ml-1 text-xs text-muted-foreground font-normal">
+                      <div className="flex min-h-9 items-center overflow-hidden rounded-md border border-border bg-muted/50 px-3 text-sm font-bold text-foreground">
+                        <span className="truncate">{form.rolls ? (Math.round(Number(form.rolls) * 100) / 100).toFixed(2) : '—'}</span>
+                        <span className="ml-1 truncate text-xs font-normal text-muted-foreground">
                           ({Number(form.voltas_fim) - Number(form.voltas_inicio)} voltas)
                         </span>
                       </div>
@@ -922,18 +932,17 @@ export default function ProductionPage() {
               ) : (
                 <div className="space-y-1">
                   <Label className="text-xs">Rolos Produzidos</Label>
-                  <Input ref={rollsRef} type="number" className="h-9" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Qtd rolos" />
+                  <Input ref={rollsRef} type="number" className="h-9 w-full" value={form.rolls} onChange={e => setForm(p => ({ ...p, rolls: e.target.value }))} placeholder="Qtd rolos" />
                 </div>
               )}
             </div>
 
-            {/* Extra Articles */}
             {extraArticles.map((ea, idx) => (
-              <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end border-t border-dashed border-border/50 pt-3">
+              <div key={idx} className="grid grid-cols-1 gap-3 border-t border-dashed border-border/50 pt-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <div className="space-y-1">
                   <Label className="text-xs">Artigo Adicional {idx + 2}</Label>
                   <Select value={ea.article_id} onValueChange={v => setExtraArticles(prev => prev.map((e, i) => i === idx ? { ...e, article_id: v, search: '' } : e))}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
+                    <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Artigo" /></SelectTrigger>
                     <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                       <div className="p-1"><Input placeholder="Buscar artigo..." value={ea.search} onChange={e => { e.stopPropagation(); setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, search: e.target.value } : ex)); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
                       {articles.filter(a => a.name.toLowerCase().includes(ea.search.toLowerCase())).map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
@@ -942,9 +951,9 @@ export default function ProductionPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Rolos</Label>
-                  <Input type="number" className="h-9" value={ea.rolls} onChange={e => setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, rolls: e.target.value } : ex))} placeholder="Qtd" />
+                  <Input type="number" className="h-9 w-full" value={ea.rolls} onChange={e => setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, rolls: e.target.value } : ex))} placeholder="Qtd" />
                 </div>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={() => setExtraArticles(prev => prev.filter((_, i) => i !== idx))}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 justify-self-start text-destructive hover:text-destructive sm:justify-self-auto" onClick={() => setExtraArticles(prev => prev.filter((_, i) => i !== idx))}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -952,13 +961,11 @@ export default function ProductionPage() {
 
             {!editing && (
               <Button variant="outline" size="sm" className="w-full rounded-lg" onClick={() => setExtraArticles(prev => [...prev, { article_id: '', rolls: '', search: '' }])}>
-                <Plus className="h-4 w-4 mr-1" /> Adicionar Artigo
+                <Plus className="mr-1 h-4 w-4" /> Adicionar Artigo
               </Button>
             )}
 
-            {/* Preview */}
             {(() => {
-              // Calculate weighted target efficiency for preview
               const previewTargetEff = (() => {
                 if (!selectedArticle) return 80;
                 const targets = [selectedArticle.target_efficiency || 80];
@@ -970,19 +977,18 @@ export default function ProductionPage() {
               })();
 
               return (
-                <div className={cn("p-3 rounded-lg border", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
+                <div className={cn("rounded-lg border p-3 overflow-x-hidden", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
                   {preview ? (
                     <div className="space-y-2">
-                      <div className="grid grid-cols-4 gap-3 text-sm">
-                        <div className="text-center"><p className="text-xs text-muted-foreground">Rolos</p><p className="font-bold text-foreground">{preview.rolls}</p></div>
-                        <div className="text-center"><p className="text-xs text-muted-foreground">Peso (kg)</p><p className="font-bold text-foreground">{preview.weightKg.toFixed(1)}</p></div>
-                        <div className="text-center"><p className="text-xs text-muted-foreground">Valor</p><p className="font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p></div>
-                        <div className="text-center"><p className="text-xs text-muted-foreground">Eficiência</p><p className={cn("font-bold", effColor(preview.efficiency, previewTargetEff))}>{preview.efficiency.toFixed(1)}%</p></div>
+                      <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Rolos</p><p className="break-words font-bold text-foreground">{preview.rolls}</p></div>
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Peso (kg)</p><p className="break-words font-bold text-foreground">{preview.weightKg.toFixed(1)}</p></div>
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Valor</p><p className="break-words font-bold text-foreground">R$ {preview.revenue.toFixed(2)}</p></div>
+                        <div className="text-center"><p className="text-xs text-muted-foreground">Eficiência</p><p className={cn("break-words font-bold", effColor(preview.efficiency, previewTargetEff))}>{preview.efficiency.toFixed(1)}%</p></div>
                       </div>
-                      {/* Show per-article target info */}
-                      <div className="flex flex-wrap gap-2 justify-center text-xs">
+                      <div className="flex flex-wrap gap-2 text-xs sm:justify-center">
                         {selectedArticle && (
-                          <span className={cn("px-2 py-0.5 rounded-full", effBg(preview.efficiency, selectedArticle.target_efficiency || 80))}>
+                          <span className={cn("rounded-full px-2 py-0.5", effBg(preview.efficiency, selectedArticle.target_efficiency || 80))}>
                             {selectedArticle.name}: Meta {selectedArticle.target_efficiency || 80}%
                           </span>
                         )}
@@ -990,33 +996,32 @@ export default function ProductionPage() {
                           const art = articles.find(a => a.id === ea.article_id);
                           if (!art) return null;
                           return (
-                            <span key={idx} className={cn("px-2 py-0.5 rounded-full", effBg(preview.efficiency, art.target_efficiency || 80))}>
+                            <span key={idx} className={cn("rounded-full px-2 py-0.5", effBg(preview.efficiency, art.target_efficiency || 80))}>
                               {art.name}: Meta {art.target_efficiency || 80}%
                             </span>
                           );
                         })}
                         {extraArticles.some(ea => articles.find(a => a.id === ea.article_id)) && (
-                          <span className="px-2 py-0.5 rounded-full bg-muted font-semibold">
+                          <span className="rounded-full bg-muted px-2 py-0.5 font-semibold">
                             Média: {formatNumber(previewTargetEff, 0)}%
                           </span>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground text-center py-1">Preencha os campos para ver o preview</p>
+                    <p className="py-1 text-center text-xs text-muted-foreground">Preencha os campos para ver o preview</p>
                   )}
                 </div>
               );
             })()}
           </div>
 
-          <div className="flex-shrink-0 border-t pt-4 space-y-3">
-            {/* Save Queue Status */}
+          <div className="flex-shrink-0 space-y-3 border-t pt-4">
             {saveQueue.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {saveQueue.map(q => (
                   <div key={q.id} className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+                    "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
                     q.status === 'saving' && "bg-muted border-border text-muted-foreground",
                     q.status === 'done' && "bg-emerald-50 border-emerald-200 text-emerald-700",
                     q.status === 'error' && "bg-destructive/10 border-destructive/30 text-destructive",
@@ -1030,15 +1035,17 @@ export default function ProductionPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Pressione <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-mono border">Enter</kbd> para salvar</p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowModal(false)} disabled={hasPendingSaves}>
-                  {hasPendingSaves ? <><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando...</> : 'Fechar'}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">
+                Pressione <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">Enter</kbd> para salvar
+              </p>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <Button variant="outline" onClick={() => setShowModal(false)} disabled={hasPendingSaves} className="w-full sm:w-auto">
+                  {hasPendingSaves ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" />Salvando...</> : 'Fechar'}
                 </Button>
-                <Button onClick={handleSave} className="btn-gradient" disabled={saving}>
-                  {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                  {editing ? 'Salvar' : 'Registrar e Próximo'}
+                <Button onClick={handleSave} className="btn-gradient w-full sm:w-auto" disabled={saving}>
+                  {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                  <span className="truncate">{editing ? 'Salvar' : 'Registrar e Próximo'}</span>
                 </Button>
               </div>
             </div>
