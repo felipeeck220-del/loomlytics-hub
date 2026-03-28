@@ -269,7 +269,12 @@ export default function MecanicaPage() {
           <Card className="w-full">
             <CardHeader className="pb-2 px-3 sm:px-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
+                  <Button size="sm" onClick={() => setShowAddModal(true)}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  </Button>
+                </div>
                 <div className="flex items-center gap-1 sm:gap-2">
                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
                     <ChevronLeft className="h-4 w-4" />
