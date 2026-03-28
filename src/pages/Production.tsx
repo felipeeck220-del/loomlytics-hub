@@ -36,6 +36,7 @@ export default function ProductionPage() {
   const weavers = getWeavers();
   const articles = getArticles();
   const articleMachineTurns = getArticleMachineTurns();
+  const machineLogs = getMachineLogs();
 
   const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
 
