@@ -38,6 +38,7 @@ export default function ProductionPage() {
   const articles = getArticles();
   const articleMachineTurns = getArticleMachineTurns();
   const machineLogs = getMachineLogs();
+  const { logAction } = useAuditLog();
 
   const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
 

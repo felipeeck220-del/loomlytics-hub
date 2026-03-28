@@ -28,6 +28,7 @@ export default function MecanicaPage() {
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
+  const { logAction } = useAuditLog();
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);

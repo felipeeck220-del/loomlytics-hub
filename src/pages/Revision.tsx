@@ -25,6 +25,7 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 export default function RevisionPage() {
   const { getMachines, getWeavers, getArticles, getDefectRecords, addDefectRecords, deleteDefectRecords, shiftSettings, loading } = useSharedCompanyData();
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
+  const { logAction } = useAuditLog();
 
   const machines = getMachines();
   const weavers = getWeavers();
