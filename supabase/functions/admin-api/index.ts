@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
         enabled_nav_items,
         updated_at: new Date().toISOString(),
       };
-      if (subscription_status) {
+      if (subscription_status !== undefined && subscription_status !== null) {
         upsertData.subscription_status = subscription_status;
       }
 
