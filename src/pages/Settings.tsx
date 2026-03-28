@@ -394,7 +394,27 @@ export default function SettingsPage() {
     await refreshProfiles();
   };
 
-  const handleDeleteUser = async () => {
+  const handleAdminChangePassword = async () => {
+    if (!changePasswordUser || !adminNewPassword || adminNewPassword.length < 6) {
+      toast.error('Senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    setSavingAdminPw(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'change_password', user_id: changePasswordUser.user_id, new_password: adminNewPassword },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast.success('Senha alterada com sucesso');
+      setChangePasswordUser(null);
+      setAdminNewPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao alterar senha');
+    }
+    setSavingAdminPw(false);
+  };
+
+
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
     const { data, error } = await supabase.functions.invoke('manage-users', {
       body: { action: 'delete', user_id: showDeleteUser?.id },
