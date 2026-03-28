@@ -7,7 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, FileBarChart, Loader2, Monitor, CheckCircle2, XCircle, Wrench, Settings, AlertCircle, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileBarChart, Loader2, Monitor, CheckCircle2, XCircle, Wrench, Settings, AlertCircle, Search, Eye } from 'lucide-react';
+import MaintenanceViewModal from '@/components/MaintenanceViewModal';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import type { Machine, MachineStatus, MachineLog } from '@/types';
@@ -58,6 +60,8 @@ export default function Machines() {
   const [showReport, setShowReport] = useState<Machine | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [maintenanceViewMachine, setMaintenanceViewMachine] = useState<Machine | null>(null);
+  const isMobile = useIsMobile();
   const [form, setForm] = useState({ number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: '', observations: '' });
 
   const openNew = () => {
@@ -248,6 +252,11 @@ export default function Machines() {
               <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setShowReport(m)}>
                 <FileBarChart className="h-3 w-3 mr-1" /> Relatórios
               </Button>
+              {['manutencao_preventiva', 'manutencao_corretiva', 'troca_agulhas'].includes(m.status) && (
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setMaintenanceViewMachine(m)}>
+                  <Eye className="h-3.5 w-3.5" />
+                </Button>
+              )}
               <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(m); setDeleteWord(''); }}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
@@ -399,6 +408,15 @@ export default function Machines() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Maintenance View Modal */}
+      {maintenanceViewMachine && (
+        <MaintenanceViewModal
+          machine={maintenanceViewMachine}
+          currentLog={logs.find(l => l.machine_id === maintenanceViewMachine.id && !l.ended_at) || null}
+          open={!!maintenanceViewMachine}
+          onClose={() => setMaintenanceViewMachine(null)}
+        />
+      )}
     </div>
   );
 }

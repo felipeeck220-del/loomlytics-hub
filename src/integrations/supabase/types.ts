@@ -377,6 +377,33 @@ export type Database = {
           },
         ]
       }
+      machine_maintenance_observations: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          machine_id: string
+          machine_log_id: string
+          observation: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          machine_id: string
+          machine_log_id: string
+          observation: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          machine_id?: string
+          machine_log_id?: string
+          observation?: string
+        }
+        Relationships: []
+      }
       machines: {
         Row: {
           article_id: string | null
