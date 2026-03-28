@@ -24,8 +24,50 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("Usuário não autenticado");
 
-    const { price_id } = await req.json();
-    if (!price_id) throw new Error("price_id é obrigatório");
+    const { plan } = await req.json();
+    if (!plan || !["monthly", "annual"].includes(plan)) {
+      throw new Error("plan deve ser 'monthly' ou 'annual'");
+    }
+
+    // Get the company's monthly_plan_value from DB
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // Find user's company
+    const { data: profileData } = await supabaseAdmin
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .single();
+
+    if (!profileData?.company_id) throw new Error("Empresa não encontrada");
+
+    const { data: settings } = await supabaseAdmin
+      .from("company_settings")
+      .select("monthly_plan_value")
+      .eq("company_id", profileData.company_id)
+      .single();
+
+    const monthlyValue = settings?.monthly_plan_value ?? 147;
+
+    // Calculate amount in centavos
+    let amountCentavos: number;
+    let interval: "month" | "year";
+    let planName: string;
+
+    if (plan === "annual") {
+      // 12 months with 40% discount
+      amountCentavos = Math.round(monthlyValue * 12 * 0.6 * 100);
+      interval = "year";
+      planName = `MalhaGest Anual - R$ ${(monthlyValue * 12 * 0.6).toFixed(2)}/ano`;
+    } else {
+      amountCentavos = Math.round(monthlyValue * 100);
+      interval = "month";
+      planName = `MalhaGest Mensal - R$ ${monthlyValue.toFixed(2)}/mês`;
+    }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -42,11 +84,21 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [{ price: price_id, quantity: 1 }],
+      line_items: [
+        {
+          price_data: {
+            currency: "brl",
+            product_data: { name: planName },
+            unit_amount: amountCentavos,
+            recurring: { interval },
+          },
+          quantity: 1,
+        },
+      ],
       mode: "subscription",
       success_url: `${origin}/payment-success`,
       cancel_url: `${origin}/settings`,
-      metadata: { user_id: user.id },
+      metadata: { user_id: user.id, company_id: profileData.company_id },
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

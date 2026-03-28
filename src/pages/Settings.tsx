@@ -316,11 +316,11 @@ export default function SettingsPage() {
     setLoadingSub(false);
   };
 
-  const handleCheckout = async (priceId: string) => {
+  const handleCheckout = async (plan: 'monthly' | 'annual') => {
     setCheckingOut(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { price_id: priceId },
+        body: { plan },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
       if (data?.url) window.open(data.url, '_blank');
@@ -1040,7 +1040,7 @@ export default function SettingsPage() {
                   </ul>
                   <Button
                     className="w-full"
-                    onClick={() => handleCheckout('price_1TFw57KBxG6jcqUd6SXKLtWr')}
+                    onClick={() => handleCheckout('monthly')}
                     disabled={checkingOut || subStatus?.status === 'active'}
                   >
                     {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -1071,7 +1071,7 @@ export default function SettingsPage() {
                   </ul>
                   <Button
                     className="w-full btn-gradient"
-                    onClick={() => handleCheckout('price_1TFw5WKBxG6jcqUd5Ti8l7OG')}
+                    onClick={() => handleCheckout('annual')}
                     disabled={checkingOut || subStatus?.status === 'active'}
                   >
                     {checkingOut ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
