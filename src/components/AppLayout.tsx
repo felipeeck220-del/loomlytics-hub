@@ -96,6 +96,14 @@ export default function AppLayout() {
                 <span className="text-muted-foreground text-xs">{formatDate(now)}</span>
               </div>
 
+              {/* Trial badge */}
+              {trialDaysLeft !== null && (
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 font-medium text-xs px-2.5 py-0.5 gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span className="hidden sm:inline">Teste grátis •</span> {trialDaysLeft}d
+                </Badge>
+              )}
+
               <div className="h-5 w-px bg-border hidden sm:block" />
 
               {/* Theme Toggle */}
