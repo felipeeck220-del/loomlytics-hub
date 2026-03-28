@@ -17,10 +17,13 @@ import { toast } from '@/hooks/use-toast';
 import { formatCurrency, formatWeight, formatNumber } from '@/lib/formatters';
 import {
   Plus, Trash2, Edit, Factory, Building2, DollarSign, Scale, TrendingUp,
-  Loader2, Package, Users
+  Loader2, Package, Users, FileBarChart, CalendarIcon, Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
@@ -139,36 +142,43 @@ export default function Outsource() {
 
       {/* Tabs */}
       <Tabs defaultValue="productions" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="productions" className="gap-1.5">
-            <Package className="h-4 w-4" /> Produções
-          </TabsTrigger>
-          <TabsTrigger value="companies" className="gap-1.5">
-            <Factory className="h-4 w-4" /> Malharias
-          </TabsTrigger>
-        </TabsList>
+         <TabsList>
+           <TabsTrigger value="productions" className="gap-1.5">
+             <Package className="h-4 w-4" /> Produções
+           </TabsTrigger>
+           <TabsTrigger value="companies" className="gap-1.5">
+             <Factory className="h-4 w-4" /> Malharias
+           </TabsTrigger>
+           <TabsTrigger value="reports" className="gap-1.5">
+             <FileBarChart className="h-4 w-4" /> Relatórios
+           </TabsTrigger>
+         </TabsList>
 
-        <TabsContent value="productions">
-          <ProductionsTab
-            productions={productions}
-            companies={companies}
-            articles={articles}
-            companyId={companyId}
-            loading={loadingProductions}
-          />
-        </TabsContent>
+         <TabsContent value="productions">
+           <ProductionsTab
+             productions={productions}
+             companies={companies}
+             articles={articles}
+             companyId={companyId}
+             loading={loadingProductions}
+           />
+         </TabsContent>
 
-        <TabsContent value="companies">
-          <CompaniesTab
-            companies={companies}
-            companyId={companyId}
-            loading={loadingCompanies}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+         <TabsContent value="companies">
+           <CompaniesTab
+             companies={companies}
+             companyId={companyId}
+             loading={loadingCompanies}
+           />
+         </TabsContent>
+
+         <TabsContent value="reports">
+           <ReportsTab productions={productions} loading={loadingProductions} />
+         </TabsContent>
+       </Tabs>
+     </div>
+   );
+ }
 
 // ─── KPI Card ────────────────────────────────────────────────
 function KpiCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string; color: string }) {
@@ -622,6 +632,173 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Reports Tab ─────────────────────────────────────────────
+function ReportsTab({ productions, loading }: {
+  productions: OutsourceProduction[];
+  loading: boolean;
+}) {
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [profitFilter, setProfitFilter] = useState<'all' | 'profit' | 'loss'>('all');
+
+  const filtered = useMemo(() => {
+    let result = [...productions];
+    if (startDate) {
+      const start = format(startDate, 'yyyy-MM-dd');
+      result = result.filter(p => p.date >= start);
+    }
+    if (endDate) {
+      const end = format(endDate, 'yyyy-MM-dd');
+      result = result.filter(p => p.date <= end);
+    }
+    if (profitFilter === 'profit') result = result.filter(p => p.total_profit > 0);
+    else if (profitFilter === 'loss') result = result.filter(p => p.total_profit < 0);
+    return result;
+  }, [productions, startDate, endDate, profitFilter]);
+
+  const totals = useMemo(() => ({
+    revenue: filtered.reduce((s, p) => s + p.total_revenue, 0),
+    cost: filtered.reduce((s, p) => s + p.total_cost, 0),
+    profit: filtered.reduce((s, p) => s + p.total_profit, 0),
+    weight: filtered.reduce((s, p) => s + p.weight_kg, 0),
+    rolls: filtered.reduce((s, p) => s + p.rolls, 0),
+  }), [filtered]);
+
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2"><FileBarChart className="h-5 w-5" /> Relatório de Terceirizados</CardTitle>
+        <CardDescription>Filtre por período e tipo de resultado</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Filters */}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Data Início</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("w-[140px] justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                  {startDate ? format(startDate, 'dd/MM/yyyy') : 'Início'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={startDate} onSelect={setStartDate} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Data Fim</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("w-[140px] justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                  {endDate ? format(endDate, 'dd/MM/yyyy') : 'Fim'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={endDate} onSelect={setEndDate} className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Resultado</Label>
+            <Select value={profitFilter} onValueChange={(v: any) => setProfitFilter(v)}>
+              <SelectTrigger className="w-[140px] h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="profit">Com Lucro</SelectItem>
+                <SelectItem value="loss">Com Prejuízo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {(startDate || endDate || profitFilter !== 'all') && (
+            <Button variant="ghost" size="sm" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); }}>
+              Limpar filtros
+            </Button>
+          )}
+        </div>
+
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="rounded-lg border p-3">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Registros</p>
+            <p className="text-lg font-bold text-foreground">{filtered.length}</p>
+          </div>
+          <div className="rounded-lg border p-3">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peso Total</p>
+            <p className="text-lg font-bold text-foreground">{formatWeight(totals.weight)}</p>
+          </div>
+          <div className="rounded-lg border p-3">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Receita</p>
+            <p className="text-lg font-bold text-foreground">{formatCurrency(totals.revenue)}</p>
+          </div>
+          <div className="rounded-lg border p-3">
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Custo</p>
+            <p className="text-lg font-bold text-foreground">{formatCurrency(totals.cost)}</p>
+          </div>
+          <div className={cn("rounded-lg border p-3", totals.profit >= 0 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-destructive/30 bg-destructive/5")}>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro</p>
+            <p className={cn("text-lg font-bold", totals.profit >= 0 ? "text-emerald-600" : "text-destructive")}>{formatCurrency(totals.profit)}</p>
+          </div>
+        </div>
+
+        {/* Table */}
+        {filtered.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Nenhum registro encontrado para os filtros selecionados.</p>
+        ) : (
+          <div className="overflow-auto max-h-[500px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Malharia</TableHead>
+                  <TableHead>Artigo</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead className="text-right">Peso (kg)</TableHead>
+                  <TableHead className="text-right">Rolos</TableHead>
+                  <TableHead className="text-right">R$/kg Cliente</TableHead>
+                  <TableHead className="text-right">R$/kg Repasse</TableHead>
+                  <TableHead className="text-right">Lucro/kg</TableHead>
+                  <TableHead className="text-right">Lucro Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(p => (
+                  <TableRow key={p.id}>
+                    <TableCell className="whitespace-nowrap">{p.date}</TableCell>
+                    <TableCell className="font-medium">{p.outsource_company_name || '—'}</TableCell>
+                    <TableCell>{p.article_name || '—'}</TableCell>
+                    <TableCell>{p.client_name || '—'}</TableCell>
+                    <TableCell className="text-right">{formatWeight(p.weight_kg)}</TableCell>
+                    <TableCell className="text-right">{p.rolls}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(p.client_value_per_kg)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(p.outsource_value_per_kg)}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={p.profit_per_kg >= 0 ? 'default' : 'destructive'} className={p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : ''}>
+                        {formatCurrency(p.profit_per_kg)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      <span className={p.total_profit >= 0 ? 'text-emerald-600' : 'text-destructive'}>
+                        {formatCurrency(p.total_profit)}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}
