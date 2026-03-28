@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { LogOut, User, ChevronDown, Bell, Sun, Moon } from 'lucide-react';
+import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/components/ThemeProvider';
@@ -52,6 +52,7 @@ export default function AppLayout() {
   const [now, setNow] = useState(new Date());
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
@@ -64,11 +65,16 @@ export default function AppLayout() {
       .select('subscription_status, trial_end_date')
       .eq('company_id', user.company_id)
       .maybeSingle();
-    if (data?.subscription_status === 'trial' && data?.trial_end_date) {
+    if (data?.subscription_status === 'active' || data?.subscription_status === 'cancelling') {
+      setSubscriptionActive(true);
+      setTrialDaysLeft(null);
+    } else if (data?.subscription_status === 'trial' && data?.trial_end_date) {
+      setSubscriptionActive(false);
       const end = new Date(data.trial_end_date);
       const diff = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       setTrialDaysLeft(Math.max(0, diff));
     } else {
+      setSubscriptionActive(false);
       setTrialDaysLeft(null);
     }
   };
@@ -105,7 +111,13 @@ export default function AppLayout() {
                 <span className="text-muted-foreground text-xs">{formatDate(now)}</span>
               </div>
 
-              {/* Trial badge */}
+              {/* Subscription badge */}
+              {subscriptionActive && (
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 font-medium text-xs px-2.5 py-0.5 gap-1">
+                  <Crown className="h-3 w-3" />
+                  <span className="hidden sm:inline">Assinatura Ativa</span>
+                </Badge>
+              )}
               {trialDaysLeft !== null && (
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 font-medium text-xs px-2.5 py-0.5 gap-1">
                   <AlertTriangle className="h-3 w-3" />

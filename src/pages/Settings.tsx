@@ -138,6 +138,8 @@ export default function SettingsPage() {
   const [checkingOut, setCheckingOut] = useState<'monthly' | 'annual' | null>(null);
   const [platformSettings, setPlatformSettings] = useState<Record<string, string>>({});
   const [companyPlanValue, setCompanyPlanValue] = useState<number | null>(null);
+  const [cancellingSubscription, setCancellingSubscription] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   // Pix payment state
   const [pixModal, setPixModal] = useState(false);
@@ -386,6 +388,23 @@ export default function SettingsPage() {
       .limit(20);
     if (data) setPaymentHistory(data);
     setLoadingHistory(false);
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!user) return;
+    setCancellingSubscription(true);
+    try {
+      await (supabase.from as any)('company_settings')
+        .update({ subscription_status: 'cancelling' })
+        .eq('company_id', user.company_id);
+      toast.success('Assinatura cancelada. Você terá acesso até o fim do período pago.');
+      setShowCancelDialog(false);
+      checkSubscription();
+      window.dispatchEvent(new Event('subscription-updated'));
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao cancelar assinatura');
+    }
+    setCancellingSubscription(false);
   };
 
   // Cleanup polling on unmount
@@ -1041,18 +1060,26 @@ export default function SettingsPage() {
                     </p>
                   </>
                 )}
-                {subStatus.status === 'active' && (
+                {(subStatus.status === 'active' || subStatus.status === 'cancelling') && (
                   <>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">
-                        <Crown className="h-3 w-3 mr-1" /> Assinatura Ativa
+                        <Crown className="h-3 w-3 mr-1" /> {subStatus.status === 'cancelling' ? 'Assinatura Cancelada' : 'Assinatura Ativa'}
                       </Badge>
                     </div>
                     {paymentHistory.length > 0 && paymentHistory[0].next_billing_date && (
                       <p className="text-sm text-muted-foreground">
-                        Próxima cobrança: <strong className="text-foreground">{new Date(paymentHistory[0].next_billing_date).toLocaleDateString('pt-BR')}</strong>
-                        {' · '}Plano: <strong className="text-foreground">{paymentHistory[0].plan === 'annual' ? 'Anual' : 'Mensal'}</strong>
+                        {subStatus.status === 'cancelling'
+                          ? <>Acesso até: <strong className="text-foreground">{new Date(paymentHistory[0].next_billing_date).toLocaleDateString('pt-BR')}</strong> · Não haverá cobranças futuras.</>
+                          : <>Próxima cobrança: <strong className="text-foreground">{new Date(paymentHistory[0].next_billing_date).toLocaleDateString('pt-BR')}</strong>
+                            {' · '}Plano: <strong className="text-foreground">{paymentHistory[0].plan === 'annual' ? 'Anual' : 'Mensal'}</strong></>
+                        }
                       </p>
+                    )}
+                    {subStatus.status === 'active' && (
+                      <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 mt-2 w-fit" onClick={() => setShowCancelDialog(true)}>
+                        Cancelar assinatura
+                      </Button>
                     )}
                   </>
                 )}
@@ -1072,7 +1099,7 @@ export default function SettingsPage() {
             ) : null}
 
             {/* Plans - hide when free or still loading */}
-            {!loadingSub && subStatus?.status !== 'free' && subStatus?.status !== 'active' && (
+            {!loadingSub && subStatus?.status !== 'free' && subStatus?.status !== 'active' && subStatus?.status !== 'cancelling' && (
             <div className="space-y-3">
               <h3 className="font-semibold text-foreground">Escolha seu plano (Pagamento via Pix)</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1398,6 +1425,28 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Cancel Subscription Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao cancelar, você continuará tendo acesso até o fim do período já pago. Após essa data, o acesso será bloqueado e não haverá cobranças futuras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleCancelSubscription}
+              disabled={cancellingSubscription}
+            >
+              {cancellingSubscription && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Confirmar cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
