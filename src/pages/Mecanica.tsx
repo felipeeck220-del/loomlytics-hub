@@ -42,12 +42,24 @@ export default function MecanicaPage() {
     });
   }, [machineLogs, selectedMachineId]);
 
-  // Per-machine: last preventive & last needle change
-  const getLastLogByStatus = (machineId: string, status: MachineStatus) => {
-    const logs = machineLogs
+  // Get all logs of a status for a machine, sorted newest first
+  const getLogsByStatus = (machineId: string, status: MachineStatus) => {
+    return machineLogs
       .filter(l => l.machine_id === machineId && l.status === status)
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
-    return logs[0] || null;
+  };
+
+  const getLastLogByStatus = (machineId: string, status: MachineStatus) => {
+    return getLogsByStatus(machineId, status)[0] || null;
+  };
+
+  // Calculate revenue/weight between two dates for a machine
+  const calcPeriod = (machineId: string, fromDate: string, toDate: string) => {
+    const prods = productions.filter(p => p.machine_id === machineId && p.date >= fromDate && p.date <= toDate);
+    return {
+      revenue: prods.reduce((s, p) => s + p.revenue, 0),
+      weight: prods.reduce((s, p) => s + p.weight_kg, 0),
+    };
   };
 
   const lastPreventive = useMemo(() => {
