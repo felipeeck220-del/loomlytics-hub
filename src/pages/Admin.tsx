@@ -206,7 +206,7 @@ export default function Admin() {
         monthly_plan_value: planValue,
         platform_active: freeUser ? true : platformActive,
         enabled_nav_items: companyNavItems,
-        subscription_status: freeUser ? 'free' : undefined,
+        subscription_status: freeUser ? 'free' : 'trial',
       });
       toast({ title: 'Salvo', description: 'Configurações atualizadas com sucesso.' });
       setCompanyModalOpen(false);
