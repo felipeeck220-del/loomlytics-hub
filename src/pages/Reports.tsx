@@ -455,8 +455,8 @@ export default function Reports() {
                     <div className="flex items-center justify-between mb-3">
                       <p className="font-display font-bold text-foreground text-lg">{s.name}</p>
                       <div className="flex flex-col items-end gap-0.5">
-                        <Badge variant="secondary" className="text-[10px] font-mono">{pctRolls.toFixed(0)}% da produção</Badge>
-                        {canSeeFinancial && <Badge variant="secondary" className="text-[10px] font-mono">{pctRevenue.toFixed(0)}% do faturamento</Badge>}
+                        <Badge variant="secondary" className="text-[10px] font-mono">{pctRolls.toFixed(1)}% da produção</Badge>
+                        {canSeeFinancial && <Badge variant="secondary" className="text-[10px] font-mono">{pctRevenue.toFixed(1)}% do faturamento</Badge>}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
