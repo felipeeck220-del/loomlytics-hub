@@ -1,17 +1,19 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Wrench, ChevronLeft, ChevronRight, Search, History } from 'lucide-react';
+import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus } from 'lucide-react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus } from '@/types';
+import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus, type MachineLog } from '@/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
   'manutencao_preventiva',
@@ -21,7 +23,7 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 ];
 
 export default function MecanicaPage() {
-  const { getMachines, getMachineLogs, getProductions } = useSharedCompanyData();
+  const { getMachines, getMachineLogs, getProductions, saveMachineLogs } = useSharedCompanyData();
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
@@ -30,6 +32,14 @@ export default function MecanicaPage() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [detailsSearch, setDetailsSearch] = useState('');
   const [historyMachineId, setHistoryMachineId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addMachineId, setAddMachineId] = useState('');
+  const [addStatus, setAddStatus] = useState<string>('manutencao_preventiva');
+  const [addStartDate, setAddStartDate] = useState('');
+  const [addStartTime, setAddStartTime] = useState('08:00');
+  const [addEndDate, setAddEndDate] = useState('');
+  const [addEndTime, setAddEndTime] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const activeMachines = useMemo(() => machines.filter(m => m.status !== 'inativa'), [machines]);
 
@@ -161,6 +171,37 @@ export default function MecanicaPage() {
   const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const formatWeight = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`;
 
+  const handleAddLog = async () => {
+    if (!addMachineId || !addStartDate) {
+      toast.error('Selecione uma máquina e data de início.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const newLog: MachineLog = {
+        id: crypto.randomUUID(),
+        machine_id: addMachineId,
+        status: addStatus as MachineStatus,
+        started_at: new Date(`${addStartDate}T${addStartTime}:00`).toISOString(),
+        ended_at: addEndDate ? new Date(`${addEndDate}T${addEndTime || '08:00'}:00`).toISOString() : undefined,
+      };
+      const updatedLogs = [...machineLogs, newLog];
+      await saveMachineLogs(updatedLogs);
+      toast.success('Registro adicionado com sucesso!');
+      setShowAddModal(false);
+      setAddMachineId('');
+      setAddStatus('manutencao_preventiva');
+      setAddStartDate('');
+      setAddStartTime('08:00');
+      setAddEndDate('');
+      setAddEndTime('');
+    } catch (e) {
+      toast.error('Erro ao salvar registro.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -228,7 +269,12 @@ export default function MecanicaPage() {
           <Card className="w-full">
             <CardHeader className="pb-2 px-3 sm:px-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
+                  <Button size="sm" onClick={() => setShowAddModal(true)}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  </Button>
+                </div>
                 <div className="flex items-center gap-1 sm:gap-2">
                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
                     <ChevronLeft className="h-4 w-4" />
@@ -461,6 +507,65 @@ export default function MecanicaPage() {
               ))
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add manual log modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Registro Manual</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Máquina</Label>
+              <Select value={addMachineId} onValueChange={setAddMachineId}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma máquina" /></SelectTrigger>
+                <SelectContent>
+                  {activeMachines.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={addStatus} onValueChange={setAddStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MAINTENANCE_STATUSES.map(s => (
+                    <SelectItem key={s} value={s}>{MACHINE_STATUS_LABELS[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data Início</Label>
+                <Input type="date" value={addStartDate} onChange={e => setAddStartDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Hora Início</Label>
+                <Input type="time" value={addStartTime} onChange={e => setAddStartTime(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data Fim (opcional)</Label>
+                <Input type="date" value={addEndDate} onChange={e => setAddEndDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Hora Fim</Label>
+                <Input type="time" value={addEndTime} onChange={e => setAddEndTime(e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancelar</Button>
+            <Button onClick={handleAddLog} disabled={saving}>
+              {saving ? 'Salvando...' : 'Adicionar'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
