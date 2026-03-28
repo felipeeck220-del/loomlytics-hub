@@ -1,0 +1,1 @@
+ALTER TYPE public.machine_status ADD VALUE IF NOT EXISTS 'troca_agulhas';

@@ -815,6 +815,7 @@ export type Database = {
         | "manutencao_corretiva"
         | "troca_artigo"
         | "inativa"
+        | "troca_agulhas"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -948,6 +949,7 @@ export const Constants = {
         "manutencao_corretiva",
         "troca_artigo",
         "inativa",
+        "troca_agulhas",
       ],
     },
   },
