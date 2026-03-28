@@ -42,12 +42,24 @@ export default function MecanicaPage() {
     });
   }, [machineLogs, selectedMachineId]);
 
-  // Per-machine: last preventive & last needle change
-  const getLastLogByStatus = (machineId: string, status: MachineStatus) => {
-    const logs = machineLogs
+  // Get all logs of a status for a machine, sorted newest first
+  const getLogsByStatus = (machineId: string, status: MachineStatus) => {
+    return machineLogs
       .filter(l => l.machine_id === machineId && l.status === status)
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
-    return logs[0] || null;
+  };
+
+  const getLastLogByStatus = (machineId: string, status: MachineStatus) => {
+    return getLogsByStatus(machineId, status)[0] || null;
+  };
+
+  // Calculate revenue/weight between two dates for a machine
+  const calcPeriod = (machineId: string, fromDate: string, toDate: string) => {
+    const prods = productions.filter(p => p.machine_id === machineId && p.date >= fromDate && p.date <= toDate);
+    return {
+      revenue: prods.reduce((s, p) => s + p.revenue, 0),
+      weight: prods.reduce((s, p) => s + p.weight_kg, 0),
+    };
   };
 
   const lastPreventive = useMemo(() => {
@@ -86,79 +98,59 @@ export default function MecanicaPage() {
     return machines.find(m => m.id === machineId)?.name || 'Máquina desconhecida';
   };
 
-  // Detalhes tab: revenue per machine since last preventive and last needle change
+  // Detalhes tab: revenue/kg from end of last maintenance to today
   const detailsData = useMemo(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
     return activeMachines.map(machine => {
       const lastPrev = getLastLogByStatus(machine.id, 'manutencao_preventiva');
       const lastNeedle = getLastLogByStatus(machine.id, 'troca_agulhas');
 
-      const machineProductions = productions.filter(p => p.machine_id === machine.id);
+      // From end of last preventive (or its start if no end) to today
+      const prevFromDate = lastPrev
+        ? format(new Date(lastPrev.ended_at || lastPrev.started_at), 'yyyy-MM-dd')
+        : '2000-01-01';
+      const prevPeriod = calcPeriod(machine.id, prevFromDate, today);
 
-      const revenueSincePreventive = lastPrev
-        ? machineProductions
-            .filter(p => p.date >= format(new Date(lastPrev.started_at), 'yyyy-MM-dd'))
-            .reduce((sum, p) => sum + p.revenue, 0)
-        : machineProductions.reduce((sum, p) => sum + p.revenue, 0);
-
-      const revenueSinceNeedle = lastNeedle
-        ? machineProductions
-            .filter(p => p.date >= format(new Date(lastNeedle.started_at), 'yyyy-MM-dd'))
-            .reduce((sum, p) => sum + p.revenue, 0)
-        : machineProductions.reduce((sum, p) => sum + p.revenue, 0);
-
-      const weightSincePreventive = lastPrev
-        ? machineProductions
-            .filter(p => p.date >= format(new Date(lastPrev.started_at), 'yyyy-MM-dd'))
-            .reduce((sum, p) => sum + p.weight_kg, 0)
-        : machineProductions.reduce((sum, p) => sum + p.weight_kg, 0);
-
-      const weightSinceNeedle = lastNeedle
-        ? machineProductions
-            .filter(p => p.date >= format(new Date(lastNeedle.started_at), 'yyyy-MM-dd'))
-            .reduce((sum, p) => sum + p.weight_kg, 0)
-        : machineProductions.reduce((sum, p) => sum + p.weight_kg, 0);
+      // From end of last needle change to today
+      const needleFromDate = lastNeedle
+        ? format(new Date(lastNeedle.ended_at || lastNeedle.started_at), 'yyyy-MM-dd')
+        : '2000-01-01';
+      const needlePeriod = calcPeriod(machine.id, needleFromDate, today);
 
       return {
-        machine,
-        lastPrev,
-        lastNeedle,
-        revenueSincePreventive,
-        revenueSinceNeedle,
-        weightSincePreventive,
-        weightSinceNeedle,
+        machine, lastPrev, lastNeedle,
+        revenueSincePreventive: prevPeriod.revenue,
+        revenueSinceNeedle: needlePeriod.revenue,
+        weightSincePreventive: prevPeriod.weight,
+        weightSinceNeedle: needlePeriod.weight,
       };
     });
   }, [activeMachines, productions, machineLogs]);
 
-  // History: all maintenance logs for a specific machine with revenue/kg between each period
+  // History: all logs of a machine, period = end of previous same-type log → start of current log
   const historyData = useMemo(() => {
     if (!historyMachineId) return [];
-    const machineProductions = productions.filter(p => p.machine_id === historyMachineId);
-    
+
     const relevantLogs = machineLogs
       .filter(l => l.machine_id === historyMachineId && (l.status === 'manutencao_preventiva' || l.status === 'troca_agulhas'))
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
 
-    return relevantLogs.map((log, idx) => {
-      const logDate = format(new Date(log.started_at), 'yyyy-MM-dd');
-      // Next log of same type (the one before this chronologically)
-      const nextLogOfSameType = relevantLogs
-        .filter(l => l.status === log.status)
-        .find((l, i2) => {
-          const sameLogs = relevantLogs.filter(ll => ll.status === log.status);
-          const currentIdx = sameLogs.indexOf(log);
-          return sameLogs.indexOf(l) === currentIdx + 1;
-        });
-      
-      const fromDate = nextLogOfSameType 
-        ? format(new Date(nextLogOfSameType.started_at), 'yyyy-MM-dd')
+    return relevantLogs.map(log => {
+      const logStartDate = format(new Date(log.started_at), 'yyyy-MM-dd');
+
+      // Find previous log of same type (older)
+      const sameTypeLogs = relevantLogs.filter(l => l.status === log.status);
+      const currentIdx = sameTypeLogs.indexOf(log);
+      const prevLog = currentIdx < sameTypeLogs.length - 1 ? sameTypeLogs[currentIdx + 1] : null;
+
+      // Period: from end of previous same-type log to start of this log
+      const fromDate = prevLog
+        ? format(new Date(prevLog.ended_at || prevLog.started_at), 'yyyy-MM-dd')
         : '2000-01-01';
 
-      const periodProductions = machineProductions.filter(p => p.date >= fromDate && p.date <= logDate);
-      const revenue = periodProductions.reduce((sum, p) => sum + p.revenue, 0);
-      const weight = periodProductions.reduce((sum, p) => sum + p.weight_kg, 0);
+      const period = calcPeriod(historyMachineId, fromDate, logStartDate);
 
-      return { log, revenue, weight, fromDate };
+      return { log, revenue: period.revenue, weight: period.weight, fromDate };
     });
   }, [historyMachineId, machineLogs, productions]);
 
