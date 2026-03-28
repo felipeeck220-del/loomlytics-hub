@@ -59,7 +59,7 @@ export function useCompanyData() {
         fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
         sb('machine_logs').select('*'),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
-        sb('company_settings').select('*').eq('company_id', companyId).single(),
+        sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
       ]);
 
       setMachines(mData.map(mapMachine));
