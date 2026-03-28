@@ -3,6 +3,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 import { ptBR } from 'date-fns/locale';
 import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus } from 'lucide-react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ export default function MecanicaPage() {
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
+  const { logAction } = useAuditLog();
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -187,6 +189,8 @@ export default function MecanicaPage() {
       };
       const updatedLogs = [...machineLogs, newLog];
       await saveMachineLogs(updatedLogs);
+      const machineName = machines.find(m => m.id === addMachineId)?.name;
+      logAction('maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
       toast.success('Registro adicionado com sucesso!');
       setShowAddModal(false);
       setAddMachineId('');

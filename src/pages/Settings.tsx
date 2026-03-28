@@ -50,7 +50,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle } from 'lucide-react';
+import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
 import ProductionModeModal from '@/components/ProductionModeModal';
@@ -64,6 +64,7 @@ interface Profile {
   email: string;
   role: string;
   status: string;
+  code?: string;
   created_at: string;
 }
 
@@ -104,6 +105,10 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: '' });
   const [saving, setSaving] = useState(false);
+  const [changePasswordUser, setChangePasswordUser] = useState<Profile | null>(null);
+  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [showAdminNewPw, setShowAdminNewPw] = useState(false);
+  const [savingAdminPw, setSavingAdminPw] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [editingShifts, setEditingShifts] = useState(false);
   const [shiftForm, setShiftForm] = useState<CompanyShiftSettings>(shiftSettings);
@@ -389,6 +394,26 @@ export default function SettingsPage() {
     await refreshProfiles();
   };
 
+  const handleAdminChangePassword = async () => {
+    if (!changePasswordUser || !adminNewPassword || adminNewPassword.length < 6) {
+      toast.error('Senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    setSavingAdminPw(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'change_password', user_id: changePasswordUser.user_id, new_password: adminNewPassword },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast.success('Senha alterada com sucesso');
+      setChangePasswordUser(null);
+      setAdminNewPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao alterar senha');
+    }
+    setSavingAdminPw(false);
+  };
+
   const handleDeleteUser = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
     const { data, error } = await supabase.functions.invoke('manage-users', {
@@ -643,6 +668,9 @@ export default function SettingsPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-display font-bold text-foreground">{p.name}</p>
+                        {p.code && (
+                          <Badge variant="outline" className="text-xs font-mono">#{p.code}</Badge>
+                        )}
                         <Badge variant={p.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                           {p.status === 'active' ? 'Ativo' : 'Inativo'}
                         </Badge>
@@ -658,8 +686,11 @@ export default function SettingsPage() {
                   </div>
                   {isAdmin && (
                     <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditUser(p)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditUser(p)} title="Editar">
                         <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
+                        <Key className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="outline"
@@ -1109,7 +1140,41 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Production Mode Modal */}
+      {/* Change Password Modal (Admin) */}
+      <Dialog open={!!changePasswordUser} onOpenChange={() => setChangePasswordUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Senha - {changePasswordUser?.name}</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {changePasswordUser?.code && <span className="font-mono">#{changePasswordUser.code} · </span>}
+              {changePasswordUser?.email}
+            </p>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Nova Senha</Label>
+              <div className="relative">
+                <Input
+                  type={showAdminNewPw ? 'text' : 'password'}
+                  value={adminNewPassword}
+                  onChange={e => setAdminNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                />
+                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowAdminNewPw(!showAdminNewPw)}>
+                  {showAdminNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangePasswordUser(null)}>Cancelar</Button>
+            <Button onClick={handleAdminChangePassword} className="btn-gradient" disabled={savingAdminPw}>
+              {savingAdminPw && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar Senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ProductionModeModal
         open={showProductionMode}
         onOpenChange={setShowProductionMode}

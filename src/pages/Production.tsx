@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +38,7 @@ export default function ProductionPage() {
   const articles = getArticles();
   const articleMachineTurns = getArticleMachineTurns();
   const machineLogs = getMachineLogs();
+  const { logAction } = useAuditLog();
 
   const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
 
@@ -294,6 +296,7 @@ export default function ProductionPage() {
       try {
         const oldIds = editingGroupItems.map(i => i.id);
         await updateProductions(oldIds, newRecords);
+        logAction('production_update', { machine: machineName, date: form.date, shift: form.shift });
         toast.success('Produção atualizada');
       } catch {
         toast.error('Erro ao atualizar produção');
@@ -310,6 +313,7 @@ export default function ProductionPage() {
     setExtraArticles([]);
     advanceToNext();
 
+    logAction('production_create', { machine: machineName, date: form.date, shift: form.shift });
     addProductions(newRecords).then(() => {
       setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'done' } : q));
       setTimeout(() => {
@@ -327,6 +331,7 @@ export default function ProductionPage() {
     const group = shiftProductionGroups.find(g => g.items.some(i => i.id === showDelete.id));
     const idsToDelete = group ? group.items.map(i => i.id) : [showDelete.id];
     await deleteProductions(idsToDelete);
+    logAction('production_delete', { machine: showDelete.machine_name, date: showDelete.date, shift: showDelete.shift });
     setShowDelete(null); setDeleteWord('');
     toast.success('Produção excluída');
   };

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,7 @@ export default function Machines() {
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
+  const { logAction } = useAuditLog();
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Machine | null>(null);
@@ -99,6 +101,9 @@ export default function Machines() {
       }
 
       await saveMachines(all);
+      logAction(oldStatus !== form.status ? 'machine_status_change' : 'machine_update', {
+        machine: `TEAR ${form.number}`, old_status: oldStatus, new_status: form.status,
+      });
       toast.success('Máquina atualizada');
     } else {
       const newMachine: Machine = {
@@ -117,6 +122,7 @@ export default function Machines() {
         console.error('Failed to save machine logs:', err);
         toast.error('Erro ao salvar log de status');
       }
+      logAction('machine_create', { machine: `TEAR ${form.number}`, status: form.status });
       toast.success('Máquina cadastrada');
     }
     setShowModal(false);
@@ -126,6 +132,7 @@ export default function Machines() {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
     const all = machines.filter(m => m.id !== showDelete?.id);
     await saveMachines(all);
+    logAction('machine_delete', { machine: showDelete?.name });
     setShowDelete(null);
     setDeleteWord('');
     toast.success('Máquina excluída');

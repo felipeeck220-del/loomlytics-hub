@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,7 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 export default function RevisionPage() {
   const { getMachines, getWeavers, getArticles, getDefectRecords, addDefectRecords, deleteDefectRecords, shiftSettings, loading } = useSharedCompanyData();
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
+  const { logAction } = useAuditLog();
 
   const machines = getMachines();
   const weavers = getWeavers();
@@ -122,6 +124,7 @@ export default function RevisionPage() {
       };
 
       await addDefectRecords([record]);
+      logAction('defect_create', { machine: machine?.name, article: article?.name, date: form.date, shift: form.shift });
       toast.success('Falha registrada com sucesso!');
       setShowModal(false);
     } catch (e) {
@@ -135,6 +138,7 @@ export default function RevisionPage() {
     if (!showDelete || deleteWord !== 'EXCLUIR') return;
     try {
       await deleteDefectRecords([showDelete.id]);
+      logAction('defect_delete', { machine: showDelete.machine_name, date: showDelete.date });
       toast.success('Registro excluído');
       setShowDelete(null);
       setDeleteWord('');
