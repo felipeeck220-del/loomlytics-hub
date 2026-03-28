@@ -3,6 +3,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 import { ptBR } from 'date-fns/locale';
 import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus } from 'lucide-react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
