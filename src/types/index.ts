@@ -27,13 +27,14 @@ export interface Machine {
   created_at: string;
 }
 
-export type MachineStatus = 'ativa' | 'manutencao_preventiva' | 'manutencao_corretiva' | 'troca_artigo' | 'inativa';
+export type MachineStatus = 'ativa' | 'manutencao_preventiva' | 'manutencao_corretiva' | 'troca_artigo' | 'troca_agulhas' | 'inativa';
 
 export const MACHINE_STATUS_LABELS: Record<MachineStatus, string> = {
   ativa: 'Ativa',
   manutencao_preventiva: 'Manutenção Preventiva',
   manutencao_corretiva: 'Manutenção Corretiva',
   troca_artigo: 'Troca de Artigo',
+  troca_agulhas: 'Troca de Agulhas',
   inativa: 'Inativa',
 };
 
@@ -42,6 +43,7 @@ export const MACHINE_STATUS_COLORS: Record<MachineStatus, string> = {
   manutencao_preventiva: 'bg-warning/10 text-warning',
   manutencao_corretiva: 'bg-destructive/10 text-destructive',
   troca_artigo: 'bg-info/10 text-info',
+  troca_agulhas: 'bg-purple-500/10 text-purple-600',
   inativa: 'bg-muted text-muted-foreground',
 };
 
