@@ -196,6 +196,7 @@ export type Database = {
           company_id: string
           created_at: string
           enabled_nav_items: Json
+          grace_period_end: string | null
           id: string
           monthly_plan_value: number
           platform_active: boolean
@@ -205,12 +206,18 @@ export type Database = {
           shift_noite_start: string
           shift_tarde_end: string
           shift_tarde_start: string
+          stripe_customer_id: string | null
+          subscription_paid_at: string | null
+          subscription_plan: string | null
+          subscription_status: string
+          trial_end_date: string | null
           updated_at: string
         }
         Insert: {
           company_id: string
           created_at?: string
           enabled_nav_items?: Json
+          grace_period_end?: string | null
           id?: string
           monthly_plan_value?: number
           platform_active?: boolean
@@ -220,12 +227,18 @@ export type Database = {
           shift_noite_start?: string
           shift_tarde_end?: string
           shift_tarde_start?: string
+          stripe_customer_id?: string | null
+          subscription_paid_at?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string
+          trial_end_date?: string | null
           updated_at?: string
         }
         Update: {
           company_id?: string
           created_at?: string
           enabled_nav_items?: Json
+          grace_period_end?: string | null
           id?: string
           monthly_plan_value?: number
           platform_active?: boolean
@@ -235,6 +248,11 @@ export type Database = {
           shift_noite_start?: string
           shift_tarde_end?: string
           shift_tarde_start?: string
+          stripe_customer_id?: string | null
+          subscription_paid_at?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string
+          trial_end_date?: string | null
           updated_at?: string
         }
         Relationships: [
