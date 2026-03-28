@@ -593,227 +593,63 @@ export default function Reports() {
 
         {/* POR MÁQUINA */}
         <TabsContent value="maquina" className="mt-6 space-y-6">
-          {/* Top machines summary */}
-          {byMachine.length > 0 && (() => {
+          {byMachine.length > 0 ? (() => {
             const totalMachineRolls = byMachine.reduce((s, m) => s + m.rolos, 0);
-            const totalMachineKg = byMachine.reduce((s, m) => s + m.kg, 0);
             const totalMachineRevenue = byMachine.reduce((s, m) => s + m.faturamento, 0);
-            const avgMachineEff = byMachine.reduce((s, m) => s + m.eficiencia, 0) / byMachine.length;
-            const bestMachine = [...byMachine].sort((a, b) => b.eficiencia - a.eficiencia)[0];
-            const worstMachine = [...byMachine].sort((a, b) => a.eficiencia - b.eficiencia)[0];
-            const topProducer = [...byMachine].sort((a, b) => b.rolos - a.rolos)[0];
-
             return (
-              <>
-                {/* KPI row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <Card>
-                    <CardContent className="pt-4 pb-3">
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Máquinas Ativas</p>
-                      <p className="text-2xl font-bold text-foreground">{byMachine.length}</p>
-                      <p className="text-[11px] text-muted-foreground">de {machines.length} cadastradas</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4 pb-3">
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Eficiência Média</p>
-                      <p className={cn("text-2xl font-bold", avgMachineEff >= 80 ? "text-success" : avgMachineEff >= 70 ? "text-warning" : "text-destructive")}>
-                        {formatPercent(avgMachineEff)}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">média geral</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4 pb-3">
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Melhor Eficiência</p>
-                      <p className="text-2xl font-bold text-success">{formatPercent(bestMachine.eficiencia)}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{bestMachine.name}</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4 pb-3">
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Maior Produção</p>
-                      <p className="text-2xl font-bold text-primary">{formatNumber(topProducer.rolos)}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{topProducer.name}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Efficiency bar chart */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Gauge className="h-4 w-4 text-muted-foreground" />
-                        Eficiência por Máquina
-                      </CardTitle>
-                      <CardDescription>Comparativo com meta individual</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={Math.max(300, byMachine.length * 40)}>
-                        <BarChart data={byMachine} layout="vertical" barSize={18}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                          <XAxis type="number" domain={[0, 100]} fontSize={12} tickFormatter={(v) => `${v}%`} />
-                          <YAxis type="category" dataKey="name" fontSize={11} width={85} />
-                          <Tooltip formatter={(v: number) => [`${formatPercent(v)}`, 'Eficiência']} />
-                          <Bar dataKey="eficiencia" name="Eficiência" radius={[0, 4, 4, 0]}>
-                            {byMachine.map((entry, i) => (
-                              <Cell key={i} fill={entry.eficiencia >= entry.targetEfficiency ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= entry.targetEfficiency * 0.875 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-
-                  {/* Production bar chart */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                        Produção por Máquina
-                      </CardTitle>
-                      <CardDescription>Peças produzidas por máquina</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={Math.max(300, byMachine.length * 40)}>
-                        <BarChart data={byMachine} layout="vertical" barSize={18}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                          <XAxis type="number" fontSize={12} />
-                          <YAxis type="category" dataKey="name" fontSize={11} width={85} />
-                          <Tooltip formatter={(v: number, name: string) => [formatNumber(v, 1), name === 'rolos' ? 'Peças' : 'Kg']} />
-                          <Legend formatter={(value) => value === 'rolos' ? 'Peças' : 'Peso (kg)'} />
-                          <Bar dataKey="rolos" name="rolos" fill="hsl(221, 83%, 53%)" radius={[0, 4, 4, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-
-                  {/* Revenue pie chart */}
-                  {canSeeFinancial && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
-                          Faturamento por Máquina
-                        </CardTitle>
-                        <CardDescription>Distribuição do faturamento</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ResponsiveContainer width="100%" height={320}>
-                          <PieChart>
-                            <Pie
-                              data={byMachine.filter(m => m.faturamento > 0)}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={50}
-                              outerRadius={95}
-                              dataKey="faturamento"
-                              label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
-                              labelLine={true}
-                              paddingAngle={2}
-                            >
-                              {byMachine.filter(m => m.faturamento > 0).map((_, i) => (
-                                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Weight pie chart */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                        Peso por Máquina
-                      </CardTitle>
-                      <CardDescription>Distribuição do peso produzido</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={320}>
-                        <PieChart>
-                          <Pie
-                            data={byMachine.filter(m => m.kg > 0)}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={50}
-                            outerRadius={95}
-                            dataKey="kg"
-                            label={({ name, value }) => `${name}: ${formatWeight(value)}`}
-                            labelLine={true}
-                            paddingAngle={2}
-                          >
-                            {byMachine.filter(m => m.kg > 0).map((_, i) => (
-                              <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(v: number) => formatWeight(v)} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Detailed machine list */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Detalhamento por Máquina</CardTitle>
-                    <CardDescription>Todos os dados de cada máquina no período</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {byMachine.map(m => {
-                        const pctRolls = totalMachineRolls > 0 ? (m.rolos / totalMachineRolls * 100) : 0;
-                        const pctRevenue = totalMachineRevenue > 0 ? (m.faturamento / totalMachineRevenue * 100) : 0;
-                        return (
-                          <div key={m.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
-                            <div className="flex items-center justify-between">
-                              <p className="font-display font-bold text-foreground">{m.name}</p>
-                              <Badge className={cn(
-                                "text-xs",
-                                m.eficiencia >= m.targetEfficiency ? "bg-success/10 text-success" : m.eficiencia >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
-                              )}>
-                                {formatPercent(m.eficiencia)}
-                              </Badge>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Detalhamento por Máquina</CardTitle>
+                  <CardDescription>Todos os dados de cada máquina no período</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {byMachine.map(m => {
+                      const pctRolls = totalMachineRolls > 0 ? (m.rolos / totalMachineRolls * 100) : 0;
+                      const pctRevenue = totalMachineRevenue > 0 ? (m.faturamento / totalMachineRevenue * 100) : 0;
+                      return (
+                        <div key={m.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="font-display font-bold text-foreground">{m.name}</p>
+                            <Badge className={cn(
+                              "text-xs",
+                              m.eficiencia >= m.targetEfficiency ? "bg-success/10 text-success" : m.eficiencia >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                            )}>
+                              {formatPercent(m.eficiencia)}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Peças</p>
+                              <p className="font-semibold text-foreground">{formatNumber(m.rolos)}</p>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              <div>
-                                <p className="text-[10px] text-muted-foreground uppercase">Peças</p>
-                                <p className="font-semibold text-foreground">{formatNumber(m.rolos)}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-muted-foreground uppercase">Peso</p>
-                                <p className="font-semibold text-foreground">{formatWeight(m.kg)}</p>
-                              </div>
-                              {canSeeFinancial && (
-                                <div>
-                                  <p className="text-[10px] text-muted-foreground uppercase">Faturamento</p>
-                                  <p className="font-semibold text-success">{formatCurrency(m.faturamento)}</p>
-                                </div>
-                              )}
-                              <div>
-                                <p className="text-[10px] text-muted-foreground uppercase">Registros</p>
-                                <p className="font-semibold text-foreground">{m.records}</p>
-                              </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Peso</p>
+                              <p className="font-semibold text-foreground">{formatWeight(m.kg)}</p>
                             </div>
-                            <div className="flex gap-1 flex-wrap">
-                              <Badge variant="secondary" className="text-[10px]">{pctRolls.toFixed(1)}% da produção</Badge>
-                              {canSeeFinancial && <Badge variant="secondary" className="text-[10px]">{pctRevenue.toFixed(1)}% do faturamento</Badge>}
+                            {canSeeFinancial && (
+                              <div>
+                                <p className="text-[10px] text-muted-foreground uppercase">Faturamento</p>
+                                <p className="font-semibold text-success">{formatCurrency(m.faturamento)}</p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Registros</p>
+                              <p className="font-semibold text-foreground">{m.records}</p>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
+                          <div className="flex gap-1 flex-wrap">
+                            <Badge variant="secondary" className="text-[10px]">{pctRolls.toFixed(1)}% da produção</Badge>
+                            {canSeeFinancial && <Badge variant="secondary" className="text-[10px]">{pctRevenue.toFixed(1)}% do faturamento</Badge>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
             );
-          })()}
-          {byMachine.length === 0 && (
+          })() : (
             <Card>
               <CardContent className="py-12">
                 <p className="text-sm text-muted-foreground text-center">Sem dados de máquinas no período selecionado</p>
