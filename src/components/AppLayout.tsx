@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { LogOut, User, ChevronDown, Bell, Sun, Moon } from 'lucide-react';
+import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/components/ThemeProvider';
