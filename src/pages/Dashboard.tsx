@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
