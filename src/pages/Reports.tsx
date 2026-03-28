@@ -445,14 +445,19 @@ export default function Reports() {
             {byShift.map((s, i) => {
               const shiftColor = s.name === 'Manhã' ? 'hsl(38, 92%, 50%)' : s.name === 'Tarde' ? 'hsl(25, 95%, 53%)' : 'hsl(221, 83%, 53%)';
               const totalShiftRolls = byShift.reduce((sum, sh) => sum + sh.rolos, 0);
-              const pct = totalShiftRolls > 0 ? (s.rolos / totalShiftRolls * 100) : 0;
+              const totalShiftRevenue = byShift.reduce((sum, sh) => sum + sh.faturamento, 0);
+              const pctRolls = totalShiftRolls > 0 ? (s.rolos / totalShiftRolls * 100) : 0;
+              const pctRevenue = totalShiftRevenue > 0 ? (s.faturamento / totalShiftRevenue * 100) : 0;
               return (
                 <Card key={s.name} className="relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: shiftColor }} />
                   <CardContent className="pt-5 pb-4 pl-5">
                     <div className="flex items-center justify-between mb-3">
                       <p className="font-display font-bold text-foreground text-lg">{s.name}</p>
-                      <Badge variant="secondary" className="text-xs font-mono">{pct.toFixed(0)}% de {formatNumber(totalShiftRolls)}</Badge>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <Badge variant="secondary" className="text-[10px] font-mono">{pctRolls.toFixed(0)}% da produção</Badge>
+                        {canSeeFinancial && <Badge variant="secondary" className="text-[10px] font-mono">{pctRevenue.toFixed(0)}% do faturamento</Badge>}
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
