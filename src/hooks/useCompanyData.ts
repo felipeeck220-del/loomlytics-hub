@@ -333,6 +333,27 @@ export function useCompanyData() {
     setShiftSettings(data);
   }, [companyId]);
 
+  const addDefectRecords = useCallback(async (newRecords: DefectRecord[]) => {
+    if (!companyId || newRecords.length === 0) return;
+    const rows = newRecords.map(d => ({
+      id: d.id, company_id: companyId, machine_id: d.machine_id || null,
+      article_id: d.article_id || null, weaver_id: d.weaver_id || null,
+      date: d.date, shift: d.shift, measure_type: d.measure_type,
+      measure_value: d.measure_value, machine_name: d.machine_name || null,
+      article_name: d.article_name || null, weaver_name: d.weaver_name || null,
+      observations: d.observations || null, created_at: d.created_at,
+    }));
+    const { error } = await sb('defect_records').insert(rows);
+    if (error) throw error;
+    setDefectRecords(prev => [...newRecords.map(r => ({ ...r, company_id: companyId })), ...prev]);
+  }, [companyId]);
+
+  const deleteDefectRecords = useCallback(async (ids: string[]) => {
+    if (!companyId || ids.length === 0) return;
+    await sb('defect_records').delete().in('id', ids);
+    setDefectRecords(prev => prev.filter(d => !ids.includes(d.id)));
+  }, [companyId]);
+
   return {
     loading,
     dbCompanyId: companyId,
@@ -344,6 +365,7 @@ export function useCompanyData() {
     getWeavers, saveWeavers,
     getProductions, saveProductions, addProductions, updateProductions, deleteProductions,
     getArticleMachineTurns, saveArticleMachineTurns,
+    getDefectRecords, addDefectRecords, deleteDefectRecords,
     saveShiftSettings,
   };
 }
