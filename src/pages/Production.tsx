@@ -9,13 +9,14 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, CalendarIcon, Pencil, Loader2, ChevronRight, ChevronDown, ChevronUp, Filter, X, Trash2, Clock, FileText, TrendingUp, Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plus, CalendarIcon, Pencil, Loader2, ChevronRight, ChevronDown, ChevronUp, Filter, X, Trash2, Clock, FileText, TrendingUp, Target, AlertTriangle, CheckCircle2, PauseCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
 import { usePermissions } from '@/hooks/usePermissions';
+import { calculateShiftDowntime, formatDowntimeMinutes, type ShiftDowntimeInfo } from '@/lib/downtimeUtils';
 
 type SaveQueueItem = {
   id: string;
@@ -26,7 +27,7 @@ type SaveQueueItem = {
 const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
 export default function ProductionPage() {
-  const { getProductions, addProductions, updateProductions, deleteProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, shiftSettings, loading } = useSharedCompanyData();
+  const { getProductions, addProductions, updateProductions, deleteProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, getMachineLogs, shiftSettings, loading } = useSharedCompanyData();
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
@@ -35,6 +36,7 @@ export default function ProductionPage() {
   const weavers = getWeavers();
   const articles = getArticles();
   const articleMachineTurns = getArticleMachineTurns();
+  const machineLogs = getMachineLogs();
 
   const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
 
@@ -78,6 +80,18 @@ export default function ProductionPage() {
   const selectedArticle = articles.find(a => a.id === form.article_id);
   const machineMode = selectedMachine?.production_mode || 'rolos';
 
+  // Calculate downtime for selected machine/date/shift
+  const downtimeInfo = useMemo((): ShiftDowntimeInfo | null => {
+    if (!form.machine_id || !form.shift || !form.date) return null;
+    const dateStr = format(form.date, 'yyyy-MM-dd');
+    const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
+    if (!shiftMinutes) return null;
+    return calculateShiftDowntime(machineLogs, form.machine_id, dateStr, form.shift as ShiftType, shiftSettings, shiftMinutes);
+  }, [form.machine_id, form.shift, form.date, machineLogs, shiftSettings, companyShiftMinutes]);
+
+  // Effective shift minutes (discounting downtime)
+  const effectiveShiftMinutes = downtimeInfo ? downtimeInfo.effectiveShiftMinutes : (form.shift ? companyShiftMinutes[form.shift as ShiftType] : 510);
+
   const currentMachineIndex = sortedMachines.findIndex(m => m.id === form.machine_id);
   const currentShiftIndex = SHIFTS.indexOf(form.shift as ShiftType);
 
@@ -110,7 +124,7 @@ export default function ProductionPage() {
 
   const preview = useMemo(() => {
     if (!form.shift || !form.rpm || !selectedArticle) return null;
-    const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
+    const shiftMinutes = effectiveShiftMinutes;
     const rpm = Number(form.rpm);
     const maxTurns = rpm * shiftMinutes;
 
@@ -160,7 +174,7 @@ export default function ProductionPage() {
 
     const efficiency = maxTurns > 0 ? (totalProducedTurns / maxTurns) * 100 : 0;
     return { efficiency: Math.min(efficiency, 100), weightKg: totalWeightKg, revenue: totalRevenue, rolls: totalRolls, extraPreviews };
-  }, [form.shift, form.rpm, form.rolls, form.voltas_inicio, form.voltas_fim, machineMode, selectedArticle, form.machine_id, articleMachineTurns, extraArticles, articles, companyShiftMinutes]);
+  }, [form.shift, form.rpm, form.rolls, form.voltas_inicio, form.voltas_fim, machineMode, selectedArticle, form.machine_id, articleMachineTurns, extraArticles, articles, effectiveShiftMinutes]);
 
   const advanceToNext = useCallback(() => {
     if (sortedMachines.length === 0) return;
@@ -835,6 +849,31 @@ export default function ProductionPage() {
                 <Input type="number" className="h-9" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} />
               </div>
             </div>
+
+            {/* Downtime Info */}
+            {downtimeInfo && downtimeInfo.events.length > 0 && (
+              <div className="rounded-lg border border-warning/50 bg-warning/10 p-3 space-y-1">
+                <div className="flex items-center gap-2">
+                  <PauseCircle className="h-4 w-4 text-warning" />
+                  <span className="text-sm font-semibold text-warning">Máquina parada neste turno</span>
+                  <Badge variant="outline" className="text-xs border-warning/50 text-warning">
+                    -{formatDowntimeMinutes(downtimeInfo.totalDowntimeMinutes)}
+                  </Badge>
+                </div>
+                {downtimeInfo.events.map((evt, idx) => (
+                  <p key={idx} className="text-xs text-muted-foreground ml-6">
+                    {evt.label}: {formatDowntimeMinutes(evt.minutes)}
+                    <span className="ml-1 opacity-70">
+                      ({format(evt.startedAt, 'HH:mm')} — {format(evt.endedAt, 'HH:mm')})
+                    </span>
+                  </p>
+                ))}
+                <p className="text-xs font-medium text-foreground ml-6">
+                  Tempo efetivo do turno: {formatDowntimeMinutes(downtimeInfo.effectiveShiftMinutes)}
+                  <span className="text-muted-foreground ml-1">(de {formatDowntimeMinutes(companyShiftMinutes[form.shift as ShiftType])})</span>
+                </p>
+              </div>
+            )}
 
             <div className={cn("grid gap-3", machineMode === 'voltas' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-3')}>
               <div className="space-y-1">
