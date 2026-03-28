@@ -196,7 +196,23 @@ export default function Reports() {
     };
   }).filter(c => c.rolos > 0).sort((a, b) => b.faturamento - a.faturamento);
 
-  // By date (evolution)
+  // By article
+  const byArticle = articles.map(a => {
+    const ap = filtered.filter(p => p.article_id === a.id);
+    const eff = ap.length ? ap.reduce((s, p) => s + p.efficiency, 0) / ap.length : 0;
+    const client = clients.find(c => c.id === a.client_id);
+    return {
+      name: a.name,
+      clientName: client?.name || a.client_name || '—',
+      rolos: ap.reduce((s, p) => s + p.rolls_produced, 0),
+      kg: ap.reduce((s, p) => s + p.weight_kg, 0),
+      faturamento: ap.reduce((s, p) => s + p.revenue, 0),
+      eficiencia: eff,
+      targetEfficiency: a.target_efficiency || 80,
+      records: ap.length,
+    };
+  }).filter(a => a.records > 0).sort((a, b) => b.faturamento - a.faturamento);
+
   const byDate = useMemo(() => {
     const acc: Record<string, { rolos: number; kg: number; faturamento: number }> = {};
     filtered.forEach(p => {
