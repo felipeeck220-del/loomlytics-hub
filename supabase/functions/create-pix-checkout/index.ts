@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const SYNCPAY_BASE = "https://api.syncpayments.com.br";
+const PIX_EXPIRY_MINUTES = 30;
 
 async function getSyncPayToken(): Promise<string> {
   const res = await fetch(`${SYNCPAY_BASE}/api/partner/v1/auth-token`, {
@@ -55,6 +56,43 @@ serve(async (req) => {
       .limit(1)
       .single();
     if (!profileData?.company_id) throw new Error("Empresa não encontrada");
+
+    // Check for existing pending pix for the same plan (within 30 min)
+    const thirtyMinAgo = new Date(Date.now() - PIX_EXPIRY_MINUTES * 60 * 1000).toISOString();
+
+    const { data: existingPending } = await supabaseAdmin
+      .from("payment_history")
+      .select("*")
+      .eq("company_id", profileData.company_id)
+      .eq("plan", plan)
+      .eq("status", "pending")
+      .gte("created_at", thirtyMinAgo)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (existingPending && existingPending.length > 0) {
+      const existing = existingPending[0];
+      // Return existing pending pix
+      const planName = plan === "annual" ? "MalhaGest Anual" : "MalhaGest Mensal";
+      return new Response(JSON.stringify({
+        pix_code: existing.pix_code,
+        identifier: existing.transaction_id,
+        amount: Number(existing.amount),
+        plan_name: planName,
+        reused: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Expire old pending payments (older than 30 min)
+    await supabaseAdmin
+      .from("payment_history")
+      .update({ status: "expired" })
+      .eq("company_id", profileData.company_id)
+      .eq("status", "pending")
+      .lt("created_at", thirtyMinAgo);
 
     const { data: settings } = await supabaseAdmin
       .from("company_settings")
@@ -135,6 +173,7 @@ serve(async (req) => {
       identifier: pixData.identifier,
       amount,
       plan_name: planName,
+      reused: false,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
