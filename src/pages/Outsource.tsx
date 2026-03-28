@@ -740,6 +740,13 @@ function ReportsTab({ productions, loading }: {
           </div>
         </div>
 
+        {/* Export PDF */}
+        <div className="flex justify-end">
+          <Button onClick={() => exportOutsourcePdf(filtered, totals)} className="btn-gradient" disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 mr-2" /> Exportar PDF
+          </Button>
+        </div>
+
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div className="rounded-lg border p-3">
@@ -812,12 +819,6 @@ function ReportsTab({ productions, loading }: {
           </div>
         )}
 
-        {/* Export PDF */}
-        <div className="flex justify-end pt-2">
-          <Button onClick={() => exportOutsourcePdf(filtered, totals)} className="btn-gradient" disabled={filtered.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> Exportar PDF
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
