@@ -22,6 +22,7 @@ import Outsource from "./pages/Outsource";
 import SettingsPage from "./pages/Settings";
 import RevisionPage from "./pages/Revision";
 import Admin from "./pages/Admin";
+import Vendas from "./pages/Vendas";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
@@ -150,6 +151,7 @@ const App = () => (
               <Route path="settings" element={<ProtectedRoute routeKey="settings"><SettingsPage /></ProtectedRoute>} />
             </Route>
             <Route path="/admin" element={<Admin />} />
+            <Route path="/vendas" element={<Vendas />} />
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
