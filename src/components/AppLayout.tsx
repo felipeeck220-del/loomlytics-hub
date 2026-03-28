@@ -51,11 +51,29 @@ export default function AppLayout() {
   const { theme, toggleTheme } = useTheme();
   const [now, setNow] = useState(new Date());
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!user?.company_id) return;
+    (async () => {
+      const { data } = await (supabase.from as any)('company_settings')
+        .select('subscription_status, trial_end_date')
+        .eq('company_id', user.company_id)
+        .maybeSingle();
+      if (data?.subscription_status === 'trial' && data?.trial_end_date) {
+        const end = new Date(data.trial_end_date);
+        const diff = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        setTrialDaysLeft(Math.max(0, diff));
+      } else {
+        setTrialDaysLeft(null);
+      }
+    })();
+  }, [user?.company_id]);
 
   const currentShift = useMemo(() => getCurrentShift(), [now]);
 
