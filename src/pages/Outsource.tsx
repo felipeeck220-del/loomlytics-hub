@@ -142,36 +142,43 @@ export default function Outsource() {
 
       {/* Tabs */}
       <Tabs defaultValue="productions" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="productions" className="gap-1.5">
-            <Package className="h-4 w-4" /> Produções
-          </TabsTrigger>
-          <TabsTrigger value="companies" className="gap-1.5">
-            <Factory className="h-4 w-4" /> Malharias
-          </TabsTrigger>
-        </TabsList>
+         <TabsList>
+           <TabsTrigger value="productions" className="gap-1.5">
+             <Package className="h-4 w-4" /> Produções
+           </TabsTrigger>
+           <TabsTrigger value="companies" className="gap-1.5">
+             <Factory className="h-4 w-4" /> Malharias
+           </TabsTrigger>
+           <TabsTrigger value="reports" className="gap-1.5">
+             <FileBarChart className="h-4 w-4" /> Relatórios
+           </TabsTrigger>
+         </TabsList>
 
-        <TabsContent value="productions">
-          <ProductionsTab
-            productions={productions}
-            companies={companies}
-            articles={articles}
-            companyId={companyId}
-            loading={loadingProductions}
-          />
-        </TabsContent>
+         <TabsContent value="productions">
+           <ProductionsTab
+             productions={productions}
+             companies={companies}
+             articles={articles}
+             companyId={companyId}
+             loading={loadingProductions}
+           />
+         </TabsContent>
 
-        <TabsContent value="companies">
-          <CompaniesTab
-            companies={companies}
-            companyId={companyId}
-            loading={loadingCompanies}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+         <TabsContent value="companies">
+           <CompaniesTab
+             companies={companies}
+             companyId={companyId}
+             loading={loadingCompanies}
+           />
+         </TabsContent>
+
+         <TabsContent value="reports">
+           <ReportsTab productions={productions} loading={loadingProductions} />
+         </TabsContent>
+       </Tabs>
+     </div>
+   );
+ }
 
 // ─── KPI Card ────────────────────────────────────────────────
 function KpiCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string; color: string }) {
