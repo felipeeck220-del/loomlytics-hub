@@ -50,7 +50,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X } from 'lucide-react';
+import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
 import ProductionModeModal from '@/components/ProductionModeModal';
@@ -117,6 +117,12 @@ export default function SettingsPage() {
   const [profilePassword, setProfilePassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [showProfilePassword, setShowProfilePassword] = useState(false);
+
+  // Subscription state
+  const [subStatus, setSubStatus] = useState<any>(null);
+  const [loadingSub, setLoadingSub] = useState(true);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [platformSettings, setPlatformSettings] = useState<Record<string, string>>({});
 
   // Company name editing
   const [editingCompanyName, setEditingCompanyName] = useState(false);
@@ -236,21 +242,61 @@ export default function SettingsPage() {
     setUploadingLogo(false);
   };
 
-  // Fetch profiles and company
+  // Fetch profiles, company, and subscription
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
       setLoadingProfiles(true);
-      const [profilesRes, companyRes] = await Promise.all([
+      const [profilesRes, companyRes, platformRes] = await Promise.all([
         (supabase.from as any)('profiles').select('*').order('created_at'),
         (supabase.from as any)('companies').select('*').eq('id', user.company_id).single(),
+        (supabase.from as any)('platform_settings').select('key, value'),
       ]);
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (companyRes.data) setCompany(companyRes.data);
+      if (platformRes.data) {
+        const map: Record<string, string> = {};
+        platformRes.data.forEach((r: any) => { map[r.key] = r.value; });
+        setPlatformSettings(map);
+      }
       setLoadingProfiles(false);
     };
     fetchData();
+    checkSubscription();
   }, [user]);
+
+  const checkSubscription = async () => {
+    setLoadingSub(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      if (!error && data) setSubStatus(data);
+    } catch {}
+    setLoadingSub(false);
+  };
+
+  const handleCheckout = async (priceId: string) => {
+    setCheckingOut(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { price_id: priceId },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.url) window.open(data.url, '_blank');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao criar checkout');
+    }
+    setCheckingOut(false);
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.url) window.open(data.url, '_blank');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao abrir portal');
+    }
+  };
 
   const refreshProfiles = async () => {
     const { data } = await (supabase.from as any)('profiles').select('*').order('created_at');
