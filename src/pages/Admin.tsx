@@ -24,6 +24,13 @@ const NAV_ITEMS = [
   { key: 'settings', label: 'Configurações' },
 ];
 
+interface EmailHistoryEntry {
+  id: string;
+  old_email: string;
+  new_email: string;
+  created_at: string;
+}
+
 interface CompanyWithSettings {
   id: string;
   name: string;
@@ -33,6 +40,7 @@ interface CompanyWithSettings {
   logo_url: string | null;
   created_at: string;
   user_count: number;
+  email_history: EmailHistoryEntry[];
   settings: {
     monthly_plan_value: number;
     platform_active: boolean;
@@ -618,6 +626,24 @@ export default function Admin() {
                   ))}
                 </div>
               </div>
+              {selectedCompany.email_history && selectedCompany.email_history.length > 0 && (
+                <div className="space-y-3">
+                  <Label>Histórico de Emails</Label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {selectedCompany.email_history.map(entry => (
+                      <div key={entry.id} className="flex items-center justify-between p-2 rounded-lg border bg-card text-sm">
+                        <div className="flex flex-col">
+                          <span className="text-muted-foreground line-through">{entry.old_email}</span>
+                          <span className="text-foreground">→ {entry.new_email}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(entry.created_at).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>

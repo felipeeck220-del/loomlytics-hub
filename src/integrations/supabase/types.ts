@@ -387,6 +387,33 @@ export type Database = {
           },
         ]
       }
+      email_history: {
+        Row: {
+          changed_by: string | null
+          company_id: string
+          created_at: string
+          id: string
+          new_email: string
+          old_email: string
+        }
+        Insert: {
+          changed_by?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          new_email: string
+          old_email: string
+        }
+        Update: {
+          changed_by?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          new_email?: string
+          old_email?: string
+        }
+        Relationships: []
+      }
       machine_logs: {
         Row: {
           ended_at: string | null
