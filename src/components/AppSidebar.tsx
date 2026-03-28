@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ const allItems = [
   { title: 'Máquinas', path: 'machines', icon: Settings2, key: 'machines' },
   { title: 'Clientes & Artigos', path: 'clients-articles', icon: Users, key: 'clients-articles' },
   { title: 'Produção', path: 'production', icon: ClipboardList, key: 'production' },
+  { title: 'Revisão', path: 'revision', icon: Search, key: 'revision' },
   { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
   { title: 'Tecelões', path: 'weavers', icon: HardHat, key: 'weavers' },
   { title: 'Relatórios', path: 'reports', icon: FileText, key: 'reports' },

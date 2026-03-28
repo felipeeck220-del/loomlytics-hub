@@ -247,6 +247,86 @@ export type Database = {
           },
         ]
       }
+      defect_records: {
+        Row: {
+          article_id: string | null
+          article_name: string | null
+          company_id: string
+          created_at: string
+          date: string
+          id: string
+          machine_id: string | null
+          machine_name: string | null
+          measure_type: string
+          measure_value: number
+          observations: string | null
+          shift: string
+          weaver_id: string | null
+          weaver_name: string | null
+        }
+        Insert: {
+          article_id?: string | null
+          article_name?: string | null
+          company_id: string
+          created_at?: string
+          date: string
+          id?: string
+          machine_id?: string | null
+          machine_name?: string | null
+          measure_type?: string
+          measure_value?: number
+          observations?: string | null
+          shift: string
+          weaver_id?: string | null
+          weaver_name?: string | null
+        }
+        Update: {
+          article_id?: string | null
+          article_name?: string | null
+          company_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          machine_id?: string | null
+          machine_name?: string | null
+          measure_type?: string
+          measure_value?: number
+          observations?: string | null
+          shift?: string
+          weaver_id?: string | null
+          weaver_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "defect_records_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "defect_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "defect_records_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "defect_records_weaver_id_fkey"
+            columns: ["weaver_id"]
+            isOneToOne: false
+            referencedRelation: "weavers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machine_logs: {
         Row: {
           ended_at: string | null

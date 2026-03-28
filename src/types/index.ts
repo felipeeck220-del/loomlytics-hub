@@ -180,6 +180,30 @@ export interface Production {
   created_at: string;
 }
 
+export type MeasureType = 'kg' | 'metro';
+
+export const MEASURE_TYPE_LABELS: Record<MeasureType, string> = {
+  kg: 'Quilogramas (kg)',
+  metro: 'Metros (m)',
+};
+
+export interface DefectRecord {
+  id: string;
+  company_id: string;
+  machine_id: string;
+  article_id: string;
+  weaver_id: string;
+  date: string;
+  shift: ShiftType;
+  measure_type: MeasureType;
+  measure_value: number;
+  machine_name?: string;
+  article_name?: string;
+  weaver_name?: string;
+  observations?: string;
+  created_at: string;
+}
+
 export interface User {
   id: string;
   email: string;
