@@ -55,6 +55,7 @@ import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
 import ProductionModeModal from '@/components/ProductionModeModal';
+import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -1301,15 +1302,20 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">
                   {pixPlanName} — <strong className="text-foreground">R$ {pixAmount.toFixed(2)}</strong>
                 </p>
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <p className="text-xs text-muted-foreground mb-2">Copie o código Pix abaixo:</p>
-                  <div className="bg-background border border-border rounded-lg p-3 break-all text-xs font-mono text-foreground select-all max-h-32 overflow-y-auto">
+                <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+                  {/* QR Code */}
+                  <div className="flex justify-center">
+                    <div className="bg-white p-3 rounded-lg">
+                      <QRCodeSVG value={pixCode} size={180} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Escaneie o QR Code ou copie o código abaixo:</p>
+                  <div className="bg-background border border-border rounded-lg p-3 break-all text-xs font-mono text-foreground select-all max-h-24 overflow-y-auto">
                     {pixCode}
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-3"
                     onClick={() => {
                       navigator.clipboard.writeText(pixCode);
                       toast.success('Código Pix copiado!');
