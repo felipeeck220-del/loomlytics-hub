@@ -331,26 +331,64 @@ export default function SettingsPage() {
   const handleCheckout = async (plan: 'monthly' | 'annual') => {
     setCheckingOut(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const { data, error } = await supabase.functions.invoke('create-pix-checkout', {
         body: { plan },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
-      if (data?.url) window.open(data.url, '_blank');
+      setPixCode(data.pix_code);
+      setPixIdentifier(data.identifier);
+      setPixAmount(data.amount);
+      setPixPlanName(data.plan_name);
+      setPixStatus('pending');
+      setPixModal(true);
+      // Start polling for payment status
+      startPixPolling(data.identifier);
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao criar checkout');
+      toast.error(err.message || 'Erro ao gerar Pix');
     }
     setCheckingOut(false);
   };
 
-  const handleManageSubscription = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      if (error || data?.error) throw new Error(data?.error || error?.message);
-      if (data?.url) window.open(data.url, '_blank');
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao abrir portal');
-    }
+  const startPixPolling = (identifier: string) => {
+    if (pixPollRef.current) clearInterval(pixPollRef.current);
+    pixPollRef.current = setInterval(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('check-pix-payment', {
+          body: { identifier },
+        });
+        if (!error && data) {
+          if (data.status === 'paid') {
+            setPixStatus('paid');
+            if (pixPollRef.current) clearInterval(pixPollRef.current);
+            toast.success('Pagamento confirmado!');
+            checkSubscription();
+            fetchPaymentHistory();
+          } else if (data.status === 'failed') {
+            setPixStatus('failed');
+            if (pixPollRef.current) clearInterval(pixPollRef.current);
+          }
+        }
+      } catch {}
+    }, 5000);
   };
+
+  const fetchPaymentHistory = async () => {
+    if (!user) return;
+    setLoadingHistory(true);
+    const { data } = await (supabase.from as any)('payment_history')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (data) setPaymentHistory(data);
+    setLoadingHistory(false);
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pixPollRef.current) clearInterval(pixPollRef.current);
+    };
+  }, []);
 
   const refreshProfiles = async () => {
     const { data } = await (supabase.from as any)('profiles').select('*').order('created_at');
