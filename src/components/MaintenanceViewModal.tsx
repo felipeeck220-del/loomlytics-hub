@@ -33,6 +33,14 @@ export default function MaintenanceViewModal({ machine, currentLog, open, onClos
   const [saving, setSaving] = useState(false);
   const [elapsed, setElapsed] = useState('');
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [open]);
+
   // Load observations from DB
   useEffect(() => {
     if (!open || !currentLog) return;
@@ -87,7 +95,7 @@ export default function MaintenanceViewModal({ machine, currentLog, open, onClos
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col" style={{ width: '100vw', height: '100vh' }}>
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col overflow-hidden" style={{ width: '100vw', height: '100vh', touchAction: 'none' }}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-2">
