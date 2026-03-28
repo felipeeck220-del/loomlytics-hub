@@ -565,7 +565,7 @@ export default function ProductionPage() {
               </div>
               <div className="card-glass p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Valor</span>
+                  <span className="text-sm text-muted-foreground">Faturamento</span>
                   <TrendingUp className="h-5 w-5 text-emerald-500" />
                 </div>
                 <p className="text-2xl font-display font-bold text-emerald-600 mt-1">{formatCurrency(shiftKPIs.totalRevenue)}</p>
@@ -701,7 +701,7 @@ export default function ProductionPage() {
                             <p className="text-xl font-display font-bold text-blue-800">{formatNumber(group.totalWeightKg, 2)} kg</p>
                           </div>
                           {canSeeFinancial && <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
-                            <p className="text-xs text-blue-600 font-medium">Valor</p>
+                            <p className="text-xs text-blue-600 font-medium">Faturamento</p>
                             <p className="text-xl font-display font-bold text-blue-800">{formatCurrency(group.totalRevenue)}</p>
                           </div>}
                           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
@@ -998,7 +998,7 @@ export default function ProductionPage() {
                       <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
                         <div><span className="text-muted-foreground">Rolos </span><span className="font-semibold text-foreground">{preview.rolls}</span></div>
                         <div><span className="text-muted-foreground">Peso </span><span className="font-semibold text-foreground">{preview.weightKg.toFixed(1)}kg</span></div>
-                        <div><span className="text-muted-foreground">Valor </span><span className="font-semibold text-foreground">R${preview.revenue.toFixed(2)}</span></div>
+                        <div><span className="text-muted-foreground">Faturamento </span><span className="font-semibold text-foreground">R${preview.revenue.toFixed(2)}</span></div>
                       </div>
                       <div className={cn("text-base sm:text-lg font-bold", effColor(preview.efficiency, previewTargetEff))}>
                         {preview.efficiency.toFixed(1)}%
