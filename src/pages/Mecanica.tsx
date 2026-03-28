@@ -28,7 +28,7 @@ export default function MecanicaPage() {
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
-  const { logAction } = useAuditLog();
+  const { logAction, userName, userCode } = useAuditLog();
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -186,6 +186,10 @@ export default function MecanicaPage() {
         status: addStatus as MachineStatus,
         started_at: new Date(`${addStartDate}T${addStartTime}:00`).toISOString(),
         ended_at: new Date(`${addEndDate}T${addEndTime}:00`).toISOString(),
+        started_by_name: userName || undefined,
+        started_by_code: userCode || undefined,
+        ended_by_name: userName || undefined,
+        ended_by_code: userCode || undefined,
       };
       const updatedLogs = [...machineLogs, newLog];
       await saveMachineLogs(updatedLogs);
