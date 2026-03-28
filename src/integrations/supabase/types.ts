@@ -123,6 +123,42 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          company_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          user_code: string | null
+          user_id: string | null
+          user_name: string | null
+          user_role: string | null
+        }
+        Insert: {
+          action: string
+          company_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          user_code?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          user_code?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          user_role?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           company_id: string
@@ -708,6 +744,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          code: string | null
           company_id: string
           created_at: string
           email: string
@@ -718,6 +755,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          code?: string | null
           company_id: string
           created_at?: string
           email: string
@@ -728,6 +766,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          code?: string | null
           company_id?: string
           created_at?: string
           email?: string
