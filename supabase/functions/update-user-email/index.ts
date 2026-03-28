@@ -77,6 +77,40 @@ serve(async (req) => {
       .update({ email: new_email })
       .eq("user_id", callingUser.id);
 
+    // Update companies.admin_email where this user is the admin
+    const { data: userProfiles } = await supabaseAdmin
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", callingUser.id);
+
+    if (userProfiles) {
+      for (const profile of userProfiles) {
+        const { data: company } = await supabaseAdmin
+          .from("companies")
+          .select("admin_email")
+          .eq("id", profile.company_id)
+          .eq("admin_email", callingUser.email!)
+          .maybeSingle();
+
+        if (company) {
+          await supabaseAdmin
+            .from("companies")
+            .update({ admin_email: new_email })
+            .eq("id", profile.company_id);
+
+          // Log email change history
+          await supabaseAdmin
+            .from("email_history")
+            .insert({
+              company_id: profile.company_id,
+              old_email: callingUser.email!,
+              new_email,
+              changed_by: callingUser.id,
+            });
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
