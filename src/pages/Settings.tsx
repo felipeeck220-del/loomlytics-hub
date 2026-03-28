@@ -1082,7 +1082,7 @@ export default function SettingsPage() {
             ) : null}
 
             {/* Plans - hide when free or still loading */}
-            {!loadingSub && subStatus?.status !== 'free' && subStatus?.status !== 'active' && (
+            {!loadingSub && subStatus?.status !== 'free' && subStatus?.status !== 'active' && subStatus?.status !== 'cancelling' && (
             <div className="space-y-3">
               <h3 className="font-semibold text-foreground">Escolha seu plano (Pagamento via Pix)</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
