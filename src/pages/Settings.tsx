@@ -64,6 +64,7 @@ interface Profile {
   email: string;
   role: string;
   status: string;
+  code?: string;
   created_at: string;
 }
 
