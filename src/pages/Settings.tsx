@@ -48,6 +48,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key } from 'lucide-react';
@@ -93,6 +94,7 @@ export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { shiftSettings, saveShiftSettings, getMachines, saveMachines } = useSharedCompanyData();
   const [tab, setTab] = useState('profile');
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [company, setCompany] = useState<any>(null);
@@ -439,9 +441,25 @@ export default function SettingsPage() {
             <p className="text-muted-foreground text-sm">Gerencie configurações do sistema e usuários</p>
           </div>
         </div>
-        <Button variant="outline" className="text-destructive hover:text-destructive" onClick={logout}>
+        <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setShowLogoutDialog(true)}>
           <LogOut className="h-4 w-4 mr-2" /> Sair do Sistema
         </Button>
+        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Deseja sair do sistema?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você será desconectado e precisará fazer login novamente para acessar.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={logout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Sair
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
