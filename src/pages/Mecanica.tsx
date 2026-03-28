@@ -171,6 +171,37 @@ export default function MecanicaPage() {
   const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const formatWeight = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`;
 
+  const handleAddLog = async () => {
+    if (!addMachineId || !addStartDate) {
+      toast.error('Selecione uma máquina e data de início.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const newLog: MachineLog = {
+        id: crypto.randomUUID(),
+        machine_id: addMachineId,
+        status: addStatus as MachineStatus,
+        started_at: new Date(`${addStartDate}T${addStartTime}:00`).toISOString(),
+        ended_at: addEndDate ? new Date(`${addEndDate}T${addEndTime || '08:00'}:00`).toISOString() : undefined,
+      };
+      const updatedLogs = [...machineLogs, newLog];
+      await saveMachineLogs(updatedLogs);
+      toast.success('Registro adicionado com sucesso!');
+      setShowAddModal(false);
+      setAddMachineId('');
+      setAddStatus('manutencao_preventiva');
+      setAddStartDate('');
+      setAddStartTime('08:00');
+      setAddEndDate('');
+      setAddEndTime('');
+    } catch (e) {
+      toast.error('Erro ao salvar registro.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
