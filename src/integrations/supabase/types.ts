@@ -659,6 +659,53 @@ export type Database = {
           },
         ]
       }
+      payment_history: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          id: string
+          next_billing_date: string | null
+          paid_at: string | null
+          pix_code: string | null
+          plan: string
+          status: string
+          transaction_id: string | null
+        }
+        Insert: {
+          amount?: number
+          company_id: string
+          created_at?: string
+          id?: string
+          next_billing_date?: string | null
+          paid_at?: string | null
+          pix_code?: string | null
+          plan?: string
+          status?: string
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          id?: string
+          next_billing_date?: string | null
+          paid_at?: string | null
+          pix_code?: string | null
+          plan?: string
+          status?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_admins: {
         Row: {
           created_at: string
