@@ -735,6 +735,79 @@ export default function Reports() {
           )}
         </TabsContent>
 
+        {/* POR ARTIGO */}
+        <TabsContent value="artigo" className="mt-6 space-y-6">
+          {byArticle.length > 0 ? (() => {
+            const totalArticleRolls = byArticle.reduce((s, a) => s + a.rolos, 0);
+            const totalArticleKg = byArticle.reduce((s, a) => s + a.kg, 0);
+            const totalArticleRevenue = byArticle.reduce((s, a) => s + a.faturamento, 0);
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Detalhamento por Artigo</CardTitle>
+                  <CardDescription>Todos os dados de cada artigo no período</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {byArticle.map(a => {
+                      const pctRolls = totalArticleRolls > 0 ? (a.rolos / totalArticleRolls * 100) : 0;
+                      const pctKg = totalArticleKg > 0 ? (a.kg / totalArticleKg * 100) : 0;
+                      const pctRevenue = totalArticleRevenue > 0 ? (a.faturamento / totalArticleRevenue * 100) : 0;
+                      return (
+                        <div key={a.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-display font-bold text-foreground">{a.name}</p>
+                              <p className="text-xs text-muted-foreground">{a.clientName}</p>
+                            </div>
+                            <Badge className={cn(
+                              "text-xs",
+                              a.eficiencia >= a.targetEfficiency ? "bg-success/10 text-success" : a.eficiencia >= a.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                            )}>
+                              {formatPercent(a.eficiencia)}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Peças</p>
+                              <p className="font-semibold text-foreground">{formatNumber(a.rolos)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Peso</p>
+                              <p className="font-semibold text-foreground">{formatWeight(a.kg)}</p>
+                            </div>
+                            {canSeeFinancial && (
+                              <div>
+                                <p className="text-[10px] text-muted-foreground uppercase">Faturamento</p>
+                                <p className="font-semibold text-success">{formatCurrency(a.faturamento)}</p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Registros</p>
+                              <p className="font-semibold text-foreground">{a.records}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-1 flex-wrap">
+                            <Badge variant="secondary" className="text-[10px]">{pctRolls.toFixed(1)}% das peças</Badge>
+                            <Badge variant="secondary" className="text-[10px]">{pctKg.toFixed(1)}% do peso</Badge>
+                            {canSeeFinancial && <Badge variant="secondary" className="text-[10px]">{pctRevenue.toFixed(1)}% do faturamento</Badge>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })() : (
+            <Card>
+              <CardContent className="py-12">
+                <p className="text-sm text-muted-foreground text-center">Sem dados de artigos no período selecionado</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
         {/* EVOLUÇÃO */}
         <TabsContent value="evolucao" className="mt-6">
           <div className="grid grid-cols-1 gap-6">
