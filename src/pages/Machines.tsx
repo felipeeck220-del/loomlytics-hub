@@ -60,6 +60,8 @@ export default function Machines() {
   const [showReport, setShowReport] = useState<Machine | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [maintenanceViewMachine, setMaintenanceViewMachine] = useState<Machine | null>(null);
+  const isMobile = useIsMobile();
   const [form, setForm] = useState({ number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: '', observations: '' });
 
   const openNew = () => {
