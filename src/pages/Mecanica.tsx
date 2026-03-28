@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Wrench, ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
+import { Wrench, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -27,6 +28,7 @@ export default function MecanicaPage() {
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [detailsSearch, setDetailsSearch] = useState('');
 
   const activeMachines = useMemo(() => machines.filter(m => m.status !== 'inativa'), [machines]);
 
@@ -274,7 +276,18 @@ export default function MecanicaPage() {
         {/* Detalhes Tab */}
         <TabsContent value="detalhes">
           <div className="space-y-3">
-            {detailsData.map(({ machine, lastPrev, lastNeedle, revenueSincePreventive, revenueSinceNeedle, weightSincePreventive, weightSinceNeedle }) => (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar máquina..."
+                value={detailsSearch}
+                onChange={e => setDetailsSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {detailsData
+              .filter(d => d.machine.name.toLowerCase().includes(detailsSearch.toLowerCase()))
+              .map(({ machine, lastPrev, lastNeedle, revenueSincePreventive, revenueSinceNeedle, weightSincePreventive, weightSinceNeedle }) => (
               <Card key={machine.id}>
                 <CardContent className="pt-4 pb-4">
                   <div className="flex flex-col gap-3">
