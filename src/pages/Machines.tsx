@@ -33,6 +33,7 @@ const STATUS_CARD_LABELS: Record<string, string> = {
   manutencao_preventiva: 'Manutenção Preventiva',
   manutencao_corretiva: 'Manutenção Corretiva',
   troca_artigo: 'Troca de Artigo',
+  troca_agulhas: 'Troca de Agulhas',
 };
 
 const FILTER_OPTIONS = [
