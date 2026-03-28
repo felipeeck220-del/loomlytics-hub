@@ -307,6 +307,8 @@ export type Database = {
           article_name: string | null
           company_id: string
           created_at: string
+          created_by_code: string | null
+          created_by_name: string | null
           date: string
           id: string
           machine_id: string | null
@@ -323,6 +325,8 @@ export type Database = {
           article_name?: string | null
           company_id: string
           created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
           date: string
           id?: string
           machine_id?: string | null
@@ -339,6 +343,8 @@ export type Database = {
           article_name?: string | null
           company_id?: string
           created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
           date?: string
           id?: string
           machine_id?: string | null
@@ -384,23 +390,35 @@ export type Database = {
       machine_logs: {
         Row: {
           ended_at: string | null
+          ended_by_code: string | null
+          ended_by_name: string | null
           id: string
           machine_id: string
           started_at: string
+          started_by_code: string | null
+          started_by_name: string | null
           status: Database["public"]["Enums"]["machine_status"]
         }
         Insert: {
           ended_at?: string | null
+          ended_by_code?: string | null
+          ended_by_name?: string | null
           id?: string
           machine_id: string
           started_at?: string
+          started_by_code?: string | null
+          started_by_name?: string | null
           status: Database["public"]["Enums"]["machine_status"]
         }
         Update: {
           ended_at?: string | null
+          ended_by_code?: string | null
+          ended_by_name?: string | null
           id?: string
           machine_id?: string
           started_at?: string
+          started_by_code?: string | null
+          started_by_name?: string | null
           status?: Database["public"]["Enums"]["machine_status"]
         }
         Relationships: [
@@ -662,6 +680,8 @@ export type Database = {
           article_name: string | null
           company_id: string
           created_at: string
+          created_by_code: string | null
+          created_by_name: string | null
           date: string
           efficiency: number
           id: string
@@ -680,6 +700,8 @@ export type Database = {
           article_name?: string | null
           company_id: string
           created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
           date: string
           efficiency?: number
           id?: string
@@ -698,6 +720,8 @@ export type Database = {
           article_name?: string | null
           company_id?: string
           created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
           date?: string
           efficiency?: number
           id?: string
