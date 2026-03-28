@@ -124,7 +124,7 @@ export default function ProductionPage() {
 
   const preview = useMemo(() => {
     if (!form.shift || !form.rpm || !selectedArticle) return null;
-    const shiftMinutes = companyShiftMinutes[form.shift as ShiftType];
+    const shiftMinutes = effectiveShiftMinutes;
     const rpm = Number(form.rpm);
     const maxTurns = rpm * shiftMinutes;
 
