@@ -978,18 +978,39 @@ export default function ProductionPage() {
               return targets.reduce((s, t) => s + t, 0) / targets.length;
             })();
 
+            // Calculate meta rolls for target and 100% efficiency
+            const previewMeta100 = (() => {
+              if (!selectedArticle || !form.rpm || !effectiveShiftMinutes) return 0;
+              const rpm = Number(form.rpm);
+              const maxTurns = rpm * effectiveShiftMinutes;
+              const mainTurnsPerRoll = getTurnsForMachine(selectedArticle.id, form.machine_id);
+              if (mainTurnsPerRoll <= 0) return 0;
+              // For simplicity with multiple articles, use combined turns approach
+              return maxTurns / mainTurnsPerRoll;
+            })();
+            const previewMetaTarget = previewMeta100 * (previewTargetEff / 100);
+
             return (
               <div className={cn("flex-shrink-0 rounded-lg border p-2", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
                 {preview ? (
-                  <div className="flex flex-wrap items-center justify-between gap-1.5">
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
-                      <div><span className="text-muted-foreground">Rolos </span><span className="font-semibold text-foreground">{preview.rolls}</span></div>
-                      <div><span className="text-muted-foreground">Peso </span><span className="font-semibold text-foreground">{preview.weightKg.toFixed(1)}kg</span></div>
-                      <div><span className="text-muted-foreground">Valor </span><span className="font-semibold text-foreground">R${preview.revenue.toFixed(2)}</span></div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
+                        <div><span className="text-muted-foreground">Rolos </span><span className="font-semibold text-foreground">{preview.rolls}</span></div>
+                        <div><span className="text-muted-foreground">Peso </span><span className="font-semibold text-foreground">{preview.weightKg.toFixed(1)}kg</span></div>
+                        <div><span className="text-muted-foreground">Valor </span><span className="font-semibold text-foreground">R${preview.revenue.toFixed(2)}</span></div>
+                      </div>
+                      <div className={cn("text-base sm:text-lg font-bold", effColor(preview.efficiency, previewTargetEff))}>
+                        {preview.efficiency.toFixed(1)}%
+                      </div>
                     </div>
-                    <div className={cn("text-base sm:text-lg font-bold", effColor(preview.efficiency, previewTargetEff))}>
-                      {preview.efficiency.toFixed(1)}%
-                    </div>
+                    {previewMeta100 > 0 && (
+                      <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px] text-muted-foreground border-t border-border/50 pt-1">
+                        <span>Meta {previewTargetEff.toFixed(0)}%: <span className="font-semibold text-foreground">{previewMetaTarget.toFixed(1)} rolos</span></span>
+                        <span className="text-border">|</span>
+                        <span>Meta 100%: <span className="font-semibold text-foreground">{previewMeta100.toFixed(1)} rolos</span></span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="py-0.5 text-center text-[11px] text-muted-foreground">Preencha os campos para ver o preview</p>
