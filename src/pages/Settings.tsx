@@ -1425,6 +1425,28 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Cancel Subscription Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao cancelar, você continuará tendo acesso até o fim do período já pago. Após essa data, o acesso será bloqueado e não haverá cobranças futuras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleCancelSubscription}
+              disabled={cancellingSubscription}
+            >
+              {cancellingSubscription && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Confirmar cancelamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
