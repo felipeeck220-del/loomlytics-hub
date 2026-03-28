@@ -141,25 +141,25 @@ export default function MecanicaPage() {
 
       {/* Calendar */}
       <Card className="max-w-3xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Calendário de Manutenções</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+        <CardHeader className="pb-2 px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium min-w-[140px] text-center capitalize">
+              <span className="text-xs sm:text-sm font-medium min-w-[110px] sm:min-w-[140px] text-center capitalize">
                 {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
               </span>
-              <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           {/* Legend */}
-          <div className="flex flex-wrap gap-3 mb-4">
+          <div className="flex flex-wrap gap-2 sm:gap-3 mb-3">
             {MAINTENANCE_STATUSES.map(status => (
               <div key={status} className="flex items-center gap-1.5">
                 <div className={cn('h-3 w-3 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])} />
