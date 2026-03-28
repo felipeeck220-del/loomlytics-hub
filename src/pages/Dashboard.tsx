@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
-import { supabase } from '@/integrations/supabase/client';
+
 import {
   Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
 } from 'recharts';
