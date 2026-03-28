@@ -150,6 +150,7 @@ export default function SettingsPage() {
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const pixPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [showAllPayments, setShowAllPayments] = useState(false);
 
   // Company name editing
   const [editingCompanyName, setEditingCompanyName] = useState(false);
@@ -1138,24 +1139,27 @@ export default function SettingsPage() {
             {/* Payment History */}
             {paymentHistory.length > 0 && (
               <div className="space-y-3">
-                <h3 className="font-semibold text-foreground">Histórico de Pagamentos</h3>
-                <div className="space-y-2">
-                  {paymentHistory.map((ph: any) => (
-                    <div key={ph.id} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
-                      <div className="space-y-0.5">
-                        <p className="text-sm font-medium text-foreground">
-                          {ph.plan === 'annual' ? 'Plano Anual' : 'Plano Mensal'} — R$ {Number(ph.amount).toFixed(2)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(ph.created_at), "dd/MM/yyyy 'às' HH:mm")}
-                          {ph.next_billing_date && ` · Próx. cobrança: ${format(new Date(ph.next_billing_date), 'dd/MM/yyyy')}`}
-                        </p>
-                      </div>
-                      <Badge variant={ph.status === 'paid' ? 'default' : ph.status === 'pending' ? 'secondary' : 'destructive'}>
-                        {ph.status === 'paid' ? 'Pago' : ph.status === 'pending' ? 'Pendente' : ph.status === 'failed' ? 'Falhou' : ph.status}
-                      </Badge>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-foreground">Último Pagamento</h3>
+                  {paymentHistory.length > 1 && (
+                    <Button variant="outline" size="sm" onClick={() => setShowAllPayments(true)}>
+                      Ver todos ({paymentHistory.length})
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium text-foreground">
+                      {paymentHistory[0].plan === 'annual' ? 'Plano Anual' : 'Plano Mensal'} — R$ {Number(paymentHistory[0].amount).toFixed(2)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(paymentHistory[0].created_at), "dd/MM/yyyy 'às' HH:mm")}
+                      {paymentHistory[0].next_billing_date && ` · Próx. cobrança: ${format(new Date(paymentHistory[0].next_billing_date), 'dd/MM/yyyy')}`}
+                    </p>
+                  </div>
+                  <Badge variant={paymentHistory[0].status === 'paid' ? 'default' : paymentHistory[0].status === 'pending' ? 'secondary' : 'destructive'}>
+                    {paymentHistory[0].status === 'paid' ? 'Pago' : paymentHistory[0].status === 'pending' ? 'Pendente' : paymentHistory[0].status === 'failed' ? 'Falhou' : paymentHistory[0].status === 'expired' ? 'Expirado' : paymentHistory[0].status}
+                  </Badge>
                 </div>
               </div>
             )}
@@ -1359,6 +1363,36 @@ export default function SettingsPage() {
             }}>
               {pixStatus === 'paid' ? 'Fechar' : 'Cancelar'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment History Modal */}
+      <Dialog open={showAllPayments} onOpenChange={setShowAllPayments}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Histórico de Pagamentos</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto space-y-2 flex-1 pr-1">
+            {paymentHistory.map((ph: any) => (
+              <div key={ph.id} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-foreground">
+                    {ph.plan === 'annual' ? 'Plano Anual' : 'Plano Mensal'} — R$ {Number(ph.amount).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(ph.created_at), "dd/MM/yyyy 'às' HH:mm")}
+                    {ph.next_billing_date && ` · Próx. cobrança: ${format(new Date(ph.next_billing_date), 'dd/MM/yyyy')}`}
+                  </p>
+                </div>
+                <Badge variant={ph.status === 'paid' ? 'default' : ph.status === 'pending' ? 'secondary' : 'destructive'}>
+                  {ph.status === 'paid' ? 'Pago' : ph.status === 'pending' ? 'Pendente' : ph.status === 'failed' ? 'Falhou' : ph.status === 'expired' ? 'Expirado' : ph.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAllPayments(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
