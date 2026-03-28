@@ -207,6 +207,7 @@ export default function Reports() {
     const client = clients.find(c => c.id === a.client_id);
     return {
       id: a.id,
+      name: a.name,
       clientName: client?.name || a.client_name || '—',
       rolos: ap.reduce((s, p) => s + p.rolls_produced, 0),
       kg: ap.reduce((s, p) => s + p.weight_kg, 0),
