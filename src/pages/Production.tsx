@@ -875,6 +875,7 @@ export default function ProductionPage() {
               </div>
             )}
 
+            <div className={cn("grid gap-3", machineMode === 'voltas' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-3')}>
               <div className="space-y-1">
                 <Label className="text-xs">Tecelão</Label>
                 <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
