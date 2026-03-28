@@ -452,7 +452,7 @@ export default function Reports() {
                   <CardContent className="pt-5 pb-4 pl-5">
                     <div className="flex items-center justify-between mb-3">
                       <p className="font-display font-bold text-foreground text-lg">{s.name}</p>
-                      <Badge variant="secondary" className="text-xs font-mono">{pct.toFixed(0)}%</Badge>
+                      <Badge variant="secondary" className="text-xs font-mono">{pct.toFixed(0)}% de {formatNumber(totalShiftRolls)}</Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
