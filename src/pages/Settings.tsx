@@ -1,20 +1,20 @@
 
 const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> = {
   admin: {
-    allowed: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Gestão de Tecelões', 'Relatórios e Análises', 'Configurações do Sistema', 'Financeiro'],
+    allowed: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Mecânica', 'Relatórios e Análises', 'Configurações do Sistema', 'Alterar Senha', 'Financeiro'],
     denied: [],
   },
   lider: {
-    allowed: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Gestão de Tecelões', 'Relatórios e Análises', 'Configurações do Sistema'],
+    allowed: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Mecânica', 'Relatórios e Análises', 'Configurações do Sistema', 'Alterar Senha'],
     denied: ['Financeiro'],
   },
   mecanico: {
-    allowed: ['Máquinas e Manutenção', 'Configurações do Sistema'],
-    denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Gestão de Tecelões', 'Relatórios e Análises', 'Financeiro'],
+    allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Configurações do Sistema', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Relatórios e Análises', 'Financeiro'],
   },
   revisador: {
-    allowed: ['Registro de Produção', 'Configurações do Sistema'],
-    denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Clientes e Artigos', 'Gestão de Tecelões', 'Relatórios e Análises', 'Financeiro'],
+    allowed: ['Registro de Produção', 'Revisão', 'Configurações do Sistema', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Terceirização', 'Gestão de Tecelões', 'Mecânica', 'Relatórios e Análises', 'Financeiro'],
   },
 };
 
