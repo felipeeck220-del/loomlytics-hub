@@ -62,6 +62,29 @@ export default function Reports() {
       });
   }, [user?.company_id]);
 
+  // Fetch outsource productions
+  const sb = (table: string) => (supabase.from as any)(table);
+  const { data: outsourceProductions = [] } = useQuery({
+    queryKey: ['outsource_productions_report', user?.company_id],
+    queryFn: async () => {
+      const { data, error } = await sb('outsource_productions')
+        .select('*').eq('company_id', user!.company_id).order('date', { ascending: false });
+      if (error) throw error;
+      return (data || []).map((p: any) => ({
+        ...p,
+        weight_kg: Number(p.weight_kg),
+        rolls: Number(p.rolls),
+        client_value_per_kg: Number(p.client_value_per_kg),
+        outsource_value_per_kg: Number(p.outsource_value_per_kg),
+        profit_per_kg: Number(p.profit_per_kg),
+        total_revenue: Number(p.total_revenue),
+        total_cost: Number(p.total_cost),
+        total_profit: Number(p.total_profit),
+      }));
+    },
+    enabled: !!user?.company_id,
+  });
+
   // Filters
   const [dayRange, setDayRange] = useState(30);
   const [customDate, setCustomDate] = useState<Date>();
