@@ -378,6 +378,15 @@ export default function MecanicaPage() {
                         </div>
                       </div>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-1"
+                      onClick={() => setHistoryMachineId(machine.id)}
+                    >
+                      <History className="h-4 w-4 mr-1" />
+                      Ver Todos
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
