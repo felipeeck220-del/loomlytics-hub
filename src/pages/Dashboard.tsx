@@ -360,9 +360,9 @@ export default function Dashboard() {
             </Popover>
 
             <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
-              <SelectTrigger className="w-[130px] h-9 rounded-lg"><SelectValue placeholder="Mês" /></SelectTrigger>
+              <SelectTrigger className="w-[150px] h-9 rounded-lg"><SelectValue placeholder="Todos os meses" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos os meses</SelectItem>
                 {availableMonths.map(m => (
                   <SelectItem key={m} value={m}>{format(new Date(m + '-01'), 'MMM yyyy', { locale: ptBR })}</SelectItem>
                 ))}
