@@ -659,61 +659,63 @@ export default function Reports() {
         </TabsContent>
 
         {/* POR CLIENTE */}
-        <TabsContent value="cliente" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TabsContent value="cliente" className="mt-6 space-y-6">
+          {byClient.length > 0 ? (() => {
+            const totalClientRolls = byClient.reduce((s, c) => s + c.rolos, 0);
+            const totalClientKg = byClient.reduce((s, c) => s + c.kg, 0);
+            const totalClientRevenue = byClient.reduce((s, c) => s + c.faturamento, 0);
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Detalhamento por Cliente</CardTitle>
+                  <CardDescription>Todos os dados de cada cliente no período</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {byClient.map(c => {
+                      const pctRolls = totalClientRolls > 0 ? (c.rolos / totalClientRolls * 100) : 0;
+                      const pctKg = totalClientKg > 0 ? (c.kg / totalClientKg * 100) : 0;
+                      const pctRevenue = totalClientRevenue > 0 ? (c.faturamento / totalClientRevenue * 100) : 0;
+                      return (
+                        <div key={c.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="font-display font-bold text-foreground">{c.name}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Peças</p>
+                              <p className="font-semibold text-foreground">{formatNumber(c.rolos)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase">Peso</p>
+                              <p className="font-semibold text-foreground">{formatWeight(c.kg)}</p>
+                            </div>
+                            {canSeeFinancial && (
+                              <div className="col-span-2">
+                                <p className="text-[10px] text-muted-foreground uppercase">Faturamento</p>
+                                <p className="font-semibold text-success">{formatCurrency(c.faturamento)}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-1 flex-wrap">
+                            <Badge variant="secondary" className="text-[10px]">{pctRolls.toFixed(1)}% das peças</Badge>
+                            <Badge variant="secondary" className="text-[10px]">{pctKg.toFixed(1)}% do peso</Badge>
+                            {canSeeFinancial && <Badge variant="secondary" className="text-[10px]">{pctRevenue.toFixed(1)}% do faturamento</Badge>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })() : (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Todos os Clientes</CardTitle>
-                <CardDescription>Faturamento completo por cliente</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
-                {byClient.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
-                ) : (
-                  byClient.map(c => (
-                    <div key={c.name} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
-                      <div>
-                        <p className="font-semibold text-foreground">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatNumber(c.rolos)} rolos · {formatNumber(c.kg, 2)} kg</p>
-                      </div>
-                      <span className="text-sm font-bold text-success">{formatCurrency(c.faturamento)}</span>
-                    </div>
-                  ))
-                )}
+              <CardContent className="py-12">
+                <p className="text-sm text-muted-foreground text-center">Sem dados de clientes no período selecionado</p>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Faturamento por Cliente</CardTitle>
-                <CardDescription>Distribuição do faturamento</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {byClient.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={byClient}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={90}
-                        dataKey="faturamento"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine={true}
-                      >
-                        {byClient.map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          )}
         </TabsContent>
 
         {/* EVOLUÇÃO */}
