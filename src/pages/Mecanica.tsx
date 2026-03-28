@@ -509,6 +509,65 @@ export default function MecanicaPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add manual log modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Registro Manual</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Máquina</Label>
+              <Select value={addMachineId} onValueChange={setAddMachineId}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma máquina" /></SelectTrigger>
+                <SelectContent>
+                  {activeMachines.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={addStatus} onValueChange={setAddStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MAINTENANCE_STATUSES.map(s => (
+                    <SelectItem key={s} value={s}>{MACHINE_STATUS_LABELS[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data Início</Label>
+                <Input type="date" value={addStartDate} onChange={e => setAddStartDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Hora Início</Label>
+                <Input type="time" value={addStartTime} onChange={e => setAddStartTime(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data Fim (opcional)</Label>
+                <Input type="date" value={addEndDate} onChange={e => setAddEndDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Hora Fim</Label>
+                <Input type="time" value={addEndTime} onChange={e => setAddEndTime(e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancelar</Button>
+            <Button onClick={handleAddLog} disabled={saving}>
+              {saving ? 'Salvando...' : 'Adicionar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
