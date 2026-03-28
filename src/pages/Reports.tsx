@@ -634,7 +634,7 @@ export default function Reports() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byMachine.filter(m => m.name.toLowerCase().includes(searchMachine.toLowerCase())).map(m => {
+                    {byMachine.filter(m => (m.name || '').toLowerCase().includes(searchMachine.toLowerCase())).map(m => {
                       const pctRolls = totalMachineRolls > 0 ? (m.rolos / totalMachineRolls * 100) : 0;
                       const pctRevenue = totalMachineRevenue > 0 ? (m.faturamento / totalMachineRevenue * 100) : 0;
                       return (
@@ -710,7 +710,7 @@ export default function Reports() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byClient.filter(c => c.name.toLowerCase().includes(searchClient.toLowerCase())).map(c => {
+                    {byClient.filter(c => (c.name || '').toLowerCase().includes(searchClient.toLowerCase())).map(c => {
                       const pctRolls = totalClientRolls > 0 ? (c.rolos / totalClientRolls * 100) : 0;
                       const pctKg = totalClientKg > 0 ? (c.kg / totalClientKg * 100) : 0;
                       const pctRevenue = totalClientRevenue > 0 ? (c.faturamento / totalClientRevenue * 100) : 0;
@@ -778,7 +778,7 @@ export default function Reports() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byArticle.filter(a => a.name.toLowerCase().includes(searchArticle.toLowerCase()) || a.clientName.toLowerCase().includes(searchArticle.toLowerCase())).map(a => {
+                    {byArticle.filter(a => (a.name || '').toLowerCase().includes(searchArticle.toLowerCase()) || (a.clientName || '').toLowerCase().includes(searchArticle.toLowerCase())).map(a => {
                       const pctRolls = totalArticleRolls > 0 ? (a.rolos / totalArticleRolls * 100) : 0;
                       const pctKg = totalArticleKg > 0 ? (a.kg / totalArticleKg * 100) : 0;
                       const pctRevenue = totalArticleRevenue > 0 ? (a.faturamento / totalArticleRevenue * 100) : 0;
