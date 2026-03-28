@@ -842,16 +842,59 @@ export default function Reports() {
           )}
         </TabsContent>
 
-        {/* EVOLUÇÃO */}
-        <TabsContent value="evolucao" className="mt-6">
-          <div className="grid grid-cols-1 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Evolução da Produção</CardTitle>
-                <CardDescription>Tendência ao longo do período</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {byDate.length > 1 ? (
+        <TabsContent value="evolucao" className="mt-6 space-y-6">
+          {byDate.length > 1 ? (
+            <>
+              {/* Daily KPIs */}
+              {(() => {
+                const bestDay = [...byDate].sort((a, b) => b.rolos - a.rolos)[0];
+                const worstDay = [...byDate].sort((a, b) => a.rolos - b.rolos)[0];
+                const avgRolls = byDate.reduce((s, d) => s + d.rolos, 0) / byDate.length;
+                const avgKg = byDate.reduce((s, d) => s + d.kg, 0) / byDate.length;
+                const avgRevenue = byDate.reduce((s, d) => s + d.faturamento, 0) / byDate.length;
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <Card>
+                      <CardContent className="pt-4 pb-3">
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Média Diária Peças</p>
+                        <p className="text-2xl font-bold text-foreground">{formatNumber(avgRolls, 1)}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4 pb-3">
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Média Diária Kg</p>
+                        <p className="text-2xl font-bold text-foreground">{formatWeight(avgKg)}</p>
+                      </CardContent>
+                    </Card>
+                    {canSeeFinancial && (
+                      <Card>
+                        <CardContent className="pt-4 pb-3">
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Média Diária Faturamento</p>
+                          <p className="text-2xl font-bold text-success">{formatCurrency(avgRevenue)}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                    <Card>
+                      <CardContent className="pt-4 pb-3">
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Melhor Dia</p>
+                        <p className="text-2xl font-bold text-primary">{formatNumber(bestDay.rolos)}</p>
+                        <p className="text-[11px] text-muted-foreground">{bestDay.date}</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              })()}
+
+              {/* Production evolution */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    Evolução da Produção
+                  </CardTitle>
+                  <CardDescription>Peças e peso ao longo do período</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={byDate}>
                       <defs>
@@ -861,45 +904,98 @@ export default function Reports() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                      <XAxis dataKey="date" fontSize={12} />
+                      <XAxis dataKey="date" fontSize={11} />
                       <YAxis fontSize={12} />
-                      <Tooltip formatter={(v: number, name: string) => [name === 'faturamento' ? formatCurrency(v) : formatNumber(v), name === 'rolos' ? 'Rolos' : name === 'kg' ? 'Kg' : 'Faturamento']} />
+                      <Tooltip formatter={(v: number, name: string) => [formatNumber(v, 1), name === 'Peças' ? 'Peças' : 'Kg']} />
                       <Legend />
-                      <Area type="monotone" dataKey="rolos" stroke="hsl(221, 83%, 53%)" fill="url(#evoGrad)" strokeWidth={2} name="Rolos" />
+                      <Area type="monotone" dataKey="rolos" stroke="hsl(221, 83%, 53%)" fill="url(#evoGrad)" strokeWidth={2} name="Peças" />
                       <Line type="monotone" dataKey="kg" stroke="hsl(142, 71%, 45%)" strokeWidth={2} name="Kg" dot={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">Dados insuficientes para mostrar evolução</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {byDate.length > 1 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Evolução do Faturamento</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <AreaChart data={byDate}>
-                      <defs>
-                        <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                      <XAxis dataKey="date" fontSize={12} />
-                      <YAxis fontSize={12} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                      <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                      <Area type="monotone" dataKey="faturamento" stroke="hsl(142, 71%, 45%)" fill="url(#revGrad)" strokeWidth={2} name="Faturamento" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
-            )}
-          </div>
+
+              {/* Efficiency evolution */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Gauge className="h-4 w-4 text-muted-foreground" />
+                    Evolução da Eficiência
+                  </CardTitle>
+                  <CardDescription>Eficiência média diária ao longo do período</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={byDate}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                      <XAxis dataKey="date" fontSize={11} />
+                      <YAxis domain={[0, 100]} fontSize={12} tickFormatter={(v) => `${v}%`} />
+                      <Tooltip formatter={(v: number) => [`${formatPercent(v)}`, 'Eficiência']} />
+                      <Line type="monotone" dataKey="eficiencia" stroke="hsl(38, 92%, 50%)" strokeWidth={2.5} name="Eficiência" dot={{ r: 3, fill: 'hsl(38, 92%, 50%)' }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Revenue evolution */}
+              {canSeeFinancial && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      Evolução do Faturamento
+                    </CardTitle>
+                    <CardDescription>Faturamento diário ao longo do período</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={280}>
+                      <AreaChart data={byDate}>
+                        <defs>
+                          <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                        <XAxis dataKey="date" fontSize={11} />
+                        <YAxis fontSize={12} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                        <Tooltip formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
+                        <Area type="monotone" dataKey="faturamento" stroke="hsl(142, 71%, 45%)" fill="url(#revGrad)" strokeWidth={2} name="Faturamento" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Daily production bar chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    Produção Diária
+                  </CardTitle>
+                  <CardDescription>Peças produzidas por dia</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={byDate}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                      <XAxis dataKey="date" fontSize={11} />
+                      <YAxis fontSize={12} />
+                      <Tooltip formatter={(v: number) => [formatNumber(v, 1), 'Peças']} />
+                      <Bar dataKey="rolos" name="Peças" radius={[4, 4, 0, 0]} fill="hsl(221, 83%, 53%)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12">
+                <p className="text-sm text-muted-foreground text-center">Dados insuficientes para mostrar evolução (mínimo 2 dias)</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* EXPORTAR RELATÓRIOS */}
