@@ -453,3 +453,126 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
     </Card>
   );
 }
+
+// ─── Weaver Defects Tab ──────────────────────────────────────
+function WeaverDefectsTab({ weavers, defectRecords }: { weavers: Weaver[]; defectRecords: DefectRecord[] }) {
+  const [selectedWeaverId, setSelectedWeaverId] = useState('');
+
+  const weaverDefects = useMemo(() => {
+    if (!selectedWeaverId) return [];
+    return defectRecords.filter(d => d.weaver_id === selectedWeaverId).sort((a, b) => b.date.localeCompare(a.date));
+  }, [defectRecords, selectedWeaverId]);
+
+  const totals = useMemo(() => ({
+    count: weaverDefects.length,
+    totalKg: weaverDefects.filter(d => d.measure_type === 'kg').reduce((s, d) => s + d.measure_value, 0),
+    totalMetros: weaverDefects.filter(d => d.measure_type === 'metro').reduce((s, d) => s + d.measure_value, 0),
+  }), [weaverDefects]);
+
+  // Summary per weaver
+  const weaverSummary = useMemo(() => {
+    const map: Record<string, { name: string; code: string; count: number; kg: number; metros: number }> = {};
+    defectRecords.forEach(d => {
+      if (!map[d.weaver_id]) map[d.weaver_id] = { name: d.weaver_name || '', code: '', count: 0, kg: 0, metros: 0 };
+      map[d.weaver_id].count++;
+      if (d.measure_type === 'kg') map[d.weaver_id].kg += d.measure_value;
+      else map[d.weaver_id].metros += d.measure_value;
+    });
+    weavers.forEach(w => { if (map[w.id]) map[w.id].code = w.code; });
+    return Object.entries(map).sort((a, b) => b[1].count - a[1].count);
+  }, [defectRecords, weavers]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Falhas por Tecelão</CardTitle>
+        <CardDescription>Resumo de falhas registradas na Revisão, atribuídas a cada tecelão</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Ranking */}
+        {weaverSummary.length > 0 && (
+          <div className="rounded-lg border p-3 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Ranking de Falhas</p>
+            <div className="space-y-1">
+              {weaverSummary.map(([id, s]) => (
+                <div key={id} className="flex items-center justify-between text-sm py-1 px-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => setSelectedWeaverId(id)}>
+                  <span className="font-medium">{s.code} — {s.name}</span>
+                  <div className="flex items-center gap-3 text-muted-foreground text-xs">
+                    <span>{s.count} falha{s.count !== 1 ? 's' : ''}</span>
+                    {s.kg > 0 && <span>{formatNumber(s.kg)} kg</span>}
+                    {s.metros > 0 && <span>{formatNumber(s.metros)} m</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Detail selector */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">Detalhes do Tecelão</Label>
+          <Select value={selectedWeaverId} onValueChange={setSelectedWeaverId}>
+            <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione um tecelão" /></SelectTrigger>
+            <SelectContent>
+              {weavers.map(w => <SelectItem key={w.id} value={w.id}>{w.code} — {w.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {!selectedWeaverId ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <AlertTriangle className="h-10 w-10 text-muted-foreground/40 mb-2" />
+            <p className="text-muted-foreground">Selecione um tecelão para ver as falhas</p>
+          </div>
+        ) : weaverDefects.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Nenhuma falha registrada para este tecelão.</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total</p>
+                <p className="text-lg font-bold text-destructive">{totals.count}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Kg</p>
+                <p className="text-lg font-bold text-foreground">{formatNumber(totals.totalKg)}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Metros</p>
+                <p className="text-lg font-bold text-foreground">{formatNumber(totals.totalMetros)}</p>
+              </div>
+            </div>
+            <div className="overflow-auto max-h-[400px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Turno</TableHead>
+                    <TableHead>Máquina</TableHead>
+                    <TableHead>Artigo</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Obs</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {weaverDefects.map(d => (
+                    <TableRow key={d.id}>
+                      <TableCell className="whitespace-nowrap">{format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell><Badge variant="secondary" className="text-xs">{d.shift === 'manha' ? 'Manhã' : d.shift === 'tarde' ? 'Tarde' : 'Noite'}</Badge></TableCell>
+                      <TableCell>{d.machine_name || '—'}</TableCell>
+                      <TableCell>{d.article_name || '—'}</TableCell>
+                      <TableCell><Badge variant="outline">{d.measure_type === 'kg' ? 'Kg' : 'Metro'}</Badge></TableCell>
+                      <TableCell className="text-right font-mono">{formatNumber(d.measure_value)} {d.measure_type === 'kg' ? 'kg' : 'm'}</TableCell>
+                      <TableCell className="max-w-[100px] truncate text-xs text-muted-foreground">{d.observations || '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
