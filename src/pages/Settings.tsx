@@ -1281,6 +1281,81 @@ export default function SettingsPage() {
         machines={getMachines()}
         onSave={saveMachines}
       />
+
+      {/* Pix QR Code Modal */}
+      <Dialog open={pixModal} onOpenChange={(open) => {
+        setPixModal(open);
+        if (!open && pixPollRef.current) {
+          clearInterval(pixPollRef.current);
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" /> Pagamento via Pix
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-center">
+            {pixStatus === 'pending' && (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {pixPlanName} — <strong className="text-foreground">R$ {pixAmount.toFixed(2)}</strong>
+                </p>
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <p className="text-xs text-muted-foreground mb-2">Copie o código Pix abaixo:</p>
+                  <div className="bg-background border border-border rounded-lg p-3 break-all text-xs font-mono text-foreground select-all max-h-32 overflow-y-auto">
+                    {pixCode}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixCode);
+                      toast.success('Código Pix copiado!');
+                    }}
+                  >
+                    Copiar Código Pix
+                  </Button>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Aguardando pagamento...
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  O pagamento será confirmado automaticamente assim que identificado.
+                </p>
+              </>
+            )}
+            {pixStatus === 'paid' && (
+              <div className="space-y-3 py-4">
+                <div className="mx-auto h-16 w-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <Crown className="h-8 w-8 text-emerald-500" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Pagamento Confirmado!</h3>
+                <p className="text-sm text-muted-foreground">Sua assinatura foi ativada com sucesso.</p>
+              </div>
+            )}
+            {pixStatus === 'failed' && (
+              <div className="space-y-3 py-4">
+                <div className="mx-auto h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <XCircle className="h-8 w-8 text-destructive" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Pagamento Falhou</h3>
+                <p className="text-sm text-muted-foreground">Tente novamente ou entre em contato com o suporte.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setPixModal(false);
+              if (pixPollRef.current) clearInterval(pixPollRef.current);
+            }}>
+              {pixStatus === 'paid' ? 'Fechar' : 'Cancelar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
