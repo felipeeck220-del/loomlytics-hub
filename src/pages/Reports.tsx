@@ -206,7 +206,7 @@ export default function Reports() {
     const eff = ap.length ? ap.reduce((s, p) => s + p.efficiency, 0) / ap.length : 0;
     const client = clients.find(c => c.id === a.client_id);
     return {
-      name: a.name,
+      id: a.id,
       clientName: client?.name || a.client_name || '—',
       rolos: ap.reduce((s, p) => s + p.rolls_produced, 0),
       kg: ap.reduce((s, p) => s + p.weight_kg, 0),
@@ -782,7 +782,7 @@ export default function Reports() {
                       const pctKg = totalArticleKg > 0 ? (a.kg / totalArticleKg * 100) : 0;
                       const pctRevenue = totalArticleRevenue > 0 ? (a.faturamento / totalArticleRevenue * 100) : 0;
                       return (
-                        <div key={`${a.name}-${a.clientName}`} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
+                        <div key={a.id} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="font-display font-bold text-foreground">{a.name}</p>
