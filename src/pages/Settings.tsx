@@ -878,8 +878,8 @@ export default function SettingsPage() {
               </div>
             ) : null}
 
-            {/* Plans - hide when free */}
-            {subStatus?.status !== 'free' && (
+            {/* Plans - hide when free or still loading */}
+            {!loadingSub && subStatus?.status !== 'free' && (
             <div className="space-y-3">
               <h3 className="font-semibold text-foreground">Escolha seu plano</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
