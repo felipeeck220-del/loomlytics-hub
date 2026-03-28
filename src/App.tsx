@@ -22,6 +22,7 @@ import Outsource from "./pages/Outsource";
 import SettingsPage from "./pages/Settings";
 import RevisionPage from "./pages/Revision";
 import Admin from "./pages/Admin";
+import Vendas from "./pages/Vendas";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
