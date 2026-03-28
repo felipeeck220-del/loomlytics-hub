@@ -430,7 +430,7 @@ export default function Reports() {
 
       {/* Analysis Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full flex flex-wrap sm:grid sm:grid-cols-5 gap-1">
+        <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-5 gap-1 p-1">
           <TabsTrigger value="turno">Por Turno</TabsTrigger>
           <TabsTrigger value="maquina">Por Máquina</TabsTrigger>
           <TabsTrigger value="cliente">Por Cliente</TabsTrigger>
