@@ -88,8 +88,31 @@ serve(async (req) => {
     // 3. Set active company
     await supabaseAdmin
       .from("user_active_company")
-      .insert({ user_id, company_id: company.id })
-      .then(() => {});
+      .insert({ user_id, company_id: company.id });
+
+    // 4. Create company_settings with trial_end_date from platform settings
+    const { data: platformSettings } = await supabaseAdmin
+      .from('platform_settings')
+      .select('key, value');
+    
+    let trialDays = 90;
+    let monthlyPlanValue = 47;
+    (platformSettings || []).forEach((s: any) => {
+      if (s.key === 'trial_days') trialDays = Number(s.value);
+      if (s.key === 'monthly_price') monthlyPlanValue = Number(s.value);
+    });
+
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + trialDays);
+
+    await supabaseAdmin
+      .from('company_settings')
+      .insert({
+        company_id: company.id,
+        monthly_plan_value: monthlyPlanValue,
+        trial_end_date: trialEndDate.toISOString(),
+        subscription_status: 'trial',
+      });
 
     return new Response(
       JSON.stringify({ company_id: company.id, slug }),
