@@ -429,6 +429,48 @@ export default function MecanicaPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* History modal */}
+      <Dialog open={!!historyMachineId} onOpenChange={(open) => !open && setHistoryMachineId(null)}>
+        <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Histórico — {historyMachineName}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-3">
+            {historyData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro de manutenção preventiva ou troca de agulhas.</p>
+            ) : (
+              historyData.map(({ log, revenue, weight, fromDate }) => (
+                <div key={log.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card">
+                  <div className="flex items-center gap-2 sm:w-48 shrink-0">
+                    <Badge className={cn('shrink-0', MACHINE_STATUS_COLORS[log.status as MachineStatus])}>
+                      {MACHINE_STATUS_LABELS[log.status as MachineStatus]}
+                    </Badge>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">
+                      {format(new Date(log.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Período: {fromDate !== '2000-01-01' ? format(new Date(fromDate), 'dd/MM/yyyy') : 'Início'} → {format(new Date(log.started_at), 'dd/MM/yyyy')}
+                    </p>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-foreground">{formatCurrency(revenue)}</p>
+                      <p className="text-[10px] text-muted-foreground">Faturamento</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-foreground">{formatWeight(weight)}</p>
+                      <p className="text-[10px] text-muted-foreground">Peso</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
