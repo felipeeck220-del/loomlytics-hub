@@ -136,6 +136,7 @@ export default function SettingsPage() {
   const [loadingSub, setLoadingSub] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
   const [platformSettings, setPlatformSettings] = useState<Record<string, string>>({});
+  const [companyPlanValue, setCompanyPlanValue] = useState<number | null>(null);
 
   // Company name editing
   const [editingCompanyName, setEditingCompanyName] = useState(false);
@@ -284,10 +285,11 @@ export default function SettingsPage() {
     if (!user) return;
     const fetchData = async () => {
       setLoadingProfiles(true);
-      const [profilesRes, companyRes, platformRes] = await Promise.all([
+      const [profilesRes, companyRes, platformRes, companySettingsRes] = await Promise.all([
         (supabase.from as any)('profiles').select('*').order('created_at'),
         (supabase.from as any)('companies').select('*').eq('id', user.company_id).single(),
         (supabase.from as any)('platform_settings').select('key, value'),
+        (supabase.from as any)('company_settings').select('monthly_plan_value').eq('company_id', user.company_id).single(),
       ]);
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (companyRes.data) setCompany(companyRes.data);
@@ -295,6 +297,9 @@ export default function SettingsPage() {
         const map: Record<string, string> = {};
         platformRes.data.forEach((r: any) => { map[r.key] = r.value; });
         setPlatformSettings(map);
+      }
+      if (companySettingsRes.data?.monthly_plan_value) {
+        setCompanyPlanValue(Number(companySettingsRes.data.monthly_plan_value));
       }
       setLoadingProfiles(false);
     };
@@ -1024,7 +1029,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-foreground">
-                      R$ {Number(platformSettings.monthly_price || '47.00').toFixed(2)}
+                      R$ {(companyPlanValue || Number(platformSettings.monthly_price || '47.00')).toFixed(2)}
                     </span>
                     <span className="text-muted-foreground text-sm">/mês</span>
                   </div>
@@ -1052,12 +1057,12 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-extrabold text-primary">
-                      R$ {(Number(platformSettings.monthly_price || '47.00') * 12 * 0.6).toFixed(2)}
+                      R$ {((companyPlanValue || Number(platformSettings.monthly_price || '47.00')) * 12 * 0.6).toFixed(2)}
                     </span>
                     <span className="text-muted-foreground text-sm">/ano</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    ou 12x de R$ {(Number(platformSettings.monthly_price || '47.00') * 12 * 0.6 / 12).toFixed(2)}/mês no cartão
+                    ou 12x de R$ {((companyPlanValue || Number(platformSettings.monthly_price || '47.00')) * 12 * 0.6 / 12).toFixed(2)}/mês no cartão
                   </p>
                   <ul className="space-y-1.5 text-sm text-muted-foreground">
                     <li>✓ Tudo do plano mensal</li>
