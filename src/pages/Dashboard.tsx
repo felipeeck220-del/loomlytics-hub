@@ -456,214 +456,208 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left 2/3 */}
-        <div className="xl:col-span-2 space-y-6">
-          {/* Trend Chart - Material card style */}
-          {trendData.length > 1 && (
-            <Card className="shadow-material border-0 pt-10 overflow-visible">
-              <div className="material-card-header mx-4 -mt-10" style={{ background: 'linear-gradient(195deg, hsl(210 100% 52%), hsl(210 100% 38%))' }}>
-                <p className="text-sm font-medium">Tendência de Produção</p>
-                <p className="text-xs text-white/60 font-light">Rolos, Kg, Faturamento e Eficiência por dia</p>
-              </div>
-              <CardContent className="pt-4 pb-2">
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorRolos" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="colorKg" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="colorFat" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="colorEff" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} />
-                      <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} />
-                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} domain={[0, 100]} />
-                      <RechartsTooltip
-                        contentStyle={{ borderRadius: '10px', border: '1px solid hsl(220, 15%, 90%)', fontSize: '12px', boxShadow: '0 4px 20px hsl(0 0% 0% / 0.08)' }}
-                        formatter={(v: number, name: string) => {
-                          if (name === 'rolos') return [formatNumber(v), 'Rolos'];
-                          if (name === 'kg') return [formatNumber(v, 2) + ' kg', 'Peso'];
-                          if (name === 'faturamento') return [formatCurrency(v), 'Faturamento'];
-                          if (name === 'eficiencia') return [formatPercent(v), 'Eficiência'];
-                          return [v, name];
-                        }}
-                      />
-                      <Legend
-                        verticalAlign="bottom"
-                        height={30}
-                        formatter={(value: string) => {
-                          const labels: Record<string, string> = { rolos: 'Rolos', kg: 'Kg', faturamento: 'Faturamento', eficiencia: 'Eficiência' };
-                          return <span style={{ fontSize: '11px', color: 'hsl(220, 9%, 55%)' }}>{labels[value] || value}</span>;
-                        }}
-                      />
-                      <Area yAxisId="left" type="monotone" dataKey="rolos" stroke="hsl(210, 100%, 52%)" strokeWidth={2} fill="url(#colorRolos)" />
-                      <Area yAxisId="left" type="monotone" dataKey="kg" stroke="hsl(142, 71%, 45%)" strokeWidth={2} fill="url(#colorKg)" />
-                      {canSeeFinancial && <Area yAxisId="left" type="monotone" dataKey="faturamento" stroke="hsl(38, 92%, 50%)" strokeWidth={2} fill="url(#colorFat)" />}
-                      <Area yAxisId="right" type="monotone" dataKey="eficiencia" stroke="hsl(0, 84%, 60%)" strokeWidth={2} fill="url(#colorEff)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Shift Breakdown + Machine Performance */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="shadow-material border-0">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                  Produção por Turno
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2.5">
-                {shiftData.map(s => (
-                  <div key={s.shift} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <span className={cn("w-2.5 h-2.5 rounded-full",
-                        s.shift === 'manha' ? 'bg-warning' : s.shift === 'tarde' ? 'bg-destructive' : 'bg-primary'
-                      )} />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{s.label}</p>
-                        <p className="text-xs text-muted-foreground">{formatNumber(s.rolls)} rolos · {formatNumber(s.kg, 1)} kg</p>
-                      </div>
-                    </div>
-                    {canSeeFinancial && <span className="text-sm font-semibold text-foreground">{formatCurrency(s.revenue)}</span>}
-                  </div>
-                ))}
-                {/* Total */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10">
-                  <div className="flex items-center gap-3">
-                    <span className="w-2.5 h-2.5 rounded-full bg-foreground/60" />
-                    <div>
-                      <p className="text-sm font-bold text-foreground">Total</p>
-                      <p className="text-xs text-muted-foreground">{formatNumber(totalRolls)} rolos · {formatNumber(totalWeight, 1)} kg</p>
-                    </div>
-                  </div>
-                  {canSeeFinancial && <span className="text-sm font-bold text-foreground">{formatCurrency(totalRevenue)}</span>}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-material border-0">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <Factory className="h-4 w-4 text-muted-foreground" />
-                    Top Máquinas
-                  </CardTitle>
-                  <Button variant="ghost" size="sm" className="text-xs text-primary h-7" onClick={() => setShowAllMachines(true)}>
-                    Ver Todas
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2.5">
-                {machinePerf.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4 font-light">Sem dados no período</p>
-                ) : machinePerf.map(m => (
-                  <div key={m.name} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{m.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatNumber(m.rolls)} rolos · {formatNumber(m.kg, 1)} kg</p>
-                    </div>
-                    <span className={cn(
-                      "text-xs font-semibold px-3 py-1.5 rounded-lg",
-                      m.efficiency >= m.targetEfficiency ? "bg-success/10 text-success" :
-                      m.efficiency >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" :
-                      "bg-destructive/10 text-destructive"
-                    )}>
-                      {formatPercent(m.efficiency)}
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+      {/* Trend Chart - Full width */}
+      {trendData.length > 1 && (
+        <Card className="shadow-material border-0 pt-10 overflow-visible">
+          <div className="material-card-header mx-4 -mt-10" style={{ background: 'linear-gradient(195deg, hsl(210 100% 52%), hsl(210 100% 38%))' }}>
+            <p className="text-sm font-medium">Tendência de Produção</p>
+            <p className="text-xs text-white/60 font-light">Rolos, Kg, Faturamento e Eficiência por dia</p>
           </div>
-        </div>
+          <CardContent className="pt-4 pb-2">
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorRolos" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorKg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorFat" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorEff" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} domain={[0, 100]} />
+                  <RechartsTooltip
+                    contentStyle={{ borderRadius: '10px', border: '1px solid hsl(220, 15%, 90%)', fontSize: '12px', boxShadow: '0 4px 20px hsl(0 0% 0% / 0.08)' }}
+                    formatter={(v: number, name: string) => {
+                      if (name === 'rolos') return [formatNumber(v), 'Rolos'];
+                      if (name === 'kg') return [formatNumber(v, 2) + ' kg', 'Peso'];
+                      if (name === 'faturamento') return [formatCurrency(v), 'Faturamento'];
+                      if (name === 'eficiencia') return [formatPercent(v), 'Eficiência'];
+                      return [v, name];
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={30}
+                    formatter={(value: string) => {
+                      const labels: Record<string, string> = { rolos: 'Rolos', kg: 'Kg', faturamento: 'Faturamento', eficiencia: 'Eficiência' };
+                      return <span style={{ fontSize: '11px', color: 'hsl(220, 9%, 55%)' }}>{labels[value] || value}</span>;
+                    }}
+                  />
+                  <Area yAxisId="left" type="monotone" dataKey="rolos" stroke="hsl(210, 100%, 52%)" strokeWidth={2} fill="url(#colorRolos)" />
+                  <Area yAxisId="left" type="monotone" dataKey="kg" stroke="hsl(142, 71%, 45%)" strokeWidth={2} fill="url(#colorKg)" />
+                  {canSeeFinancial && <Area yAxisId="left" type="monotone" dataKey="faturamento" stroke="hsl(38, 92%, 50%)" strokeWidth={2} fill="url(#colorFat)" />}
+                  <Area yAxisId="right" type="monotone" dataKey="eficiencia" stroke="hsl(0, 84%, 60%)" strokeWidth={2} fill="url(#colorEff)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Right sidebar */}
-        <div className="space-y-6">
-          {/* Productivity */}
-          <Card className="shadow-material border-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                Produtividade/Hora
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2.5">
-              {canSeeFinancial && <div className="flex items-center justify-between p-3 rounded-xl bg-warning/5 border border-warning/10">
-                <span className="text-sm text-foreground">Faturamento/Hora</span>
-                <span className="text-sm font-bold text-warning">{formatCurrency(revenuePerHour)}</span>
-              </div>}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
-                <span className="text-sm text-foreground">Kg/Hora</span>
-                <span className="text-sm font-bold text-foreground">{formatNumber(kgPerHour, 2)}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="shadow-material border-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-foreground">Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1.5">
-              {[
-                { label: 'Nova Produção', icon: Plus, path: '/production' },
-                { label: 'Gerenciar Máquinas', icon: Settings2, path: '/machines' },
-                { label: 'Ver Performance', icon: Eye, path: '/machines' },
-                { label: 'Relatórios', icon: ChartIcon, path: '/reports' },
-              ].map(a => (
-                <Button
-                  key={a.label}
-                  variant="ghost"
-                  className="w-full justify-start h-10 text-sm font-normal hover:bg-primary/5 hover:text-primary rounded-lg"
-                  onClick={() => navigate(a.path)}
-                >
-                  <a.icon className="h-4 w-4 mr-3 text-muted-foreground" />
-                  {a.label}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* System Status */}
-          <Card className="shadow-material border-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-foreground">Status do Sistema</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                { label: 'Máquinas Ativas', value: machines.filter(m => m.status === 'ativa').length },
-                { label: 'Total de Clientes', value: clients.length },
-                { label: 'Artigos Cadastrados', value: articles.length },
-                { label: 'Registros de Produção', value: formatNumber(productions.length) },
-              ].map(s => (
-                <div key={s.label} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground font-light">{s.label}</span>
-                  <span className="text-sm font-semibold bg-muted px-3 py-1 rounded-lg text-foreground">{s.value}</span>
+      {/* Cards Grid: Turno, Top Máquinas, Produtividade/Hora, Ações Rápidas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        {/* Produção por Turno */}
+        <Card className="shadow-material border-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              Produção por Turno
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {shiftData.map(s => (
+              <div key={s.shift} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className={cn("w-2.5 h-2.5 rounded-full",
+                    s.shift === 'manha' ? 'bg-warning' : s.shift === 'tarde' ? 'bg-destructive' : 'bg-primary'
+                  )} />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{s.label}</p>
+                    <p className="text-xs text-muted-foreground">{formatNumber(s.rolls)} rolos · {formatNumber(s.kg, 1)} kg</p>
+                  </div>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+                {canSeeFinancial && <span className="text-sm font-semibold text-foreground">{formatCurrency(s.revenue)}</span>}
+              </div>
+            ))}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10">
+              <div className="flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-foreground/60" />
+                <div>
+                  <p className="text-sm font-bold text-foreground">Total</p>
+                  <p className="text-xs text-muted-foreground">{formatNumber(totalRolls)} rolos · {formatNumber(totalWeight, 1)} kg</p>
+                </div>
+              </div>
+              {canSeeFinancial && <span className="text-sm font-bold text-foreground">{formatCurrency(totalRevenue)}</span>}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Máquinas */}
+        <Card className="shadow-material border-0">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Factory className="h-4 w-4 text-muted-foreground" />
+                Top Máquinas
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="text-xs text-primary h-7" onClick={() => setShowAllMachines(true)}>
+                Ver Todas
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {machinePerf.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4 font-light">Sem dados no período</p>
+            ) : machinePerf.map(m => (
+              <div key={m.name} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{m.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatNumber(m.rolls)} rolos · {formatNumber(m.kg, 1)} kg</p>
+                </div>
+                <span className={cn(
+                  "text-xs font-semibold px-3 py-1.5 rounded-lg",
+                  m.efficiency >= m.targetEfficiency ? "bg-success/10 text-success" :
+                  m.efficiency >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" :
+                  "bg-destructive/10 text-destructive"
+                )}>
+                  {formatPercent(m.efficiency)}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Produtividade/Hora */}
+        <Card className="shadow-material border-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              Produtividade/Hora
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {canSeeFinancial && <div className="flex items-center justify-between p-3 rounded-xl bg-warning/5 border border-warning/10">
+              <span className="text-sm text-foreground">Faturamento/Hora</span>
+              <span className="text-sm font-bold text-warning">{formatCurrency(revenuePerHour)}</span>
+            </div>}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
+              <span className="text-sm text-foreground">Kg/Hora</span>
+              <span className="text-sm font-bold text-foreground">{formatNumber(kgPerHour, 2)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ações Rápidas */}
+        <Card className="shadow-material border-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-foreground">Ações Rápidas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {[
+              { label: 'Nova Produção', icon: Plus, path: '/production' },
+              { label: 'Gerenciar Máquinas', icon: Settings2, path: '/machines' },
+              { label: 'Ver Performance', icon: Eye, path: '/machines' },
+              { label: 'Relatórios', icon: ChartIcon, path: '/reports' },
+            ].map(a => (
+              <Button
+                key={a.label}
+                variant="ghost"
+                className="w-full justify-start h-10 text-sm font-normal hover:bg-primary/5 hover:text-primary rounded-lg"
+                onClick={() => navigate(a.path)}
+              >
+                <a.icon className="h-4 w-4 mr-3 text-muted-foreground" />
+                {a.label}
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Status do Sistema */}
+      <Card className="shadow-material border-0">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-foreground">Status do Sistema</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Máquinas Ativas', value: machines.filter(m => m.status === 'ativa').length },
+              { label: 'Total de Clientes', value: clients.length },
+              { label: 'Artigos Cadastrados', value: articles.length },
+              { label: 'Registros de Produção', value: formatNumber(productions.length) },
+            ].map(s => (
+              <div key={s.label} className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
+                <span className="text-sm text-muted-foreground font-light">{s.label}</span>
+                <span className="text-sm font-semibold bg-background px-3 py-1 rounded-lg text-foreground">{s.value}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stopped Machines Section */}
       {stoppedMachines.length > 0 && (
