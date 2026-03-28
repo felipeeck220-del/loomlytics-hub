@@ -68,6 +68,7 @@ serve(async (req) => {
         .eq("company_id", callerProfile.company_id);
 
       const usedCodes = new Set([
+        "1",
         ...(existingProfiles || []).map((p: any) => p.code),
         ...(existingWeavers || []).map((w: any) => w.code),
       ]);

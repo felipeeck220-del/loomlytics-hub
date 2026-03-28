@@ -76,6 +76,7 @@ serve(async (req) => {
         name: admin_name,
         email: admin_email,
         role: "admin",
+        code: "1",
       });
 
     if (profileError) {
