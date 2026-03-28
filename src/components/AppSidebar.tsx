@@ -23,7 +23,7 @@ const allItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === 'collapsed';
   const { user } = useAuth();
   const { filterNavItems } = usePermissions();
