@@ -134,7 +134,7 @@ export default function SettingsPage() {
   // Subscription state
   const [subStatus, setSubStatus] = useState<any>(null);
   const [loadingSub, setLoadingSub] = useState(true);
-  const [checkingOut, setCheckingOut] = useState(false);
+  const [checkingOut, setCheckingOut] = useState<'monthly' | 'annual' | null>(null);
   const [platformSettings, setPlatformSettings] = useState<Record<string, string>>({});
   const [companyPlanValue, setCompanyPlanValue] = useState<number | null>(null);
 
