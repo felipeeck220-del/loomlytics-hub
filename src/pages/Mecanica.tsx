@@ -23,7 +23,7 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 ];
 
 export default function MecanicaPage() {
-  const { getMachines, getMachineLogs, getProductions } = useSharedCompanyData();
+  const { getMachines, getMachineLogs, getProductions, saveMachineLogs } = useSharedCompanyData();
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
@@ -32,6 +32,14 @@ export default function MecanicaPage() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [detailsSearch, setDetailsSearch] = useState('');
   const [historyMachineId, setHistoryMachineId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addMachineId, setAddMachineId] = useState('');
+  const [addStatus, setAddStatus] = useState<string>('manutencao_preventiva');
+  const [addStartDate, setAddStartDate] = useState('');
+  const [addStartTime, setAddStartTime] = useState('08:00');
+  const [addEndDate, setAddEndDate] = useState('');
+  const [addEndTime, setAddEndTime] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const activeMachines = useMemo(() => machines.filter(m => m.status !== 'inativa'), [machines]);
 
