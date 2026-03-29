@@ -285,7 +285,42 @@ export default function Admin() {
     }
   };
 
+  const handleRestoreBackup = async (backupId: string, companyName: string) => {
+    if (!confirm(`Tem certeza que deseja restaurar o backup de "${companyName}"? Todos os dados atuais desta empresa serão substituídos pelos dados do backup.`)) return;
+    setRestoringId(backupId);
+    try {
+      const { data, error } = await supabase.functions.invoke('restore-backup', {
+        body: { backup_id: backupId },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Restaurado', description: `Backup de "${companyName}" restaurado com sucesso.` });
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  const handleTriggerBackup = async () => {
+    setTriggeringBackup(true);
+    try {
+      const result = await callAdmin('trigger_backup');
+      toast({ title: 'Backup concluído', description: `${result.backed_up} de ${result.total_companies} empresas salvas.` });
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setTriggeringBackup(false);
+    }
+  };
+
   const annualPrice = Number(monthlyPrice) * 12 * 0.6;
+
+  const filteredBackups = backups.filter(b =>
+    backupFilter ? b.company_name.toLowerCase().includes(backupFilter.toLowerCase()) : true
+  );
 
   if (checkingAuth) {
     return (
