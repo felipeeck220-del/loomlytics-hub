@@ -155,6 +155,7 @@ function useTvRealtimeData(companyId: string) {
   const [readings, setReadings] = useState<Map<string, MachineReading>>(new Map());
   const [shiftStates, setShiftStates] = useState<Map<string, ShiftState>>(new Map());
   const [downtimeEvents, setDowntimeEvents] = useState<DowntimeEvent[]>([]);
+  const [machineStatuses, setMachineStatuses] = useState<Map<string, MachineStatus>>(new Map());
 
   useEffect(() => {
     // Canal 1: Leituras de máquina (RPM ao vivo)
@@ -201,7 +202,8 @@ function useTvRealtimeData(companyId: string) {
       )
       .subscribe();
 
-    // Canal 3: Eventos de parada
+    // Canal 3: Eventos de parada (apenas downtimes INJUSTIFICADOS)
+    // Conforme iot.md: manutenções justificadas NÃO geram iot_downtime_events
     const downtimeChannel = supabase
       .channel('tv-downtime')
       .on(
@@ -219,7 +221,7 @@ function useTvRealtimeData(companyId: string) {
       )
       .subscribe();
 
-    // Canal 4: Mudança de status das máquinas
+    // Canal 4: Mudança de status das máquinas (tabela machines)
     const machinesChannel = supabase
       .channel('tv-machines')
       .on(
@@ -237,6 +239,29 @@ function useTvRealtimeData(companyId: string) {
       )
       .subscribe();
 
+    // Canal 5: Mudanças em machine_logs (manutenções)
+    // Essencial para o cruzamento IoT × Status (conforme iot.md seção 10-11)
+    // Detecta: mecânico registra manutenção → TV reclassifica parada de inesperada para justificada
+    const machineLogsChannel = supabase
+      .channel('tv-machine-logs')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT (nova manutenção), UPDATE (finalização com ended_at)
+          schema: 'public',
+          table: 'machine_logs',
+        },
+        (payload) => {
+          // Atualizar mapa de status das máquinas
+          refreshMachineStatuses();
+          // Reclassificar downtimes ativos:
+          // Se mecânico registrou manutenção DEPOIS da parada ser detectada,
+          // a TV deve mudar o visual de 🔴 (inesperada) para 🔧 (justificada)
+          reclassifyActiveDowntimes();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(readingsChannel);
       supabase.removeChannel(shiftChannel);
@@ -248,26 +273,6 @@ function useTvRealtimeData(companyId: string) {
 
   return { readings, shiftStates, downtimeEvents, machineStatuses };
 }
-
-// Canal 5 (NOVO): Mudanças em machine_logs (manutenções)
-// Essencial para o cruzamento IoT × Status
-const machineLogsChannel = supabase
-  .channel('tv-machine-logs')
-  .on(
-    'postgres_changes',
-    {
-      event: '*', // INSERT (nova manutenção), UPDATE (finalização)
-      schema: 'public',
-      table: 'machine_logs',
-    },
-    (payload) => {
-      // Atualizar status e classificação das paradas
-      // Reclassificar downtimes ativos: inesperada → justificada (ou vice-versa)
-      refreshMachineStatuses();
-      reclassifyActiveDowntimes();
-    }
-  )
-  .subscribe();
 ```
 
 ### Por que Realtime e não Polling?
