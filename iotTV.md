@@ -391,17 +391,42 @@ function calculateRealtimeEfficiency(
 
 ### Painel 3: Grid de Máquinas (APRIMORADO)
 
-**Com IoT:**
+**Com IoT + Cruzamento de Status:**
 ```
-┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-│ TEAR 01  │  │ TEAR 02  │  │ TEAR 03  │  │ TEAR 04  │
-│ 📡 Live  │  │ 📡 Live  │  │ 📡 Live  │  │ ✍️Manual │
-│ 🟢 Ativa │  │ 🟢 Ativa │  │ 🔴 Parada│  │ 🟢 Ativa │
-│ RPM: 24  │  │ RPM: 22  │  │ RPM: 0   │  │ --       │
-│ 92.1%    │  │ 88.3%    │  │ 15min ⏱️ │  │ 90.5%    │
-│ 2.3 kg/h │  │ 2.1 kg/h │  │ -1.2 rolos│ │          │
-└──────────┘  └──────────┘  └──────────┘  └──────────┘
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ TEAR 01      │  │ TEAR 02      │  │ TEAR 03      │  │ TEAR 04      │
+│ 📡 Live      │  │ 📡 Live      │  │ 📡 Live      │  │ ✍️ Manual    │
+│ 🟢 Ativa     │  │ 🟢 Ativa     │  │ 🔧 Manut.Prev│  │ 🟢 Ativa     │
+│ RPM: 24      │  │ RPM: 22      │  │ RPM: 0       │  │ --           │
+│ 92.1%        │  │ 88.3%        │  │ ⏸️ Justificado│  │ 90.5%        │
+│ 2.3 kg/h     │  │ 2.1 kg/h     │  │  35min ⏱️    │  │              │
+└──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘
+
+┌──────────────┐  ┌──────────────┐
+│ TEAR 05      │  │ TEAR 06      │
+│ 📡 Live      │  │ 📡 Live      │
+│ 🟢 Ativa     │  │ ⚠️ Ativa     │   ← Status ativa mas RPM = 0
+│ RPM: 25      │  │ RPM: 0       │
+│ 95.0%        │  │ 🔴 Parada!   │   ← PENALIZA eficiência
+│ 2.5 kg/h     │  │ 12min ⏱️     │
+└──────────────┘  └──────────────┘
 ```
+
+**Diferença visual por tipo de parada (cruzamento IoT × Status):**
+
+| Status da Máquina | Sinal IoT | Visual no Card | Cor do Card |
+|-------------------|-----------|----------------|-------------|
+| **Ativa** + RPM > 0 | Produzindo | 🟢 Normal, RPM ao vivo | `bg-success/10` |
+| **Ativa** + RPM = 0 | Parada inesperada | 🔴 **Parada!** + Timer ao vivo | `bg-destructive/10` (pulsa) |
+| **Manutenção Prev.** + RPM = 0 | Parada justificada | 🔧 **Manut. Prev.** + Timer | `bg-warning/10` (estável, sem pulso) |
+| **Manutenção Corr.** + RPM = 0 | Parada justificada | 🔧 **Manut. Corr.** + Timer | `bg-warning/10` |
+| **Troca de Artigo** + RPM = 0 | Parada justificada | 🔄 **Troca Artigo** + Timer | `bg-info/10` |
+| **Troca de Agulhas** + RPM = 0 | Parada justificada | 🔧 **Troca Agulhas** + Timer | `bg-purple-500/10` |
+| **Inativa** | Ignorado | ⚫ **Inativa** | `bg-muted` |
+| **Manutenção** + RPM > 0 | ⚠️ Inconsistência | ⚠️ **Alerta!** RPM inesperado | `bg-warning/20` (pisca) |
+
+> ⚠️ **Paradas justificadas** mostram timer mas **NÃO pulsam vermelho** — a cor é estável (amarelo/azul/roxo conforme tipo).
+> Apenas paradas **injustificadas** (status `ativa` + RPM = 0) pulsam vermelho para chamar atenção.
 
 **Novos campos por máquina (IoT):**
 - **RPM ao vivo**: Última leitura do ESP32 (atualiza a cada 10s)
