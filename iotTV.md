@@ -505,44 +505,64 @@ function calculateIoTTotals(
 
 ---
 
-### Painel 5: Alertas de Parada (APRIMORADO)
+### Painel 5: Alertas de Parada (APRIMORADO com Cruzamento IoT × Status)
 
-**Com IoT:**
+**Com IoT + Classificação Inteligente:**
 ```
-┌──────────────────────────────────────────┐
-│       ⚠️ PARADAS AO VIVO                │
-│                                          │
-│  🔴 TEAR 03 — Parada detectada 📡       │
-│     ⏱️ Parado há 15:32 (contando...)     │  ← Timer ao vivo!
-│     Última RPM: 0 | Último sinal: 3s    │
-│     Impacto: ~0.8 rolos perdidos         │
-│                                          │
-│  🟡 TEAR 07 — RPM baixo ⚠️             │  ← NOVO: Alerta de RPM
-│     RPM atual: 8 (meta: 25)             │
-│     Eficiência caiu para 32%             │
-│     Possível problema mecânico           │
-│                                          │
-│  🔵 TEAR 12 — Sem sinal 📡❌            │  ← NOVO: Dispositivo offline
-│     Último sinal há 2min 30s             │
-│     Verificar Wi-Fi ou ESP32             │
-│                                          │
-│  Total: 2 paradas | 1 RPM baixo | 1 offline │
-│  Impacto estimado: ~3.2 rolos/hora       │
-└──────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│       ⚠️ ALERTAS AO VIVO                            │
+│                                                      │
+│  🔴 TEAR 06 — PARADA INESPERADA 📡                  │
+│     Status: Ativa | RPM: 0                           │  ← PENALIZA eficiência
+│     ⏱️ Parado há 15:32 (contando...)                 │
+│     Impacto: ~0.8 rolos perdidos | -3.2% eficiência  │
+│                                                      │
+│  🔧 TEAR 03 — MANUTENÇÃO PREVENTIVA 📡              │
+│     Status: Manutenção Preventiva | RPM: 0           │  ← NÃO penaliza
+│     ⏱️ Em manutenção há 35:10                        │
+│     ℹ️ Tempo descontado do turno (sem impacto)       │
+│                                                      │
+│  🟡 TEAR 07 — RPM BAIXO ⚠️                         │
+│     Status: Ativa | RPM: 8 (meta: 25)               │
+│     Eficiência caiu para 32%                         │
+│                                                      │
+│  ⚠️ TEAR 09 — INCONSISTÊNCIA ⚠️                    │  ← NOVO
+│     Status: Manutenção Corretiva | RPM: 22           │
+│     Máquina produzindo mas marcada como manutenção!  │
+│     Verificar com mecânico                           │
+│                                                      │
+│  🔵 TEAR 12 — DISPOSITIVO OFFLINE 📡❌              │
+│     Último sinal há 2min 30s                         │
+│     Verificar Wi-Fi ou ESP32                         │
+│                                                      │
+│  Resumo: 1 parada inesperada | 1 manutenção         │
+│          1 RPM baixo | 1 inconsistência | 1 offline  │
+│  Impacto eficiência: ~3.2 rolos/hora (só paradas     │
+│  inesperadas contam)                                  │
+└──────────────────────────────────────────────────────┘
 ```
 
-**Novos tipos de alerta (exclusivos IoT):**
+**Tipos de alerta com cruzamento IoT × Status:**
 
-| Tipo | Condição | Ícone | Cor |
-|------|----------|-------|-----|
-| **Parada** | `is_running = false` por >30s | 🔴 | `text-destructive` |
-| **RPM baixo** | `rpm < 50% do rpm_meta` por >60s | 🟡 | `text-warning` |
-| **Dispositivo offline** | Sem leitura há >60s | 🔵 | `text-info` |
-| **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | 📶 | `text-warning` |
+| Tipo | Condição (IoT × Status) | Ícone | Cor | Penaliza Eficiência? |
+|------|------------------------|-------|-----|---------------------|
+| **Parada inesperada** | `RPM = 0` + status `ativa` por >30s | 🔴 | `text-destructive` | ✅ **SIM** |
+| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` e ≠ `inativa` | 🔧 | `text-warning` | ❌ NÃO |
+| **RPM baixo** | `rpm < 50% meta` + status `ativa` por >60s | 🟡 | `text-warning` | ✅ SIM (parcial) |
+| **Inconsistência** | `RPM > 0` + status ≠ `ativa` | ⚠️ | `text-orange-500` | — (alerta para admin) |
+| **Dispositivo offline** | Sem leitura há >60s | 🔵 | `text-info` | — (sem dados) |
+| **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | 📶 | `text-warning` | — (informativo) |
+
+**Regras de exibição:**
+- **Paradas inesperadas** ficam no **topo** (prioridade máxima) com card pulsante
+- **Manutenções justificadas** são exibidas com visual calmo (sem pulso, cor estável)
+- **Inconsistências** piscam para chamar atenção do admin/mecânico
+- O **impacto estimado** só contabiliza paradas inesperadas (não manutenções)
 
 **Timer ao vivo:**
 - Quando uma máquina para, o timer conta **em tempo real** no browser (não espera próximo envio)
 - Usa `Date.now() - downtime_started_at` atualizado a cada segundo via `setInterval`
+- Timer de manutenção justificada usa cor diferente (amarelo) do timer de parada inesperada (vermelho)
 
 ---
 
