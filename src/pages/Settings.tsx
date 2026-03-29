@@ -42,6 +42,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fbTrack } from '@/lib/fbPixel';
 import type { CompanyShiftSettings } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -346,6 +347,7 @@ export default function SettingsPage() {
       setPixPlanName(data.plan_name);
       setPixStatus('pending');
       setPixModal(true);
+      fbTrack('InitiateCheckout', { value: data.amount, currency: 'BRL', content_name: data.plan_name });
       // Start polling for payment status
       startPixPolling(data.identifier);
     } catch (err: any) {
@@ -365,6 +367,7 @@ export default function SettingsPage() {
           if (data.status === 'paid') {
             setPixStatus('paid');
             if (pixPollRef.current) clearInterval(pixPollRef.current);
+            fbTrack('Purchase', { value: data.amount || 0, currency: 'BRL' });
             toast.success('Pagamento confirmado!');
             checkSubscription();
             fetchPaymentHistory();
