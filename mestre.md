@@ -599,6 +599,10 @@ A tabela `article_machine_turns` permite configurar voltas/rolo diferentes para 
 | 2026-03-29 | Remoção de prefixos "Todos os" nos filtros de Relatórios                       |
 | 2026-03-29 | Criação dos artigos MALHA 1,12-115 MISTO e MALHA 1,35-115 MISTO               |
 | 2026-03-29 | Vinculação de 777 produções órfãs aos novos artigos (0 órfãs restantes)        |
+| 2026-03-29 | Backup: removida constraint UNIQUE(company_id,backup_date) para múltiplos/dia  |
+| 2026-03-29 | Backup: alterado de UPSERT para INSERT no daily-backup                         |
+| 2026-03-29 | Backup: configurado pg_cron para executar daily-backup todo dia às 00:00 UTC   |
+| 2026-03-29 | Backup: list_backups agora ordena por created_at DESC (mostra hora correta)     |
 
 ---
 
