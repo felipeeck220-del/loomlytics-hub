@@ -920,18 +920,23 @@ function isDeviceOnline(lastReading: MachineReading): boolean {
 
 ## 10. Alertas Visuais Automáticos
 
-### Regras de Alerta na TV
+### Regras de Alerta na TV (com Cruzamento IoT × Status)
 
-| Regra | Condição | Ação Visual na TV |
-|-------|----------|-------------------|
-| **Máquina parou** | `is_running: false` por >10s | Card pulsa vermelho + alerta no Painel 5 |
-| **RPM caindo** | RPM cai >30% em 60s | Borda amarela no card |
-| **RPM baixo** | `rpm < 50% do rpm_meta` por >60s | Ícone ⚠️ no card + alerta |
-| **Rolo completo** | `completed_rolls` incrementa | Flash verde momentâneo + counter anima |
-| **Dispositivo offline** | Sem leitura há >30s | Card cinza + ícone ❌ |
-| **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | Ícone 📶 vermelho |
-| **Eficiência abaixo da meta** | Eficiência geral < meta | Gauge muda para vermelho |
-| **Novo recorde do turno** | Tecelão ultrapassa 1º lugar | Animação de troca no ranking |
+| Regra | Condição (IoT × Status) | Ação Visual na TV | Penaliza Eficiência? |
+|-------|------------------------|-------------------|---------------------|
+| **Parada inesperada** | `RPM = 0` + status `ativa` por >10s | Card **PULSA VERMELHO** + alerta 🔴 | ✅ SIM |
+| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` | Card **AMARELO ESTÁVEL** (sem pulso) + alerta 🔧 | ❌ NÃO |
+| **Inconsistência** | `RPM > 0` + status ≠ `ativa` | Card **PISCA LARANJA** + alerta ⚠️ | — (alerta admin) |
+| **RPM caindo** | RPM cai >30% em 60s + status `ativa` | Borda amarela no card | ✅ SIM (parcial) |
+| **RPM baixo** | `rpm < 50% meta` + status `ativa` por >60s | Ícone ⚠️ no card + alerta 🟡 | ✅ SIM |
+| **Rolo completo** | `completed_rolls` incrementa | Flash verde momentâneo + counter anima | — |
+| **Dispositivo offline** | Sem leitura há >30s | Card cinza + ícone ❌ | — |
+| **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | Ícone 📶 vermelho | — |
+| **Eficiência abaixo da meta** | Eficiência geral < meta (calculada com `tempo_disponível`) | Gauge muda para vermelho | — |
+| **Novo recorde do turno** | Tecelão ultrapassa 1º lugar | Animação de troca no ranking | — |
+
+> **Regra de ouro**: Apenas paradas com status `ativa` pulsam vermelho e penalizam eficiência.
+> Manutenções registradas pelo mecânico têm visual calmo (amarelo/azul/roxo) e NÃO penalizam.
 
 ### Efeitos Sonoros (Opcional — futuro)
 
