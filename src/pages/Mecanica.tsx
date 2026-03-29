@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus, type MachineLog } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
   'manutencao_preventiva',
@@ -26,6 +27,7 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 
 export default function MecanicaPage() {
   const { getMachines, getMachineLogs, getProductions, saveMachineLogs, loading } = useSharedCompanyData();
+  const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
@@ -392,10 +394,12 @@ export default function MecanicaPage() {
                             : 'Sem registro'}
                         </p>
                         <div className="flex items-center gap-4">
+                          {canSeeFinancial && (
                           <div>
                             <p className="text-lg font-bold text-foreground">{formatCurrency(revenueSincePreventive)}</p>
                             <p className="text-[10px] text-muted-foreground">Faturamento</p>
                           </div>
+                          )}
                           <div>
                             <p className="text-lg font-bold text-foreground">{formatWeight(weightSincePreventive)}</p>
                             <p className="text-[10px] text-muted-foreground">Peso produzido</p>
@@ -414,10 +418,12 @@ export default function MecanicaPage() {
                             : 'Sem registro'}
                         </p>
                         <div className="flex items-center gap-4">
+                          {canSeeFinancial && (
                           <div>
                             <p className="text-lg font-bold text-foreground">{formatCurrency(revenueSinceNeedle)}</p>
                             <p className="text-[10px] text-muted-foreground">Faturamento</p>
                           </div>
+                          )}
                           <div>
                             <p className="text-lg font-bold text-foreground">{formatWeight(weightSinceNeedle)}</p>
                             <p className="text-[10px] text-muted-foreground">Peso produzido</p>
@@ -529,10 +535,12 @@ export default function MecanicaPage() {
                     </p>
                   </div>
                   <div className="flex gap-4">
+                    {canSeeFinancial && (
                     <div className="text-right">
                       <p className="text-sm font-bold text-foreground">{formatCurrency(revenue)}</p>
                       <p className="text-[10px] text-muted-foreground">Faturamento</p>
                     </div>
+                    )}
                     <div className="text-right">
                       <p className="text-sm font-bold text-foreground">{formatWeight(weight)}</p>
                       <p className="text-[10px] text-muted-foreground">Peso</p>

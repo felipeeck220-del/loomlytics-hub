@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { formatNumber, formatWeight, formatCurrency } from '@/lib/formatters';
 import type { Weaver, ShiftType, Production, DefectRecord } from '@/types';
 import { SHIFT_LABELS } from '@/types';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
   manha: '05:00 às 13:30',
@@ -27,6 +28,7 @@ const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
 
 export default function Weavers() {
   const { getWeavers, saveWeavers, getProductions, getDefectRecords, loading } = useSharedCompanyData();
+  const { canSeeFinancial } = usePermissions();
   const weavers = getWeavers();
   const productions = getProductions();
   const defectRecords = getDefectRecords();
@@ -281,6 +283,7 @@ export default function Weavers() {
 
 // ─── Weaver Reports Tab ──────────────────────────────────────
 function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; productions: Production[] }) {
+  const { canSeeFinancial } = usePermissions();
   const [selectedWeaverId, setSelectedWeaverId] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -398,10 +401,12 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peso</p>
                 <p className="text-lg font-bold text-foreground">{formatWeight(totals.weight)}</p>
               </div>
+              {canSeeFinancial && (
               <div className="rounded-lg border p-3">
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Faturamento</p>
                 <p className="text-lg font-bold text-foreground">{formatCurrency(totals.revenue)}</p>
               </div>
+              )}
               <div className={cn("rounded-lg border p-3", totals.avgEfficiency >= 80 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-warning/30 bg-warning/5")}>
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Eficiência Média</p>
                 <p className={cn("text-lg font-bold", totals.avgEfficiency >= 80 ? "text-success" : "text-warning")}>{totals.avgEfficiency.toFixed(1)}%</p>
@@ -419,7 +424,7 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
                     <TableHead>Artigo</TableHead>
                     <TableHead className="text-right">Peças</TableHead>
                     <TableHead className="text-right">Peso (kg)</TableHead>
-                    <TableHead className="text-right">Faturamento</TableHead>
+                    {canSeeFinancial && <TableHead className="text-right">Faturamento</TableHead>}
                     <TableHead className="text-right">Eficiência</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -436,7 +441,7 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
                       <TableCell>{p.article_name || '—'}</TableCell>
                       <TableCell className="text-right font-medium">{formatNumber(p.rolls_produced, 1)}</TableCell>
                       <TableCell className="text-right">{formatWeight(p.weight_kg)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(p.revenue)}</TableCell>
+                      {canSeeFinancial && <TableCell className="text-right">{formatCurrency(p.revenue)}</TableCell>}
                       <TableCell className="text-right">
                         <Badge variant={p.efficiency >= 80 ? 'default' : 'destructive'} className={p.efficiency >= 80 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : ''}>
                           {p.efficiency.toFixed(1)}%
