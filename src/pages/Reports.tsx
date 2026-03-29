@@ -365,7 +365,7 @@ export default function Reports() {
             <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
               <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Escolher mês" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos os meses</SelectItem>
                 {availableMonths.map(m => (
                   <SelectItem key={m} value={m}>
                     {format(new Date(m + '-01'), 'MMMM yyyy', { locale: ptBR })}
