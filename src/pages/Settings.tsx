@@ -805,67 +805,48 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* ===== EMPRESA ===== */}
-        <TabsContent value="company" className="mt-4">
-          <div className="card-glass p-6 space-y-6">
-            <div className="flex items-center gap-3">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <h2 className="font-display font-semibold text-foreground">Informações da Empresa</h2>
-                <p className="text-sm text-muted-foreground">Configurações gerais da malharia</p>
-              </div>
-            </div>
+        <TabsContent value="company" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-5">
+              {/* Logo & Identity Card */}
+              <div className="card-glass p-6 space-y-5">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <h3 className="font-display font-semibold text-foreground">Identidade da Empresa</h3>
+                </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left: Company info + Logo */}
-              <div className="space-y-5">
-                {/* Logo Upload */}
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Logo da Empresa</p>
-                  <div className="flex items-start gap-4">
-                    <div className="h-24 w-24 rounded-xl border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
-                      {company?.logo_url ? (
-                        <img src={company.logo_url} alt="Logo" className="h-full w-full object-contain" />
-                      ) : (
-                        <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <input
-                        ref={logoInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleLogoUpload}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => logoInputRef.current?.click()}
-                        disabled={uploadingLogo}
-                      >
+                {/* Logo */}
+                <div className="flex items-center gap-5">
+                  <div className="h-20 w-20 rounded-xl border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                    {company?.logo_url ? (
+                      <img src={company.logo_url} alt="Logo" className="h-full w-full object-contain" />
+                    ) : (
+                      <ImageIcon className="h-7 w-7 text-muted-foreground/40" />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}>
                         {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
-                        {company?.logo_url ? 'Alterar Logo' : 'Enviar Logo'}
+                        {company?.logo_url ? 'Alterar' : 'Enviar Logo'}
                       </Button>
                       {company?.logo_url && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={handleRemoveLogo}
-                          disabled={uploadingLogo}
-                        >
-                          <X className="h-4 w-4 mr-1" /> Remover
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={handleRemoveLogo} disabled={uploadingLogo}>
+                          <X className="h-4 w-4" />
                         </Button>
                       )}
-                      <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Máx 2MB.<br/>Aparece no menu lateral e nos PDFs.</p>
                     </div>
+                    <p className="text-xs text-muted-foreground">PNG, JPG ou SVG · Máx 2MB</p>
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-sm text-muted-foreground">Nome da Empresa</p>
+                {/* Company Name */}
+                <div className="border-t border-border pt-4">
+                  <p className="text-xs text-muted-foreground mb-1">Nome da Empresa</p>
                   {editingCompanyName ? (
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2">
                       <Input value={companyNameForm} onChange={e => setCompanyNameForm(e.target.value)} className="max-w-xs" />
                       <Button variant="outline" size="sm" onClick={() => setEditingCompanyName(false)}>Cancelar</Button>
                       <Button size="sm" className="btn-gradient" disabled={savingCompanyName} onClick={handleSaveCompanyName}>
@@ -876,116 +857,124 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <p className="text-lg font-display font-bold text-foreground">{company?.name || '—'}</p>
                       {isAdmin && (
-                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => { setCompanyNameForm(company?.name || ''); setEditingCompanyName(true); }}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setCompanyNameForm(company?.name || ''); setEditingCompanyName(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>
                   )}
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Setor</p>
-                  <p className="text-foreground font-medium">Produção Têxtil</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Sistema</p>
-                  <p className="text-foreground font-medium">Gestão de Produção v1.0</p>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Setor</p>
+                    <p className="text-sm text-foreground font-medium">Produção Têxtil</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sistema</p>
+                    <p className="text-sm text-foreground font-medium">Gestão v1.0</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Right: Shifts + Roles */}
-              <div className="space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-semibold text-muted-foreground">Turnos de Trabalho</p>
-                    {isAdmin && !editingShifts && (
-                      <Button variant="outline" size="sm" onClick={() => { setShiftForm(shiftSettings); setEditingShifts(true); }}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                      </Button>
-                    )}
-                    {editingShifts && (
-                      <div className="flex gap-1">
-                        <Button variant="outline" size="sm" onClick={() => setEditingShifts(false)}>Cancelar</Button>
-                        <Button size="sm" className="btn-gradient" disabled={savingShifts} onClick={async () => {
-                          setSavingShifts(true);
-                          try {
-                            await saveShiftSettings(shiftForm);
-                            toast.success('Turnos atualizados com sucesso');
-                            setEditingShifts(false);
-                          } catch { toast.error('Erro ao salvar turnos'); }
-                          setSavingShifts(false);
-                        }}>
-                          {savingShifts && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    {([
-                      { label: 'Manhã', startKey: 'shift_manha_start', endKey: 'shift_manha_end' },
-                      { label: 'Tarde', startKey: 'shift_tarde_start', endKey: 'shift_tarde_end' },
-                      { label: 'Noite', startKey: 'shift_noite_start', endKey: 'shift_noite_end' },
-                    ] as { label: string; startKey: keyof CompanyShiftSettings; endKey: keyof CompanyShiftSettings }[]).map(shift => (
-                      <div key={shift.label} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
-                        <span className="font-medium text-foreground">{shift.label}</span>
-                        {editingShifts ? (
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type="time"
-                              value={shiftForm[shift.startKey]}
-                              onChange={e => setShiftForm(p => ({ ...p, [shift.startKey]: e.target.value }))}
-                              className="w-[110px] h-8 text-sm"
-                            />
-                            <span className="text-muted-foreground text-sm">-</span>
-                            <Input
-                              type="time"
-                              value={shiftForm[shift.endKey]}
-                              onChange={e => setShiftForm(p => ({ ...p, [shift.endKey]: e.target.value }))}
-                              className="w-[110px] h-8 text-sm"
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            {shiftSettings[shift.startKey]} - {shiftSettings[shift.endKey]}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+              {/* Roles Card */}
+              <div className="card-glass p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <h3 className="font-display font-semibold text-foreground">Funções do Sistema</h3>
                 </div>
-
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-3">Funções do Sistema</p>
-                  <div className="space-y-2">
-                    {ROLES.map(r => (
-                      <div key={r.value} className={`flex items-center justify-between rounded-lg border p-3 ${r.color.replace('text-', 'border-').split(' ')[0]}/30 ${r.color.split(' ')[0]}/10`}>
-                        <span className="font-medium text-foreground">{r.label}</span>
-                        <Badge className={r.color}>{r.description.split(' ').slice(0, 3).join(' ')}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {isAdmin && (
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-semibold text-muted-foreground">Modo de Registro de Produção</p>
-                      <Button variant="outline" size="sm" onClick={() => setShowProductionMode(true)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Configurar
-                      </Button>
+                <div className="space-y-2">
+                  {ROLES.map(r => (
+                    <div key={r.value} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
+                      <span className="font-medium text-foreground text-sm">{r.label}</span>
+                      <span className="text-xs text-muted-foreground">{r.description}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">Configure se cada máquina registra produção por <strong>rolos</strong> ou por <strong>voltas</strong>.</p>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Email patterns */}
-            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 space-y-2">
-              <p className="font-semibold text-foreground text-sm">Padrões de Email</p>
-              <p className="text-sm text-muted-foreground"><strong>Administrador:</strong> admin@admin.com</p>
-              <p className="text-sm text-muted-foreground"><strong>Mecânicos:</strong> mecanico@[nome].com (ex: mecanico@mateus.com)</p>
-              <p className="text-sm text-muted-foreground"><strong>Revisadores:</strong> revisador@[nome].com (ex: revisador@joao.com)</p>
+            {/* Right Column */}
+            <div className="space-y-5">
+              {/* Shifts Card */}
+              <div className="card-glass p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Turnos de Trabalho</h3>
+                  </div>
+                  {isAdmin && !editingShifts && (
+                    <Button variant="outline" size="sm" onClick={() => { setShiftForm(shiftSettings); setEditingShifts(true); }}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                    </Button>
+                  )}
+                  {editingShifts && (
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" onClick={() => setEditingShifts(false)}>Cancelar</Button>
+                      <Button size="sm" className="btn-gradient" disabled={savingShifts} onClick={async () => {
+                        setSavingShifts(true);
+                        try {
+                          await saveShiftSettings(shiftForm);
+                          toast.success('Turnos atualizados com sucesso');
+                          setEditingShifts(false);
+                        } catch { toast.error('Erro ao salvar turnos'); }
+                        setSavingShifts(false);
+                      }}>
+                        {savingShifts && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {([
+                    { label: '☀️ Manhã', startKey: 'shift_manha_start', endKey: 'shift_manha_end' },
+                    { label: '🌤️ Tarde', startKey: 'shift_tarde_start', endKey: 'shift_tarde_end' },
+                    { label: '🌙 Noite', startKey: 'shift_noite_start', endKey: 'shift_noite_end' },
+                  ] as { label: string; startKey: keyof CompanyShiftSettings; endKey: keyof CompanyShiftSettings }[]).map(shift => (
+                    <div key={shift.label} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
+                      <span className="font-medium text-foreground text-sm">{shift.label}</span>
+                      {editingShifts ? (
+                        <div className="flex items-center gap-1">
+                          <Input type="time" value={shiftForm[shift.startKey]} onChange={e => setShiftForm(p => ({ ...p, [shift.startKey]: e.target.value }))} className="w-[100px] h-8 text-sm" />
+                          <span className="text-muted-foreground text-sm">—</span>
+                          <Input type="time" value={shiftForm[shift.endKey]} onChange={e => setShiftForm(p => ({ ...p, [shift.endKey]: e.target.value }))} className="w-[100px] h-8 text-sm" />
+                        </div>
+                      ) : (
+                        <span className="text-sm font-mono text-muted-foreground">
+                          {shiftSettings[shift.startKey]} — {shiftSettings[shift.endKey]}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Production Mode Card */}
+              {isAdmin && (
+                <div className="card-glass p-6 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-primary" />
+                      <h3 className="font-display font-semibold text-foreground">Modo de Registro de Produção</h3>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setShowProductionMode(true)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Configurar
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Configure se cada máquina registra produção por <strong>rolos</strong> ou por <strong>voltas</strong>.</p>
+                </div>
+              )}
+
+              {/* Email Patterns */}
+              <div className="card-glass p-5 border-primary/10">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Padrões de Email</p>
+                <div className="space-y-1.5 text-sm text-muted-foreground">
+                  <p><strong className="text-foreground">Administrador:</strong> admin@admin.com</p>
+                  <p><strong className="text-foreground">Mecânicos:</strong> mecanico@[nome].com</p>
+                  <p><strong className="text-foreground">Revisadores:</strong> revisador@[nome].com</p>
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
