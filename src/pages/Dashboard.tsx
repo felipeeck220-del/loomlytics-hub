@@ -360,7 +360,7 @@ export default function Dashboard() {
               <SelectContent>
                 <SelectItem value="all">Mês</SelectItem>
                 {availableMonths.map(m => (
-                  <SelectItem key={m} value={m}>{format(new Date(m + '-01'), 'MMM yyyy', { locale: ptBR })}</SelectItem>
+                  <SelectItem key={m} value={m}>{format(new Date(m + '-01'), 'MMMM yyyy', { locale: ptBR })}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

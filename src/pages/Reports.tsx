@@ -368,7 +368,7 @@ export default function Reports() {
                 <SelectItem value="all">Todos</SelectItem>
                 {availableMonths.map(m => (
                   <SelectItem key={m} value={m}>
-                    {format(new Date(m + '-01'), 'MMM yyyy', { locale: ptBR })}
+                    {format(new Date(m + '-01'), 'MMMM yyyy', { locale: ptBR })}
                   </SelectItem>
                 ))}
               </SelectContent>
