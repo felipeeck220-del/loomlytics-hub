@@ -109,7 +109,7 @@ export default function Dashboard() {
     let data = [...productions];
     const today = new Date();
 
-    if (dayRange === 0) {
+    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
       // Todo período — no date filter
     } else if (dateFrom || dateTo) {
       if (dateFrom) {
