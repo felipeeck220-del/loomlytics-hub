@@ -535,10 +535,12 @@ export default function MecanicaPage() {
                     </p>
                   </div>
                   <div className="flex gap-4">
+                    {canSeeFinancial && (
                     <div className="text-right">
                       <p className="text-sm font-bold text-foreground">{formatCurrency(revenue)}</p>
                       <p className="text-[10px] text-muted-foreground">Faturamento</p>
                     </div>
+                    )}
                     <div className="text-right">
                       <p className="text-sm font-bold text-foreground">{formatWeight(weight)}</p>
                       <p className="text-[10px] text-muted-foreground">Peso</p>
