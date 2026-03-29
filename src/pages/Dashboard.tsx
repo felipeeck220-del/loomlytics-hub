@@ -109,7 +109,7 @@ export default function Dashboard() {
     let data = [...productions];
     const today = new Date();
 
-    if (dayRange === 0) {
+    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
       // Todo período — no date filter
     } else if (dateFrom || dateTo) {
       if (dateFrom) {
@@ -161,7 +161,7 @@ export default function Dashboard() {
 
   const calendarHours = useMemo(() => {
     let days: number;
-    if (dayRange === 0) {
+    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
       // All data — use only days that have production records
       const uniqueDays = new Set(filtered.map(p => p.date)).size;
       days = uniqueDays || 1;
@@ -241,7 +241,7 @@ export default function Dashboard() {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
     const today = new Date();
 
-    if (dayRange === 0) {
+    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
       if (filtered.length > 0) {
         const dates = filtered.map(p => p.date).sort();
         return {
