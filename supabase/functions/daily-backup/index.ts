@@ -90,14 +90,14 @@ Deno.serve(async (req) => {
           .single();
         backupData['companies'] = companyData ? [companyData] : [];
 
-        // Upsert backup (one per company per day)
+        // Insert backup (allows multiple per day)
         const { error: insertErr } = await supabase
           .from('company_backups')
-          .upsert({
+          .insert({
             company_id: company.id,
             backup_date: today,
             data: backupData,
-          }, { onConflict: 'company_id,backup_date' });
+          });
 
         if (insertErr) {
           errors.push(`${company.name}: ${insertErr.message}`);
