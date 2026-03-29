@@ -505,16 +505,23 @@ export default function SettingsPage() {
     setSavingAdminPw(false);
   };
 
+  const [deletingUser, setDeletingUser] = useState(false);
+
   const handleDeleteUser = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
-    const { data, error } = await supabase.functions.invoke('manage-users', {
-      body: { action: 'delete', user_id: showDeleteUser?.user_id },
-    });
-    if (error || data?.error) { toast.error(data?.error || 'Erro ao excluir'); return; }
-    toast.success('Usuário excluído');
-    setShowDeleteUser(null);
-    setDeleteWord('');
-    await refreshProfiles();
+    setDeletingUser(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'delete', user_id: showDeleteUser?.user_id },
+      });
+      if (error || data?.error) { toast.error(data?.error || 'Erro ao excluir'); return; }
+      toast.success('Usuário excluído');
+      setShowDeleteUser(null);
+      setDeleteWord('');
+      await refreshProfiles();
+    } finally {
+      setDeletingUser(false);
+    }
   };
 
   const isAdmin = user?.role === 'admin';
@@ -1252,8 +1259,11 @@ export default function SettingsPage() {
           <p className="text-sm text-muted-foreground">Digite <strong>EXCLUIR</strong> para confirmar.</p>
           <Input value={deleteWord} onChange={e => setDeleteWord(e.target.value)} placeholder="EXCLUIR" />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteUser(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDeleteUser}>Confirmar</Button>
+            <Button variant="outline" onClick={() => setShowDeleteUser(null)} disabled={deletingUser}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteUser} disabled={deletingUser}>
+              {deletingUser && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {deletingUser ? 'Excluindo...' : 'Confirmar'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
