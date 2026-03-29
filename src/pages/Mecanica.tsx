@@ -24,7 +24,7 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 ];
 
 export default function MecanicaPage() {
-  const { getMachines, getMachineLogs, getProductions, saveMachineLogs } = useSharedCompanyData();
+  const { getMachines, getMachineLogs, getProductions, saveMachineLogs, loading } = useSharedCompanyData();
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
