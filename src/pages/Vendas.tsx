@@ -295,16 +295,17 @@ export default function Vendas() {
               </p>
               <p className="text-sm text-muted-foreground">
                 Plano anual: <span className="font-semibold text-primary">R$ {annualPrice.toFixed(2)}/ano</span>{' '}
+                <span className="text-xs text-muted-foreground">(em até 12x de R$ {(annualPrice / 12).toFixed(2)} no cartão)</span>{' '}
                 <Badge variant="secondary" className="text-xs">40% OFF</Badge>
               </p>
             </div>
             <Button
               size="lg"
-              className="text-lg px-10 py-6 h-auto font-bold shadow-lg hover:shadow-xl transition-all"
+              className="text-lg px-10 py-6 h-auto font-bold shadow-lg hover:shadow-xl transition-all max-w-full whitespace-normal"
               onClick={() => navigate('/register')}
             >
               Começar Agora — É Grátis
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <ArrowRight className="ml-2 h-5 w-5 shrink-0" />
             </Button>
             <p className="text-xs text-muted-foreground mt-4">
               {trialMonths} {trialMonths === 1 ? 'mês' : 'meses'} grátis • Sem cartão de crédito • Cancele quando quiser
