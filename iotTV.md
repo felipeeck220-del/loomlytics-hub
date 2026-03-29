@@ -242,11 +242,32 @@ function useTvRealtimeData(companyId: string) {
       supabase.removeChannel(shiftChannel);
       supabase.removeChannel(downtimeChannel);
       supabase.removeChannel(machinesChannel);
+      supabase.removeChannel(machineLogsChannel);
     };
   }, [companyId]);
 
-  return { readings, shiftStates, downtimeEvents };
+  return { readings, shiftStates, downtimeEvents, machineStatuses };
 }
+
+// Canal 5 (NOVO): Mudanças em machine_logs (manutenções)
+// Essencial para o cruzamento IoT × Status
+const machineLogsChannel = supabase
+  .channel('tv-machine-logs')
+  .on(
+    'postgres_changes',
+    {
+      event: '*', // INSERT (nova manutenção), UPDATE (finalização)
+      schema: 'public',
+      table: 'machine_logs',
+    },
+    (payload) => {
+      // Atualizar status e classificação das paradas
+      // Reclassificar downtimes ativos: inesperada → justificada (ou vice-versa)
+      refreshMachineStatuses();
+      reclassifyActiveDowntimes();
+    }
+  )
+  .subscribe();
 ```
 
 ### Por que Realtime e não Polling?
