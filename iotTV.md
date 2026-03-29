@@ -967,13 +967,15 @@ function isDeviceOnline(lastReading: MachineReading): boolean {
 
 | Regra | Condição (IoT × Status) | Ação Visual na TV | Penaliza Eficiência? |
 |-------|------------------------|-------------------|---------------------|
-| **Parada inesperada** | `RPM = 0` + status `ativa` por >10s | Card **PULSA VERMELHO** + alerta 🔴 | ✅ SIM |
-| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` | Card **AMARELO ESTÁVEL** (sem pulso) + alerta 🔧 | ❌ NÃO |
-| **Inconsistência** | `RPM > 0` + status ≠ `ativa` | Card **PISCA LARANJA** + alerta ⚠️ | — (alerta admin) |
+| **Parada inesperada** | `RPM = 0` + status `ativa` por >30s | Card **PULSA VERMELHO** + alerta 🔴 | ✅ SIM |
+| **Micro-parada** | `RPM = 0` + status `ativa` por <2min (conforme iot.md) | Registrada mas **sem destaque visual** (relatório) | ✅ SIM |
+| **Parada longa >15min** | `RPM = 0` + status `ativa` por >15min (conforme iot.md) | Card PULSA VERMELHO + **sugestão de registrar manutenção** | ✅ SIM + alerta |
+| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` e ≠ `inativa` | Card **AMARELO ESTÁVEL** (sem pulso) + alerta 🔧 | ❌ NÃO |
+| **Inconsistência** | `RPM > 0` + status ≠ `ativa` (conforme iot.md) | Card **PISCA LARANJA** + alerta ⚠️ | — (alerta admin) |
 | **RPM caindo** | RPM cai >30% em 60s + status `ativa` | Borda amarela no card | ✅ SIM (parcial) |
 | **RPM baixo** | `rpm < 50% meta` + status `ativa` por >60s | Ícone ⚠️ no card + alerta 🟡 | ✅ SIM |
 | **Rolo completo** | `completed_rolls` incrementa | Flash verde momentâneo + counter anima | — |
-| **Dispositivo offline** | Sem leitura há >30s | Card cinza + ícone ❌ | — |
+| **Dispositivo offline** | Sem leitura há >30s (3 envios — conforme iot.md envio a cada 10s) | Card cinza + ícone ❌ | — |
 | **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | Ícone 📶 vermelho | — |
 | **Eficiência abaixo da meta** | Eficiência geral < meta (calculada com `tempo_disponível`) | Gauge muda para vermelho | — |
 | **Novo recorde do turno** | Tecelão ultrapassa 1º lugar | Animação de troca no ranking | — |
