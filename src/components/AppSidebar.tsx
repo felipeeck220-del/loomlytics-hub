@@ -44,6 +44,7 @@ export function AppSidebar() {
   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const isAdmin = role === 'admin';
+  const { canInstall, platform, install, showIOSInstructions, setShowIOSInstructions } = useInstallApp();
 
   const slugPrefix = `/${user?.company_slug || ''}`;
 
