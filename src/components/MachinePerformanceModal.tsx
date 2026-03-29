@@ -184,9 +184,14 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
                   <SelectTrigger className="w-[120px] h-9 rounded-lg"><SelectValue placeholder="Mês" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os meses</SelectItem>
-                    {availableMonths.map(m => (
-                      <SelectItem key={m} value={m}>{format(new Date(m + '-01'), 'MMMM yyyy', { locale: ptBR })}</SelectItem>
-                    ))}
+                    {availableMonths.map(m => {
+                      const [year, month] = m.split('-').map(Number);
+                      return (
+                        <SelectItem key={m} value={m}>
+                          {format(new Date(year, month - 1, 1, 12), 'MMMM yyyy', { locale: ptBR })}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
 

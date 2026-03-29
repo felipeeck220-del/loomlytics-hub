@@ -366,11 +366,14 @@ export default function Reports() {
               <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Escolher mês" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os meses</SelectItem>
-                {availableMonths.map(m => (
-                  <SelectItem key={m} value={m}>
-                    {format(new Date(m + '-01'), 'MMMM yyyy', { locale: ptBR })}
-                  </SelectItem>
-                ))}
+                {availableMonths.map(m => {
+                  const [year, month] = m.split('-').map(Number);
+                  return (
+                    <SelectItem key={m} value={m}>
+                      {format(new Date(year, month - 1, 1, 12), 'MMMM yyyy', { locale: ptBR })}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
 
