@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
       const { data: backups, error } = await supabase
         .from('company_backups')
         .select('id, company_id, backup_date, created_at')
-        .order('backup_date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
