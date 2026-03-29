@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { getMobileFooterKeys } from '@/components/MobileBottomNav';
-import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import {
