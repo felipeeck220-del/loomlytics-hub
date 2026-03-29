@@ -1,0 +1,22 @@
+{
+  "name": "MalhaGest - Gestão Têxtil",
+  "short_name": "MalhaGest",
+  "description": "Sistema completo de gerenciamento para malharias",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
