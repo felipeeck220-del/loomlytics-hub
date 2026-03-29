@@ -553,21 +553,79 @@ export default function SettingsPage() {
         </TabsList>
 
         {/* ===== MEU PERFIL ===== */}
-        <TabsContent value="profile" className="mt-4">
-          <div className="card-glass p-6 space-y-6">
-            <div className="flex items-center gap-3">
-              <User className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <h2 className="font-display font-semibold text-foreground">Informações do Usuário</h2>
-                <p className="text-sm text-muted-foreground">Suas informações de acesso e permissões</p>
+        <TabsContent value="profile" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: User Card */}
+            <div className="lg:col-span-1 space-y-5">
+              {/* Avatar & Name Card */}
+              <div className="card-glass p-6">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/30 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-primary">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-display font-bold text-foreground">{user?.name}</h3>
+                    <Badge className={`mt-1.5 ${getRoleColor(user?.role || '')}`}>{getRoleLabel(user?.role || '')}</Badge>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Email</p>
+                      <p className="text-foreground truncate">{user?.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Membro desde</p>
+                      <p className="text-foreground">
+                        {profiles.find(p => p.user_id === user?.id)?.created_at
+                          ? format(new Date(profiles.find(p => p.user_id === user?.id)!.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Shield className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Função</p>
+                      <p className="text-foreground">{ROLES.find(r => r.value === user?.role)?.description}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-border space-y-2">
+                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setEditingProfile(true)}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" /> Editar Perfil
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setChangingPassword(true)}>
+                    <Key className="h-3.5 w-3.5 mr-2" /> Alterar Senha
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left: User info */}
-              <div className="space-y-5">
-                {editingProfile ? (
-                  <>
+            {/* Right: Edit Forms + Permissions */}
+            <div className="lg:col-span-2 space-y-5">
+              {/* Edit Profile Form */}
+              {editingProfile && (
+                <div className="card-glass p-6 space-y-4 border-primary/30">
+                  <div className="flex items-center gap-2">
+                    <Pencil className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Editar Perfil</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Nome</Label>
                       <Input value={profileName} onChange={e => setProfileName(e.target.value)} />
@@ -575,140 +633,82 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                       <Label>Novo Email</Label>
                       <Input type="email" placeholder={user?.email || 'Novo email'} value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
-                      <p className="text-xs text-muted-foreground">Deixe em branco para manter o email atual.</p>
+                      <p className="text-xs text-muted-foreground">Deixe em branco para manter o atual.</p>
                     </div>
-                    {profileEmail.trim() !== '' && profileEmail.trim() !== user?.email && (
-                      <div className="space-y-2">
-                        <Label>Senha Atual (obrigatória para alterar email)</Label>
-                        <div className="relative">
-                          <Input
-                            type={showProfilePassword ? 'text' : 'password'}
-                            value={profilePassword}
-                            onChange={e => setProfilePassword(e.target.value)}
-                            placeholder="Digite sua senha atual"
-                          />
-                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowProfilePassword(!showProfilePassword)}>
-                            {showProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(''); setProfilePassword(''); }}>Cancelar</Button>
-                      <Button size="sm" className="btn-gradient" disabled={savingProfile} onClick={handleSaveProfile}>
-                        {savingProfile && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Nome</p>
-                        <p className="text-lg font-display font-bold text-foreground">{user?.name}</p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => setEditingProfile(true)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                      </Button>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-foreground">{user?.email}</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Alterar Senha */}
-                <div className="border-t border-border pt-4">
-                  {changingPassword ? (
-                    <div className="space-y-3">
-                      <p className="text-sm font-semibold text-foreground">Alterar Senha</p>
-                      <div className="space-y-2">
-                        <Label>Senha Atual</Label>
-                        <div className="relative">
-                          <Input
-                            type={showCurrentPw ? 'text' : 'password'}
-                            value={currentPassword}
-                            onChange={e => setCurrentPassword(e.target.value)}
-                            placeholder="Digite sua senha atual"
-                          />
-                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPw(!showCurrentPw)}>
-                            {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Nova Senha</Label>
-                        <div className="relative">
-                          <Input
-                            type={showNewPw ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={e => setNewPassword(e.target.value)}
-                            placeholder="Digite a nova senha (mín. 6 caracteres)"
-                          />
-                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPw(!showNewPw)}>
-                            {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => { setChangingPassword(false); setCurrentPassword(''); setNewPassword(''); }}>Cancelar</Button>
-                        <Button size="sm" className="btn-gradient" disabled={savingPassword} onClick={handleChangePassword}>
-                          {savingPassword && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar Senha
+                  </div>
+                  {profileEmail.trim() !== '' && profileEmail.trim() !== user?.email && (
+                    <div className="space-y-2 max-w-sm">
+                      <Label>Senha Atual (obrigatória para alterar email)</Label>
+                      <div className="relative">
+                        <Input
+                          type={showProfilePassword ? 'text' : 'password'}
+                          value={profilePassword}
+                          onChange={e => setProfilePassword(e.target.value)}
+                          placeholder="Digite sua senha atual"
+                        />
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowProfilePassword(!showProfilePassword)}>
+                          {showProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Senha</p>
-                        <p className="text-foreground">••••••••</p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => setChangingPassword(true)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Alterar
-                      </Button>
-                    </div>
                   )}
-                </div>
-
-                <div>
-                  <p className="text-sm text-muted-foreground">Função</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge className={getRoleColor(user?.role || '')}>{getRoleLabel(user?.role || '')}</Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {ROLES.find(r => r.value === user?.role)?.description}
-                    </span>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(''); setProfilePassword(''); }}>Cancelar</Button>
+                    <Button size="sm" className="btn-gradient" disabled={savingProfile} onClick={handleSaveProfile}>
+                      {savingProfile && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                    </Button>
                   </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Membro desde</p>
+              )}
+
+              {/* Change Password Form */}
+              {changingPassword && (
+                <div className="card-glass p-6 space-y-4 border-primary/30">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-foreground">
-                      {profiles.find(p => p.user_id === user?.id)?.created_at
-                        ? format(new Date(profiles.find(p => p.user_id === user?.id)!.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-                        : '—'}
-                    </p>
+                    <Key className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Alterar Senha</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Senha Atual</Label>
+                      <div className="relative">
+                        <Input type={showCurrentPw ? 'text' : 'password'} value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="Senha atual" />
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPw(!showCurrentPw)}>
+                          {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nova Senha</Label>
+                      <div className="relative">
+                        <Input type={showNewPw ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Mín. 6 caracteres" />
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPw(!showNewPw)}>
+                          {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="sm" onClick={() => { setChangingPassword(false); setCurrentPassword(''); setNewPassword(''); }}>Cancelar</Button>
+                    <Button size="sm" className="btn-gradient" disabled={savingPassword} onClick={handleChangePassword}>
+                      {savingPassword && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar Senha
+                    </Button>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Right: Permissions */}
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-muted-foreground">Permissões de Acesso</p>
+              {/* Permissions */}
+              <div className="card-glass p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <h3 className="font-display font-semibold text-foreground">Permissões de Acesso</h3>
+                </div>
                 <RolePermissionsDisplay role={user?.role || 'admin'} />
-                <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 mt-4">
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-yellow-600" />
-                    <p className="font-semibold text-foreground text-sm">Nível de Acesso</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-sm text-foreground">
                     {isAdmin
-                      ? 'Você tem acesso total ao sistema e pode gerenciar todos os usuários e configurações.'
-                      : 'Seu acesso é limitado às funcionalidades da sua função.'}
+                      ? '✓ Você tem acesso total ao sistema e pode gerenciar todos os usuários e configurações.'
+                      : '⚠ Seu acesso é limitado às funcionalidades da sua função. Contate o administrador para alterações.'}
                   </p>
                 </div>
               </div>
