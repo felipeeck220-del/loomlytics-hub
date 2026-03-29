@@ -2,3 +2,9 @@ project_id = "etsaleegdpswwsprwyzv"
 
 [functions.admin-api]
 verify_jwt = false
+
+[functions.daily-backup]
+verify_jwt = false
+
+[functions.restore-backup]
+verify_jwt = false
