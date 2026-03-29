@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Lock, Building2, Users, Calendar, Mail, Phone, Shield, LogOut, User, Settings2 } from 'lucide-react';
+import { Lock, Building2, Users, Calendar, Mail, Phone, Shield, LogOut, User, Settings2, Database, RotateCcw, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const NAV_ITEMS = [
@@ -66,6 +66,14 @@ interface UserProfile {
   } | null;
 }
 
+interface BackupEntry {
+  id: string;
+  company_id: string;
+  company_name: string;
+  backup_date: string;
+  created_at: string;
+}
+
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -75,6 +83,10 @@ export default function Admin() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('companies');
+  const [backups, setBackups] = useState<BackupEntry[]>([]);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [triggeringBackup, setTriggeringBackup] = useState(false);
+  const [backupFilter, setBackupFilter] = useState('');
 
   // Company modal
   const [selectedCompany, setSelectedCompany] = useState<CompanyWithSettings | null>(null);
