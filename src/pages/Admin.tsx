@@ -400,6 +400,10 @@ export default function Admin() {
               <Settings2 className="h-4 w-4" />
               Configurações
             </TabsTrigger>
+            <TabsTrigger value="backups" className="gap-2">
+              <Database className="h-4 w-4" />
+              Backups
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="companies">
