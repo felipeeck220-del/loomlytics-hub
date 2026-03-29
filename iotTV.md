@@ -712,16 +712,19 @@ interface TvIoTData extends TvData {
     isJustifiedStop: boolean;     // true se status ≠ 'ativa' e ≠ 'inativa'
   }>;
   
-  // Estado do turno por máquina (produção acumulada)
+  // Estado do turno por máquina (espelha iot_shift_state do iot.md seção 6.3)
+  // NOTA: iot_shift_state NÃO tem campos de downtime/manutenção — esses são
+  // calculados no frontend a partir de iot_downtime_events e machine_logs
   shiftStates: Map<string, {
     machineId: string;
     weaverId: string | null;
-    partialTurns: number;
-    totalTurns: number;
-    completedRolls: number;
-    lastRpm: number;
-    totalDowntimeSeconds: number;       // Apenas downtimes INJUSTIFICADOS
-    totalMaintenanceSeconds: number;    // Tempo em manutenção justificada
+    articleId: string | null;         // Artigo em produção (campo article_id no DB)
+    currentShift: string;             // 'manha' | 'tarde' | 'noite'
+    partialTurns: number;             // Voltas parciais (não completaram 1 rolo)
+    totalTurns: number;               // Total de voltas no turno
+    completedRolls: number;           // Rolos completos no turno
+    lastRpm: number;                  // Último RPM registrado
+    shiftStartedAt: Date;             // Quando o turno iniciou
   }>;
   
   // Buffer de sparkline (últimas 30 leituras por máquina)
