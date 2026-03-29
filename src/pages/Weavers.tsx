@@ -283,6 +283,7 @@ export default function Weavers() {
 
 // ─── Weaver Reports Tab ──────────────────────────────────────
 function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; productions: Production[] }) {
+  const { canSeeFinancial } = usePermissions();
   const [selectedWeaverId, setSelectedWeaverId] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
