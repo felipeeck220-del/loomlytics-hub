@@ -508,7 +508,7 @@ export default function SettingsPage() {
   const handleDeleteUser = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
     const { data, error } = await supabase.functions.invoke('manage-users', {
-      body: { action: 'delete', user_id: showDeleteUser?.id },
+      body: { action: 'delete', user_id: showDeleteUser?.user_id },
     });
     if (error || data?.error) { toast.error(data?.error || 'Erro ao excluir'); return; }
     toast.success('Usuário excluído');
