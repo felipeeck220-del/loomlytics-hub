@@ -213,6 +213,43 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === 'list_backups') {
+      const { data: backups, error } = await supabase
+        .from('company_backups')
+        .select('id, company_id, backup_date, created_at')
+        .order('backup_date', { ascending: false });
+
+      if (error) throw error;
+
+      // Enrich with company name
+      const { data: allCompanies } = await supabase
+        .from('companies')
+        .select('id, name');
+      const companyMap = new Map((allCompanies || []).map((c: any) => [c.id, c.name]));
+
+      const result = (backups || []).map((b: any) => ({
+        ...b,
+        company_name: companyMap.get(b.company_id) || 'Desconhecida',
+      }));
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'trigger_backup') {
+      // Manually trigger a backup now
+      const backupUrl = `${supabaseUrl}/functions/v1/daily-backup`;
+      const res = await fetch(backupUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceRoleKey}` },
+      });
+      const result = await res.json();
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'Ação inválida' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
