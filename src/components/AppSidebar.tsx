@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,8 +9,12 @@ import { getMobileFooterKeys } from '@/components/MobileBottomNav';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
 
 const allItems = [
@@ -29,11 +33,13 @@ const allItems = [
 export function AppSidebar() {
   const { state, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { user } = useAuth();
-  const { filterNavItems } = usePermissions();
+  const { user, logout } = useAuth();
+  const { role, filterNavItems } = usePermissions();
   const { sidebarLocked } = useSubscription();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const isAdmin = role === 'admin';
 
   const slugPrefix = `/${user?.company_slug || ''}`;
 
@@ -143,6 +149,43 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      {/* Logout button for non-admin users */}
+      {!isAdmin && (
+        <SidebarFooter className="px-2 py-3 border-t border-sidebar-border">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <button
+                  onClick={() => setShowLogoutDialog(true)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-150 text-[13px] w-full"
+                >
+                  <LogOut className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span>Sair</span>}
+                </button>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
+
+      {/* Logout confirmation dialog */}
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deseja sair do sistema?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você será desconectado e precisará fazer login novamente para acessar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={logout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sidebar>
   );
 }
