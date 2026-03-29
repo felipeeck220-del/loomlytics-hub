@@ -328,7 +328,14 @@ export default function SettingsPage() {
   const checkSubscription = async () => {
     setLoadingSub(true);
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setLoadingSub(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (!error && data) setSubStatus(data);
     } catch {}
     setLoadingSub(false);
