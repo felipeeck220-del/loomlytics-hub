@@ -184,13 +184,15 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [companiesData, usersData, platformData] = await Promise.all([
+      const [companiesData, usersData, platformData, backupsData] = await Promise.all([
         callAdmin('list_companies'),
         callAdmin('list_users'),
         callAdmin('get_platform_settings'),
+        callAdmin('list_backups'),
       ]);
       setCompanies(companiesData);
       setUsers(usersData);
+      setBackups(backupsData || []);
       if (platformData?.trial_days) setTrialDays(platformData.trial_days);
       if (platformData?.monthly_price) setMonthlyPrice(platformData.monthly_price);
     } catch (err: any) {
