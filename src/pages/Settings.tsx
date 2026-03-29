@@ -717,10 +717,12 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* ===== USUÁRIOS ===== */}
-        <TabsContent value="users" className="mt-4 space-y-6">
-          <div className="flex items-center justify-between">
+        <TabsContent value="users" className="mt-6 space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-muted-foreground" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
               <div>
                 <h2 className="font-display font-semibold text-foreground text-lg">Gerenciar Usuários</h2>
                 <p className="text-sm text-muted-foreground">Controle de acesso e permissões do sistema</p>
@@ -733,20 +735,14 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Email Patterns */}
-          <div className="card-glass p-5 space-y-3">
-            <div>
-              <h3 className="font-semibold text-foreground">Padrões de Email</h3>
-              <p className="text-sm text-muted-foreground">Formatos de email utilizados no sistema</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Email Patterns - Compact */}
+          <div className="card-glass p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Padrões de Email por Função</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {ROLES.map(r => (
-                <div key={r.value} className="flex items-start gap-2">
-                  <Badge className={r.color}>{r.label}</Badge>
-                  <div>
-                    <p className="text-sm text-foreground">{r.value}@[nome].com</p>
-                    <p className="text-xs text-muted-foreground">Ex: {r.value}@joao.com</p>
-                  </div>
+                <div key={r.value} className="rounded-lg border border-border bg-muted/20 p-3 text-center space-y-1.5">
+                  <Badge className={`${r.color} text-xs`}>{r.label}</Badge>
+                  <p className="text-xs text-foreground font-mono">{r.value}@[nome].com</p>
                 </div>
               ))}
             </div>
@@ -760,13 +756,13 @@ export default function SettingsPage() {
           ) : (
             <div className="space-y-3">
               {profiles.map(p => (
-                <div key={p.id} className="card-glass p-5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                      <Users className="h-5 w-5 text-muted-foreground" />
+                <div key={p.id} className="card-glass p-4 flex items-center justify-between hover:border-primary/20 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-bold text-primary">{p.name.charAt(0).toUpperCase()}</span>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-display font-bold text-foreground">{p.name}</p>
                         {p.code && (
                           <Badge variant="outline" className="text-xs font-mono">#{p.code}</Badge>
@@ -775,11 +771,11 @@ export default function SettingsPage() {
                           {p.status === 'active' ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{p.email}</p>
+                      <p className="text-sm text-muted-foreground truncate">{p.email}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Badge className={getRoleColor(p.role)}>{getRoleLabel(p.role)}</Badge>
                         <span className="text-xs text-muted-foreground">
-                          Criado em {format(new Date(p.created_at), 'dd/MM/yyyy')}
+                          Desde {format(new Date(p.created_at), 'dd/MM/yyyy')}
                         </span>
                       </div>
                     </div>
@@ -792,22 +788,11 @@ export default function SettingsPage() {
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
                         <Key className="h-3.5 w-3.5" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleToggleStatus(p)}
-                        title={p.status === 'active' ? 'Desativar' : 'Ativar'}
-                      >
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(p)} title={p.status === 'active' ? 'Desativar' : 'Ativar'}>
                         <XCircle className="h-3.5 w-3.5 text-warning" />
                       </Button>
                       {p.user_id !== user?.id && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => { setShowDeleteUser(p); setDeleteWord(''); }}
-                        >
+                        <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDeleteUser(p); setDeleteWord(''); }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
