@@ -270,7 +270,7 @@ export default function Reports() {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
     const today = new Date();
 
-    if (dayRange === 0) {
+    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
       if (filtered.length > 0) {
         const dates = filtered.map(p => p.date).sort();
         return `${format(toDisplayDate(dates[0]), 'dd/MM/yyyy')} a ${format(toDisplayDate(dates[dates.length - 1]), 'dd/MM/yyyy')}`;
