@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus, type MachineLog } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
   'manutencao_preventiva',
@@ -26,6 +27,7 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 
 export default function MecanicaPage() {
   const { getMachines, getMachineLogs, getProductions, saveMachineLogs, loading } = useSharedCompanyData();
+  const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
