@@ -1,0 +1,1 @@
+ALTER TABLE public.company_backups DROP CONSTRAINT company_backups_company_id_backup_date_key;
