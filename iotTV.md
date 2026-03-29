@@ -801,28 +801,78 @@ function useTvIoTData(companyId: string): TvIoTData {
 ... (a cada 10 segundos a TV atualiza) ...
 
 08:30:00 — ESP32 envia: { rpm: 0, is_running: false }
-           Edge Function: cria iot_downtime_event
+           Edge Function: verifica status da máquina → status = 'ativa'
+           → PARADA INESPERADA! Cria iot_downtime_event (type: 'inesperada')
            Realtime: evento em iot_downtime_events
            TV IMEDIATAMENTE:
-             - Card TEAR 01 pulsa vermelho
-             - Painel de Alertas: "🔴 TEAR 01 parada! ⏱️ 0:00"
-             - Timer começa a contar ao vivo no browser
-             - Eficiência geral do turno recalcula
+             - Card TEAR 01 PULSA VERMELHO (parada inesperada)
+             - Painel de Alertas: "🔴 TEAR 01 — PARADA INESPERADA! ⏱️ 0:00"
+             - Timer VERMELHO começa a contar ao vivo
+             - Eficiência RECALCULA (esta parada PENALIZA)
 
-08:30:32 — Timer na TV: "Parada há 0:32"
-08:31:00 — Timer na TV: "Parada há 1:00"
-08:35:00 — Timer na TV: "Parada há 5:00 | Impacto: ~0.2 rolos"
+08:30:32 — Timer na TV: "🔴 Parada há 0:32"
+08:31:00 — Timer na TV: "🔴 Parada há 1:00"
+08:35:00 — Timer na TV: "🔴 Parada há 5:00 | Impacto: ~0.2 rolos | -1.2% eficiência"
 
 08:35:10 — ESP32 envia: { rpm: 23, is_running: true }
            Edge Function: finaliza iot_downtime_event (duração: 5min10s)
-           Realtime: evento UPDATE em iot_downtime_events
            TV IMEDIATAMENTE:
              - Card TEAR 01 flash verde → volta ao normal
              - Alerta de parada removido
              - Timer para
 
+────── CENÁRIO 2: MANUTENÇÃO JUSTIFICADA ──────
+
+10:00:00 — Mecânico registra no app: TEAR 01 → Manutenção Preventiva
+           machine_logs: novo registro { status: 'manutencao_preventiva' }
+           machines: status atualizado
+           Realtime: evento UPDATE em machines + INSERT em machine_logs
+           TV IMEDIATAMENTE:
+             - Card TEAR 01 muda para AMARELO ESTÁVEL (sem pulso!)
+             - Status: "🔧 Manut. Preventiva"
+             - Timer AMARELO inicia (cor diferente do vermelho!)
+             - Painel de Alertas: "🔧 TEAR 01 — MANUTENÇÃO PREVENTIVA"
+             - ℹ️ "Tempo descontado do turno (sem impacto na eficiência)"
+             - Eficiência NÃO RECALCULA (esta parada NÃO penaliza)
+
+10:00:10 — ESP32 envia: { rpm: 0, is_running: false }
+           Edge Function: verifica status → status = 'manutencao_preventiva'
+           → PARADA JUSTIFICADA! NÃO cria iot_downtime_event
+           → Leitura registrada em machine_readings mas ignorada para eficiência
+           TV: Nenhuma mudança visual (já mostra manutenção)
+
+10:30:00 — Timer na TV: "🔧 Em manutenção há 30:00" (amarelo, sem pulso)
+           Eficiência continua igual (tempo descontado do turno)
+
+10:45:00 — Mecânico finaliza: TEAR 01 → Ativa
+           machine_logs: ended_at preenchido
+           machines: status volta para 'ativa'
+           TV IMEDIATAMENTE:
+             - Card TEAR 01 volta ao normal
+             - Timer de manutenção para (duração final: 45min)
+             - Eficiência recalcula com tempo_disponivel = tempo_turno - 45min
+
+10:45:10 — ESP32 envia: { rpm: 24, is_running: true }
+           Edge Function: status = 'ativa', tudo normal
+           TV atualiza: RPM: 24.0 | 🟢 Ativa
+
+────── CENÁRIO 3: INCONSISTÊNCIA ──────
+
+11:00:00 — Admin marca TEAR 02 como "Troca de Artigo" no app
+           MAS o tecelão esqueceu de parar a máquina
+11:00:10 — ESP32 do TEAR 02 envia: { rpm: 22, is_running: true }
+           Edge Function: status = 'troca_artigo' MAS rpm > 0
+           → INCONSISTÊNCIA! Emite alerta
+           TV IMEDIATAMENTE:
+             - Card TEAR 02 PISCA AMARELO/LARANJA
+             - Painel de Alertas: "⚠️ TEAR 02 — INCONSISTÊNCIA"
+             - "Máquina produzindo (RPM: 22) mas status: Troca de Artigo"
+             - "Verificar com mecânico/operador"
+
 13:30:00 — TROCA DE TURNO
-           Edge Function: finaliza turno de João, cria registro em productions
+           Edge Function: finaliza turno de João
+           → Calcula eficiência com tempo_disponivel (desconta 45min de manutenção)
+           → Cria registro em productions (source: 'iot')
            Realtime: evento INSERT em productions + UPDATE em iot_shift_state
            TV atualiza:
              - Header: "TURNO: Tarde"
