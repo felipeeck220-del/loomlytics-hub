@@ -145,7 +145,7 @@ export default function Reports() {
       data = data.filter(p => p.machine_id === filterMachine || (!p.machine_id && selectedMachine && p.machine_name === selectedMachine.name));
     }
     return data;
-  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles]);
+  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles, machines]);
 
   // KPIs
   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
