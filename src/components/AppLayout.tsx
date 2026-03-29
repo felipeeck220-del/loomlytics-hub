@@ -2,7 +2,9 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { AppSidebar } from '@/components/AppSidebar';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +53,7 @@ export default function AppLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { status: subStatus, trialDaysLeft, sidebarLocked } = useSubscription();
+  const isMobile = useIsMobile();
   const [now, setNow] = useState(new Date());
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const navigate = useNavigate();
@@ -170,10 +173,13 @@ export default function AppLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+          <main className={`flex-1 overflow-auto p-4 md:p-6 lg:p-8 ${isMobile ? 'pb-20' : ''}`}>
             <Outlet />
           </main>
         </div>
+
+        {/* Mobile bottom navigation */}
+        {isMobile && <MobileBottomNav />}
 
         {/* Logout confirmation dialog */}
         <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>

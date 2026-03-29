@@ -5,6 +5,7 @@ import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { getMobileFooterKeys } from '@/components/MobileBottomNav';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -62,11 +63,18 @@ export function AppSidebar() {
       ? allItems.filter(item => enabledNavItems.includes(item.key))
       : allItems;
     const roleFiltered = filterNavItems(companyFiltered);
-    return roleFiltered.map(item => ({
+
+    // On mobile, hide items that are in the bottom nav
+    const mobileFooterKeys = getMobileFooterKeys(user?.role || 'admin');
+    const finalItems = isMobile
+      ? roleFiltered.filter(item => !mobileFooterKeys.includes(item.key))
+      : roleFiltered;
+
+    return finalItems.map(item => ({
       ...item,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [enabledNavItems, slugPrefix, filterNavItems]);
+  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
