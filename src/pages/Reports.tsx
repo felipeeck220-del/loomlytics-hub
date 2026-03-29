@@ -363,9 +363,9 @@ export default function Reports() {
             </Popover>
 
             <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}>
-              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Escolher mês" /></SelectTrigger>
+              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Mês" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os meses</SelectItem>
+                <SelectItem value="all">Mês</SelectItem>
                 {availableMonths.map(m => {
                   const [year, month] = m.split('-').map(Number);
                   return (
@@ -406,9 +406,9 @@ export default function Reports() {
             <div className="w-px h-6 bg-border mx-1" />
 
             <Select value={filterShift} onValueChange={setFilterShift}>
-              <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Todos os turnos" /></SelectTrigger>
+              <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Turno" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os turnos</SelectItem>
+                <SelectItem value="all">Turno</SelectItem>
                 {Object.entries(companyShiftLabels).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v.split(' (')[0]}</SelectItem>
                 ))}
@@ -416,25 +416,25 @@ export default function Reports() {
             </Select>
 
             <Select value={filterMachine} onValueChange={setFilterMachine}>
-              <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Todas as máquinas" /></SelectTrigger>
+              <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as máquinas</SelectItem>
+                <SelectItem value="all">Máquina</SelectItem>
                 {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
               </SelectContent>
             </Select>
 
             <Select value={filterClient} onValueChange={setFilterClient}>
-              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos os clientes" /></SelectTrigger>
+              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Cliente" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os clientes</SelectItem>
+                <SelectItem value="all">Cliente</SelectItem>
                 {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
 
             <Select value={filterArticle} onValueChange={setFilterArticle}>
-              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Todos os artigos" /></SelectTrigger>
+              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os artigos</SelectItem>
+                <SelectItem value="all">Artigo</SelectItem>
                 {articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
