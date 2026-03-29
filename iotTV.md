@@ -573,20 +573,28 @@ function calculateIoTTotals(
 └──────────────────────────────────────────────────────┘
 ```
 
-**Tipos de alerta com cruzamento IoT × Status:**
+**Tipos de alerta com cruzamento IoT × Status (alinhados com iot.md seção 11):**
 
 | Tipo | Condição (IoT × Status) | Ícone | Cor | Penaliza Eficiência? |
 |------|------------------------|-------|-----|---------------------|
 | **Parada inesperada** | `RPM = 0` + status `ativa` por >30s | 🔴 | `text-destructive` | ✅ **SIM** |
-| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` e ≠ `inativa` | 🔧 | `text-warning` | ❌ NÃO |
+| **Micro-parada** | `RPM = 0` + status `ativa` por <2min | ⚪ | `text-muted` | ✅ SIM (agrupada em relatórios — conforme iot.md) |
+| **Parada longa sem registro** | `RPM = 0` + status `ativa` por >15min | 🔴🔔 | `text-destructive` | ✅ SIM + **alerta sugerindo registrar manutenção** (conforme iot.md) |
+| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` e ≠ `inativa` | 🔧 | `text-warning` | ❌ NÃO (conforme iot.md: não cria `iot_downtime_events`) |
 | **RPM baixo** | `rpm < 50% meta` + status `ativa` por >60s | 🟡 | `text-warning` | ✅ SIM (parcial) |
-| **Inconsistência** | `RPM > 0` + status ≠ `ativa` | ⚠️ | `text-orange-500` | — (alerta para admin) |
-| **Dispositivo offline** | Sem leitura há >60s | 🔵 | `text-info` | — (sem dados) |
+| **Inconsistência** | `RPM > 0` + status ≠ `ativa` (conforme iot.md: alerta automático) | ⚠️ | `text-orange-500` | — (alerta para admin) |
+| **Dispositivo offline** | Sem leitura há >30s (3 envios perdidos — conforme iot.md: envio a cada 10s) | 🔵 | `text-info` | — (sem dados) |
 | **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | 📶 | `text-warning` | — (informativo) |
+
+> **Nota sobre micro-paradas (conforme iot.md):** Paradas < 2min com status `ativa` são registradas como `iot_downtime_events` normalmente e penalizam eficiência, mas na TV são exibidas com destaque menor (sem pulso, cor `muted`). São agrupadas em relatórios.
+
+> **Nota sobre parada longa >15min (conforme iot.md):** Emite alerta especial sugerindo que o mecânico registre manutenção. Ex: *"TEAR 01 parada há 16min sem manutenção registrada — registrar manutenção?"*
 
 **Regras de exibição:**
 - **Paradas inesperadas** ficam no **topo** (prioridade máxima) com card pulsante
+- **Paradas longas >15min** ficam logo abaixo com alerta adicional de sugestão
 - **Manutenções justificadas** são exibidas com visual calmo (sem pulso, cor estável)
+- **Micro-paradas (<2min)** não aparecem individualmente no painel de alertas (só no relatório)
 - **Inconsistências** piscam para chamar atenção do admin/mecânico
 - O **impacto estimado** só contabiliza paradas inesperadas (não manutenções)
 
@@ -594,6 +602,7 @@ function calculateIoTTotals(
 - Quando uma máquina para, o timer conta **em tempo real** no browser (não espera próximo envio)
 - Usa `Date.now() - downtime_started_at` atualizado a cada segundo via `setInterval`
 - Timer de manutenção justificada usa cor diferente (amarelo) do timer de parada inesperada (vermelho)
+- Ao ultrapassar 15min (status `ativa`), timer muda para modo **urgente** com sugestão de registrar manutenção
 
 ---
 
