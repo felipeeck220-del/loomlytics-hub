@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Factory, User, Mail, Building2, Phone, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import { fbTrack } from '@/lib/fbPixel';
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -39,6 +40,7 @@ export default function Register() {
     });
     setLoading(false);
     if (result.success && result.slug) {
+      fbTrack('CompleteRegistration');
       toast.success('Conta criada com sucesso!');
       navigate(`/${result.slug}`);
     } else {

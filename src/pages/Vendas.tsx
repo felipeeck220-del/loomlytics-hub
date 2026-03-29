@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fbTrack } from '@/lib/fbPixel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -82,6 +83,7 @@ export default function Vendas() {
   const [monthlyPrice, setMonthlyPrice] = useState(47);
 
   useEffect(() => {
+    fbTrack('PageView');
     supabase.from('platform_settings').select('key, value').then(({ data }) => {
       (data || []).forEach((row: any) => {
         if (row.key === 'trial_days') setTrialDays(Number(row.value));
