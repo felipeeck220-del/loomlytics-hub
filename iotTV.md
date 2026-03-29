@@ -155,6 +155,7 @@ function useTvRealtimeData(companyId: string) {
   const [readings, setReadings] = useState<Map<string, MachineReading>>(new Map());
   const [shiftStates, setShiftStates] = useState<Map<string, ShiftState>>(new Map());
   const [downtimeEvents, setDowntimeEvents] = useState<DowntimeEvent[]>([]);
+  const [machineStatuses, setMachineStatuses] = useState<Map<string, MachineStatus>>(new Map());
 
   useEffect(() => {
     // Canal 1: Leituras de máquina (RPM ao vivo)
@@ -201,7 +202,8 @@ function useTvRealtimeData(companyId: string) {
       )
       .subscribe();
 
-    // Canal 3: Eventos de parada
+    // Canal 3: Eventos de parada (apenas downtimes INJUSTIFICADOS)
+    // Conforme iot.md: manutenções justificadas NÃO geram iot_downtime_events
     const downtimeChannel = supabase
       .channel('tv-downtime')
       .on(
@@ -219,7 +221,7 @@ function useTvRealtimeData(companyId: string) {
       )
       .subscribe();
 
-    // Canal 4: Mudança de status das máquinas
+    // Canal 4: Mudança de status das máquinas (tabela machines)
     const machinesChannel = supabase
       .channel('tv-machines')
       .on(
@@ -237,6 +239,29 @@ function useTvRealtimeData(companyId: string) {
       )
       .subscribe();
 
+    // Canal 5: Mudanças em machine_logs (manutenções)
+    // Essencial para o cruzamento IoT × Status (conforme iot.md seção 10-11)
+    // Detecta: mecânico registra manutenção → TV reclassifica parada de inesperada para justificada
+    const machineLogsChannel = supabase
+      .channel('tv-machine-logs')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT (nova manutenção), UPDATE (finalização com ended_at)
+          schema: 'public',
+          table: 'machine_logs',
+        },
+        (payload) => {
+          // Atualizar mapa de status das máquinas
+          refreshMachineStatuses();
+          // Reclassificar downtimes ativos:
+          // Se mecânico registrou manutenção DEPOIS da parada ser detectada,
+          // a TV deve mudar o visual de 🔴 (inesperada) para 🔧 (justificada)
+          reclassifyActiveDowntimes();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(readingsChannel);
       supabase.removeChannel(shiftChannel);
@@ -248,26 +273,6 @@ function useTvRealtimeData(companyId: string) {
 
   return { readings, shiftStates, downtimeEvents, machineStatuses };
 }
-
-// Canal 5 (NOVO): Mudanças em machine_logs (manutenções)
-// Essencial para o cruzamento IoT × Status
-const machineLogsChannel = supabase
-  .channel('tv-machine-logs')
-  .on(
-    'postgres_changes',
-    {
-      event: '*', // INSERT (nova manutenção), UPDATE (finalização)
-      schema: 'public',
-      table: 'machine_logs',
-    },
-    (payload) => {
-      // Atualizar status e classificação das paradas
-      // Reclassificar downtimes ativos: inesperada → justificada (ou vice-versa)
-      refreshMachineStatuses();
-      reclassifyActiveDowntimes();
-    }
-  )
-  .subscribe();
 ```
 
 ### Por que Realtime e não Polling?
@@ -365,9 +370,14 @@ function calculateRealtimeEfficiency(
     const tempoDisponivel = elapsed - maintenanceSeconds;
     if (tempoDisponivel <= 0) continue;
     
-    // Downtimes injustificados = paradas IoT enquanto status era 'ativa'
-    // (já filtrados pela Edge Function conforme iot.md)
-    const downtimeSeconds = state.total_downtime_seconds || 0;
+    // Downtimes injustificados = soma de iot_downtime_events no turno
+    // NOTA: conforme iot.md, a Edge Function só cria iot_downtime_events quando
+    // status = 'ativa', portanto TODOS os registros nesta tabela são injustificados.
+    // Não existe campo total_downtime_seconds no iot_shift_state (ver iot.md seção 6.3).
+    // O cálculo é feito somando duration_seconds dos iot_downtime_events do turno:
+    const downtimeSeconds = activeDowntimes
+      .filter(d => d.machineId === machineId)
+      .reduce((sum, d) => sum + d.durationSeconds, 0);
     const uptime = tempoDisponivel - downtimeSeconds;
     const uptimeRatio = uptime / tempoDisponivel;
 
@@ -563,20 +573,28 @@ function calculateIoTTotals(
 └──────────────────────────────────────────────────────┘
 ```
 
-**Tipos de alerta com cruzamento IoT × Status:**
+**Tipos de alerta com cruzamento IoT × Status (alinhados com iot.md seção 11):**
 
 | Tipo | Condição (IoT × Status) | Ícone | Cor | Penaliza Eficiência? |
 |------|------------------------|-------|-----|---------------------|
 | **Parada inesperada** | `RPM = 0` + status `ativa` por >30s | 🔴 | `text-destructive` | ✅ **SIM** |
-| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` e ≠ `inativa` | 🔧 | `text-warning` | ❌ NÃO |
+| **Micro-parada** | `RPM = 0` + status `ativa` por <2min | ⚪ | `text-muted` | ✅ SIM (agrupada em relatórios — conforme iot.md) |
+| **Parada longa sem registro** | `RPM = 0` + status `ativa` por >15min | 🔴🔔 | `text-destructive` | ✅ SIM + **alerta sugerindo registrar manutenção** (conforme iot.md) |
+| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` e ≠ `inativa` | 🔧 | `text-warning` | ❌ NÃO (conforme iot.md: não cria `iot_downtime_events`) |
 | **RPM baixo** | `rpm < 50% meta` + status `ativa` por >60s | 🟡 | `text-warning` | ✅ SIM (parcial) |
-| **Inconsistência** | `RPM > 0` + status ≠ `ativa` | ⚠️ | `text-orange-500` | — (alerta para admin) |
-| **Dispositivo offline** | Sem leitura há >60s | 🔵 | `text-info` | — (sem dados) |
+| **Inconsistência** | `RPM > 0` + status ≠ `ativa` (conforme iot.md: alerta automático) | ⚠️ | `text-orange-500` | — (alerta para admin) |
+| **Dispositivo offline** | Sem leitura há >30s (3 envios perdidos — conforme iot.md: envio a cada 10s) | 🔵 | `text-info` | — (sem dados) |
 | **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | 📶 | `text-warning` | — (informativo) |
+
+> **Nota sobre micro-paradas (conforme iot.md):** Paradas < 2min com status `ativa` são registradas como `iot_downtime_events` normalmente e penalizam eficiência, mas na TV são exibidas com destaque menor (sem pulso, cor `muted`). São agrupadas em relatórios.
+
+> **Nota sobre parada longa >15min (conforme iot.md):** Emite alerta especial sugerindo que o mecânico registre manutenção. Ex: *"TEAR 01 parada há 16min sem manutenção registrada — registrar manutenção?"*
 
 **Regras de exibição:**
 - **Paradas inesperadas** ficam no **topo** (prioridade máxima) com card pulsante
+- **Paradas longas >15min** ficam logo abaixo com alerta adicional de sugestão
 - **Manutenções justificadas** são exibidas com visual calmo (sem pulso, cor estável)
+- **Micro-paradas (<2min)** não aparecem individualmente no painel de alertas (só no relatório)
 - **Inconsistências** piscam para chamar atenção do admin/mecânico
 - O **impacto estimado** só contabiliza paradas inesperadas (não manutenções)
 
@@ -584,6 +602,7 @@ function calculateIoTTotals(
 - Quando uma máquina para, o timer conta **em tempo real** no browser (não espera próximo envio)
 - Usa `Date.now() - downtime_started_at` atualizado a cada segundo via `setInterval`
 - Timer de manutenção justificada usa cor diferente (amarelo) do timer de parada inesperada (vermelho)
+- Ao ultrapassar 15min (status `ativa`), timer muda para modo **urgente** com sugestão de registrar manutenção
 
 ---
 
@@ -702,16 +721,19 @@ interface TvIoTData extends TvData {
     isJustifiedStop: boolean;     // true se status ≠ 'ativa' e ≠ 'inativa'
   }>;
   
-  // Estado do turno por máquina (produção acumulada)
+  // Estado do turno por máquina (espelha iot_shift_state do iot.md seção 6.3)
+  // NOTA: iot_shift_state NÃO tem campos de downtime/manutenção — esses são
+  // calculados no frontend a partir de iot_downtime_events e machine_logs
   shiftStates: Map<string, {
     machineId: string;
     weaverId: string | null;
-    partialTurns: number;
-    totalTurns: number;
-    completedRolls: number;
-    lastRpm: number;
-    totalDowntimeSeconds: number;       // Apenas downtimes INJUSTIFICADOS
-    totalMaintenanceSeconds: number;    // Tempo em manutenção justificada
+    articleId: string | null;         // Artigo em produção (campo article_id no DB)
+    currentShift: string;             // 'manha' | 'tarde' | 'noite'
+    partialTurns: number;             // Voltas parciais (não completaram 1 rolo)
+    totalTurns: number;               // Total de voltas no turno
+    completedRolls: number;           // Rolos completos no turno
+    lastRpm: number;                  // Último RPM registrado
+    shiftStartedAt: Date;             // Quando o turno iniciou
   }>;
   
   // Buffer de sparkline (últimas 30 leituras por máquina)
@@ -945,13 +967,15 @@ function isDeviceOnline(lastReading: MachineReading): boolean {
 
 | Regra | Condição (IoT × Status) | Ação Visual na TV | Penaliza Eficiência? |
 |-------|------------------------|-------------------|---------------------|
-| **Parada inesperada** | `RPM = 0` + status `ativa` por >10s | Card **PULSA VERMELHO** + alerta 🔴 | ✅ SIM |
-| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` | Card **AMARELO ESTÁVEL** (sem pulso) + alerta 🔧 | ❌ NÃO |
-| **Inconsistência** | `RPM > 0` + status ≠ `ativa` | Card **PISCA LARANJA** + alerta ⚠️ | — (alerta admin) |
+| **Parada inesperada** | `RPM = 0` + status `ativa` por >30s | Card **PULSA VERMELHO** + alerta 🔴 | ✅ SIM |
+| **Micro-parada** | `RPM = 0` + status `ativa` por <2min (conforme iot.md) | Registrada mas **sem destaque visual** (relatório) | ✅ SIM |
+| **Parada longa >15min** | `RPM = 0` + status `ativa` por >15min (conforme iot.md) | Card PULSA VERMELHO + **sugestão de registrar manutenção** | ✅ SIM + alerta |
+| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` e ≠ `inativa` | Card **AMARELO ESTÁVEL** (sem pulso) + alerta 🔧 | ❌ NÃO |
+| **Inconsistência** | `RPM > 0` + status ≠ `ativa` (conforme iot.md) | Card **PISCA LARANJA** + alerta ⚠️ | — (alerta admin) |
 | **RPM caindo** | RPM cai >30% em 60s + status `ativa` | Borda amarela no card | ✅ SIM (parcial) |
 | **RPM baixo** | `rpm < 50% meta` + status `ativa` por >60s | Ícone ⚠️ no card + alerta 🟡 | ✅ SIM |
 | **Rolo completo** | `completed_rolls` incrementa | Flash verde momentâneo + counter anima | — |
-| **Dispositivo offline** | Sem leitura há >30s | Card cinza + ícone ❌ | — |
+| **Dispositivo offline** | Sem leitura há >30s (3 envios — conforme iot.md envio a cada 10s) | Card cinza + ícone ❌ | — |
 | **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | Ícone 📶 vermelho | — |
 | **Eficiência abaixo da meta** | Eficiência geral < meta (calculada com `tempo_disponível`) | Gauge muda para vermelho | — |
 | **Novo recorde do turno** | Tecelão ultrapassa 1º lugar | Animação de troca no ranking | — |
@@ -1078,6 +1102,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.machine_logs;
 |------|-----------|
 | 2026-03-29 | Documentação inicial criada — integração IoT + Modo TV |
 | 2026-03-29 | Atualização: Cruzamento IoT × Status da Máquina (machine_logs) — paradas justificadas vs inesperadas, visual diferenciado, cálculo de eficiência com tempo_disponível, alertas de inconsistência |
+| 2026-03-29 | Revisão de consistência com iot.md: corrigido Canal 5 (machine_logs) dentro do useEffect, removido `total_downtime_seconds` do `iot_shift_state` (campo não existe — calc vem de `iot_downtime_events`), alinhado `shiftStates` com schema real do iot.md seção 6.3, adicionados micro-paradas (<2min) e alerta de parada longa (>15min) conforme iot.md seção 11, adicionado `articleId`/`currentShift`/`shiftStartedAt` ao state |
 
 ---
 
