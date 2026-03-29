@@ -140,7 +140,10 @@ export default function Reports() {
       data = data.filter(p => clientArticles.includes(p.article_id));
     }
     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
-    if (filterMachine !== 'all') data = data.filter(p => p.machine_id === filterMachine);
+    if (filterMachine !== 'all') {
+      const selectedMachine = machines.find(m => m.id === filterMachine);
+      data = data.filter(p => p.machine_id === filterMachine || (!p.machine_id && selectedMachine && p.machine_name === selectedMachine.name));
+    }
     return data;
   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles]);
 
