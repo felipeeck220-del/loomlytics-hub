@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus } from 'lucide-react';
+import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -438,7 +439,30 @@ export default function MecanicaPage() {
               </Card>
             ))}
 
-            {detailsData.length === 0 && (
+            {loading && detailsData.length === 0 && (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <Card key={i}>
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                        <Skeleton className="h-5 w-32" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Skeleton className="h-24 rounded-lg" />
+                        <Skeleton className="h-24 rounded-lg" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Carregando máquinas...</span>
+                </div>
+              </div>
+            )}
+
+            {!loading && detailsData.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-8">Nenhuma máquina ativa encontrada.</p>
             )}
           </div>
