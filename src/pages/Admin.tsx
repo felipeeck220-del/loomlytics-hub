@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Lock, Building2, Users, Calendar, Mail, Phone, Shield, LogOut, User, Settings2 } from 'lucide-react';
+import { Lock, Building2, Users, Calendar, Mail, Phone, Shield, LogOut, User, Settings2, Database, RotateCcw, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const NAV_ITEMS = [
@@ -66,6 +66,14 @@ interface UserProfile {
   } | null;
 }
 
+interface BackupEntry {
+  id: string;
+  company_id: string;
+  company_name: string;
+  backup_date: string;
+  created_at: string;
+}
+
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -75,6 +83,10 @@ export default function Admin() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('companies');
+  const [backups, setBackups] = useState<BackupEntry[]>([]);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [triggeringBackup, setTriggeringBackup] = useState(false);
+  const [backupFilter, setBackupFilter] = useState('');
 
   // Company modal
   const [selectedCompany, setSelectedCompany] = useState<CompanyWithSettings | null>(null);
@@ -172,13 +184,15 @@ export default function Admin() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [companiesData, usersData, platformData] = await Promise.all([
+      const [companiesData, usersData, platformData, backupsData] = await Promise.all([
         callAdmin('list_companies'),
         callAdmin('list_users'),
         callAdmin('get_platform_settings'),
+        callAdmin('list_backups'),
       ]);
       setCompanies(companiesData);
       setUsers(usersData);
+      setBackups(backupsData || []);
       if (platformData?.trial_days) setTrialDays(platformData.trial_days);
       if (platformData?.monthly_price) setMonthlyPrice(platformData.monthly_price);
     } catch (err: any) {
@@ -271,7 +285,42 @@ export default function Admin() {
     }
   };
 
+  const handleRestoreBackup = async (backupId: string, companyName: string) => {
+    if (!confirm(`Tem certeza que deseja restaurar o backup de "${companyName}"? Todos os dados atuais desta empresa serão substituídos pelos dados do backup.`)) return;
+    setRestoringId(backupId);
+    try {
+      const { data, error } = await supabase.functions.invoke('restore-backup', {
+        body: { backup_id: backupId },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Restaurado', description: `Backup de "${companyName}" restaurado com sucesso.` });
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  const handleTriggerBackup = async () => {
+    setTriggeringBackup(true);
+    try {
+      const result = await callAdmin('trigger_backup');
+      toast({ title: 'Backup concluído', description: `${result.backed_up} de ${result.total_companies} empresas salvas.` });
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setTriggeringBackup(false);
+    }
+  };
+
   const annualPrice = Number(monthlyPrice) * 12 * 0.6;
+
+  const filteredBackups = backups.filter(b =>
+    backupFilter ? b.company_name.toLowerCase().includes(backupFilter.toLowerCase()) : true
+  );
 
   if (checkingAuth) {
     return (
@@ -350,6 +399,10 @@ export default function Admin() {
             <TabsTrigger value="platform-settings" className="gap-2">
               <Settings2 className="h-4 w-4" />
               Configurações
+            </TabsTrigger>
+            <TabsTrigger value="backups" className="gap-2">
+              <Database className="h-4 w-4" />
+              Backups
             </TabsTrigger>
           </TabsList>
 
@@ -547,6 +600,79 @@ export default function Admin() {
                 <Button onClick={handleSavePlatformSettings} disabled={savingPlatform}>
                   {savingPlatform ? 'Salvando...' : 'Salvar Configurações'}
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="backups">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    Backups Diários
+                  </CardTitle>
+                  <Button onClick={handleTriggerBackup} disabled={triggeringBackup} size="sm">
+                    <Play className="h-4 w-4 mr-2" />
+                    {triggeringBackup ? 'Executando...' : 'Executar Backup Agora'}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Backups automáticos diários às 00:00. Últimos 30 dias por empresa.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <Input
+                    placeholder="Filtrar por nome da empresa..."
+                    value={backupFilter}
+                    onChange={e => setBackupFilter(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Data do Backup</TableHead>
+                      <TableHead>Criado em</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredBackups.map(b => (
+                      <TableRow key={b.id}>
+                        <TableCell className="font-medium">{b.company_name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {new Date(b.backup_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {new Date(b.created_at).toLocaleString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={restoringId === b.id}
+                            onClick={() => handleRestoreBackup(b.id, b.company_name)}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            {restoringId === b.id ? 'Restaurando...' : 'Reverter'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredBackups.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                          Nenhum backup encontrado
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>

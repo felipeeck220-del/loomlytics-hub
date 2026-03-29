@@ -227,6 +227,30 @@ export type Database = {
         }
         Relationships: []
       }
+      company_backups: {
+        Row: {
+          backup_date: string
+          company_id: string
+          created_at: string
+          data: Json
+          id: string
+        }
+        Insert: {
+          backup_date: string
+          company_id: string
+          created_at?: string
+          data: Json
+          id?: string
+        }
+        Update: {
+          backup_date?: string
+          company_id?: string
+          created_at?: string
+          data?: Json
+          id?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           company_id: string
