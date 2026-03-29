@@ -394,10 +394,12 @@ export default function MecanicaPage() {
                             : 'Sem registro'}
                         </p>
                         <div className="flex items-center gap-4">
+                          {canSeeFinancial && (
                           <div>
                             <p className="text-lg font-bold text-foreground">{formatCurrency(revenueSincePreventive)}</p>
                             <p className="text-[10px] text-muted-foreground">Faturamento</p>
                           </div>
+                          )}
                           <div>
                             <p className="text-lg font-bold text-foreground">{formatWeight(weightSincePreventive)}</p>
                             <p className="text-[10px] text-muted-foreground">Peso produzido</p>
@@ -416,10 +418,12 @@ export default function MecanicaPage() {
                             : 'Sem registro'}
                         </p>
                         <div className="flex items-center gap-4">
+                          {canSeeFinancial && (
                           <div>
                             <p className="text-lg font-bold text-foreground">{formatCurrency(revenueSinceNeedle)}</p>
                             <p className="text-[10px] text-muted-foreground">Faturamento</p>
                           </div>
+                          )}
                           <div>
                             <p className="text-lg font-bold text-foreground">{formatWeight(weightSinceNeedle)}</p>
                             <p className="text-[10px] text-muted-foreground">Peso produzido</p>
