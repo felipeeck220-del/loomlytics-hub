@@ -370,9 +370,14 @@ function calculateRealtimeEfficiency(
     const tempoDisponivel = elapsed - maintenanceSeconds;
     if (tempoDisponivel <= 0) continue;
     
-    // Downtimes injustificados = paradas IoT enquanto status era 'ativa'
-    // (já filtrados pela Edge Function conforme iot.md)
-    const downtimeSeconds = state.total_downtime_seconds || 0;
+    // Downtimes injustificados = soma de iot_downtime_events no turno
+    // NOTA: conforme iot.md, a Edge Function só cria iot_downtime_events quando
+    // status = 'ativa', portanto TODOS os registros nesta tabela são injustificados.
+    // Não existe campo total_downtime_seconds no iot_shift_state (ver iot.md seção 6.3).
+    // O cálculo é feito somando duration_seconds dos iot_downtime_events do turno:
+    const downtimeSeconds = activeDowntimes
+      .filter(d => d.machineId === machineId)
+      .reduce((sum, d) => sum + d.durationSeconds, 0);
     const uptime = tempoDisponivel - downtimeSeconds;
     const uptimeRatio = uptime / tempoDisponivel;
 
