@@ -171,11 +171,12 @@ O sensor detecta cada rotação do eixo principal da máquina circular. É insta
 1. **Sensor indutivo** detecta passagem de metal (1 pulso = 1 rotação)
 2. **ESP32** conta pulsos via interrupção de hardware (100% preciso)
 3. A cada **10 segundos**, ESP32 envia POST HTTP com:
+   - `company_id` — UUID da empresa (identifica o tenant)
    - `machine_id` — UUID da máquina no sistema
    - `total_rotations` — contador acumulado desde o boot
    - `rpm` — RPM calculado localmente
    - `timestamp` — horário UTC do envio
-4. **Edge Function** recebe, valida e salva em `machine_readings`
+4. **Edge Function** recebe, valida `company_id` + `machine_id` + `token` e salva em `machine_readings`
 5. **Lógica do servidor** calcula peças, kg, eficiência e credita ao tecelão do turno
 
 ---
@@ -223,6 +224,9 @@ const char* WEBHOOK_URL = "https://etsaleegdpswwsprwyzv.supabase.co/functions/v1
 
 // Token de autenticação (API key do dispositivo)
 const char* DEVICE_TOKEN = "TOKEN_UNICO_POR_MAQUINA";
+
+// UUID da empresa no sistema Loomlytics (multi-tenant)
+const char* COMPANY_ID = "uuid-da-empresa-aqui";
 
 // UUID da máquina no sistema Loomlytics
 const char* MACHINE_ID = "uuid-da-maquina-aqui";
@@ -339,6 +343,7 @@ void sendData(unsigned long rotations, float rpm, bool running) {
   
   // Montar JSON
   StaticJsonDocument<256> doc;
+  doc["company_id"] = COMPANY_ID;
   doc["machine_id"] = MACHINE_ID;
   doc["total_rotations"] = rotations;
   doc["rpm"] = round(rpm * 10) / 10.0;  // 1 casa decimal
@@ -427,6 +432,7 @@ Authorization: Bearer <DEVICE_TOKEN>
 
 ```json
 {
+  "company_id": "uuid-da-empresa",
   "machine_id": "uuid-da-maquina",
   "total_rotations": 158432,
   "rpm": 22.5,
@@ -457,20 +463,26 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Verificar se o token pertence a um dispositivo registrado
+  const body = await req.json();
+  const { company_id, machine_id, total_rotations, rpm, is_running, uptime_ms, wifi_rssi } = body;
+
+  if (!company_id || !machine_id) {
+    return new Response("Missing company_id or machine_id", { status: 400 });
+  }
+
+  // Verificar se o token pertence a um dispositivo registrado E pertence à empresa informada
   const { data: device } = await supabase
     .from("iot_devices")
     .select("machine_id, company_id")
     .eq("token", token)
+    .eq("machine_id", machine_id)
+    .eq("company_id", company_id)
     .eq("active", true)
     .single();
 
   if (!device) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response("Unauthorized — token/company/machine mismatch", { status: 401 });
   }
-
-  const body = await req.json();
-  const { total_rotations, rpm, is_running, uptime_ms, wifi_rssi } = body;
 
   // 1. Salvar leitura bruta
   await supabase.from("machine_readings").insert({
@@ -1021,7 +1033,7 @@ Se a máquina não tiver uma engrenagem/parafuso visível no eixo, instalar um *
 2. **Fixar sensor**: Usar suporte M12, ajustar distância (2-4mm do alvo)
 3. **Montar caixa**: ESP32 + fonte dentro da caixa IP65, longe de calor/vibração
 4. **Cabeamento**: Sensor → caixa via conector GX12 (fácil manutenção)
-5. **Configurar firmware**: Definir SSID, token, machine_id
+5. **Configurar firmware**: Definir SSID, token, company_id, machine_id
 6. **Testar**: Girar eixo manualmente e verificar contagem no Serial Monitor
 7. **Calibrar**: Comparar contagem do ESP32 com contagem manual por 10 minutos
 8. **Ativar**: Registrar dispositivo no sistema e iniciar monitoramento
@@ -1038,10 +1050,11 @@ Se a máquina não tiver uma engrenagem/parafuso visível no eixo, instalar um *
 
 ## 16. Segurança e Confiabilidade
 
-### Autenticação
-- Cada ESP32 tem um **token único** (`DEVICE_TOKEN`)
-- Edge Function valida o token contra a tabela `iot_devices`
-- Tokens podem ser revogados individualmente
+### Autenticação Multi-Tenant
+- Cada ESP32 tem um **token único** (`DEVICE_TOKEN`) + **company_id** + **machine_id**
+- Edge Function valida a tripla `token + company_id + machine_id` contra a tabela `iot_devices`
+- Isso garante que um dispositivo não pode enviar dados para outra empresa
+- Tokens podem ser revogados individualmente por empresa
 
 ### Resiliência a Falhas
 
