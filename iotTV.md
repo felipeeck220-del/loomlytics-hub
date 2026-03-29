@@ -673,6 +673,14 @@ interface TvIoTData extends TvData {
     lastSeenAt: Date;
   }>;
   
+  // Status atual das máquinas (de machine_logs — para cruzamento IoT × Status)
+  machineStatuses: Map<string, {
+    machineId: string;
+    status: MachineStatus;        // 'ativa' | 'manutencao_preventiva' | etc.
+    statusSince: Date;            // Quando entrou neste status
+    isJustifiedStop: boolean;     // true se status ≠ 'ativa' e ≠ 'inativa'
+  }>;
+  
   // Estado do turno por máquina (produção acumulada)
   shiftStates: Map<string, {
     machineId: string;
@@ -681,28 +689,34 @@ interface TvIoTData extends TvData {
     totalTurns: number;
     completedRolls: number;
     lastRpm: number;
+    totalDowntimeSeconds: number;       // Apenas downtimes INJUSTIFICADOS
+    totalMaintenanceSeconds: number;    // Tempo em manutenção justificada
   }>;
   
   // Buffer de sparkline (últimas 30 leituras por máquina)
   rpmHistory: Map<string, number[]>;
   
-  // Paradas ativas
+  // Paradas ativas (com classificação de tipo)
   activeDowntimes: Array<{
     machineId: string;
     machineName: string;
     startedAt: Date;
-    durationSeconds: number; // Calculado ao vivo
+    durationSeconds: number;            // Calculado ao vivo
     shift: string;
+    type: 'inesperada' | 'justificada'; // NOVO: baseado no cruzamento IoT × Status
+    machineStatus: MachineStatus;       // NOVO: status da máquina no momento
+    penalizesEfficiency: boolean;       // NOVO: true apenas para 'inesperada'
   }>;
   
-  // Alertas IoT
+  // Alertas IoT (com novos tipos)
   alerts: Array<{
-    type: 'parada' | 'rpm_baixo' | 'offline' | 'wifi_fraco';
+    type: 'parada_inesperada' | 'manutencao_justificada' | 'rpm_baixo' | 'inconsistencia' | 'offline' | 'wifi_fraco';
     machineId: string;
     machineName: string;
     message: string;
     severity: 'warning' | 'critical' | 'info';
     timestamp: Date;
+    penalizesEfficiency: boolean;       // NOVO: para exibir impacto correto
   }>;
   
   // Dispositivos
