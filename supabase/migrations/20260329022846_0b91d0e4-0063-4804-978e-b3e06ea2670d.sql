@@ -1,0 +1,2 @@
+DELETE FROM productions WHERE company_id = 'a664927c-a285-4997-8faa-8c90985c6fac' AND (machine_name = 'TEAR 01' OR machine_name = 'TEAR 1' OR machine_id = '4a7b4e34-c4d4-53f3-816f-b029622aca7c');
+UPDATE machines SET name = 'TEAR 01' WHERE id = '4a7b4e34-c4d4-53f3-816f-b029622aca7c';
