@@ -294,37 +294,61 @@ function useTvRealtimeData(companyId: string) {
 - **Tendência**: Comparar eficiência dos últimos 10min vs 10min anteriores (seta ↑↓)
 - **Máquinas ativas**: Contagem ao vivo baseada em `is_running` das leituras
 
-**Cálculo de eficiência em tempo real:**
+**Cálculo de eficiência em tempo real (com cruzamento IoT × Status):**
+
+> ⚠️ A eficiência é calculada sobre o **tempo disponível**, não o tempo total do turno.
+> Manutenções justificadas (status ≠ `ativa` em `machine_logs`) são descontadas do tempo do turno.
+> Veja detalhes completos em `iot.md` — seção "Cruzamento IoT × Status da Máquina".
+
 ```typescript
 function calculateRealtimeEfficiency(
   shiftStates: Map<string, ShiftState>,
   machines: Machine[],
+  machineStatuses: Map<string, MachineStatus>, // Status atual de machine_logs
+  machineLogs: MachineLog[],                    // Histórico do turno
   articles: Article[],
   settings: CompanyShiftSettings,
   shiftType: ShiftType
 ): number {
-  // Para cada máquina com IoT:
-  // 1. Pegar total_turns do iot_shift_state
-  // 2. Calcular tempo decorrido desde início do turno
-  // 3. Descontar downtime (iot_downtime_events)
-  // 4. Eficiência = (rpm_real / rpm_meta) × (uptime / tempo_decorrido) × 100
-  // 5. Ponderar pela quantidade de máquinas
-  
   let totalEfficiency = 0;
   let machineCount = 0;
 
   for (const [machineId, state] of shiftStates) {
     const machine = machines.find(m => m.id === machineId);
     if (!machine || !state.last_rpm) continue;
+    
+    const currentStatus = machineStatuses.get(machineId) || 'ativa';
+    
+    // Se máquina está inativa, não entra no cálculo
+    if (currentStatus === 'inativa') continue;
 
     const targetRpm = machine.rpm || 25;
     const rpmEfficiency = (state.last_rpm / targetRpm);
     
-    // Calcular uptime do turno
+    // Calcular tempo disponível (descontando manutenções justificadas)
     const shiftStart = getShiftStartTime(settings, shiftType);
     const elapsed = (Date.now() - shiftStart.getTime()) / 1000;
-    // TODO: somar downtimes do turno
-    const uptimeRatio = 1; // placeholder
+    
+    // Somar tempo em manutenção justificada (status ≠ 'ativa') via machine_logs
+    const maintenanceLogs = machineLogs.filter(
+      log => log.machine_id === machineId 
+        && log.status !== 'ativa'
+        && new Date(log.started_at) >= shiftStart
+    );
+    const maintenanceSeconds = maintenanceLogs.reduce((sum, log) => {
+      const start = Math.max(new Date(log.started_at).getTime(), shiftStart.getTime());
+      const end = log.ended_at ? new Date(log.ended_at).getTime() : Date.now();
+      return sum + (end - start) / 1000;
+    }, 0);
+    
+    const tempoDisponivel = elapsed - maintenanceSeconds;
+    if (tempoDisponivel <= 0) continue;
+    
+    // Downtimes injustificados = paradas IoT enquanto status era 'ativa'
+    // (já filtrados pela Edge Function conforme iot.md)
+    const downtimeSeconds = state.total_downtime_seconds || 0;
+    const uptime = tempoDisponivel - downtimeSeconds;
+    const uptimeRatio = uptime / tempoDisponivel;
 
     totalEfficiency += rpmEfficiency * uptimeRatio * 100;
     machineCount++;
