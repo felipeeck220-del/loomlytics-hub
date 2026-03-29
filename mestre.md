@@ -43,6 +43,7 @@ src/
 │   ├── formatters.ts          # Formatação pt-BR (moeda, número, peso, %)
 │   ├── downtimeUtils.ts       # Cálculo de paradas de máquina por turno com clipping
 │   ├── auditLog.ts            # Função para inserir log de auditoria
+│   ├── fbPixel.ts             # Utilitário Facebook Pixel — fbTrack(event, params?)
 │   └── utils.ts               # cn() e utilitários
 ├── components/
 │   ├── AppLayout.tsx           # Layout: header + sidebar + content + bottom nav
@@ -1014,7 +1015,37 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 | 2026-03-29 03:06 | Backup: configurado pg_cron para executar daily-backup todo dia às 00:00 UTC |
 | 2026-03-29 03:10 | Backup: list_backups agora ordena por created_at DESC (mostra hora correta) |
 | 2026-03-29 04:00 | Reescrita completa do mestre.md com detalhamento exaustivo de todos os módulos |
+| 2026-03-29 05:00 | Facebook Pixel integrado (ID 952929367426534) — PageView, CompleteRegistration, InitiateCheckout, Purchase |
 
 ---
 
-*Última atualização: 29/03/2026 04:00 UTC*
+## 📊 Facebook Pixel (Rastreamento de Conversão)
+
+**Pixel ID:** `952929367426534`
+
+### Arquitetura
+- **Script base:** Inserido diretamente no `index.html` (antes do `<div id="root">`) — carrega o SDK `fbevents.js` e inicializa o pixel com `fbq('init', '952929367426534')`.
+- **Utilitário:** `src/lib/fbPixel.ts` exporta `fbTrack(event, params?)` — wrapper seguro que verifica se `window.fbq` existe antes de disparar.
+
+### Eventos Disparados
+
+| Evento | Onde é disparado | Arquivo | Momento |
+|--------|-----------------|---------|---------|
+| `PageView` | Página de Vendas `/vendas` | `src/pages/Vendas.tsx` | No `useEffect` ao montar o componente |
+| `CompleteRegistration` | Registro de empresa `/register` | `src/pages/Register.tsx` | Após `register()` retornar sucesso (`result.success && result.slug`) |
+| `InitiateCheckout` | Geração de PIX nas Configurações | `src/pages/Settings.tsx` | Após `create-pix-checkout` retornar com sucesso, inclui `{ value, currency: 'BRL', content_name }` |
+| `Purchase` | Confirmação de pagamento PIX | `src/pages/Settings.tsx` | Quando polling de `check-pix-payment` retorna `status === 'paid'`, inclui `{ value, currency: 'BRL' }` |
+
+### Dependências
+- `index.html` → script base do pixel (não remover)
+- `src/lib/fbPixel.ts` → usado por Vendas.tsx, Register.tsx, Settings.tsx
+- **Não requer API key server-side** — rastreamento é 100% client-side
+
+### ⚠️ Cuidados
+- Ao alterar o fluxo de registro em `AuthContext.tsx` ou `Register.tsx`, garantir que `fbTrack('CompleteRegistration')` continue sendo chamado após sucesso.
+- Ao alterar o fluxo de pagamento PIX em `Settings.tsx`, garantir que `InitiateCheckout` e `Purchase` continuem nos pontos corretos.
+- O `PageView` do Vendas é disparado **além** do PageView automático do noscript fallback — isso é intencional para rastreamento SPA.
+
+---
+
+*Última atualização: 29/03/2026 05:00 UTC*
