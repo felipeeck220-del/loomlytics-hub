@@ -21,17 +21,17 @@ const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> 
 function RolePermissionsDisplay({ role }: { role: string }) {
   const perms = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.admin;
   return (
-    <div className="space-y-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {perms.allowed.map(perm => (
-        <div key={perm} className="flex items-center gap-2 rounded-lg border border-border bg-background p-3">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
+        <div key={perm} className="flex items-center gap-2.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+          <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
           <span className="text-sm text-foreground">{perm}</span>
         </div>
       ))}
       {perms.denied.map(perm => (
-        <div key={perm} className="flex items-center gap-2 rounded-lg border border-border bg-background p-3 opacity-50">
-          <span className="h-2.5 w-2.5 rounded-full bg-destructive shrink-0" />
-          <span className="text-sm text-foreground line-through">{perm}</span>
+        <div key={perm} className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5 opacity-40">
+          <span className="h-2 w-2 rounded-full bg-destructive shrink-0" />
+          <span className="text-sm text-muted-foreground line-through">{perm}</span>
         </div>
       ))}
     </div>
