@@ -842,9 +842,124 @@ ALTER TABLE iot_shift_state ADD COLUMN roll_position BIGINT NOT NULL DEFAULT 0;
 | **Rolos (fracionário)** | `total_turns / voltas_por_rolo` |
 | **Kg produzidos** | `rolos × peso_por_rolo` |
 | **Faturamento** | `kg × valor_por_kg` |
-| **Tempo ativo (uptime)** | `tempo_turno - soma_downtimes` |
-| **Eficiência** | `(uptime / tempo_turno) × (rpm_médio / rpm_meta) × 100` |
+| **Tempo em manutenção justificada** | Soma dos períodos com status ≠ `ativa` no turno (via `machine_logs`) |
+| **Tempo disponível** | `tempo_turno - tempo_em_manutenção_justificada` |
+| **Tempo ativo (uptime)** | `tempo_disponível - soma_downtimes_injustificados` |
+| **Eficiência** | `(uptime / tempo_disponível) × (rpm_médio / rpm_meta) × 100` |
 | **Kg/hora** | `kg / (uptime / 3600)` |
+
+> ⚠️ **Importante**: A eficiência é calculada sobre o `tempo_disponível` (não o tempo total do turno), garantindo que manutenções justificadas não penalizem o tecelão.
+
+### Cruzamento IoT × Status da Máquina (machine_logs)
+
+O cálculo de eficiência **cruza obrigatoriamente** o sinal IoT com o status da máquina no sistema (`machine_logs`). Isso garante justiça no cálculo:
+
+| Sinal IoT (RPM) | Status no Sistema | Desconta Eficiência? | Motivo |
+|------------------|-------------------|----------------------|--------|
+| RPM = 0 | **Ativa** | ✅ **SIM** | Parada inesperada — penaliza eficiência |
+| RPM = 0 | **Manutenção Preventiva** | ❌ **NÃO** | Parada planejada — tempo descontado do turno |
+| RPM = 0 | **Manutenção Corretiva** | ❌ **NÃO** | Parada justificada — tempo descontado do turno |
+| RPM = 0 | **Troca de Artigo** | ❌ **NÃO** | Operação planejada — tempo descontado do turno |
+| RPM = 0 | **Troca de Agulhas** | ❌ **NÃO** | Operação planejada — tempo descontado do turno |
+| RPM = 0 | **Inativa** | ❌ **NÃO** | Máquina fora de operação — não entra no cálculo |
+| RPM > 0 | **Ativa** | — | Produzindo normalmente |
+| RPM > 0 | **Manutenção/Inativa** | ⚠️ **ALERTA** | Inconsistência — máquina produzindo mas marcada como parada |
+
+#### Lógica de Cálculo Detalhada
+
+```
+# 1. Buscar períodos de manutenção no turno (machine_logs com status ≠ 'ativa')
+manutencoes_no_turno = SELECT * FROM machine_logs 
+  WHERE machine_id = $1 
+  AND status != 'ativa'
+  AND (started_at, COALESCE(ended_at, now())) OVERLAPS ($shift_start, $shift_end)
+
+# 2. Calcular tempo total em manutenção justificada (clampado ao turno)
+tempo_manutencao = 0
+PARA CADA manutenção:
+  inicio = MAX(manutencao.started_at, shift_start)
+  fim = MIN(COALESCE(manutencao.ended_at, now()), shift_end)
+  tempo_manutencao += (fim - inicio)
+
+# 3. Tempo disponível = tempo do turno menos manutenções justificadas
+tempo_disponivel = tempo_turno - tempo_manutencao
+
+# 4. Downtimes injustificados = paradas IoT ENQUANTO máquina estava como 'ativa'
+downtimes_injustificados = SELECT * FROM iot_downtime_events
+  WHERE machine_id = $1
+  AND started_at BETWEEN $shift_start AND $shift_end
+  AND NOT EXISTS (
+    -- Excluir downtimes que caem dentro de um período de manutenção
+    SELECT 1 FROM machine_logs ml
+    WHERE ml.machine_id = iot_downtime_events.machine_id
+    AND ml.status != 'ativa'
+    AND ml.started_at <= iot_downtime_events.started_at
+    AND (ml.ended_at IS NULL OR ml.ended_at >= iot_downtime_events.ended_at)
+  )
+
+# 5. Uptime = tempo disponível menos paradas injustificadas
+uptime = tempo_disponivel - soma(downtimes_injustificados.duracao)
+
+# 6. Eficiência final
+eficiencia = (uptime / tempo_disponivel) × (rpm_medio / rpm_meta) × 100
+```
+
+#### Exemplo Prático
+
+```
+Turno: Manhã (05:00 - 13:30) = 510 minutos
+Máquina: TEAR 01, RPM meta = 25
+
+Timeline do turno:
+  05:00 - 07:30  → Produzindo (RPM ~24)         = 150 min ✅
+  07:30 - 08:00  → RPM = 0, status = ATIVA       = 30 min ❌ (downtime injustificado)
+  08:00 - 09:00  → Manutenção Preventiva          = 60 min (justificado, desconta do turno)
+  09:00 - 13:00  → Produzindo (RPM ~25)          = 240 min ✅
+  13:00 - 13:30  → RPM = 0, status = ATIVA       = 30 min ❌ (downtime injustificado)
+
+Cálculo:
+  tempo_turno = 510 min
+  tempo_manutencao = 60 min (preventiva das 08:00-09:00)
+  tempo_disponivel = 510 - 60 = 450 min
+  downtimes_injustificados = 30 + 30 = 60 min
+  uptime = 450 - 60 = 390 min
+  rpm_medio (quando rodando) = 24.5
+  
+  eficiencia = (390 / 450) × (24.5 / 25) × 100
+            = 0.8667 × 0.98 × 100
+            = 84.9%
+  
+  SEM esse cruzamento (fórmula antiga errada):
+  eficiencia = (390 / 510) × (24.5 / 25) × 100
+            = 0.7647 × 0.98 × 100  
+            = 74.9%  ← INJUSTO! Penaliza o tecelão pela manutenção
+```
+
+#### Detecção de Inconsistências
+
+O sistema deve emitir **alertas automáticos** quando detectar inconsistências entre IoT e status:
+
+```typescript
+// Alerta: máquina marcada como manutenção mas ESP32 detecta RPM > 0
+if (rpm > 0 && machineStatus !== 'ativa') {
+  await insertAlert({
+    type: 'inconsistency',
+    machine_id,
+    message: `TEAR ${machine.number} está com RPM=${rpm} mas status="${machineStatus}"`,
+    severity: 'warning',
+  });
+}
+
+// Alerta: máquina como ativa mas parada por mais de 15 minutos
+if (downtimeMinutes > 15 && machineStatus === 'ativa') {
+  await insertAlert({
+    type: 'long_unplanned_stop',
+    machine_id,
+    message: `TEAR ${machine.number} parada há ${downtimeMinutes}min sem manutenção registrada`,
+    severity: 'info',
+  });
+}
+```
 
 ### RPM Médio
 
@@ -882,11 +997,47 @@ Com envio a cada **10 segundos**, a detecção de parada tem precisão de ±10s:
 
 > Em um turno de 8h (28.800s), 5s de imprecisão = **0,017%** — completamente desprezível.
 
-### Parada vs. Manutenção
+### Parada vs. Manutenção — Classificação Inteligente
 
-- **Parada curta (<5min)**: Registrada como downtime automático
-- **Parada longa (>5min)**: Pode ser classificada manualmente como manutenção via app
-- **Status da máquina**: Integrado com o sistema de status existente (`machine_logs`)
+O sistema classifica automaticamente cada parada cruzando o sinal IoT com o status da máquina em `machine_logs`:
+
+| Tipo de Parada | Condição | Ação no Sistema |
+|----------------|----------|-----------------|
+| **Downtime injustificado** | RPM = 0 + status `ativa` | Registra em `iot_downtime_events`, **penaliza eficiência** |
+| **Manutenção justificada** | RPM = 0 + status ≠ `ativa` | **NÃO registra** como downtime IoT — o tempo é descontado do turno via `machine_logs` |
+| **Parada curta (<2min)** | RPM = 0 por < 2min + status `ativa` | Registra como micro-parada, pode ser agrupada em relatórios |
+| **Parada longa (>15min)** | RPM = 0 por > 15min + status `ativa` | Registra + emite **alerta** sugerindo registrar manutenção |
+| **Inconsistência** | RPM > 0 + status ≠ `ativa` | Emite **alerta de inconsistência** para o admin |
+
+#### Fluxo de Decisão na Edge Function
+
+```
+ESP32 envia dados → machine-webhook recebe
+
+1. Verificar status atual da máquina em machine_logs:
+   SELECT status FROM machines WHERE id = $machine_id
+   
+2. SE is_running = false:
+   a. SE status = 'ativa':
+      → Registrar/atualizar downtime em iot_downtime_events
+      → Este tempo VAI penalizar eficiência
+      
+   b. SE status IN ('manutencao_preventiva', 'manutencao_corretiva', 
+                     'troca_artigo', 'troca_agulhas'):
+      → NÃO registrar downtime IoT
+      → O tempo já está sendo rastreado em machine_logs
+      → A Edge Function ignora a parada para fins de eficiência
+      
+   c. SE status = 'inativa':
+      → Ignorar completamente (máquina fora de operação)
+      → Não registrar leituras nem downtimes
+
+3. SE is_running = true E status != 'ativa':
+   → Emitir alerta de inconsistência
+   → Registrar leitura normalmente (dados não se perdem)
+```
+
+> **Resumo**: O mecânico para a máquina e registra manutenção no app → o IoT detecta RPM = 0 mas **não penaliza** eficiência porque o status justifica a parada. Se a máquina para e ninguém registra manutenção, o downtime **penaliza** eficiência como parada inesperada.
 
 ---
 
