@@ -53,6 +53,7 @@ export default function AppLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { status: subStatus, trialDaysLeft, sidebarLocked } = useSubscription();
+  const isMobile = useIsMobile();
   const [now, setNow] = useState(new Date());
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const navigate = useNavigate();
@@ -172,10 +173,13 @@ export default function AppLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+          <main className={`flex-1 overflow-auto p-4 md:p-6 lg:p-8 ${isMobile ? 'pb-20' : ''}`}>
             <Outlet />
           </main>
         </div>
+
+        {/* Mobile bottom navigation */}
+        {isMobile && <MobileBottomNav />}
 
         {/* Logout confirmation dialog */}
         <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
