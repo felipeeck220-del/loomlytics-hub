@@ -1077,6 +1077,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.machine_logs;
 | Data | Alteração |
 |------|-----------|
 | 2026-03-29 | Documentação inicial criada — integração IoT + Modo TV |
+| 2026-03-29 | Atualização: Cruzamento IoT × Status da Máquina (machine_logs) — paradas justificadas vs inesperadas, visual diferenciado, cálculo de eficiência com tempo_disponível, alertas de inconsistência |
 
 ---
 
