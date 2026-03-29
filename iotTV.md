@@ -242,11 +242,32 @@ function useTvRealtimeData(companyId: string) {
       supabase.removeChannel(shiftChannel);
       supabase.removeChannel(downtimeChannel);
       supabase.removeChannel(machinesChannel);
+      supabase.removeChannel(machineLogsChannel);
     };
   }, [companyId]);
 
-  return { readings, shiftStates, downtimeEvents };
+  return { readings, shiftStates, downtimeEvents, machineStatuses };
 }
+
+// Canal 5 (NOVO): Mudanças em machine_logs (manutenções)
+// Essencial para o cruzamento IoT × Status
+const machineLogsChannel = supabase
+  .channel('tv-machine-logs')
+  .on(
+    'postgres_changes',
+    {
+      event: '*', // INSERT (nova manutenção), UPDATE (finalização)
+      schema: 'public',
+      table: 'machine_logs',
+    },
+    (payload) => {
+      // Atualizar status e classificação das paradas
+      // Reclassificar downtimes ativos: inesperada → justificada (ou vice-versa)
+      refreshMachineStatuses();
+      reclassifyActiveDowntimes();
+    }
+  )
+  .subscribe();
 ```
 
 ### Por que Realtime e não Polling?
@@ -294,37 +315,61 @@ function useTvRealtimeData(companyId: string) {
 - **Tendência**: Comparar eficiência dos últimos 10min vs 10min anteriores (seta ↑↓)
 - **Máquinas ativas**: Contagem ao vivo baseada em `is_running` das leituras
 
-**Cálculo de eficiência em tempo real:**
+**Cálculo de eficiência em tempo real (com cruzamento IoT × Status):**
+
+> ⚠️ A eficiência é calculada sobre o **tempo disponível**, não o tempo total do turno.
+> Manutenções justificadas (status ≠ `ativa` em `machine_logs`) são descontadas do tempo do turno.
+> Veja detalhes completos em `iot.md` — seção "Cruzamento IoT × Status da Máquina".
+
 ```typescript
 function calculateRealtimeEfficiency(
   shiftStates: Map<string, ShiftState>,
   machines: Machine[],
+  machineStatuses: Map<string, MachineStatus>, // Status atual de machine_logs
+  machineLogs: MachineLog[],                    // Histórico do turno
   articles: Article[],
   settings: CompanyShiftSettings,
   shiftType: ShiftType
 ): number {
-  // Para cada máquina com IoT:
-  // 1. Pegar total_turns do iot_shift_state
-  // 2. Calcular tempo decorrido desde início do turno
-  // 3. Descontar downtime (iot_downtime_events)
-  // 4. Eficiência = (rpm_real / rpm_meta) × (uptime / tempo_decorrido) × 100
-  // 5. Ponderar pela quantidade de máquinas
-  
   let totalEfficiency = 0;
   let machineCount = 0;
 
   for (const [machineId, state] of shiftStates) {
     const machine = machines.find(m => m.id === machineId);
     if (!machine || !state.last_rpm) continue;
+    
+    const currentStatus = machineStatuses.get(machineId) || 'ativa';
+    
+    // Se máquina está inativa, não entra no cálculo
+    if (currentStatus === 'inativa') continue;
 
     const targetRpm = machine.rpm || 25;
     const rpmEfficiency = (state.last_rpm / targetRpm);
     
-    // Calcular uptime do turno
+    // Calcular tempo disponível (descontando manutenções justificadas)
     const shiftStart = getShiftStartTime(settings, shiftType);
     const elapsed = (Date.now() - shiftStart.getTime()) / 1000;
-    // TODO: somar downtimes do turno
-    const uptimeRatio = 1; // placeholder
+    
+    // Somar tempo em manutenção justificada (status ≠ 'ativa') via machine_logs
+    const maintenanceLogs = machineLogs.filter(
+      log => log.machine_id === machineId 
+        && log.status !== 'ativa'
+        && new Date(log.started_at) >= shiftStart
+    );
+    const maintenanceSeconds = maintenanceLogs.reduce((sum, log) => {
+      const start = Math.max(new Date(log.started_at).getTime(), shiftStart.getTime());
+      const end = log.ended_at ? new Date(log.ended_at).getTime() : Date.now();
+      return sum + (end - start) / 1000;
+    }, 0);
+    
+    const tempoDisponivel = elapsed - maintenanceSeconds;
+    if (tempoDisponivel <= 0) continue;
+    
+    // Downtimes injustificados = paradas IoT enquanto status era 'ativa'
+    // (já filtrados pela Edge Function conforme iot.md)
+    const downtimeSeconds = state.total_downtime_seconds || 0;
+    const uptime = tempoDisponivel - downtimeSeconds;
+    const uptimeRatio = uptime / tempoDisponivel;
 
     totalEfficiency += rpmEfficiency * uptimeRatio * 100;
     machineCount++;
@@ -367,17 +412,42 @@ function calculateRealtimeEfficiency(
 
 ### Painel 3: Grid de Máquinas (APRIMORADO)
 
-**Com IoT:**
+**Com IoT + Cruzamento de Status:**
 ```
-┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-│ TEAR 01  │  │ TEAR 02  │  │ TEAR 03  │  │ TEAR 04  │
-│ 📡 Live  │  │ 📡 Live  │  │ 📡 Live  │  │ ✍️Manual │
-│ 🟢 Ativa │  │ 🟢 Ativa │  │ 🔴 Parada│  │ 🟢 Ativa │
-│ RPM: 24  │  │ RPM: 22  │  │ RPM: 0   │  │ --       │
-│ 92.1%    │  │ 88.3%    │  │ 15min ⏱️ │  │ 90.5%    │
-│ 2.3 kg/h │  │ 2.1 kg/h │  │ -1.2 rolos│ │          │
-└──────────┘  └──────────┘  └──────────┘  └──────────┘
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ TEAR 01      │  │ TEAR 02      │  │ TEAR 03      │  │ TEAR 04      │
+│ 📡 Live      │  │ 📡 Live      │  │ 📡 Live      │  │ ✍️ Manual    │
+│ 🟢 Ativa     │  │ 🟢 Ativa     │  │ 🔧 Manut.Prev│  │ 🟢 Ativa     │
+│ RPM: 24      │  │ RPM: 22      │  │ RPM: 0       │  │ --           │
+│ 92.1%        │  │ 88.3%        │  │ ⏸️ Justificado│  │ 90.5%        │
+│ 2.3 kg/h     │  │ 2.1 kg/h     │  │  35min ⏱️    │  │              │
+└──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘
+
+┌──────────────┐  ┌──────────────┐
+│ TEAR 05      │  │ TEAR 06      │
+│ 📡 Live      │  │ 📡 Live      │
+│ 🟢 Ativa     │  │ ⚠️ Ativa     │   ← Status ativa mas RPM = 0
+│ RPM: 25      │  │ RPM: 0       │
+│ 95.0%        │  │ 🔴 Parada!   │   ← PENALIZA eficiência
+│ 2.5 kg/h     │  │ 12min ⏱️     │
+└──────────────┘  └──────────────┘
 ```
+
+**Diferença visual por tipo de parada (cruzamento IoT × Status):**
+
+| Status da Máquina | Sinal IoT | Visual no Card | Cor do Card |
+|-------------------|-----------|----------------|-------------|
+| **Ativa** + RPM > 0 | Produzindo | 🟢 Normal, RPM ao vivo | `bg-success/10` |
+| **Ativa** + RPM = 0 | Parada inesperada | 🔴 **Parada!** + Timer ao vivo | `bg-destructive/10` (pulsa) |
+| **Manutenção Prev.** + RPM = 0 | Parada justificada | 🔧 **Manut. Prev.** + Timer | `bg-warning/10` (estável, sem pulso) |
+| **Manutenção Corr.** + RPM = 0 | Parada justificada | 🔧 **Manut. Corr.** + Timer | `bg-warning/10` |
+| **Troca de Artigo** + RPM = 0 | Parada justificada | 🔄 **Troca Artigo** + Timer | `bg-info/10` |
+| **Troca de Agulhas** + RPM = 0 | Parada justificada | 🔧 **Troca Agulhas** + Timer | `bg-purple-500/10` |
+| **Inativa** | Ignorado | ⚫ **Inativa** | `bg-muted` |
+| **Manutenção** + RPM > 0 | ⚠️ Inconsistência | ⚠️ **Alerta!** RPM inesperado | `bg-warning/20` (pisca) |
+
+> ⚠️ **Paradas justificadas** mostram timer mas **NÃO pulsam vermelho** — a cor é estável (amarelo/azul/roxo conforme tipo).
+> Apenas paradas **injustificadas** (status `ativa` + RPM = 0) pulsam vermelho para chamar atenção.
 
 **Novos campos por máquina (IoT):**
 - **RPM ao vivo**: Última leitura do ESP32 (atualiza a cada 10s)
@@ -456,44 +526,64 @@ function calculateIoTTotals(
 
 ---
 
-### Painel 5: Alertas de Parada (APRIMORADO)
+### Painel 5: Alertas de Parada (APRIMORADO com Cruzamento IoT × Status)
 
-**Com IoT:**
+**Com IoT + Classificação Inteligente:**
 ```
-┌──────────────────────────────────────────┐
-│       ⚠️ PARADAS AO VIVO                │
-│                                          │
-│  🔴 TEAR 03 — Parada detectada 📡       │
-│     ⏱️ Parado há 15:32 (contando...)     │  ← Timer ao vivo!
-│     Última RPM: 0 | Último sinal: 3s    │
-│     Impacto: ~0.8 rolos perdidos         │
-│                                          │
-│  🟡 TEAR 07 — RPM baixo ⚠️             │  ← NOVO: Alerta de RPM
-│     RPM atual: 8 (meta: 25)             │
-│     Eficiência caiu para 32%             │
-│     Possível problema mecânico           │
-│                                          │
-│  🔵 TEAR 12 — Sem sinal 📡❌            │  ← NOVO: Dispositivo offline
-│     Último sinal há 2min 30s             │
-│     Verificar Wi-Fi ou ESP32             │
-│                                          │
-│  Total: 2 paradas | 1 RPM baixo | 1 offline │
-│  Impacto estimado: ~3.2 rolos/hora       │
-└──────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│       ⚠️ ALERTAS AO VIVO                            │
+│                                                      │
+│  🔴 TEAR 06 — PARADA INESPERADA 📡                  │
+│     Status: Ativa | RPM: 0                           │  ← PENALIZA eficiência
+│     ⏱️ Parado há 15:32 (contando...)                 │
+│     Impacto: ~0.8 rolos perdidos | -3.2% eficiência  │
+│                                                      │
+│  🔧 TEAR 03 — MANUTENÇÃO PREVENTIVA 📡              │
+│     Status: Manutenção Preventiva | RPM: 0           │  ← NÃO penaliza
+│     ⏱️ Em manutenção há 35:10                        │
+│     ℹ️ Tempo descontado do turno (sem impacto)       │
+│                                                      │
+│  🟡 TEAR 07 — RPM BAIXO ⚠️                         │
+│     Status: Ativa | RPM: 8 (meta: 25)               │
+│     Eficiência caiu para 32%                         │
+│                                                      │
+│  ⚠️ TEAR 09 — INCONSISTÊNCIA ⚠️                    │  ← NOVO
+│     Status: Manutenção Corretiva | RPM: 22           │
+│     Máquina produzindo mas marcada como manutenção!  │
+│     Verificar com mecânico                           │
+│                                                      │
+│  🔵 TEAR 12 — DISPOSITIVO OFFLINE 📡❌              │
+│     Último sinal há 2min 30s                         │
+│     Verificar Wi-Fi ou ESP32                         │
+│                                                      │
+│  Resumo: 1 parada inesperada | 1 manutenção         │
+│          1 RPM baixo | 1 inconsistência | 1 offline  │
+│  Impacto eficiência: ~3.2 rolos/hora (só paradas     │
+│  inesperadas contam)                                  │
+└──────────────────────────────────────────────────────┘
 ```
 
-**Novos tipos de alerta (exclusivos IoT):**
+**Tipos de alerta com cruzamento IoT × Status:**
 
-| Tipo | Condição | Ícone | Cor |
-|------|----------|-------|-----|
-| **Parada** | `is_running = false` por >30s | 🔴 | `text-destructive` |
-| **RPM baixo** | `rpm < 50% do rpm_meta` por >60s | 🟡 | `text-warning` |
-| **Dispositivo offline** | Sem leitura há >60s | 🔵 | `text-info` |
-| **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | 📶 | `text-warning` |
+| Tipo | Condição (IoT × Status) | Ícone | Cor | Penaliza Eficiência? |
+|------|------------------------|-------|-----|---------------------|
+| **Parada inesperada** | `RPM = 0` + status `ativa` por >30s | 🔴 | `text-destructive` | ✅ **SIM** |
+| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` e ≠ `inativa` | 🔧 | `text-warning` | ❌ NÃO |
+| **RPM baixo** | `rpm < 50% meta` + status `ativa` por >60s | 🟡 | `text-warning` | ✅ SIM (parcial) |
+| **Inconsistência** | `RPM > 0` + status ≠ `ativa` | ⚠️ | `text-orange-500` | — (alerta para admin) |
+| **Dispositivo offline** | Sem leitura há >60s | 🔵 | `text-info` | — (sem dados) |
+| **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | 📶 | `text-warning` | — (informativo) |
+
+**Regras de exibição:**
+- **Paradas inesperadas** ficam no **topo** (prioridade máxima) com card pulsante
+- **Manutenções justificadas** são exibidas com visual calmo (sem pulso, cor estável)
+- **Inconsistências** piscam para chamar atenção do admin/mecânico
+- O **impacto estimado** só contabiliza paradas inesperadas (não manutenções)
 
 **Timer ao vivo:**
 - Quando uma máquina para, o timer conta **em tempo real** no browser (não espera próximo envio)
 - Usa `Date.now() - downtime_started_at` atualizado a cada segundo via `setInterval`
+- Timer de manutenção justificada usa cor diferente (amarelo) do timer de parada inesperada (vermelho)
 
 ---
 
@@ -604,6 +694,14 @@ interface TvIoTData extends TvData {
     lastSeenAt: Date;
   }>;
   
+  // Status atual das máquinas (de machine_logs — para cruzamento IoT × Status)
+  machineStatuses: Map<string, {
+    machineId: string;
+    status: MachineStatus;        // 'ativa' | 'manutencao_preventiva' | etc.
+    statusSince: Date;            // Quando entrou neste status
+    isJustifiedStop: boolean;     // true se status ≠ 'ativa' e ≠ 'inativa'
+  }>;
+  
   // Estado do turno por máquina (produção acumulada)
   shiftStates: Map<string, {
     machineId: string;
@@ -612,28 +710,34 @@ interface TvIoTData extends TvData {
     totalTurns: number;
     completedRolls: number;
     lastRpm: number;
+    totalDowntimeSeconds: number;       // Apenas downtimes INJUSTIFICADOS
+    totalMaintenanceSeconds: number;    // Tempo em manutenção justificada
   }>;
   
   // Buffer de sparkline (últimas 30 leituras por máquina)
   rpmHistory: Map<string, number[]>;
   
-  // Paradas ativas
+  // Paradas ativas (com classificação de tipo)
   activeDowntimes: Array<{
     machineId: string;
     machineName: string;
     startedAt: Date;
-    durationSeconds: number; // Calculado ao vivo
+    durationSeconds: number;            // Calculado ao vivo
     shift: string;
+    type: 'inesperada' | 'justificada'; // NOVO: baseado no cruzamento IoT × Status
+    machineStatus: MachineStatus;       // NOVO: status da máquina no momento
+    penalizesEfficiency: boolean;       // NOVO: true apenas para 'inesperada'
   }>;
   
-  // Alertas IoT
+  // Alertas IoT (com novos tipos)
   alerts: Array<{
-    type: 'parada' | 'rpm_baixo' | 'offline' | 'wifi_fraco';
+    type: 'parada_inesperada' | 'manutencao_justificada' | 'rpm_baixo' | 'inconsistencia' | 'offline' | 'wifi_fraco';
     machineId: string;
     machineName: string;
     message: string;
     severity: 'warning' | 'critical' | 'info';
     timestamp: Date;
+    penalizesEfficiency: boolean;       // NOVO: para exibir impacto correto
   }>;
   
   // Dispositivos
@@ -718,28 +822,78 @@ function useTvIoTData(companyId: string): TvIoTData {
 ... (a cada 10 segundos a TV atualiza) ...
 
 08:30:00 — ESP32 envia: { rpm: 0, is_running: false }
-           Edge Function: cria iot_downtime_event
+           Edge Function: verifica status da máquina → status = 'ativa'
+           → PARADA INESPERADA! Cria iot_downtime_event (type: 'inesperada')
            Realtime: evento em iot_downtime_events
            TV IMEDIATAMENTE:
-             - Card TEAR 01 pulsa vermelho
-             - Painel de Alertas: "🔴 TEAR 01 parada! ⏱️ 0:00"
-             - Timer começa a contar ao vivo no browser
-             - Eficiência geral do turno recalcula
+             - Card TEAR 01 PULSA VERMELHO (parada inesperada)
+             - Painel de Alertas: "🔴 TEAR 01 — PARADA INESPERADA! ⏱️ 0:00"
+             - Timer VERMELHO começa a contar ao vivo
+             - Eficiência RECALCULA (esta parada PENALIZA)
 
-08:30:32 — Timer na TV: "Parada há 0:32"
-08:31:00 — Timer na TV: "Parada há 1:00"
-08:35:00 — Timer na TV: "Parada há 5:00 | Impacto: ~0.2 rolos"
+08:30:32 — Timer na TV: "🔴 Parada há 0:32"
+08:31:00 — Timer na TV: "🔴 Parada há 1:00"
+08:35:00 — Timer na TV: "🔴 Parada há 5:00 | Impacto: ~0.2 rolos | -1.2% eficiência"
 
 08:35:10 — ESP32 envia: { rpm: 23, is_running: true }
            Edge Function: finaliza iot_downtime_event (duração: 5min10s)
-           Realtime: evento UPDATE em iot_downtime_events
            TV IMEDIATAMENTE:
              - Card TEAR 01 flash verde → volta ao normal
              - Alerta de parada removido
              - Timer para
 
+────── CENÁRIO 2: MANUTENÇÃO JUSTIFICADA ──────
+
+10:00:00 — Mecânico registra no app: TEAR 01 → Manutenção Preventiva
+           machine_logs: novo registro { status: 'manutencao_preventiva' }
+           machines: status atualizado
+           Realtime: evento UPDATE em machines + INSERT em machine_logs
+           TV IMEDIATAMENTE:
+             - Card TEAR 01 muda para AMARELO ESTÁVEL (sem pulso!)
+             - Status: "🔧 Manut. Preventiva"
+             - Timer AMARELO inicia (cor diferente do vermelho!)
+             - Painel de Alertas: "🔧 TEAR 01 — MANUTENÇÃO PREVENTIVA"
+             - ℹ️ "Tempo descontado do turno (sem impacto na eficiência)"
+             - Eficiência NÃO RECALCULA (esta parada NÃO penaliza)
+
+10:00:10 — ESP32 envia: { rpm: 0, is_running: false }
+           Edge Function: verifica status → status = 'manutencao_preventiva'
+           → PARADA JUSTIFICADA! NÃO cria iot_downtime_event
+           → Leitura registrada em machine_readings mas ignorada para eficiência
+           TV: Nenhuma mudança visual (já mostra manutenção)
+
+10:30:00 — Timer na TV: "🔧 Em manutenção há 30:00" (amarelo, sem pulso)
+           Eficiência continua igual (tempo descontado do turno)
+
+10:45:00 — Mecânico finaliza: TEAR 01 → Ativa
+           machine_logs: ended_at preenchido
+           machines: status volta para 'ativa'
+           TV IMEDIATAMENTE:
+             - Card TEAR 01 volta ao normal
+             - Timer de manutenção para (duração final: 45min)
+             - Eficiência recalcula com tempo_disponivel = tempo_turno - 45min
+
+10:45:10 — ESP32 envia: { rpm: 24, is_running: true }
+           Edge Function: status = 'ativa', tudo normal
+           TV atualiza: RPM: 24.0 | 🟢 Ativa
+
+────── CENÁRIO 3: INCONSISTÊNCIA ──────
+
+11:00:00 — Admin marca TEAR 02 como "Troca de Artigo" no app
+           MAS o tecelão esqueceu de parar a máquina
+11:00:10 — ESP32 do TEAR 02 envia: { rpm: 22, is_running: true }
+           Edge Function: status = 'troca_artigo' MAS rpm > 0
+           → INCONSISTÊNCIA! Emite alerta
+           TV IMEDIATAMENTE:
+             - Card TEAR 02 PISCA AMARELO/LARANJA
+             - Painel de Alertas: "⚠️ TEAR 02 — INCONSISTÊNCIA"
+             - "Máquina produzindo (RPM: 22) mas status: Troca de Artigo"
+             - "Verificar com mecânico/operador"
+
 13:30:00 — TROCA DE TURNO
-           Edge Function: finaliza turno de João, cria registro em productions
+           Edge Function: finaliza turno de João
+           → Calcula eficiência com tempo_disponivel (desconta 45min de manutenção)
+           → Cria registro em productions (source: 'iot')
            Realtime: evento INSERT em productions + UPDATE em iot_shift_state
            TV atualiza:
              - Header: "TURNO: Tarde"
@@ -787,18 +941,23 @@ function isDeviceOnline(lastReading: MachineReading): boolean {
 
 ## 10. Alertas Visuais Automáticos
 
-### Regras de Alerta na TV
+### Regras de Alerta na TV (com Cruzamento IoT × Status)
 
-| Regra | Condição | Ação Visual na TV |
-|-------|----------|-------------------|
-| **Máquina parou** | `is_running: false` por >10s | Card pulsa vermelho + alerta no Painel 5 |
-| **RPM caindo** | RPM cai >30% em 60s | Borda amarela no card |
-| **RPM baixo** | `rpm < 50% do rpm_meta` por >60s | Ícone ⚠️ no card + alerta |
-| **Rolo completo** | `completed_rolls` incrementa | Flash verde momentâneo + counter anima |
-| **Dispositivo offline** | Sem leitura há >30s | Card cinza + ícone ❌ |
-| **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | Ícone 📶 vermelho |
-| **Eficiência abaixo da meta** | Eficiência geral < meta | Gauge muda para vermelho |
-| **Novo recorde do turno** | Tecelão ultrapassa 1º lugar | Animação de troca no ranking |
+| Regra | Condição (IoT × Status) | Ação Visual na TV | Penaliza Eficiência? |
+|-------|------------------------|-------------------|---------------------|
+| **Parada inesperada** | `RPM = 0` + status `ativa` por >10s | Card **PULSA VERMELHO** + alerta 🔴 | ✅ SIM |
+| **Manutenção justificada** | `RPM = 0` + status ≠ `ativa` | Card **AMARELO ESTÁVEL** (sem pulso) + alerta 🔧 | ❌ NÃO |
+| **Inconsistência** | `RPM > 0` + status ≠ `ativa` | Card **PISCA LARANJA** + alerta ⚠️ | — (alerta admin) |
+| **RPM caindo** | RPM cai >30% em 60s + status `ativa` | Borda amarela no card | ✅ SIM (parcial) |
+| **RPM baixo** | `rpm < 50% meta` + status `ativa` por >60s | Ícone ⚠️ no card + alerta 🟡 | ✅ SIM |
+| **Rolo completo** | `completed_rolls` incrementa | Flash verde momentâneo + counter anima | — |
+| **Dispositivo offline** | Sem leitura há >30s | Card cinza + ícone ❌ | — |
+| **Wi-Fi fraco** | `wifi_rssi < -80 dBm` | Ícone 📶 vermelho | — |
+| **Eficiência abaixo da meta** | Eficiência geral < meta (calculada com `tempo_disponível`) | Gauge muda para vermelho | — |
+| **Novo recorde do turno** | Tecelão ultrapassa 1º lugar | Animação de troca no ranking | — |
+
+> **Regra de ouro**: Apenas paradas com status `ativa` pulsam vermelho e penalizam eficiência.
+> Manutenções registradas pelo mecânico têm visual calmo (amarelo/azul/roxo) e NÃO penalizam.
 
 ### Efeitos Sonoros (Opcional — futuro)
 
@@ -918,6 +1077,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.machine_logs;
 | Data | Alteração |
 |------|-----------|
 | 2026-03-29 | Documentação inicial criada — integração IoT + Modo TV |
+| 2026-03-29 | Atualização: Cruzamento IoT × Status da Máquina (machine_logs) — paradas justificadas vs inesperadas, visual diferenciado, cálculo de eficiência com tempo_disponível, alertas de inconsistência |
 
 ---
 
