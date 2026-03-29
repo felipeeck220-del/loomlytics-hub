@@ -21,17 +21,17 @@ const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> 
 function RolePermissionsDisplay({ role }: { role: string }) {
   const perms = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.admin;
   return (
-    <div className="space-y-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {perms.allowed.map(perm => (
-        <div key={perm} className="flex items-center gap-2 rounded-lg border border-border bg-background p-3">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
+        <div key={perm} className="flex items-center gap-2.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+          <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
           <span className="text-sm text-foreground">{perm}</span>
         </div>
       ))}
       {perms.denied.map(perm => (
-        <div key={perm} className="flex items-center gap-2 rounded-lg border border-border bg-background p-3 opacity-50">
-          <span className="h-2.5 w-2.5 rounded-full bg-destructive shrink-0" />
-          <span className="text-sm text-foreground line-through">{perm}</span>
+        <div key={perm} className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5 opacity-40">
+          <span className="h-2 w-2 rounded-full bg-destructive shrink-0" />
+          <span className="text-sm text-muted-foreground line-through">{perm}</span>
         </div>
       ))}
     </div>
@@ -553,21 +553,79 @@ export default function SettingsPage() {
         </TabsList>
 
         {/* ===== MEU PERFIL ===== */}
-        <TabsContent value="profile" className="mt-4">
-          <div className="card-glass p-6 space-y-6">
-            <div className="flex items-center gap-3">
-              <User className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <h2 className="font-display font-semibold text-foreground">Informações do Usuário</h2>
-                <p className="text-sm text-muted-foreground">Suas informações de acesso e permissões</p>
+        <TabsContent value="profile" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: User Card */}
+            <div className="lg:col-span-1 space-y-5">
+              {/* Avatar & Name Card */}
+              <div className="card-glass p-6">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/30 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-primary">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-display font-bold text-foreground">{user?.name}</h3>
+                    <Badge className={`mt-1.5 ${getRoleColor(user?.role || '')}`}>{getRoleLabel(user?.role || '')}</Badge>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Email</p>
+                      <p className="text-foreground truncate">{user?.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Membro desde</p>
+                      <p className="text-foreground">
+                        {profiles.find(p => p.user_id === user?.id)?.created_at
+                          ? format(new Date(profiles.find(p => p.user_id === user?.id)!.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Shield className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Função</p>
+                      <p className="text-foreground">{ROLES.find(r => r.value === user?.role)?.description}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-border space-y-2">
+                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setEditingProfile(true)}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" /> Editar Perfil
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setChangingPassword(true)}>
+                    <Key className="h-3.5 w-3.5 mr-2" /> Alterar Senha
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left: User info */}
-              <div className="space-y-5">
-                {editingProfile ? (
-                  <>
+            {/* Right: Edit Forms + Permissions */}
+            <div className="lg:col-span-2 space-y-5">
+              {/* Edit Profile Form */}
+              {editingProfile && (
+                <div className="card-glass p-6 space-y-4 border-primary/30">
+                  <div className="flex items-center gap-2">
+                    <Pencil className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Editar Perfil</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Nome</Label>
                       <Input value={profileName} onChange={e => setProfileName(e.target.value)} />
@@ -575,140 +633,82 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                       <Label>Novo Email</Label>
                       <Input type="email" placeholder={user?.email || 'Novo email'} value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
-                      <p className="text-xs text-muted-foreground">Deixe em branco para manter o email atual.</p>
+                      <p className="text-xs text-muted-foreground">Deixe em branco para manter o atual.</p>
                     </div>
-                    {profileEmail.trim() !== '' && profileEmail.trim() !== user?.email && (
-                      <div className="space-y-2">
-                        <Label>Senha Atual (obrigatória para alterar email)</Label>
-                        <div className="relative">
-                          <Input
-                            type={showProfilePassword ? 'text' : 'password'}
-                            value={profilePassword}
-                            onChange={e => setProfilePassword(e.target.value)}
-                            placeholder="Digite sua senha atual"
-                          />
-                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowProfilePassword(!showProfilePassword)}>
-                            {showProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(''); setProfilePassword(''); }}>Cancelar</Button>
-                      <Button size="sm" className="btn-gradient" disabled={savingProfile} onClick={handleSaveProfile}>
-                        {savingProfile && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Nome</p>
-                        <p className="text-lg font-display font-bold text-foreground">{user?.name}</p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => setEditingProfile(true)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                      </Button>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-foreground">{user?.email}</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Alterar Senha */}
-                <div className="border-t border-border pt-4">
-                  {changingPassword ? (
-                    <div className="space-y-3">
-                      <p className="text-sm font-semibold text-foreground">Alterar Senha</p>
-                      <div className="space-y-2">
-                        <Label>Senha Atual</Label>
-                        <div className="relative">
-                          <Input
-                            type={showCurrentPw ? 'text' : 'password'}
-                            value={currentPassword}
-                            onChange={e => setCurrentPassword(e.target.value)}
-                            placeholder="Digite sua senha atual"
-                          />
-                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPw(!showCurrentPw)}>
-                            {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Nova Senha</Label>
-                        <div className="relative">
-                          <Input
-                            type={showNewPw ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={e => setNewPassword(e.target.value)}
-                            placeholder="Digite a nova senha (mín. 6 caracteres)"
-                          />
-                          <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPw(!showNewPw)}>
-                            {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => { setChangingPassword(false); setCurrentPassword(''); setNewPassword(''); }}>Cancelar</Button>
-                        <Button size="sm" className="btn-gradient" disabled={savingPassword} onClick={handleChangePassword}>
-                          {savingPassword && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar Senha
+                  </div>
+                  {profileEmail.trim() !== '' && profileEmail.trim() !== user?.email && (
+                    <div className="space-y-2 max-w-sm">
+                      <Label>Senha Atual (obrigatória para alterar email)</Label>
+                      <div className="relative">
+                        <Input
+                          type={showProfilePassword ? 'text' : 'password'}
+                          value={profilePassword}
+                          onChange={e => setProfilePassword(e.target.value)}
+                          placeholder="Digite sua senha atual"
+                        />
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowProfilePassword(!showProfilePassword)}>
+                          {showProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Senha</p>
-                        <p className="text-foreground">••••••••</p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => setChangingPassword(true)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Alterar
-                      </Button>
-                    </div>
                   )}
-                </div>
-
-                <div>
-                  <p className="text-sm text-muted-foreground">Função</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge className={getRoleColor(user?.role || '')}>{getRoleLabel(user?.role || '')}</Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {ROLES.find(r => r.value === user?.role)?.description}
-                    </span>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(''); setProfilePassword(''); }}>Cancelar</Button>
+                    <Button size="sm" className="btn-gradient" disabled={savingProfile} onClick={handleSaveProfile}>
+                      {savingProfile && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                    </Button>
                   </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Membro desde</p>
+              )}
+
+              {/* Change Password Form */}
+              {changingPassword && (
+                <div className="card-glass p-6 space-y-4 border-primary/30">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-foreground">
-                      {profiles.find(p => p.user_id === user?.id)?.created_at
-                        ? format(new Date(profiles.find(p => p.user_id === user?.id)!.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-                        : '—'}
-                    </p>
+                    <Key className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Alterar Senha</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Senha Atual</Label>
+                      <div className="relative">
+                        <Input type={showCurrentPw ? 'text' : 'password'} value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="Senha atual" />
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowCurrentPw(!showCurrentPw)}>
+                          {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nova Senha</Label>
+                      <div className="relative">
+                        <Input type={showNewPw ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Mín. 6 caracteres" />
+                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowNewPw(!showNewPw)}>
+                          {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" size="sm" onClick={() => { setChangingPassword(false); setCurrentPassword(''); setNewPassword(''); }}>Cancelar</Button>
+                    <Button size="sm" className="btn-gradient" disabled={savingPassword} onClick={handleChangePassword}>
+                      {savingPassword && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar Senha
+                    </Button>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Right: Permissions */}
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-muted-foreground">Permissões de Acesso</p>
+              {/* Permissions */}
+              <div className="card-glass p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <h3 className="font-display font-semibold text-foreground">Permissões de Acesso</h3>
+                </div>
                 <RolePermissionsDisplay role={user?.role || 'admin'} />
-                <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 mt-4">
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-yellow-600" />
-                    <p className="font-semibold text-foreground text-sm">Nível de Acesso</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-sm text-foreground">
                     {isAdmin
-                      ? 'Você tem acesso total ao sistema e pode gerenciar todos os usuários e configurações.'
-                      : 'Seu acesso é limitado às funcionalidades da sua função.'}
+                      ? '✓ Você tem acesso total ao sistema e pode gerenciar todos os usuários e configurações.'
+                      : '⚠ Seu acesso é limitado às funcionalidades da sua função. Contate o administrador para alterações.'}
                   </p>
                 </div>
               </div>
@@ -717,10 +717,12 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* ===== USUÁRIOS ===== */}
-        <TabsContent value="users" className="mt-4 space-y-6">
-          <div className="flex items-center justify-between">
+        <TabsContent value="users" className="mt-6 space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-muted-foreground" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
               <div>
                 <h2 className="font-display font-semibold text-foreground text-lg">Gerenciar Usuários</h2>
                 <p className="text-sm text-muted-foreground">Controle de acesso e permissões do sistema</p>
@@ -733,20 +735,14 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Email Patterns */}
-          <div className="card-glass p-5 space-y-3">
-            <div>
-              <h3 className="font-semibold text-foreground">Padrões de Email</h3>
-              <p className="text-sm text-muted-foreground">Formatos de email utilizados no sistema</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Email Patterns - Compact */}
+          <div className="card-glass p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Padrões de Email por Função</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {ROLES.map(r => (
-                <div key={r.value} className="flex items-start gap-2">
-                  <Badge className={r.color}>{r.label}</Badge>
-                  <div>
-                    <p className="text-sm text-foreground">{r.value}@[nome].com</p>
-                    <p className="text-xs text-muted-foreground">Ex: {r.value}@joao.com</p>
-                  </div>
+                <div key={r.value} className="rounded-lg border border-border bg-muted/20 p-3 text-center space-y-1.5">
+                  <Badge className={`${r.color} text-xs`}>{r.label}</Badge>
+                  <p className="text-xs text-foreground font-mono">{r.value}@[nome].com</p>
                 </div>
               ))}
             </div>
@@ -760,13 +756,13 @@ export default function SettingsPage() {
           ) : (
             <div className="space-y-3">
               {profiles.map(p => (
-                <div key={p.id} className="card-glass p-5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                      <Users className="h-5 w-5 text-muted-foreground" />
+                <div key={p.id} className="card-glass p-4 flex items-center justify-between hover:border-primary/20 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-bold text-primary">{p.name.charAt(0).toUpperCase()}</span>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-display font-bold text-foreground">{p.name}</p>
                         {p.code && (
                           <Badge variant="outline" className="text-xs font-mono">#{p.code}</Badge>
@@ -775,11 +771,11 @@ export default function SettingsPage() {
                           {p.status === 'active' ? 'Ativo' : 'Inativo'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{p.email}</p>
+                      <p className="text-sm text-muted-foreground truncate">{p.email}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Badge className={getRoleColor(p.role)}>{getRoleLabel(p.role)}</Badge>
                         <span className="text-xs text-muted-foreground">
-                          Criado em {format(new Date(p.created_at), 'dd/MM/yyyy')}
+                          Desde {format(new Date(p.created_at), 'dd/MM/yyyy')}
                         </span>
                       </div>
                     </div>
@@ -792,22 +788,11 @@ export default function SettingsPage() {
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
                         <Key className="h-3.5 w-3.5" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleToggleStatus(p)}
-                        title={p.status === 'active' ? 'Desativar' : 'Ativar'}
-                      >
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(p)} title={p.status === 'active' ? 'Desativar' : 'Ativar'}>
                         <XCircle className="h-3.5 w-3.5 text-warning" />
                       </Button>
                       {p.user_id !== user?.id && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => { setShowDeleteUser(p); setDeleteWord(''); }}
-                        >
+                        <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDeleteUser(p); setDeleteWord(''); }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -820,67 +805,48 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* ===== EMPRESA ===== */}
-        <TabsContent value="company" className="mt-4">
-          <div className="card-glass p-6 space-y-6">
-            <div className="flex items-center gap-3">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <h2 className="font-display font-semibold text-foreground">Informações da Empresa</h2>
-                <p className="text-sm text-muted-foreground">Configurações gerais da malharia</p>
-              </div>
-            </div>
+        <TabsContent value="company" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-5">
+              {/* Logo & Identity Card */}
+              <div className="card-glass p-6 space-y-5">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <h3 className="font-display font-semibold text-foreground">Identidade da Empresa</h3>
+                </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left: Company info + Logo */}
-              <div className="space-y-5">
-                {/* Logo Upload */}
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Logo da Empresa</p>
-                  <div className="flex items-start gap-4">
-                    <div className="h-24 w-24 rounded-xl border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
-                      {company?.logo_url ? (
-                        <img src={company.logo_url} alt="Logo" className="h-full w-full object-contain" />
-                      ) : (
-                        <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <input
-                        ref={logoInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleLogoUpload}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => logoInputRef.current?.click()}
-                        disabled={uploadingLogo}
-                      >
+                {/* Logo */}
+                <div className="flex items-center gap-5">
+                  <div className="h-20 w-20 rounded-xl border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                    {company?.logo_url ? (
+                      <img src={company.logo_url} alt="Logo" className="h-full w-full object-contain" />
+                    ) : (
+                      <ImageIcon className="h-7 w-7 text-muted-foreground/40" />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}>
                         {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
-                        {company?.logo_url ? 'Alterar Logo' : 'Enviar Logo'}
+                        {company?.logo_url ? 'Alterar' : 'Enviar Logo'}
                       </Button>
                       {company?.logo_url && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={handleRemoveLogo}
-                          disabled={uploadingLogo}
-                        >
-                          <X className="h-4 w-4 mr-1" /> Remover
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={handleRemoveLogo} disabled={uploadingLogo}>
+                          <X className="h-4 w-4" />
                         </Button>
                       )}
-                      <p className="text-xs text-muted-foreground">PNG, JPG ou SVG. Máx 2MB.<br/>Aparece no menu lateral e nos PDFs.</p>
                     </div>
+                    <p className="text-xs text-muted-foreground">PNG, JPG ou SVG · Máx 2MB</p>
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-sm text-muted-foreground">Nome da Empresa</p>
+                {/* Company Name */}
+                <div className="border-t border-border pt-4">
+                  <p className="text-xs text-muted-foreground mb-1">Nome da Empresa</p>
                   {editingCompanyName ? (
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2">
                       <Input value={companyNameForm} onChange={e => setCompanyNameForm(e.target.value)} className="max-w-xs" />
                       <Button variant="outline" size="sm" onClick={() => setEditingCompanyName(false)}>Cancelar</Button>
                       <Button size="sm" className="btn-gradient" disabled={savingCompanyName} onClick={handleSaveCompanyName}>
@@ -891,116 +857,124 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <p className="text-lg font-display font-bold text-foreground">{company?.name || '—'}</p>
                       {isAdmin && (
-                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => { setCompanyNameForm(company?.name || ''); setEditingCompanyName(true); }}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setCompanyNameForm(company?.name || ''); setEditingCompanyName(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>
                   )}
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Setor</p>
-                  <p className="text-foreground font-medium">Produção Têxtil</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Sistema</p>
-                  <p className="text-foreground font-medium">Gestão de Produção v1.0</p>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Setor</p>
+                    <p className="text-sm text-foreground font-medium">Produção Têxtil</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sistema</p>
+                    <p className="text-sm text-foreground font-medium">Gestão v1.0</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Right: Shifts + Roles */}
-              <div className="space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-semibold text-muted-foreground">Turnos de Trabalho</p>
-                    {isAdmin && !editingShifts && (
-                      <Button variant="outline" size="sm" onClick={() => { setShiftForm(shiftSettings); setEditingShifts(true); }}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                      </Button>
-                    )}
-                    {editingShifts && (
-                      <div className="flex gap-1">
-                        <Button variant="outline" size="sm" onClick={() => setEditingShifts(false)}>Cancelar</Button>
-                        <Button size="sm" className="btn-gradient" disabled={savingShifts} onClick={async () => {
-                          setSavingShifts(true);
-                          try {
-                            await saveShiftSettings(shiftForm);
-                            toast.success('Turnos atualizados com sucesso');
-                            setEditingShifts(false);
-                          } catch { toast.error('Erro ao salvar turnos'); }
-                          setSavingShifts(false);
-                        }}>
-                          {savingShifts && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    {([
-                      { label: 'Manhã', startKey: 'shift_manha_start', endKey: 'shift_manha_end' },
-                      { label: 'Tarde', startKey: 'shift_tarde_start', endKey: 'shift_tarde_end' },
-                      { label: 'Noite', startKey: 'shift_noite_start', endKey: 'shift_noite_end' },
-                    ] as { label: string; startKey: keyof CompanyShiftSettings; endKey: keyof CompanyShiftSettings }[]).map(shift => (
-                      <div key={shift.label} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
-                        <span className="font-medium text-foreground">{shift.label}</span>
-                        {editingShifts ? (
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type="time"
-                              value={shiftForm[shift.startKey]}
-                              onChange={e => setShiftForm(p => ({ ...p, [shift.startKey]: e.target.value }))}
-                              className="w-[110px] h-8 text-sm"
-                            />
-                            <span className="text-muted-foreground text-sm">-</span>
-                            <Input
-                              type="time"
-                              value={shiftForm[shift.endKey]}
-                              onChange={e => setShiftForm(p => ({ ...p, [shift.endKey]: e.target.value }))}
-                              className="w-[110px] h-8 text-sm"
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            {shiftSettings[shift.startKey]} - {shiftSettings[shift.endKey]}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+              {/* Roles Card */}
+              <div className="card-glass p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <h3 className="font-display font-semibold text-foreground">Funções do Sistema</h3>
                 </div>
-
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-3">Funções do Sistema</p>
-                  <div className="space-y-2">
-                    {ROLES.map(r => (
-                      <div key={r.value} className={`flex items-center justify-between rounded-lg border p-3 ${r.color.replace('text-', 'border-').split(' ')[0]}/30 ${r.color.split(' ')[0]}/10`}>
-                        <span className="font-medium text-foreground">{r.label}</span>
-                        <Badge className={r.color}>{r.description.split(' ').slice(0, 3).join(' ')}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {isAdmin && (
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-semibold text-muted-foreground">Modo de Registro de Produção</p>
-                      <Button variant="outline" size="sm" onClick={() => setShowProductionMode(true)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Configurar
-                      </Button>
+                <div className="space-y-2">
+                  {ROLES.map(r => (
+                    <div key={r.value} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
+                      <span className="font-medium text-foreground text-sm">{r.label}</span>
+                      <span className="text-xs text-muted-foreground">{r.description}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">Configure se cada máquina registra produção por <strong>rolos</strong> ou por <strong>voltas</strong>.</p>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Email patterns */}
-            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 space-y-2">
-              <p className="font-semibold text-foreground text-sm">Padrões de Email</p>
-              <p className="text-sm text-muted-foreground"><strong>Administrador:</strong> admin@admin.com</p>
-              <p className="text-sm text-muted-foreground"><strong>Mecânicos:</strong> mecanico@[nome].com (ex: mecanico@mateus.com)</p>
-              <p className="text-sm text-muted-foreground"><strong>Revisadores:</strong> revisador@[nome].com (ex: revisador@joao.com)</p>
+            {/* Right Column */}
+            <div className="space-y-5">
+              {/* Shifts Card */}
+              <div className="card-glass p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" />
+                    <h3 className="font-display font-semibold text-foreground">Turnos de Trabalho</h3>
+                  </div>
+                  {isAdmin && !editingShifts && (
+                    <Button variant="outline" size="sm" onClick={() => { setShiftForm(shiftSettings); setEditingShifts(true); }}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                    </Button>
+                  )}
+                  {editingShifts && (
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" onClick={() => setEditingShifts(false)}>Cancelar</Button>
+                      <Button size="sm" className="btn-gradient" disabled={savingShifts} onClick={async () => {
+                        setSavingShifts(true);
+                        try {
+                          await saveShiftSettings(shiftForm);
+                          toast.success('Turnos atualizados com sucesso');
+                          setEditingShifts(false);
+                        } catch { toast.error('Erro ao salvar turnos'); }
+                        setSavingShifts(false);
+                      }}>
+                        {savingShifts && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {([
+                    { label: '☀️ Manhã', startKey: 'shift_manha_start', endKey: 'shift_manha_end' },
+                    { label: '🌤️ Tarde', startKey: 'shift_tarde_start', endKey: 'shift_tarde_end' },
+                    { label: '🌙 Noite', startKey: 'shift_noite_start', endKey: 'shift_noite_end' },
+                  ] as { label: string; startKey: keyof CompanyShiftSettings; endKey: keyof CompanyShiftSettings }[]).map(shift => (
+                    <div key={shift.label} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
+                      <span className="font-medium text-foreground text-sm">{shift.label}</span>
+                      {editingShifts ? (
+                        <div className="flex items-center gap-1">
+                          <Input type="time" value={shiftForm[shift.startKey]} onChange={e => setShiftForm(p => ({ ...p, [shift.startKey]: e.target.value }))} className="w-[100px] h-8 text-sm" />
+                          <span className="text-muted-foreground text-sm">—</span>
+                          <Input type="time" value={shiftForm[shift.endKey]} onChange={e => setShiftForm(p => ({ ...p, [shift.endKey]: e.target.value }))} className="w-[100px] h-8 text-sm" />
+                        </div>
+                      ) : (
+                        <span className="text-sm font-mono text-muted-foreground">
+                          {shiftSettings[shift.startKey]} — {shiftSettings[shift.endKey]}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Production Mode Card */}
+              {isAdmin && (
+                <div className="card-glass p-6 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-primary" />
+                      <h3 className="font-display font-semibold text-foreground">Modo de Registro de Produção</h3>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setShowProductionMode(true)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Configurar
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Configure se cada máquina registra produção por <strong>rolos</strong> ou por <strong>voltas</strong>.</p>
+                </div>
+              )}
+
+              {/* Email Patterns */}
+              <div className="card-glass p-5 border-primary/10">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Padrões de Email</p>
+                <div className="space-y-1.5 text-sm text-muted-foreground">
+                  <p><strong className="text-foreground">Administrador:</strong> admin@admin.com</p>
+                  <p><strong className="text-foreground">Mecânicos:</strong> mecanico@[nome].com</p>
+                  <p><strong className="text-foreground">Revisadores:</strong> revisador@[nome].com</p>
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
