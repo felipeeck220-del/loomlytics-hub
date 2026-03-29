@@ -1102,6 +1102,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.machine_logs;
 |------|-----------|
 | 2026-03-29 | Documentação inicial criada — integração IoT + Modo TV |
 | 2026-03-29 | Atualização: Cruzamento IoT × Status da Máquina (machine_logs) — paradas justificadas vs inesperadas, visual diferenciado, cálculo de eficiência com tempo_disponível, alertas de inconsistência |
+| 2026-03-29 | Revisão de consistência com iot.md: corrigido Canal 5 (machine_logs) dentro do useEffect, removido `total_downtime_seconds` do `iot_shift_state` (campo não existe — calc vem de `iot_downtime_events`), alinhado `shiftStates` com schema real do iot.md seção 6.3, adicionados micro-paradas (<2min) e alerta de parada longa (>15min) conforme iot.md seção 11, adicionado `articleId`/`currentShift`/`shiftStartedAt` ao state |
 
 ---
 
