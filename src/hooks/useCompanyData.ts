@@ -22,16 +22,18 @@ export function useCompanyData() {
   const [loading, setLoading] = useState(true);
 
   // Fetch all rows from a table, paginating past the 1000-row default limit
-  const fetchAll = async (table: string, query: { column: string; value: string }, orderCol: string, ascending = true) => {
+  const fetchAll = async (table: string, query: { column: string; value: string } | null, orderCol: string, ascending = true) => {
     const PAGE_SIZE = 1000;
     let allData: any[] = [];
     let from = 0;
     let hasMore = true;
 
     while (hasMore) {
-      const { data, error } = await sb(table)
-        .select('*')
-        .eq(query.column, query.value)
+      let q = sb(table).select('*');
+      if (query) {
+        q = q.eq(query.column, query.value);
+      }
+      const { data, error } = await q
         .order(orderCol, { ascending })
         .order('id', { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
@@ -58,14 +60,14 @@ export function useCompanyData() {
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
         fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
-        fetchAll('machine_logs', { column: 'machine_id', value: '__ALL__' }, 'started_at', false),
+        fetchAll('machine_logs', null, 'started_at', false),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
         sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
         fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false),
       ]);
 
       setMachines(mData.map(mapMachine));
-      if (mlRes.data) setMachineLogs(mlRes.data.map(mapMachineLog));
+      setMachineLogs(mlRes.map(mapMachineLog));
       setClients(cData.map(mapClient));
       setArticles(aData.map(mapArticle));
       setWeavers(wData.map(mapWeaver));
