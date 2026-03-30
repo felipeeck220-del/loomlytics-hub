@@ -121,9 +121,9 @@ export default function Vendas() {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
         <div className="max-w-6xl mx-auto px-4 pt-16 pb-12 relative">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <Badge variant="outline" className="mb-4 text-sm px-4 py-1.5">
+            <Badge className="mb-4 text-sm px-4 py-1.5 bg-primary text-primary-foreground">
               <Zap className="h-3.5 w-3.5 mr-1.5" />
-              Gestão Têxtil Moderna
+              🎉 Teste Grátis por {trialMonths} {trialMonths === 1 ? 'Mês' : 'Meses'}!
             </Badge>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-6">
               Você ainda usa <span className="text-destructive">planilhas</span> ou anota seu faturamento em um{' '}
