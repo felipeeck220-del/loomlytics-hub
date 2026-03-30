@@ -25,6 +25,19 @@ export default function Login() {
       return;
     }
 
+    // Check if this user is a platform admin — redirect to /admin immediately
+    const { data: platformAdmin } = await supabase
+      .from('platform_admins')
+      .select('id')
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
+      .maybeSingle();
+
+    if (platformAdmin) {
+      setLoading(false);
+      window.location.href = '/admin';
+      return;
+    }
+
     // After successful auth, verify this user is a company admin (creator)
     // Only admins who created the company can login via /login
     // Other users must use /:slug/login
@@ -39,13 +52,6 @@ export default function Login() {
     }
 
     setLoading(false);
-
-    // Platform admin redirect
-    if (email.trim().toLowerCase() === 'felipeeck18@gmail.com') {
-      navigate('/admin');
-      return;
-    }
-
     navigate('/');
   };
 
