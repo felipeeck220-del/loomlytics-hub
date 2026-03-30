@@ -18,11 +18,22 @@ const NAV_ITEMS = [
   { key: 'clients-articles', label: 'Clientes & Artigos' },
   { key: 'production', label: 'Produção' },
   { key: 'revision', label: 'Revisão' },
+  { key: 'mecanica', label: 'Mecânica' },
   { key: 'outsource', label: 'Terceirizado' },
   { key: 'weavers', label: 'Tecelões' },
   { key: 'reports', label: 'Relatórios' },
   { key: 'settings', label: 'Configurações' },
 ];
+
+const SUBSCRIPTION_STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  trial: { label: 'Trial', className: 'bg-blue-500/10 text-blue-600 border-blue-200' },
+  active: { label: 'Pago', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
+  paid: { label: 'Pago', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
+  free: { label: 'Grátis', className: 'bg-purple-500/10 text-purple-600 border-purple-200' },
+  blocked: { label: 'Bloqueado', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+  cancelled: { label: 'Cancelado', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+  cancelling: { label: 'Cancelando', className: 'bg-warning/10 text-warning border-warning/20' },
+};
 
 interface EmailHistoryEntry {
   id: string;
@@ -223,12 +234,23 @@ export default function Admin() {
     if (!selectedCompany) return;
     setSaving(true);
     try {
+      // Determine the correct subscription_status to save
+      let newSubscriptionStatus: string | undefined;
+      const currentStatus = selectedCompany.settings?.subscription_status || 'trial';
+      if (freeUser) {
+        newSubscriptionStatus = 'free';
+      } else if (currentStatus === 'free') {
+        // Was free, now toggled off → revert to trial
+        newSubscriptionStatus = 'trial';
+      }
+      // Otherwise, don't change subscription_status (keep active/paid/trial/etc.)
+
       await callAdmin('update_settings', {
         company_id: selectedCompany.id,
         monthly_plan_value: planValue,
         platform_active: freeUser ? true : platformActive,
         enabled_nav_items: companyNavItems,
-        subscription_status: freeUser ? 'free' : 'trial',
+        ...(newSubscriptionStatus !== undefined && { subscription_status: newSubscriptionStatus }),
       });
       toast({ title: 'Salvo', description: 'Configurações atualizadas com sucesso.' });
       setCompanyModalOpen(false);
@@ -467,11 +489,11 @@ export default function Admin() {
                             : '—'}
                         </TableCell>
                         <TableCell>
-                          {(c.settings?.platform_active ?? true) ? (
-                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">Ativo</Badge>
-                          ) : (
-                            <Badge variant="destructive">Bloqueado</Badge>
-                          )}
+                          {(() => {
+                            const subStatus = c.settings?.subscription_status || 'trial';
+                            const statusInfo = SUBSCRIPTION_STATUS_LABELS[subStatus] || { label: subStatus, className: 'bg-muted text-muted-foreground' };
+                            return <Badge className={statusInfo.className}>{statusInfo.label}</Badge>;
+                          })()}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {new Date(c.created_at).toLocaleDateString('pt-BR')}
