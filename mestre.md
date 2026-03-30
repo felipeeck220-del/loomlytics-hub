@@ -1,13 +1,16 @@
 # 📋 MESTRE.MD — Documentação Mestre do Projeto MalhaGest
 
-> **⚠️ INSTRUÇÕES PARA A IA (LOVABLE):**
+> **⚠️ INSTRUÇÕES OBRIGATÓRIAS PARA A IA (LOVABLE):**
 >
-> 1. **LEIA ESTE ARQUIVO INTEIRO ANTES** de qualquer modificação no projeto.
+> 1. **LEIA ESTE ARQUIVO INTEIRO ANTES** de qualquer modificação no projeto. Quando o usuário iniciar o prompt com **"leia o arquivo mestre.md"** ou qualquer variação (ex: "leia mestre.md", "consulte o mestre"), isso significa: **leia este arquivo por completo antes de prosseguir com qualquer alteração**.
 > 2. Use-o como referência para entender a arquitetura, fluxos de dados e dependências entre módulos.
-> 3. **Após concluir alterações**, atualize este arquivo na seção relevante com o que foi modificado.
-> 4. Este arquivo é a **fonte de verdade** sobre o estado atual do sistema — mantenha-o sempre atualizado.
-> 5. Nunca faça alterações em um módulo sem verificar aqui se há dependências com outros módulos.
-> 6. **Atenção especial:** Filtros, sidebar, assinatura e layout são interconectados — modificar um pode quebrar outro.
+> 3. **🔴 OBRIGATÓRIO — Após TODA alteração concluída**, adicione uma nova linha na seção **"## 📅 Histórico de Alterações"** com data/hora no fuso **Brasília (UTC-3)** e descrição clara do que foi feito. **NÃO PULE ESTA ETAPA. NUNCA.**
+> 4. **🔴 OBRIGATÓRIO — Atualize também** o campo `*Última atualização:*` no final do arquivo com a data/hora de Brasília.
+> 5. Este arquivo é a **fonte de verdade** sobre o estado atual do sistema — mantenha-o sempre atualizado.
+> 6. Nunca faça alterações em um módulo sem verificar aqui se há dependências com outros módulos.
+> 7. **Atenção especial:** Filtros, sidebar, assinatura e layout são interconectados — modificar um pode quebrar outro.
+> 8. **Fuso horário padrão:** Todas as datas/horas neste arquivo usam **horário de Brasília (UTC-3)**.
+
 
 ---
 
@@ -1000,27 +1003,28 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ## 📅 Histórico de Alterações
 
-| Data & Hora | Alteração |
-|-------------|-----------|
-| 2026-03-29 00:00 | Criação deste arquivo mestre.md |
-| 2026-03-29 00:15 | Correção do filtro de mês no Dashboard/Reports (dayRange===0 bloqueava filtro) |
-| 2026-03-29 00:30 | Correção do filtro por máquina nos Relatórios (fallback por machine_name) |
-| 2026-03-29 01:00 | Renomeação TEAR 3→TEAR 03, TEAR 4→TEAR 04 |
-| 2026-03-29 01:15 | Vinculação de 19.531 produções ao machine_id correto via migração |
-| 2026-03-29 01:30 | Remoção de prefixos "Todos os" nos filtros de Relatórios |
-| 2026-03-29 02:00 | Criação dos artigos MALHA 1,12-115 MISTO e MALHA 1,35-115 MISTO |
-| 2026-03-29 02:15 | Vinculação de 777 produções órfãs aos novos artigos (0 órfãs restantes) |
-| 2026-03-29 03:00 | Backup: removida constraint UNIQUE(company_id,backup_date) para múltiplos/dia |
-| 2026-03-29 03:05 | Backup: alterado de UPSERT para INSERT no daily-backup |
-| 2026-03-29 03:06 | Backup: configurado pg_cron para executar daily-backup todo dia às 00:00 UTC |
-| 2026-03-29 03:10 | Backup: list_backups agora ordena por created_at DESC (mostra hora correta) |
-| 2026-03-29 04:00 | Reescrita completa do mestre.md com detalhamento exaustivo de todos os módulos |
-| 2026-03-29 05:00 | Facebook Pixel integrado (ID 952929367422534) — PageView, CompleteRegistration, InitiateCheckout, Purchase |
-| 2026-03-30 01:00 | Corrigida exclusão de usuários (admin-api DELETE) — agora remove perfil e usuário auth corretamente |
-| 2026-03-30 01:15 | Adicionado loading spinner no botão de exclusão de usuário (estado "Excluindo...") |
-| 2026-03-30 02:00 | Removida opção "Configurações" do sidebar/bottom nav para usuários não-admin; adicionado botão "Sair" no sidebar footer |
-| 2026-03-30 03:00 | PWA: criado `public/sw.js` (service worker mínimo) e registro condicional em `main.tsx` para habilitar instalação no Android/Chrome |
-| 2026-03-30 03:15 | Botão "Instalar App" no sidebar — detecta plataforma (Android/iOS/Desktop), exibe instruções iOS, usa `beforeinstallprompt` no Android |
+| Data & Hora (Brasília) | Alteração |
+|------------------------|-----------|
+| 28/03/2026 21:00 | Criação deste arquivo mestre.md |
+| 28/03/2026 21:15 | Correção do filtro de mês no Dashboard/Reports (dayRange===0 bloqueava filtro) |
+| 28/03/2026 21:30 | Correção do filtro por máquina nos Relatórios (fallback por machine_name) |
+| 28/03/2026 22:00 | Renomeação TEAR 3→TEAR 03, TEAR 4→TEAR 04 |
+| 28/03/2026 22:15 | Vinculação de 19.531 produções ao machine_id correto via migração |
+| 28/03/2026 22:30 | Remoção de prefixos "Todos os" nos filtros de Relatórios |
+| 28/03/2026 23:00 | Criação dos artigos MALHA 1,12-115 MISTO e MALHA 1,35-115 MISTO |
+| 28/03/2026 23:15 | Vinculação de 777 produções órfãs aos novos artigos (0 órfãs restantes) |
+| 29/03/2026 00:00 | Backup: removida constraint UNIQUE(company_id,backup_date) para múltiplos/dia |
+| 29/03/2026 00:05 | Backup: alterado de UPSERT para INSERT no daily-backup |
+| 29/03/2026 00:06 | Backup: configurado pg_cron para executar daily-backup todo dia às 00:00 UTC |
+| 29/03/2026 00:10 | Backup: list_backups agora ordena por created_at DESC (mostra hora correta) |
+| 29/03/2026 01:00 | Reescrita completa do mestre.md com detalhamento exaustivo de todos os módulos |
+| 29/03/2026 02:00 | Facebook Pixel integrado (ID 952929367422534) — PageView, CompleteRegistration, InitiateCheckout, Purchase |
+| 29/03/2026 22:00 | Corrigida exclusão de usuários (admin-api DELETE) — agora remove perfil e usuário auth corretamente |
+| 29/03/2026 22:15 | Adicionado loading spinner no botão de exclusão de usuário (estado "Excluindo...") |
+| 29/03/2026 23:00 | Removida opção "Configurações" do sidebar/bottom nav para usuários não-admin; adicionado botão "Sair" no sidebar footer |
+| 30/03/2026 00:00 | PWA: criado `public/sw.js` (service worker mínimo) e registro condicional em `main.tsx` para habilitar instalação no Android/Chrome |
+| 30/03/2026 00:15 | Botão "Instalar App" no sidebar — detecta plataforma (Android/iOS/Desktop), exibe instruções iOS, usa `beforeinstallprompt` no Android |
+| 30/03/2026 00:30 | Regras do mestre.md reforçadas: fuso Brasília obrigatório, histórico obrigatório após cada alteração, instrução de leitura prévia |
 
 ---
 
@@ -1053,4 +1057,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 30/03/2026 03:15 UTC*
+*Última atualização: 30/03/2026 00:30 (Brasília)*
