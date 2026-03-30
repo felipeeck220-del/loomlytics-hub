@@ -226,6 +226,7 @@ export function useCompanyData() {
         id: a.id, company_id: companyId, name: a.name, client_id: a.client_id || null,
         client_name: a.client_name || null, weight_per_roll: a.weight_per_roll,
         value_per_kg: a.value_per_kg, turns_per_roll: a.turns_per_roll,
+        target_efficiency: a.target_efficiency ?? 80,
         observations: a.observations || null, created_at: a.created_at,
       }));
       await sb('articles').insert(rows);
@@ -350,6 +351,8 @@ export function useCompanyData() {
       measure_value: d.measure_value, machine_name: d.machine_name || null,
       article_name: d.article_name || null, weaver_name: d.weaver_name || null,
       observations: d.observations || null, created_at: d.created_at,
+      created_by_name: d.created_by_name || null,
+      created_by_code: d.created_by_code || null,
     }));
     const { error } = await sb('defect_records').insert(rows);
     if (error) throw error;
