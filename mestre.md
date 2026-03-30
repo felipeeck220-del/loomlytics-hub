@@ -10,7 +10,9 @@
 > 6. Nunca faça alterações em um módulo sem verificar aqui se há dependências com outros módulos.
 > 7. **Atenção especial:** Filtros, sidebar, assinatura e layout são interconectados — modificar um pode quebrar outro.
 > 8. **Fuso horário padrão:** Todas as datas/horas neste arquivo usam **horário de Brasília (UTC-3)**.
-
+| 30/03/2026 03:00 | **CORREÇÃO:** `machine_logs` agora usa `fetchAll` com paginação (sem limite de 1000 registros) |
+| 30/03/2026 03:00 | **CORREÇÃO:** `troca_agulhas` adicionado à lista de DOWNTIME_STATUSES em `downtimeUtils.ts` — agora desconta tempo parado do cálculo de eficiência |
+| 30/03/2026 03:00 | **CORREÇÃO:** `saveClients`, `saveArticles`, `saveWeavers` agora usam UPSERT + DELETE seletivo (apenas IDs removidos) em vez de DELETE ALL + INSERT, eliminando risco de perda de dados |
 
 ---
 
@@ -1060,4 +1062,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 30/03/2026 02:00 (Brasília)*
+*Última atualização: 30/03/2026 03:00 (Brasília)*
