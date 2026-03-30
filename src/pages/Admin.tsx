@@ -489,11 +489,11 @@ export default function Admin() {
                             : '—'}
                         </TableCell>
                         <TableCell>
-                          {(c.settings?.platform_active ?? true) ? (
-                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">Ativo</Badge>
-                          ) : (
-                            <Badge variant="destructive">Bloqueado</Badge>
-                          )}
+                          {(() => {
+                            const subStatus = c.settings?.subscription_status || 'trial';
+                            const statusInfo = SUBSCRIPTION_STATUS_LABELS[subStatus] || { label: subStatus, className: 'bg-muted text-muted-foreground' };
+                            return <Badge className={statusInfo.className}>{statusInfo.label}</Badge>;
+                          })()}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {new Date(c.created_at).toLocaleDateString('pt-BR')}
