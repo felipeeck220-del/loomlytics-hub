@@ -404,8 +404,24 @@ export default function SettingsPage() {
     if (!user) return;
     setCancellingSubscription(true);
     try {
+      // Determine grace_period_end from the last paid payment's next_billing_date
+      // or fallback to 30 days from now
+      let gracePeriodEnd: string;
+      const lastPaid = paymentHistory.find((p: any) => p.status === 'paid' && p.next_billing_date);
+      if (lastPaid?.next_billing_date) {
+        gracePeriodEnd = lastPaid.next_billing_date;
+      } else {
+        // Fallback: 30 days from now
+        const fallback = new Date();
+        fallback.setDate(fallback.getDate() + 30);
+        gracePeriodEnd = fallback.toISOString();
+      }
+
       await (supabase.from as any)('company_settings')
-        .update({ subscription_status: 'cancelling' })
+        .update({ 
+          subscription_status: 'cancelling',
+          grace_period_end: gracePeriodEnd,
+        })
         .eq('company_id', user.company_id);
       toast.success('Assinatura cancelada. Você terá acesso até o fim do período pago.');
       setShowCancelDialog(false);

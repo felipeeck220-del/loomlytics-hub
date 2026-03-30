@@ -74,10 +74,39 @@ serve(async (req) => {
 
     // Check if subscription was cancelled but still within paid period
     if (settings?.subscription_status === 'cancelling') {
+      // Check if grace_period_end has passed
+      if (settings.grace_period_end && new Date(settings.grace_period_end) < now) {
+        // Period ended, mark as cancelled
+        await supabaseClient
+          .from('company_settings')
+          .update({ 
+            subscription_status: 'cancelled',
+            platform_active: false,
+          })
+          .eq('company_id', profile.company_id);
+
+        return new Response(JSON.stringify({
+          status: 'cancelled',
+          blocked: true,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(JSON.stringify({
         status: 'cancelling',
         plan: settings.subscription_plan,
         blocked: false,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check if already blocked/cancelled
+    if (settings?.subscription_status === 'blocked' || settings?.subscription_status === 'cancelled') {
+      return new Response(JSON.stringify({
+        status: settings.subscription_status,
+        blocked: true,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -101,50 +130,53 @@ serve(async (req) => {
       }
     }
 
-    // Check Stripe subscription
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
-    if (customers.data.length > 0) {
-      const subscriptions = await stripe.subscriptions.list({
-        customer: customers.data[0].id,
-        status: "active",
-        limit: 1,
-      });
-
-      if (subscriptions.data.length > 0) {
-        const sub = subscriptions.data[0];
-        const endDate = new Date(sub.current_period_end * 1000);
-        
-        // Update company settings
-        await supabaseClient
-          .from('company_settings')
-          .update({
-            subscription_status: 'active',
-            subscription_plan: sub.items.data[0].price.id,
-            subscription_paid_at: new Date().toISOString(),
-            stripe_customer_id: customers.data[0].id,
-          })
-          .eq('company_id', profile.company_id);
-
-        // If platform was blocked, reactivate
-        await supabaseClient
-          .from('company_settings')
-          .update({ platform_active: true })
-          .eq('company_id', profile.company_id);
-
-        return new Response(JSON.stringify({
-          status: 'active',
-          plan: sub.items.data[0].price.id,
-          subscription_end: endDate.toISOString(),
-          blocked: false,
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Try Stripe check (wrapped in try-catch for resilience)
+    try {
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (stripeKey && user.email) {
+        const stripe = new Stripe(stripeKey, {
+          apiVersion: "2025-08-27.basil",
         });
+
+        const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+        
+        if (customers.data.length > 0) {
+          const subscriptions = await stripe.subscriptions.list({
+            customer: customers.data[0].id,
+            status: "active",
+            limit: 1,
+          });
+
+          if (subscriptions.data.length > 0) {
+            const sub = subscriptions.data[0];
+            const endDate = new Date(sub.current_period_end * 1000);
+            
+            // Update company settings
+            await supabaseClient
+              .from('company_settings')
+              .update({
+                subscription_status: 'active',
+                subscription_plan: sub.items.data[0].price.id,
+                subscription_paid_at: new Date().toISOString(),
+                stripe_customer_id: customers.data[0].id,
+                platform_active: true,
+              })
+              .eq('company_id', profile.company_id);
+
+            return new Response(JSON.stringify({
+              status: 'active',
+              plan: sub.items.data[0].price.id,
+              subscription_end: endDate.toISOString(),
+              blocked: false,
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
       }
+    } catch (stripeErr) {
+      // Stripe check failed — continue without it (Pix-based system)
+      console.log("[CHECK-SUBSCRIPTION] Stripe check skipped/failed:", stripeErr);
     }
 
     // No active subscription and trial ended - check grace period
