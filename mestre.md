@@ -1025,6 +1025,7 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 | 30/03/2026 00:00 | PWA: criado `public/sw.js` (service worker mínimo) e registro condicional em `main.tsx` para habilitar instalação no Android/Chrome |
 | 30/03/2026 00:15 | Botão "Instalar App" no sidebar — detecta plataforma (Android/iOS/Desktop), exibe instruções iOS, usa `beforeinstallprompt` no Android |
 | 30/03/2026 00:30 | Regras do mestre.md reforçadas: fuso Brasília obrigatório, histórico obrigatório após cada alteração, instrução de leitura prévia |
+| 30/03/2026 01:00 | Login de platform_admin redireciona para /admin via window.location.href (evita race condition com PublicRoute); RootRedirect também verifica platform_admins para redirecionar admins da plataforma |
 
 ---
 
@@ -1057,4 +1058,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 30/03/2026 00:30 (Brasília)*
+*Última atualização: 30/03/2026 01:00 (Brasília)*
