@@ -234,12 +234,23 @@ export default function Admin() {
     if (!selectedCompany) return;
     setSaving(true);
     try {
+      // Determine the correct subscription_status to save
+      let newSubscriptionStatus: string | undefined;
+      const currentStatus = selectedCompany.settings?.subscription_status || 'trial';
+      if (freeUser) {
+        newSubscriptionStatus = 'free';
+      } else if (currentStatus === 'free') {
+        // Was free, now toggled off → revert to trial
+        newSubscriptionStatus = 'trial';
+      }
+      // Otherwise, don't change subscription_status (keep active/paid/trial/etc.)
+
       await callAdmin('update_settings', {
         company_id: selectedCompany.id,
         monthly_plan_value: planValue,
         platform_active: freeUser ? true : platformActive,
         enabled_nav_items: companyNavItems,
-        subscription_status: freeUser ? 'free' : 'trial',
+        ...(newSubscriptionStatus !== undefined && { subscription_status: newSubscriptionStatus }),
       });
       toast({ title: 'Salvo', description: 'Configurações atualizadas com sucesso.' });
       setCompanyModalOpen(false);
