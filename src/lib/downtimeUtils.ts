@@ -6,6 +6,7 @@ const DOWNTIME_STATUSES: MachineStatus[] = [
   'manutencao_preventiva',
   'manutencao_corretiva',
   'troca_artigo',
+  'troca_agulhas',
   'inativa',
 ];
 
