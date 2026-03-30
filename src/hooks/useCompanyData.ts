@@ -58,7 +58,7 @@ export function useCompanyData() {
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
         fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
-        sb('machine_logs').select('*').order('started_at', { ascending: false }).limit(1000),
+        fetchAll('machine_logs', { column: 'machine_id', value: '__ALL__' }, 'started_at', false),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
         sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
         fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false),
@@ -207,20 +207,31 @@ export function useCompanyData() {
 
   const saveClients = useCallback(async (data: Client[]) => {
     if (!companyId) return;
-    await sb('clients').delete().eq('company_id', companyId);
+    const currentIds = clients.map(c => c.id);
+    const newIds = data.map(c => c.id);
+    const idsToDelete = currentIds.filter(id => !newIds.includes(id));
+    if (idsToDelete.length > 0) {
+      await sb('clients').delete().in('id', idsToDelete);
+    }
     if (data.length > 0) {
       const rows = data.map(c => ({
         id: c.id, company_id: companyId, name: c.name,
         contact: c.contact || null, observations: c.observations || null, created_at: c.created_at,
       }));
-      await sb('clients').insert(rows);
+      const { error } = await sb('clients').upsert(rows);
+      if (error) { console.error('Error saving clients:', error); throw error; }
     }
     setClients(data);
-  }, [companyId]);
+  }, [companyId, clients]);
 
   const saveArticles = useCallback(async (data: Article[]) => {
     if (!companyId) return;
-    await sb('articles').delete().eq('company_id', companyId);
+    const currentIds = articles.map(a => a.id);
+    const newIds = data.map(a => a.id);
+    const idsToDelete = currentIds.filter(id => !newIds.includes(id));
+    if (idsToDelete.length > 0) {
+      await sb('articles').delete().in('id', idsToDelete);
+    }
     if (data.length > 0) {
       const rows = data.map(a => ({
         id: a.id, company_id: companyId, name: a.name, client_id: a.client_id || null,
@@ -229,14 +240,20 @@ export function useCompanyData() {
         target_efficiency: a.target_efficiency ?? 80,
         observations: a.observations || null, created_at: a.created_at,
       }));
-      await sb('articles').insert(rows);
+      const { error } = await sb('articles').upsert(rows);
+      if (error) { console.error('Error saving articles:', error); throw error; }
     }
     setArticles(data);
-  }, [companyId]);
+  }, [companyId, articles]);
 
   const saveWeavers = useCallback(async (data: Weaver[]) => {
     if (!companyId) return;
-    await sb('weavers').delete().eq('company_id', companyId);
+    const currentIds = weavers.map(w => w.id);
+    const newIds = data.map(w => w.id);
+    const idsToDelete = currentIds.filter(id => !newIds.includes(id));
+    if (idsToDelete.length > 0) {
+      await sb('weavers').delete().in('id', idsToDelete);
+    }
     if (data.length > 0) {
       const rows = data.map(w => ({
         id: w.id, company_id: companyId, code: w.code, name: w.name,
@@ -244,10 +261,11 @@ export function useCompanyData() {
         fixed_shift: w.fixed_shift || null, start_time: w.start_time || null,
         end_time: w.end_time || null, created_at: w.created_at,
       }));
-      await sb('weavers').insert(rows);
+      const { error } = await sb('weavers').upsert(rows);
+      if (error) { console.error('Error saving weavers:', error); throw error; }
     }
     setWeavers(data);
-  }, [companyId]);
+  }, [companyId, weavers]);
 
   const saveProductions = useCallback(async (data: Production[]) => {
     if (!companyId) return;
