@@ -1053,4 +1053,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 29/03/2026 05:00 UTC*
+*Última atualização: 30/03/2026 03:15 UTC*
