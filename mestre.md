@@ -1030,6 +1030,9 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 | 30/03/2026 01:00 | Login de platform_admin redireciona para /admin via window.location.href (evita race condition com PublicRoute); RootRedirect também verifica platform_admins para redirecionar admins da plataforma |
 | 30/03/2026 02:00 | **AUDITORIA PRÉ-LANÇAMENTO:** BUG CRÍTICO corrigido — `saveArticles()` em `useCompanyData.ts` NÃO incluía `target_efficiency` no mapeamento de rows para insert, causando reset para 80% (default do DB) toda vez que artigos eram salvos. Campo adicionado: `target_efficiency: a.target_efficiency ?? 80` |
 | 30/03/2026 02:00 | **AUDITORIA PRÉ-LANÇAMENTO:** BUG corrigido — `addDefectRecords()` em `useCompanyData.ts` NÃO incluía `created_by_name` e `created_by_code` no mapeamento, impedindo rastreabilidade de quem registrou o defeito. Campos adicionados ao insert |
+| 30/03/2026 03:00 | **CORREÇÃO:** `machine_logs` agora usa `fetchAll` com paginação (sem limite de 1000 registros) |
+| 30/03/2026 03:00 | **CORREÇÃO:** `troca_agulhas` adicionado à lista de DOWNTIME_STATUSES — desconta tempo parado do cálculo de eficiência |
+| 30/03/2026 03:00 | **CORREÇÃO:** `saveClients/saveArticles/saveWeavers` agora usam UPSERT + DELETE seletivo em vez de DELETE ALL + INSERT |
 
 ---
 
