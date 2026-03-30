@@ -1015,7 +1015,12 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 | 2026-03-29 03:06 | Backup: configurado pg_cron para executar daily-backup todo dia às 00:00 UTC |
 | 2026-03-29 03:10 | Backup: list_backups agora ordena por created_at DESC (mostra hora correta) |
 | 2026-03-29 04:00 | Reescrita completa do mestre.md com detalhamento exaustivo de todos os módulos |
-| 2026-03-29 05:00 | Facebook Pixel integrado (ID 952929367426534) — PageView, CompleteRegistration, InitiateCheckout, Purchase |
+| 2026-03-29 05:00 | Facebook Pixel integrado (ID 952929367422534) — PageView, CompleteRegistration, InitiateCheckout, Purchase |
+| 2026-03-30 01:00 | Corrigida exclusão de usuários (admin-api DELETE) — agora remove perfil e usuário auth corretamente |
+| 2026-03-30 01:15 | Adicionado loading spinner no botão de exclusão de usuário (estado "Excluindo...") |
+| 2026-03-30 02:00 | Removida opção "Configurações" do sidebar/bottom nav para usuários não-admin; adicionado botão "Sair" no sidebar footer |
+| 2026-03-30 03:00 | PWA: criado `public/sw.js` (service worker mínimo) e registro condicional em `main.tsx` para habilitar instalação no Android/Chrome |
+| 2026-03-30 03:15 | Botão "Instalar App" no sidebar — detecta plataforma (Android/iOS/Desktop), exibe instruções iOS, usa `beforeinstallprompt` no Android |
 
 ---
 
