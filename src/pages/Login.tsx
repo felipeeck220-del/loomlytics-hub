@@ -39,6 +39,13 @@ export default function Login() {
     }
 
     setLoading(false);
+
+    // Platform admin redirect
+    if (email.trim().toLowerCase() === 'felipeeck18@gmail.com') {
+      navigate('/admin');
+      return;
+    }
+
     navigate('/');
   };
 
