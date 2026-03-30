@@ -18,11 +18,22 @@ const NAV_ITEMS = [
   { key: 'clients-articles', label: 'Clientes & Artigos' },
   { key: 'production', label: 'Produção' },
   { key: 'revision', label: 'Revisão' },
+  { key: 'mecanica', label: 'Mecânica' },
   { key: 'outsource', label: 'Terceirizado' },
   { key: 'weavers', label: 'Tecelões' },
   { key: 'reports', label: 'Relatórios' },
   { key: 'settings', label: 'Configurações' },
 ];
+
+const SUBSCRIPTION_STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  trial: { label: 'Trial', className: 'bg-blue-500/10 text-blue-600 border-blue-200' },
+  active: { label: 'Pago', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
+  paid: { label: 'Pago', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-200' },
+  free: { label: 'Grátis', className: 'bg-purple-500/10 text-purple-600 border-purple-200' },
+  blocked: { label: 'Bloqueado', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+  cancelled: { label: 'Cancelado', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+  cancelling: { label: 'Cancelando', className: 'bg-warning/10 text-warning border-warning/20' },
+};
 
 interface EmailHistoryEntry {
   id: string;
