@@ -1030,6 +1030,7 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 | 30/03/2026 03:00 | **CORREÇÃO:** `machine_logs` agora usa `fetchAll` com paginação (sem limite de 1000 registros) |
 | 30/03/2026 03:00 | **CORREÇÃO:** `troca_agulhas` adicionado à lista de DOWNTIME_STATUSES — desconta tempo parado do cálculo de eficiência |
 | 30/03/2026 03:00 | **CORREÇÃO:** `saveClients/saveArticles/saveWeavers` agora usam UPSERT + DELETE seletivo em vez de DELETE ALL + INSERT |
+| 30/03/2026 16:00 | **AUDITORIA ASSINATURA:** BUG corrigido — cancelamento de assinatura agora seta `grace_period_end` (antes ficava eternamente em `cancelling`). `check-subscription` Edge Function agora: (1) verifica `grace_period_end` no status `cancelling` e transiciona para `cancelled` quando expirado, (2) trata `blocked`/`cancelled` antes do trial check, (3) Stripe check encapsulado em try-catch para não falhar quando sistema usa Pix |
 
 ---
 
@@ -1062,4 +1063,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 30/03/2026 03:00 (Brasília)*
+*Última atualização: 30/03/2026 16:00 (Brasília)*
