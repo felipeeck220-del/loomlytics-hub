@@ -231,7 +231,7 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 | `manutencao_preventiva` | Manutenção Preventiva | `bg-warning/10 text-warning` |
 | `manutencao_corretiva` | Manutenção Corretiva | `bg-destructive/10 text-destructive` |
 | `troca_artigo` | Troca de Artigo | `bg-info/10 text-info` |
-| `troca_agulhas` | Troca de Agulhas | `bg-purple-500/10 text-purple-600` |
+| `troca_agulhas` | Troca de Agulheiro | `bg-purple-500/10 text-purple-600` |
 | `inativa` | Inativa | `bg-muted text-muted-foreground` |
 
 ### Modos de Produção
