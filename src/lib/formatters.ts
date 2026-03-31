@@ -21,5 +21,5 @@ export function formatWeight(value: number): string {
 }
 
 export function formatPercent(value: number): string {
-  return `${formatNumber(value, 1)}%`;
+  return `${formatNumber(value, 2)}%`;
 }
