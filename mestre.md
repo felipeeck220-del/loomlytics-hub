@@ -1079,7 +1079,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **31/03/2026 05:00** — Refatoração completa da exportação PDF: removido `html2pdf.js` e substituído por `jsPDF` direto (como no projeto antigo). PDFs são construídos programaticamente com cabeçalho estilizado, gráficos de barras horizontais e tabelas formatadas. 100% confiável, sem dependência de html2canvas. Aplicado em Reports.tsx e Outsource.tsx (landscape com KPIs).
 - **31/03/2026 05:30** — Redesign do cabeçalho dos PDFs exportados: retângulo cinza com título centralizado, nome da empresa + data/hora na esquerda, período do filtro na direita. Aplicado em Reports.tsx e Outsource.tsx.
 - **31/03/2026 06:00** — Logo da empresa agora é exportada no cabeçalho dos PDFs (Reports e Terceirizados) quando cadastrada em Configurações > Empresa. Imagem é carregada via canvas para base64 e inserida com `pdf.addImage()`.
+- **31/03/2026 06:15** — Quando há logo cadastrada, o PDF exibe somente a logo (sem nome da empresa em texto) acima da data/hora no canto esquerdo. Sem logo, exibe o nome da empresa normalmente.
 
 ---
 
-*Última atualização: 31/03/2026 06:00 (Brasília)*
+*Última atualização: 31/03/2026 06:15 (Brasília)*
