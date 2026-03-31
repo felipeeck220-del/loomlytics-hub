@@ -1011,7 +1011,7 @@ export default function ProductionPage() {
                         <div><span className="text-muted-foreground">Faturamento </span><span className="font-semibold text-foreground">R${preview.revenue.toFixed(2)}</span></div>
                       </div>
                       <div className={cn("text-base sm:text-lg font-bold", effColor(preview.efficiency, previewTargetEff))}>
-                        {preview.efficiency.toFixed(1)}%
+                        {preview.efficiency.toFixed(2)}%
                       </div>
                     </div>
                     {previewMeta100 > 0 && (

@@ -444,7 +444,7 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
                       {canSeeFinancial && <TableCell className="text-right">{formatCurrency(p.revenue)}</TableCell>}
                       <TableCell className="text-right">
                         <Badge variant={p.efficiency >= 80 ? 'default' : 'destructive'} className={p.efficiency >= 80 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : ''}>
-                          {p.efficiency.toFixed(1)}%
+                          {p.efficiency.toFixed(2)}%
                         </Badge>
                       </TableCell>
                     </TableRow>
