@@ -231,7 +231,7 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 | `manutencao_preventiva` | Manutenção Preventiva | `bg-warning/10 text-warning` |
 | `manutencao_corretiva` | Manutenção Corretiva | `bg-destructive/10 text-destructive` |
 | `troca_artigo` | Troca de Artigo | `bg-info/10 text-info` |
-| `troca_agulhas` | Troca de Agulhas | `bg-purple-500/10 text-purple-600` |
+| `troca_agulhas` | Troca de Agulheiro | `bg-purple-500/10 text-purple-600` |
 | `inativa` | Inativa | `bg-muted text-muted-foreground` |
 
 ### Modos de Produção
@@ -1031,6 +1031,13 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 | 30/03/2026 03:00 | **CORREÇÃO:** `troca_agulhas` adicionado à lista de DOWNTIME_STATUSES — desconta tempo parado do cálculo de eficiência |
 | 30/03/2026 03:00 | **CORREÇÃO:** `saveClients/saveArticles/saveWeavers` agora usam UPSERT + DELETE seletivo em vez de DELETE ALL + INSERT |
 | 30/03/2026 16:00 | **AUDITORIA ASSINATURA:** BUG corrigido — cancelamento de assinatura agora seta `grace_period_end` (antes ficava eternamente em `cancelling`). `check-subscription` Edge Function agora: (1) verifica `grace_period_end` no status `cancelling` e transiciona para `cancelled` quando expirado, (2) trata `blocked`/`cancelled` antes do trial check, (3) Stripe check encapsulado em try-catch para não falhar quando sistema usa Pix |
+| 31/03/2026 00:30 | **IMPORTAÇÃO FIREBASE:** Importados 261 registros de produção dos dias 27, 28 e 29/03 do Firebase para o Supabase (empresa Trama Certa, usuário felipeeck182@gmail.com) |
+| 31/03/2026 01:00 | **CORREÇÃO DADOS:** Corrigido dia 25/03 — faltavam 2 rolos do TEAR 22 turno tarde (COTTON LEVE PENTEADO, múltiplos artigos). Registro inserido, total agora bate com Firebase (898 rolos) |
+| 31/03/2026 01:30 | **FORMATAÇÃO:** Eficiência agora exibida com 2 casas decimais (ex: 76,90%) em todo o sistema — `formatPercent` em `formatters.ts` alterado de `toFixed(1)` para `toFixed(2)`, e corrigidos `toFixed(1)` manuais em `Production.tsx` e `Weavers.tsx` |
+| 31/03/2026 02:00 | **UI MOBILE:** Modal "Registrar Falha" (Revisão) melhorado para mobile — campos agora empilham em coluna única (`grid-cols-1 sm:grid-cols-2`) e dropdown de Máquina forçado a abrir para baixo (`position="popper" side="bottom"`) |
+| 31/03/2026 02:15 | **CORREÇÃO:** Nome de máquinas 1-9 agora usa `padStart(2, '0')` no save (era `TEAR ${number}` sem padding). Corrigido "TEAR 1" → "TEAR 01" no banco. 4 ocorrências corrigidas em `Machines.tsx` |
+| 31/03/2026 02:30 | **RENOMEAÇÃO:** "Troca de Agulhas" → "Troca de Agulheiro" em todo o sistema (`types/index.ts`, `Machines.tsx`, `Mecanica.tsx`) |
+| 31/03/2026 03:00 | **REDESIGN PDF:** Exportação de relatórios PDF redesenhada para igualar o sistema antigo — header com barra teal/verde-claro com logo, nome da empresa e data; tabela limpa com bordas leves, cabeçalho cinza, linha TOTAL em bold. Adicionado `companyName` ao export |
 
 ---
 
@@ -1063,4 +1070,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 30/03/2026 16:00 (Brasília)*
+*Última atualização: 31/03/2026 03:00 (Brasília)*
