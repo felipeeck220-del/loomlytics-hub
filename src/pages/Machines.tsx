@@ -128,7 +128,7 @@ export default function Machines() {
         console.error('Failed to save machine logs:', err);
         toast.error('Erro ao salvar log de status');
       }
-      logAction('machine_create', { machine: `TEAR ${form.number}`, status: form.status });
+      logAction('machine_create', { machine: `TEAR ${form.number.padStart(2, '0')}`, status: form.status });
       toast.success('Máquina cadastrada');
     }
     setShowModal(false);
