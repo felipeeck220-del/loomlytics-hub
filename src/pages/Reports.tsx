@@ -1139,7 +1139,7 @@ export default function Reports() {
                   <ExportButton
                     label="Por Cliente"
                     description="Produção por cliente"
-                    onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl)}
+                    onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl, companyName)}
                   />
                 </div>
               </div>
