@@ -922,6 +922,7 @@ function exportOutsourcePdf(
 
   // Load logo if available
   const loadLogo = (url: string): Promise<string | null> => {
+  const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -932,7 +933,7 @@ function exportOutsourcePdf(
           canvas.height = img.naturalHeight;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
+          resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
         } catch { resolve(null); }
       };
       img.onerror = () => resolve(null);
@@ -941,9 +942,9 @@ function exportOutsourcePdf(
   };
 
   const doExport = async () => {
-    let logoData: string | null = null;
+    let logoInfo: { data: string; width: number; height: number } | null = null;
     if (logoUrl) {
-      logoData = await loadLogo(logoUrl);
+      logoInfo = await loadLogo(logoUrl);
     }
 
     const { jsPDF } = await import('jspdf');
