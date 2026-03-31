@@ -182,7 +182,7 @@ export default function Outsource() {
          </TabsContent>
 
          <TabsContent value="reports">
-           <ReportsTab productions={productions} loading={loadingProductions} />
+           <ReportsTab productions={productions} loading={loadingProductions} companyName={companyName} />
          </TabsContent>
        </Tabs>
      </div>
