@@ -921,7 +921,7 @@ function exportOutsourcePdf(
   const fileName = `relatorio_terceirizados_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
 
   // Load logo if available
-  const loadLogo = (url: string): Promise<string | null> => {
+  const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
   const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
     return new Promise((resolve) => {
       const img = new Image();
