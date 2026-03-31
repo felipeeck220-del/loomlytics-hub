@@ -409,7 +409,7 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
               )}
               <div className={cn("rounded-lg border p-3", totals.avgEfficiency >= 80 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-warning/30 bg-warning/5")}>
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Eficiência Média</p>
-                <p className={cn("text-lg font-bold", totals.avgEfficiency >= 80 ? "text-success" : "text-warning")}>{totals.avgEfficiency.toFixed(1)}%</p>
+                <p className={cn("text-lg font-bold", totals.avgEfficiency >= 80 ? "text-success" : "text-warning")}>{totals.avgEfficiency.toFixed(2)}%</p>
               </div>
             </div>
 
