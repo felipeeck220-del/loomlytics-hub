@@ -335,7 +335,7 @@ export default function RevisionPage() {
             </div>
 
             {/* Row 4: Measure type + value + observations */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Tipo de Medida *</Label>
                 <Select value={form.measure_type} onValueChange={v => setForm(f => ({ ...f, measure_type: v as MeasureType }))}>
