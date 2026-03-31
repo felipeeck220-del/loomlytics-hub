@@ -1212,6 +1212,7 @@ function handleExport(
   const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
   const fmtK = (v: number) => fmtN(v, 2);
   const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
+  const fmtE = (v: number) => `${fmtN(v, 1)}%`;
 
   // Build table data
   const sections: { title: string; headers: string[]; rows: (string | number)[][] }[] = [];
