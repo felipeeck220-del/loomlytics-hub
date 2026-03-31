@@ -1357,28 +1357,41 @@ function handleExport(
 
         const leftX = margin + 4;
         const rightX = pageWidth - margin - 4;
-        let textLeftX = leftX;
 
-        // Left side: logo + company name + date
+        // Left side: logo OR company name, then date below
         if (logoData) {
           try {
-            const logoH = 18;
-            const logoW = 18;
-            pdf.addImage(logoData, 'PNG', leftX, y + 5, logoW, logoH);
-            textLeftX = leftX + logoW + 3;
-          } catch { /* ignore logo errors */ }
+            const logoH = 16;
+            const logoW = 16;
+            pdf.addImage(logoData, 'PNG', leftX, y + 2, logoW, logoH);
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(...colors.textMid);
+            pdf.text(dateStr, leftX, y + 24);
+          } catch {
+            if (cName) {
+              pdf.setFontSize(10);
+              pdf.setFont('helvetica', 'bold');
+              pdf.setTextColor(...colors.textDark);
+              pdf.text(cName, leftX, y + 11);
+            }
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(...colors.textMid);
+            pdf.text(dateStr, leftX, y + 18);
+          }
+        } else {
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...colors.textDark);
+          if (cName) {
+            pdf.text(cName, leftX, y + 11);
+          }
+          pdf.setFontSize(8);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(...colors.textMid);
+          pdf.text(dateStr, leftX, y + 18);
         }
-
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(...colors.textDark);
-        if (cName) {
-          pdf.text(cName, textLeftX, y + 11);
-        }
-        pdf.setFontSize(8);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(...colors.textMid);
-        pdf.text(dateStr, textLeftX, y + 18);
 
         // Center: Title slightly above middle
         pdf.setFontSize(13);
