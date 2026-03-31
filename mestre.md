@@ -1071,4 +1071,10 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 31/03/2026 03:30 (Brasília)*
+## 📅 Histórico de Alterações
+
+- **31/03/2026 04:00** — Exportação PDF agora faz download direto do arquivo (com nome `relatorio_<tipo>_<data>.pdf`) em vez de abrir nova aba com diálogo de impressão. Usa `html2pdf.js`. Aplicado em Reports.tsx e Outsource.tsx.
+
+---
+
+*Última atualização: 31/03/2026 04:00 (Brasília)*
