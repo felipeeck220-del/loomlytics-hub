@@ -1074,8 +1074,9 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 ## 📅 Histórico de Alterações
 
 - **31/03/2026 04:00** — Exportação PDF agora faz download direto do arquivo (com nome `relatorio_<tipo>_<data>.pdf`) em vez de abrir nova aba com diálogo de impressão. Usa `html2pdf.js`. Aplicado em Reports.tsx e Outsource.tsx.
-- **31/03/2026 04:15** — Corrigido PDF em branco: elemento off-screen (`left:-9999px`) não era capturado pelo html2canvas. Alterado para `position:absolute; z-index:-9999` para ficar renderizável.
+- **31/03/2026 04:15** — Corrigido PDF em branco: elemento off-screen não era capturado pelo html2canvas.
+- **31/03/2026 04:30** — Corrigido PDF em branco (2ª tentativa): `<style>` dentro de `<div>` não era aplicada. Refatorado para usar iframe oculto com HTML completo, garantindo renderização correta das styles antes da captura pelo html2canvas.
 
 ---
 
-*Última atualização: 31/03/2026 04:15 (Brasília)*
+*Última atualização: 31/03/2026 04:30 (Brasília)*
