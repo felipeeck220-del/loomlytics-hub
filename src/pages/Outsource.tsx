@@ -752,7 +752,7 @@ function ReportsTab({ productions, loading, companyName }: {
 
         {/* Export PDF */}
         <div className="flex justify-end">
-          <Button onClick={() => exportOutsourcePdf(filtered, totals, companyName)} className="btn-gradient" disabled={filtered.length === 0}>
+          <Button onClick={() => exportOutsourcePdf(filtered, totals, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-2" /> Exportar PDF
           </Button>
         </div>
