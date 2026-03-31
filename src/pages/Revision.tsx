@@ -295,7 +295,7 @@ export default function RevisionPage() {
                 <Label>Máquina *</Label>
                 <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
                     {sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
