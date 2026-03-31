@@ -1278,9 +1278,16 @@ function handleExport(
     a.click();
     URL.revokeObjectURL(url);
   } else {
-    // PDF via styled print window
-    const modeLabel = mode === 'admin' ? 'Administrador' : 'Equipe';
-    const date = new Date().toLocaleDateString('pt-BR');
+    const typeLabels: Record<string, string> = {
+      completo: 'Produção - Completo',
+      maquina: 'Produção - Máquinas',
+      turno: 'Produção - Turnos',
+      cliente: 'Produção - Clientes',
+      artigo: 'Produção - Artigos',
+    };
+    const reportTitle = `RELATÓRIO ${(typeLabels[type] || 'Produção').toUpperCase()}`;
+    const cName = companyName || '';
+    const dateStr = new Date().toLocaleDateString('pt-BR') + ', ' + new Date().toLocaleTimeString('pt-BR');
 
     // Generate SVG bar chart HTML for a section
     const buildChart = (data: { label: string; value: number }[], color: string, unit: string) => {
@@ -1308,7 +1315,6 @@ function handleExport(
     let tablesHtml = sections.map(sec => {
       let chartHtml = '';
       if (_includeCharts) {
-        // Determine chart data based on section title
         if (sec.title === 'Por Turno') {
           chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Eficiência por Turno (%)</p>';
           chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.eficiencia })), '#f59e0b', '%');
@@ -1338,50 +1344,101 @@ function handleExport(
       }
 
       return `
-        <div class="section">
-          <h2>${sec.title}</h2>
-          ${chartHtml}
-          <table>
-            <thead><tr>${sec.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-            <tbody>${sec.rows.map((r, ri) => `<tr class="${ri === sec.rows.length - 1 ? 'total-row' : ''}">${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
-          </table>
-        </div>
+        ${chartHtml ? `<div style="margin-bottom:24px;">${chartHtml}</div>` : ''}
+        <table>
+          <thead><tr>${sec.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>${sec.rows.map((r, ri) => `<tr class="${ri === sec.rows.length - 1 ? 'total-row' : ''}">${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>
       `;
-    }).join('');
+    }).join('<div style="page-break-before: auto; margin-top: 32px;"></div>');
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${reportTitle}</title>
     <style>
-      @page { margin: 15mm 20mm; size: A4; }
+      @page { margin: 12mm 16mm; size: A4; }
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1a1a2e; background: #fff; padding: 0; }
-      .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; padding: 20px 24px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
-      .header-logo { height: 48px; width: 48px; border-radius: 8px; object-fit: contain; background: rgba(255,255,255,0.15); padding: 4px; }
-      .header-text h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-      .header .meta { font-size: 12px; opacity: 0.85; display: flex; gap: 16px; }
-      .section { margin-bottom: 28px; }
-      .section h2 { font-size: 15px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
-      table { width: 100%; border-collapse: collapse; font-size: 12px; }
-      th { background: #f1f5f9; color: #475569; font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #e2e8f0; }
-      td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; }
-      tr:nth-child(even) td { background: #fafbfc; }
-      tr:hover td { background: #f0f4ff; }
-      .total-row td { background: #e2e8f0 !important; font-weight: 700; border-top: 2px solid #94a3b8; }
+      body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #333; background: #fff; padding: 0; }
+      
+      .header {
+        background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 50%, #80cbc4 100%);
+        border: 1px solid #b2dfdb;
+        border-radius: 6px;
+        padding: 16px 24px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .header-logo {
+        height: 44px;
+        width: auto;
+        max-width: 80px;
+        object-fit: contain;
+      }
+      .header-info {
+        flex: 1;
+      }
+      .header-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a1a;
+        text-align: center;
+        margin-bottom: 2px;
+      }
+      .header-company {
+        font-size: 13px;
+        font-weight: 600;
+        color: #00695c;
+      }
+      .header-date {
+        font-size: 11px;
+        color: #555;
+      }
+      
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      th {
+        background: #f5f5f5;
+        color: #333;
+        font-weight: 600;
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 2px solid #e0e0e0;
+      }
+      td {
+        padding: 10px 16px;
+        border-bottom: 1px solid #f0f0f0;
+        color: #444;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      .total-row td {
+        background: #f5f5f5 !important;
+        font-weight: 700;
+        color: #1a1a1a;
+        border-top: 2px solid #e0e0e0;
+      }
+      
       svg { display: block; }
-      .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #94a3b8; text-align: center; }
     </style></head><body>
       <div class="header">
         ${logoUrl ? `<img src="${logoUrl}" class="header-logo" />` : ''}
-        <div class="header-text">
-          <h1>Relatório de Produção</h1>
-          <div class="meta">
-            <span>Período: ${periodLabel}</span>
-            <span>Modo: ${modeLabel}</span>
-            <span>Gerado em: ${date}</span>
-          </div>
+        <div class="header-info">
+          <div class="header-title">${reportTitle}</div>
         </div>
       </div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin:-16px 0 20px 4px;">
+        ${cName ? `<span class="header-company">${cName}</span>` : ''}
+        <span class="header-date">${dateStr}</span>
+        <span class="header-date" style="margin-left:auto;">Período: ${periodLabel}</span>
+      </div>
       ${tablesHtml}
-      <div class="footer">Relatório gerado automaticamente pelo sistema MalhaGest · ${date}</div>
     </body></html>`;
 
     const win = window.open('', '_blank');
