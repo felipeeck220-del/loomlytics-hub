@@ -516,7 +516,7 @@ export default function MecanicaPage() {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-3">
             {historyData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro de manutenção preventiva ou troca de agulhas.</p>
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro de manutenção preventiva ou troca de agulheiro.</p>
             ) : (
               historyData.map(({ log, revenue, weight, fromDate }) => (
                 <div key={log.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card">
