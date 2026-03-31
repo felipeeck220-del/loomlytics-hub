@@ -87,7 +87,7 @@ export default function Machines() {
     if (editing) {
       const idx = all.findIndex(m => m.id === editing.id);
       const oldStatus = all[idx].status;
-      all[idx] = { ...all[idx], number: Number(form.number), name: `TEAR ${form.number}`, rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined, observations: form.observations || undefined };
+      all[idx] = { ...all[idx], number: Number(form.number), name: `TEAR ${form.number.padStart(2, '0')}`, rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined, observations: form.observations || undefined };
 
       if (oldStatus !== form.status) {
         const allLogs = [...logs];
