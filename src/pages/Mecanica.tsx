@@ -255,7 +255,7 @@ export default function MecanicaPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium">Última Troca de Agulhas</span>
+                  <span className="text-xs text-muted-foreground font-medium">Última Troca de Agulheiro</span>
                   <p className="text-sm font-semibold text-foreground">
                     {lastNeedleChange
                       ? format(new Date(lastNeedleChange.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
