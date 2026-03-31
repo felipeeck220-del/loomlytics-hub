@@ -61,6 +61,15 @@ export default function Outsource() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
+  const [companyName, setCompanyName] = useState('');
+
+  // Fetch company name
+  useEffect(() => {
+    if (!companyId) return;
+    sb('companies').select('name').eq('id', companyId).single().then(({ data }: any) => {
+      if (data?.name) setCompanyName(data.name);
+    });
+  }, [companyId]);
 
   // Fetch outsource companies
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
@@ -173,7 +182,7 @@ export default function Outsource() {
          </TabsContent>
 
          <TabsContent value="reports">
-           <ReportsTab productions={productions} loading={loadingProductions} />
+           <ReportsTab productions={productions} loading={loadingProductions} companyName={companyName} />
          </TabsContent>
        </Tabs>
      </div>
@@ -646,9 +655,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
 
 // ─── Reports Tab ─────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
-function ReportsTab({ productions, loading }: {
+function ReportsTab({ productions, loading, companyName }: {
   productions: OutsourceProduction[];
   loading: boolean;
+  companyName?: string;
 }) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -742,7 +752,7 @@ function ReportsTab({ productions, loading }: {
 
         {/* Export PDF */}
         <div className="flex justify-end">
-          <Button onClick={() => exportOutsourcePdf(filtered, totals)} className="btn-gradient" disabled={filtered.length === 0}>
+          <Button onClick={() => exportOutsourcePdf(filtered, totals, companyName)} className="btn-gradient" disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-2" /> Exportar PDF
           </Button>
         </div>
@@ -827,6 +837,7 @@ function ReportsTab({ productions, loading }: {
 function exportOutsourcePdf(
   data: OutsourceProduction[],
   totals: { revenue: number; cost: number; profit: number; weight: number; rolls: number },
+  companyName?: string,
 ) {
   const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
   const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
@@ -917,17 +928,44 @@ function exportOutsourcePdf(
     const border: [number, number, number] = [229, 231, 235];
     const headerBg: [number, number, number] = [30, 58, 95];
 
-    // Header
-    pdf.setFillColor(...headerBg);
-    pdf.rect(m, y, pw - 2 * m, 18, 'F');
-    pdf.setFontSize(14);
+    // Header - gray bg with centered title, company left, period right
+    const headerH = 28;
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(m, y, pw - 2 * m, headerH, 'F');
+    pdf.setDrawColor(210, 210, 210);
+    pdf.setLineWidth(0.3);
+    pdf.rect(m, y, pw - 2 * m, headerH, 'S');
+
+    const leftX = m + 4;
+    const rightX = pw - m - 4;
+
+    // Left: company name + date
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(255, 255, 255);
-    pdf.text('Relatório de Terceirizados', m + 8, y + 11);
-    pdf.setFontSize(9);
+    pdf.setTextColor(...textDark);
+    if (companyName) pdf.text(companyName, leftX, y + 11);
+    pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`Gerado em: ${date} · ${data.length} registros`, m + 8, y + 16);
-    y += 24;
+    pdf.setTextColor(...textMid);
+    pdf.text(date, leftX, y + 18);
+
+    // Center: title
+    pdf.setFontSize(13);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...textDark);
+    const titleText = 'RELATÓRIO DE TERCEIRIZADOS';
+    const titleW = pdf.getTextWidth(titleText);
+    pdf.text(titleText, (pw - titleW) / 2, y + 12);
+
+    // Right: period/records
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...textMid);
+    const periodInfo = `${data.length} registros`;
+    const piW = pdf.getTextWidth(periodInfo);
+    pdf.text(periodInfo, rightX - piW, y + 18);
+
+    y += headerH + 6;
 
     // KPIs
     const kpis = [

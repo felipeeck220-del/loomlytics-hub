@@ -1321,36 +1321,45 @@ function handleExport(
       };
 
       const addHeader = () => {
-        // Header background
-        pdf.setFillColor(...colors.headerBg);
-        pdf.roundedRect(margin, y, pageWidth - 2 * margin, 22, 3, 3, 'F');
-        pdf.setDrawColor(...colors.headerBorder);
-        pdf.setLineWidth(0.5);
-        pdf.roundedRect(margin, y, pageWidth - 2 * margin, 22, 3, 3, 'S');
+        const headerH = 28;
+        // Gray background
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
+        pdf.setDrawColor(210, 210, 210);
+        pdf.setLineWidth(0.3);
+        pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
 
-        // Title
-        pdf.setFontSize(14);
+        const leftX = margin + 4;
+        const rightX = pageWidth - margin - 4;
+
+        // Left side: company name (logo not embeddable in jsPDF easily) + date
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...colors.textDark);
+        if (cName) {
+          pdf.text(cName, leftX, y + 11);
+        }
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(...colors.textMid);
+        pdf.text(dateStr, leftX, y + 18);
+
+        // Center: Title slightly above middle
+        pdf.setFontSize(13);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(...colors.textDark);
         const titleW = pdf.getTextWidth(reportTitle);
-        pdf.text(reportTitle, (pageWidth - titleW) / 2, y + 14);
-        y += 26;
+        pdf.text(reportTitle, (pageWidth - titleW) / 2, y + 12);
 
-        // Company name + date + period
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(...colors.accent);
-        if (cName) {
-          pdf.text(cName, margin, y);
-        }
+        // Right side: filter period
+        pdf.setFontSize(8);
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(9);
         pdf.setTextColor(...colors.textMid);
-        pdf.text(dateStr, margin, y + 5);
         const pLabel = `Período: ${periodLabel}`;
         const pW = pdf.getTextWidth(pLabel);
-        pdf.text(pLabel, pageWidth - margin - pW, y + 5);
-        y += 14;
+        pdf.text(pLabel, rightX - pW, y + 18);
+
+        y += headerH + 6;
       };
 
       const drawBarChart = (data: { label: string; value: number }[], color: [number, number, number], unit: string, chartTitle: string) => {
