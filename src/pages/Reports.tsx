@@ -2,7 +2,6 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -566,7 +565,7 @@ export default function Reports() {
                       <Tooltip formatter={(v: number, name: string) => [formatNumber(v, 1), name === 'rolos' ? 'Peças' : 'Kg']} />
                       <Legend formatter={(value) => value === 'rolos' ? 'Peças' : 'Peso (kg)'} />
                       {byShift.map((entry) => null)}
-                      <Bar dataKey="rolos" name="rolos" radius={[4, 4, 0, 0]}>
+                      <Bar dataKey="rolos" name="Peças" radius={[4, 4, 0, 0]}>
                         {byShift.map((entry, i) => (
                           <Cell key={i} fill={SHIFT_CHART_COLORS[entry.name] || CHART_COLORS[i]} />
                         ))}
@@ -1193,7 +1192,7 @@ function ExportButton({ label, description, onClick }: {
   );
 }
 
-// --- Export handler (generates CSV for now) ---
+// --- Export handler ---
 
 function handleExport(
   type: string,
@@ -1218,10 +1217,11 @@ function handleExport(
   const sections: { title: string; headers: string[]; rows: (string | number)[][] }[] = [];
 
   if (type === 'completo' || type === 'turno') {
-    const headers = isAdmin ? ['Turno', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Turno', 'Rolos', 'Peso (kg)'];
-    const rows = byShift.map(s => isAdmin ? [s.name, fmtN(s.rolos), fmtK(s.kg), fmtR(s.faturamento)] : [s.name, fmtN(s.rolos), fmtK(s.kg)]);
+    const headers = isAdmin ? ['Turno', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento'] : ['Turno', 'Rolos', 'Peso (kg)', 'Eficiência (%)'];
+    const rows = byShift.map(s => isAdmin ? [s.name, fmtN(s.rolos), fmtK(s.kg), fmtN(s.eficiencia, 1), fmtR(s.faturamento)] : [s.name, fmtN(s.rolos), fmtK(s.kg), fmtN(s.eficiencia, 1)]);
     const tR = byShift.reduce((a, s) => a + s.rolos, 0), tK = byShift.reduce((a, s) => a + s.kg, 0), tF = byShift.reduce((a, s) => a + s.faturamento, 0);
-    rows.push(isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK)]);
+    const avgE = byShift.length ? byShift.reduce((a, s) => a + s.eficiencia, 0) / byShift.length : 0;
+    rows.push(isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtN(avgE, 1), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtN(avgE, 1)]);
     sections.push({ title: 'Por Turno', headers, rows });
   }
 
@@ -1417,7 +1417,6 @@ function handleExport(
         const periodTitle = 'Período';
         pdf.text(periodTitle, rightX - pdf.getTextWidth(periodTitle), y + 10);
 
-        pdf.setFont('helvetica', 'normal');
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(...colors.textMid);
         const periodLines = pdf.splitTextToSize(periodLabel, 42) as string[];

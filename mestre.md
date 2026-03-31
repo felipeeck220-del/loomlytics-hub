@@ -1082,7 +1082,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **31/03/2026 06:15** — Quando há logo cadastrada, o PDF exibe somente a logo (sem nome da empresa em texto) acima da data/hora no canto esquerdo. Sem logo, exibe o nome da empresa normalmente.
 - **31/03/2026 06:30** — Logo no PDF agora é exportada com proporções originais (aspect ratio preservado), ajustada apenas na altura para caber no cabeçalho.
 - **31/03/2026 04:19** — Cabeçalho dos PDFs de Relatórios e Terceirizados reajustado para seguir o layout do sistema legado: caixa cinza fina, título centralizado com quebra automática, data/hora dentro do cabeçalho à esquerda e período alinhado à direita.
+- **31/03/2026 04:26** — Auditoria de código nos Relatórios e Terceirizados: removido template HTML morto (nunca usado) do export Outsource; removido import `useQuery` não utilizado em Reports.tsx; corrigido `setFont` duplicado no PDF header; adicionada coluna "Eficiência (%)" na tabela PDF "Por Turno" (faltava nos exports); corrigido label da legenda do gráfico de barras por turno (era "rolos", agora "Peças"); removido comentário desatualizado.
 
 ---
 
-*Última atualização: 31/03/2026 04:19 (Brasília)*
+*Última atualização: 31/03/2026 04:26 (Brasília)*
