@@ -1456,11 +1456,14 @@ function handleExport(
       }
       wrapper.innerHTML += bodyMatch[1];
       document.body.appendChild(wrapper);
-      wrapper.style.position = 'fixed';
-      wrapper.style.left = '-9999px';
+      wrapper.style.position = 'absolute';
+      wrapper.style.left = '0';
       wrapper.style.top = '0';
       wrapper.style.width = '210mm';
       wrapper.style.background = '#fff';
+      wrapper.style.zIndex = '-9999';
+      wrapper.style.overflow = 'hidden';
+      wrapper.style.height = 'auto';
 
       const typeFileNames: Record<string, string> = {
         completo: 'Completo',
