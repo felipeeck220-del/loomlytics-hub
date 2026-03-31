@@ -1071,4 +1071,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 31/03/2026 03:00 (Brasília)*
+*Última atualização: 31/03/2026 03:30 (Brasília)*
