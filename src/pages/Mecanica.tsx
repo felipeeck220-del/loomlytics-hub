@@ -410,7 +410,7 @@ export default function MecanicaPage() {
                       {/* Since last needle change */}
                       <div className="rounded-lg border border-border p-3 space-y-2">
                         <p className="text-xs font-medium text-muted-foreground">
-                          Desde última Troca de Agulhas
+                          Desde última Troca de Agulheiro
                         </p>
                         <p className="text-[10px] text-muted-foreground">
                           {lastNeedle
