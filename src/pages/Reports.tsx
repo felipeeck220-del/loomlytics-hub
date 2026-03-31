@@ -49,16 +49,18 @@ export default function Reports() {
   const clients = getClients();
   const articles = getArticles();
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState('');
 
-  // Fetch company logo
+  // Fetch company logo and name
   useEffect(() => {
     if (!user?.company_id) return;
     (supabase.from as any)('companies')
-      .select('logo_url')
+      .select('logo_url, name')
       .eq('id', user.company_id)
       .single()
       .then(({ data }: any) => {
         if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
+        if (data?.name) setCompanyName(data.name);
       });
   }, [user?.company_id]);
 
