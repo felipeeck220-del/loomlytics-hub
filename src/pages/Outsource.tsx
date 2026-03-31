@@ -692,6 +692,14 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
     rolls: filtered.reduce((s, p) => s + p.rolls, 0),
   }), [filtered]);
 
+  const periodLabel = useMemo(() => {
+    const today = format(new Date(), 'dd/MM/yyyy');
+    if (startDate && endDate) return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
+    if (startDate) return `${format(startDate, 'dd/MM/yyyy')} a ${today}`;
+    if (endDate) return `Até ${format(endDate, 'dd/MM/yyyy')}`;
+    return 'Todo período';
+  }, [startDate, endDate]);
+
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   return (
@@ -755,7 +763,7 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
 
         {/* Export PDF */}
         <div className="flex justify-end">
-          <Button onClick={() => exportOutsourcePdf(filtered, totals, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+          <Button onClick={() => exportOutsourcePdf(filtered, totals, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-2" /> Exportar PDF
           </Button>
         </div>
@@ -840,12 +848,13 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
 function exportOutsourcePdf(
   data: OutsourceProduction[],
   totals: { revenue: number; cost: number; profit: number; weight: number; rolls: number },
+  periodLabel: string,
   companyName?: string,
   logoUrl?: string | null,
 ) {
   const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
   const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
-  const date = new Date().toLocaleDateString('pt-BR');
+  const date = new Date().toLocaleString('pt-BR');
 
   const rows = data.map(p => `
     <tr>
@@ -957,70 +966,84 @@ function exportOutsourcePdf(
     const textMid: [number, number, number] = [75, 85, 99];
     const border: [number, number, number] = [229, 231, 235];
 
-    // Header - gray bg with centered title, company left, period right
-    const headerH = 28;
-    pdf.setFillColor(240, 240, 240);
+    const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+      if (!width || !height) return { width: maxWidth, height: maxHeight };
+      const scale = Math.min(maxWidth / width, maxHeight / height);
+      return {
+        width: width * scale,
+        height: height * scale,
+      };
+    };
+
+    const headerH = 25;
+    pdf.setFillColor(249, 250, 251);
     pdf.rect(m, y, pw - 2 * m, headerH, 'F');
-    pdf.setDrawColor(210, 210, 210);
-    pdf.setLineWidth(0.3);
+    pdf.setDrawColor(...border);
+    pdf.setLineWidth(0.5);
     pdf.rect(m, y, pw - 2 * m, headerH, 'S');
 
-    const leftX = m + 4;
-    const rightX = pw - m - 4;
-    let textLeftX = leftX;
+    const leftX = m + 5;
+    const rightX = pw - m - 5;
+    const titleMaxWidth = pw - 2 * m - 100;
 
-    // Left: logo OR company name, then date below
     if (logoInfo) {
       try {
-        const maxH = headerH - 4;
-        const aspect = logoInfo.width / logoInfo.height;
-        const logoH = maxH;
-        const logoW = logoH * aspect;
-        pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2, logoW, logoH);
+        const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+        pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
         pdf.setFontSize(8);
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(...textMid);
-        pdf.text(date, leftX, y + headerH + 2);
+        pdf.text(date, leftX, y + 22);
       } catch {
         if (companyName) {
           pdf.setFontSize(10);
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(...textDark);
-          pdf.text(companyName, leftX, y + 11);
+          pdf.text(companyName, leftX, y + 10);
         }
         pdf.setFontSize(8);
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(...textMid);
-        pdf.text(date, leftX, y + 18);
+        pdf.text(date, leftX, y + 22);
       }
     } else {
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...textDark);
-      if (companyName) pdf.text(companyName, leftX, y + 11);
+      if (companyName) pdf.text(companyName, leftX, y + 10);
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...textMid);
-      pdf.text(date, leftX, y + 18);
+      pdf.text(date, leftX, y + 22);
     }
 
-    // Center: title
-    pdf.setFontSize(13);
+    pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(...textDark);
     const titleText = 'RELATÓRIO DE TERCEIRIZADOS';
-    const titleW = pdf.getTextWidth(titleText);
-    pdf.text(titleText, (pw - titleW) / 2, y + 12);
+    const titleLines = pdf.splitTextToSize(titleText, titleMaxWidth) as string[];
+    let titleY = y + 10;
+    titleLines.forEach((line) => {
+      const titleW = pdf.getTextWidth(line);
+      pdf.text(line, (pw - titleW) / 2, titleY);
+      titleY += 6;
+    });
 
-    // Right: period/records
     pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...textDark);
+    const periodTitle = 'Período';
+    pdf.text(periodTitle, rightX - pdf.getTextWidth(periodTitle), y + 10);
+
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(...textMid);
-    const periodInfo = `${data.length} registros`;
-    const piW = pdf.getTextWidth(periodInfo);
-    pdf.text(periodInfo, rightX - piW, y + 18);
+    const periodLines = pdf.splitTextToSize(periodLabel, 42) as string[];
+    periodLines.slice(0, 2).forEach((line, index) => {
+      const piW = pdf.getTextWidth(line);
+      pdf.text(line, rightX - piW, y + 16 + index * 5);
+    });
 
-    y += headerH + 6;
+    y += headerH + 10;
 
     // KPIs
     const kpis = [

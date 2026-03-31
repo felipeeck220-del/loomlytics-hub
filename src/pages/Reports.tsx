@@ -1287,7 +1287,7 @@ function handleExport(
     };
     const reportTitle = `RELATÓRIO ${(typeLabels[type] || 'Produção').toUpperCase()}`;
     const cName = companyName || '';
-    const dateStr = new Date().toLocaleDateString('pt-BR') + ', ' + new Date().toLocaleTimeString('pt-BR');
+    const dateStr = new Date().toLocaleString('pt-BR');
 
     const typeFileNames: Record<string, string> = {
       completo: 'Completo',
@@ -1332,13 +1332,10 @@ function handleExport(
       let y = margin;
 
       const colors = {
-        headerBg: [224, 242, 241] as [number, number, number],
-        headerBorder: [178, 223, 219] as [number, number, number],
         grayBg: [249, 250, 251] as [number, number, number],
         border: [229, 231, 235] as [number, number, number],
         textDark: [17, 24, 39] as [number, number, number],
         textMid: [75, 85, 99] as [number, number, number],
-        accent: [0, 105, 92] as [number, number, number],
         barBlue: [37, 99, 235] as [number, number, number],
         barOrange: [245, 158, 11] as [number, number, number],
         barGreen: [22, 163, 74] as [number, number, number],
@@ -1346,71 +1343,90 @@ function handleExport(
         totalBg: [255, 251, 235] as [number, number, number],
       };
 
-      const addHeader = () => {
-        const headerH = 28;
-        // Gray background
-        pdf.setFillColor(240, 240, 240);
-        pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
-        pdf.setDrawColor(210, 210, 210);
-        pdf.setLineWidth(0.3);
-        pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
+      const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+        if (!width || !height) return { width: maxWidth, height: maxHeight };
+        const scale = Math.min(maxWidth / width, maxHeight / height);
+        return {
+          width: width * scale,
+          height: height * scale,
+        };
+      };
 
-        const leftX = margin + 4;
-        const rightX = pageWidth - margin - 4;
+      const addHeader = () => {
+        const headerH = 25;
+        const leftX = margin + 5;
+        const rightX = pageWidth - margin - 5;
+        const titleMaxWidth = pageWidth - 2 * margin - 90;
+
+        pdf.setFillColor(...colors.grayBg);
+        pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
+        pdf.setDrawColor(...colors.border);
+        pdf.setLineWidth(0.5);
+        pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
 
         // Left side: logo OR company name, then date below
         if (logoInfo) {
           try {
-            const maxH = headerH - 4;
-            const aspect = logoInfo.width / logoInfo.height;
-            const logoH = maxH;
-            const logoW = logoH * aspect;
-            pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2, logoW, logoH);
+            const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+            pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'normal');
             pdf.setTextColor(...colors.textMid);
-            pdf.text(dateStr, leftX, y + headerH + 2);
+            pdf.text(dateStr, leftX, y + 22);
           } catch {
             if (cName) {
               pdf.setFontSize(10);
               pdf.setFont('helvetica', 'bold');
               pdf.setTextColor(...colors.textDark);
-              pdf.text(cName, leftX, y + 11);
+              pdf.text(cName, leftX, y + 10);
             }
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'normal');
             pdf.setTextColor(...colors.textMid);
-            pdf.text(dateStr, leftX, y + 18);
+            pdf.text(dateStr, leftX, y + 22);
           }
         } else {
           pdf.setFontSize(10);
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(...colors.textDark);
           if (cName) {
-            pdf.text(cName, leftX, y + 11);
+            pdf.text(cName, leftX, y + 10);
           }
           pdf.setFontSize(8);
           pdf.setFont('helvetica', 'normal');
           pdf.setTextColor(...colors.textMid);
-          pdf.text(dateStr, leftX, y + 18);
+          pdf.text(dateStr, leftX, y + 22);
         }
 
         // Center: Title slightly above middle
-        pdf.setFontSize(13);
+        pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(...colors.textDark);
-        const titleW = pdf.getTextWidth(reportTitle);
-        pdf.text(reportTitle, (pageWidth - titleW) / 2, y + 12);
+        const titleLines = pdf.splitTextToSize(reportTitle, titleMaxWidth) as string[];
+        let titleY = y + 10;
+        titleLines.forEach((line) => {
+          const titleW = pdf.getTextWidth(line);
+          pdf.text(line, (pageWidth - titleW) / 2, titleY);
+          titleY += 6;
+        });
 
         // Right side: filter period
         pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...colors.textDark);
+        const periodTitle = 'Período';
+        pdf.text(periodTitle, rightX - pdf.getTextWidth(periodTitle), y + 10);
+
+        pdf.setFont('helvetica', 'normal');
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(...colors.textMid);
-        const pLabel = `Período: ${periodLabel}`;
-        const pW = pdf.getTextWidth(pLabel);
-        pdf.text(pLabel, rightX - pW, y + 18);
+        const periodLines = pdf.splitTextToSize(periodLabel, 42) as string[];
+        periodLines.slice(0, 2).forEach((line, index) => {
+          const pW = pdf.getTextWidth(line);
+          pdf.text(line, rightX - pW, y + 16 + index * 5);
+        });
 
-        y += headerH + 6;
+        y += headerH + 10;
       };
 
       const drawBarChart = (data: { label: string; value: number }[], color: [number, number, number], unit: string, chartTitle: string) => {
