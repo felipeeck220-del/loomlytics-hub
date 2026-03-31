@@ -108,7 +108,7 @@ export default function Machines() {
 
       await saveMachines(all);
       logAction(oldStatus !== form.status ? 'machine_status_change' : 'machine_update', {
-        machine: `TEAR ${form.number}`, old_status: oldStatus, new_status: form.status,
+        machine: `TEAR ${form.number.padStart(2, '0')}`, old_status: oldStatus, new_status: form.status,
       });
       toast.success('Máquina atualizada');
     } else {
