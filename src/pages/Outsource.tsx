@@ -903,40 +903,41 @@ function exportOutsourcePdf(
     <div class="footer">Relatório gerado automaticamente pelo sistema MalhaGest · ${date}</div>
   </body></html>`;
 
-  // Direct PDF download
-  const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
-  const bodyMatch = html.match(/<body>([\s\S]*?)<\/body>/);
-  if (bodyMatch) {
-    const wrapper = document.createElement('div');
-    if (styleMatch) {
-      const styleEl = document.createElement('style');
-      styleEl.textContent = styleMatch[1];
-      wrapper.appendChild(styleEl);
-    }
-    wrapper.innerHTML += bodyMatch[1];
-    document.body.appendChild(wrapper);
-    wrapper.style.position = 'absolute';
-    wrapper.style.left = '0';
-    wrapper.style.top = '0';
-    wrapper.style.width = '210mm';
-    wrapper.style.background = '#fff';
-    wrapper.style.zIndex = '-9999';
-    wrapper.style.overflow = 'hidden';
-    wrapper.style.height = 'auto';
+  // Direct PDF download via iframe
+  const fileName = `relatorio_terceirizados_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
 
-    const fileName = `relatorio_terceirizados_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.left = '0';
+  iframe.style.top = '0';
+  iframe.style.width = '210mm';
+  iframe.style.height = '297mm';
+  iframe.style.zIndex = '-9999';
+  iframe.style.opacity = '0';
+  iframe.style.pointerEvents = 'none';
+  document.body.appendChild(iframe);
 
-    import('html2pdf.js').then(({ default: html2pdf }) => {
-      html2pdf().set({
-        margin: [10, 10, 10, 10],
-        filename: fileName,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-      }).from(wrapper).save().then(() => {
-        document.body.removeChild(wrapper);
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (iframeDoc) {
+    iframeDoc.open();
+    iframeDoc.write(html);
+    iframeDoc.close();
+
+    setTimeout(() => {
+      import('html2pdf.js').then(({ default: html2pdf }) => {
+        html2pdf().set({
+          margin: [10, 10, 10, 10],
+          filename: fileName,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+        }).from(iframeDoc.body).save().then(() => {
+          document.body.removeChild(iframe);
+        }).catch(() => {
+          document.body.removeChild(iframe);
+        });
       });
-    });
+    }, 500);
   }
 }
