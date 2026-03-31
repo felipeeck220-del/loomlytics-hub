@@ -62,12 +62,14 @@ export default function Outsource() {
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
   const [companyName, setCompanyName] = useState('');
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
 
-  // Fetch company name
+  // Fetch company name and logo
   useEffect(() => {
     if (!companyId) return;
-    sb('companies').select('name').eq('id', companyId).single().then(({ data }: any) => {
+    sb('companies').select('name, logo_url').eq('id', companyId).single().then(({ data }: any) => {
       if (data?.name) setCompanyName(data.name);
+      if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
     });
   }, [companyId]);
 
@@ -182,7 +184,7 @@ export default function Outsource() {
          </TabsContent>
 
          <TabsContent value="reports">
-           <ReportsTab productions={productions} loading={loadingProductions} companyName={companyName} />
+           <ReportsTab productions={productions} loading={loadingProductions} companyName={companyName} companyLogoUrl={companyLogoUrl} />
          </TabsContent>
        </Tabs>
      </div>
@@ -655,10 +657,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
 
 // ─── Reports Tab ─────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
-function ReportsTab({ productions, loading, companyName }: {
+function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
   productions: OutsourceProduction[];
   loading: boolean;
   companyName?: string;
+  companyLogoUrl?: string | null;
 }) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -752,7 +755,7 @@ function ReportsTab({ productions, loading, companyName }: {
 
         {/* Export PDF */}
         <div className="flex justify-end">
-          <Button onClick={() => exportOutsourcePdf(filtered, totals, companyName)} className="btn-gradient" disabled={filtered.length === 0}>
+          <Button onClick={() => exportOutsourcePdf(filtered, totals, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-2" /> Exportar PDF
           </Button>
         </div>
@@ -838,6 +841,7 @@ function exportOutsourcePdf(
   data: OutsourceProduction[],
   totals: { revenue: number; cost: number; profit: number; weight: number; rolls: number },
   companyName?: string,
+  logoUrl?: string | null,
 ) {
   const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
   const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
@@ -916,7 +920,33 @@ function exportOutsourcePdf(
 
   const fileName = `relatorio_terceirizados_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
 
-  import('jspdf').then(({ jsPDF }) => {
+  // Load logo if available
+  const loadLogo = (url: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } catch { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
+  const doExport = async () => {
+    let logoData: string | null = null;
+    if (logoUrl) {
+      logoData = await loadLogo(logoUrl);
+    }
+
+    const { jsPDF } = await import('jspdf');
     const pdf = new jsPDF('l', 'mm', 'a4'); // landscape
     const pw = pdf.internal.pageSize.getWidth();
     const ph = pdf.internal.pageSize.getHeight();
@@ -926,7 +956,6 @@ function exportOutsourcePdf(
     const textDark: [number, number, number] = [17, 24, 39];
     const textMid: [number, number, number] = [75, 85, 99];
     const border: [number, number, number] = [229, 231, 235];
-    const headerBg: [number, number, number] = [30, 58, 95];
 
     // Header - gray bg with centered title, company left, period right
     const headerH = 28;
@@ -938,16 +967,26 @@ function exportOutsourcePdf(
 
     const leftX = m + 4;
     const rightX = pw - m - 4;
+    let textLeftX = leftX;
 
-    // Left: company name + date
+    // Left: logo + company name + date
+    if (logoData) {
+      try {
+        const logoH = 18;
+        const logoW = 18;
+        pdf.addImage(logoData, 'PNG', leftX, y + 5, logoW, logoH);
+        textLeftX = leftX + logoW + 3;
+      } catch { /* ignore */ }
+    }
+
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(...textDark);
-    if (companyName) pdf.text(companyName, leftX, y + 11);
+    if (companyName) pdf.text(companyName, textLeftX, y + 11);
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(...textMid);
-    pdf.text(date, leftX, y + 18);
+    pdf.text(date, textLeftX, y + 18);
 
     // Center: title
     pdf.setFontSize(13);
@@ -1087,5 +1126,7 @@ function exportOutsourcePdf(
     pdf.text(footer, (pw - fw) / 2, y);
 
     pdf.save(fileName);
-  });
+  };
+
+  doExport();
 }

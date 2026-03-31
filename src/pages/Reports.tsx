@@ -1298,7 +1298,33 @@ function handleExport(
     };
     const fileName = `relatorio_${typeFileNames[type] || type}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
 
-    import('jspdf').then(({ jsPDF }) => {
+    // Load logo if available
+    const loadLogo = (url: string): Promise<string | null> => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          } catch { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    };
+
+    const doExport = async () => {
+      let logoData: string | null = null;
+      if (logoUrl) {
+        logoData = await loadLogo(logoUrl);
+      }
+
+      const { jsPDF } = await import('jspdf');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -1331,18 +1357,28 @@ function handleExport(
 
         const leftX = margin + 4;
         const rightX = pageWidth - margin - 4;
+        let textLeftX = leftX;
 
-        // Left side: company name (logo not embeddable in jsPDF easily) + date
+        // Left side: logo + company name + date
+        if (logoData) {
+          try {
+            const logoH = 18;
+            const logoW = 18;
+            pdf.addImage(logoData, 'PNG', leftX, y + 5, logoW, logoH);
+            textLeftX = leftX + logoW + 3;
+          } catch { /* ignore logo errors */ }
+        }
+
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(...colors.textDark);
         if (cName) {
-          pdf.text(cName, leftX, y + 11);
+          pdf.text(cName, textLeftX, y + 11);
         }
         pdf.setFontSize(8);
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(...colors.textMid);
-        pdf.text(dateStr, leftX, y + 18);
+        pdf.text(dateStr, textLeftX, y + 18);
 
         // Center: Title slightly above middle
         pdf.setFontSize(13);
@@ -1532,6 +1568,8 @@ function handleExport(
       });
 
       pdf.save(fileName);
-    });
+    };
+
+    doExport();
   }
 }
