@@ -1299,7 +1299,7 @@ function handleExport(
     const fileName = `relatorio_${typeFileNames[type] || type}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
 
     // Load logo if available
-    const loadLogo = (url: string): Promise<string | null> => {
+    const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
       return new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -1310,7 +1310,7 @@ function handleExport(
             canvas.height = img.naturalHeight;
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
+            resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
           } catch { resolve(null); }
         };
         img.onerror = () => resolve(null);
@@ -1319,9 +1319,9 @@ function handleExport(
     };
 
     const doExport = async () => {
-      let logoData: string | null = null;
+      let logoInfo: { data: string; width: number; height: number } | null = null;
       if (logoUrl) {
-        logoData = await loadLogo(logoUrl);
+        logoInfo = await loadLogo(logoUrl);
       }
 
       const { jsPDF } = await import('jspdf');
@@ -1359,15 +1359,17 @@ function handleExport(
         const rightX = pageWidth - margin - 4;
 
         // Left side: logo OR company name, then date below
-        if (logoData) {
+        if (logoInfo) {
           try {
-            const logoH = 16;
-            const logoW = 16;
-            pdf.addImage(logoData, 'PNG', leftX, y + 2, logoW, logoH);
+            const maxH = headerH - 4;
+            const aspect = logoInfo.width / logoInfo.height;
+            const logoH = maxH;
+            const logoW = logoH * aspect;
+            pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2, logoW, logoH);
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'normal');
             pdf.setTextColor(...colors.textMid);
-            pdf.text(dateStr, leftX, y + 24);
+            pdf.text(dateStr, leftX, y + headerH + 2);
           } catch {
             if (cName) {
               pdf.setFontSize(10);

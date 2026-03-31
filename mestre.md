@@ -1080,7 +1080,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **31/03/2026 05:30** — Redesign do cabeçalho dos PDFs exportados: retângulo cinza com título centralizado, nome da empresa + data/hora na esquerda, período do filtro na direita. Aplicado em Reports.tsx e Outsource.tsx.
 - **31/03/2026 06:00** — Logo da empresa agora é exportada no cabeçalho dos PDFs (Reports e Terceirizados) quando cadastrada em Configurações > Empresa. Imagem é carregada via canvas para base64 e inserida com `pdf.addImage()`.
 - **31/03/2026 06:15** — Quando há logo cadastrada, o PDF exibe somente a logo (sem nome da empresa em texto) acima da data/hora no canto esquerdo. Sem logo, exibe o nome da empresa normalmente.
+- **31/03/2026 06:30** — Logo no PDF agora é exportada com proporções originais (aspect ratio preservado), ajustada apenas na altura para caber no cabeçalho.
 
 ---
 
-*Última atualização: 31/03/2026 06:15 (Brasília)*
+*Última atualização: 31/03/2026 06:30 (Brasília)*
