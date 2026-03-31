@@ -1441,11 +1441,48 @@ function handleExport(
       ${tablesHtml}
     </body></html>`;
 
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write(html);
-      win.document.close();
-      setTimeout(() => win.print(), 400);
+    // Direct PDF download
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    // Extract body content and apply styles
+    const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+    const bodyMatch = html.match(/<body>([\s\S]*?)<\/body>/);
+    if (bodyMatch) {
+      const wrapper = document.createElement('div');
+      if (styleMatch) {
+        const styleEl = document.createElement('style');
+        styleEl.textContent = styleMatch[1];
+        wrapper.appendChild(styleEl);
+      }
+      wrapper.innerHTML += bodyMatch[1];
+      document.body.appendChild(wrapper);
+      wrapper.style.position = 'fixed';
+      wrapper.style.left = '-9999px';
+      wrapper.style.top = '0';
+      wrapper.style.width = '210mm';
+      wrapper.style.background = '#fff';
+
+      const typeFileNames: Record<string, string> = {
+        completo: 'Completo',
+        maquina: 'Maquinas',
+        turno: 'Turnos',
+        cliente: 'Clientes',
+        artigo: 'Artigos',
+      };
+      const fileName = `relatorio_${typeFileNames[type] || type}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+
+      import('html2pdf.js').then(({ default: html2pdf }) => {
+        html2pdf().set({
+          margin: [10, 10, 10, 10],
+          filename: fileName,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, logging: false },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+        }).from(wrapper).save().then(() => {
+          document.body.removeChild(wrapper);
+        });
+      });
     }
   }
 }
