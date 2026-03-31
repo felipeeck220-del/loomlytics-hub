@@ -257,13 +257,13 @@ export default function RevisionPage() {
 
       {/* Register Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="w-[90vw] max-w-[90vw] h-[85vh] max-h-[85vh] overflow-y-auto" onPointerDownOutside={e => e.preventDefault()}>
+        <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto" onPointerDownOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Registrar Falha</DialogTitle>
           </DialogHeader>
-          <div className="space-y-5">
+          <div className="space-y-4">
             {/* Row 1: Date + Shift */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Data</Label>
                 <Popover>
@@ -290,7 +290,7 @@ export default function RevisionPage() {
             </div>
 
             {/* Row 2: Machine + Article */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Máquina *</Label>
                 <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
@@ -315,7 +315,7 @@ export default function RevisionPage() {
             </div>
 
             {/* Row 3: Weaver + Defect Name */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Tecelão *</Label>
                 <Select value={form.weaver_id} onValueChange={v => { setForm(f => ({ ...f, weaver_id: v })); setWeaverSearch(''); }}>
@@ -335,7 +335,7 @@ export default function RevisionPage() {
             </div>
 
             {/* Row 4: Measure type + value + observations */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Tipo de Medida *</Label>
                 <Select value={form.measure_type} onValueChange={v => setForm(f => ({ ...f, measure_type: v as MeasureType }))}>
