@@ -917,17 +917,44 @@ function exportOutsourcePdf(
     const border: [number, number, number] = [229, 231, 235];
     const headerBg: [number, number, number] = [30, 58, 95];
 
-    // Header
-    pdf.setFillColor(...headerBg);
-    pdf.rect(m, y, pw - 2 * m, 18, 'F');
-    pdf.setFontSize(14);
+    // Header - gray bg with centered title, company left, period right
+    const headerH = 28;
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(m, y, pw - 2 * m, headerH, 'F');
+    pdf.setDrawColor(210, 210, 210);
+    pdf.setLineWidth(0.3);
+    pdf.rect(m, y, pw - 2 * m, headerH, 'S');
+
+    const leftX = m + 4;
+    const rightX = pw - m - 4;
+
+    // Left: company name + date
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(255, 255, 255);
-    pdf.text('Relatório de Terceirizados', m + 8, y + 11);
-    pdf.setFontSize(9);
+    pdf.setTextColor(...textDark);
+    if (companyName) pdf.text(companyName, leftX, y + 11);
+    pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`Gerado em: ${date} · ${data.length} registros`, m + 8, y + 16);
-    y += 24;
+    pdf.setTextColor(...textMid);
+    pdf.text(date, leftX, y + 18);
+
+    // Center: title
+    pdf.setFontSize(13);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...textDark);
+    const titleText = 'RELATÓRIO DE TERCEIRIZADOS';
+    const titleW = pdf.getTextWidth(titleText);
+    pdf.text(titleText, (pw - titleW) / 2, y + 12);
+
+    // Right: period/records
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...textMid);
+    const periodInfo = `${data.length} registros`;
+    const piW = pdf.getTextWidth(periodInfo);
+    pdf.text(periodInfo, rightX - piW, y + 18);
+
+    y += headerH + 6;
 
     // KPIs
     const kpis = [
