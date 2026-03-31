@@ -1289,159 +1289,6 @@ function handleExport(
     const cName = companyName || '';
     const dateStr = new Date().toLocaleDateString('pt-BR') + ', ' + new Date().toLocaleTimeString('pt-BR');
 
-    // Generate SVG bar chart HTML for a section
-    const buildChart = (data: { label: string; value: number }[], color: string, unit: string) => {
-      if (data.length === 0) return '';
-      const maxVal = Math.max(...data.map(d => d.value), 1);
-      const barH = 28;
-      const gap = 6;
-      const chartH = data.length * (barH + gap) + 10;
-      const labelW = 120;
-      const chartW = 500;
-      const bars = data.map((d, i) => {
-        const w = Math.max((d.value / maxVal) * (chartW - labelW - 60), 2);
-        const y = i * (barH + gap) + 5;
-        const valLabel = unit === 'R$' ? `R$ ${fmtN(d.value, 2)}` : fmtN(d.value, unit === '%' ? 1 : 0) + (unit === '%' ? '%' : unit === 'kg' ? ' kg' : '');
-        return `
-          <g>
-            <text x="${labelW - 8}" y="${y + barH / 2 + 4}" text-anchor="end" font-size="11" fill="#475569">${d.label}</text>
-            <rect x="${labelW}" y="${y}" width="${w}" height="${barH}" rx="4" fill="${color}" opacity="0.85"/>
-            <text x="${labelW + w + 6}" y="${y + barH / 2 + 4}" font-size="11" fill="#1e293b" font-weight="500">${valLabel}</text>
-          </g>`;
-      }).join('');
-      return `<svg width="${chartW}" height="${chartH}" xmlns="http://www.w3.org/2000/svg" style="margin:12px 0 8px 0;">${bars}</svg>`;
-    };
-
-    let tablesHtml = sections.map(sec => {
-      let chartHtml = '';
-      if (_includeCharts) {
-        if (sec.title === 'Por Turno') {
-          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Eficiência por Turno (%)</p>';
-          chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.eficiencia })), '#f59e0b', '%');
-          chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Rolos por Turno</p>';
-          chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.rolos })), '#2563eb', '');
-          if (isAdmin) {
-            chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Faturamento por Turno</p>';
-            chartHtml += buildChart(byShift.map(s => ({ label: s.name, value: s.faturamento })), '#16a34a', 'R$');
-          }
-        } else if (sec.title === 'Por Máquina') {
-          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Eficiência por Máquina (%)</p>';
-          chartHtml += buildChart(byMachine.slice(0, 10).map(m => ({ label: m.name, value: m.eficiencia })), '#f59e0b', '%');
-          chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Rolos por Máquina</p>';
-          chartHtml += buildChart(byMachine.slice(0, 10).map(m => ({ label: m.name, value: m.rolos })), '#2563eb', '');
-        } else if (sec.title === 'Por Cliente') {
-          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Peso por Cliente (kg)</p>';
-          chartHtml += buildChart(byClient.slice(0, 8).map(c => ({ label: c.name, value: c.kg })), '#8b5cf6', 'kg');
-          if (isAdmin) {
-            chartHtml += '<p style="font-size:12px;color:#64748b;margin:12px 0 2px;">Faturamento por Cliente</p>';
-            chartHtml += buildChart(byClient.slice(0, 8).map(c => ({ label: c.name, value: c.faturamento })), '#16a34a', 'R$');
-          }
-        } else if (sec.title === 'Por Artigo') {
-          const articleRows = sec.rows.slice(0, 10);
-          chartHtml += '<p style="font-size:12px;color:#64748b;margin:8px 0 2px;">Rolos por Artigo</p>';
-          chartHtml += buildChart(articleRows.map(r => ({ label: String(r[0]), value: parseFloat(String(r[1]).replace(/\./g, '').replace(',', '.')) || 0 })), '#0ea5e9', '');
-        }
-      }
-
-      return `
-        ${chartHtml ? `<div style="margin-bottom:24px;">${chartHtml}</div>` : ''}
-        <table>
-          <thead><tr>${sec.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-          <tbody>${sec.rows.map((r, ri) => `<tr class="${ri === sec.rows.length - 1 ? 'total-row' : ''}">${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
-        </table>
-      `;
-    }).join('<div style="page-break-before: auto; margin-top: 32px;"></div>');
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title> </title>
-    <style>
-      @page { margin: 10mm 16mm; size: A4; }
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #333; background: #fff; padding: 0; }
-      
-      .header {
-        background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 50%, #80cbc4 100%);
-        border: 1px solid #b2dfdb;
-        border-radius: 6px;
-        padding: 16px 24px;
-        margin-bottom: 24px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-      .header-logo {
-        height: 44px;
-        width: auto;
-        max-width: 80px;
-        object-fit: contain;
-      }
-      .header-info {
-        flex: 1;
-      }
-      .header-title {
-        font-size: 18px;
-        font-weight: 700;
-        color: #1a1a1a;
-        text-align: center;
-        margin-bottom: 2px;
-      }
-      .header-company {
-        font-size: 13px;
-        font-weight: 600;
-        color: #00695c;
-      }
-      .header-date {
-        font-size: 11px;
-        color: #555;
-      }
-      
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        overflow: hidden;
-      }
-      th {
-        background: #f5f5f5;
-        color: #333;
-        font-weight: 600;
-        text-align: left;
-        padding: 12px 16px;
-        border-bottom: 2px solid #e0e0e0;
-      }
-      td {
-        padding: 10px 16px;
-        border-bottom: 1px solid #f0f0f0;
-        color: #444;
-      }
-      tr:last-child td {
-        border-bottom: none;
-      }
-      .total-row td {
-        background: #f5f5f5 !important;
-        font-weight: 700;
-        color: #1a1a1a;
-        border-top: 2px solid #e0e0e0;
-      }
-      
-      svg { display: block; }
-    </style></head><body>
-      <div class="header">
-        ${logoUrl ? `<img src="${logoUrl}" class="header-logo" />` : ''}
-        <div class="header-info">
-          <div class="header-title">${reportTitle}</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:baseline;gap:8px;margin:-16px 0 20px 4px;">
-        ${cName ? `<span class="header-company">${cName}</span>` : ''}
-        <span class="header-date">${dateStr}</span>
-        <span class="header-date" style="margin-left:auto;">Período: ${periodLabel}</span>
-      </div>
-      ${tablesHtml}
-    </body></html>`;
-
-    // Direct PDF download via iframe
     const typeFileNames: Record<string, string> = {
       completo: 'Completo',
       maquina: 'Maquinas',
@@ -1451,40 +1298,231 @@ function handleExport(
     };
     const fileName = `relatorio_${typeFileNames[type] || type}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
 
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '0';
-    iframe.style.top = '0';
-    iframe.style.width = '210mm';
-    iframe.style.height = '297mm';
-    iframe.style.zIndex = '-9999';
-    iframe.style.opacity = '0';
-    iframe.style.pointerEvents = 'none';
-    document.body.appendChild(iframe);
+    import('jspdf').then(({ jsPDF }) => {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      let y = margin;
 
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (iframeDoc) {
-      iframeDoc.open();
-      iframeDoc.write(html);
-      iframeDoc.close();
+      const colors = {
+        headerBg: [224, 242, 241] as [number, number, number],
+        headerBorder: [178, 223, 219] as [number, number, number],
+        grayBg: [249, 250, 251] as [number, number, number],
+        border: [229, 231, 235] as [number, number, number],
+        textDark: [17, 24, 39] as [number, number, number],
+        textMid: [75, 85, 99] as [number, number, number],
+        accent: [0, 105, 92] as [number, number, number],
+        barBlue: [37, 99, 235] as [number, number, number],
+        barOrange: [245, 158, 11] as [number, number, number],
+        barGreen: [22, 163, 74] as [number, number, number],
+        barPurple: [139, 92, 246] as [number, number, number],
+        totalBg: [255, 251, 235] as [number, number, number],
+      };
 
-      // Wait for content + images to render
-      setTimeout(() => {
-        import('html2pdf.js').then(({ default: html2pdf }) => {
-          html2pdf().set({
-            margin: [10, 10, 10, 10],
-            filename: fileName,
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-          }).from(iframeDoc.body).save().then(() => {
-            document.body.removeChild(iframe);
-          }).catch(() => {
-            document.body.removeChild(iframe);
-          });
+      const addHeader = () => {
+        // Header background
+        pdf.setFillColor(...colors.headerBg);
+        pdf.roundedRect(margin, y, pageWidth - 2 * margin, 22, 3, 3, 'F');
+        pdf.setDrawColor(...colors.headerBorder);
+        pdf.setLineWidth(0.5);
+        pdf.roundedRect(margin, y, pageWidth - 2 * margin, 22, 3, 3, 'S');
+
+        // Title
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...colors.textDark);
+        const titleW = pdf.getTextWidth(reportTitle);
+        pdf.text(reportTitle, (pageWidth - titleW) / 2, y + 14);
+        y += 26;
+
+        // Company name + date + period
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...colors.accent);
+        if (cName) {
+          pdf.text(cName, margin, y);
+        }
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9);
+        pdf.setTextColor(...colors.textMid);
+        pdf.text(dateStr, margin, y + 5);
+        const pLabel = `Período: ${periodLabel}`;
+        const pW = pdf.getTextWidth(pLabel);
+        pdf.text(pLabel, pageWidth - margin - pW, y + 5);
+        y += 14;
+      };
+
+      const drawBarChart = (data: { label: string; value: number }[], color: [number, number, number], unit: string, chartTitle: string) => {
+        if (data.length === 0) return;
+        const barH = 6;
+        const gap = 3;
+        const chartHeight = data.length * (barH + gap) + 18;
+
+        // Check page break
+        if (y + chartHeight > pageHeight - margin) {
+          pdf.addPage();
+          y = margin;
+          addHeader();
+        }
+
+        // Chart title
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(...colors.textMid);
+        pdf.text(chartTitle, margin, y);
+        y += 5;
+
+        const maxVal = Math.max(...data.map(d => d.value), 1);
+        const labelW = 35;
+        const barAreaW = pageWidth - 2 * margin - labelW - 30;
+
+        data.forEach(d => {
+          // Label
+          pdf.setFontSize(8);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(...colors.textMid);
+          const labelText = d.label.length > 16 ? d.label.substring(0, 15) + '…' : d.label;
+          const lw = pdf.getTextWidth(labelText);
+          pdf.text(labelText, margin + labelW - lw - 2, y + barH - 1);
+
+          // Bar
+          const barW = Math.max((d.value / maxVal) * barAreaW, 1);
+          pdf.setFillColor(...color);
+          pdf.roundedRect(margin + labelW, y, barW, barH, 1.5, 1.5, 'F');
+
+          // Value label
+          pdf.setFontSize(8);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...colors.textDark);
+          const valStr = unit === 'R$' ? `R$ ${fmtN(d.value, 2)}` : fmtN(d.value, unit === '%' ? 1 : 0) + (unit === '%' ? '%' : unit === 'kg' ? ' kg' : '');
+          pdf.text(valStr, margin + labelW + barW + 3, y + barH - 1);
+
+          y += barH + gap;
         });
-      }, 500);
-    }
+        y += 5;
+      };
+
+      const drawTable = (sec: { title: string; headers: string[]; rows: (string | number)[][] }) => {
+        const colCount = sec.headers.length;
+        const availW = pageWidth - 2 * margin;
+        const colW = availW / colCount;
+        const rowH = 8;
+        const headerH = 10;
+
+        const drawTableHeader = () => {
+          // Check page break for header + at least 1 row
+          if (y + headerH + rowH > pageHeight - margin) {
+            pdf.addPage();
+            y = margin;
+            addHeader();
+          }
+
+          pdf.setFillColor(...colors.grayBg);
+          pdf.rect(margin, y, availW, headerH, 'F');
+          pdf.setDrawColor(...colors.border);
+          pdf.setLineWidth(0.3);
+          pdf.rect(margin, y, availW, headerH);
+
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...colors.textDark);
+
+          sec.headers.forEach((h, i) => {
+            pdf.text(h, margin + i * colW + 3, y + 7);
+          });
+          y += headerH;
+        };
+
+        drawTableHeader();
+
+        // Data rows
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+
+        sec.rows.forEach((row, ri) => {
+          const isTotal = ri === sec.rows.length - 1;
+
+          // Page break check
+          if (y + rowH > pageHeight - margin) {
+            pdf.addPage();
+            y = margin;
+            addHeader();
+            drawTableHeader();
+          }
+
+          // Row background
+          if (isTotal) {
+            pdf.setFillColor(...colors.totalBg);
+          } else {
+            pdf.setFillColor(ri % 2 === 0 ? 255 : 248, ri % 2 === 0 ? 255 : 250, ri % 2 === 0 ? 255 : 252);
+          }
+          pdf.rect(margin, y, availW, rowH, 'F');
+          pdf.setDrawColor(...colors.border);
+          pdf.setLineWidth(0.1);
+          pdf.rect(margin, y, availW, rowH);
+
+          if (isTotal) {
+            pdf.setDrawColor(...colors.textDark);
+            pdf.setLineWidth(0.5);
+            pdf.line(margin, y, margin + availW, y);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(9);
+          }
+
+          pdf.setTextColor(...colors.textDark);
+          row.forEach((cell, ci) => {
+            const text = String(cell);
+            const truncated = text.length > 25 ? text.substring(0, 24) + '…' : text;
+            pdf.text(truncated, margin + ci * colW + 3, y + 5.5);
+          });
+
+          if (isTotal) {
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(8);
+          }
+
+          y += rowH;
+        });
+        y += 8;
+      };
+
+      // Build PDF
+      addHeader();
+
+      // Draw charts if enabled
+      if (_includeCharts) {
+        sections.forEach(sec => {
+          if (sec.title === 'Por Turno') {
+            drawBarChart(byShift.map(s => ({ label: s.name, value: s.eficiencia })), colors.barOrange, '%', 'Eficiência por Turno (%)');
+            drawBarChart(byShift.map(s => ({ label: s.name, value: s.rolos })), colors.barBlue, '', 'Rolos por Turno');
+            if (isAdmin) {
+              drawBarChart(byShift.map(s => ({ label: s.name, value: s.faturamento })), colors.barGreen, 'R$', 'Faturamento por Turno');
+            }
+          } else if (sec.title === 'Por Máquina') {
+            drawBarChart(byMachine.slice(0, 10).map(m => ({ label: m.name, value: m.eficiencia })), colors.barOrange, '%', 'Eficiência por Máquina (%)');
+            drawBarChart(byMachine.slice(0, 10).map(m => ({ label: m.name, value: m.rolos })), colors.barBlue, '', 'Rolos por Máquina');
+          } else if (sec.title === 'Por Cliente') {
+            drawBarChart(byClient.slice(0, 8).map(c => ({ label: c.name, value: c.kg })), colors.barPurple, 'kg', 'Peso por Cliente (kg)');
+            if (isAdmin) {
+              drawBarChart(byClient.slice(0, 8).map(c => ({ label: c.name, value: c.faturamento })), colors.barGreen, 'R$', 'Faturamento por Cliente');
+            }
+          } else if (sec.title === 'Por Artigo') {
+            const artData = sec.rows.slice(0, -1).slice(0, 10).map(r => ({
+              label: String(r[0]),
+              value: parseFloat(String(r[1]).replace(/\./g, '').replace(',', '.')) || 0,
+            }));
+            drawBarChart(artData, colors.barBlue, '', 'Rolos por Artigo');
+          }
+        });
+      }
+
+      // Draw tables
+      sections.forEach(sec => {
+        drawTable(sec);
+      });
+
+      pdf.save(fileName);
+    });
   }
 }
