@@ -1084,7 +1084,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **31/03/2026 04:19** — Cabeçalho dos PDFs de Relatórios e Terceirizados reajustado para seguir o layout do sistema legado: caixa cinza fina, título centralizado com quebra automática, data/hora dentro do cabeçalho à esquerda e período alinhado à direita.
 - **31/03/2026 04:26** — Auditoria de código nos Relatórios e Terceirizados: removido template HTML morto (nunca usado) do export Outsource; removido import `useQuery` não utilizado em Reports.tsx; corrigido `setFont` duplicado no PDF header; adicionada coluna "Eficiência (%)" na tabela PDF "Por Turno" (faltava nos exports); corrigido label da legenda do gráfico de barras por turno (era "rolos", agora "Peças"); removido comentário desatualizado.
 - **31/03/2026 04:45** — Corrigido valores de eficiência nos PDFs exportados (Por Turno e Por Máquina): agora exibem "%" após o número (ex: 34,5% em vez de 34,5).
+- **31/03/2026 05:00** — Período do filtro no cabeçalho do PDF movido para a mesma altura da data/hora (parte inferior do cabeçalho, alinhado à direita).
 
 ---
 
-*Última atualização: 31/03/2026 04:45 (Brasília)*
+*Última atualização: 31/03/2026 05:00 (Brasília)*
