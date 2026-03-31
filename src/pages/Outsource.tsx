@@ -1126,5 +1126,7 @@ function exportOutsourcePdf(
     pdf.text(footer, (pw - fw) / 2, y);
 
     pdf.save(fileName);
-  });
+  };
+
+  doExport();
 }
