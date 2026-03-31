@@ -47,7 +47,7 @@ const FILTER_OPTIONS = [
   { value: 'manutencao_preventiva', label: 'Manutenção Preventiva' },
   { value: 'manutencao_corretiva', label: 'Manutenção Corretiva' },
   { value: 'troca_artigo', label: 'Troca de Artigo' },
-  { value: 'troca_agulhas', label: 'Troca de Agulhas' },
+  { value: 'troca_agulhas', label: 'Troca de Agulheiro' },
 ];
 
 export default function Machines() {
