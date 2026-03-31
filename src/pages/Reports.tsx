@@ -1568,6 +1568,8 @@ function handleExport(
       });
 
       pdf.save(fileName);
-    });
+    };
+
+    doExport();
   }
 }
