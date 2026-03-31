@@ -1359,15 +1359,17 @@ function handleExport(
         const rightX = pageWidth - margin - 4;
 
         // Left side: logo OR company name, then date below
-        if (logoData) {
+        if (logoInfo) {
           try {
-            const logoH = 16;
-            const logoW = 16;
-            pdf.addImage(logoData, 'PNG', leftX, y + 2, logoW, logoH);
+            const maxH = headerH - 4;
+            const aspect = logoInfo.width / logoInfo.height;
+            const logoH = maxH;
+            const logoW = logoH * aspect;
+            pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2, logoW, logoH);
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'normal');
             pdf.setTextColor(...colors.textMid);
-            pdf.text(dateStr, leftX, y + 24);
+            pdf.text(dateStr, leftX, y + headerH + 2);
           } catch {
             if (cName) {
               pdf.setFontSize(10);
