@@ -922,7 +922,6 @@ function exportOutsourcePdf(
 
   // Load logo if available
   const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
-  const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
     return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
