@@ -1354,7 +1354,7 @@ function handleExport(
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${reportTitle}</title>
     <style>
-      @page { margin: 12mm 16mm; size: A4; }
+      @page { margin: 12mm 16mm; size: A4; margin-top: 8mm; margin-bottom: 8mm; }
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #333; background: #fff; padding: 0; }
       
