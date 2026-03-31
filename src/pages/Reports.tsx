@@ -1206,6 +1206,7 @@ function handleExport(
   byClient: any[],
   periodLabel: string,
   logoUrl?: string | null,
+  companyName?: string,
 ) {
   const isAdmin = mode === 'admin';
 
