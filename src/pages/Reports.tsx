@@ -1352,9 +1352,9 @@ function handleExport(
       `;
     }).join('<div style="page-break-before: auto; margin-top: 32px;"></div>');
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${reportTitle}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title> </title>
     <style>
-      @page { margin: 12mm 16mm; size: A4; }
+      @page { margin: 10mm 16mm; size: A4; }
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #333; background: #fff; padding: 0; }
       

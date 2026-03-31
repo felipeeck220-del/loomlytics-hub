@@ -847,7 +847,7 @@ function exportOutsourcePdf(
     </tr>
   `).join('');
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório Terceirizado</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title> </title>
   <style>
     @page { margin: 12mm 15mm; size: A4 landscape; }
     * { box-sizing: border-box; margin: 0; padding: 0; }

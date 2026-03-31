@@ -1038,6 +1038,7 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 | 31/03/2026 02:15 | **CORREÇÃO:** Nome de máquinas 1-9 agora usa `padStart(2, '0')` no save (era `TEAR ${number}` sem padding). Corrigido "TEAR 1" → "TEAR 01" no banco. 4 ocorrências corrigidas em `Machines.tsx` |
 | 31/03/2026 02:30 | **RENOMEAÇÃO:** "Troca de Agulhas" → "Troca de Agulheiro" em todo o sistema (`types/index.ts`, `Machines.tsx`, `Mecanica.tsx`) |
 | 31/03/2026 03:00 | **REDESIGN PDF:** Exportação de relatórios PDF redesenhada para igualar o sistema antigo — header com barra teal/verde-claro com logo, nome da empresa e data; tabela limpa com bordas leves, cabeçalho cinza, linha TOTAL em bold. Adicionado `companyName` ao export |
+| 31/03/2026 03:30 | **PDF — Remoção do cabeçalho do navegador:** Removido o título da aba (`<title>`) na janela de impressão para que o browser não exiba "31/03/2026, 00:24 RELATÓRIO PRODUÇÃO - MÁQUINAS" no topo do PDF impresso, pois já existe título e data no próprio relatório |
 
 ---
 
@@ -1070,4 +1071,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 31/03/2026 03:00 (Brasília)*
+*Última atualização: 31/03/2026 03:30 (Brasília)*
