@@ -841,6 +841,7 @@ function exportOutsourcePdf(
   data: OutsourceProduction[],
   totals: { revenue: number; cost: number; profit: number; weight: number; rolls: number },
   companyName?: string,
+  logoUrl?: string | null,
 ) {
   const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
   const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
