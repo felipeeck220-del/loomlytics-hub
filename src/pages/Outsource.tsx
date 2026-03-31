@@ -655,9 +655,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
 
 // ─── Reports Tab ─────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
-function ReportsTab({ productions, loading }: {
+function ReportsTab({ productions, loading, companyName }: {
   productions: OutsourceProduction[];
   loading: boolean;
+  companyName?: string;
 }) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
