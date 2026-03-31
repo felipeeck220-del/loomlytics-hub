@@ -1228,11 +1228,11 @@ function handleExport(
 
   if (type === 'completo' || type === 'maquina') {
     const headers = isAdmin ? ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento'] : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)'];
-    const rows = byMachine.map(m => isAdmin ? [m.name, fmtN(m.rolos), fmtK(m.kg), fmtN(m.eficiencia, 1), fmtR(m.faturamento)] : [m.name, fmtN(m.rolos), fmtK(m.kg), fmtN(m.eficiencia, 1)]);
+    const rows = byMachine.map(m => isAdmin ? [m.name, fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia), fmtR(m.faturamento)] : [m.name, fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia)]);
     const tR = byMachine.reduce((a, m) => a + m.rolos, 0), tK = byMachine.reduce((a, m) => a + m.kg, 0);
     const avgE = byMachine.length ? byMachine.reduce((a, m) => a + m.eficiencia, 0) / byMachine.length : 0;
     const tF = byMachine.reduce((a, m) => a + m.faturamento, 0);
-    rows.push(isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtN(avgE, 1), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtN(avgE, 1)]);
+    rows.push(isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE)]);
     sections.push({ title: 'Por Máquina', headers, rows });
   }
 
