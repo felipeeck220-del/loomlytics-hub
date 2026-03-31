@@ -113,7 +113,7 @@ export default function Machines() {
       toast.success('Máquina atualizada');
     } else {
       const newMachine: Machine = {
-        id: crypto.randomUUID(), company_id: '', number: Number(form.number), name: `TEAR ${form.number}`,
+        id: crypto.randomUUID(), company_id: '', number: Number(form.number), name: `TEAR ${form.number.padStart(2, '0')}`,
         rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined,
         observations: form.observations || undefined, production_mode: 'rolos', created_at: new Date().toISOString(),
       };
