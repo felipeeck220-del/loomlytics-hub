@@ -37,7 +37,7 @@ const STATUS_CARD_LABELS: Record<string, string> = {
   manutencao_preventiva: 'Manutenção Preventiva',
   manutencao_corretiva: 'Manutenção Corretiva',
   troca_artigo: 'Troca de Artigo',
-  troca_agulhas: 'Troca de Agulhas',
+  troca_agulhas: 'Troca de Agulheiro',
 };
 
 const FILTER_OPTIONS = [
@@ -47,7 +47,7 @@ const FILTER_OPTIONS = [
   { value: 'manutencao_preventiva', label: 'Manutenção Preventiva' },
   { value: 'manutencao_corretiva', label: 'Manutenção Corretiva' },
   { value: 'troca_artigo', label: 'Troca de Artigo' },
-  { value: 'troca_agulhas', label: 'Troca de Agulhas' },
+  { value: 'troca_agulhas', label: 'Troca de Agulheiro' },
 ];
 
 export default function Machines() {

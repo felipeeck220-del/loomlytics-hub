@@ -255,7 +255,7 @@ export default function MecanicaPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium">Última Troca de Agulhas</span>
+                  <span className="text-xs text-muted-foreground font-medium">Última Troca de Agulheiro</span>
                   <p className="text-sm font-semibold text-foreground">
                     {lastNeedleChange
                       ? format(new Date(lastNeedleChange.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
@@ -410,7 +410,7 @@ export default function MecanicaPage() {
                       {/* Since last needle change */}
                       <div className="rounded-lg border border-border p-3 space-y-2">
                         <p className="text-xs font-medium text-muted-foreground">
-                          Desde última Troca de Agulhas
+                          Desde última Troca de Agulheiro
                         </p>
                         <p className="text-[10px] text-muted-foreground">
                           {lastNeedle
@@ -516,7 +516,7 @@ export default function MecanicaPage() {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-3">
             {historyData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro de manutenção preventiva ou troca de agulhas.</p>
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro de manutenção preventiva ou troca de agulheiro.</p>
             ) : (
               historyData.map(({ log, revenue, weight, fromDate }) => (
                 <div key={log.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card">
