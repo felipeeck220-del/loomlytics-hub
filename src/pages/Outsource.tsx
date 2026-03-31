@@ -62,12 +62,14 @@ export default function Outsource() {
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
   const [companyName, setCompanyName] = useState('');
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
 
-  // Fetch company name
+  // Fetch company name and logo
   useEffect(() => {
     if (!companyId) return;
-    sb('companies').select('name').eq('id', companyId).single().then(({ data }: any) => {
+    sb('companies').select('name, logo_url').eq('id', companyId).single().then(({ data }: any) => {
       if (data?.name) setCompanyName(data.name);
+      if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
     });
   }, [companyId]);
 
