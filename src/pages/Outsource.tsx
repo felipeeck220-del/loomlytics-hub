@@ -61,6 +61,15 @@ export default function Outsource() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
+  const [companyName, setCompanyName] = useState('');
+
+  // Fetch company name
+  useEffect(() => {
+    if (!companyId) return;
+    sb('companies').select('name').eq('id', companyId).single().then(({ data }: any) => {
+      if (data?.name) setCompanyName(data.name);
+    });
+  }, [companyId]);
 
   // Fetch outsource companies
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
