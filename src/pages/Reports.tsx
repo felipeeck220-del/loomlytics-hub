@@ -1411,20 +1411,13 @@ function handleExport(
           titleY += 6;
         });
 
-        // Right side: filter period
+        // Right side: filter period (aligned with date/time at bottom)
         pdf.setFontSize(8);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(...colors.textDark);
-        const periodTitle = 'Período';
-        pdf.text(periodTitle, rightX - pdf.getTextWidth(periodTitle), y + 10);
-
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(...colors.textMid);
-        const periodLines = pdf.splitTextToSize(periodLabel, 42) as string[];
-        periodLines.slice(0, 2).forEach((line, index) => {
-          const pW = pdf.getTextWidth(line);
-          pdf.text(line, rightX - pW, y + 16 + index * 5);
-        });
+        const periodText = periodLabel;
+        const pW = pdf.getTextWidth(periodText);
+        pdf.text(periodText, rightX - pW, y + 22);
 
         y += headerH + 10;
       };
