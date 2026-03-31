@@ -903,41 +903,151 @@ function exportOutsourcePdf(
     <div class="footer">Relatório gerado automaticamente pelo sistema MalhaGest · ${date}</div>
   </body></html>`;
 
-  // Direct PDF download via iframe
   const fileName = `relatorio_terceirizados_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
 
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.left = '0';
-  iframe.style.top = '0';
-  iframe.style.width = '210mm';
-  iframe.style.height = '297mm';
-  iframe.style.zIndex = '-9999';
-  iframe.style.opacity = '0';
-  iframe.style.pointerEvents = 'none';
-  document.body.appendChild(iframe);
+  import('jspdf').then(({ jsPDF }) => {
+    const pdf = new jsPDF('l', 'mm', 'a4'); // landscape
+    const pw = pdf.internal.pageSize.getWidth();
+    const ph = pdf.internal.pageSize.getHeight();
+    const m = 12;
+    let y = m;
 
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (iframeDoc) {
-    iframeDoc.open();
-    iframeDoc.write(html);
-    iframeDoc.close();
+    const textDark: [number, number, number] = [17, 24, 39];
+    const textMid: [number, number, number] = [75, 85, 99];
+    const border: [number, number, number] = [229, 231, 235];
+    const headerBg: [number, number, number] = [30, 58, 95];
 
-    setTimeout(() => {
-      import('html2pdf.js').then(({ default: html2pdf }) => {
-        html2pdf().set({
-          margin: [10, 10, 10, 10],
-          filename: fileName,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-        }).from(iframeDoc.body).save().then(() => {
-          document.body.removeChild(iframe);
-        }).catch(() => {
-          document.body.removeChild(iframe);
-        });
+    // Header
+    pdf.setFillColor(...headerBg);
+    pdf.rect(m, y, pw - 2 * m, 18, 'F');
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('Relatório de Terceirizados', m + 8, y + 11);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Gerado em: ${date} · ${data.length} registros`, m + 8, y + 16);
+    y += 24;
+
+    // KPIs
+    const kpis = [
+      { label: 'Rolos', value: fmtN(totals.rolls) },
+      { label: 'Peso Total', value: `${fmtN(totals.weight, 1)} kg` },
+      { label: 'Receita', value: fmtR(totals.revenue) },
+      { label: 'Custo', value: fmtR(totals.cost) },
+      { label: 'Lucro', value: fmtR(totals.profit) },
+    ];
+    const kpiW = (pw - 2 * m - 4 * 4) / 5;
+    kpis.forEach((kpi, i) => {
+      const x = m + i * (kpiW + 4);
+      pdf.setDrawColor(...border);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(x, y, kpiW, 16, 2, 2, 'S');
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...textMid);
+      pdf.text(kpi.label.toUpperCase(), x + 4, y + 6);
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...textDark);
+      pdf.text(kpi.value, x + 4, y + 13);
+    });
+    y += 22;
+
+    // Table
+    const headers = ['Data', 'Malharia', 'Artigo', 'Cliente', 'Peso', 'Rolos', 'R$/kg Cli', 'R$/kg Rep', 'Lucro/kg', 'Lucro Total'];
+    const colWidths = [22, 35, 30, 30, 22, 16, 22, 22, 22, 28];
+    const totalW = colWidths.reduce((a, b) => a + b, 0);
+    const scale = (pw - 2 * m) / totalW;
+    const cols = colWidths.map(w => w * scale);
+    const rowH = 7;
+
+    const drawHeader = () => {
+      if (y + rowH * 2 > ph - m) {
+        pdf.addPage();
+        y = m;
+      }
+      pdf.setFillColor(241, 245, 249);
+      pdf.rect(m, y, pw - 2 * m, 8, 'F');
+      pdf.setDrawColor(...border);
+      pdf.rect(m, y, pw - 2 * m, 8);
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(71, 85, 105);
+      let x = m;
+      headers.forEach((h, i) => {
+        pdf.text(h, x + 2, y + 5.5);
+        x += cols[i];
       });
-    }, 500);
-  }
+      y += 8;
+    };
+
+    drawHeader();
+
+    // Data rows
+    data.forEach((p, ri) => {
+      if (y + rowH > ph - m) {
+        pdf.addPage();
+        y = m;
+        drawHeader();
+      }
+
+      if (ri % 2 === 1) {
+        pdf.setFillColor(250, 251, 252);
+        pdf.rect(m, y, pw - 2 * m, rowH, 'F');
+      }
+      pdf.setDrawColor(241, 245, 249);
+      pdf.setLineWidth(0.1);
+      pdf.rect(m, y, pw - 2 * m, rowH);
+
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...textDark);
+
+      const cells = [
+        p.date, p.outsource_company_name || '—', p.article_name || '—', p.client_name || '—',
+        `${fmtN(p.weight_kg, 1)} kg`, String(p.rolls),
+        fmtR(p.client_value_per_kg), fmtR(p.outsource_value_per_kg),
+        fmtR(p.profit_per_kg), fmtR(p.total_profit),
+      ];
+
+      let x = m;
+      cells.forEach((cell, ci) => {
+        const text = cell.length > 18 ? cell.substring(0, 17) + '…' : cell;
+        pdf.text(text, x + 2, y + 5);
+        x += cols[ci];
+      });
+      y += rowH;
+    });
+
+    // Total row
+    if (y + rowH > ph - m) {
+      pdf.addPage();
+      y = m;
+    }
+    pdf.setFillColor(226, 232, 240);
+    pdf.rect(m, y, pw - 2 * m, rowH, 'F');
+    pdf.setDrawColor(148, 163, 184);
+    pdf.setLineWidth(0.5);
+    pdf.line(m, y, pw - m, y);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(7);
+    pdf.setTextColor(...textDark);
+    pdf.text('TOTAL', m + 2, y + 5);
+    let x = m + cols[0] + cols[1] + cols[2] + cols[3];
+    pdf.text(`${fmtN(totals.weight, 1)} kg`, x + 2, y + 5); x += cols[4];
+    pdf.text(String(totals.rolls), x + 2, y + 5); x += cols[5] + cols[6] + cols[7] + cols[8];
+    pdf.text(fmtR(totals.profit), x + 2, y + 5);
+    y += rowH + 8;
+
+    // Footer
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(148, 163, 184);
+    const footer = `Relatório gerado automaticamente pelo sistema MalhaGest · ${date}`;
+    const fw = pdf.getTextWidth(footer);
+    pdf.text(footer, (pw - fw) / 2, y);
+
+    pdf.save(fileName);
+  });
 }
