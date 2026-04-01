@@ -222,7 +222,7 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
                   {efficiency > 0 ? `${efficiency.toFixed(1)}%` : '—'}
                 </p>
                 <p className="text-[10px] text-zinc-500">
-                  {isIot ? `Meta: ${targetEff}%` : 'Eficiência: /100%'}
+                  {isIot ? `Meta: ${targetEff}%` : `Eficiência: ${efficiency > 0 ? efficiency.toFixed(1) : '0'}/100%`}
                 </p>
               </div>
 
