@@ -577,3 +577,6 @@ Se acessado em mobile (< 768px):
 | 2026-04-01 | Fix: `useMemo` (gridRows) movido antes dos early returns para corrigir React error #310 |
 | 2026-04-01 | Auditoria completa: removidos comentários de debug, documentação atualizada, regra de atualização obrigatória adicionada |
 | 2026-04-01 | Adicionado campo "Kg produzidos" nos cards do grid de máquinas (abaixo de peças). Edge function `tv-panel-data` atualizada para retornar `weight_kg` |
+| 2026-04-01 | Alteração no label de eficiência: modo manual exibe "Eficiência: X/100%" (sem meta fixa pois mistura artigos), modo IoT exibe "Meta: X%" com meta do artigo selecionado |
+| 2026-04-01 | Fix: barra de progresso com `shrink-0` para nunca ser comprimida pelo flexbox |
+| 2026-04-01 | Auditoria: corrigido bug onde label de eficiência exibia "/100%" sem o valor dinâmico |
