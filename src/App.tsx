@@ -164,6 +164,8 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/vendas" element={<Vendas />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/tela" element={<TvCodeEntry />} />
+            <Route path="/tela/painel" element={<TvPanel />} />
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
