@@ -1,0 +1,1 @@
+DELETE FROM payment_history WHERE company_id = 'a664927c-a285-4997-8faa-8c90985c6fac';
