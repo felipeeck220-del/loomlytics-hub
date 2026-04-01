@@ -1016,29 +1016,29 @@ export default function ProductionPage() {
             const previewMetaTarget = previewMeta100 * (previewTargetEff / 100);
 
             return (
-              <div className={cn("flex-shrink-0 rounded-lg border p-2", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30')}>
+              <div className={cn("flex-shrink-0 rounded-xl border-2 p-4", preview ? effBg(preview.efficiency, previewTargetEff) : 'bg-muted/30', preview && preview.efficiency >= previewTargetEff ? 'border-emerald-300' : preview ? 'border-destructive/30' : 'border-border')}>
                 {preview ? (
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center justify-between gap-1.5">
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
-                        <div><span className="text-muted-foreground">Rolos </span><span className="font-semibold text-foreground">{preview.rolls}</span></div>
-                        <div><span className="text-muted-foreground">Peso </span><span className="font-semibold text-foreground">{preview.weightKg.toFixed(1)}kg</span></div>
-                        <div><span className="text-muted-foreground">Faturamento </span><span className="font-semibold text-foreground">R${preview.revenue.toFixed(2)}</span></div>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-4 text-sm">
+                        <div><span className="text-muted-foreground">Rolos: </span><span className="font-bold text-foreground text-base">{preview.rolls}</span></div>
+                        <div><span className="text-muted-foreground">Peso: </span><span className="font-bold text-foreground text-base">{preview.weightKg.toFixed(1)} kg</span></div>
+                        <div><span className="text-muted-foreground">Faturamento: </span><span className="font-bold text-foreground text-base">R$ {preview.revenue.toFixed(2)}</span></div>
                       </div>
-                      <div className={cn("text-base sm:text-lg font-bold", effColor(preview.efficiency, previewTargetEff))}>
+                      <div className={cn("text-2xl sm:text-3xl font-extrabold", effColor(preview.efficiency, previewTargetEff))}>
                         {preview.efficiency.toFixed(2)}%
                       </div>
                     </div>
                     {previewMeta100 > 0 && (
-                      <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px] text-muted-foreground border-t border-border/50 pt-1">
-                        <span>Meta {previewTargetEff.toFixed(0)}%: <span className="font-semibold text-foreground">{previewMetaTarget.toFixed(1)} rolos</span></span>
+                      <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground border-t border-border/50 pt-2">
+                        <span>Meta {previewTargetEff.toFixed(0)}%: <span className="font-bold text-foreground">{previewMetaTarget.toFixed(1)} rolos</span></span>
                         <span className="text-border">|</span>
-                        <span>Meta 100%: <span className="font-semibold text-foreground">{previewMeta100.toFixed(1)} rolos</span></span>
+                        <span>Meta 100%: <span className="font-bold text-foreground">{previewMeta100.toFixed(1)} rolos</span></span>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="py-0.5 text-center text-[11px] text-muted-foreground">Preencha os campos para ver o preview</p>
+                  <p className="py-1 text-center text-sm text-muted-foreground">Preencha os campos para ver o preview</p>
                 )}
               </div>
             );
