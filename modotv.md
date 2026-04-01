@@ -584,7 +584,7 @@ Se acessado em mobile (< 768px):
 
 ### Visão Geral
 
-Para evitar que o operador precise fazer login com email/senha usando o controle remoto da TV (experiência péssima), o acesso ao Modo Tela é feito via **código numérico de 5 dígitos**.
+Para evitar que o operador precise fazer login com email/senha usando o controle remoto da TV (experiência péssima), o acesso ao Modo Tela é feito via **código numérico de 8 dígitos**.
 
 ### Fluxo
 
