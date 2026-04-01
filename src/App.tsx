@@ -26,6 +26,8 @@ import MecanicaPage from "./pages/Mecanica";
 import Admin from "./pages/Admin";
 import Vendas from "./pages/Vendas";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import TvCodeEntry from "./pages/TvCodeEntry";
+import TvPanel from "./pages/TvPanel";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
