@@ -271,6 +271,7 @@ export type Database = {
           subscription_plan: string | null
           subscription_status: string
           trial_end_date: string | null
+          tv_code: string | null
           updated_at: string
         }
         Insert: {
@@ -292,6 +293,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_status?: string
           trial_end_date?: string | null
+          tv_code?: string | null
           updated_at?: string
         }
         Update: {
@@ -313,6 +315,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_status?: string
           trial_end_date?: string | null
+          tv_code?: string | null
           updated_at?: string
         }
         Relationships: [
