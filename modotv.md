@@ -584,7 +584,7 @@ Se acessado em mobile (< 768px):
 
 ### Visão Geral
 
-Para evitar que o operador precise fazer login com email/senha usando o controle remoto da TV (experiência péssima), o acesso ao Modo Tela é feito via **código numérico de 5 dígitos**.
+Para evitar que o operador precise fazer login com email/senha usando o controle remoto da TV (experiência péssima), o acesso ao Modo Tela é feito via **código numérico de 8 dígitos**.
 
 ### Fluxo
 
@@ -592,7 +592,7 @@ Para evitar que o operador precise fazer login com email/senha usando o controle
 2. **Admin** pode clicar em **"Gerar novo código"** a qualquer momento — o código anterior é invalidado imediatamente
 3. **Na TV**, o operador acessa `loomlytics-hub.lovable.app/tela`
 4. Tela exibe um **input numérico grande** (botões enormes, otimizado para controle remoto)
-5. Operador digita os 5 dígitos e confirma
+5. Operador digita os 8 dígitos e confirma
 6. Sistema valida o código → se válido, redireciona para `/tela/painel` com os dados da empresa vinculada
 7. Código fica salvo no `localStorage` da TV — nas próximas vezes, reconecta automaticamente
 
@@ -604,7 +604,7 @@ Para evitar que o operador precise fazer login com email/senha usando o controle
 |--------|------|----------|---------|------------|
 | `tv_code` | `text` | Yes | `null` | `UNIQUE` (entre todas as empresas) |
 
-- O código é gerado pela aplicação: 5 dígitos numéricos aleatórios (00000-99999)
+- O código é gerado pela aplicação: 8 dígitos numéricos aleatórios (00000000-99999999)
 - Antes de salvar, verifica se o código já existe em outra empresa (uniqueness)
 - Se colidir, gera outro até encontrar um único
 
@@ -614,7 +614,7 @@ Para evitar que o operador precise fazer login com email/senha usando o controle
 - Rota **pública** (não requer autenticação)
 - Fundo escuro (dark mode forçado)
 - Logo do MalhaGest centralizada no topo
-- Campo de input com 5 caixas numéricas grandes (estilo OTP/PIN)
+- Campo de input com 8 caixas numéricas grandes (estilo OTP/PIN)
 - Teclado numérico virtual na tela (para controle remoto de TV)
 - Botões grandes: `0-9`, `Apagar`, `Confirmar`
 - Feedback visual: código inválido → shake + mensagem de erro
@@ -627,9 +627,9 @@ Para evitar que o operador precise fazer login com email/senha usando o controle
 │                                          │
 │       Digite o código da empresa         │
 │                                          │
-│        ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐   │
-│        │ 4 │ │ 8 │ │ 2 │ │ 7 │ │ _ │   │
-│        └───┘ └───┘ └───┘ └───┘ └───┘   │
+│     ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐  │
+│     │ 4 │ │ 8 │ │ 2 │ │ 7 │ │ 1 │ │ 0 │ │ 5 │ │ _ │  │
+│     └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘  │
 │                                          │
 │     ┌─────┐ ┌─────┐ ┌─────┐            │
 │     │  1  │ │  2  │ │  3  │            │
@@ -659,7 +659,7 @@ Na aba **Empresa**, adicionar card:
 ┌──────────────────────────────────────────┐
 │  📺 Código do Modo TV                    │
 │                                          │
-│  Código atual:  4 8 2 7 1                │
+│  Código atual:  4 8 2 7 1 0 5 3          │
 │                                          │
 │  Use este código para conectar TVs       │
 │  da fábrica ao painel de produção.       │
@@ -683,13 +683,13 @@ Na aba **Empresa**, adicionar card:
 | Sem login | Não cria sessão de usuário, apenas valida o código |
 | Invalidação | Admin pode trocar o código a qualquer momento |
 | Unicidade | Código único entre TODAS as empresas (constraint UNIQUE) |
-| Brute force | 100.000 combinações possíveis (5 dígitos); considerar rate limiting no futuro |
+| Brute force | 100.000.000 combinações possíveis (8 dígitos); segurança adequada para uso industrial |
 | localStorage | TV salva o código localmente para reconexão automática |
 
 ### Edge Function ou Query Direta?
 
 **Opção recomendada: Edge Function `validate-tv-code`**
-- Recebe `{ code: "48271" }`
+- Recebe `{ code: "48271053" }`
 - Busca `company_settings` onde `tv_code = code`
 - Se encontrar: retorna `{ valid: true, company_id, company_name }` + dados necessários para os painéis
 - Se não encontrar: retorna `{ valid: false }`
@@ -702,4 +702,5 @@ Na aba **Empresa**, adicionar card:
 | Data | Alteração |
 |------|-----------|
 | 2026-03-29 | Documentação inicial criada (planejamento pré-implementação) |
-| 2026-04-01 | Adicionada seção completa do Sistema de Acesso por Código (TV Code): fluxo de código de 5 dígitos, tela de input `/tela`, configurações do admin, segurança e Edge Function |
+| 2026-04-01 | Adicionada seção completa do Sistema de Acesso por Código (TV Code): fluxo de código de 8 dígitos, tela de input `/tela`, configurações do admin, segurança e Edge Function |
+| 2026-04-01 | Código TV alterado de 5 para 8 dígitos (100M combinações) para maior segurança |
