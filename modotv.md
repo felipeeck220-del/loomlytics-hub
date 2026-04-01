@@ -573,12 +573,127 @@ Se acessado em mobile (< 768px):
 - [ ] Atualizar `mestre.md`
 
 ### Fase 2 (Melhorias)
-- [ ] Configurações de TV na página Settings
 - [ ] Mensagens motivacionais rotativas
 - [ ] Supabase Realtime para updates instantâneos
-- [ ] Modo kiosk (acesso sem login via token)
 - [ ] Animações avançadas (countUp, gauge animado)
 - [ ] Alertas sonoros opcionais (buzzer quando máquina para)
+
+---
+
+## 🔑 Sistema de Acesso por Código (TV Code)
+
+### Visão Geral
+
+Para evitar que o operador precise fazer login com email/senha usando o controle remoto da TV (experiência péssima), o acesso ao Modo Tela é feito via **código numérico de 5 dígitos**.
+
+### Fluxo
+
+1. **Admin** acessa **Configurações > Empresa** e visualiza o código de 5 dígitos da empresa (gerado automaticamente no primeiro acesso)
+2. **Admin** pode clicar em **"Gerar novo código"** a qualquer momento — o código anterior é invalidado imediatamente
+3. **Na TV**, o operador acessa `loomlytics-hub.lovable.app/tela`
+4. Tela exibe um **input numérico grande** (botões enormes, otimizado para controle remoto)
+5. Operador digita os 5 dígitos e confirma
+6. Sistema valida o código → se válido, redireciona para `/tela/painel` com os dados da empresa vinculada
+7. Código fica salvo no `localStorage` da TV — nas próximas vezes, reconecta automaticamente
+
+### Banco de Dados
+
+**Coluna nova em `company_settings`:**
+
+| Coluna | Tipo | Nullable | Default | Constraint |
+|--------|------|----------|---------|------------|
+| `tv_code` | `text` | Yes | `null` | `UNIQUE` (entre todas as empresas) |
+
+- O código é gerado pela aplicação: 5 dígitos numéricos aleatórios (00000-99999)
+- Antes de salvar, verifica se o código já existe em outra empresa (uniqueness)
+- Se colidir, gera outro até encontrar um único
+
+### Rota `/tela` (Input do Código)
+
+**Características da tela de input:**
+- Rota **pública** (não requer autenticação)
+- Fundo escuro (dark mode forçado)
+- Logo do MalhaGest centralizada no topo
+- Campo de input com 5 caixas numéricas grandes (estilo OTP/PIN)
+- Teclado numérico virtual na tela (para controle remoto de TV)
+- Botões grandes: `0-9`, `Apagar`, `Confirmar`
+- Feedback visual: código inválido → shake + mensagem de erro
+- Código válido → fade out + redirect para `/tela/painel`
+
+```
+┌──────────────────────────────────────────┐
+│                                          │
+│           🏭 MALHAGEST                   │
+│                                          │
+│       Digite o código da empresa         │
+│                                          │
+│        ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐   │
+│        │ 4 │ │ 8 │ │ 2 │ │ 7 │ │ _ │   │
+│        └───┘ └───┘ └───┘ └───┘ └───┘   │
+│                                          │
+│     ┌─────┐ ┌─────┐ ┌─────┐            │
+│     │  1  │ │  2  │ │  3  │            │
+│     ├─────┤ ├─────┤ ├─────┤            │
+│     │  4  │ │  5  │ │  6  │            │
+│     ├─────┤ ├─────┤ ├─────┤            │
+│     │  7  │ │  8  │ │  9  │            │
+│     ├─────┤ ├─────┤ ├─────┤            │
+│     │ ⌫  │ │  0  │ │  ✓  │            │
+│     └─────┘ └─────┘ └─────┘            │
+│                                          │
+└──────────────────────────────────────────┘
+```
+
+### Rota `/tela/painel` (Painéis)
+
+- Valida o código salvo no `localStorage` ao montar
+- Se código inválido ou expirado → redireciona de volta para `/tela`
+- Carrega dados da empresa vinculada ao código (via query anônima com RLS adequado)
+- Exibe os painéis rotativos normalmente
+
+### Configurações (Settings.tsx)
+
+Na aba **Empresa**, adicionar card:
+
+```
+┌──────────────────────────────────────────┐
+│  📺 Código do Modo TV                    │
+│                                          │
+│  Código atual:  4 8 2 7 1                │
+│                                          │
+│  Use este código para conectar TVs       │
+│  da fábrica ao painel de produção.       │
+│                                          │
+│  [🔄 Gerar novo código]                  │
+│                                          │
+│  ⚠️ Gerar novo código desconectará       │
+│  todas as TVs conectadas atualmente.     │
+└──────────────────────────────────────────┘
+```
+
+- Apenas **admin** pode ver/gerar o código
+- Botão "Gerar novo código" pede confirmação antes de executar
+- Se a empresa ainda não tem código, exibe botão "Gerar código" no lugar
+
+### Segurança
+
+| Aspecto | Detalhe |
+|---------|---------|
+| Permissão | Código permite **somente leitura** dos painéis |
+| Sem login | Não cria sessão de usuário, apenas valida o código |
+| Invalidação | Admin pode trocar o código a qualquer momento |
+| Unicidade | Código único entre TODAS as empresas (constraint UNIQUE) |
+| Brute force | 100.000 combinações possíveis (5 dígitos); considerar rate limiting no futuro |
+| localStorage | TV salva o código localmente para reconexão automática |
+
+### Edge Function ou Query Direta?
+
+**Opção recomendada: Edge Function `validate-tv-code`**
+- Recebe `{ code: "48271" }`
+- Busca `company_settings` onde `tv_code = code`
+- Se encontrar: retorna `{ valid: true, company_id, company_name }` + dados necessários para os painéis
+- Se não encontrar: retorna `{ valid: false }`
+- Não requer autenticação (chamada anônima)
 
 ---
 
@@ -587,3 +702,4 @@ Se acessado em mobile (< 768px):
 | Data | Alteração |
 |------|-----------|
 | 2026-03-29 | Documentação inicial criada (planejamento pré-implementação) |
+| 2026-04-01 | Adicionada seção completa do Sistema de Acesso por Código (TV Code): fluxo de código de 5 dígitos, tela de input `/tela`, configurações do admin, segurança e Edge Function |
