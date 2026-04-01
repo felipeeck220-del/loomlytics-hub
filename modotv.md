@@ -4,7 +4,8 @@
 >
 > 1. Leia este arquivo **INTEIRO** antes de implementar qualquer parte do Modo Tela.
 > 2. Consulte também `mestre.md` para entender a arquitetura base, tipos, contextos e padrões.
-> 3. Após implementar, atualize este arquivo e o `mestre.md` com as alterações realizadas.
+> 3. **OBRIGATÓRIO:** Após **qualquer** implementação, correção de bug, ou alteração relacionada ao Modo Tela, **ATUALIZE ESTE ARQUIVO** imediatamente — incluindo o checklist, a seção de arquivos, e o Histórico de Alterações com data/hora (horário de Brasília).
+> 4. **NÃO** considere a tarefa concluída sem atualizar este documento.
 
 ---
 
@@ -29,18 +30,27 @@ O **Modo Tela** é uma interface fullscreen otimizada para TVs instaladas no ch�
 - **Proteção:** O código vincula a TV à empresa; apenas permite leitura de dados
 - **Ideal para TVs:** Controle remoto só precisa digitar 5 números
 
-### Arquivos a Criar
+### Arquivos Implementados
 
 ```
-src/pages/TvMode.tsx                    # Página principal do Modo Tela
-src/components/tv/TvShiftEfficiency.tsx  # Painel 1: Eficiência do turno atual
-src/components/tv/TvWeaverRanking.tsx    # Painel 2: Ranking de tecelões
-src/components/tv/TvMachineGrid.tsx      # Painel 3: Grid de status das máquinas
-src/components/tv/TvProductionTotals.tsx # Painel 4: Totalizadores de produção
-src/components/tv/TvDowntimeAlerts.tsx   # Painel 5: Alertas de parada
-src/components/tv/TvHeader.tsx           # Header fixo (relógio, turno, logo)
-src/components/tv/TvCarousel.tsx         # Controlador de rotação automática
-src/hooks/useTvData.ts                  # Hook de dados com auto-refresh
+src/pages/TvCodeEntry.tsx                # Input de código com teclado virtual (público)
+src/pages/TvPanel.tsx                    # Página do painel (header + grid + realtime)
+src/components/tv/TvMachineGrid.tsx      # Grid de máquinas com dados via edge function
+src/components/tv/TvHeader.tsx           # Header fixo (relógio, turno, logo, nome do painel)
+src/components/SettingsTelasTab.tsx       # Aba "Telas" em Configurações (admin)
+supabase/functions/validate-tv-code/     # Edge function para validar código e conectar TV
+supabase/functions/tv-panel-data/        # Edge function para buscar dados de produção
+```
+
+### Arquivos Planejados (Fase 2 — Futuro)
+
+```
+src/components/tv/TvShiftEfficiency.tsx  # Painel: Eficiência do turno atual
+src/components/tv/TvWeaverRanking.tsx    # Painel: Ranking de tecelões
+src/components/tv/TvProductionTotals.tsx # Painel: Totalizadores de produção
+src/components/tv/TvDowntimeAlerts.tsx   # Painel: Alertas de parada
+src/components/tv/TvCarousel.tsx         # Controlador de rotação automática (se necessário)
+src/hooks/useTvData.ts                  # Hook de dados com auto-refresh (se necessário)
 ```
 
 ### Dependências Existentes (NÃO criar novas)
@@ -74,13 +84,16 @@ src/hooks/useTvData.ts                  # Hook de dados com auto-refresh
 |-------------|-------|
 | Resolução alvo | 1920×1080 (Full HD) |
 | Aspect ratio | 16:9 |
-| Fundo | `--background` (tema escuro forçado para TVs) |
-| Fonte mínima | 24px para textos secundários |
-| Fonte títulos | 48-72px |
-| Fonte KPIs grandes | 96-128px |
+| Viewport | `h-screen w-screen` — **nunca ultrapassar 100vw/100vh** |
+| Overflow | `overflow-hidden` em tudo — **sem scroll na TV** |
+| Fundo | `bg-[#0a0a0f]` (dark forçado para TVs industriais) |
+| Fonte mínima | 10px para labels, 14px para textos secundários |
+| Fonte títulos | text-lg (18px) nos cards |
+| Fonte KPIs | text-2xl (24px) eficiência nos cards |
 | Legibilidade | 5-10 metros de distância |
-| Cursor | `cursor: none` (ocultar mouse) |
+| Cursor | `cursor-none` (ocultar mouse) |
 | Scrollbar | Nenhuma (overflow hidden em tudo) |
+| Grid | CSS Grid com `gridTemplateRows: repeat(N, 1fr)` para preencher espaço |
 
 ### Tema
 
@@ -516,7 +529,7 @@ Se acessado em mobile (< 768px):
 
 ## 📋 Checklist de Implementação
 
-### Fase 1 (MVP — V1)
+### Fase 1 (MVP — V1) ✅ COMPLETA
 - [x] Criar tabela `tv_panels` com migration + RLS
 - [x] Adicionar aba "Telas" em Settings.tsx (gerar código, listar painéis, seletor de máquinas)
 - [x] Criar `src/pages/TvCodeEntry.tsx` (input de código com teclado virtual)
@@ -526,9 +539,13 @@ Se acessado em mobile (< 768px):
 - [x] Atualizar Edge Function `validate-tv-code` para buscar em `tv_panels`
 - [x] Criar Edge Function `tv-panel-data` para dados de produção
 - [x] Implementar Realtime para sincronização admin ↔ painéis
-- [x] Registrar rotas `/tela` e `/tela/painel` em `App.tsx`
+- [x] Registrar rotas `/tela` e `/tela/painel` em `App.tsx` (antes de `/:slug`)
 - [x] Forçar dark mode na página
-- [ ] Testar em resolução 1920×1080
+- [x] Layout `h-screen w-screen overflow-hidden` — sem scroll na TV
+- [x] Grid responsivo com `gridTemplateRows: repeat(N, 1fr)` para caber na tela
+- [x] Polling de dados a cada 60s via edge function `tv-panel-data`
+- [x] Auto-reconexão via localStorage ao reabrir `/tela`
+- [ ] Testar em resolução 1920×1080 com dados reais
 - [ ] Atualizar `mestre.md`
 
 ### Fase 2 (Melhorias)
@@ -536,6 +553,7 @@ Se acessado em mobile (< 768px):
 - [ ] Modo IoT com dados em tempo real e status de máquina no card
 - [ ] Animações avançadas (countUp, gauge animado)
 - [ ] Alertas sonoros opcionais
+- [ ] Tamanho de fonte dinâmico baseado na quantidade de máquinas
 
 ---
 
@@ -551,3 +569,8 @@ Se acessado em mobile (< 768px):
 | 2026-04-01 | Conteúdo V1: apenas "Grid de Máquinas". Modo manual mostra último dia com produção registrada. Modo IoT (futuro) mostra dados em tempo real com status |
 | 2026-04-01 | Admin pode ativar/desativar máquinas por painel. Mudanças refletem em tempo real via Supabase Realtime |
 | 2026-04-01 | Nova aba "Telas" em Configurações: gerar códigos, gerenciar painéis, selecionar máquinas, desconectar TVs |
+| 2026-04-01 | Implementação completa da Fase 1 (MVP): TvCodeEntry, TvPanel, TvMachineGrid, TvHeader, SettingsTelasTab, validate-tv-code, tv-panel-data |
+| 2026-04-01 | Fix: rotas `/tela` e `/tela/painel` movidas antes de `/:slug` para evitar conflito de rota |
+| 2026-04-01 | Fix: layout alterado para `h-screen w-screen overflow-hidden` — sem scroll em TV |
+| 2026-04-01 | Fix: `useMemo` (gridRows) movido antes dos early returns para corrigir React error #310 |
+| 2026-04-01 | Auditoria completa: removidos comentários de debug, documentação atualizada, regra de atualização obrigatória adicionada |
