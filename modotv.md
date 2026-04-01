@@ -659,7 +659,7 @@ Na aba **Empresa**, adicionar card:
 ┌──────────────────────────────────────────┐
 │  📺 Código do Modo TV                    │
 │                                          │
-│  Código atual:  4 8 2 7 1                │
+│  Código atual:  4 8 2 7 1 0 5 3          │
 │                                          │
 │  Use este código para conectar TVs       │
 │  da fábrica ao painel de produção.       │
