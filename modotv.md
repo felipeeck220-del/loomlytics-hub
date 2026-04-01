@@ -350,22 +350,84 @@ interface TvData {
 
 ---
 
-## ⚙️ Configurações (futuro — na página Settings)
+## 🔄 Realtime — Sincronização Admin ↔ Painéis
 
-### Seção "Modo Tela" em Settings
+As mudanças feitas pelo admin nas Configurações (habilitar/desabilitar máquinas, desconectar TV) devem refletir **imediatamente** nos painéis conectados.
 
-A empresa poderá configurar:
+**Implementação:** Supabase Realtime na tabela `tv_panels`:
 
-| Configuração | Tipo | Default | Descrição |
-|--------------|------|---------|-----------|
-| `tv_enabled` | boolean | false | Ativa/desativa o modo tela |
-| `tv_interval_seconds` | number | 20 | Tempo entre painéis |
-| `tv_panels` | string[] | todos | Quais painéis exibir e ordem |
-| `tv_show_revenue` | boolean | true | Mostrar faturamento na TV |
-| `tv_show_ranking` | boolean | true | Mostrar ranking tecelões |
-| `tv_motivational_messages` | string[] | [] | Mensagens motivacionais rotativas |
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.tv_panels;
+```
 
-**Nota:** Para V1, usar valores hardcoded. Adicionar tabela/coluna de configuração na V2.
+O painel (TV) escuta mudanças na sua row de `tv_panels`:
+```typescript
+supabase
+  .channel('tv-panel-changes')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'tv_panels',
+    filter: `id=eq.${panelId}`,
+  }, (payload) => {
+    // Atualizar enabled_machines, panel_type, is_connected, etc.
+    // Se is_connected = false → redirecionar para /tela (desconectado pelo admin)
+  })
+  .subscribe();
+```
+
+---
+
+## ⚙️ Configurações — Aba "Telas"
+
+### Nova aba em Settings.tsx
+
+Adicionar uma **5ª aba "Telas"** (apenas para admin) na página de Configurações.
+
+### Layout da Aba
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  📺 Telas Conectadas                                        │
+│                                                              │
+│  Para conectar uma TV ao painel de produção:                │
+│  1. Na TV, acesse malhagest.site/tela                       │
+│  2. Digite o código de 8 dígitos gerado abaixo              │
+│                                                              │
+│  [+ Gerar Código para Nova Tela]                            │
+│                                                              │
+│  ────────────────────────────────────────                    │
+│                                                              │
+│  📺 Painel 1  •  Código: 48271053  •  🟢 Conectado         │
+│  Tipo: Grid de Máquinas                                      │
+│  Máquinas: ☑ TEAR 01  ☑ TEAR 02  ☐ TEAR 03  ☑ TEAR 04     │
+│  [Desconectar TV]                                            │
+│                                                              │
+│  📺 Painel 2  •  Código: 91635274  •  ⚪ Aguardando        │
+│  Tipo: Grid de Máquinas                                      │
+│  Máquinas: ☑ Todas                                           │
+│  [Excluir Código]                                            │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Funcionalidades
+
+| Ação | Detalhe |
+|------|---------|
+| **Gerar Código** | Cria novo registro em `tv_panels` com código de 8 dígitos único. Nome automático: "Painel N" (N = próximo número sequencial) |
+| **Seletor de Máquinas** | Checkboxes para cada máquina da empresa. Admin ativa/desativa quais aparecem no grid daquele painel. Default: todas ativas |
+| **Desconectar TV** | Seta `is_connected = false` no painel. A TV recebe via Realtime e volta para a tela de input |
+| **Excluir Código** | Remove o registro de `tv_panels`. Código deixa de ser válido |
+| **Tipo de conteúdo** | Por enquanto fixo em "Grid de Máquinas" (seletor desabilitado/exibindo apenas essa opção). Futuro: dropdown com mais opções |
+
+### Regras
+
+- Apenas **admin** pode acessar a aba "Telas"
+- Cada "Gerar Código" cria um painel independente com código único
+- Quando uma TV se conecta usando o código, o campo `is_connected` fica `true`
+- O admin pode gerar múltiplos códigos (um por TV)
+- Mudanças nas máquinas habilitadas refletem em tempo real no painel
 
 ---
 
@@ -374,22 +436,17 @@ A empresa poderá configurar:
 ### Em `App.tsx`
 
 ```tsx
-// Adicionar dentro das rotas da empresa
-<Route path="/:slug/tela" element={
-  <CompanyRoute>
-    <ProtectedRoute>
-      <TvMode />
-    </ProtectedRoute>
-  </CompanyRoute>
-} />
+// Rotas públicas (sem autenticação)
+<Route path="/tela" element={<TvCodeEntry />} />
+<Route path="/tela/painel" element={<TvPanel />} />
 ```
 
 ### Acesso
 
 - **NÃO** adicionar ao menu sidebar nem ao bottom nav mobile
-- Acessível apenas por URL direta: `https://loomlytics-hub.lovable.app/minha-empresa/tela`
-- Instruir o admin a salvar como bookmark na TV
-- TV deve ter um navegador (Chrome/Firefox) em modo kiosk/fullscreen
+- `/tela` é rota **pública** (sem login necessário)
+- TV acessa `malhagest.site/tela` → digita código → exibe painel
+- Código fica salvo no `localStorage` da TV para reconexão automática
 
 ---
 
@@ -405,152 +462,79 @@ Se acessado em mobile (< 768px):
 
 ## 🔒 Segurança
 
-- Usa `CompanyRoute` (valida slug) + `ProtectedRoute` (valida auth)
-- Dados filtrados por `company_id` via RLS (mesmo mecanismo de todas as páginas)
-- Não expõe dados sensíveis além do que já é visível no Dashboard
-- `canSeeFinancial` do `usePermissions` controla exibição de faturamento na TV
-
----
-
-## 📋 Checklist de Implementação
-
-### Fase 1 (MVP)
-- [ ] Criar `src/pages/TvMode.tsx` com layout fullscreen
-- [ ] Criar `TvHeader.tsx` com relógio, turno, logo
-- [ ] Criar `TvShiftEfficiency.tsx` (gauge de eficiência)
-- [ ] Criar `TvMachineGrid.tsx` (grid de status)
-- [ ] Criar `TvProductionTotals.tsx` (totalizadores)
-- [ ] Criar `TvWeaverRanking.tsx` (ranking)
-- [ ] Criar `TvDowntimeAlerts.tsx` (alertas de parada)
-- [ ] Criar `TvCarousel.tsx` (rotação automática)
-- [ ] Criar `useTvData.ts` (hook com polling de 60s)
-- [ ] Registrar rota `/:slug/tela` em `App.tsx`
-- [ ] Forçar dark mode na página
-- [ ] Testar em resolução 1920×1080
-- [ ] Atualizar `mestre.md`
-
-### Fase 2 (Melhorias)
-- [ ] Mensagens motivacionais rotativas
-- [ ] Supabase Realtime para updates instantâneos
-- [ ] Animações avançadas (countUp, gauge animado)
-- [ ] Alertas sonoros opcionais (buzzer quando máquina para)
+| Aspecto | Detalhe |
+|---------|---------|
+| Permissão | Código permite **somente leitura** dos painéis |
+| Sem login | Não cria sessão de usuário, apenas valida o código |
+| Invalidação | Admin pode desconectar/excluir a qualquer momento |
+| Unicidade | Código único entre TODAS as empresas (constraint UNIQUE em `tv_panels.code`) |
+| Brute force | 100.000.000 combinações possíveis (8 dígitos); segurança adequada para uso industrial |
+| localStorage | TV salva o código localmente para reconexão automática |
+| RLS | Tabela `tv_panels` com policy anon SELECT onde `code IS NOT NULL`, dados de produção via Edge Function com service role |
 
 ---
 
 ## 🔑 Sistema de Acesso por Código (TV Code)
 
-### Visão Geral
+### Fluxo Atualizado
 
-Para evitar que o operador precise fazer login com email/senha usando o controle remoto da TV (experiência péssima), o acesso ao Modo Tela é feito via **código numérico de 8 dígitos**.
+1. **Admin** acessa **Configurações > Telas**
+2. Clica em **"Gerar Código para Nova Tela"** → sistema cria registro em `tv_panels` com código de 8 dígitos
+3. Admin configura quais máquinas aparecem nesse painel
+4. **Na TV**, o operador acessa `malhagest.site/tela`
+5. Tela exibe input numérico grande (otimizado para controle remoto)
+6. Operador digita os 8 dígitos e confirma
+7. Sistema valida o código via Edge Function `validate-tv-code` → se válido, marca `is_connected = true` e redireciona para `/tela/painel`
+8. Código fica salvo no `localStorage` da TV — nas próximas vezes, reconecta automaticamente
 
-### Fluxo
+### Edge Function `validate-tv-code` (já implementada)
 
-1. **Admin** acessa **Configurações > Empresa** e visualiza o código de 5 dígitos da empresa (gerado automaticamente no primeiro acesso)
-2. **Admin** pode clicar em **"Gerar novo código"** a qualquer momento — o código anterior é invalidado imediatamente
-3. **Na TV**, o operador acessa `loomlytics-hub.lovable.app/tela`
-4. Tela exibe um **input numérico grande** (botões enormes, otimizado para controle remoto)
-5. Operador digita os 8 dígitos e confirma
-6. Sistema valida o código → se válido, redireciona para `/tela/painel` com os dados da empresa vinculada
-7. Código fica salvo no `localStorage` da TV — nas próximas vezes, reconecta automaticamente
+- Recebe `{ code: "48271053" }`
+- Busca `tv_panels` onde `code = code` (ou `company_settings.tv_code` na V1)
+- Se encontrar: retorna `{ company_id, company_name, company_slug, logo_url, shift_settings }`
+- Se não encontrar: retorna erro 404
+- Não requer autenticação (chamada anônima)
 
 ### Banco de Dados
 
-**Coluna nova em `company_settings`:**
+**Tabela `tv_panels`** (nova — substituindo a coluna `tv_code` em `company_settings`):
 
 | Coluna | Tipo | Nullable | Default | Constraint |
 |--------|------|----------|---------|------------|
-| `tv_code` | `text` | Yes | `null` | `UNIQUE` (entre todas as empresas) |
+| `id` | `uuid` | No | `gen_random_uuid()` | PK |
+| `company_id` | `uuid` | No | — | FK → companies |
+| `code` | `text` | No | — | UNIQUE |
+| `name` | `text` | No | — | "Painel 1", "Painel 2", etc. |
+| `panel_type` | `text` | No | `'machine_grid'` | Tipo de conteúdo |
+| `enabled_machines` | `jsonb` | No | `'[]'` | Array de machine IDs |
+| `is_connected` | `boolean` | No | `false` | TV está usando este painel |
+| `created_at` | `timestamptz` | No | `now()` | — |
 
-- O código é gerado pela aplicação: 8 dígitos numéricos aleatórios (00000000-99999999)
-- Antes de salvar, verifica se o código já existe em outra empresa (uniqueness)
-- Se colidir, gera outro até encontrar um único
+**Nota:** A coluna `tv_code` em `company_settings` (migration anterior) pode ser mantida como legado ou removida.
 
-### Rota `/tela` (Input do Código)
+---
 
-**Características da tela de input:**
-- Rota **pública** (não requer autenticação)
-- Fundo escuro (dark mode forçado)
-- Logo do MalhaGest centralizada no topo
-- Campo de input com 8 caixas numéricas grandes (estilo OTP/PIN)
-- Teclado numérico virtual na tela (para controle remoto de TV)
-- Botões grandes: `0-9`, `Apagar`, `Confirmar`
-- Feedback visual: código inválido → shake + mensagem de erro
-- Código válido → fade out + redirect para `/tela/painel`
+## 📋 Checklist de Implementação
 
-```
-┌──────────────────────────────────────────┐
-│                                          │
-│           🏭 MALHAGEST                   │
-│                                          │
-│       Digite o código da empresa         │
-│                                          │
-│     ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐  │
-│     │ 4 │ │ 8 │ │ 2 │ │ 7 │ │ 1 │ │ 0 │ │ 5 │ │ _ │  │
-│     └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘  │
-│                                          │
-│     ┌─────┐ ┌─────┐ ┌─────┐            │
-│     │  1  │ │  2  │ │  3  │            │
-│     ├─────┤ ├─────┤ ├─────┤            │
-│     │  4  │ │  5  │ │  6  │            │
-│     ├─────┤ ├─────┤ ├─────┤            │
-│     │  7  │ │  8  │ │  9  │            │
-│     ├─────┤ ├─────┤ ├─────┤            │
-│     │ ⌫  │ │  0  │ │  ✓  │            │
-│     └─────┘ └─────┘ └─────┘            │
-│                                          │
-└──────────────────────────────────────────┘
-```
+### Fase 1 (MVP — V1)
+- [ ] Criar tabela `tv_panels` com migration + RLS
+- [ ] Adicionar aba "Telas" em Settings.tsx (gerar código, listar painéis, seletor de máquinas)
+- [ ] Criar `src/pages/TvCodeEntry.tsx` (input de código com teclado virtual)
+- [ ] Criar `src/pages/TvPanel.tsx` (página do painel com header + grid)
+- [ ] Criar `src/components/tv/TvMachineGrid.tsx` (grid de máquinas)
+- [ ] Criar `src/components/tv/TvHeader.tsx` (relógio, nome do painel, logo)
+- [ ] Atualizar Edge Function `validate-tv-code` para buscar em `tv_panels`
+- [ ] Implementar Realtime para sincronização admin ↔ painéis
+- [ ] Registrar rotas `/tela` e `/tela/painel` em `App.tsx`
+- [ ] Forçar dark mode na página
+- [ ] Testar em resolução 1920×1080
+- [ ] Atualizar `mestre.md`
 
-### Rota `/tela/painel` (Painéis)
-
-- Valida o código salvo no `localStorage` ao montar
-- Se código inválido ou expirado → redireciona de volta para `/tela`
-- Carrega dados da empresa vinculada ao código (via query anônima com RLS adequado)
-- Exibe os painéis rotativos normalmente
-
-### Configurações (Settings.tsx)
-
-Na aba **Empresa**, adicionar card:
-
-```
-┌──────────────────────────────────────────┐
-│  📺 Código do Modo TV                    │
-│                                          │
-│  Código atual:  4 8 2 7 1 0 5 3          │
-│                                          │
-│  Use este código para conectar TVs       │
-│  da fábrica ao painel de produção.       │
-│                                          │
-│  [🔄 Gerar novo código]                  │
-│                                          │
-│  ⚠️ Gerar novo código desconectará       │
-│  todas as TVs conectadas atualmente.     │
-└──────────────────────────────────────────┘
-```
-
-- Apenas **admin** pode ver/gerar o código
-- Botão "Gerar novo código" pede confirmação antes de executar
-- Se a empresa ainda não tem código, exibe botão "Gerar código" no lugar
-
-### Segurança
-
-| Aspecto | Detalhe |
-|---------|---------|
-| Permissão | Código permite **somente leitura** dos painéis |
-| Sem login | Não cria sessão de usuário, apenas valida o código |
-| Invalidação | Admin pode trocar o código a qualquer momento |
-| Unicidade | Código único entre TODAS as empresas (constraint UNIQUE) |
-| Brute force | 100.000.000 combinações possíveis (8 dígitos); segurança adequada para uso industrial |
-| localStorage | TV salva o código localmente para reconexão automática |
-
-### Edge Function ou Query Direta?
-
-**Opção recomendada: Edge Function `validate-tv-code`**
-- Recebe `{ code: "48271053" }`
-- Busca `company_settings` onde `tv_code = code`
-- Se encontrar: retorna `{ valid: true, company_id, company_name }` + dados necessários para os painéis
-- Se não encontrar: retorna `{ valid: false }`
-- Não requer autenticação (chamada anônima)
+### Fase 2 (Melhorias)
+- [ ] Mais tipos de painel (eficiência do turno, ranking, alertas de parada, totais de produção)
+- [ ] Modo IoT com dados em tempo real e status de máquina no card
+- [ ] Animações avançadas (countUp, gauge animado)
+- [ ] Alertas sonoros opcionais
 
 ---
 
@@ -561,3 +545,8 @@ Na aba **Empresa**, adicionar card:
 | 2026-03-29 | Documentação inicial criada (planejamento pré-implementação) |
 | 2026-04-01 | Adicionada seção completa do Sistema de Acesso por Código (TV Code): fluxo de código de 8 dígitos, tela de input `/tela`, configurações do admin, segurança e Edge Function |
 | 2026-04-01 | Código TV alterado de 5 para 8 dígitos (100M combinações) para maior segurança |
+| 2026-04-01 | **MUDANÇA ARQUITETURAL:** Substituído carrossel de 5 painéis rotativos por painéis fixos individuais. Cada TV = 1 painel. Admin controla conteúdo por painel nas Configurações > Telas |
+| 2026-04-01 | Nova tabela `tv_panels` substitui coluna `tv_code` em `company_settings`. Cada painel tem seu próprio código, nome, tipo de conteúdo e seleção de máquinas |
+| 2026-04-01 | Conteúdo V1: apenas "Grid de Máquinas". Modo manual mostra último dia com produção registrada. Modo IoT (futuro) mostra dados em tempo real com status |
+| 2026-04-01 | Admin pode ativar/desativar máquinas por painel. Mudanças refletem em tempo real via Supabase Realtime |
+| 2026-04-01 | Nova aba "Telas" em Configurações: gerar códigos, gerenciar painéis, selecionar máquinas, desconectar TVs |
