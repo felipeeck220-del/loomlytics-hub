@@ -131,6 +131,13 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
     return 'grid-cols-6';
   }, [filteredMachines.length]);
 
+  // Calculate grid rows based on machine count and columns
+  const gridRows = useMemo(() => {
+    const count = filteredMachines.length;
+    const cols = count <= 4 ? 2 : count <= 25 ? (count <= 8 ? 4 : count <= 16 ? 4 : 5) : 6;
+    return Math.ceil(count / cols);
+  }, [filteredMachines.length]);
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -146,13 +153,6 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
       </div>
     );
   }
-
-  // Calculate grid rows based on machine count and columns
-  const gridRows = useMemo(() => {
-    const count = filteredMachines.length;
-    const cols = count <= 4 ? 2 : count <= 25 ? (count <= 8 ? 4 : count <= 16 ? 4 : 5) : 6;
-    return Math.ceil(count / cols);
-  }, [filteredMachines.length]);
 
   return (
     <div className="flex flex-col h-full gap-2">
