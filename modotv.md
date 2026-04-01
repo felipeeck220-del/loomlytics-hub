@@ -576,3 +576,4 @@ Se acessado em mobile (< 768px):
 | 2026-04-01 | Fix: layout alterado para `h-screen w-screen overflow-hidden` — sem scroll em TV |
 | 2026-04-01 | Fix: `useMemo` (gridRows) movido antes dos early returns para corrigir React error #310 |
 | 2026-04-01 | Auditoria completa: removidos comentários de debug, documentação atualizada, regra de atualização obrigatória adicionada |
+| 2026-04-01 | Adicionado campo "Kg produzidos" nos cards do grid de máquinas (abaixo de peças). Edge function `tv-panel-data` atualizada para retornar `weight_kg` |
