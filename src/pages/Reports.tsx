@@ -1518,6 +1518,9 @@ function handleExport(
             y = margin;
             addHeader();
             drawTableHeader();
+            // Reset font to normal after re-drawing header on new page
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(8);
           }
 
           // Row background
