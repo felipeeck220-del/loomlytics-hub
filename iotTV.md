@@ -1065,7 +1065,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.machine_logs;
 ### Pré-requisitos (implementar primeiro)
 - [ ] Todas as tabelas IoT criadas (`iot.md` — Fase 1)
 - [ ] Edge Function `machine-webhook` funcionando (`iot.md` — Fase 1)
-- [ ] Modo TV base implementado (`modotv.md` — Fase 1)
+- [x] Modo TV base implementado (`modotv.md` — Fase 1) ✅ COMPLETA
 - [ ] Pelo menos 1 ESP32 enviando dados reais
 
 ### Fase 1 — IoT no Modo TV (MVP)
