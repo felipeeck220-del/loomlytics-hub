@@ -529,7 +529,7 @@ Se acessado em mobile (< 768px):
 
 ## 📋 Checklist de Implementação
 
-### Fase 1 (MVP — V1)
+### Fase 1 (MVP — V1) ✅ COMPLETA
 - [x] Criar tabela `tv_panels` com migration + RLS
 - [x] Adicionar aba "Telas" em Settings.tsx (gerar código, listar painéis, seletor de máquinas)
 - [x] Criar `src/pages/TvCodeEntry.tsx` (input de código com teclado virtual)
@@ -539,9 +539,13 @@ Se acessado em mobile (< 768px):
 - [x] Atualizar Edge Function `validate-tv-code` para buscar em `tv_panels`
 - [x] Criar Edge Function `tv-panel-data` para dados de produção
 - [x] Implementar Realtime para sincronização admin ↔ painéis
-- [x] Registrar rotas `/tela` e `/tela/painel` em `App.tsx`
+- [x] Registrar rotas `/tela` e `/tela/painel` em `App.tsx` (antes de `/:slug`)
 - [x] Forçar dark mode na página
-- [ ] Testar em resolução 1920×1080
+- [x] Layout `h-screen w-screen overflow-hidden` — sem scroll na TV
+- [x] Grid responsivo com `gridTemplateRows: repeat(N, 1fr)` para caber na tela
+- [x] Polling de dados a cada 60s via edge function `tv-panel-data`
+- [x] Auto-reconexão via localStorage ao reabrir `/tela`
+- [ ] Testar em resolução 1920×1080 com dados reais
 - [ ] Atualizar `mestre.md`
 
 ### Fase 2 (Melhorias)
@@ -549,6 +553,7 @@ Se acessado em mobile (< 768px):
 - [ ] Modo IoT com dados em tempo real e status de máquina no card
 - [ ] Animações avançadas (countUp, gauge animado)
 - [ ] Alertas sonoros opcionais
+- [ ] Tamanho de fonte dinâmico baseado na quantidade de máquinas
 
 ---
 
@@ -564,3 +569,8 @@ Se acessado em mobile (< 768px):
 | 2026-04-01 | Conteúdo V1: apenas "Grid de Máquinas". Modo manual mostra último dia com produção registrada. Modo IoT (futuro) mostra dados em tempo real com status |
 | 2026-04-01 | Admin pode ativar/desativar máquinas por painel. Mudanças refletem em tempo real via Supabase Realtime |
 | 2026-04-01 | Nova aba "Telas" em Configurações: gerar códigos, gerenciar painéis, selecionar máquinas, desconectar TVs |
+| 2026-04-01 | Implementação completa da Fase 1 (MVP): TvCodeEntry, TvPanel, TvMachineGrid, TvHeader, SettingsTelasTab, validate-tv-code, tv-panel-data |
+| 2026-04-01 | Fix: rotas `/tela` e `/tela/painel` movidas antes de `/:slug` para evitar conflito de rota |
+| 2026-04-01 | Fix: layout alterado para `h-screen w-screen overflow-hidden` — sem scroll em TV |
+| 2026-04-01 | Fix: `useMemo` (gridRows) movido antes dos early returns para corrigir React error #310 |
+| 2026-04-01 | Auditoria completa: removidos comentários de debug, documentação atualizada, regra de atualização obrigatória adicionada |
