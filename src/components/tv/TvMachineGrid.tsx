@@ -147,12 +147,19 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
     );
   }
 
+  // Calculate grid rows based on machine count and columns
+  const gridRows = useMemo(() => {
+    const count = filteredMachines.length;
+    const cols = count <= 4 ? 2 : count <= 25 ? (count <= 8 ? 4 : count <= 16 ? 4 : 5) : 6;
+    return Math.ceil(count / cols);
+  }, [filteredMachines.length]);
+
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex flex-col h-full gap-2">
       {/* Date reference */}
       {lastDate && (
-        <div className="text-center">
-          <span className="text-lg text-zinc-400">
+        <div className="text-center shrink-0">
+          <span className="text-base text-zinc-400">
             Produção referente a: <span className="text-white font-semibold">
               {new Date(lastDate + 'T12:00:00').toLocaleDateString('pt-BR')}
             </span>
@@ -160,8 +167,11 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
         </div>
       )}
 
-      {/* Machine grid */}
-      <div className={`grid ${gridCols} gap-3 flex-1 auto-rows-fr`}>
+      {/* Machine grid - fills remaining space */}
+      <div
+        className={`grid ${gridCols} gap-2 flex-1 min-h-0`}
+        style={{ gridTemplateRows: `repeat(${gridRows}, 1fr)` }}
+      >
         {filteredMachines.map(machine => {
           const prod = productionByMachine.get(machine.id);
           const article = machine.article_id ? articleMap.get(machine.article_id) : null;
@@ -203,26 +213,26 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
           return (
             <div
               key={machine.id}
-              className={`rounded-xl border-2 ${cardBorder} bg-zinc-900/60 p-4 flex flex-col justify-between transition-all`}
+              className={`rounded-lg border-2 ${cardBorder} bg-zinc-900/60 p-2 flex flex-col justify-between transition-all overflow-hidden min-h-0`}
             >
               {/* Machine number */}
-              <div className="text-center mb-2">
-                <p className="text-2xl font-black text-white">{machine.name}</p>
+              <div className="text-center">
+                <p className="text-lg font-black text-white leading-tight">{machine.name}</p>
                 {isIot && statusLabel && (
-                  <p className={`text-sm font-semibold ${statusColor} mt-0.5`}>{statusLabel}</p>
+                  <p className={`text-xs font-semibold ${statusColor}`}>{statusLabel}</p>
                 )}
               </div>
 
               {/* Efficiency */}
-              <div className="text-center mb-2">
-                <p className="text-3xl font-bold text-white">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-white leading-tight">
                   {efficiency > 0 ? `${efficiency.toFixed(1)}%` : '—'}
                 </p>
-                <p className="text-xs text-zinc-500">Meta: {targetEff}%</p>
+                <p className="text-[10px] text-zinc-500">Meta: {targetEff}%</p>
               </div>
 
               {/* Progress bar */}
-              <div className={`w-full h-3 rounded-full ${barBg} mb-3`}>
+              <div className={`w-full h-2 rounded-full ${barBg}`}>
                 <div
                   className={`h-full rounded-full ${barColor} transition-all duration-700`}
                   style={{ width: `${Math.min(efficiency, 100)}%` }}
@@ -230,11 +240,11 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
               </div>
 
               {/* Pieces + Weaver */}
-              <div className="text-center space-y-0.5">
-                <p className="text-lg font-semibold text-zinc-300">
+              <div className="text-center">
+                <p className="text-sm font-semibold text-zinc-300 leading-tight">
                   {prod ? `${prod.rolls} ${machine.production_mode === 'voltas' ? 'voltas' : 'pçs'}` : '—'}
                 </p>
-                <p className="text-sm text-zinc-500 truncate">
+                <p className="text-xs text-zinc-500 truncate leading-tight">
                   {prod?.weaverName || '—'}
                 </p>
               </div>

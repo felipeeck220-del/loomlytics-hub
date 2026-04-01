@@ -105,14 +105,14 @@ export default function TvPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex flex-col cursor-none overflow-hidden">
+    <div className="h-screen w-screen bg-[#0a0a0f] flex flex-col cursor-none overflow-hidden">
       <TvHeader
         companyName={panelData.company_name}
         panelName={panelData.panel_name}
         logoUrl={panelData.logo_url}
         shiftSettings={panelData.shift_settings}
       />
-      <div className="flex-1 p-4">
+      <div className="flex-1 min-h-0 p-3">
         {panelData.panel_type === 'machine_grid' && (
           <TvMachineGrid
             companyId={panelData.company_id}
