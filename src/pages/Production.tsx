@@ -331,7 +331,6 @@ export default function ProductionPage() {
   }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, addProductions, updateProductions, advanceToNext, extraArticles, articles, companyShiftLabels, machineMode]);
 
   const handleDelete = async () => {
-    if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
     if (!showDelete) return;
     const group = shiftProductionGroups.find(g => g.items.some(i => i.id === showDelete.id));
     const idsToDelete = group ? group.items.map(i => i.id) : [showDelete.id];
