@@ -683,7 +683,7 @@ Na aba **Empresa**, adicionar card:
 | Sem login | Não cria sessão de usuário, apenas valida o código |
 | Invalidação | Admin pode trocar o código a qualquer momento |
 | Unicidade | Código único entre TODAS as empresas (constraint UNIQUE) |
-| Brute force | 100.000 combinações possíveis (5 dígitos); considerar rate limiting no futuro |
+| Brute force | 100.000.000 combinações possíveis (8 dígitos); segurança adequada para uso industrial |
 | localStorage | TV salva o código localmente para reconexão automática |
 
 ### Edge Function ou Query Direta?
