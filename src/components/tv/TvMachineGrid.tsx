@@ -37,6 +37,7 @@ interface Production {
   weaver_name: string;
   efficiency: number;
   rolls_produced: number;
+  weight_kg: number;
   shift: string;
 }
 
