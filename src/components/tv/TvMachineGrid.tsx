@@ -221,7 +221,9 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
                 <p className="text-2xl font-bold text-white leading-tight">
                   {efficiency > 0 ? `${efficiency.toFixed(1)}%` : '—'}
                 </p>
-                <p className="text-[10px] text-zinc-500">Meta: {targetEff}%</p>
+                <p className="text-[10px] text-zinc-500">
+                  {isIot ? `Meta: ${targetEff}%` : 'Eficiência: /100%'}
+                </p>
               </div>
 
               {/* Progress bar */}
