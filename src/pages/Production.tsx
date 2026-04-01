@@ -56,7 +56,7 @@ export default function ProductionPage() {
 
   // Delete confirmation
   const [showDelete, setShowDelete] = useState<Production | null>(null);
-  const [deleteWord, setDeleteWord] = useState('');
+  
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -331,13 +331,12 @@ export default function ProductionPage() {
   }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, addProductions, updateProductions, advanceToNext, extraArticles, articles, companyShiftLabels, machineMode]);
 
   const handleDelete = async () => {
-    if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
     if (!showDelete) return;
     const group = shiftProductionGroups.find(g => g.items.some(i => i.id === showDelete.id));
     const idsToDelete = group ? group.items.map(i => i.id) : [showDelete.id];
     await deleteProductions(idsToDelete);
     logAction('production_delete', { machine: showDelete.machine_name, date: showDelete.date, shift: showDelete.shift });
-    setShowDelete(null); setDeleteWord('');
+    setShowDelete(null);
     toast.success('Produção excluída');
   };
 
@@ -689,7 +688,7 @@ export default function ProductionPage() {
                           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditGroup(group)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(firstItem); setDeleteWord(''); }}>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(firstItem); }}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setExpandedId(isExpanded ? null : group.key)}>
@@ -1091,11 +1090,10 @@ export default function ProductionPage() {
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Excluir produção de {showDelete?.machine_name}?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Digite <strong>EXCLUIR</strong> para confirmar.</p>
-          <Input value={deleteWord} onChange={e => setDeleteWord(e.target.value)} placeholder="EXCLUIR" />
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este registro de produção? Esta ação não pode ser desfeita.</p>
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setShowDelete(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDelete}>Confirmar</Button>
+            <Button variant="destructive" onClick={handleDelete}>Sim, excluir</Button>
           </div>
         </DialogContent>
       </Dialog>
