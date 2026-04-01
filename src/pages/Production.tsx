@@ -970,7 +970,7 @@ export default function ProductionPage() {
                     <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Artigo" /></SelectTrigger>
                     <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                       <div className="p-1"><Input placeholder="Buscar artigo..." value={ea.search} onChange={e => { e.stopPropagation(); setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, search: e.target.value } : ex)); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                      {articles.filter(a => { const s = ea.search.toLowerCase().trim(); if (!s) return true; const n = s.replace(/[.,\s]/g, ''); return a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s) || a.name.toLowerCase().replace(/[.,\s]/g, '').includes(n); }).map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
+                      {articles.filter(a => { const s = ea.search.toLowerCase().trim(); if (!s) return true; const n = s.replace(/[.,\s]/g, ''); return a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s) || a.name.toLowerCase().replace(/[.,\s]/g, '').includes(n); }).map(a => <SelectItem key={a.id} value={a.id}>{a.name}{a.client_name ? ` (${a.client_name})` : ''}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
