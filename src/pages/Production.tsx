@@ -193,7 +193,7 @@ export default function ProductionPage() {
       if (nextMachineIdx < sortedMachines.length) {
         const nextMachine = sortedMachines[nextMachineIdx];
         setForm(p => ({ ...p, shift: SHIFTS[0], machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
-        setWeaverSearch(''); setExtraArticles([]);
+        setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
         toast.info(`Avançou para ${nextMachine.name} — ${companyShiftLabels[SHIFTS[0]].split(' (')[0]}`);
       } else {
         toast.success('Todos os turnos registrados!');
