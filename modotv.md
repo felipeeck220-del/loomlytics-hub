@@ -689,7 +689,7 @@ Na aba **Empresa**, adicionar card:
 ### Edge Function ou Query Direta?
 
 **Opção recomendada: Edge Function `validate-tv-code`**
-- Recebe `{ code: "48271" }`
+- Recebe `{ code: "48271053" }`
 - Busca `company_settings` onde `tv_code = code`
 - Se encontrar: retorna `{ valid: true, company_id, company_name }` + dados necessários para os painéis
 - Se não encontrar: retorna `{ valid: false }`
