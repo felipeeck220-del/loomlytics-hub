@@ -1011,6 +1011,13 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
 
+        {/* ===== TELAS ===== */}
+        {isAdmin && (
+          <TabsContent value="telas" className="mt-6">
+            <SettingsTelasTab />
+          </TabsContent>
+        )}
+
         {/* ===== PLANOS ===== */}
         <TabsContent value="plans" className="mt-4">
           <div className="card-glass p-6 space-y-6">
