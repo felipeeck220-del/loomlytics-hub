@@ -1088,7 +1088,7 @@ export default function ProductionPage() {
 
       {/* Delete Modal */}
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Excluir produção de {showDelete?.machine_name}?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este registro de produção? Esta ação não pode ser desfeita.</p>
           <div className="flex gap-2 justify-end">
