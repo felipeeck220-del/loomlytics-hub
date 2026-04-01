@@ -702,4 +702,5 @@ Na aba **Empresa**, adicionar card:
 | Data | Alteração |
 |------|-----------|
 | 2026-03-29 | Documentação inicial criada (planejamento pré-implementação) |
-| 2026-04-01 | Adicionada seção completa do Sistema de Acesso por Código (TV Code): fluxo de código de 5 dígitos, tela de input `/tela`, configurações do admin, segurança e Edge Function |
+| 2026-04-01 | Adicionada seção completa do Sistema de Acesso por Código (TV Code): fluxo de código de 8 dígitos, tela de input `/tela`, configurações do admin, segurança e Edge Function |
+| 2026-04-01 | Código TV alterado de 5 para 8 dígitos (100M combinações) para maior segurança |
