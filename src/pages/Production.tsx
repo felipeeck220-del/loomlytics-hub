@@ -336,7 +336,7 @@ export default function ProductionPage() {
     const idsToDelete = group ? group.items.map(i => i.id) : [showDelete.id];
     await deleteProductions(idsToDelete);
     logAction('production_delete', { machine: showDelete.machine_name, date: showDelete.date, shift: showDelete.shift });
-    setShowDelete(null); setDeleteWord('');
+    setShowDelete(null);
     toast.success('Produção excluída');
   };
 
