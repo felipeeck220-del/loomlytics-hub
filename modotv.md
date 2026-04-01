@@ -153,6 +153,7 @@ src/hooks/useTvData.ts                  # Hook de dados com auto-refresh (se nec
 │  │ 92.1%   │  │ 88.3%   │  │ 95.0%   │  │ 78.2%   │       │
 │  │ ████████ │  │ ██████░░ │  │ █████████ │  │ █████░░░ │    │
 │  │ 12 pçs  │  │ 10 pçs  │  │ 14 pçs  │  │ 8 pçs   │       │
+│  │ 252 kg  │  │ 200 kg  │  │ 280 kg  │  │ 160 kg  │       │
 │  │ João S. │  │ Maria L.│  │ Pedro C.│  │ Ana R.  │       │
 │  └─────────┘  └─────────┘  └─────────┘  └─────────┘       │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐       │
@@ -171,6 +172,7 @@ src/hooks/useTvData.ts                  # Hook de dados com auto-refresh (se nec
 | **Barra de progresso** | Largura proporcional à eficiência (100% = cheia) |
 | **Cor da barra** | 🟢 Verde se ≥ `target_efficiency`, 🟡 Amarelo se entre meta-10% e meta, 🔴 Vermelho se < meta-10% |
 | **Peças produzidas** | Quantidade de rolos ou voltas (conforme production_mode da máquina) |
+| **Kg produzidos** | Peso total em kg (exibido abaixo das peças, ex: "252 kg") |
 | **Nome do tecelão** | Nome do tecelão que registrou produção |
 | **Data referência** | No topo do grid: "Produção referente a: DD/MM/YYYY" — último dia com produção registrada |
 
@@ -574,3 +576,4 @@ Se acessado em mobile (< 768px):
 | 2026-04-01 | Fix: layout alterado para `h-screen w-screen overflow-hidden` — sem scroll em TV |
 | 2026-04-01 | Fix: `useMemo` (gridRows) movido antes dos early returns para corrigir React error #310 |
 | 2026-04-01 | Auditoria completa: removidos comentários de debug, documentação atualizada, regra de atualização obrigatória adicionada |
+| 2026-04-01 | Adicionado campo "Kg produzidos" nos cards do grid de máquinas (abaixo de peças). Edge function `tv-panel-data` atualizada para retornar `weight_kg` |

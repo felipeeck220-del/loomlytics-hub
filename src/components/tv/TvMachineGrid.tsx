@@ -37,6 +37,7 @@ interface Production {
   weaver_name: string;
   efficiency: number;
   rolls_produced: number;
+  weight_kg: number;
   shift: string;
 }
 
@@ -96,8 +97,7 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
   }, [articles]);
 
   const productionByMachine = useMemo(() => {
-    const map = new Map<string, { efficiency: number; rolls: number; weaverName: string }>();
-    // Aggregate by machine
+    const map = new Map<string, { efficiency: number; rolls: number; weightKg: number; weaverName: string }>();
     const byMachine = new Map<string, Production[]>();
     productions.forEach(p => {
       if (!byMachine.has(p.machine_id)) byMachine.set(p.machine_id, []);
@@ -105,9 +105,10 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
     });
     byMachine.forEach((prods, machineId) => {
       const totalRolls = prods.reduce((s, p) => s + p.rolls_produced, 0);
+      const totalWeight = prods.reduce((s, p) => s + (p.weight_kg || 0), 0);
       const avgEff = prods.reduce((s, p) => s + p.efficiency, 0) / prods.length;
       const lastWeaver = prods[prods.length - 1]?.weaver_name || '—';
-      map.set(machineId, { efficiency: avgEff, rolls: totalRolls, weaverName: lastWeaver });
+      map.set(machineId, { efficiency: avgEff, rolls: totalRolls, weightKg: totalWeight, weaverName: lastWeaver });
     });
     return map;
   }, [productions]);
@@ -231,11 +232,16 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
                 />
               </div>
 
-              {/* Pieces + Weaver */}
+              {/* Pieces + Kg + Weaver */}
               <div className="text-center">
                 <p className="text-sm font-semibold text-zinc-300 leading-tight">
                   {prod ? `${prod.rolls} ${machine.production_mode === 'voltas' ? 'voltas' : 'pçs'}` : '—'}
                 </p>
+                {prod && prod.weightKg > 0 && (
+                  <p className="text-xs text-zinc-400 leading-tight">
+                    {prod.weightKg.toLocaleString('pt-BR')} kg
+                  </p>
+                )}
                 <p className="text-xs text-zinc-500 truncate leading-tight">
                   {prod?.weaverName || '—'}
                 </p>

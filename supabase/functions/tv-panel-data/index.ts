@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     if (lastDate) {
       const { data: prods } = await supabase
         .from("productions")
-        .select("machine_id, machine_name, weaver_name, efficiency, rolls_produced, shift")
+        .select("machine_id, machine_name, weaver_name, efficiency, rolls_produced, weight_kg, shift")
         .eq("company_id", companyId)
         .eq("date", lastDate);
       productions = prods || [];
