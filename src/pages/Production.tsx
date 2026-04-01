@@ -56,7 +56,7 @@ export default function ProductionPage() {
 
   // Delete confirmation
   const [showDelete, setShowDelete] = useState<Production | null>(null);
-  const [deleteWord, setDeleteWord] = useState('');
+  
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
