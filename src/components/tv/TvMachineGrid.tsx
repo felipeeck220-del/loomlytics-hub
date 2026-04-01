@@ -232,11 +232,16 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
                 />
               </div>
 
-              {/* Pieces + Weaver */}
+              {/* Pieces + Kg + Weaver */}
               <div className="text-center">
                 <p className="text-sm font-semibold text-zinc-300 leading-tight">
                   {prod ? `${prod.rolls} ${machine.production_mode === 'voltas' ? 'voltas' : 'pçs'}` : '—'}
                 </p>
+                {prod && prod.weightKg > 0 && (
+                  <p className="text-xs text-zinc-400 leading-tight">
+                    {prod.weightKg.toLocaleString('pt-BR')} kg
+                  </p>
+                )}
                 <p className="text-xs text-zinc-500 truncate leading-tight">
                   {prod?.weaverName || '—'}
                 </p>
