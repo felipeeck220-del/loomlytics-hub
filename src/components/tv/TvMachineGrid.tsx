@@ -225,9 +225,9 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
               </div>
 
               {/* Progress bar */}
-              <div className={`w-full h-2 rounded-full ${barBg}`}>
+              <div className={`w-full shrink-0 h-2 rounded ${barBg}`}>
                 <div
-                  className={`h-full rounded-full ${barColor} transition-all duration-700`}
+                  className={`h-full rounded ${barColor} transition-all duration-700`}
                   style={{ width: `${Math.min(efficiency, 100)}%` }}
                 />
               </div>
