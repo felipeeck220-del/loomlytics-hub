@@ -30,18 +30,27 @@ O **Modo Tela** é uma interface fullscreen otimizada para TVs instaladas no ch�
 - **Proteção:** O código vincula a TV à empresa; apenas permite leitura de dados
 - **Ideal para TVs:** Controle remoto só precisa digitar 5 números
 
-### Arquivos a Criar
+### Arquivos Implementados
 
 ```
-src/pages/TvMode.tsx                    # Página principal do Modo Tela
-src/components/tv/TvShiftEfficiency.tsx  # Painel 1: Eficiência do turno atual
-src/components/tv/TvWeaverRanking.tsx    # Painel 2: Ranking de tecelões
-src/components/tv/TvMachineGrid.tsx      # Painel 3: Grid de status das máquinas
-src/components/tv/TvProductionTotals.tsx # Painel 4: Totalizadores de produção
-src/components/tv/TvDowntimeAlerts.tsx   # Painel 5: Alertas de parada
-src/components/tv/TvHeader.tsx           # Header fixo (relógio, turno, logo)
-src/components/tv/TvCarousel.tsx         # Controlador de rotação automática
-src/hooks/useTvData.ts                  # Hook de dados com auto-refresh
+src/pages/TvCodeEntry.tsx                # Input de código com teclado virtual (público)
+src/pages/TvPanel.tsx                    # Página do painel (header + grid + realtime)
+src/components/tv/TvMachineGrid.tsx      # Grid de máquinas com dados via edge function
+src/components/tv/TvHeader.tsx           # Header fixo (relógio, turno, logo, nome do painel)
+src/components/SettingsTelasTab.tsx       # Aba "Telas" em Configurações (admin)
+supabase/functions/validate-tv-code/     # Edge function para validar código e conectar TV
+supabase/functions/tv-panel-data/        # Edge function para buscar dados de produção
+```
+
+### Arquivos Planejados (Fase 2 — Futuro)
+
+```
+src/components/tv/TvShiftEfficiency.tsx  # Painel: Eficiência do turno atual
+src/components/tv/TvWeaverRanking.tsx    # Painel: Ranking de tecelões
+src/components/tv/TvProductionTotals.tsx # Painel: Totalizadores de produção
+src/components/tv/TvDowntimeAlerts.tsx   # Painel: Alertas de parada
+src/components/tv/TvCarousel.tsx         # Controlador de rotação automática (se necessário)
+src/hooks/useTvData.ts                  # Hook de dados com auto-refresh (se necessário)
 ```
 
 ### Dependências Existentes (NÃO criar novas)
