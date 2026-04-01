@@ -4,7 +4,8 @@
 >
 > 1. Leia este arquivo **INTEIRO** antes de implementar qualquer parte do Modo Tela.
 > 2. Consulte também `mestre.md` para entender a arquitetura base, tipos, contextos e padrões.
-> 3. Após implementar, atualize este arquivo e o `mestre.md` com as alterações realizadas.
+> 3. **OBRIGATÓRIO:** Após **qualquer** implementação, correção de bug, ou alteração relacionada ao Modo Tela, **ATUALIZE ESTE ARQUIVO** imediatamente — incluindo o checklist, a seção de arquivos, e o Histórico de Alterações com data/hora (horário de Brasília).
+> 4. **NÃO** considere a tarefa concluída sem atualizar este documento.
 
 ---
 
