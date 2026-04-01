@@ -614,7 +614,7 @@ Para evitar que o operador precise fazer login com email/senha usando o controle
 - Rota **pública** (não requer autenticação)
 - Fundo escuro (dark mode forçado)
 - Logo do MalhaGest centralizada no topo
-- Campo de input com 5 caixas numéricas grandes (estilo OTP/PIN)
+- Campo de input com 8 caixas numéricas grandes (estilo OTP/PIN)
 - Teclado numérico virtual na tela (para controle remoto de TV)
 - Botões grandes: `0-9`, `Apagar`, `Confirmar`
 - Feedback visual: código inválido → shake + mensagem de erro
