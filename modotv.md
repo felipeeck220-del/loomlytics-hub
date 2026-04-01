@@ -172,6 +172,7 @@ src/hooks/useTvData.ts                  # Hook de dados com auto-refresh (se nec
 | **Barra de progresso** | Largura proporcional à eficiência (100% = cheia) |
 | **Cor da barra** | 🟢 Verde se ≥ `target_efficiency`, 🟡 Amarelo se entre meta-10% e meta, 🔴 Vermelho se < meta-10% |
 | **Peças produzidas** | Quantidade de rolos ou voltas (conforme production_mode da máquina) |
+| **Kg produzidos** | Peso total em kg (exibido abaixo das peças, ex: "252 kg") |
 | **Nome do tecelão** | Nome do tecelão que registrou produção |
 | **Data referência** | No topo do grid: "Produção referente a: DD/MM/YYYY" — último dia com produção registrada |
 
