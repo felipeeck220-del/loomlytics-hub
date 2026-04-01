@@ -911,6 +911,47 @@ export type Database = {
           },
         ]
       }
+      tv_panels: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string
+          enabled_machines: Json
+          id: string
+          is_connected: boolean
+          name: string
+          panel_type: string
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string
+          enabled_machines?: Json
+          id?: string
+          is_connected?: boolean
+          name: string
+          panel_type?: string
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string
+          enabled_machines?: Json
+          id?: string
+          is_connected?: boolean
+          name?: string
+          panel_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_panels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_active_company: {
         Row: {
           company_id: string
