@@ -1087,7 +1087,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **31/03/2026 05:00** — Período do filtro no cabeçalho do PDF movido para a mesma altura da data/hora (parte inferior do cabeçalho, alinhado à direita).
 - **01/04/2026 00:30** — Removido todo o histórico de pagamentos de teste (7 registros) da empresa do usuário felipeeck182@gmail.com via migration SQL.
 - **01/04/2026 02:00** — Importados 88 registros de produção do dia 30/03/2026 do Firebase (gestao-malharia) para o Supabase (empresa Trama Certa). 30 manhã + 29 tarde + 29 noite. Artigo "NEO SOUL POWER" criado no Supabase (não existia). Total: 792 rolos, 16.094kg, R$26.293,17.
+- **01/04/2026 03:30** — Melhorias no modal de registro de produção: (1) Fluxo de avanço alterado para ciclar turnos primeiro na mesma máquina (manhã→tarde→noite) antes de avançar para a próxima máquina; (2) Artigo selecionado agora persiste entre registros (não limpa ao avançar); (3) Filtro de artigo melhorado: busca por nome do cliente e normalização numérica (ex: "190" encontra "1,90").
 
 ---
 
-*Última atualização: 01/04/2026 02:00 (Brasília)*
+*Última atualização: 01/04/2026 03:30 (Brasília)*
