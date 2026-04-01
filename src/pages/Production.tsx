@@ -180,24 +180,27 @@ export default function ProductionPage() {
 
   const advanceToNext = useCallback(() => {
     if (sortedMachines.length === 0) return;
-    const nextMachineIdx = currentMachineIndex + 1;
-    if (nextMachineIdx < sortedMachines.length) {
-      const nextMachine = sortedMachines[nextMachineIdx];
-      setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '', voltas_inicio: '', voltas_fim: '' }));
-      setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
+    // Cycle: same machine through all shifts first, then next machine
+    const nextShiftIdx = currentShiftIndex + 1;
+    if (nextShiftIdx < SHIFTS.length) {
+      // Same machine, next shift
+      setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
+      setWeaverSearch(''); setExtraArticles([]);
+      toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
     } else {
-      const nextShiftIdx = currentShiftIndex + 1;
-      if (nextShiftIdx < SHIFTS.length) {
-        const firstMachine = sortedMachines[0];
-        setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '', voltas_inicio: '', voltas_fim: '' }));
-        setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
-        toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
+      // All shifts done for this machine, go to next machine
+      const nextMachineIdx = currentMachineIndex + 1;
+      if (nextMachineIdx < sortedMachines.length) {
+        const nextMachine = sortedMachines[nextMachineIdx];
+        setForm(p => ({ ...p, shift: SHIFTS[0], machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
+        setWeaverSearch(''); setExtraArticles([]);
+        toast.info(`Avançou para ${nextMachine.name} — ${companyShiftLabels[SHIFTS[0]].split(' (')[0]}`);
       } else {
         toast.success('Todos os turnos registrados!');
         setShowModal(false);
       }
     }
-  }, [sortedMachines, currentMachineIndex, currentShiftIndex]);
+  }, [sortedMachines, currentMachineIndex, currentShiftIndex, companyShiftLabels]);
 
   const openNew = () => {
     setEditing(null);
