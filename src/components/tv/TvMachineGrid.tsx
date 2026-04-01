@@ -54,14 +54,6 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
-    // Fetch machines (anon can't read machines table directly, use edge function or service key)
-    // Since machines table requires auth, we'll use the validate-tv-code data approach
-    // For now, fetch via anon with the company data
-    // We need to fetch via supabase with anon key - but machines have RLS for authenticated only
-    // Solution: fetch all data through the panel's company context using a dedicated edge function
-    // For MVP: use direct queries with anon (we'll need to add anon RLS for machines/productions)
-    // Actually, let's create a simple approach: fetch through edge function
-
     try {
       const code = localStorage.getItem('tv_panel_code');
       if (!code) return;
