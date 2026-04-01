@@ -21,12 +21,13 @@ O **Modo Tela** é uma interface fullscreen otimizada para TVs instaladas no ch�
 ### Rota
 
 ```
-/:slug/tela       → Modo Tela (fullscreen, sem sidebar/header/bottom nav)
+/tela              → Tela de input do código (pública, sem login)
+/tela/painel       → Painéis industriais (após validação do código)
 ```
 
-- **Proteção:** `CompanyRoute` (valida slug) + `ProtectedRoute` (qualquer role com acesso)
-- **Acesso:** Qualquer usuário logado da empresa pode abrir. Ideal: usar uma conta específica (ex: `tv@empresa.com`) com role `revisador` ou criar role `tela` no futuro.
-- **Alternativa futura:** Token/código da empresa para acesso sem login (bearer token via Edge Function)
+- **Acesso:** Via código numérico de 5 dígitos — sem necessidade de login
+- **Proteção:** O código vincula a TV à empresa; apenas permite leitura de dados
+- **Ideal para TVs:** Controle remoto só precisa digitar 5 números
 
 ### Arquivos a Criar
 
