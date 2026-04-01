@@ -84,13 +84,16 @@ src/hooks/useTvData.ts                  # Hook de dados com auto-refresh (se nec
 |-------------|-------|
 | Resolução alvo | 1920×1080 (Full HD) |
 | Aspect ratio | 16:9 |
-| Fundo | `--background` (tema escuro forçado para TVs) |
-| Fonte mínima | 24px para textos secundários |
-| Fonte títulos | 48-72px |
-| Fonte KPIs grandes | 96-128px |
+| Viewport | `h-screen w-screen` — **nunca ultrapassar 100vw/100vh** |
+| Overflow | `overflow-hidden` em tudo — **sem scroll na TV** |
+| Fundo | `bg-[#0a0a0f]` (dark forçado para TVs industriais) |
+| Fonte mínima | 10px para labels, 14px para textos secundários |
+| Fonte títulos | text-lg (18px) nos cards |
+| Fonte KPIs | text-2xl (24px) eficiência nos cards |
 | Legibilidade | 5-10 metros de distância |
-| Cursor | `cursor: none` (ocultar mouse) |
+| Cursor | `cursor-none` (ocultar mouse) |
 | Scrollbar | Nenhuma (overflow hidden em tudo) |
+| Grid | CSS Grid com `gridTemplateRows: repeat(N, 1fr)` para preencher espaço |
 
 ### Tema
 
