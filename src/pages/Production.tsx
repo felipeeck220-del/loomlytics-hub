@@ -1090,11 +1090,10 @@ export default function ProductionPage() {
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Excluir produção de {showDelete?.machine_name}?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Digite <strong>EXCLUIR</strong> para confirmar.</p>
-          <Input value={deleteWord} onChange={e => setDeleteWord(e.target.value)} placeholder="EXCLUIR" />
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este registro de produção? Esta ação não pode ser desfeita.</p>
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setShowDelete(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDelete}>Confirmar</Button>
+            <Button variant="destructive" onClick={handleDelete}>Sim, excluir</Button>
           </div>
         </DialogContent>
       </Dialog>
