@@ -604,7 +604,7 @@ Para evitar que o operador precise fazer login com email/senha usando o controle
 |--------|------|----------|---------|------------|
 | `tv_code` | `text` | Yes | `null` | `UNIQUE` (entre todas as empresas) |
 
-- O código é gerado pela aplicação: 5 dígitos numéricos aleatórios (00000-99999)
+- O código é gerado pela aplicação: 8 dígitos numéricos aleatórios (00000000-99999999)
 - Antes de salvar, verifica se o código já existe em outra empresa (uniqueness)
 - Se colidir, gera outro até encontrar um único
 
