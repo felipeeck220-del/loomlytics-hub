@@ -1090,7 +1090,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **01/04/2026 03:30** — Melhorias no modal de registro de produção: (1) Fluxo de avanço alterado para ciclar turnos primeiro na mesma máquina (manhã→tarde→noite) antes de avançar para a próxima máquina; (2) Artigo selecionado agora persiste entre registros (não limpa ao avançar); (3) Filtro de artigo melhorado: busca por nome do cliente e normalização numérica (ex: "190" encontra "1,90").
 - **01/04/2026 04:00** — Preview de eficiência no modal de produção redesenhado: fontes maiores (eficiência em 2xl/3xl), padding maior, borda colorida (verde se atingiu meta, vermelha se não), métricas mais legíveis.
 - **01/04/2026 04:15** — Cores do preview de eficiência ajustadas para dark mode: backgrounds com opacidade (emerald/yellow/red 500/15-20%), textos com text-foreground/70 em vez de text-muted-foreground, bordas mais visíveis.
+- **01/04/2026 04:30** — Pente fino no modal de produção: (1) articleSearch agora é limpo ao avançar (evita filtro residual no dropdown); (2) Corrigido exibição de `(null)` no dropdown de artigos quando client_name é nulo — agora mostra apenas o nome do artigo; (3) Mesma correção aplicada nos artigos adicionais.
 
 ---
 
-*Última atualização: 01/04/2026 04:15 (Brasília)*
+*Última atualização: 01/04/2026 04:30 (Brasília)*
