@@ -185,7 +185,7 @@ export default function ProductionPage() {
     if (nextShiftIdx < SHIFTS.length) {
       // Same machine, next shift
       setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
-      setWeaverSearch(''); setExtraArticles([]);
+      setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
       toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
     } else {
       // All shifts done for this machine, go to next machine
@@ -193,7 +193,7 @@ export default function ProductionPage() {
       if (nextMachineIdx < sortedMachines.length) {
         const nextMachine = sortedMachines[nextMachineIdx];
         setForm(p => ({ ...p, shift: SHIFTS[0], machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
-        setWeaverSearch(''); setExtraArticles([]);
+        setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
         toast.info(`Avançou para ${nextMachine.name} — ${companyShiftLabels[SHIFTS[0]].split(' (')[0]}`);
       } else {
         toast.success('Todos os turnos registrados!');
@@ -928,7 +928,7 @@ export default function ProductionPage() {
                   <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Artigo" /></SelectTrigger>
                   <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                     <div className="p-1"><Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => { e.stopPropagation(); setArticleSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                    {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
+                    {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}{a.client_name ? ` (${a.client_name})` : ''}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -970,7 +970,7 @@ export default function ProductionPage() {
                     <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Artigo" /></SelectTrigger>
                     <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                       <div className="p-1"><Input placeholder="Buscar artigo..." value={ea.search} onChange={e => { e.stopPropagation(); setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, search: e.target.value } : ex)); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                      {articles.filter(a => { const s = ea.search.toLowerCase().trim(); if (!s) return true; const n = s.replace(/[.,\s]/g, ''); return a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s) || a.name.toLowerCase().replace(/[.,\s]/g, '').includes(n); }).map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
+                      {articles.filter(a => { const s = ea.search.toLowerCase().trim(); if (!s) return true; const n = s.replace(/[.,\s]/g, ''); return a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s) || a.name.toLowerCase().replace(/[.,\s]/g, '').includes(n); }).map(a => <SelectItem key={a.id} value={a.id}>{a.name}{a.client_name ? ` (${a.client_name})` : ''}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
