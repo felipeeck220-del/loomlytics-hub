@@ -52,10 +52,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key } from 'lucide-react';
+import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions } from '@/hooks/usePermissions';
 import ProductionModeModal from '@/components/ProductionModeModal';
+import SettingsTelasTab from '@/components/SettingsTelasTab';
 import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -575,10 +576,11 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className={`w-full grid ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        <TabsList className={`w-full grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-3'}`}>
           <TabsTrigger value="profile">Meu Perfil</TabsTrigger>
           {isAdmin && <TabsTrigger value="users">Usuários</TabsTrigger>}
           <TabsTrigger value="company">Empresa</TabsTrigger>
+          {isAdmin && <TabsTrigger value="telas">Telas</TabsTrigger>}
           <TabsTrigger value="plans">Planos</TabsTrigger>
         </TabsList>
 
@@ -1008,6 +1010,13 @@ export default function SettingsPage() {
             </div>
           </div>
         </TabsContent>
+
+        {/* ===== TELAS ===== */}
+        {isAdmin && (
+          <TabsContent value="telas" className="mt-6">
+            <SettingsTelasTab />
+          </TabsContent>
+        )}
 
         {/* ===== PLANOS ===== */}
         <TabsContent value="plans" className="mt-4">

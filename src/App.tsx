@@ -26,6 +26,8 @@ import MecanicaPage from "./pages/Mecanica";
 import Admin from "./pages/Admin";
 import Vendas from "./pages/Vendas";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import TvCodeEntry from "./pages/TvCodeEntry";
+import TvPanel from "./pages/TvPanel";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
@@ -162,6 +164,8 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/vendas" element={<Vendas />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/tela" element={<TvCodeEntry />} />
+            <Route path="/tela/painel" element={<TvPanel />} />
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

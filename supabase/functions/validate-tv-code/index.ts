@@ -23,40 +23,50 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Find company by tv_code
-    const { data: settings, error } = await supabase
-      .from("company_settings")
-      .select("company_id")
-      .eq("tv_code", code)
+    // Find panel by code in tv_panels
+    const { data: panel, error: panelError } = await supabase
+      .from("tv_panels")
+      .select("id, company_id, name, panel_type, enabled_machines")
+      .eq("code", code)
       .maybeSingle();
 
-    if (error || !settings) {
+    if (panelError || !panel) {
       return new Response(JSON.stringify({ error: "Código não encontrado." }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Mark panel as connected
+    await supabase
+      .from("tv_panels")
+      .update({ is_connected: true })
+      .eq("id", panel.id);
+
     // Get company info
     const { data: company } = await supabase
       .from("companies")
       .select("id, name, slug, logo_url")
-      .eq("id", settings.company_id)
+      .eq("id", panel.company_id)
       .single();
 
     // Get shift settings
-    const { data: fullSettings } = await supabase
+    const { data: settings } = await supabase
       .from("company_settings")
       .select("shift_manha_start, shift_manha_end, shift_tarde_start, shift_tarde_end, shift_noite_start, shift_noite_end")
-      .eq("company_id", settings.company_id)
+      .eq("company_id", panel.company_id)
       .single();
 
     return new Response(JSON.stringify({
-      company_id: settings.company_id,
+      panel_id: panel.id,
+      panel_name: panel.name,
+      panel_type: panel.panel_type,
+      enabled_machines: panel.enabled_machines,
+      company_id: panel.company_id,
       company_name: company?.name,
       company_slug: company?.slug,
       logo_url: company?.logo_url,
-      shift_settings: fullSettings,
+      shift_settings: settings,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
