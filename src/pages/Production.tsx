@@ -362,7 +362,19 @@ export default function ProductionPage() {
     }
   }, [form.machine_id, showModal]);
 
-  const filteredArticles = articles.filter(a => a.name.toLowerCase().includes(articleSearch.toLowerCase()));
+  const filteredArticles = useMemo(() => {
+    if (!articleSearch) return articles;
+    const raw = articleSearch.toLowerCase().trim();
+    // Normalize: remove commas/dots/spaces for numeric matching (e.g. "190" matches "1,90" or "1.90")
+    const normalized = raw.replace(/[.,\s]/g, '');
+    return articles.filter(a => {
+      const name = a.name.toLowerCase();
+      const client = (a.client_name || '').toLowerCase();
+      const nameNormalized = name.replace(/[.,\s]/g, '');
+      // Match by name, client name, or normalized numeric
+      return name.includes(raw) || client.includes(raw) || nameNormalized.includes(normalized);
+    });
+  }, [articles, articleSearch]);
   const effColor = (eff: number, target = 80) => eff >= target ? 'text-emerald-600' : eff >= target * 0.9 ? 'text-warning' : 'text-destructive';
   const effBg = (eff: number, target = 80) => eff >= target ? 'bg-emerald-50' : eff >= target * 0.9 ? 'bg-yellow-50' : 'bg-red-50';
 
