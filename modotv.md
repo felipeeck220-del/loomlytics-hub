@@ -592,7 +592,7 @@ Para evitar que o operador precise fazer login com email/senha usando o controle
 2. **Admin** pode clicar em **"Gerar novo código"** a qualquer momento — o código anterior é invalidado imediatamente
 3. **Na TV**, o operador acessa `loomlytics-hub.lovable.app/tela`
 4. Tela exibe um **input numérico grande** (botões enormes, otimizado para controle remoto)
-5. Operador digita os 5 dígitos e confirma
+5. Operador digita os 8 dígitos e confirma
 6. Sistema valida o código → se válido, redireciona para `/tela/painel` com os dados da empresa vinculada
 7. Código fica salvo no `localStorage` da TV — nas próximas vezes, reconecta automaticamente
 
