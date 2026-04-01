@@ -91,248 +91,105 @@ src/hooks/useTvData.ts                  # Hook de dados com auto-refresh
 
 ---
 
-## 📊 Painéis (5 telas rotativas)
+## 📊 Painéis — Arquitetura de Painéis Fixos (sem rotação)
 
-### Painel 1: Eficiência do Turno Atual (`TvShiftEfficiency.tsx`)
+### Mudança de Conceito (2026-04-01)
 
-**Objetivo:** Mostrar a eficiência geral do turno em destaque máximo.
+**Antes:** 5 painéis rotativos automáticos em carrossel.
+**Agora:** Cada TV conectada = 1 painel fixo separado. O admin controla o conteúdo de cada painel nas Configurações.
 
-```
-┌──────────────────────────────────────────┐
-│                                          │
-│          EFICIÊNCIA DO TURNO             │
-│                                          │
-│              ┌───────┐                   │
-│              │       │                   │
-│              │ 87.3% │  ← Gauge/Círculo │
-│              │       │                   │
-│              └───────┘                   │
-│                                          │
-│   Meta: 85%    Ontem: 82.1%              │
-│                                          │
-│   🟢 Acima da meta (+2.3%)              │
-└──────────────────────────────────────────┘
-```
+### Modelo de Painéis
 
-**Dados necessários:**
-- Filtrar `productions` por `date === hoje` e `shift === turnoAtual`
-- Calcular eficiência média ponderada (mesmo algoritmo do Dashboard)
-- Buscar `target_efficiency` dos artigos para calcular meta média
-- Comparar com turno anterior e dia anterior
+- Cada TV que se conecta via código de 8 dígitos cria um **painel individual** (Painel 1, Painel 2, etc.)
+- O admin seleciona nas **Configurações > Telas** o que cada painel exibe
+- Por enquanto, o único tipo de conteúdo disponível é **"Grid de Máquinas"** (mais opções futuras: eficiência do turno, ranking, etc.)
+- O admin pode **ativar/desativar máquinas** individualmente para cada painel
+- Mudanças feitas pelo admin são refletidas **em tempo real** nos painéis via Supabase Realtime
 
-**Lógica de cores do gauge:**
-| Condição | Cor |
-|----------|-----|
-| Eficiência ≥ meta | `text-success` (verde) |
-| Eficiência entre meta-5% e meta | `text-warning` (amarelo) |
-| Eficiência < meta-5% | `text-destructive` (vermelho) |
+### Tabela `tv_panels`
 
-**Componente visual:**
-- Usar SVG circular (gauge) com animação de preenchimento
-- Número central gigante (128px)
-- Subtexto com meta e comparativo
+| Coluna | Tipo | Nullable | Default | Descrição |
+|--------|------|----------|---------|-----------|
+| `id` | `uuid` | No | `gen_random_uuid()` | PK |
+| `company_id` | `uuid` | No | — | FK → companies |
+| `code` | `text` | No | — | Código de 8 dígitos (UNIQUE) |
+| `name` | `text` | No | — | "Painel 1", "Painel 2", etc. |
+| `panel_type` | `text` | No | `'machine_grid'` | Tipo de conteúdo exibido |
+| `enabled_machines` | `jsonb` | No | `'[]'` | Array de machine IDs visíveis |
+| `is_connected` | `boolean` | No | `false` | Se uma TV está usando este painel |
+| `created_at` | `timestamptz` | No | `now()` | — |
+
+**Nota:** A coluna `tv_code` em `company_settings` deixa de ser usada para conexão direta. Cada painel tem seu próprio `code` na tabela `tv_panels`.
 
 ---
 
-### Painel 2: Ranking de Tecelões (`TvWeaverRanking.tsx`)
+### Painel: Grid de Máquinas (`TvMachineGrid.tsx`)
 
-**Objetivo:** Ranking dos tecelões do turno atual por eficiência, gerando competitividade.
+**Único painel disponível na V1.** Exibe um grid responsivo com todas as máquinas habilitadas pelo admin.
 
-```
-┌──────────────────────────────────────────┐
-│       🏆 RANKING DO TURNO — Tarde       │
-│                                          │
-│  🥇  1º  João Silva (#101)    94.2%     │
-│  🥈  2º  Maria Santos (#102)  91.8%     │
-│  🥉  3º  Pedro Lima (#103)    88.5%     │
-│      4º  Ana Costa (#104)     85.1%     │
-│      5º  Carlos Dias (#105)   82.3%     │
-│      6º  Lucas Alves (#106)   79.0%     │
-│      7º  Julia Ramos (#107)   76.4%     │
-│                                          │
-│  Média do turno: 85.3%                   │
-└──────────────────────────────────────────┘
-```
-
-**Dados necessários:**
-- Filtrar `productions` por `date === hoje` e `shift === turnoAtual`
-- Agrupar por `weaver_id` → calcular eficiência média de cada tecelão
-- Ordenar por eficiência decrescente
-- Mostrar no máximo 8 tecelões (para caber na tela)
-
-**Lógica visual:**
-- Medalhas 🥇🥈🥉 nos 3 primeiros
-- Barra de progresso horizontal para cada tecelão (proporcional à eficiência)
-- Cor da barra segue a lógica de meta (verde/amarelo/vermelho)
-- Nome + código do tecelão
-- Se houver mais de 8, mostrar scroll automático lento ou paginar
-
----
-
-### Painel 3: Grid de Status das Máquinas (`TvMachineGrid.tsx`)
-
-**Objetivo:** Visão rápida de todas as máquinas e seus status atuais.
+#### Layout
 
 ```
-┌──────────────────────────────────────────────┐
-│           STATUS DAS MÁQUINAS                │
-│                                              │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐    │
-│  │TEAR 1│  │TEAR 2│  │TEAR 3│  │TEAR 4│    │
-│  │  🟢  │  │  🟢  │  │  🔴  │  │  🟢  │    │
-│  │ Ativa │  │ Ativa │  │Manut.│  │ Ativa │   │
-│  │92.1%  │  │88.3%  │  │2h30  │  │90.5%  │   │
-│  └──────┘  └──────┘  └──────┘  └──────┘    │
-│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐    │
-│  │TEAR 5│  │TEAR 6│  │TEAR 7│  │TEAR 8│    │
-│  │  🟡  │  │  🟢  │  │  ⚪  │  │  🟢  │    │
-│  │Troca  │  │ Ativa │  │Inativa│ │ Ativa │   │
-│  │45min  │  │85.7%  │  │  --  │  │91.2%  │   │
-│  └──────┘  └──────┘  └──────┘  └──────┘    │
-│                                              │
-│  Resumo: 5 Ativas | 1 Manutenção | 1 Troca | 1 Inativa │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  [LOGO]  EMPRESA  │  🕐 14:32  │  Painel 1  │  28/03/2026  │  ← Header
+├──────────────────────────────────────────────────────────────┤
+│  📅 Produção referente a: 27/03/2026 (última produção)      │
+│                                                              │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐       │
+│  │ TEAR 01 │  │ TEAR 02 │  │ TEAR 03 │  │ TEAR 04 │       │
+│  │ 92.1%   │  │ 88.3%   │  │ 95.0%   │  │ 78.2%   │       │
+│  │ ████████ │  │ ██████░░ │  │ █████████ │  │ █████░░░ │    │
+│  │ 12 pçs  │  │ 10 pçs  │  │ 14 pçs  │  │ 8 pçs   │       │
+│  │ João S. │  │ Maria L.│  │ Pedro C.│  │ Ana R.  │       │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘       │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐       │
+│  │ TEAR 05 │  │ TEAR 06 │  │ TEAR 07 │  │ TEAR 08 │       │
+│  │ ...     │  │ ...     │  │ ...     │  │ ...     │       │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘       │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-**Dados necessários:**
-- `machines` → status atual de cada máquina
-- `productions` do turno → eficiência por máquina (para máquinas ativas)
-- `machineLogs` → tempo de parada para máquinas não-ativas (via `downtimeUtils.ts`)
-- `articles` → nome do artigo rodando (via `machine.article_id`)
+#### Dados por Card — Modo Manual (Rolos/Voltas)
 
-**Lógica visual:**
-- Grid responsivo: 4 colunas para até 16 máquinas, 5 colunas para 17-25, etc.
-- Cor do card segue `MACHINE_STATUS_COLORS`
-- Máquinas ativas: mostrar eficiência do turno
-- Máquinas paradas: mostrar tempo de parada no turno (formatDowntimeMinutes)
-- Se máquina **acabou de parar** (< 5 min): animação de pulso/flash no card
-- Rodapé com contagem por status
+| Elemento | Detalhe |
+|----------|---------|
+| **Nº máquina** | "TEAR 01" — topo do card |
+| **Eficiência** | `XX.X% / 100%` — eficiência atingida |
+| **Barra de progresso** | Largura proporcional à eficiência (100% = cheia) |
+| **Cor da barra** | 🟢 Verde se ≥ `target_efficiency`, 🟡 Amarelo se entre meta-10% e meta, 🔴 Vermelho se < meta-10% |
+| **Peças produzidas** | Quantidade de rolos ou voltas (conforme production_mode da máquina) |
+| **Nome do tecelão** | Nome do tecelão que registrou produção |
+| **Data referência** | No topo do grid: "Produção referente a: DD/MM/YYYY" — último dia com produção registrada |
 
-**Tamanho dos cards:**
-- Adaptar ao número de máquinas:
-  - 1-8 máquinas: cards grandes (~200×200px)
-  - 9-16 máquinas: cards médios (~150×150px)
-  - 17-30 máquinas: cards menores (~120×120px)
+#### Dados por Card — Modo IoT (futuro)
 
----
+Mesmos dados do modo manual, **mais:**
 
-### Painel 4: Produção Acumulada do Turno (`TvProductionTotals.tsx`)
+| Elemento | Detalhe |
+|----------|---------|
+| **Status** | Abaixo do nº da máquina: "Produzindo", "Parada", "Manutenção", etc. |
+| **Cor do card inteiro** | 🟢 Verde = ativa/produzindo ou parada sem motivo, 🟡/🟠 Amarelo/Laranja = manutenção ou troca |
+| **Atualização** | Eficiência e peças em **tempo real** |
 
-**Objetivo:** Totalizadores do turno com barra de progresso em relação à meta.
-
-```
-┌──────────────────────────────────────────┐
-│       PRODUÇÃO DO TURNO — Tarde          │
-│                                          │
-│   🧶 ROLOS          ⚖️ PESO             │
-│   ┌────────────┐    ┌────────────┐       │
-│   │    127     │    │  1.523 kg  │       │
-│   │  Meta: 150 │    │Meta: 1.800 │       │
-│   │ ████████░░ │    │ ████████░░ │       │
-│   │   84.7%    │    │   84.6%    │       │
-│   └────────────┘    └────────────┘       │
-│                                          │
-│   💰 FATURAMENTO    📊 EFICIÊNCIA        │
-│   ┌────────────┐    ┌────────────┐       │
-│   │ R$ 12.450  │    │   87.3%    │       │
-│   │Meta:R$15k  │    │  Meta: 85% │       │
-│   │ ████████░░ │    │ ██████████ │       │
-│   │   83.0%    │    │  ✅ 102.7% │       │
-│   └────────────┘    └────────────┘       │
-│                                          │
-│  Comparativo ontem (turno Tarde):        │
-│  Rolos: 142 | Kg: 1.704 | Fat: R$14.2k  │
-└──────────────────────────────────────────┘
-```
-
-**Dados necessários:**
-- Filtrar `productions` por `date === hoje` e `shift === turnoAtual`
-- Somar: `rolls_produced`, `weight_kg`, `revenue`
-- Calcular eficiência média ponderada
-- Meta: baseada na média dos últimos 7 dias do mesmo turno (ou meta dos artigos)
-- Comparativo: mesmos dados do turno anterior (ontem, mesmo turno)
-
-**Lógica de meta:**
-- Meta dinâmica = média dos últimos 7 dias úteis do mesmo turno
-- Se não houver histórico suficiente, usar `target_efficiency` médio dos artigos em produção
-- Barra de progresso colorida (verde se ≥ meta, amarelo se entre 90-100% da meta, vermelho se < 90%)
-
----
-
-### Painel 5: Alertas de Parada (`TvDowntimeAlerts.tsx`)
-
-**Objetivo:** Destacar máquinas paradas e tempo acumulado, incentivando ação rápida.
-
-```
-┌──────────────────────────────────────────┐
-│       ⚠️ PARADAS DO TURNO               │
-│                                          │
-│  🔴 TEAR 3 — Manutenção Corretiva       │
-│     Parado há 2h 30min                   │
-│     Artigo: Meia-Malha PB               │
-│                                          │
-│  🟡 TEAR 5 — Troca de Artigo            │
-│     Parado há 45min                      │
-│     Artigo anterior: Ribana              │
-│                                          │
-│  🟣 TEAR 12 — Troca de Agulhas          │
-│     Parado há 1h 15min                   │
-│     Artigo: Jersey Listrado             │
-│                                          │
-│  ──────────────────────────              │
-│  Total de paradas: 3 máquinas            │
-│  Tempo total perdido: 4h 30min           │
-│  Impacto estimado: ~18 rolos             │
-└──────────────────────────────────────────┘
-```
-
-**Dados necessários:**
-- `machines` com status ≠ `ativa`
-- `machineLogs` filtrados pelo turno atual via `calculateShiftDowntime()`
-- `articles` para nome do artigo na máquina parada
-- Cálculo de impacto: `(minutos_parada / minutos_por_rolo) × máquinas_paradas`
-
-**Lógica:**
-- Ordenar por tempo de parada decrescente (mais crítica primeiro)
-- Se não houver paradas: exibir mensagem positiva "✅ Todas as máquinas ativas! 🎉"
-- Se máquina parada há mais de 2h: destaque vermelho pulsante
-- Ícone/cor segue `MACHINE_STATUS_COLORS`
-- Usar `formatDowntimeMinutes()` de `downtimeUtils.ts`
-
----
-
-## 🔄 Rotação Automática (`TvCarousel.tsx`)
-
-### Comportamento
-
-| Configuração | Valor |
-|--------------|-------|
-| Intervalo padrão | 20 segundos por painel |
-| Transição | Fade (opacity 0→1, 500ms) via framer-motion |
-| Ordem | Eficiência → Ranking → Máquinas → Produção → Alertas |
-| Loop | Infinito |
-| Indicadores | Dots na parte inferior (● ativo, ○ inativo) |
-| Pausa | Nenhuma (TV não tem interação) |
-
-### Lógica de Pular Painéis
-
-- **Painel Alertas:** Se não houver máquinas paradas, pular automaticamente
-- **Painel Ranking:** Se houver menos de 2 tecelões no turno, pular
-
-### Implementação
+#### Lógica de Data (modo manual)
 
 ```typescript
-// TvCarousel.tsx
-interface TvCarouselProps {
-  intervalMs?: number; // default 20000
-  children: React.ReactNode[]; // Array de painéis
-  skipIndices?: number[]; // Painéis a pular (dinâmico)
-}
-
-// Estado: currentIndex, avança com setInterval
-// Transição: AnimatePresence do framer-motion
-// Indicadores: array de dots renderizado no bottom
+// Buscar o último dia com produção registrada para a empresa
+// NÃO é necessariamente "ontem" — pode ser qualquer dia anterior
+const { data } = await supabase
+  .from('productions')
+  .select('date')
+  .eq('company_id', companyId)
+  .order('date', { ascending: false })
+  .limit(1);
+const lastProductionDate = data?.[0]?.date; // ex: "2026-03-27"
 ```
+
+#### Grid Responsivo
+
+- O grid se adapta ao número de máquinas habilitadas
+- Usa CSS Grid com `auto-fill` / `minmax` para caber todas
+- Cards maiores para poucas máquinas, menores para muitas
 
 ---
 
