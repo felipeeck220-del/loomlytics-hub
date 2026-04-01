@@ -517,16 +517,17 @@ Se acessado em mobile (< 768px):
 ## 📋 Checklist de Implementação
 
 ### Fase 1 (MVP — V1)
-- [ ] Criar tabela `tv_panels` com migration + RLS
-- [ ] Adicionar aba "Telas" em Settings.tsx (gerar código, listar painéis, seletor de máquinas)
-- [ ] Criar `src/pages/TvCodeEntry.tsx` (input de código com teclado virtual)
-- [ ] Criar `src/pages/TvPanel.tsx` (página do painel com header + grid)
-- [ ] Criar `src/components/tv/TvMachineGrid.tsx` (grid de máquinas)
-- [ ] Criar `src/components/tv/TvHeader.tsx` (relógio, nome do painel, logo)
-- [ ] Atualizar Edge Function `validate-tv-code` para buscar em `tv_panels`
-- [ ] Implementar Realtime para sincronização admin ↔ painéis
-- [ ] Registrar rotas `/tela` e `/tela/painel` em `App.tsx`
-- [ ] Forçar dark mode na página
+- [x] Criar tabela `tv_panels` com migration + RLS
+- [x] Adicionar aba "Telas" em Settings.tsx (gerar código, listar painéis, seletor de máquinas)
+- [x] Criar `src/pages/TvCodeEntry.tsx` (input de código com teclado virtual)
+- [x] Criar `src/pages/TvPanel.tsx` (página do painel com header + grid)
+- [x] Criar `src/components/tv/TvMachineGrid.tsx` (grid de máquinas)
+- [x] Criar `src/components/tv/TvHeader.tsx` (relógio, nome do painel, logo)
+- [x] Atualizar Edge Function `validate-tv-code` para buscar em `tv_panels`
+- [x] Criar Edge Function `tv-panel-data` para dados de produção
+- [x] Implementar Realtime para sincronização admin ↔ painéis
+- [x] Registrar rotas `/tela` e `/tela/painel` em `App.tsx`
+- [x] Forçar dark mode na página
 - [ ] Testar em resolução 1920×1080
 - [ ] Atualizar `mestre.md`
 
