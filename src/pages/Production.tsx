@@ -185,7 +185,7 @@ export default function ProductionPage() {
     if (nextShiftIdx < SHIFTS.length) {
       // Same machine, next shift
       setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
-      setWeaverSearch(''); setExtraArticles([]);
+      setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
       toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
     } else {
       // All shifts done for this machine, go to next machine
