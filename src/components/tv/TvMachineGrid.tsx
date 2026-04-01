@@ -97,8 +97,7 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
   }, [articles]);
 
   const productionByMachine = useMemo(() => {
-    const map = new Map<string, { efficiency: number; rolls: number; weaverName: string }>();
-    // Aggregate by machine
+    const map = new Map<string, { efficiency: number; rolls: number; weightKg: number; weaverName: string }>();
     const byMachine = new Map<string, Production[]>();
     productions.forEach(p => {
       if (!byMachine.has(p.machine_id)) byMachine.set(p.machine_id, []);
@@ -106,9 +105,10 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
     });
     byMachine.forEach((prods, machineId) => {
       const totalRolls = prods.reduce((s, p) => s + p.rolls_produced, 0);
+      const totalWeight = prods.reduce((s, p) => s + (p.weight_kg || 0), 0);
       const avgEff = prods.reduce((s, p) => s + p.efficiency, 0) / prods.length;
       const lastWeaver = prods[prods.length - 1]?.weaver_name || '—';
-      map.set(machineId, { efficiency: avgEff, rolls: totalRolls, weaverName: lastWeaver });
+      map.set(machineId, { efficiency: avgEff, rolls: totalRolls, weightKg: totalWeight, weaverName: lastWeaver });
     });
     return map;
   }, [productions]);
