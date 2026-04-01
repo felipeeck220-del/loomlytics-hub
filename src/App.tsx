@@ -148,6 +148,11 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/vendas" element={<Vendas />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/tela" element={<TvCodeEntry />} />
+            <Route path="/tela/painel" element={<TvPanel />} />
             <Route path="/:slug/login" element={<CompanyLogin />} />
             <Route path="/:slug" element={<CompanyRoute />}>
               <Route index element={<ProtectedRoute routeKey="dashboard"><Dashboard /></ProtectedRoute>} />
@@ -161,11 +166,6 @@ const App = () => (
               <Route path="reports" element={<ProtectedRoute routeKey="reports"><Reports /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute routeKey="settings"><SettingsPage /></ProtectedRoute>} />
             </Route>
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/vendas" element={<Vendas />} />
-            <Route path="/payment-success" element={<PaymentSuccess />} />
-            <Route path="/tela" element={<TvCodeEntry />} />
-            <Route path="/tela/painel" element={<TvPanel />} />
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
