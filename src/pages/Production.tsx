@@ -180,24 +180,27 @@ export default function ProductionPage() {
 
   const advanceToNext = useCallback(() => {
     if (sortedMachines.length === 0) return;
-    const nextMachineIdx = currentMachineIndex + 1;
-    if (nextMachineIdx < sortedMachines.length) {
-      const nextMachine = sortedMachines[nextMachineIdx];
-      setForm(p => ({ ...p, machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '', voltas_inicio: '', voltas_fim: '' }));
-      setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
+    // Cycle: same machine through all shifts first, then next machine
+    const nextShiftIdx = currentShiftIndex + 1;
+    if (nextShiftIdx < SHIFTS.length) {
+      // Same machine, next shift
+      setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
+      setWeaverSearch(''); setExtraArticles([]);
+      toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
     } else {
-      const nextShiftIdx = currentShiftIndex + 1;
-      if (nextShiftIdx < SHIFTS.length) {
-        const firstMachine = sortedMachines[0];
-        setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], machine_id: firstMachine.id, rpm: String(firstMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', article_id: '', voltas_inicio: '', voltas_fim: '' }));
-        setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
-        toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
+      // All shifts done for this machine, go to next machine
+      const nextMachineIdx = currentMachineIndex + 1;
+      if (nextMachineIdx < sortedMachines.length) {
+        const nextMachine = sortedMachines[nextMachineIdx];
+        setForm(p => ({ ...p, shift: SHIFTS[0], machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
+        setWeaverSearch(''); setExtraArticles([]);
+        toast.info(`Avançou para ${nextMachine.name} — ${companyShiftLabels[SHIFTS[0]].split(' (')[0]}`);
       } else {
         toast.success('Todos os turnos registrados!');
         setShowModal(false);
       }
     }
-  }, [sortedMachines, currentMachineIndex, currentShiftIndex]);
+  }, [sortedMachines, currentMachineIndex, currentShiftIndex, companyShiftLabels]);
 
   const openNew = () => {
     setEditing(null);
@@ -359,7 +362,19 @@ export default function ProductionPage() {
     }
   }, [form.machine_id, showModal]);
 
-  const filteredArticles = articles.filter(a => a.name.toLowerCase().includes(articleSearch.toLowerCase()));
+  const filteredArticles = useMemo(() => {
+    if (!articleSearch) return articles;
+    const raw = articleSearch.toLowerCase().trim();
+    // Normalize: remove commas/dots/spaces for numeric matching (e.g. "190" matches "1,90" or "1.90")
+    const normalized = raw.replace(/[.,\s]/g, '');
+    return articles.filter(a => {
+      const name = a.name.toLowerCase();
+      const client = (a.client_name || '').toLowerCase();
+      const nameNormalized = name.replace(/[.,\s]/g, '');
+      // Match by name, client name, or normalized numeric
+      return name.includes(raw) || client.includes(raw) || nameNormalized.includes(normalized);
+    });
+  }, [articles, articleSearch]);
   const effColor = (eff: number, target = 80) => eff >= target ? 'text-emerald-600' : eff >= target * 0.9 ? 'text-warning' : 'text-destructive';
   const effBg = (eff: number, target = 80) => eff >= target ? 'bg-emerald-50' : eff >= target * 0.9 ? 'bg-yellow-50' : 'bg-red-50';
 
@@ -955,7 +970,7 @@ export default function ProductionPage() {
                     <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Artigo" /></SelectTrigger>
                     <SelectContent position="popper" side="bottom" className="max-h-[200px]">
                       <div className="p-1"><Input placeholder="Buscar artigo..." value={ea.search} onChange={e => { e.stopPropagation(); setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, search: e.target.value } : ex)); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                      {articles.filter(a => a.name.toLowerCase().includes(ea.search.toLowerCase())).map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
+                      {articles.filter(a => { const s = ea.search.toLowerCase().trim(); if (!s) return true; const n = s.replace(/[.,\s]/g, ''); return a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s) || a.name.toLowerCase().replace(/[.,\s]/g, '').includes(n); }).map(a => <SelectItem key={a.id} value={a.id}>{a.name} ({a.client_name})</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
