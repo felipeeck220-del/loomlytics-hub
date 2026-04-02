@@ -43,6 +43,7 @@ export default function ClientsArticles() {
   const [turnsArticle, setTurnsArticle] = useState<Article | null>(null);
   const [turnsDefault, setTurnsDefault] = useState('');
   const [turnsRows, setTurnsRows] = useState<MachineTurnRow[]>([]);
+  const [turnsSaving, setTurnsSaving] = useState(false);
 
   const openTurnsModal = (article: Article) => {
     setTurnsArticle(article);
