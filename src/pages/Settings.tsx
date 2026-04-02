@@ -846,6 +846,11 @@ export default function SettingsPage() {
                   </div>
                   {isAdmin && (
                     <div className="flex items-center gap-1 shrink-0">
+                      {p.role !== 'admin' && (
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openPermissionsModal(p)} title="Permissões Extras">
+                          <Eye className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                      )}
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditUser(p)} title="Editar">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
