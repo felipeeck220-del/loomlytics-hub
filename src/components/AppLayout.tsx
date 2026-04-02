@@ -51,6 +51,13 @@ function formatDate(date: Date): string {
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+
+  // Persist last company slug for PWA redirect
+  useEffect(() => {
+    if (user?.company_slug) {
+      localStorage.setItem('malhagest_last_slug', user.company_slug);
+    }
+  }, [user?.company_slug]);
   const { theme, toggleTheme } = useTheme();
   const { status: subStatus, trialDaysLeft, sidebarLocked } = useSubscription();
   const isMobile = useIsMobile();
