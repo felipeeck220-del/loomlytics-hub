@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { key: 'outsource', label: 'Terceirizado' },
   { key: 'weavers', label: 'Tecelões' },
   { key: 'reports', label: 'Relatórios' },
+  { key: 'contas-pagar', label: 'Contas a Pagar' },
   { key: 'settings', label: 'Configurações' },
 ];
 
