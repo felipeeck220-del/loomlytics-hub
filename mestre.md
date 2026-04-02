@@ -1105,7 +1105,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **02/04/2026 08:00** — Terceirizados > Relatórios: Adicionado botão "Exportar por Malharia" que gera PDF agrupado por malharia terceirizada, com tabela detalhada por artigo mostrando kg produzidos, rolos, receita, custo e lucro/prejuízo. Inclui KPIs globais, barras coloridas por malharia e totais por empresa. Artigos ordenados por lucro decrescente.
 - **02/04/2026 08:30** — Revisão de código (pente fino): Corrigido bug no botão Editar usuário (Settings > Usuários) que enviava `editingUser.id` (profile row) em vez de `editingUser.user_id` para a Edge Function `manage-users`. Sem outros bugs encontrados nas alterações recentes.
 - **02/04/2026 09:00** — Corrigido bug de tela cinza após registro: a função `register` no AuthContext não carregava `companies` após criar a empresa via Edge Function, fazendo o CompanyRoute renderizar `null` (tela vazia). Agora `fetchUserCompanies()` é chamado junto com `fetchProfile()` após o registro.
+- **02/04/2026 09:30** — Corrigido seletor de Artigo e Tecelão no modal de produção: substituído Select+Input (Radix) por novo componente `SearchableSelect` usando Popover+ScrollArea. Resolve: (1) lista começava de baixo para cima (Radix fazia scroll para item selecionado); (2) foco saía da busca ao digitar (typeahead interno do Radix capturava teclas). Busca agora recebe foco automaticamente ao abrir e mantém foco estável. Aplicado também nos seletores de artigos adicionais.
 
 ---
 
-*Última atualização: 02/04/2026 09:00 (Brasília)*
+*Última atualização: 02/04/2026 09:30 (Brasília)*
