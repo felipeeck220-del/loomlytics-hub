@@ -138,6 +138,8 @@ export function useCompanyData() {
     rpm: Number(r.rpm), rolls_produced: Number(r.rolls_produced),
     weight_kg: Number(r.weight_kg), revenue: Number(r.revenue),
     efficiency: Number(r.efficiency), created_at: r.created_at,
+    created_by_name: r.created_by_name || undefined,
+    created_by_code: r.created_by_code || undefined,
   });
   const mapArticleMachineTurns = (r: any): ArticleMachineTurns => ({
     id: r.id, article_id: r.article_id, machine_id: r.machine_id,
@@ -282,6 +284,8 @@ export function useCompanyData() {
           article_id: p.article_id || null, article_name: p.article_name || null,
           rpm: p.rpm, rolls_produced: p.rolls_produced, weight_kg: p.weight_kg,
           revenue: p.revenue, efficiency: p.efficiency, created_at: p.created_at,
+          created_by_name: p.created_by_name || null,
+          created_by_code: p.created_by_code || null,
         }));
         await sb('productions').insert(batch);
       }
@@ -299,6 +303,8 @@ export function useCompanyData() {
       article_id: p.article_id || null, article_name: p.article_name || null,
       rpm: p.rpm, rolls_produced: p.rolls_produced, weight_kg: p.weight_kg,
       revenue: p.revenue, efficiency: p.efficiency, created_at: p.created_at,
+      created_by_name: p.created_by_name || null,
+      created_by_code: p.created_by_code || null,
     }));
     const { error } = await sb('productions').insert(rows);
     if (error) throw error;
@@ -320,6 +326,8 @@ export function useCompanyData() {
         article_id: p.article_id || null, article_name: p.article_name || null,
         rpm: p.rpm, rolls_produced: p.rolls_produced, weight_kg: p.weight_kg,
         revenue: p.revenue, efficiency: p.efficiency, created_at: p.created_at,
+        created_by_name: p.created_by_name || null,
+        created_by_code: p.created_by_code || null,
       }));
       await sb('productions').insert(rows);
     }

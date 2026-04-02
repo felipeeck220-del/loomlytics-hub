@@ -392,13 +392,13 @@ export default function ProductionPage() {
   const effBg = (eff: number, target = 80) => eff >= target ? 'bg-emerald-50' : eff >= target * 0.9 ? 'bg-yellow-50' : 'bg-red-50';
 
   // Filter productions
-  const hasActiveFilters = filterDate || filterMachine || filterArticle;
+  const hasActiveFilters = filterDate || (filterMachine && filterMachine !== 'all') || (filterArticle && filterArticle !== 'all');
 
   const filteredProductions = useMemo(() => {
     let result = [...productions];
     if (filterDate) result = result.filter(p => p.date === filterDate);
-    if (filterMachine) result = result.filter(p => p.machine_id === filterMachine);
-    if (filterArticle) result = result.filter(p => p.article_id === filterArticle);
+    if (filterMachine && filterMachine !== 'all') result = result.filter(p => p.machine_id === filterMachine);
+    if (filterArticle && filterArticle !== 'all') result = result.filter(p => p.article_id === filterArticle);
     return result;
   }, [productions, filterDate, filterMachine, filterArticle]);
 
