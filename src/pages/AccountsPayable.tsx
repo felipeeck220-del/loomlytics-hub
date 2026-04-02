@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Trash2, Check, Pencil, Receipt, Search } from 'lucide-react';
+import { Plus, Trash2, Check, Pencil, Receipt, Search, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +62,9 @@ export default function AccountsPayable() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [testSending, setTestSending] = useState(false);
 
   const companyId = user?.company_id;
 
@@ -211,6 +214,32 @@ export default function AccountsPayable() {
     saveMutation.mutate(form);
   }
 
+  async function handleTestWebhook() {
+    const cleanPhone = testPhone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      toast.error('Digite um número de WhatsApp válido');
+      return;
+    }
+    setTestSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('test-webhook', {
+        body: { phone: cleanPhone },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast.success('Teste enviado! Verifique o WhatsApp.');
+      } else {
+        toast.error('Webhook retornou erro: ' + JSON.stringify(data));
+      }
+    } catch (err: any) {
+      toast.error('Erro ao enviar teste: ' + err.message);
+    } finally {
+      setTestSending(false);
+      setShowTestDialog(false);
+      setTestPhone('');
+    }
+  }
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
@@ -227,10 +256,16 @@ export default function AccountsPayable() {
             📲 Notificação automática via WhatsApp 1 dia antes do vencimento
           </p>
         </div>
-        <Button onClick={openNew} className="btn-gradient gap-2">
-          <Plus className="h-4 w-4" />
-          Nova Conta
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowTestDialog(true)} className="gap-2">
+            <Send className="h-4 w-4" />
+            Enviar Teste
+          </Button>
+          <Button onClick={openNew} className="btn-gradient gap-2">
+            <Plus className="h-4 w-4" />
+            Nova Conta
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -476,6 +511,44 @@ export default function AccountsPayable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Test Webhook Dialog */}
+      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Enviar Teste WhatsApp</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Número WhatsApp</Label>
+            <Input
+              placeholder="(47) 9 9210-2017"
+              value={testPhone}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, '').slice(0, 11);
+                let formatted = '';
+                if (raw.length > 0) formatted += '(' + raw.slice(0, 2);
+                if (raw.length >= 2) formatted += ') ';
+                if (raw.length >= 3) formatted += raw.slice(2, 3);
+                if (raw.length >= 4) formatted += ' ' + raw.slice(3, 7);
+                if (raw.length >= 7) formatted += '-' + raw.slice(7, 11);
+                setTestPhone(formatted);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Dados fictícios serão enviados para testar a integração com a Reportana.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowTestDialog(false); setTestPhone(''); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleTestWebhook} disabled={testSending} className="gap-2">
+              <Send className="h-4 w-4" />
+              {testSending ? 'Enviando...' : 'Enviar Teste'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
