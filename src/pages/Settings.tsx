@@ -70,6 +70,7 @@ interface Profile {
   status: string;
   code?: string;
   created_at: string;
+  permission_overrides?: string[];
 }
 
 const ROLES = [
