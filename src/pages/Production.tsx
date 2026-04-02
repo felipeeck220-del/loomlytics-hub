@@ -672,8 +672,12 @@ export default function ProductionPage() {
                 const meta = calcGroupMeta();
                 const metaTargetReached = group.totalRolls >= meta.metaTarget;
 
-                // Articles description
-                const articlesDesc = group.items.map(p => p.article_name).join(' + ');
+                // Articles description with client name
+                const articlesDesc = group.items.map(p => {
+                  const art = articles.find(a => a.id === p.article_id);
+                  const clientName = art?.client_name;
+                  return clientName ? `${p.article_name} (${clientName})` : p.article_name;
+                }).join(' + ');
                 const registrationTime = group.created_at ? format(new Date(group.created_at), 'dd/MM/yyyy HH:mm') : '';
 
                 return (
