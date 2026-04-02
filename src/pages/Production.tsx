@@ -392,7 +392,7 @@ export default function ProductionPage() {
   const effBg = (eff: number, target = 80) => eff >= target ? 'bg-emerald-50' : eff >= target * 0.9 ? 'bg-yellow-50' : 'bg-red-50';
 
   // Filter productions
-  const hasActiveFilters = filterDate || filterMachine || filterArticle;
+  const hasActiveFilters = filterDate || (filterMachine && filterMachine !== 'all') || (filterArticle && filterArticle !== 'all');
 
   const filteredProductions = useMemo(() => {
     let result = [...productions];
