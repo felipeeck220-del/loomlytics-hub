@@ -524,6 +524,37 @@ export default function SettingsPage() {
   };
 
   const [deletingUser, setDeletingUser] = useState(false);
+  
+  // Permission overrides modal
+  const [permissionsUser, setPermissionsUser] = useState<Profile | null>(null);
+  const [permOverrides, setPermOverrides] = useState<string[]>([]);
+  const [savingPerms, setSavingPerms] = useState(false);
+
+  const openPermissionsModal = (p: Profile) => {
+    setPermissionsUser(p);
+    setPermOverrides(Array.isArray(p.permission_overrides) ? [...p.permission_overrides] : []);
+  };
+
+  const togglePermOverride = (key: string) => {
+    setPermOverrides(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+
+  const handleSavePermissions = async () => {
+    if (!permissionsUser) return;
+    setSavingPerms(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'update_permissions', user_id: permissionsUser.user_id, permission_overrides: permOverrides },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast.success('Permissões atualizadas');
+      await refreshProfiles();
+      setPermissionsUser(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar permissões');
+    }
+    setSavingPerms(false);
+  };
 
   const handleDeleteUser = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
