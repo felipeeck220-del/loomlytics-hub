@@ -99,8 +99,8 @@ export function SearchableSelect({
           />
         </div>
         <div
-          className="max-h-[360px] overflow-y-auto"
-          style={{ overscrollBehavior: 'contain' }}
+          className="max-h-[360px] overflow-y-auto scrollbar-hide"
+          style={{ overscrollBehavior: 'contain', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           onWheel={e => e.stopPropagation()}
         >
           <div className="p-1">
