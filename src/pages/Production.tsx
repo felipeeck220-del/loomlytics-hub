@@ -443,8 +443,18 @@ export default function ProductionPage() {
       });
     }
 
+    // Apply text search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return groups.filter(g =>
+        g.machine_name.toLowerCase().includes(q) ||
+        g.weaver_name.toLowerCase().includes(q) ||
+        g.items.some(p => (p.article_name || '').toLowerCase().includes(q))
+      );
+    }
+
     return groups;
-  }, [filteredProductions, activeShift, machines]);
+  }, [filteredProductions, activeShift, machines, searchQuery]);
 
   // KPIs for active shift
   const shiftKPIs = useMemo(() => {
