@@ -761,8 +761,11 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
           </div>
         </div>
 
-        {/* Export PDF */}
-        <div className="flex justify-end">
+        {/* Export PDFs */}
+        <div className="flex justify-end gap-2 flex-wrap">
+          <Button onClick={() => exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
+            <Factory className="h-4 w-4 mr-2" /> Exportar por Malharia
+          </Button>
           <Button onClick={() => exportOutsourcePdf(filtered, totals, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-2" /> Exportar PDF
           </Button>
