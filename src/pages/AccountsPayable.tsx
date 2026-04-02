@@ -113,7 +113,7 @@ export default function AccountsPayable() {
         category: data.category || null,
         amount: parseFloat(data.amount.replace(',', '.')),
         due_date: data.due_date,
-        whatsapp_number: data.whatsapp_number,
+        whatsapp_number: data.whatsapp_number.replace(/\D/g, ''),
         observations: data.observations || null,
       };
 
