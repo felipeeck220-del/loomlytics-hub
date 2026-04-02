@@ -483,7 +483,7 @@ export default function ProductionPage() {
   };
 
   const clearFilters = () => {
-    setFilterDate(''); setFilterMachine(''); setFilterArticle('');
+    setFilterDate(''); setFilterMachine(''); setFilterArticle(''); setSearchQuery('');
   };
 
   if (loading) {
