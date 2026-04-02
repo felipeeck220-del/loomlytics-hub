@@ -181,7 +181,16 @@ export default function AccountsPayable() {
       category: account.category || '',
       amount: String(account.amount).replace('.', ','),
       due_date: account.due_date,
-      whatsapp_number: account.whatsapp_number,
+      whatsapp_number: (() => {
+        const d = account.whatsapp_number.replace(/\D/g, '').slice(0, 11);
+        let f = '';
+        if (d.length > 0) f += '(' + d.slice(0, 2);
+        if (d.length >= 2) f += ') ';
+        if (d.length >= 3) f += d.slice(2, 3);
+        if (d.length >= 4) f += ' ' + d.slice(3, 7);
+        if (d.length >= 7) f += '-' + d.slice(7, 11);
+        return f;
+      })(),
       observations: account.observations || '',
     });
     setShowForm(true);
