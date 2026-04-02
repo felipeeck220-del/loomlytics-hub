@@ -956,24 +956,30 @@ export default function ProductionPage() {
             <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2", machineMode === 'voltas' ? 'md:grid-cols-5' : 'md:grid-cols-3')}>
               <div className="space-y-1">
                 <Label className="text-xs">Tecelão</Label>
-                <Select value={form.weaver_id} onValueChange={v => { setForm(p => ({ ...p, weaver_id: v })); setWeaverSearch(''); }}>
-                  <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Tecelão" /></SelectTrigger>
-                  <SelectContent position="popper" side="bottom" className="max-h-[200px]">
-                    <div className="p-1"><Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => { e.stopPropagation(); setWeaverSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                    <SelectItem value="sem_tecelao">Sem Tecelão</SelectItem>
-                    {weavers.filter(w => `${w.code} ${w.name}`.toLowerCase().includes(weaverSearch.toLowerCase())).map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={form.weaver_id}
+                  onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}
+                  placeholder="Tecelão"
+                  searchPlaceholder="Buscar tecelão..."
+                  options={[
+                    { value: 'sem_tecelao', label: 'Sem Tecelão' },
+                    ...weavers.map(w => ({ value: w.id, label: `${w.code} - ${w.name}` }))
+                  ]}
+                  filterFn={(opt, s) => {
+                    if (!s.trim()) return true;
+                    return opt.label.toLowerCase().includes(s.toLowerCase().trim());
+                  }}
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Artigo</Label>
-                <Select value={form.article_id} onValueChange={v => { setForm(p => ({ ...p, article_id: v })); setArticleSearch(''); }}>
-                  <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Artigo" /></SelectTrigger>
-                  <SelectContent position="popper" side="bottom" className="max-h-[200px]">
-                    <div className="p-1"><Input placeholder="Buscar artigo..." value={articleSearch} onChange={e => { e.stopPropagation(); setArticleSearch(e.target.value); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                    {filteredArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}{a.client_name ? ` (${a.client_name})` : ''}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={form.article_id}
+                  onValueChange={v => setForm(p => ({ ...p, article_id: v }))}
+                  placeholder="Artigo"
+                  searchPlaceholder="Buscar artigo..."
+                  options={articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
+                />
               </div>
               {machineMode === 'voltas' ? (
                 <>
