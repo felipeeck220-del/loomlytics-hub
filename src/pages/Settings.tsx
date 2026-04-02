@@ -496,7 +496,7 @@ export default function SettingsPage() {
   const handleToggleStatus = async (p: Profile) => {
     const newStatus = p.status === 'active' ? 'inactive' : 'active';
     const { data, error } = await supabase.functions.invoke('manage-users', {
-      body: { action: 'update', user_id: p.id, status: newStatus },
+      body: { action: 'update', user_id: p.user_id, status: newStatus },
     });
     if (error || data?.error) { toast.error('Erro ao atualizar status'); return; }
     toast.success(newStatus === 'active' ? 'Usuário ativado' : 'Usuário desativado');
