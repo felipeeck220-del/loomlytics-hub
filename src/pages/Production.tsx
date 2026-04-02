@@ -47,6 +47,7 @@ export default function ProductionPage() {
   const [filterDate, setFilterDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [filterMachine, setFilterMachine] = useState('');
   const [filterArticle, setFilterArticle] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Active shift tab
   const [activeShift, setActiveShift] = useState<ShiftType>('manha');
