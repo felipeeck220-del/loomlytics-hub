@@ -21,6 +21,7 @@ interface MachineTurnRow {
 
 export default function ClientsArticles() {
   const { getClients, saveClients, getArticles, saveArticles, getMachines, getArticleMachineTurns, saveArticleMachineTurns, loading } = useSharedCompanyData();
+  const { canSeeFinancial } = usePermissions();
   const clients = getClients();
   const articles = getArticles();
   const machines = getMachines();
