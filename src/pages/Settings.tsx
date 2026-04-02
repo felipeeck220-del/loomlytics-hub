@@ -1503,6 +1503,70 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Permission Overrides Modal */}
+      <Dialog open={!!permissionsUser} onOpenChange={(open) => { if (!open) setPermissionsUser(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Permissões Extras
+            </DialogTitle>
+          </DialogHeader>
+          {permissionsUser && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+                <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center">
+                  <span className="text-sm font-bold text-primary">{permissionsUser.name.charAt(0).toUpperCase()}</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground text-sm">{permissionsUser.name}</p>
+                  <Badge className={`${getRoleColor(permissionsUser.role)} text-xs`}>{getRoleLabel(permissionsUser.role)}</Badge>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Conceda permissões extras além do padrão da função. Estas permissões são bloqueadas por padrão para este role.
+              </p>
+              <div className="space-y-2">
+                {OVERRIDE_PERMISSIONS.map(perm => (
+                  <button
+                    key={perm.key}
+                    type="button"
+                    onClick={() => togglePermOverride(perm.key)}
+                    className={`w-full flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
+                      permOverrides.includes(perm.key)
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-border bg-background hover:bg-muted/30'
+                    }`}
+                  >
+                    <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${
+                      permOverrides.includes(perm.key)
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground/40'
+                    }`}>
+                      {permOverrides.includes(perm.key) && (
+                        <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{perm.label}</p>
+                      <p className="text-xs text-muted-foreground">{perm.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPermissionsUser(null)}>Cancelar</Button>
+            <Button className="btn-gradient" disabled={savingPerms} onClick={handleSavePermissions}>
+              {savingPerms && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
