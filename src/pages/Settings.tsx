@@ -474,7 +474,7 @@ export default function SettingsPage() {
     try {
       if (editingUser) {
         const { data, error } = await supabase.functions.invoke('manage-users', {
-          body: { action: 'update', user_id: editingUser.id, name: userForm.name, role: userForm.role },
+          body: { action: 'update', user_id: editingUser.user_id, name: userForm.name, role: userForm.role },
         });
         if (error || data?.error) throw new Error(data?.error || error?.message);
         toast.success('Usuário atualizado');
