@@ -251,7 +251,7 @@ export default function ClientsArticles() {
                   </div>
                   <div className="text-sm space-y-0.5">
                     <p className="text-muted-foreground">Peso Rolo: <span className="font-semibold text-foreground">{a.weight_per_roll} kg</span></p>
-                    <p className="text-muted-foreground">Valor/Kg: <span className="font-semibold text-foreground">R$ {a.value_per_kg}</span></p>
+                    {canSeeFinancial && <p className="text-muted-foreground">Valor/Kg: <span className="font-semibold text-foreground">R$ {a.value_per_kg}</span></p>}
                     <p className="text-muted-foreground">Eficiência Exigida: <span className="font-semibold text-foreground">{a.target_efficiency || 80}%</span></p>
                   </div>
                   <div className="flex items-center gap-2 pt-1 border-t border-border">
