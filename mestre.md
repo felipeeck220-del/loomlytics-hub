@@ -1096,7 +1096,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **02/04/2026 03:30** — Adicionado campo de busca (lupa) na página de Produção para filtrar registros por máquina, tecelão ou artigo. Busca textual em tempo real, integrada com os filtros existentes. Limpa junto com "Limpar Filtros".
 - **02/04/2026 04:00** — Produções registradas agora exibem o nome do cliente ao lado do artigo no formato "ARTIGO (CLIENTE)" na listagem de produção.
 - **02/04/2026 04:30** — Filtro de data em Produção agora abre no último dia com produção registrada ao invés de sempre mostrar a data atual.
+- **02/04/2026 05:00** — Redirecionamento PWA para colaboradores: (1) Slug da empresa é salvo no localStorage ao logar via CompanyLogin ou ao acessar AppLayout; (2) Tela de login raiz (/) auto-redireciona para /{slug-salvo}/login se houver slug no localStorage; (3) Adicionado botão "Acessar portal da empresa" na tela de login raiz com input para digitar o slug da empresa manualmente.
 
 ---
 
-*Última atualização: 02/04/2026 04:30 (Brasília)*
+*Última atualização: 02/04/2026 05:00 (Brasília)*
