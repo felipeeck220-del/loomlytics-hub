@@ -256,10 +256,16 @@ export default function AccountsPayable() {
             📲 Notificação automática via WhatsApp 1 dia antes do vencimento
           </p>
         </div>
-        <Button onClick={openNew} className="btn-gradient gap-2">
-          <Plus className="h-4 w-4" />
-          Nova Conta
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowTestDialog(true)} className="gap-2">
+            <Send className="h-4 w-4" />
+            Enviar Teste
+          </Button>
+          <Button onClick={openNew} className="btn-gradient gap-2">
+            <Plus className="h-4 w-4" />
+            Nova Conta
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
