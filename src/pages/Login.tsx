@@ -145,8 +145,46 @@ export default function Login() {
 
             <div className="rounded-lg border border-border/60 bg-muted/30 p-3 mt-4">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                <span className="font-medium text-foreground">Colaboradores:</span> Se você é tecelão, mecânico, líder ou revisador, acesse pelo link exclusivo da sua empresa (ex: <span className="text-primary font-medium">/nome-empresa/login</span>). Este login é exclusivo para administradores.
+                <span className="font-medium text-foreground">Colaboradores:</span> Se você é tecelão, mecânico, líder ou revisador, acesse pelo link exclusivo da sua empresa. Este login é exclusivo para administradores.
               </p>
+              <div className="mt-3">
+                {!showCompanyInput ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs gap-2"
+                    onClick={() => setShowCompanyInput(true)}
+                  >
+                    <Building2 className="h-3.5 w-3.5" />
+                    Acessar portal da empresa
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="slug da empresa"
+                      value={companySlug}
+                      onChange={(e) => setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      className="h-8 text-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && companySlug.trim()) {
+                          e.preventDefault();
+                          navigate(`/${companySlug.trim()}/login`);
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8 px-3 text-xs"
+                      disabled={!companySlug.trim()}
+                      onClick={() => navigate(`/${companySlug.trim()}/login`)}
+                    >
+                      Ir
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <p className="text-center text-sm text-muted-foreground mt-4">
