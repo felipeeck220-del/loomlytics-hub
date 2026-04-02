@@ -1107,7 +1107,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **02/04/2026 09:00** — Corrigido bug de tela cinza após registro: a função `register` no AuthContext não carregava `companies` após criar a empresa via Edge Function, fazendo o CompanyRoute renderizar `null` (tela vazia). Agora `fetchUserCompanies()` é chamado junto com `fetchProfile()` após o registro.
 - **02/04/2026 09:30** — Corrigido seletor de Artigo e Tecelão no modal de produção: substituído Select+Input (Radix) por novo componente `SearchableSelect` usando Popover+ScrollArea. Resolve: (1) lista começava de baixo para cima (Radix fazia scroll para item selecionado); (2) foco saía da busca ao digitar (typeahead interno do Radix capturava teclas). Busca agora recebe foco automaticamente ao abrir e mantém foco estável. Aplicado também nos seletores de artigos adicionais.
 - **02/04/2026 09:45** — Aumentada área visível do SearchableSelect de 200px para 260px para mostrar mais itens simultaneamente, facilitando navegação manual por scroll.
+- **02/04/2026 12:30** — Ajustado dropdown do SearchableSelect para navegação manual com lista completa visível por scroll nativo: removido `ScrollArea` do Radix dentro do seletor e substituído por container com `overflow-y-auto` e altura maior (360px), evitando a impressão de que existem apenas os itens da primeira tela.
 
 ---
 
-*Última atualização: 02/04/2026 09:45 (Brasília)*
+*Última atualização: 02/04/2026 12:30 (Brasília)*

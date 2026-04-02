@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 export interface SearchableSelectOption {
   value: string;
