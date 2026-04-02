@@ -46,55 +46,77 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
 
 ---
 
-## 3. Fluxo de Notificação WhatsApp
+## 3. Fluxo de Notificação WhatsApp (Reportana)
 
 ### Arquitetura
 
 ```
 ┌──────────────┐     ┌─────────────────────┐     ┌──────────────────┐     ┌──────────┐
-│  pg_cron     │────▶│  Edge Function       │────▶│  Twilio Gateway  │────▶│ WhatsApp │
-│ (diário)     │     │ notify-accounts-due  │     │  (Connector)     │     │ Usuário  │
+│  pg_cron     │────▶│  Edge Function       │────▶│  Reportana       │────▶│ WhatsApp │
+│ (diário)     │     │ notify-accounts-due  │     │  (Webhook)       │     │ Usuário  │
 └──────────────┘     └─────────────────────┘     └──────────────────┘     └──────────┘
 ```
+
+### Por que Reportana e não Twilio?
+
+| Critério | Twilio | Reportana |
+|----------|--------|-----------|
+| Cobrança | Por mensagem enviada | Mensal fixo (ilimitado) |
+| Previsibilidade de custo | ❌ Variável | ✅ Fixo |
+| Integração | Connector Gateway | Webhook direto |
 
 ### Fluxo Detalhado
 
 1. **Cron Job (pg_cron + pg_net)**: Executa diariamente (ex: às 08:00 horário de Brasília)
 2. **Edge Function `notify-accounts-due`**:
    - Busca todas as contas com `due_date = CURRENT_DATE + 1` e `notification_sent = false` e `status = 'pendente'`
-   - Para cada conta encontrada, envia mensagem via Twilio WhatsApp
+   - Para cada conta encontrada, envia POST para o **webhook da Reportana** com os dados
    - Marca `notification_sent = true` após envio bem-sucedido
-3. **Twilio (via Connector Gateway)**:
-   - Utiliza o conector Twilio já disponível na plataforma
-   - Envia mensagem para o número cadastrado no registro
-   - Gateway URL: `https://connector-gateway.lovable.dev/twilio`
+3. **Reportana (Automação via Webhook)**:
+   - Recebe os dados via webhook
+   - Dispara mensagem WhatsApp usando template configurado na plataforma
+   - O número de WhatsApp remetente é o conectado na conta Reportana (API Oficial do Meta)
 
-### Mensagem de Notificação (Template)
+### Dados enviados ao Webhook
+
+A Edge Function envia um POST com o seguinte JSON:
+
+```json
+{
+  "phone": "+5511999999999",
+  "supplier_name": "Fornecedor XYZ",
+  "description": "Óleo lubrificante",
+  "amount": "1.250,00",
+  "due_date": "03/04/2026",
+  "company_name": "Malharia ABC"
+}
+```
+
+### Template da Mensagem (configurado na Reportana)
 
 ```
 🔔 *Lembrete de Pagamento - MalhaGest*
 
 Você tem um pagamento com vencimento *amanhã*:
 
-📋 *Fornecedor:* {supplier_name}
-📝 *Descrição:* {description}
-💰 *Valor:* R$ {amount}
-📅 *Vencimento:* {due_date}
+📋 *Fornecedor:* {{supplier_name}}
+📝 *Descrição:* {{description}}
+💰 *Valor:* R$ {{amount}}
+📅 *Vencimento:* {{due_date}}
 
 Acesse o sistema para mais detalhes.
 ```
 
-### Variáveis de Ambiente Necessárias
+> **Nota**: As variáveis `{{...}}` devem ser mapeadas na automação da Reportana para os campos recebidos via webhook.
 
-| Variável | Descrição | Origem |
+### Variáveis de Ambiente (Secrets)
+
+| Variável | Descrição | Status |
 |----------|-----------|--------|
-| `LOVABLE_API_KEY` | Chave da API Lovable | Automático (conector) |
-| `TWILIO_API_KEY` | Chave do conector Twilio | Conector Twilio (standard_connectors) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role para consultas sem RLS | Já configurado |
+| `REPORTANA_WEBHOOK_URL` | URL completa do webhook (com token) | ✅ Configurado |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role para consultas sem RLS | ✅ Já configurado |
 
-### Número de Origem (From)
-
-O número de WhatsApp remetente será o número Twilio configurado pelo conector. Formato Twilio WhatsApp: `whatsapp:+14155238886` (sandbox) ou número aprovado.
+> **Segurança**: A URL do webhook contém o token de autenticação embutido. Armazenada como secret, nunca no código.
 
 ---
 
@@ -102,7 +124,7 @@ O número de WhatsApp remetente será o número Twilio configurado pelo conector
 
 ### Responsabilidades
 1. Consultar `accounts_payable` onde `due_date = amanhã`, `status = 'pendente'`, `notification_sent = false`
-2. Para cada registro, enviar WhatsApp via Twilio Gateway
+2. Para cada registro, enviar POST para `REPORTANA_WEBHOOK_URL` com dados da conta
 3. Atualizar `notification_sent = true` em caso de sucesso
 4. Logar erros para diagnóstico
 5. Atualizar status para `vencido` em contas com `due_date < hoje` e `status = 'pendente'`
@@ -124,8 +146,8 @@ SELECT cron.schedule(
   '0 11 * * *',
   $$
   SELECT net.http_post(
-    url := 'https://<project-ref>.supabase.co/functions/v1/notify-accounts-due',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer <anon-key>"}'::jsonb,
+    url := 'https://etsaleegdpswwsprwyzv.supabase.co/functions/v1/notify-accounts-due',
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0c2FsZWVnZHBzd3dzcHJ3eXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMjI4MTEsImV4cCI6MjA4ODU5ODgxMX0.HgrEhziu6UyoFlLznhTgeNN5KZ0xhCVvBkfyuIEcR90"}'::jsonb,
     body := concat('{"time": "', now(), '"}')::jsonb
   ) AS request_id;
   $$
@@ -171,16 +193,22 @@ SELECT cron.schedule(
 
 ---
 
-## 7. Configuração do Conector Twilio
+## 7. Configuração da Reportana
 
 ### Pré-requisitos
-1. Conta Twilio ativa com número WhatsApp aprovado (ou sandbox para testes)
-2. Conector Twilio vinculado ao projeto via `standard_connectors--connect`
+1. Conta Reportana ativa com WhatsApp conectado (API Oficial do Meta)
+2. Automação criada com trigger de **Webhook** na plataforma Reportana
 
-### Passos
-1. Vincular conector Twilio ao projeto
-2. Secrets `LOVABLE_API_KEY` e `TWILIO_API_KEY` ficam disponíveis automaticamente
-3. Configurar número de origem na Edge Function ou como secret adicional (`TWILIO_WHATSAPP_FROM`)
+### Passos Realizados
+1. ✅ Automação "Contas a Pagar" criada na Reportana com trigger Webhook
+2. ✅ URL do webhook salva como secret `REPORTANA_WEBHOOK_URL`
+3. ✅ Template de mensagem configurado na automação da Reportana
+4. Mapear variáveis do webhook (`phone`, `supplier_name`, `description`, `amount`, `due_date`, `company_name`) no editor da Reportana
+
+### Vantagem de Custo
+- Reportana cobra um valor **mensal fixo** com mensagens **ilimitadas**
+- Diferente do Twilio que cobra **por mensagem enviada**
+- Ideal para empresas com alto volume de contas a pagar
 
 ---
 
@@ -190,6 +218,7 @@ SELECT cron.schedule(
 - **Validação de input**: Zod na Edge Function para validar corpo da requisição
 - **Números WhatsApp**: Validados no formato E.164 antes de enviar
 - **Service Role**: Usado apenas na Edge Function para consultas cross-company no cron
+- **Webhook URL como Secret**: URL com token embutido armazenada como `REPORTANA_WEBHOOK_URL`, nunca hardcoded
 - **Rate limiting**: Controle de envio para evitar spam
 
 ---
@@ -198,10 +227,11 @@ SELECT cron.schedule(
 
 - [ ] Criar tabela `accounts_payable` com migração
 - [ ] Criar página e componentes do módulo
-- [ ] Configurar conector Twilio
+- [x] Configurar integração Reportana (webhook + secret)
 - [ ] Criar Edge Function `notify-accounts-due`
 - [ ] Configurar cron job com pg_cron + pg_net
 - [ ] Adicionar ao menu lateral e `enabled_nav_items`
+- [ ] Mapear variáveis no editor da automação Reportana
 - [ ] Testes end-to-end
 - [ ] Opção de recorrência mensal (auto-gerar próxima conta após pagamento)
 - [ ] Relatório de despesas por período/categoria
@@ -214,3 +244,4 @@ SELECT cron.schedule(
 | Data/Hora (Brasília) | Descrição |
 |----------------------|-----------|
 | 01/04/2026 - XX:XX | Documentação inicial do módulo Contas a Pagar |
+| 02/04/2026 - 10:45 | Substituição do Twilio pela Reportana (webhook) para notificações WhatsApp. Secret `REPORTANA_WEBHOOK_URL` configurado. Documentação atualizada com fluxo, dados do webhook e template de mensagem. |
