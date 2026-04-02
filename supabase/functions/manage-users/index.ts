@@ -276,6 +276,33 @@ serve(async (req) => {
       });
     }
 
+    if (action === "update_permissions") {
+      const { user_id, permission_overrides } = body;
+      if (!user_id || !Array.isArray(permission_overrides)) {
+        return new Response(JSON.stringify({ error: "Missing user_id or permission_overrides" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({ permission_overrides })
+        .eq("user_id", user_id)
+        .eq("company_id", callerProfile.company_id);
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

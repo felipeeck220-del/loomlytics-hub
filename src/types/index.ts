@@ -222,4 +222,5 @@ export interface User {
   company_name: string;
   company_slug: string;
   role: string;
+  permission_overrides?: string[];
 }
