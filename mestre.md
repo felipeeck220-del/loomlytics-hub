@@ -148,9 +148,9 @@ interface AuthContextType {
 ```typescript
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
   admin:     ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'settings'],
-  lider:     ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'weavers', 'reports'],
+  lider:     ['machines', 'clients-articles', 'revision', 'mecanica', 'weavers'],
   mecanico:  ['machines', 'mecanica'],
-  revisador: ['production', 'revision'],
+  revisador: ['revision'],
 };
 ```
 
@@ -1099,7 +1099,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **02/04/2026 05:00** — Redirecionamento PWA para colaboradores: (1) Slug da empresa é salvo no localStorage ao logar via CompanyLogin ou ao acessar AppLayout; (2) Tela de login raiz (/) auto-redireciona para /{slug-salvo}/login se houver slug no localStorage; (3) Adicionado botão "Acessar portal da empresa" na tela de login raiz com input para digitar o slug da empresa manualmente.
 - **02/04/2026 05:30** — Valor/Kg oculto para usuários não-admin na listagem e no formulário de artigos (Clientes & Artigos), usando canSeeFinancial do usePermissions.
 - **02/04/2026 06:00** — Módulo Terceirizado removido do acesso de usuários não-admin (lider). Agora apenas admin pode acessar.
+- **02/04/2026 06:30** — Removidos Dashboard, Produção e Relatórios do acesso de não-admin. Líder agora acessa: Máquinas, Clientes & Artigos, Revisão, Mecânica, Tecelões. Revisador agora acessa apenas Revisão (produção removida).
 
 ---
 
-*Última atualização: 02/04/2026 06:00 (Brasília)*
+*Última atualização: 02/04/2026 06:30 (Brasília)*
