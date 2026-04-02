@@ -43,6 +43,7 @@ export default function ClientsArticles() {
   const [turnsArticle, setTurnsArticle] = useState<Article | null>(null);
   const [turnsDefault, setTurnsDefault] = useState('');
   const [turnsRows, setTurnsRows] = useState<MachineTurnRow[]>([]);
+  const [turnsSaving, setTurnsSaving] = useState(false);
 
   const openTurnsModal = (article: Article) => {
     setTurnsArticle(article);
@@ -69,28 +70,43 @@ export default function ClientsArticles() {
     const defaultVal = Number(turnsDefault);
     if (!defaultVal) { toast.error('Voltas padrão é obrigatório'); return; }
 
-    // Save default turns on article
-    const allArticles = [...articles];
-    const idx = allArticles.findIndex(a => a.id === turnsArticle.id);
-    if (idx >= 0) {
-      allArticles[idx] = { ...allArticles[idx], turns_per_roll: defaultVal };
-      await saveArticles(allArticles);
+    // Validate duplicates
+    const validRows = turnsRows.filter(r => r.machine_id && r.turns_per_roll);
+    const machineIds = validRows.map(r => r.machine_id);
+    const uniqueIds = new Set(machineIds);
+    if (uniqueIds.size < machineIds.length) {
+      toast.error('Existem máquinas duplicadas nas configurações específicas');
+      return;
     }
 
-    // Save machine-specific turns
-    const validRows = turnsRows.filter(r => r.machine_id && r.turns_per_roll);
-    const turnsData: ArticleMachineTurns[] = validRows.map(r => ({
-      id: r.id,
-      article_id: turnsArticle.id,
-      machine_id: r.machine_id,
-      company_id: '',
-      turns_per_roll: Number(r.turns_per_roll),
-      observations: r.observations || undefined,
-      created_at: new Date().toISOString(),
-    }));
-    await saveArticleMachineTurns(turnsArticle.id, turnsData);
-    toast.success('Configurações de voltas salvas');
-    setTurnsArticle(null);
+    setTurnsSaving(true);
+    try {
+      // Save default turns on article
+      const allArticles = [...articles];
+      const idx = allArticles.findIndex(a => a.id === turnsArticle.id);
+      if (idx >= 0) {
+        allArticles[idx] = { ...allArticles[idx], turns_per_roll: defaultVal };
+        await saveArticles(allArticles);
+      }
+
+      // Save machine-specific turns
+      const turnsData: ArticleMachineTurns[] = validRows.map(r => ({
+        id: r.id,
+        article_id: turnsArticle.id,
+        machine_id: r.machine_id,
+        company_id: '',
+        turns_per_roll: Number(r.turns_per_roll),
+        observations: r.observations || undefined,
+        created_at: new Date().toISOString(),
+      }));
+      await saveArticleMachineTurns(turnsArticle.id, turnsData);
+      toast.success('Configurações de voltas salvas');
+      setTurnsArticle(null);
+    } catch (err) {
+      console.error('Error saving turns config:', err);
+      toast.error('Erro ao salvar configurações de voltas');
+    }
+    setTurnsSaving(false);
   };
 
   // Get machines already used in turns rows (to prevent duplicates)
@@ -412,10 +428,11 @@ export default function ClientsArticles() {
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2 mt-2">
-            <Button onClick={handleSaveTurns} className="btn-gradient w-full sm:w-auto sm:flex-1">
+            <Button onClick={handleSaveTurns} className="btn-gradient w-full sm:w-auto sm:flex-1" disabled={turnsSaving}>
+              {turnsSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               Salvar Configurações
             </Button>
-            <Button variant="outline" onClick={() => setTurnsArticle(null)} className="w-full sm:w-auto sm:flex-1">
+            <Button variant="outline" onClick={() => setTurnsArticle(null)} className="w-full sm:w-auto sm:flex-1" disabled={turnsSaving}>
               Cancelar
             </Button>
           </DialogFooter>
