@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts_payable: {
+        Row: {
+          amount: number
+          category: string | null
+          company_id: string
+          created_at: string
+          description: string
+          due_date: string
+          id: string
+          notification_sent: boolean
+          observations: string | null
+          paid_at: string | null
+          status: string
+          supplier_name: string
+          updated_at: string
+          whatsapp_number: string
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          company_id: string
+          created_at?: string
+          description: string
+          due_date: string
+          id?: string
+          notification_sent?: boolean
+          observations?: string | null
+          paid_at?: string | null
+          status?: string
+          supplier_name: string
+          updated_at?: string
+          whatsapp_number: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string
+          due_date?: string
+          id?: string
+          notification_sent?: boolean
+          observations?: string | null
+          paid_at?: string | null
+          status?: string
+          supplier_name?: string
+          updated_at?: string
+          whatsapp_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_payable_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       article_machine_turns: {
         Row: {
           article_id: string
