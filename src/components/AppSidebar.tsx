@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt,
 } from 'lucide-react';
 import { useInstallApp } from '@/hooks/useInstallApp';
 import {
