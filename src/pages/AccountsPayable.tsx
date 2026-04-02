@@ -214,6 +214,32 @@ export default function AccountsPayable() {
     saveMutation.mutate(form);
   }
 
+  async function handleTestWebhook() {
+    const cleanPhone = testPhone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      toast.error('Digite um número de WhatsApp válido');
+      return;
+    }
+    setTestSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('test-webhook', {
+        body: { phone: cleanPhone },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast.success('Teste enviado! Verifique o WhatsApp.');
+      } else {
+        toast.error('Webhook retornou erro: ' + JSON.stringify(data));
+      }
+    } catch (err: any) {
+      toast.error('Erro ao enviar teste: ' + err.message);
+    } finally {
+      setTestSending(false);
+      setShowTestDialog(false);
+      setTestPhone('');
+    }
+  }
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
