@@ -225,12 +225,12 @@ SELECT cron.schedule(
 
 ## 9. Próximos Passos (Roadmap)
 
-- [ ] Criar tabela `accounts_payable` com migração
-- [ ] Criar página e componentes do módulo
+- [x] Criar tabela `accounts_payable` com migração
+- [x] Criar página e componentes do módulo
 - [x] Configurar integração Reportana (webhook + secret)
-- [ ] Criar Edge Function `notify-accounts-due`
-- [ ] Configurar cron job com pg_cron + pg_net
-- [ ] Adicionar ao menu lateral e `enabled_nav_items`
+- [x] Criar Edge Function `notify-accounts-due`
+- [x] Configurar cron job com pg_cron + pg_net
+- [x] Adicionar ao menu lateral e `enabled_nav_items`
 - [ ] Mapear variáveis no editor da automação Reportana
 - [ ] Testes end-to-end
 - [ ] Opção de recorrência mensal (auto-gerar próxima conta após pagamento)
@@ -245,3 +245,4 @@ SELECT cron.schedule(
 |----------------------|-----------|
 | 01/04/2026 - XX:XX | Documentação inicial do módulo Contas a Pagar |
 | 02/04/2026 - 10:45 | Substituição do Twilio pela Reportana (webhook) para notificações WhatsApp. Secret `REPORTANA_WEBHOOK_URL` configurado. Documentação atualizada com fluxo, dados do webhook e template de mensagem. |
+| 02/04/2026 - 11:30 | Implementação completa: tabela `accounts_payable` (RLS), página `/contas-pagar` (CRUD + filtros + KPIs), Edge Function `notify-accounts-due` (deploy + teste OK), cron job diário 08:00 Brasília, integração rotas/sidebar/permissões. |

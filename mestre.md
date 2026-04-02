@@ -1111,7 +1111,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **02/04/2026 13:00** — Scrollbar lateral oculta no SearchableSelect (seletores de Artigo e Tecelão): adicionado `scrollbar-hide` (webkit), `scrollbarWidth: none` (Firefox) e `msOverflowStyle: none` (IE/Edge). Scroll continua funcionando via roda do mouse.
 - **02/04/2026 13:30** — Subtítulo da página Produção agora exibe a data selecionada no filtro em vez da data atual fixa.
 - **02/04/2026 14:00** — Pente fino no sistema de produção — 3 bugs corrigidos: (1) `created_by_name` e `created_by_code` não eram salvos no banco ao registrar/atualizar produção (campos faltavam no `addProductions`, `updateProductions` e `saveProductions`); (2) `mapProduction` não lia `created_by_name`/`created_by_code` do banco, então a informação de quem registrou era perdida ao recarregar; (3) Filtro de máquina/artigo na listagem de produção: selecionar "Todas as máquinas" ou "Todos os artigos" setava valor `"all"` que era comparado com `machine_id`, retornando 0 resultados — adicionado check `!== 'all'`.
+- **02/04/2026 11:30** — **MÓDULO CONTAS A PAGAR:** Implementação completa conforme ContasPagar.md: (1) Tabela `accounts_payable` criada com RLS por `company_id`; (2) Página `/contas-pagar` com CRUD completo, filtros por status e busca, KPIs de totais pendente/vencido/pago; (3) Edge Function `notify-accounts-due` que busca contas vencendo amanhã e envia para webhook da Reportana (WhatsApp); (4) Cron job `pg_cron` configurado para executar diariamente às 08:00 (Brasília); (5) Atualização automática de status `vencido` para contas com vencimento passado; (6) Rota, sidebar e permissões configurados (apenas `admin`).
 
 ---
 
-*Última atualização: 02/04/2026 14:00 (Brasília)*
+*Última atualização: 02/04/2026 11:30 (Brasília)*
