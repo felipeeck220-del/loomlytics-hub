@@ -113,7 +113,7 @@ export default function AccountsPayable() {
         category: data.category || null,
         amount: parseFloat(data.amount.replace(',', '.')),
         due_date: data.due_date,
-        whatsapp_number: data.whatsapp_number,
+        whatsapp_number: data.whatsapp_number.replace(/\D/g, ''),
         observations: data.observations || null,
       };
 
@@ -181,7 +181,16 @@ export default function AccountsPayable() {
       category: account.category || '',
       amount: String(account.amount).replace('.', ','),
       due_date: account.due_date,
-      whatsapp_number: account.whatsapp_number,
+      whatsapp_number: (() => {
+        const d = account.whatsapp_number.replace(/\D/g, '').slice(0, 11);
+        let f = '';
+        if (d.length > 0) f += '(' + d.slice(0, 2);
+        if (d.length >= 2) f += ') ';
+        if (d.length >= 3) f += d.slice(2, 3);
+        if (d.length >= 4) f += ' ' + d.slice(3, 7);
+        if (d.length >= 7) f += '-' + d.slice(7, 11);
+        return f;
+      })(),
       observations: account.observations || '',
     });
     setShowForm(true);
@@ -411,8 +420,20 @@ export default function AccountsPayable() {
                 <Label>WhatsApp *</Label>
                 <Input
                   value={form.whatsapp_number}
-                  onChange={e => setForm(f => ({ ...f, whatsapp_number: e.target.value }))}
-                  placeholder="+5511999999999"
+                  onChange={e => {
+                    // Keep only digits
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    // Format as (XX) X XXXX-XXXX
+                    let formatted = '';
+                    if (digits.length > 0) formatted += '(' + digits.slice(0, 2);
+                    if (digits.length >= 2) formatted += ') ';
+                    if (digits.length >= 3) formatted += digits.slice(2, 3);
+                    if (digits.length >= 4) formatted += ' ' + digits.slice(3, 7);
+                    if (digits.length >= 7) formatted += '-' + digits.slice(7, 11);
+                    setForm(f => ({ ...f, whatsapp_number: formatted }));
+                  }}
+                  placeholder="(47) 9 9210-2017"
+                  maxLength={16}
                 />
               </div>
             </div>
