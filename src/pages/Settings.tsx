@@ -75,9 +75,9 @@ interface Profile {
 
 const ROLES = [
   { value: 'admin', label: 'Administrador', description: 'Acesso total ao sistema', color: 'bg-red-100 text-red-700' },
-  { value: 'lider', label: 'Líder', description: 'Acesso total exceto dados financeiros', color: 'bg-purple-100 text-purple-700' },
-  { value: 'mecanico', label: 'Mecânico', description: 'Acesso apenas às máquinas para manutenção', color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'revisador', label: 'Revisador', description: 'Acesso apenas para registrar produção', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'lider', label: 'Líder', description: 'Máquinas, artigos, revisão e mecânica', color: 'bg-purple-100 text-purple-700' },
+  { value: 'mecanico', label: 'Mecânico', description: 'Acesso apenas às máquinas e mecânica', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'revisador', label: 'Revisador', description: 'Acesso apenas para revisão', color: 'bg-yellow-100 text-yellow-700' },
 ];
 
 const PERMISSIONS = [
