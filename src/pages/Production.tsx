@@ -1015,13 +1015,13 @@ export default function ProductionPage() {
               <div key={idx} className="grid grid-cols-1 gap-3 border-t border-dashed border-border/50 pt-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <div className="space-y-1">
                   <Label className="text-xs">Artigo Adicional {idx + 2}</Label>
-                  <Select value={ea.article_id} onValueChange={v => setExtraArticles(prev => prev.map((e, i) => i === idx ? { ...e, article_id: v, search: '' } : e))}>
-                    <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Artigo" /></SelectTrigger>
-                    <SelectContent position="popper" side="bottom" className="max-h-[200px]">
-                      <div className="p-1"><Input placeholder="Buscar artigo..." value={ea.search} onChange={e => { e.stopPropagation(); setExtraArticles(prev => prev.map((ex, i) => i === idx ? { ...ex, search: e.target.value } : ex)); }} className="h-7 text-xs" onKeyDown={e => e.stopPropagation()} /></div>
-                      {articles.filter(a => { const s = ea.search.toLowerCase().trim(); if (!s) return true; const n = s.replace(/[.,\s]/g, ''); return a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s) || a.name.toLowerCase().replace(/[.,\s]/g, '').includes(n); }).map(a => <SelectItem key={a.id} value={a.id}>{a.name}{a.client_name ? ` (${a.client_name})` : ''}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    value={ea.article_id}
+                    onValueChange={v => setExtraArticles(prev => prev.map((e, i) => i === idx ? { ...e, article_id: v } : e))}
+                    placeholder="Artigo"
+                    searchPlaceholder="Buscar artigo..."
+                    options={articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Rolos</Label>
