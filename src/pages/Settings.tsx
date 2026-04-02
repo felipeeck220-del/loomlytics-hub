@@ -5,16 +5,16 @@ const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> 
     denied: [],
   },
   lider: {
-    allowed: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Mecânica', 'Relatórios e Análises', 'Configurações do Sistema', 'Alterar Senha'],
-    denied: ['Financeiro'],
+    allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Gestão de Tecelões', 'Revisão', 'Mecânica', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Registro de Produção', 'Terceirização', 'Relatórios e Análises', 'Financeiro'],
   },
   mecanico: {
-    allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Configurações do Sistema', 'Alterar Senha'],
+    allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Alterar Senha'],
     denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Relatórios e Análises', 'Financeiro'],
   },
   revisador: {
-    allowed: ['Registro de Produção', 'Revisão', 'Configurações do Sistema', 'Alterar Senha'],
-    denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Terceirização', 'Gestão de Tecelões', 'Mecânica', 'Relatórios e Análises', 'Financeiro'],
+    allowed: ['Revisão', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Mecânica', 'Relatórios e Análises', 'Financeiro'],
   },
 };
 
