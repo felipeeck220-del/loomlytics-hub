@@ -244,3 +244,4 @@ SELECT cron.schedule(
 | Data/Hora (Brasília) | Descrição |
 |----------------------|-----------|
 | 01/04/2026 - XX:XX | Documentação inicial do módulo Contas a Pagar |
+| 02/04/2026 - 10:45 | Substituição do Twilio pela Reportana (webhook) para notificações WhatsApp. Secret `REPORTANA_WEBHOOK_URL` configurado. Documentação atualizada com fluxo, dados do webhook e template de mensagem. |
