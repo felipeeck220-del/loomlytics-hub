@@ -99,7 +99,7 @@ export function SearchableSelect({
             className="h-7 border-0 p-0 text-xs shadow-none focus-visible:ring-0"
           />
         </div>
-        <ScrollArea className="max-h-[200px]">
+        <ScrollArea className="max-h-[260px]">
           <div className="p-1">
             {filtered.length === 0 && (
               <p className="py-4 text-center text-xs text-muted-foreground">Nenhum resultado</p>
