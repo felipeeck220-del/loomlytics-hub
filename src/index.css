@@ -218,3 +218,7 @@
 }
 
 #lovable-badge { display: none !important; }
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
