@@ -130,8 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: result?.error || 'Erro ao criar empresa' };
     }
 
-    const appUser = await fetchProfile(authData.user);
+    const [appUser, userCompanies] = await Promise.all([
+      fetchProfile(authData.user),
+      fetchUserCompanies(),
+    ]);
     setUser(appUser);
+    setCompanies(userCompanies);
 
     return { success: true, slug: result?.slug };
   };
