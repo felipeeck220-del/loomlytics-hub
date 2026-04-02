@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
