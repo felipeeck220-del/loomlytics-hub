@@ -27,9 +27,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Remove non-digits
+    // Ensure format +55XXXXXXXXXXX
     const cleanPhone = phone.replace(/\D/g, "");
-
+    const formattedPhone = cleanPhone.startsWith("55") ? `+${cleanPhone}` : `+55${cleanPhone}`;
     const payload = {
       phone: cleanPhone,
       supplier_name: "Fornecedor Teste",
