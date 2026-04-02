@@ -138,6 +138,8 @@ export function useCompanyData() {
     rpm: Number(r.rpm), rolls_produced: Number(r.rolls_produced),
     weight_kg: Number(r.weight_kg), revenue: Number(r.revenue),
     efficiency: Number(r.efficiency), created_at: r.created_at,
+    created_by_name: r.created_by_name || undefined,
+    created_by_code: r.created_by_code || undefined,
   });
   const mapArticleMachineTurns = (r: any): ArticleMachineTurns => ({
     id: r.id, article_id: r.article_id, machine_id: r.machine_id,
