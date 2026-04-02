@@ -509,7 +509,7 @@ export default function ProductionPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Produção</h1>
-          <p className="text-muted-foreground text-sm">Registre e acompanhe a produção por turno - {format(new Date(), 'dd/MM/yyyy')}</p>
+          <p className="text-muted-foreground text-sm">Registre e acompanhe a produção por turno - {filterDate ? format(new Date(filterDate + 'T12:00:00'), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
