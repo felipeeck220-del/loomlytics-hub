@@ -1108,7 +1108,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **02/04/2026 09:30** — Corrigido seletor de Artigo e Tecelão no modal de produção: substituído Select+Input (Radix) por novo componente `SearchableSelect` usando Popover+ScrollArea. Resolve: (1) lista começava de baixo para cima (Radix fazia scroll para item selecionado); (2) foco saía da busca ao digitar (typeahead interno do Radix capturava teclas). Busca agora recebe foco automaticamente ao abrir e mantém foco estável. Aplicado também nos seletores de artigos adicionais.
 - **02/04/2026 09:45** — Aumentada área visível do SearchableSelect de 200px para 260px para mostrar mais itens simultaneamente, facilitando navegação manual por scroll.
 - **02/04/2026 12:30** — Ajustado dropdown do SearchableSelect para navegação manual com lista completa visível por scroll nativo: removido `ScrollArea` do Radix dentro do seletor e substituído por container com `overflow-y-auto` e altura maior (360px), evitando a impressão de que existem apenas os itens da primeira tela.
+- **02/04/2026 13:00** — Scrollbar lateral oculta no SearchableSelect (seletores de Artigo e Tecelão): adicionado `scrollbar-hide` (webkit), `scrollbarWidth: none` (Firefox) e `msOverflowStyle: none` (IE/Edge). Scroll continua funcionando via roda do mouse.
 
 ---
 
-*Última atualização: 02/04/2026 12:30 (Brasília)*
+*Última atualização: 02/04/2026 13:00 (Brasília)*
