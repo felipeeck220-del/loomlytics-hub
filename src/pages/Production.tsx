@@ -45,9 +45,21 @@ export default function ProductionPage() {
   // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [filterDate, setFilterDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [filterDateInitialized, setFilterDateInitialized] = useState(false);
   const [filterMachine, setFilterMachine] = useState('');
   const [filterArticle, setFilterArticle] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Set filterDate to last production date once data loads
+  useEffect(() => {
+    if (!filterDateInitialized && !loading && productions.length > 0) {
+      const lastDate = productions.reduce((max, p) => p.date > max ? p.date : max, productions[0].date);
+      setFilterDate(lastDate);
+      setFilterDateInitialized(true);
+    } else if (!filterDateInitialized && !loading && productions.length === 0) {
+      setFilterDateInitialized(true);
+    }
+  }, [loading, productions, filterDateInitialized]);
 
   // Active shift tab
   const [activeShift, setActiveShift] = useState<ShiftType>('manha');
