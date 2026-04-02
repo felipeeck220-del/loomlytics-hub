@@ -461,7 +461,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
               <Plus className="h-4 w-4" /> Nova Produção
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editId ? 'Editar Produção' : 'Registrar Produção Terceirizada'}</DialogTitle>
             </DialogHeader>
