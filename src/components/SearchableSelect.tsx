@@ -98,7 +98,11 @@ export function SearchableSelect({
             className="h-7 border-0 p-0 text-xs shadow-none focus-visible:ring-0"
           />
         </div>
-        <div className="max-h-[360px] overflow-y-auto">
+        <div
+          className="max-h-[360px] overflow-y-auto"
+          style={{ overscrollBehavior: 'contain' }}
+          onWheel={e => e.stopPropagation()}
+        >
           <div className="p-1">
             {filtered.length === 0 && (
               <p className="py-4 text-center text-xs text-muted-foreground">Nenhum resultado</p>
