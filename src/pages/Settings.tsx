@@ -496,7 +496,7 @@ export default function SettingsPage() {
   const handleToggleStatus = async (p: Profile) => {
     const newStatus = p.status === 'active' ? 'inactive' : 'active';
     const { data, error } = await supabase.functions.invoke('manage-users', {
-      body: { action: 'update', user_id: p.id, status: newStatus },
+      body: { action: 'update', user_id: p.user_id, status: newStatus },
     });
     if (error || data?.error) { toast.error('Erro ao atualizar status'); return; }
     toast.success(newStatus === 'active' ? 'Usuário ativado' : 'Usuário desativado');
@@ -857,9 +857,11 @@ export default function SettingsPage() {
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
                         <Key className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(p)} title={p.status === 'active' ? 'Desativar' : 'Ativar'}>
-                        <XCircle className="h-3.5 w-3.5 text-warning" />
-                      </Button>
+                      {p.user_id !== user?.id && (
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(p)} title={p.status === 'active' ? 'Desativar' : 'Ativar'}>
+                          <XCircle className="h-3.5 w-3.5 text-warning" />
+                        </Button>
+                      )}
                       {p.user_id !== user?.id && (
                         <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDeleteUser(p); setDeleteWord(''); }}>
                           <Trash2 className="h-3.5 w-3.5" />
