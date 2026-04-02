@@ -1093,7 +1093,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **01/04/2026 04:30** — Pente fino no modal de produção: (1) articleSearch agora é limpo ao avançar (evita filtro residual no dropdown); (2) Corrigido exibição de `(null)` no dropdown de artigos quando client_name é nulo — agora mostra apenas o nome do artigo; (3) Mesma correção aplicada nos artigos adicionais.
 - **02/04/2026 00:30** — Modal "Registrar Produção Terceirizada" ampliado de max-w-lg para w-[95vw] sm:w-[80vw] sm:max-w-2xl com max-h-[80vh] e overflow-y-auto, seguindo padrão de modais do sistema.
 - **02/04/2026 03:00** — Correções no modal "Configurar Voltas por Máquina": (1) Adicionado estado de loading no botão salvar com spinner; (2) Adicionado try/catch com toast de erro; (3) Adicionada validação de máquinas duplicadas antes de salvar; (4) Botões desabilitados durante salvamento.
+- **02/04/2026 03:30** — Adicionado campo de busca (lupa) na página de Produção para filtrar registros por máquina, tecelão ou artigo. Busca textual em tempo real, integrada com os filtros existentes. Limpa junto com "Limpar Filtros".
 
 ---
 
-*Última atualização: 02/04/2026 03:00 (Brasília)*
+*Última atualização: 02/04/2026 03:30 (Brasília)*
