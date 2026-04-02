@@ -397,8 +397,8 @@ export default function ProductionPage() {
   const filteredProductions = useMemo(() => {
     let result = [...productions];
     if (filterDate) result = result.filter(p => p.date === filterDate);
-    if (filterMachine) result = result.filter(p => p.machine_id === filterMachine);
-    if (filterArticle) result = result.filter(p => p.article_id === filterArticle);
+    if (filterMachine && filterMachine !== 'all') result = result.filter(p => p.machine_id === filterMachine);
+    if (filterArticle && filterArticle !== 'all') result = result.filter(p => p.article_id === filterArticle);
     return result;
   }, [productions, filterDate, filterMachine, filterArticle]);
 

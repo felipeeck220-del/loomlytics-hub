@@ -324,6 +324,8 @@ export function useCompanyData() {
         article_id: p.article_id || null, article_name: p.article_name || null,
         rpm: p.rpm, rolls_produced: p.rolls_produced, weight_kg: p.weight_kg,
         revenue: p.revenue, efficiency: p.efficiency, created_at: p.created_at,
+        created_by_name: p.created_by_name || null,
+        created_by_code: p.created_by_code || null,
       }));
       await sb('productions').insert(rows);
     }
