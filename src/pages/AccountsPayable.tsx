@@ -214,6 +214,9 @@ export default function AccountsPayable() {
           <p className="text-sm text-muted-foreground mt-1">
             Gerencie suas obrigações financeiras com fornecedores
           </p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5 flex items-center gap-1">
+            📲 Notificação automática via WhatsApp 1 dia antes do vencimento
+          </p>
         </div>
         <Button onClick={openNew} className="btn-gradient gap-2">
           <Plus className="h-4 w-4" />
