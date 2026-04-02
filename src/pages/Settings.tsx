@@ -857,9 +857,11 @@ export default function SettingsPage() {
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
                         <Key className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(p)} title={p.status === 'active' ? 'Desativar' : 'Ativar'}>
-                        <XCircle className="h-3.5 w-3.5 text-warning" />
-                      </Button>
+                      {p.user_id !== user?.id && (
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(p)} title={p.status === 'active' ? 'Desativar' : 'Ativar'}>
+                          <XCircle className="h-3.5 w-3.5 text-warning" />
+                        </Button>
+                      )}
                       {p.user_id !== user?.id && (
                         <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDeleteUser(p); setDeleteWord(''); }}>
                           <Trash2 className="h-3.5 w-3.5" />
