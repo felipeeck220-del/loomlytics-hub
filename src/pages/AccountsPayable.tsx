@@ -511,6 +511,44 @@ export default function AccountsPayable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Test Webhook Dialog */}
+      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Enviar Teste WhatsApp</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Número WhatsApp</Label>
+            <Input
+              placeholder="(47) 9 9210-2017"
+              value={testPhone}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, '').slice(0, 11);
+                let formatted = '';
+                if (raw.length > 0) formatted += '(' + raw.slice(0, 2);
+                if (raw.length >= 2) formatted += ') ';
+                if (raw.length >= 3) formatted += raw.slice(2, 3);
+                if (raw.length >= 4) formatted += ' ' + raw.slice(3, 7);
+                if (raw.length >= 7) formatted += '-' + raw.slice(7, 11);
+                setTestPhone(formatted);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Dados fictícios serão enviados para testar a integração com a Reportana.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowTestDialog(false); setTestPhone(''); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleTestWebhook} disabled={testSending} className="gap-2">
+              <Send className="h-4 w-4" />
+              {testSending ? 'Enviando...' : 'Enviar Teste'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
