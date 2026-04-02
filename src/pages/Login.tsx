@@ -1,19 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Factory, Mail, Lock, ArrowRight, BarChart3, Settings2, ClipboardList } from 'lucide-react';
+import { Factory, Mail, Lock, ArrowRight, BarChart3, Settings2, ClipboardList, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [companySlug, setCompanySlug] = useState('');
+  const [showCompanyInput, setShowCompanyInput] = useState(false);
   const { login, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Auto-redirect to last company login if saved in localStorage (PWA users)
+  useEffect(() => {
+    const savedSlug = localStorage.getItem('malhagest_last_slug');
+    if (savedSlug) {
+      navigate(`/${savedSlug}/login`, { replace: true });
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

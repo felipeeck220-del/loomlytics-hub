@@ -49,6 +49,7 @@ export default function CompanyLogin() {
     const result = await login(email, password);
     setLoading(false);
     if (result.success) {
+      if (slug) localStorage.setItem('malhagest_last_slug', slug);
       navigate(`/${slug}`, { replace: true });
     } else {
       toast.error(result.error || 'Email ou senha incorretos');
