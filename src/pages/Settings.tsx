@@ -5,16 +5,16 @@ const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> 
     denied: [],
   },
   lider: {
-    allowed: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Mecânica', 'Relatórios e Análises', 'Configurações do Sistema', 'Alterar Senha'],
-    denied: ['Financeiro'],
+    allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Gestão de Tecelões', 'Revisão', 'Mecânica', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Registro de Produção', 'Terceirização', 'Relatórios e Análises', 'Financeiro'],
   },
   mecanico: {
-    allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Configurações do Sistema', 'Alterar Senha'],
+    allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Alterar Senha'],
     denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Relatórios e Análises', 'Financeiro'],
   },
   revisador: {
-    allowed: ['Registro de Produção', 'Revisão', 'Configurações do Sistema', 'Alterar Senha'],
-    denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Terceirização', 'Gestão de Tecelões', 'Mecânica', 'Relatórios e Análises', 'Financeiro'],
+    allowed: ['Revisão', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Mecânica', 'Relatórios e Análises', 'Financeiro'],
   },
 };
 
@@ -54,7 +54,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
-import { usePermissions } from '@/hooks/usePermissions';
+import { usePermissions, OVERRIDE_PERMISSIONS } from '@/hooks/usePermissions';
 import ProductionModeModal from '@/components/ProductionModeModal';
 import SettingsTelasTab from '@/components/SettingsTelasTab';
 import { QRCodeSVG } from 'qrcode.react';
@@ -70,13 +70,14 @@ interface Profile {
   status: string;
   code?: string;
   created_at: string;
+  permission_overrides?: string[];
 }
 
 const ROLES = [
   { value: 'admin', label: 'Administrador', description: 'Acesso total ao sistema', color: 'bg-red-100 text-red-700' },
-  { value: 'lider', label: 'Líder', description: 'Acesso total exceto dados financeiros', color: 'bg-purple-100 text-purple-700' },
-  { value: 'mecanico', label: 'Mecânico', description: 'Acesso apenas às máquinas para manutenção', color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'revisador', label: 'Revisador', description: 'Acesso apenas para registrar produção', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'lider', label: 'Líder', description: 'Máquinas, artigos, revisão e mecânica', color: 'bg-purple-100 text-purple-700' },
+  { value: 'mecanico', label: 'Mecânico', description: 'Acesso apenas às máquinas e mecânica', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'revisador', label: 'Revisador', description: 'Acesso apenas para revisão', color: 'bg-yellow-100 text-yellow-700' },
 ];
 
 const PERMISSIONS = [
@@ -523,6 +524,37 @@ export default function SettingsPage() {
   };
 
   const [deletingUser, setDeletingUser] = useState(false);
+  
+  // Permission overrides modal
+  const [permissionsUser, setPermissionsUser] = useState<Profile | null>(null);
+  const [permOverrides, setPermOverrides] = useState<string[]>([]);
+  const [savingPerms, setSavingPerms] = useState(false);
+
+  const openPermissionsModal = (p: Profile) => {
+    setPermissionsUser(p);
+    setPermOverrides(Array.isArray(p.permission_overrides) ? [...p.permission_overrides] : []);
+  };
+
+  const togglePermOverride = (key: string) => {
+    setPermOverrides(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+
+  const handleSavePermissions = async () => {
+    if (!permissionsUser) return;
+    setSavingPerms(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'update_permissions', user_id: permissionsUser.user_id, permission_overrides: permOverrides },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast.success('Permissões atualizadas');
+      await refreshProfiles();
+      setPermissionsUser(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao salvar permissões');
+    }
+    setSavingPerms(false);
+  };
 
   const handleDeleteUser = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
@@ -814,6 +846,11 @@ export default function SettingsPage() {
                   </div>
                   {isAdmin && (
                     <div className="flex items-center gap-1 shrink-0">
+                      {p.role !== 'admin' && (
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openPermissionsModal(p)} title="Permissões Extras">
+                          <Eye className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                      )}
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditUser(p)} title="Editar">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -1466,6 +1503,70 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Permission Overrides Modal */}
+      <Dialog open={!!permissionsUser} onOpenChange={(open) => { if (!open) setPermissionsUser(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Permissões Extras
+            </DialogTitle>
+          </DialogHeader>
+          {permissionsUser && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+                <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center">
+                  <span className="text-sm font-bold text-primary">{permissionsUser.name.charAt(0).toUpperCase()}</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground text-sm">{permissionsUser.name}</p>
+                  <Badge className={`${getRoleColor(permissionsUser.role)} text-xs`}>{getRoleLabel(permissionsUser.role)}</Badge>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Conceda permissões extras além do padrão da função. Estas permissões são bloqueadas por padrão para este role.
+              </p>
+              <div className="space-y-2">
+                {OVERRIDE_PERMISSIONS.map(perm => (
+                  <button
+                    key={perm.key}
+                    type="button"
+                    onClick={() => togglePermOverride(perm.key)}
+                    className={`w-full flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
+                      permOverrides.includes(perm.key)
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-border bg-background hover:bg-muted/30'
+                    }`}
+                  >
+                    <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${
+                      permOverrides.includes(perm.key)
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground/40'
+                    }`}>
+                      {permOverrides.includes(perm.key) && (
+                        <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{perm.label}</p>
+                      <p className="text-xs text-muted-foreground">{perm.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPermissionsUser(null)}>Cancelar</Button>
+            <Button className="btn-gradient" disabled={savingPerms} onClick={handleSavePermissions}>
+              {savingPerms && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

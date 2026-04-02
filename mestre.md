@@ -1100,7 +1100,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **02/04/2026 05:30** — Valor/Kg oculto para usuários não-admin na listagem e no formulário de artigos (Clientes & Artigos), usando canSeeFinancial do usePermissions.
 - **02/04/2026 06:00** — Módulo Terceirizado removido do acesso de usuários não-admin (lider). Agora apenas admin pode acessar.
 - **02/04/2026 06:30** — Removidos Dashboard, Produção e Relatórios do acesso de não-admin. Líder agora acessa: Máquinas, Clientes & Artigos, Revisão, Mecânica, Tecelões. Revisador agora acessa apenas Revisão (produção removida).
+- **02/04/2026 07:00** — Sistema de permissões extras por usuário: (1) Coluna `permission_overrides` (JSONB) adicionada à tabela `profiles`; (2) Ícone de olho na listagem de usuários (Settings > Usuários) abre modal para conceder permissões bloqueadas por padrão: Financeiro, Dashboard, Produção, Relatórios e Terceirizado; (3) `usePermissions` agora mescla permissões do role com overrides do usuário; (4) Edge Function `manage-users` suporta ação `update_permissions`; (5) Descrições de roles e ROLE_PERMISSIONS atualizados para refletir permissões restringidas.
 
 ---
 
-*Última atualização: 02/04/2026 06:30 (Brasília)*
+*Última atualização: 02/04/2026 07:00 (Brasília)*

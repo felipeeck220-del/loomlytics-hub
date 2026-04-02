@@ -875,6 +875,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          permission_overrides: Json
           role: string
           status: string
           user_id: string
@@ -886,6 +887,7 @@ export type Database = {
           email: string
           id?: string
           name: string
+          permission_overrides?: Json
           role?: string
           status?: string
           user_id: string
@@ -897,6 +899,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          permission_overrides?: Json
           role?: string
           status?: string
           user_id?: string
