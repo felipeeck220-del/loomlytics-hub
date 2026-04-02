@@ -1,0 +1,3 @@
+ALTER TABLE public.company_settings 
+ALTER COLUMN enabled_nav_items 
+SET DEFAULT '["dashboard", "machines", "clients-articles", "production", "outsource", "weavers", "reports", "settings", "revision", "mecanica", "contas-pagar"]'::jsonb;
