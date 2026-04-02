@@ -411,8 +411,20 @@ export default function AccountsPayable() {
                 <Label>WhatsApp *</Label>
                 <Input
                   value={form.whatsapp_number}
-                  onChange={e => setForm(f => ({ ...f, whatsapp_number: e.target.value }))}
-                  placeholder="+5511999999999"
+                  onChange={e => {
+                    // Keep only digits
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    // Format as (XX) X XXXX-XXXX
+                    let formatted = '';
+                    if (digits.length > 0) formatted += '(' + digits.slice(0, 2);
+                    if (digits.length >= 2) formatted += ') ';
+                    if (digits.length >= 3) formatted += digits.slice(2, 3);
+                    if (digits.length >= 4) formatted += ' ' + digits.slice(3, 7);
+                    if (digits.length >= 7) formatted += '-' + digits.slice(7, 11);
+                    setForm(f => ({ ...f, whatsapp_number: formatted }));
+                  }}
+                  placeholder="(47) 9 9210-2017"
+                  maxLength={16}
                 />
               </div>
             </div>
