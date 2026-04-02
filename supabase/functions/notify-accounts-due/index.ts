@@ -77,8 +77,12 @@ Deno.serve(async (req) => {
         const [year, month, day] = account.due_date.split("-");
         const dueDateFormatted = `${day}/${month}/${year}`;
 
+        // Format phone to +55XXXXXXXXXXX as required by Reportana API
+        const cleanPhone = account.whatsapp_number.replace(/\D/g, '');
+        const formattedPhone = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
+
         const payload = {
-          phone: account.whatsapp_number,
+          phone: formattedPhone,
           supplier_name: account.supplier_name,
           description: account.description,
           amount: amountFormatted,
