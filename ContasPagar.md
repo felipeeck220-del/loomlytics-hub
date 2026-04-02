@@ -124,7 +124,7 @@ Acesse o sistema para mais detalhes.
 
 ### Responsabilidades
 1. Consultar `accounts_payable` onde `due_date = amanhã`, `status = 'pendente'`, `notification_sent = false`
-2. Para cada registro, enviar WhatsApp via Twilio Gateway
+2. Para cada registro, enviar POST para `REPORTANA_WEBHOOK_URL` com dados da conta
 3. Atualizar `notification_sent = true` em caso de sucesso
 4. Logar erros para diagnóstico
 5. Atualizar status para `vencido` em contas com `due_date < hoje` e `status = 'pendente'`
@@ -146,8 +146,8 @@ SELECT cron.schedule(
   '0 11 * * *',
   $$
   SELECT net.http_post(
-    url := 'https://<project-ref>.supabase.co/functions/v1/notify-accounts-due',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer <anon-key>"}'::jsonb,
+    url := 'https://etsaleegdpswwsprwyzv.supabase.co/functions/v1/notify-accounts-due',
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0c2FsZWVnZHBzd3dzcHJ3eXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMjI4MTEsImV4cCI6MjA4ODU5ODgxMX0.HgrEhziu6UyoFlLznhTgeNN5KZ0xhCVvBkfyuIEcR90"}'::jsonb,
     body := concat('{"time": "', now(), '"}')::jsonb
   ) AS request_id;
   $$
@@ -193,16 +193,22 @@ SELECT cron.schedule(
 
 ---
 
-## 7. Configuração do Conector Twilio
+## 7. Configuração da Reportana
 
 ### Pré-requisitos
-1. Conta Twilio ativa com número WhatsApp aprovado (ou sandbox para testes)
-2. Conector Twilio vinculado ao projeto via `standard_connectors--connect`
+1. Conta Reportana ativa com WhatsApp conectado (API Oficial do Meta)
+2. Automação criada com trigger de **Webhook** na plataforma Reportana
 
-### Passos
-1. Vincular conector Twilio ao projeto
-2. Secrets `LOVABLE_API_KEY` e `TWILIO_API_KEY` ficam disponíveis automaticamente
-3. Configurar número de origem na Edge Function ou como secret adicional (`TWILIO_WHATSAPP_FROM`)
+### Passos Realizados
+1. ✅ Automação "Contas a Pagar" criada na Reportana com trigger Webhook
+2. ✅ URL do webhook salva como secret `REPORTANA_WEBHOOK_URL`
+3. ✅ Template de mensagem configurado na automação da Reportana
+4. Mapear variáveis do webhook (`phone`, `supplier_name`, `description`, `amount`, `due_date`, `company_name`) no editor da Reportana
+
+### Vantagem de Custo
+- Reportana cobra um valor **mensal fixo** com mensagens **ilimitadas**
+- Diferente do Twilio que cobra **por mensagem enviada**
+- Ideal para empresas com alto volume de contas a pagar
 
 ---
 
