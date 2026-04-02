@@ -428,10 +428,11 @@ export default function ClientsArticles() {
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2 mt-2">
-            <Button onClick={handleSaveTurns} className="btn-gradient w-full sm:w-auto sm:flex-1">
+            <Button onClick={handleSaveTurns} className="btn-gradient w-full sm:w-auto sm:flex-1" disabled={turnsSaving}>
+              {turnsSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               Salvar Configurações
             </Button>
-            <Button variant="outline" onClick={() => setTurnsArticle(null)} className="w-full sm:w-auto sm:flex-1">
+            <Button variant="outline" onClick={() => setTurnsArticle(null)} className="w-full sm:w-auto sm:flex-1" disabled={turnsSaving}>
               Cancelar
             </Button>
           </DialogFooter>
