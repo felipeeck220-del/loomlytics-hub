@@ -218,6 +218,7 @@ SELECT cron.schedule(
 - **Validação de input**: Zod na Edge Function para validar corpo da requisição
 - **Números WhatsApp**: Validados no formato E.164 antes de enviar
 - **Service Role**: Usado apenas na Edge Function para consultas cross-company no cron
+- **Webhook URL como Secret**: URL com token embutido armazenada como `REPORTANA_WEBHOOK_URL`, nunca hardcoded
 - **Rate limiting**: Controle de envio para evitar spam
 
 ---
@@ -226,10 +227,11 @@ SELECT cron.schedule(
 
 - [ ] Criar tabela `accounts_payable` com migração
 - [ ] Criar página e componentes do módulo
-- [ ] Configurar conector Twilio
+- [x] Configurar integração Reportana (webhook + secret)
 - [ ] Criar Edge Function `notify-accounts-due`
 - [ ] Configurar cron job com pg_cron + pg_net
 - [ ] Adicionar ao menu lateral e `enabled_nav_items`
+- [ ] Mapear variáveis no editor da automação Reportana
 - [ ] Testes end-to-end
 - [ ] Opção de recorrência mensal (auto-gerar próxima conta após pagamento)
 - [ ] Relatório de despesas por período/categoria
