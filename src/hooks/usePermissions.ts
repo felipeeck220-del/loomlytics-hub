@@ -31,6 +31,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   outsource: 'outsource',
   weavers: 'weavers',
   reports: 'reports',
+  'contas-pagar': 'contas-pagar',
   settings: 'settings',
 };
 
