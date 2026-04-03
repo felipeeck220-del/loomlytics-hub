@@ -686,6 +686,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                         {formatCurrency(p.total_profit)}
                       </span>
                     </TableCell>
+                    <TableCell className="whitespace-nowrap">{(p as any).nf_rom || '—'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Edit className="h-4 w-4" /></Button>
