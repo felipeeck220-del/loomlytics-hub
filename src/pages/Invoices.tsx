@@ -484,6 +484,83 @@ export default function Invoices() {
     }), { received: 0, sold: 0, consumed: 0, balance: 0 });
   }, [yarnBalance]);
 
+  // ===== Saldo Global de Fios (por tipo de fio, todos clientes) =====
+  const yarnGlobalBalance = useMemo(() => {
+    const selectedMonth = saldoGlobalMonth;
+    const map = new Map<string, { yarnTypeId: string; yarnTypeName: string; purchaseMonth: number; consumedMonth: number; salesMonth: number; stockAccumulated: number }>();
+
+    // Helper: last day of a yyyy-MM string
+    const lastDayOfMonth = (ym: string): string => {
+      const [year, month] = ym.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
+      return `${ym}-${String(lastDay).padStart(2, '0')}`;
+    };
+
+    // Initialize all yarn types
+    for (const yt of yarnTypes) {
+      map.set(yt.id, { yarnTypeId: yt.id, yarnTypeName: yt.name, purchaseMonth: 0, consumedMonth: 0, salesMonth: 0, stockAccumulated: 0 });
+    }
+
+    const endDate = selectedMonth === 'all' ? '9999-12-31' : lastDayOfMonth(selectedMonth);
+
+    // 1. Compra (NFs entrada)
+    const entradaInvs = invoices.filter(inv => inv.type === 'entrada' && inv.status !== 'cancelada');
+    for (const inv of entradaInvs) {
+      const isMonth = selectedMonth === 'all' || inv.issue_date.startsWith(selectedMonth);
+      const isAccum = inv.issue_date <= endDate;
+      const items = invoiceItems.filter(it => it.invoice_id === inv.id && it.yarn_type_id);
+      for (const item of items) {
+        const entry = map.get(item.yarn_type_id!);
+        if (!entry) continue;
+        if (isMonth) entry.purchaseMonth += Number(item.weight_kg);
+        if (isAccum) entry.stockAccumulated += Number(item.weight_kg);
+      }
+    }
+
+    // 2. Consumo (produções via artigos)
+    for (const prod of productions) {
+      const art = articles.find(a => a.id === prod.article_id);
+      if (!art?.yarn_type_id) continue;
+      const entry = map.get(art.yarn_type_id);
+      if (!entry) continue;
+      const isMonth = selectedMonth === 'all' || prod.date.startsWith(selectedMonth);
+      const isAccum = prod.date <= endDate;
+      if (isMonth) entry.consumedMonth += Number(prod.weight_kg);
+      if (isAccum) entry.stockAccumulated -= Number(prod.weight_kg);
+    }
+
+    // 3. Vendas (NFs venda_fio)
+    const vendaInvs = invoices.filter(inv => inv.type === 'venda_fio' && inv.status !== 'cancelada');
+    for (const inv of vendaInvs) {
+      const isMonth = selectedMonth === 'all' || inv.issue_date.startsWith(selectedMonth);
+      const isAccum = inv.issue_date <= endDate;
+      const items = invoiceItems.filter(it => it.invoice_id === inv.id && it.yarn_type_id);
+      for (const item of items) {
+        const entry = map.get(item.yarn_type_id!);
+        if (!entry) continue;
+        if (isMonth) entry.salesMonth += Number(item.weight_kg);
+        if (isAccum) entry.stockAccumulated -= Number(item.weight_kg);
+      }
+    }
+
+    // Filter and sort
+    let result = Array.from(map.values())
+      .filter(y => y.purchaseMonth > 0 || y.salesMonth > 0 || y.stockAccumulated !== 0 || y.consumedMonth > 0);
+
+    if (saldoGlobalYarn !== 'all') {
+      result = result.filter(y => y.yarnTypeId === saldoGlobalYarn);
+    }
+
+    return result.sort((a, b) => a.yarnTypeName.localeCompare(b.yarnTypeName));
+  }, [invoices, invoiceItems, productions, articles, yarnTypes, saldoGlobalMonth, saldoGlobalYarn]);
+
+  const saldoGlobalKpis = useMemo(() => yarnGlobalBalance.reduce((acc, y) => ({
+    purchase: acc.purchase + y.purchaseMonth,
+    stock: acc.stock + y.stockAccumulated,
+    sales: acc.sales + y.salesMonth,
+    consumed: acc.consumed + y.consumedMonth,
+  }), { purchase: 0, stock: 0, sales: 0, consumed: 0 }), [yarnGlobalBalance]);
+
   // ===== Estoque de Malha Filters =====
   const [estoqueClient, setEstoqueClient] = useState('all');
   const [estoqueArticle, setEstoqueArticle] = useState('all');
