@@ -31,6 +31,7 @@ import ResidueSales from "./pages/ResidueSales";
 import Invoices from "./pages/Invoices";
 import TvCodeEntry from "./pages/TvCodeEntry";
 import TvPanel from "./pages/TvPanel";
+import Fechamento from "./pages/Fechamento";
 
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
