@@ -733,9 +733,19 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
             </DialogHeader>
             <div className="space-y-4 py-2" onKeyDown={e => {
               if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
-              if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+              // Ctrl+Enter to save
+              if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                handleSaveWithValidation();
+                return;
+              }
               // Don't hijack arrows when article dropdown is open
               if (articleDropdownOpen) return;
+              if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+              // Don't hijack arrows in text inputs for cursor movement (left/right)
+              const active = document.activeElement as HTMLInputElement;
+              if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && active?.tagName === 'INPUT' && active?.type !== 'date') return;
+              if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && active?.tagName === 'TEXTAREA') return;
               const fields: (HTMLElement | null)[] = [
                 companySelectRef.current,
                 dateRef.current,
@@ -746,11 +756,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 nfRomRef.current,
                 obsRef.current,
               ];
-              const active = document.activeElement as HTMLElement;
               const idx = fields.findIndex(f => f === active || f?.contains(active));
               if (idx === -1) return;
               e.preventDefault();
-              const next = e.key === 'ArrowDown' ? Math.min(idx + 1, fields.length - 1) : Math.max(idx - 1, 0);
+              const dir = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
+              const next = Math.max(0, Math.min(idx + dir, fields.length - 1));
               fields[next]?.focus();
             }}>
               <div className="grid grid-cols-2 gap-4">
