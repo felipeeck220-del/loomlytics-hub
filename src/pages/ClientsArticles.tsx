@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +15,8 @@ import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings } from 'lucide-r
 import { toast } from 'sonner';
 import type { Client, Article, ArticleMachineTurns } from '@/types';
 
+const sb = (table: string) => (supabase.from as any)(table);
+
 interface MachineTurnRow {
   id: string;
   machine_id: string;
@@ -22,6 +27,8 @@ interface MachineTurnRow {
 export default function ClientsArticles() {
   const { getClients, saveClients, getArticles, saveArticles, getMachines, getArticleMachineTurns, saveArticleMachineTurns, loading } = useSharedCompanyData();
   const { canSeeFinancial } = usePermissions();
+  const { user } = useAuth();
+  const companyId = user?.company_id || '';
   const clients = getClients();
   const articles = getArticles();
   const machines = getMachines();
@@ -30,13 +37,24 @@ export default function ClientsArticles() {
   const [clientSearch, setClientSearch] = useState('');
   const [articleSearch, setArticleSearch] = useState('');
 
+  // Fetch yarn types for article form
+  const { data: yarnTypes = [] } = useQuery({
+    queryKey: ['yarn_types', companyId],
+    queryFn: async () => {
+      const { data, error } = await sb('yarn_types').select('*').eq('company_id', companyId).order('name');
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name: string }>;
+    },
+    enabled: !!companyId,
+  });
+
   const [showClientModal, setShowClientModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [clientForm, setClientForm] = useState({ name: '', contact: '', observations: '' });
 
   const [showArticleModal, setShowArticleModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' });
+  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', yarn_type_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' });
 
   const [showDelete, setShowDelete] = useState<{ type: 'client' | 'article'; item: any } | null>(null);
   const [deleteWord, setDeleteWord] = useState('');
@@ -131,19 +149,20 @@ export default function ClientsArticles() {
     setShowClientModal(false);
   };
 
-  const openNewArticle = () => { setEditingArticle(null); setArticleForm({ name: '', client_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' }); setShowArticleModal(true); };
-  const openEditArticle = (a: Article) => { setEditingArticle(a); setArticleForm({ name: a.name, client_id: a.client_id, weight_per_roll: String(a.weight_per_roll), value_per_kg: String(a.value_per_kg), turns_per_roll: String(a.turns_per_roll), target_efficiency: String(a.target_efficiency || 80), observations: a.observations || '' }); setShowArticleModal(true); };
+  const openNewArticle = () => { setEditingArticle(null); setArticleForm({ name: '', client_id: '', yarn_type_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' }); setShowArticleModal(true); };
+  const openEditArticle = (a: Article) => { setEditingArticle(a); setArticleForm({ name: a.name, client_id: a.client_id, yarn_type_id: a.yarn_type_id || '', weight_per_roll: String(a.weight_per_roll), value_per_kg: String(a.value_per_kg), turns_per_roll: String(a.turns_per_roll), target_efficiency: String(a.target_efficiency || 80), observations: a.observations || '' }); setShowArticleModal(true); };
 
   const handleSaveArticle = async () => {
     if (!articleForm.name || !articleForm.client_id) { toast.error('Nome e cliente são obrigatórios'); return; }
     const all = [...articles];
     const clientName = clients.find(c => c.id === articleForm.client_id)?.name || '';
+    const yarnTypeId = articleForm.yarn_type_id || undefined;
     if (editingArticle) {
       const idx = all.findIndex(a => a.id === editingArticle.id);
-      all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined };
+      all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined };
       await saveArticles(all); toast.success('Artigo atualizado');
     } else {
-      all.push({ id: crypto.randomUUID(), company_id: '', name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined, created_at: new Date().toISOString() });
+      all.push({ id: crypto.randomUUID(), company_id: '', name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined, created_at: new Date().toISOString() });
       await saveArticles(all); toast.success('Artigo cadastrado');
     }
     setShowArticleModal(false);
@@ -248,6 +267,10 @@ export default function ClientsArticles() {
                   <div>
                     <p className="font-display font-semibold text-foreground">{a.name}</p>
                     <p className="text-sm text-muted-foreground">Cliente: {a.client_name || '—'}</p>
+                    {a.yarn_type_id && (() => {
+                      const yarn = yarnTypes.find(y => y.id === a.yarn_type_id);
+                      return yarn ? <p className="text-sm text-muted-foreground">Fio: <span className="text-foreground font-medium">{yarn.name}</span></p> : null;
+                    })()}
                   </div>
                   <div className="text-sm space-y-0.5">
                     <p className="text-muted-foreground">Peso Rolo: <span className="font-semibold text-foreground">{a.weight_per_roll} kg</span></p>
@@ -297,11 +320,21 @@ export default function ClientsArticles() {
           <DialogHeader><DialogTitle>{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Nome do Artigo</Label><Input value={articleForm.name} onChange={e => setArticleForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div className="space-y-2">
+             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select value={articleForm.client_id} onValueChange={v => setArticleForm(p => ({ ...p, client_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de Fio</Label>
+              <Select value={articleForm.yarn_type_id} onValueChange={v => setArticleForm(p => ({ ...p, yarn_type_id: v === '__none__' ? '' : v }))}>
+                <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {yarnTypes.map(y => <SelectItem key={y.id} value={y.id}>{y.name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className={`grid ${canSeeFinancial ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
