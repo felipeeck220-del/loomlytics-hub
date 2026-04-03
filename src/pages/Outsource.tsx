@@ -953,8 +953,12 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
     if (startDate && endDate) return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
     if (startDate) return `${format(startDate, 'dd/MM/yyyy')} a ${today}`;
     if (endDate) return `Até ${format(endDate, 'dd/MM/yyyy')}`;
+    if (reportMonth) {
+      const [y, mo] = reportMonth.split('-');
+      return format(new Date(Number(y), Number(mo) - 1, 1), 'MMMM/yyyy', { locale: ptBR });
+    }
     return 'Todo período';
-  }, [startDate, endDate]);
+  }, [startDate, endDate, reportMonth]);
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
