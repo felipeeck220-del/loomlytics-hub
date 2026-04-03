@@ -482,7 +482,14 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                 </div>
                 <div className="space-y-2">
                   <Label>Data *</Label>
-                  <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                   <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                     onKeyDown={e => {
+                       if (e.key === 'Tab' && !e.shiftKey) {
+                         e.preventDefault();
+                         articleSearchRef.current?.focus();
+                       }
+                     }}
+                   />
                 </div>
               </div>
 
