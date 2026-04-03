@@ -287,7 +287,7 @@ export default function Invoices() {
         status: formStatus,
         observations: formObservations.trim() || null,
         created_by_name: user?.name || null,
-        created_by_code: user?.code || null,
+        created_by_code: (user as any)?.code || null,
       }).select('id').single();
 
       if (invError) throw invError;
