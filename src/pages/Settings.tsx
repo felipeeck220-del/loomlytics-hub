@@ -56,6 +56,7 @@ import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock
 import { toast } from 'sonner';
 import { usePermissions, OVERRIDE_PERMISSIONS } from '@/hooks/usePermissions';
 import ProductionModeModal from '@/components/ProductionModeModal';
+import IotDevicesManager from '@/components/IotDevicesManager';
 import SettingsTelasTab from '@/components/SettingsTelasTab';
 import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
