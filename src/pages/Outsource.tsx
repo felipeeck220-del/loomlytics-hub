@@ -24,6 +24,7 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
@@ -249,6 +250,7 @@ function CompaniesTab({ companies, companyId, loading }: {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', contact: '', observations: '' });
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const resetForm = () => { setForm({ name: '', contact: '', observations: '' }); setEditId(null); };
 
@@ -370,7 +372,7 @@ function CompaniesTab({ companies, companyId, loading }: {
                   <TableCell>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => { if (confirm('Remover malharia?')) deleteMutation.mutate(c.id); }}>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(c.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
@@ -381,6 +383,13 @@ function CompaniesTab({ companies, companyId, loading }: {
           </Table>
         )}
       </CardContent>
+      <DeleteConfirmDialog
+        open={!!deleteConfirmId}
+        onOpenChange={(v) => { if (!v) setDeleteConfirmId(null); }}
+        title="Remover malharia"
+        description="Tem certeza que deseja remover esta malharia? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (deleteConfirmId) deleteMutation.mutate(deleteConfirmId); setDeleteConfirmId(null); }}
+      />
     </Card>
   );
 }
@@ -406,6 +415,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   const [toOpen, setToOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
+  const [prodDeleteConfirmId, setProdDeleteConfirmId] = useState<string | null>(null);
   const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
    const articleSearchRef = useRef<HTMLInputElement>(null);
    const [articleHighlight, setArticleHighlight] = useState(-1);
@@ -733,9 +743,19 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
             </DialogHeader>
             <div className="space-y-4 py-2" onKeyDown={e => {
               if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
-              if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+              // Ctrl+Enter to save
+              if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                handleSaveWithValidation();
+                return;
+              }
               // Don't hijack arrows when article dropdown is open
               if (articleDropdownOpen) return;
+              if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+              // Don't hijack arrows in text inputs for cursor movement (left/right)
+              const active = document.activeElement as HTMLInputElement;
+              if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && active?.tagName === 'INPUT' && active?.type !== 'date') return;
+              if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && active?.tagName === 'TEXTAREA') return;
               const fields: (HTMLElement | null)[] = [
                 companySelectRef.current,
                 dateRef.current,
@@ -746,11 +766,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 nfRomRef.current,
                 obsRef.current,
               ];
-              const active = document.activeElement as HTMLElement;
               const idx = fields.findIndex(f => f === active || f?.contains(active));
               if (idx === -1) return;
               e.preventDefault();
-              const next = e.key === 'ArrowDown' ? Math.min(idx + 1, fields.length - 1) : Math.max(idx - 1, 0);
+              const dir = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
+              const next = Math.max(0, Math.min(idx + dir, fields.length - 1));
               fields[next]?.focus();
             }}>
               <div className="grid grid-cols-2 gap-4">
@@ -884,17 +904,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                  <div className="space-y-2">
                    <Label>NF/ROM</Label>
                    <Input
-                     ref={nfRomRef}
-                     placeholder="Nota fiscal ou romaneio"
-                     value={form.nf_rom}
-                     onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))}
-                     onKeyDown={e => {
-                       if (e.key === 'Enter') {
-                         e.preventDefault();
-                         handleSaveWithValidation();
-                       }
-                     }}
-                   />
+                      ref={nfRomRef}
+                      placeholder="Nota fiscal ou romaneio"
+                      value={form.nf_rom}
+                      onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))}
+                    />
                  </div>
               </div>
 
@@ -1070,7 +1084,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => { if (confirm('Remover registro?')) deleteMutation.mutate(p.id); }}>
+                        <Button variant="ghost" size="icon" onClick={() => setProdDeleteConfirmId(p.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
@@ -1083,6 +1097,13 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
           </div>
         )}
       </CardContent>
+      <DeleteConfirmDialog
+        open={!!prodDeleteConfirmId}
+        onOpenChange={(v) => { if (!v) setProdDeleteConfirmId(null); }}
+        title="Remover registro"
+        description="Tem certeza que deseja remover este registro de produção? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (prodDeleteConfirmId) deleteMutation.mutate(prodDeleteConfirmId); setProdDeleteConfirmId(null); }}
+      />
     </Card>
   );
 }

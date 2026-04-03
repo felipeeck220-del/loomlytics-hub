@@ -27,6 +27,7 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 
 const sb = (table: string) => (supabase.from as any)(table);
@@ -203,6 +204,9 @@ export default function Invoices() {
   const [yarnColor, setYarnColor] = useState('');
   const [yarnObs, setYarnObs] = useState('');
   const [editingYarn, setEditingYarn] = useState<YarnType | null>(null);
+  const [cancelConfirmInvoice, setCancelConfirmInvoice] = useState<Invoice | null>(null);
+  const [deleteYarnConfirm, setDeleteYarnConfirm] = useState<YarnType | null>(null);
+  const [deleteEftConfirmId, setDeleteEftConfirmId] = useState<string | null>(null);
 
   // ===== Helpers =====
   const selectedClient = clients.find(c => c.id === formClientId);
@@ -360,7 +364,6 @@ export default function Invoices() {
 
   // ===== Cancel Invoice =====
   const handleCancelInvoice = async (inv: Invoice) => {
-    if (!confirm(`Cancelar NF ${inv.invoice_number}?`)) return;
     const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -407,7 +410,6 @@ export default function Invoices() {
   };
 
   const handleDeleteYarn = async (y: YarnType) => {
-    if (!confirm(`Excluir fio "${y.name}"?`)) return;
     const { error } = await sb('yarn_types').delete().eq('id', y.id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
@@ -688,7 +690,6 @@ export default function Invoices() {
   };
 
   const handleDeleteEft = async (id: string) => {
-    if (!confirm('Excluir este registro de estoque?')) return;
     const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
@@ -957,7 +958,7 @@ export default function Invoices() {
                                   </Button>
                                 )}
                                 {inv.status !== 'cancelada' && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleCancelInvoice(inv)} title="Cancelar">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setCancelConfirmInvoice(inv)} title="Cancelar">
                                     <XCircle className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
@@ -1441,7 +1442,7 @@ export default function Invoices() {
                                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEft(item, group.outsourceCompanyId)}>
                                         <Pencil className="h-3.5 w-3.5" />
                                       </Button>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteEft(item.id)}>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteEftConfirmId(item.id)}>
                                         <Trash2 className="h-3.5 w-3.5" />
                                       </Button>
                                     </div>
@@ -1522,7 +1523,7 @@ export default function Invoices() {
                             }}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteYarn(y)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteYarnConfirm(y)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -1834,6 +1835,30 @@ export default function Invoices() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete/Cancel confirm dialogs */}
+      <DeleteConfirmDialog
+        open={!!cancelConfirmInvoice}
+        onOpenChange={(v) => { if (!v) setCancelConfirmInvoice(null); }}
+        title="Cancelar Nota Fiscal"
+        description={`Tem certeza que deseja cancelar a NF ${cancelConfirmInvoice?.invoice_number}?`}
+        onConfirm={() => { if (cancelConfirmInvoice) handleCancelInvoice(cancelConfirmInvoice); setCancelConfirmInvoice(null); }}
+        confirmLabel="Cancelar NF"
+      />
+      <DeleteConfirmDialog
+        open={!!deleteYarnConfirm}
+        onOpenChange={(v) => { if (!v) setDeleteYarnConfirm(null); }}
+        title="Excluir tipo de fio"
+        description={`Tem certeza que deseja excluir o fio "${deleteYarnConfirm?.name}"? Esta ação não pode ser desfeita.`}
+        onConfirm={() => { if (deleteYarnConfirm) handleDeleteYarn(deleteYarnConfirm); setDeleteYarnConfirm(null); }}
+      />
+      <DeleteConfirmDialog
+        open={!!deleteEftConfirmId}
+        onOpenChange={(v) => { if (!v) setDeleteEftConfirmId(null); }}
+        title="Excluir registro de estoque"
+        description="Tem certeza que deseja excluir este registro de estoque? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (deleteEftConfirmId) handleDeleteEft(deleteEftConfirmId); setDeleteEftConfirmId(null); }}
+      />
     </div>
   );
 }

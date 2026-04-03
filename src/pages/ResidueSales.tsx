@@ -23,6 +23,7 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -59,6 +60,8 @@ export default function ResidueSales() {
   const queryClient = useQueryClient();
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [deleteMatConfirmId, setDeleteMatConfirmId] = useState<string | null>(null);
+  const [deleteSaleConfirmId, setDeleteSaleConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!companyId) return;
@@ -480,9 +483,7 @@ export default function ResidueSales() {
                             <Button variant="ghost" size="icon" onClick={() => openEditMat(m)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => {
-                              if (confirm('Remover este material?')) deleteMat.mutate(m.id);
-                            }}>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteMatConfirmId(m.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
@@ -644,9 +645,7 @@ export default function ResidueSales() {
                           <TableCell className="text-right font-medium">{formatCurrency(s.total)}</TableCell>
                           <TableCell>{s.romaneio || '-'}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="icon" onClick={() => {
-                              if (confirm('Remover este registro?')) deleteSale.mutate(s.id);
-                            }}>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteSaleConfirmId(s.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </TableCell>
@@ -762,6 +761,21 @@ export default function ResidueSales() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmDialog
+        open={!!deleteMatConfirmId}
+        onOpenChange={(v) => { if (!v) setDeleteMatConfirmId(null); }}
+        title="Remover material"
+        description="Tem certeza que deseja remover este material? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (deleteMatConfirmId) deleteMat.mutate(deleteMatConfirmId); setDeleteMatConfirmId(null); }}
+      />
+      <DeleteConfirmDialog
+        open={!!deleteSaleConfirmId}
+        onOpenChange={(v) => { if (!v) setDeleteSaleConfirmId(null); }}
+        title="Remover registro de venda"
+        description="Tem certeza que deseja remover este registro de venda? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (deleteSaleConfirmId) deleteSale.mutate(deleteSaleConfirmId); setDeleteSaleConfirmId(null); }}
+      />
     </div>
   );
 }

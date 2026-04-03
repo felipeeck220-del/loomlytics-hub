@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { Lock, Building2, Users, Calendar, Mail, Phone, Shield, LogOut, User, Settings2, Database, RotateCcw, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -119,6 +120,7 @@ export default function Admin() {
   const [trialDays, setTrialDays] = useState('90');
   const [monthlyPrice, setMonthlyPrice] = useState('47.00');
   const [savingPlatform, setSavingPlatform] = useState(false);
+  const [restoreConfirm, setRestoreConfirm] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     checkExistingSession();
@@ -309,7 +311,6 @@ export default function Admin() {
   };
 
   const handleRestoreBackup = async (backupId: string, companyName: string) => {
-    if (!confirm(`Tem certeza que deseja restaurar o backup de "${companyName}"? Todos os dados atuais desta empresa serão substituídos pelos dados do backup.`)) return;
     setRestoringId(backupId);
     try {
       const { data, error } = await supabase.functions.invoke('restore-backup', {
@@ -679,7 +680,7 @@ export default function Admin() {
                             variant="destructive"
                             size="sm"
                             disabled={restoringId === b.id}
-                            onClick={() => handleRestoreBackup(b.id, b.company_name)}
+                            onClick={() => setRestoreConfirm({ id: b.id, name: b.company_name })}
                           >
                             <RotateCcw className="h-4 w-4 mr-1" />
                             {restoringId === b.id ? 'Restaurando...' : 'Reverter'}
@@ -868,6 +869,15 @@ export default function Admin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmDialog
+        open={!!restoreConfirm}
+        onOpenChange={(v) => { if (!v) setRestoreConfirm(null); }}
+        title="Restaurar backup"
+        description={`Tem certeza que deseja restaurar o backup de "${restoreConfirm?.name}"? Todos os dados atuais desta empresa serão substituídos pelos dados do backup.`}
+        onConfirm={() => { if (restoreConfirm) handleRestoreBackup(restoreConfirm.id, restoreConfirm.name); setRestoreConfirm(null); }}
+        confirmLabel="Restaurar"
+      />
     </div>
   );
 }
