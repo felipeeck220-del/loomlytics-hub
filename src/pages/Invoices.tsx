@@ -26,7 +26,7 @@ import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 
 
 const sb = (table: string) => (supabase.from as any)(table);
