@@ -120,6 +120,7 @@ export default function Admin() {
   const [trialDays, setTrialDays] = useState('90');
   const [monthlyPrice, setMonthlyPrice] = useState('47.00');
   const [savingPlatform, setSavingPlatform] = useState(false);
+  const [restoreConfirm, setRestoreConfirm] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     checkExistingSession();
