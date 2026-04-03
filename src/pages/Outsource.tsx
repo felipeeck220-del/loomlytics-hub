@@ -1368,7 +1368,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
               <TableBody>
                 {filtered.map(p => (
                   <TableRow key={p.id}>
-                    <TableCell className="whitespace-nowrap">{p.date}</TableCell>
+                    <TableCell className="whitespace-nowrap">{(() => { const parts = p.date.split('-'); return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : p.date; })()}</TableCell>
                     <TableCell className="font-medium">{p.outsource_company_name || '—'}</TableCell>
                     <TableCell>{p.article_name || '—'}</TableCell>
                     <TableCell>{p.client_name || '—'}</TableCell>
