@@ -550,6 +550,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
         total_profit: totalProfit,
         observations: form.observations || null,
         nf_rom: form.nf_rom || null,
+        created_by_name: userName || null,
+        created_by_code: userCode || null,
       };
       if (editId) {
         // Get old record to calculate delta
