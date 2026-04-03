@@ -84,7 +84,7 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className={cn('w-[--radix-popover-trigger-width] p-0', className)}
+        className={cn('min-w-[280px] w-[--radix-popover-trigger-width] p-0', className)}
         align="start"
         sideOffset={4}
       >
