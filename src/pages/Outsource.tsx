@@ -493,8 +493,43 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                     ref={articleSearchRef}
                     placeholder="Pesquisar artigo..."
                     value={articleDropdownOpen ? articleSearch : (articles.find(a => a.id === form.article_id)?.name ? `${articles.find(a => a.id === form.article_id)?.name} — ${articles.find(a => a.id === form.article_id)?.client_name || 'Sem cliente'}` : '')}
-                    onChange={e => { setArticleSearch(e.target.value); setArticleDropdownOpen(true); }}
-                    onFocus={() => { setArticleDropdownOpen(true); setArticleSearch(''); }}
+                    onChange={e => { setArticleSearch(e.target.value); setArticleDropdownOpen(true); setArticleHighlight(0); }}
+                    onFocus={() => { setArticleDropdownOpen(true); setArticleSearch(''); setArticleHighlight(0); }}
+                    onBlur={(e) => {
+                      // Delay to allow click on dropdown items
+                      setTimeout(() => setArticleDropdownOpen(false), 200);
+                    }}
+                    onKeyDown={e => {
+                      if (!articleDropdownOpen) return;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setArticleHighlight(h => Math.min(h + 1, filteredArticles.length - 1));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setArticleHighlight(h => Math.max(h - 1, 0));
+                      } else if (e.key === 'Enter' && articleHighlight >= 0 && filteredArticles[articleHighlight]) {
+                        e.preventDefault();
+                        const a = filteredArticles[articleHighlight];
+                        setForm(f => ({ ...f, article_id: a.id }));
+                        setArticleDropdownOpen(false);
+                        setArticleSearch('');
+                        setArticleHighlight(-1);
+                        // Focus next field (weight)
+                        setTimeout(() => weightRef.current?.focus(), 50);
+                      } else if (e.key === 'Tab') {
+                        // If dropdown is open and item highlighted, select it
+                        if (articleHighlight >= 0 && filteredArticles[articleHighlight]) {
+                          const a = filteredArticles[articleHighlight];
+                          setForm(f => ({ ...f, article_id: a.id }));
+                        }
+                        setArticleDropdownOpen(false);
+                        setArticleSearch('');
+                        setArticleHighlight(-1);
+                      } else if (e.key === 'Escape') {
+                        setArticleDropdownOpen(false);
+                        setArticleSearch('');
+                      }
+                    }}
                     className="w-full"
                   />
                   {articleDropdownOpen && (
@@ -502,15 +537,21 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                       {filteredArticles.length === 0 ? (
                         <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum artigo encontrado</p>
                       ) : (
-                        filteredArticles.map(a => (
+                        filteredArticles.map((a, idx) => (
                           <button
                             key={a.id}
                             type="button"
-                            className={`w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground ${form.article_id === a.id ? 'bg-accent text-accent-foreground' : ''}`}
-                            onClick={() => {
+                            tabIndex={-1}
+                            className={cn(
+                              'w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground',
+                              (idx === articleHighlight || form.article_id === a.id) && 'bg-accent text-accent-foreground'
+                            )}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
                               setForm(f => ({ ...f, article_id: a.id }));
                               setArticleDropdownOpen(false);
                               setArticleSearch('');
+                              setTimeout(() => weightRef.current?.focus(), 50);
                             }}
                           >
                             {a.name} — {a.client_name || 'Sem cliente'} ({formatCurrency(Number(a.value_per_kg))}/kg)
@@ -522,10 +563,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Peso (kg) *</Label>
-                  <Input type="number" step="0.01" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value }))} />
+                  <Input ref={weightRef} type="number" step="0.01" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label>Rolos</Label>
@@ -534,6 +575,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                 <div className="space-y-2">
                   <Label>Valor Repasse (R$/kg) *</Label>
                   <Input type="number" step="0.01" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>NF/ROM</Label>
+                  <Input placeholder="Nota fiscal ou romaneio" value={form.nf_rom} onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))} />
                 </div>
               </div>
 
