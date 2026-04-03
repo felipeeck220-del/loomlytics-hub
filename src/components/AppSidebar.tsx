@@ -190,7 +190,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Install App + Logout */}
-      <SidebarFooter className="px-2 py-3 border-t border-sidebar-border">
+      <SidebarFooter className={`${collapsed ? 'px-0' : 'px-2'} py-3 border-t border-sidebar-border`}>
         <SidebarMenu>
           {canInstall && (
             <SidebarMenuItem>
