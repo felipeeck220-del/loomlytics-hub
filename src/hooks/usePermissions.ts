@@ -34,6 +34,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   'contas-pagar': 'contas-pagar',
   residuos: 'residuos',
   invoices: 'invoices',
+  fechamento: 'fechamento',
   settings: 'settings',
 };
 
