@@ -272,7 +272,7 @@ function CompaniesTab({ companies, companyId, loading }: {
       toast({ title: editId ? 'Malharia atualizada!' : 'Malharia cadastrada!' });
       setOpen(false); resetForm();
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   const deleteMutation = useMutation({
@@ -577,7 +577,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
         }, 100);
       }
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   const deleteMutation = useMutation({

@@ -31,6 +31,21 @@ import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
+async function fetchAllPaginated<T>(table: string, companyId: string, orderCol: string = 'created_at', ascending = true): Promise<T[]> {
+  const PAGE = 1000;
+  let all: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await sb(table).select('*').eq('company_id', companyId).order(orderCol, { ascending }).order('id', { ascending: true }).range(from, from + PAGE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all = all.concat(data as T[]);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 type InvoiceType = 'entrada' | 'saida' | 'venda_fio';
 type InvoiceStatus = 'pendente' | 'conferida' | 'cancelada';
 
@@ -121,22 +136,14 @@ export default function Invoices() {
   // ===== Fetch Invoices =====
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ['invoices', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('invoices').select('*').eq('company_id', companyId).order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as Invoice[];
-    },
+    queryFn: () => fetchAllPaginated<Invoice>('invoices', companyId, 'created_at', false),
     enabled: !!companyId,
   });
 
   // ===== Fetch Invoice Items =====
   const { data: invoiceItems = [] } = useQuery({
     queryKey: ['invoice_items', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('invoice_items').select('*').eq('company_id', companyId).order('created_at');
-      if (error) throw error;
-      return (data || []) as InvoiceItem[];
-    },
+    queryFn: () => fetchAllPaginated<InvoiceItem>('invoice_items', companyId, 'created_at'),
     enabled: !!companyId,
   });
 
@@ -154,15 +161,11 @@ export default function Invoices() {
   // ===== Fetch Outsource Yarn Stock =====
   const { data: outsourceYarnStock = [], isLoading: loadingYarnStock } = useQuery({
     queryKey: ['outsource_yarn_stock', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('outsource_yarn_stock').select('*').eq('company_id', companyId).order('reference_month', { ascending: false });
-      if (error) throw error;
-      return (data || []) as Array<{
-        id: string; company_id: string; outsource_company_id: string; yarn_type_id: string;
-        quantity_kg: number; reference_month: string; observations: string | null;
-        created_at: string; updated_at: string;
-      }>;
-    },
+    queryFn: () => fetchAllPaginated<{
+      id: string; company_id: string; outsource_company_id: string; yarn_type_id: string;
+      quantity_kg: number; reference_month: string; observations: string | null;
+      created_at: string; updated_at: string;
+    }>('outsource_yarn_stock', companyId, 'reference_month', false),
     enabled: !!companyId,
   });
 
@@ -807,7 +810,7 @@ export default function Invoices() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-4 sm:w-auto sm:inline-flex">
+        <TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
           <TabsTrigger value="entrada" className="text-xs">Entrada</TabsTrigger>
           <TabsTrigger value="saida" className="text-xs">Saída</TabsTrigger>
           <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>

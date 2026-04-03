@@ -123,7 +123,7 @@ export default function ResidueSales() {
       setMatDialogOpen(false);
       toast({ title: editingMat ? 'Material atualizado' : 'Material cadastrado' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   const deleteMat = useMutation({
@@ -203,7 +203,7 @@ export default function ResidueSales() {
       setSaleRomaneio(''); setSaleObs('');
       toast({ title: 'Venda registrada' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   const deleteSale = useMutation({

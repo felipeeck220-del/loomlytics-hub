@@ -1163,6 +1163,11 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **04/04/2026 17:30** — **MENSAGENS DE ERRO AMIGÁVEIS (getFriendlyErrorMessage):** Criada função utilitária `getFriendlyErrorMessage()` em `src/lib/utils.ts` que traduz erros técnicos do banco de dados em mensagens legíveis para o usuário. Trata: (1) Foreign key constraint → explica qual módulo impede a exclusão; (2) RLS → "sem permissão"; (3) Unique constraint → "registro duplicado"; (4) Not-null → "campos obrigatórios". Aplicada em todas as operações de exclusão: `Invoices.tsx` (yarn_types, outsource_yarn_stock), `ResidueSales.tsx` (residue_materials, residue_sales), `Outsource.tsx` (outsource_companies, outsource_productions).
 
+- **04/04/2026 18:00** — **AUDITORIA E CORREÇÃO DE BUGS — Pente fino nas implementações recentes:**
+  - **(1) BUG CRÍTICO — Limite 1000 registros em Invoices.tsx:** Queries de `invoices`, `invoice_items` e `outsource_yarn_stock` não tinham paginação, causando truncamento silencioso de dados acima de 1000 registros. Corrigido com `fetchAllPaginated()` com loop de paginação recursiva (mesmo padrão do Fechamento).
+  - **(2) BUG — ClientsArticles exclusão com texto EXCLUIR:** Modal de exclusão ainda exigia digitar "EXCLUIR" ao invés do modal simples (Sim/Cancelar) definido como padrão. Corrigido para confirmação simples.
+  - **(3) BUG — Mensagens de erro técnicas faltantes:** `Outsource.tsx` (saveMutation empresas, saveMutation produções) e `ResidueSales.tsx` (saveMat, saveSale) não usavam `getFriendlyErrorMessage`. Corrigido — agora TODOS os `onError` usam a função.
+  - **(4) BUG — TabsList mobile quebrado:** Invoices.tsx usava `grid-cols-4` para 7 abas, causando layout quebrado no mobile. Corrigido para `flex flex-wrap` com `h-auto`.
 
 
 ## 📐 Padrão de Exportação PDF (Regra Global)
@@ -1204,4 +1209,4 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 ---
 
-*Última atualização: 04/04/2026 17:30 (Brasília)*
+*Última atualização: 04/04/2026 18:00 (Brasília)*
