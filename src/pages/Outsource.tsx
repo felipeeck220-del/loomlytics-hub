@@ -1061,7 +1061,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
               </TableHeader>
               <TableBody>
                 {filteredProductions.map(p => {
-                  const dateStr = p.date;
+                  const dateParts = p.date.split('-');
+                  const dateStr = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
                   const createdAt = new Date(p.created_at);
                   const timeStr = !isNaN(createdAt.getTime()) ? format(createdAt, 'HH:mm') : '';
                   return (
