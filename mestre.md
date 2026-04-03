@@ -1156,6 +1156,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **04/04/2026 00:00** — **ESTOQUE FIO TERCEIROS (estoquefioterceiro.md):** (1) Migration: tabela `outsource_yarn_stock` criada com colunas `outsource_company_id`, `yarn_type_id`, `quantity_kg`, `reference_month`, `observations` + UNIQUE composta (company+facção+fio+mês) + RLS completa (SELECT/INSERT/UPDATE/DELETE) + índices + trigger `updated_at`; (2) Frontend: nova aba "Fio Terceiros" na página Notas Fiscais (7ª aba) com CRUD completo: queries diretas para `outsource_yarn_stock` e `outsource_companies`, 3 KPIs (Total em Terceiros, Facções com Estoque, Tipos de Fio), filtros (mês/facção/tipo de fio com SearchableSelect), tabela Collapsible agrupada por facção com linha TOTAL, ações editar/excluir (apenas admin); (3) Modal de adicionar/editar com SearchableSelect para facção e fio, input month, quantidade, observações; upsert na inserção; modal preserva facção após salvar.
 
+- **04/04/2026 01:00** — **DESCONTO AUTOMÁTICO FIO TERCEIROS ↔ PRODUÇÃO TERCEIRIZADA:** Ao registrar/editar/excluir uma produção terceirizada (`outsource_productions`), o sistema agora desconta/devolve automaticamente o peso (kg) do estoque de fio (`outsource_yarn_stock`) para a facção correspondente. Requisitos: artigo deve ter `yarn_type_id` vinculado E deve existir registro de estoque para aquele mês/facção/fio. Na edição, reverte dedução antiga e aplica nova. Na exclusão, devolve peso ao estoque. Cache `outsource_yarn_stock` invalidado após operações. Documentado em `estoquefioterceiro.md`.
+
 ---
 
 ## 📐 Padrão de Exportação PDF (Regra Global)
@@ -1176,4 +1178,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 04/04/2026 00:00 (Brasília)*
+*Última atualização: 04/04/2026 01:00 (Brasília)*
