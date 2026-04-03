@@ -1442,7 +1442,7 @@ export default function Invoices() {
                                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEft(item, group.outsourceCompanyId)}>
                                         <Pencil className="h-3.5 w-3.5" />
                                       </Button>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteEft(item.id)}>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteEftConfirmId(item.id)}>
                                         <Trash2 className="h-3.5 w-3.5" />
                                       </Button>
                                     </div>
