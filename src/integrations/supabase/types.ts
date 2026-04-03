@@ -672,6 +672,8 @@ export type Database = {
           machine_id: string
           partial_turns: number
           roll_position: number
+          rpm_count: number
+          rpm_sum: number
           shift_started_at: string
           total_turns: number
           updated_at: string
@@ -687,6 +689,8 @@ export type Database = {
           machine_id: string
           partial_turns?: number
           roll_position?: number
+          rpm_count?: number
+          rpm_sum?: number
           shift_started_at?: string
           total_turns?: number
           updated_at?: string
@@ -702,6 +706,8 @@ export type Database = {
           machine_id?: string
           partial_turns?: number
           roll_position?: number
+          rpm_count?: number
+          rpm_sum?: number
           shift_started_at?: string
           total_turns?: number
           updated_at?: string
