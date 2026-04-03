@@ -736,6 +736,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {companies.length === 0 ? (
