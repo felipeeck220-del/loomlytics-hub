@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus, type MachineLog } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getDateLimits, isDateValid } from '@/lib/formatters';
 import { usePermissions } from '@/hooks/usePermissions';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [

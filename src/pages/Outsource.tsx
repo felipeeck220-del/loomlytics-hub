@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
-import { formatCurrency, formatWeight, formatNumber } from '@/lib/formatters';
+import { formatCurrency, formatWeight, formatNumber, getDateLimits, isDateValid } from '@/lib/formatters';
 import {
   Plus, Trash2, Edit, Factory, Building2, DollarSign, Scale, TrendingUp,
   Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search

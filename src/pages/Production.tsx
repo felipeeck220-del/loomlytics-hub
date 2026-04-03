@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
-import { formatNumber, formatCurrency } from '@/lib/formatters';
+import { formatNumber, formatCurrency, getDateLimits, isDateValid } from '@/lib/formatters';
 import { usePermissions } from '@/hooks/usePermissions';
 import { calculateShiftDowntime, formatDowntimeMinutes, type ShiftDowntimeInfo } from '@/lib/downtimeUtils';
 
