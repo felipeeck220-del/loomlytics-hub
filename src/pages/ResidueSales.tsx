@@ -483,9 +483,7 @@ export default function ResidueSales() {
                             <Button variant="ghost" size="icon" onClick={() => openEditMat(m)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => {
-                              if (confirm('Remover este material?')) deleteMat.mutate(m.id);
-                            }}>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteMatConfirmId(m.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
