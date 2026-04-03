@@ -496,15 +496,19 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
+  const formatNumberToBr = (num: number, decimals: number): string => {
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  };
+
   const openEdit = (p: OutsourceProduction) => {
     setEditId(p.id);
     setForm({
       outsource_company_id: p.outsource_company_id,
       article_id: p.article_id,
       date: p.date,
-      weight_kg: String(p.weight_kg),
+      weight_kg: formatNumberToBr(p.weight_kg, 2),
       rolls: String(p.rolls),
-      outsource_value_per_kg: String(p.outsource_value_per_kg),
+      outsource_value_per_kg: formatNumberToBr(p.outsource_value_per_kg, 2),
       nf_rom: p.nf_rom || '',
       observations: p.observations || '',
     });
