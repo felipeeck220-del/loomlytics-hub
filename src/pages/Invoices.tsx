@@ -19,7 +19,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign,
-  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil
+  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil, Building2
 } from 'lucide-react';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { format, parse } from 'date-fns';
@@ -136,6 +136,32 @@ export default function Invoices() {
       const { data, error } = await sb('invoice_items').select('*').eq('company_id', companyId).order('created_at');
       if (error) throw error;
       return (data || []) as InvoiceItem[];
+    },
+    enabled: !!companyId,
+  });
+
+  // ===== Fetch Outsource Companies =====
+  const { data: outsourceCompanies = [] } = useQuery({
+    queryKey: ['outsource_companies', companyId],
+    queryFn: async () => {
+      const { data, error } = await sb('outsource_companies').select('id, name').eq('company_id', companyId).order('name');
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name: string }>;
+    },
+    enabled: !!companyId,
+  });
+
+  // ===== Fetch Outsource Yarn Stock =====
+  const { data: outsourceYarnStock = [], isLoading: loadingYarnStock } = useQuery({
+    queryKey: ['outsource_yarn_stock', companyId],
+    queryFn: async () => {
+      const { data, error } = await sb('outsource_yarn_stock').select('*').eq('company_id', companyId).order('reference_month', { ascending: false });
+      if (error) throw error;
+      return (data || []) as Array<{
+        id: string; company_id: string; outsource_company_id: string; yarn_type_id: string;
+        quantity_kg: number; reference_month: string; observations: string | null;
+        created_at: string; updated_at: string;
+      }>;
     },
     enabled: !!companyId,
   });
@@ -402,6 +428,18 @@ export default function Invoices() {
   const [saldoGlobalMonth, setSaldoGlobalMonth] = useState('all');
   const [saldoGlobalYarn, setSaldoGlobalYarn] = useState('all');
 
+  // ===== Estoque Fio Terceiros State =====
+  const [eftMonth, setEftMonth] = useState('all');
+  const [eftCompany, setEftCompany] = useState('all');
+  const [eftYarn, setEftYarn] = useState('all');
+  const [eftDialogOpen, setEftDialogOpen] = useState(false);
+  const [eftEditing, setEftEditing] = useState<any>(null);
+  const [eftFormCompany, setEftFormCompany] = useState('');
+  const [eftFormYarn, setEftFormYarn] = useState('');
+  const [eftFormMonth, setEftFormMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [eftFormQty, setEftFormQty] = useState('');
+  const [eftFormObs, setEftFormObs] = useState('');
+
   // ===== Saldo de Fios =====
   const yarnBalance = useMemo(() => {
     const map = new Map<string, Map<string, { received: number; sold: number; consumed: number }>>();
@@ -561,6 +599,119 @@ export default function Invoices() {
     consumed: acc.consumed + y.consumedMonth,
   }), { purchase: 0, stock: 0, sales: 0, consumed: 0 }), [yarnGlobalBalance]);
 
+  // ===== Estoque Fio Terceiros useMemo =====
+  const eftGroups = useMemo(() => {
+    const map = new Map<string, { outsourceCompanyId: string; outsourceCompanyName: string; items: any[]; totalKg: number }>();
+
+    for (const record of outsourceYarnStock) {
+      if (eftMonth !== 'all' && record.reference_month !== eftMonth) continue;
+      if (eftCompany !== 'all' && record.outsource_company_id !== eftCompany) continue;
+      if (eftYarn !== 'all' && record.yarn_type_id !== eftYarn) continue;
+
+      const cid = record.outsource_company_id;
+      if (!map.has(cid)) {
+        const company = outsourceCompanies.find(c => c.id === cid);
+        map.set(cid, { outsourceCompanyId: cid, outsourceCompanyName: company?.name || 'Facção removida', items: [], totalKg: 0 });
+      }
+      const group = map.get(cid)!;
+      const yarn = yarnTypes.find(y => y.id === record.yarn_type_id);
+      group.items.push({
+        id: record.id,
+        yarnTypeId: record.yarn_type_id,
+        yarnTypeName: yarn?.name || 'Fio removido',
+        quantityKg: Number(record.quantity_kg),
+        referenceMonth: record.reference_month,
+        observations: record.observations || '',
+      });
+      group.totalKg += Number(record.quantity_kg);
+    }
+
+    return Array.from(map.values()).sort((a, b) => a.outsourceCompanyName.localeCompare(b.outsourceCompanyName));
+  }, [outsourceYarnStock, outsourceCompanies, yarnTypes, eftMonth, eftCompany, eftYarn]);
+
+  const eftKpis = useMemo(() => ({
+    totalKg: eftGroups.reduce((s, g) => s + g.totalKg, 0),
+    totalCompanies: new Set(eftGroups.map(g => g.outsourceCompanyId)).size,
+    totalYarnTypes: new Set(eftGroups.flatMap(g => g.items.map(i => i.yarnTypeId))).size,
+  }), [eftGroups]);
+
+  const eftAvailableMonths = useMemo(() => {
+    const months = new Set<string>();
+    months.add(format(new Date(), 'yyyy-MM'));
+    outsourceYarnStock.forEach(r => { if (r.reference_month) months.add(r.reference_month); });
+    return Array.from(months).sort().reverse();
+  }, [outsourceYarnStock]);
+
+  // ===== Estoque Fio Terceiros CRUD =====
+  const handleSaveEft = async () => {
+    if (!eftFormCompany || !eftFormYarn || !eftFormMonth || !eftFormQty) {
+      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' }); return;
+    }
+    const qty = parseFloat(eftFormQty.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(qty) || qty <= 0) {
+      toast({ title: 'Quantidade deve ser maior que zero', variant: 'destructive' }); return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        company_id: companyId,
+        outsource_company_id: eftFormCompany,
+        yarn_type_id: eftFormYarn,
+        reference_month: eftFormMonth,
+        quantity_kg: qty,
+        observations: eftFormObs.trim() || null,
+      };
+      if (eftEditing) {
+        const { error } = await sb('outsource_yarn_stock').update({
+          quantity_kg: qty, observations: eftFormObs.trim() || null,
+        }).eq('id', eftEditing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb('outsource_yarn_stock').upsert(payload, {
+          onConflict: 'company_id,outsource_company_id,yarn_type_id,reference_month'
+        });
+        if (error) throw error;
+      }
+      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      toast({ title: eftEditing ? 'Estoque atualizado!' : 'Estoque salvo!' });
+      // Keep modal open, preserve company
+      setEftFormYarn('');
+      setEftFormQty('');
+      setEftFormObs('');
+      setEftEditing(null);
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    } finally { setSaving(false); }
+  };
+
+  const handleDeleteEft = async (id: string) => {
+    if (!confirm('Excluir este registro de estoque?')) return;
+    const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+    toast({ title: 'Registro excluído' });
+  };
+
+  const openEditEft = (item: any, companyId: string) => {
+    setEftEditing(item);
+    setEftFormCompany(companyId);
+    setEftFormYarn(item.yarnTypeId);
+    setEftFormMonth(item.referenceMonth);
+    setEftFormQty(String(item.quantityKg));
+    setEftFormObs(item.observations || '');
+    setEftDialogOpen(true);
+  };
+
+  const openNewEft = () => {
+    setEftEditing(null);
+    setEftFormCompany('');
+    setEftFormYarn('');
+    setEftFormMonth(format(new Date(), 'yyyy-MM'));
+    setEftFormQty('');
+    setEftFormObs('');
+    setEftDialogOpen(true);
+  };
+
   // ===== Estoque de Malha Filters =====
   const [estoqueClient, setEstoqueClient] = useState('all');
   const [estoqueArticle, setEstoqueArticle] = useState('all');
@@ -656,13 +807,14 @@ export default function Invoices() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-6 sm:w-auto sm:inline-flex">
-          <TabsTrigger value="entrada">Entrada</TabsTrigger>
-          <TabsTrigger value="saida">Saída</TabsTrigger>
-          <TabsTrigger value="saldo">Saldo Fios</TabsTrigger>
-          <TabsTrigger value="saldoGlobal">Saldo Global</TabsTrigger>
-          <TabsTrigger value="estoque">Estoque Malha</TabsTrigger>
-          <TabsTrigger value="fios">Tipos de Fio</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-4 sm:w-auto sm:inline-flex">
+          <TabsTrigger value="entrada" className="text-xs">Entrada</TabsTrigger>
+          <TabsTrigger value="saida" className="text-xs">Saída</TabsTrigger>
+          <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
+          <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
+          <TabsTrigger value="estoque" className="text-xs">Est. Malha</TabsTrigger>
+          <TabsTrigger value="efterceiro" className="text-xs">Fio Terceiros</TabsTrigger>
+          <TabsTrigger value="fios" className="text-xs">Tipos de Fio</TabsTrigger>
         </TabsList>
 
         {/* ===== ENTRADA & SAIDA TABS ===== */}
@@ -1174,6 +1326,142 @@ export default function Invoices() {
           )}
         </TabsContent>
 
+        {/* ===== ESTOQUE FIO TERCEIROS TAB ===== */}
+        <TabsContent value="efterceiro" className="space-y-4">
+          {/* KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Total em Terceiros</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(eftKpis.totalKg)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Building2 className="h-3.5 w-3.5" />Facções com Estoque</div>
+              <p className="text-xl font-bold text-foreground">{eftKpis.totalCompanies}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Layers className="h-3.5 w-3.5" />Tipos de Fio</div>
+              <p className="text-xl font-bold text-foreground">{eftKpis.totalYarnTypes}</p>
+            </CardContent></Card>
+          </div>
+
+          {/* Filters + Actions */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {canSeeFinancial && (
+                  <Button onClick={openNewEft} size="sm" className="gap-1.5">
+                    <Plus className="h-4 w-4" /> Adicionar Estoque
+                  </Button>
+                )}
+                <div className="flex-1" />
+                <Select value={eftMonth} onValueChange={setEftMonth}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os meses</SelectItem>
+                    {eftAvailableMonths.map(m => (
+                      <SelectItem key={m} value={m}>
+                        {format(parse(m, 'yyyy-MM', new Date()), 'MMMM yyyy', { locale: ptBR })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <SearchableSelect
+                  value={eftCompany === 'all' ? '' : eftCompany}
+                  onValueChange={v => setEftCompany(v || 'all')}
+                  options={[{ value: 'all', label: 'Todas facções' }, ...outsourceCompanies.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todas facções"
+                  searchPlaceholder="Buscar facção..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={eftYarn === 'all' ? '' : eftYarn}
+                  onValueChange={v => setEftYarn(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
+                  placeholder="Todos os fios"
+                  searchPlaceholder="Buscar fio..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                {(eftMonth !== 'all' || eftCompany !== 'all' || eftYarn !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEftMonth('all'); setEftCompany('all'); setEftYarn('all'); }}>Limpar</Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Grouped by outsource company */}
+          {loadingYarnStock ? (
+            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : eftGroups.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Nenhum estoque de fio em terceiros encontrado. Cadastre registros para controlar o fio enviado às facções.
+            </CardContent></Card>
+          ) : (
+            <div className="space-y-3">
+              {eftGroups.map(group => (
+                <Collapsible key={group.outsourceCompanyId} defaultOpen>
+                  <Card>
+                    <CollapsibleTrigger className="w-full">
+                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
+                          <CardTitle className="text-sm font-semibold">{group.outsourceCompanyName}</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Total: <span className="font-semibold text-foreground">{formatWeight(group.totalKg)}</span></span>
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Tipo de Fio</TableHead>
+                              <TableHead className="text-xs text-right">Quantidade</TableHead>
+                              <TableHead className="text-xs">Mês Ref.</TableHead>
+                              <TableHead className="text-xs">Observações</TableHead>
+                              {canSeeFinancial && <TableHead className="text-xs text-right">Ações</TableHead>}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.items.map(item => (
+                              <TableRow key={item.id}>
+                                <TableCell className="text-xs font-medium">{item.yarnTypeName}</TableCell>
+                                <TableCell className="text-xs text-right">{formatWeight(item.quantityKg)}</TableCell>
+                                <TableCell className="text-xs">
+                                  {format(parse(item.referenceMonth, 'yyyy-MM', new Date()), 'MMM/yyyy', { locale: ptBR })}
+                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{item.observations || '—'}</TableCell>
+                                {canSeeFinancial && (
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEft(item, group.outsourceCompanyId)}>
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteEft(item.id)}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-muted/30 font-semibold">
+                              <TableCell className="text-xs">TOTAL</TableCell>
+                              <TableCell className="text-xs text-right">{formatWeight(group.totalKg)}</TableCell>
+                              <TableCell className="text-xs" colSpan={canSeeFinancial ? 3 : 2}></TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         {/* ===== TIPOS DE FIO TAB ===== */}
         <TabsContent value="fios" className="space-y-4">
           <Card>
@@ -1479,6 +1767,66 @@ export default function Invoices() {
             <Button onClick={handleSaveYarn} disabled={saving} className="gap-1.5">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingYarn ? 'Atualizar' : 'Cadastrar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== OUTSOURCE YARN STOCK DIALOG ===== */}
+      <Dialog open={eftDialogOpen} onOpenChange={setEftDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{eftEditing ? 'Editar Estoque de Fio' : 'Adicionar Estoque de Fio'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Facção *</Label>
+              {eftEditing ? (
+                <Input className="h-9 text-xs" value={outsourceCompanies.find(c => c.id === eftFormCompany)?.name || ''} disabled />
+              ) : (
+                <SearchableSelect
+                  value={eftFormCompany}
+                  onValueChange={v => setEftFormCompany(v)}
+                  options={outsourceCompanies.map(c => ({ value: c.id, label: c.name }))}
+                  placeholder="Selecione a facção..."
+                  searchPlaceholder="Buscar facção..."
+                  triggerClassName="h-9 text-xs"
+                />
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Tipo de Fio *</Label>
+              {eftEditing ? (
+                <Input className="h-9 text-xs" value={yarnTypes.find(y => y.id === eftFormYarn)?.name || ''} disabled />
+              ) : (
+                <SearchableSelect
+                  value={eftFormYarn}
+                  onValueChange={v => setEftFormYarn(v)}
+                  options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
+                  placeholder="Selecione o fio..."
+                  searchPlaceholder="Buscar fio..."
+                  triggerClassName="h-9 text-xs"
+                />
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Mês Referência *</Label>
+              <Input type="month" className="h-9 text-xs" value={eftFormMonth} onChange={e => setEftFormMonth(e.target.value)} disabled={!!eftEditing} />
+            </div>
+            <div>
+              <Label className="text-xs">Quantidade (kg) *</Label>
+              <Input className="h-9 text-xs" type="number" step="0.01" min="0" value={eftFormQty} onChange={e => setEftFormQty(e.target.value)} placeholder="Ex: 1234.56" />
+            </div>
+            <div>
+              <Label className="text-xs">Observações</Label>
+              <Textarea className="text-xs" rows={2} value={eftFormObs} onChange={e => setEftFormObs(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEftDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveEft} disabled={saving} className="gap-1.5">
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {eftEditing ? 'Atualizar' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>
