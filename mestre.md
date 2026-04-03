@@ -1211,6 +1211,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **03/04/2026 (horário real)** — **4 MELHORIAS UX GLOBAIS:** (1) **Fechamento "Em teste"** — badge amber adicionado ao sidebar; (2) **DeleteConfirmDialog** — componente reutilizável criado (`src/components/DeleteConfirmDialog.tsx`) substituindo TODOS os `confirm()` nativos do navegador por modais visuais Excluir/Cancelar em: `Outsource.tsx` (malharias + produções), `ResidueSales.tsx` (materiais + vendas), `Invoices.tsx` (cancelar NF + fios + estoque terceiros), `Admin.tsx` (restaurar backup); (3) **Setas ↑↓←→** no modal de Produção Terceirizada — todas as 4 setas navegam entre campos (←→ não interferem em inputs de texto, apenas em date e selects); (4) **Ctrl+Enter** para salvar no modal (substituiu Enter simples no NF/ROM).
 
+- **03/04/2026 21:00 (Brasília)** — **RASTREAMENTO DE AUTORIA (created_by) — Correções e adições em 4 módulos:** (1) **Production.tsx** — corrigido bug de stale closure no `handleSave` (faltavam `userName`, `userCode`, `logAction` nas dependências do `useCallback`), que impedia o `created_by_code` (#43 etc.) de aparecer nos registros; (2) **ResidueSales.tsx** — adicionado `useAuditLog` + colunas `created_by_name`/`created_by_code` no insert de vendas; (3) **Outsource.tsx** — adicionado `useAuditLog` + colunas `created_by_name`/`created_by_code` no insert de produções terceirizadas; (4) **Invoices.tsx** — substituído `(user as any)?.code` (que retornava `null`) por `userCode` do `useAuditLog` para correto rastreamento. **Migração:** adicionadas colunas `created_by_name` e `created_by_code` nas tabelas `residue_sales` e `outsource_productions`.
+
 ---
 
-*Última atualização: 03/04/2026 (Brasília)*
+*Última atualização: 03/04/2026 21:00 (Brasília)*
