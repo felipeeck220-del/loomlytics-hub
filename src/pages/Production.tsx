@@ -537,7 +537,7 @@ export default function ProductionPage() {
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
             <div className="space-y-1">
               <Label className="text-sm">Data</Label>
-              <Input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
+              <Input type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={filterDate} onChange={e => setFilterDate(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-sm">Máquina</Label>
