@@ -398,6 +398,10 @@ export default function Invoices() {
   const [saldoMonth, setSaldoMonth] = useState('all');
   const [yarnSearchTerm, setYarnSearchTerm] = useState('');
 
+  // ===== Saldo Global Filters =====
+  const [saldoGlobalMonth, setSaldoGlobalMonth] = useState('all');
+  const [saldoGlobalYarn, setSaldoGlobalYarn] = useState('all');
+
   // ===== Saldo de Fios =====
   const yarnBalance = useMemo(() => {
     const map = new Map<string, Map<string, { received: number; sold: number; consumed: number }>>();
@@ -479,6 +483,83 @@ export default function Invoices() {
       balance: acc.balance + g.totalBalance,
     }), { received: 0, sold: 0, consumed: 0, balance: 0 });
   }, [yarnBalance]);
+
+  // ===== Saldo Global de Fios (por tipo de fio, todos clientes) =====
+  const yarnGlobalBalance = useMemo(() => {
+    const selectedMonth = saldoGlobalMonth;
+    const map = new Map<string, { yarnTypeId: string; yarnTypeName: string; purchaseMonth: number; consumedMonth: number; salesMonth: number; stockAccumulated: number }>();
+
+    // Helper: last day of a yyyy-MM string
+    const lastDayOfMonth = (ym: string): string => {
+      const [year, month] = ym.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
+      return `${ym}-${String(lastDay).padStart(2, '0')}`;
+    };
+
+    // Initialize all yarn types
+    for (const yt of yarnTypes) {
+      map.set(yt.id, { yarnTypeId: yt.id, yarnTypeName: yt.name, purchaseMonth: 0, consumedMonth: 0, salesMonth: 0, stockAccumulated: 0 });
+    }
+
+    const endDate = selectedMonth === 'all' ? '9999-12-31' : lastDayOfMonth(selectedMonth);
+
+    // 1. Compra (NFs entrada)
+    const entradaInvs = invoices.filter(inv => inv.type === 'entrada' && inv.status !== 'cancelada');
+    for (const inv of entradaInvs) {
+      const isMonth = selectedMonth === 'all' || inv.issue_date.startsWith(selectedMonth);
+      const isAccum = inv.issue_date <= endDate;
+      const items = invoiceItems.filter(it => it.invoice_id === inv.id && it.yarn_type_id);
+      for (const item of items) {
+        const entry = map.get(item.yarn_type_id!);
+        if (!entry) continue;
+        if (isMonth) entry.purchaseMonth += Number(item.weight_kg);
+        if (isAccum) entry.stockAccumulated += Number(item.weight_kg);
+      }
+    }
+
+    // 2. Consumo (produções via artigos)
+    for (const prod of productions) {
+      const art = articles.find(a => a.id === prod.article_id);
+      if (!art?.yarn_type_id) continue;
+      const entry = map.get(art.yarn_type_id);
+      if (!entry) continue;
+      const isMonth = selectedMonth === 'all' || prod.date.startsWith(selectedMonth);
+      const isAccum = prod.date <= endDate;
+      if (isMonth) entry.consumedMonth += Number(prod.weight_kg);
+      if (isAccum) entry.stockAccumulated -= Number(prod.weight_kg);
+    }
+
+    // 3. Vendas (NFs venda_fio)
+    const vendaInvs = invoices.filter(inv => inv.type === 'venda_fio' && inv.status !== 'cancelada');
+    for (const inv of vendaInvs) {
+      const isMonth = selectedMonth === 'all' || inv.issue_date.startsWith(selectedMonth);
+      const isAccum = inv.issue_date <= endDate;
+      const items = invoiceItems.filter(it => it.invoice_id === inv.id && it.yarn_type_id);
+      for (const item of items) {
+        const entry = map.get(item.yarn_type_id!);
+        if (!entry) continue;
+        if (isMonth) entry.salesMonth += Number(item.weight_kg);
+        if (isAccum) entry.stockAccumulated -= Number(item.weight_kg);
+      }
+    }
+
+    // Filter and sort
+    let result = Array.from(map.values())
+      .filter(y => y.purchaseMonth > 0 || y.salesMonth > 0 || y.stockAccumulated !== 0 || y.consumedMonth > 0);
+
+    if (saldoGlobalYarn !== 'all') {
+      result = result.filter(y => y.yarnTypeId === saldoGlobalYarn);
+    }
+
+    return result.sort((a, b) => a.yarnTypeName.localeCompare(b.yarnTypeName));
+  }, [invoices, invoiceItems, productions, articles, yarnTypes, saldoGlobalMonth, saldoGlobalYarn]);
+
+  const saldoGlobalKpis = useMemo(() => yarnGlobalBalance.reduce((acc, y) => ({
+    purchase: acc.purchase + y.purchaseMonth,
+    stock: acc.stock + y.stockAccumulated,
+    sales: acc.sales + y.salesMonth,
+    consumed: acc.consumed + y.consumedMonth,
+  }), { purchase: 0, stock: 0, sales: 0, consumed: 0 }), [yarnGlobalBalance]);
 
   // ===== Estoque de Malha Filters =====
   const [estoqueClient, setEstoqueClient] = useState('all');
@@ -575,10 +656,11 @@ export default function Invoices() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-5 sm:w-auto sm:inline-flex">
+        <TabsList className="w-full grid grid-cols-6 sm:w-auto sm:inline-flex">
           <TabsTrigger value="entrada">Entrada</TabsTrigger>
           <TabsTrigger value="saida">Saída</TabsTrigger>
           <TabsTrigger value="saldo">Saldo Fios</TabsTrigger>
+          <TabsTrigger value="saldoGlobal">Saldo Global</TabsTrigger>
           <TabsTrigger value="estoque">Estoque Malha</TabsTrigger>
           <TabsTrigger value="fios">Tipos de Fio</TabsTrigger>
         </TabsList>
@@ -859,6 +941,103 @@ export default function Invoices() {
                 </Collapsible>
               ))}
             </div>
+          )}
+        </TabsContent>
+
+        {/* ===== SALDO GLOBAL DE FIOS TAB ===== */}
+        <TabsContent value="saldoGlobal" className="space-y-4">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Compra (mês)</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(saldoGlobalKpis.purchase)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Scale className="h-3.5 w-3.5" />Consumido (mês)</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(saldoGlobalKpis.consumed)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Vendas (mês)</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(saldoGlobalKpis.sales)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Estoque (acumulado)</div>
+              <p className={cn('text-xl font-bold', saldoGlobalKpis.stock < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(saldoGlobalKpis.stock)}</p>
+            </CardContent></Card>
+          </div>
+
+          {/* Filters */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={saldoGlobalMonth} onValueChange={setSaldoGlobalMonth}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todo período</SelectItem>
+                    {availableMonths.map(m => (
+                      <SelectItem key={m} value={m}>
+                        {format(parse(m, 'yyyy-MM', new Date()), 'MMMM yyyy', { locale: ptBR })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <SearchableSelect
+                  value={saldoGlobalYarn === 'all' ? '' : saldoGlobalYarn}
+                  onValueChange={v => setSaldoGlobalYarn(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
+                  placeholder="Todos os fios"
+                  searchPlaceholder="Buscar fio..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                {(saldoGlobalMonth !== 'all' || saldoGlobalYarn !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setSaldoGlobalMonth('all'); setSaldoGlobalYarn('all'); }}>Limpar</Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Table */}
+          {yarnGlobalBalance.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Nenhum dado encontrado. Registre NFs de entrada para ver o saldo global de fios.
+            </CardContent></Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Tipo de Fio</TableHead>
+                      <TableHead className="text-xs text-right">Compra (mês)</TableHead>
+                      <TableHead className="text-xs text-right">Consumido (mês)</TableHead>
+                      <TableHead className="text-xs text-right">Vendas (mês)</TableHead>
+                      <TableHead className="text-xs text-right font-bold">Estoque (acumulado)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {yarnGlobalBalance.map(y => (
+                      <TableRow key={y.yarnTypeId}>
+                        <TableCell className="text-xs font-medium">{y.yarnTypeName}</TableCell>
+                        <TableCell className="text-xs text-right">{y.purchaseMonth > 0 ? formatWeight(y.purchaseMonth) : '—'}</TableCell>
+                        <TableCell className="text-xs text-right">{y.consumedMonth > 0 ? formatWeight(y.consumedMonth) : '—'}</TableCell>
+                        <TableCell className="text-xs text-right">{y.salesMonth > 0 ? formatWeight(y.salesMonth) : '—'}</TableCell>
+                        <TableCell className={cn('text-xs text-right font-bold', y.stockAccumulated < 0 ? 'text-destructive' : y.stockAccumulated === 0 ? 'text-muted-foreground' : 'text-success')}>
+                          {y.stockAccumulated !== 0 ? formatWeight(y.stockAccumulated) : '—'}
+                          {y.stockAccumulated < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-muted/30 font-semibold">
+                      <TableCell className="text-xs">TOTAL</TableCell>
+                      <TableCell className="text-xs text-right">{formatWeight(saldoGlobalKpis.purchase)}</TableCell>
+                      <TableCell className="text-xs text-right">{formatWeight(saldoGlobalKpis.consumed)}</TableCell>
+                      <TableCell className="text-xs text-right">{formatWeight(saldoGlobalKpis.sales)}</TableCell>
+                      <TableCell className={cn('text-xs text-right font-bold', saldoGlobalKpis.stock < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(saldoGlobalKpis.stock)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
