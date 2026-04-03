@@ -599,6 +599,119 @@ export default function Invoices() {
     consumed: acc.consumed + y.consumedMonth,
   }), { purchase: 0, stock: 0, sales: 0, consumed: 0 }), [yarnGlobalBalance]);
 
+  // ===== Estoque Fio Terceiros useMemo =====
+  const eftGroups = useMemo(() => {
+    const map = new Map<string, { outsourceCompanyId: string; outsourceCompanyName: string; items: any[]; totalKg: number }>();
+
+    for (const record of outsourceYarnStock) {
+      if (eftMonth !== 'all' && record.reference_month !== eftMonth) continue;
+      if (eftCompany !== 'all' && record.outsource_company_id !== eftCompany) continue;
+      if (eftYarn !== 'all' && record.yarn_type_id !== eftYarn) continue;
+
+      const cid = record.outsource_company_id;
+      if (!map.has(cid)) {
+        const company = outsourceCompanies.find(c => c.id === cid);
+        map.set(cid, { outsourceCompanyId: cid, outsourceCompanyName: company?.name || 'Facção removida', items: [], totalKg: 0 });
+      }
+      const group = map.get(cid)!;
+      const yarn = yarnTypes.find(y => y.id === record.yarn_type_id);
+      group.items.push({
+        id: record.id,
+        yarnTypeId: record.yarn_type_id,
+        yarnTypeName: yarn?.name || 'Fio removido',
+        quantityKg: Number(record.quantity_kg),
+        referenceMonth: record.reference_month,
+        observations: record.observations || '',
+      });
+      group.totalKg += Number(record.quantity_kg);
+    }
+
+    return Array.from(map.values()).sort((a, b) => a.outsourceCompanyName.localeCompare(b.outsourceCompanyName));
+  }, [outsourceYarnStock, outsourceCompanies, yarnTypes, eftMonth, eftCompany, eftYarn]);
+
+  const eftKpis = useMemo(() => ({
+    totalKg: eftGroups.reduce((s, g) => s + g.totalKg, 0),
+    totalCompanies: new Set(eftGroups.map(g => g.outsourceCompanyId)).size,
+    totalYarnTypes: new Set(eftGroups.flatMap(g => g.items.map(i => i.yarnTypeId))).size,
+  }), [eftGroups]);
+
+  const eftAvailableMonths = useMemo(() => {
+    const months = new Set<string>();
+    months.add(format(new Date(), 'yyyy-MM'));
+    outsourceYarnStock.forEach(r => { if (r.reference_month) months.add(r.reference_month); });
+    return Array.from(months).sort().reverse();
+  }, [outsourceYarnStock]);
+
+  // ===== Estoque Fio Terceiros CRUD =====
+  const handleSaveEft = async () => {
+    if (!eftFormCompany || !eftFormYarn || !eftFormMonth || !eftFormQty) {
+      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' }); return;
+    }
+    const qty = parseFloat(eftFormQty.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(qty) || qty <= 0) {
+      toast({ title: 'Quantidade deve ser maior que zero', variant: 'destructive' }); return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        company_id: companyId,
+        outsource_company_id: eftFormCompany,
+        yarn_type_id: eftFormYarn,
+        reference_month: eftFormMonth,
+        quantity_kg: qty,
+        observations: eftFormObs.trim() || null,
+      };
+      if (eftEditing) {
+        const { error } = await sb('outsource_yarn_stock').update({
+          quantity_kg: qty, observations: eftFormObs.trim() || null,
+        }).eq('id', eftEditing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb('outsource_yarn_stock').upsert(payload, {
+          onConflict: 'company_id,outsource_company_id,yarn_type_id,reference_month'
+        });
+        if (error) throw error;
+      }
+      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      toast({ title: eftEditing ? 'Estoque atualizado!' : 'Estoque salvo!' });
+      // Keep modal open, preserve company
+      setEftFormYarn('');
+      setEftFormQty('');
+      setEftFormObs('');
+      setEftEditing(null);
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    } finally { setSaving(false); }
+  };
+
+  const handleDeleteEft = async (id: string) => {
+    if (!confirm('Excluir este registro de estoque?')) return;
+    const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+    toast({ title: 'Registro excluído' });
+  };
+
+  const openEditEft = (item: any, companyId: string) => {
+    setEftEditing(item);
+    setEftFormCompany(companyId);
+    setEftFormYarn(item.yarnTypeId);
+    setEftFormMonth(item.referenceMonth);
+    setEftFormQty(String(item.quantityKg));
+    setEftFormObs(item.observations || '');
+    setEftDialogOpen(true);
+  };
+
+  const openNewEft = () => {
+    setEftEditing(null);
+    setEftFormCompany('');
+    setEftFormYarn('');
+    setEftFormMonth(format(new Date(), 'yyyy-MM'));
+    setEftFormQty('');
+    setEftFormObs('');
+    setEftDialogOpen(true);
+  };
+
   // ===== Estoque de Malha Filters =====
   const [estoqueClient, setEstoqueClient] = useState('all');
   const [estoqueArticle, setEstoqueArticle] = useState('all');
