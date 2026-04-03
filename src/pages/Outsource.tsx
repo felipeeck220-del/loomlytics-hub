@@ -723,11 +723,36 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
               <Plus className="h-4 w-4" /> Nova Produção
             </Button>
           </DialogTrigger>
-          <DialogContent className="w-[95vw] sm:w-[90vw] sm:max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogContent
+            className="w-[95vw] sm:w-[90vw] sm:max-w-3xl max-h-[80vh] overflow-y-auto"
+            onEscapeKeyDown={e => e.preventDefault()}
+            onInteractOutside={e => e.preventDefault()}
+          >
             <DialogHeader>
               <DialogTitle>{editId ? 'Editar Produção' : 'Registrar Produção Terceirizada'}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 py-2" onKeyDown={e => {
+              if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
+              if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+              // Don't hijack arrows when article dropdown is open
+              if (articleDropdownOpen) return;
+              const fields: (HTMLElement | null)[] = [
+                companySelectRef.current,
+                dateRef.current,
+                articleSearchRef.current,
+                weightRef.current,
+                rollsRef.current,
+                repasseRef.current,
+                nfRomRef.current,
+                obsRef.current,
+              ];
+              const active = document.activeElement as HTMLElement;
+              const idx = fields.findIndex(f => f === active || f?.contains(active));
+              if (idx === -1) return;
+              e.preventDefault();
+              const next = e.key === 'ArrowDown' ? Math.min(idx + 1, fields.length - 1) : Math.max(idx - 1, 0);
+              fields[next]?.focus();
+            }}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Malharia *</Label>
