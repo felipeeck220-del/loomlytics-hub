@@ -135,7 +135,7 @@ export default function ResidueSales() {
       queryClient.invalidateQueries({ queryKey: ['residue_materials'] });
       toast({ title: 'Material removido' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   // ===== Sale CRUD =====
