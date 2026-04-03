@@ -1180,4 +1180,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 04/04/2026 01:00 (Brasília)*
+*Última atualização: 04/04/2026 17:01 (Brasília)*
