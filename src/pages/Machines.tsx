@@ -256,20 +256,6 @@ export default function Machines() {
                 <span className="text-muted-foreground">Cadastrada:</span>
                 <span className="font-semibold text-foreground">{format(new Date(m.created_at), 'dd/MM/yyyy')}</span>
               </div>
-              {/* Machine UUID for IoT */}
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-muted-foreground">UUID:</span>
-                <div className="flex items-center gap-1">
-                  <code className="text-[10px] font-mono text-muted-foreground truncate max-w-[140px]">{m.id}</code>
-                  <button
-                    className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
-                    onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(m.id); toast.success('UUID copiado!'); }}
-                    title="Copiar UUID"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
             </div>
 
             {/* Card Actions */}
