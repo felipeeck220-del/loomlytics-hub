@@ -120,16 +120,37 @@ export default function Outsource() {
     enabled: !!companyId,
   });
 
-  // KPIs
+  // Lifted filter state so KPIs reflect filtered data
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterFrom, setFilterFrom] = useState<Date | undefined>(undefined);
+  const [filterTo, setFilterTo] = useState<Date | undefined>(undefined);
+
+  const displayProductions = useMemo(() => {
+    let result = productions;
+    if (filterMonth) {
+      result = result.filter(p => p.date.startsWith(filterMonth));
+    }
+    if (filterFrom) {
+      const from = format(filterFrom, 'yyyy-MM-dd');
+      result = result.filter(p => p.date >= from);
+    }
+    if (filterTo) {
+      const to = format(filterTo, 'yyyy-MM-dd');
+      result = result.filter(p => p.date <= to);
+    }
+    return result;
+  }, [productions, filterMonth, filterFrom, filterTo]);
+
+  // KPIs based on filtered productions
   const totals = useMemo(() => {
-    const totalRevenue = productions.reduce((s, p) => s + p.total_revenue, 0);
-    const totalCost = productions.reduce((s, p) => s + p.total_cost, 0);
-    const totalProfit = productions.reduce((s, p) => s + p.total_profit, 0);
-    const totalWeight = productions.reduce((s, p) => s + p.weight_kg, 0);
-    const totalRolls = productions.reduce((s, p) => s + p.rolls, 0);
-    const totalLoss = productions.filter(p => p.total_profit < 0).reduce((s, p) => s + p.total_profit, 0);
+    const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
+    const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
+    const totalProfit = displayProductions.reduce((s, p) => s + p.total_profit, 0);
+    const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
+    const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
+    const totalLoss = displayProductions.filter(p => p.total_profit < 0).reduce((s, p) => s + p.total_profit, 0);
     return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss };
-  }, [productions]);
+  }, [displayProductions]);
 
   const firstName = companyName.split(' ')[0] || 'Empresa';
 
