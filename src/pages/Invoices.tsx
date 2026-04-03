@@ -324,8 +324,8 @@ export default function Invoices() {
         total_value: totalValue,
         status: formStatus,
         observations: formObservations.trim() || null,
-        created_by_name: user?.name || null,
-        created_by_code: (user as any)?.code || null,
+        created_by_name: userName || null,
+        created_by_code: userCode || null,
       }).select('id').single();
 
       if (invError) throw invError;
