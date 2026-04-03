@@ -481,12 +481,22 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Data *</Label>
+                   <Label>Data *</Label>
                    <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                      onKeyDown={e => {
+                       // Allow natural tab through day/month/year segments
+                       // Only intercept on the last segment (year) to jump to article
                        if (e.key === 'Tab' && !e.shiftKey) {
-                         e.preventDefault();
-                         articleSearchRef.current?.focus();
+                         const input = e.currentTarget;
+                         const selStart = input.selectionStart || 0;
+                         // Year segment is typically at position >= 6 in yyyy-mm-dd
+                         // We detect "last segment" by checking if another tab would leave the input
+                         // Use a flag: if we're already at the rightmost segment, intercept
+                         const val = input.value;
+                         if (val && selStart >= 6) {
+                           e.preventDefault();
+                           articleSearchRef.current?.focus();
+                         }
                        }
                      }}
                    />
