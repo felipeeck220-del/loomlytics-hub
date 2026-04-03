@@ -316,11 +316,21 @@ export default function ClientsArticles() {
           <DialogHeader><DialogTitle>{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Nome do Artigo</Label><Input value={articleForm.name} onChange={e => setArticleForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div className="space-y-2">
+             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select value={articleForm.client_id} onValueChange={v => setArticleForm(p => ({ ...p, client_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de Fio</Label>
+              <Select value={articleForm.yarn_type_id} onValueChange={v => setArticleForm(p => ({ ...p, yarn_type_id: v === '__none__' ? '' : v }))}>
+                <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {yarnTypes.map(y => <SelectItem key={y.id} value={y.id}>{y.name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className={`grid ${canSeeFinancial ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
