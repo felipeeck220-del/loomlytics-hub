@@ -83,7 +83,7 @@ A Edge Function envia um POST com o seguinte JSON:
 
 ```json
 {
-  "phone": "+5511999999999",
+  "phone": "+5547992102017",
   "supplier_name": "Fornecedor XYZ",
   "description": "Óleo lubrificante",
   "amount": "1.250,00",
