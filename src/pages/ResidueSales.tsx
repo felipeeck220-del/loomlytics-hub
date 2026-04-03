@@ -22,7 +22,7 @@ import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -135,7 +135,7 @@ export default function ResidueSales() {
       queryClient.invalidateQueries({ queryKey: ['residue_materials'] });
       toast({ title: 'Material removido' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   // ===== Sale CRUD =====
@@ -215,7 +215,7 @@ export default function ResidueSales() {
       queryClient.invalidateQueries({ queryKey: ['residue_sales'] });
       toast({ title: 'Registro removido' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   // ===== Filters =====

@@ -23,7 +23,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
@@ -284,7 +284,7 @@ function CompaniesTab({ companies, companyId, loading }: {
       queryClient.invalidateQueries({ queryKey: ['outsource_companies'] });
       toast({ title: 'Malharia removida!' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   const openEdit = (c: OutsourceCompany) => {
@@ -603,7 +603,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
       toast({ title: 'Registro removido!' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   const formatNumberToBr = (num: number, decimals: number): string => {

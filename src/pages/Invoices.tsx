@@ -26,7 +26,7 @@ import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 
 
 const sb = (table: string) => (supabase.from as any)(table);
@@ -406,7 +406,7 @@ export default function Invoices() {
   const handleDeleteYarn = async (y: YarnType) => {
     if (!confirm(`Excluir fio "${y.name}"?`)) return;
     const { error } = await sb('yarn_types').delete().eq('id', y.id);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
     toast({ title: 'Fio excluído' });
   };
@@ -687,7 +687,7 @@ export default function Invoices() {
   const handleDeleteEft = async (id: string) => {
     if (!confirm('Excluir este registro de estoque?')) return;
     const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
     toast({ title: 'Registro excluído' });
   };
