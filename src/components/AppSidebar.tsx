@@ -197,7 +197,7 @@ export function AppSidebar() {
               <SidebarMenuButton asChild>
                 <button
                   onClick={() => { install(); if (isMobile) setOpenMobile(false); }}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-primary/10 transition-all duration-150 text-[13px] w-full"
+                  className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'} py-2 rounded-lg text-primary hover:bg-primary/10 transition-all duration-150 text-[13px] w-full`}
                 >
                   {platform === 'ios' ? (
                     <Share2 className="h-4 w-4 shrink-0" />
