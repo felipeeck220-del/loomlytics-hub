@@ -19,8 +19,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign,
-  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers
+  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil
 } from 'lucide-react';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -395,6 +396,7 @@ export default function Invoices() {
   const [saldoClient, setSaldoClient] = useState('all');
   const [saldoYarn, setSaldoYarn] = useState('all');
   const [saldoMonth, setSaldoMonth] = useState('all');
+  const [yarnSearchTerm, setYarnSearchTerm] = useState('');
 
   // ===== Saldo de Fios =====
   const yarnBalance = useMemo(() => {
@@ -772,20 +774,22 @@ export default function Invoices() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={saldoClient} onValueChange={setSaldoClient}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Cliente" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos clientes</SelectItem>
-                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={saldoYarn} onValueChange={setSaldoYarn}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Tipo de Fio" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os fios</SelectItem>
-                    {yarnTypes.map(y => <SelectItem key={y.id} value={y.id}>{y.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={saldoClient === 'all' ? '' : saldoClient}
+                  onValueChange={v => setSaldoClient(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todos clientes"
+                  searchPlaceholder="Buscar cliente..."
+                  triggerClassName="w-[160px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={saldoYarn === 'all' ? '' : saldoYarn}
+                  onValueChange={v => setSaldoYarn(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
+                  placeholder="Todos os fios"
+                  searchPlaceholder="Buscar fio..."
+                  triggerClassName="w-[160px] h-8 text-xs"
+                />
                 {(saldoClient !== 'all' || saldoYarn !== 'all' || saldoMonth !== 'all') && (
                   <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setSaldoClient('all'); setSaldoYarn('all'); setSaldoMonth('all'); }}>Limpar</Button>
                 )}
@@ -895,20 +899,22 @@ export default function Invoices() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={estoqueClient} onValueChange={setEstoqueClient}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Cliente" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos clientes</SelectItem>
-                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={estoqueArticle} onValueChange={setEstoqueArticle}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Artigo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos artigos</SelectItem>
-                    {articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={estoqueClient === 'all' ? '' : estoqueClient}
+                  onValueChange={v => setEstoqueClient(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todos clientes"
+                  searchPlaceholder="Buscar cliente..."
+                  triggerClassName="w-[160px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={estoqueArticle === 'all' ? '' : estoqueArticle}
+                  onValueChange={v => setEstoqueArticle(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
+                  placeholder="Todos artigos"
+                  searchPlaceholder="Buscar artigo..."
+                  triggerClassName="w-[160px] h-8 text-xs"
+                />
                 {(estoqueClient !== 'all' || estoqueArticle !== 'all' || estoqueMonth !== 'all') && (
                   <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEstoqueClient('all'); setEstoqueArticle('all'); setEstoqueMonth('all'); }}>Limpar</Button>
                 )}
@@ -924,7 +930,7 @@ export default function Invoices() {
           ) : (
             <div className="space-y-3">
               {malhaEstoque.map(group => (
-                <Collapsible key={group.clientId} defaultOpen>
+                <Collapsible key={group.clientId}>
                   <Card>
                     <CollapsibleTrigger className="w-full">
                       <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
@@ -992,11 +998,22 @@ export default function Invoices() {
         {/* ===== TIPOS DE FIO TAB ===== */}
         <TabsContent value="fios" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+           <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Tipos de Fio Cadastrados</CardTitle>
-              <Button size="sm" onClick={() => { setEditingYarn(null); setYarnName(''); setYarnComposition(''); setYarnColor(''); setYarnObs(''); setYarnDialogOpen(true); }} className="gap-1.5">
-                <Plus className="h-4 w-4" /> Novo Fio
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    className="pl-7 h-8 w-[180px] text-xs"
+                    placeholder="Buscar fio..."
+                    value={yarnSearchTerm}
+                    onChange={e => setYarnSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button size="sm" onClick={() => { setEditingYarn(null); setYarnName(''); setYarnComposition(''); setYarnColor(''); setYarnObs(''); setYarnDialogOpen(true); }} className="gap-1.5">
+                  <Plus className="h-4 w-4" /> Novo Fio
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               {loadingYarns ? (
@@ -1014,7 +1031,11 @@ export default function Invoices() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {yarnTypes.map(y => (
+                    {yarnTypes.filter(y => {
+                      if (!yarnSearchTerm.trim()) return true;
+                      const q = yarnSearchTerm.toLowerCase();
+                      return y.name.toLowerCase().includes(q) || (y.composition || '').toLowerCase().includes(q) || (y.color || '').toLowerCase().includes(q);
+                    }).map(y => (
                       <TableRow key={y.id}>
                         <TableCell className="text-xs font-medium">{y.name}</TableCell>
                         <TableCell className="text-xs">{y.composition || '—'}</TableCell>
@@ -1029,7 +1050,7 @@ export default function Invoices() {
                               setYarnObs(y.observations || '');
                               setYarnDialogOpen(true);
                             }}>
-                              <FileText className="h-3.5 w-3.5" />
+                              <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteYarn(y)}>
                               <Trash2 className="h-3.5 w-3.5" />
