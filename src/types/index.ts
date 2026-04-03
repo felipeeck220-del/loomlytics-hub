@@ -75,6 +75,7 @@ export interface Article {
   name: string;
   client_id: string;
   client_name?: string;
+  yarn_type_id?: string;
   weight_per_roll: number; // kg
   value_per_kg: number; // R$
   turns_per_roll: number;

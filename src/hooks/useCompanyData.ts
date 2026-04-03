@@ -109,7 +109,8 @@ export function useCompanyData() {
   });
   const mapArticle = (r: any): Article => ({
     id: r.id, company_id: r.company_id, name: r.name, client_id: r.client_id,
-    client_name: r.client_name || undefined, weight_per_roll: Number(r.weight_per_roll),
+    client_name: r.client_name || undefined, yarn_type_id: r.yarn_type_id || undefined,
+    weight_per_roll: Number(r.weight_per_roll),
     value_per_kg: Number(r.value_per_kg), turns_per_roll: Number(r.turns_per_roll),
     target_efficiency: Number(r.target_efficiency) || 80,
     observations: r.observations || undefined, created_at: r.created_at,
