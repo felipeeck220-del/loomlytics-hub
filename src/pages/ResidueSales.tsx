@@ -289,37 +289,107 @@ export default function ResidueSales() {
 
   const { minDate, maxDate } = getDateLimits();
 
-  // ===== PDF Export =====
+  // ===== PDF Export (padrão Relatórios > Exportar) =====
   const exportPDF = async () => {
     const pdf = new jsPDF('landscape', 'mm', 'a4');
     const pw = pdf.internal.pageSize.getWidth();
-    const ph = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    let y = margin;
 
-    // Header
-    const hdrH = 14;
-    pdf.setFillColor(220, 220, 220);
-    pdf.rect(10, 8, pw - 20, hdrH, 'F');
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(12);
-    pdf.text('Vendas de Resíduos', pw / 2, 16, { align: 'center' });
+    const colors = {
+      grayBg: [249, 250, 251] as [number, number, number],
+      border: [229, 231, 235] as [number, number, number],
+      textDark: [17, 24, 39] as [number, number, number],
+      textMid: [75, 85, 99] as [number, number, number],
+    };
 
-    // Company + date
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
-    const now = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-    pdf.text(companyName || 'Empresa', 12, 20);
-    pdf.text(now, 12, 23);
+    // Load logo
+    let logoInfo: { data: string; width: number; height: number } | null = null;
+    if (companyLogoUrl) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject();
+          img.src = companyLogoUrl;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d')!.drawImage(img, 0, 0);
+        logoInfo = { data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight };
+      } catch { /* ignore */ }
+    }
 
-    // Period
+    const fitWithinBox = (w: number, h: number, mw: number, mh: number) => {
+      if (!w || !h) return { width: mw, height: mh };
+      const s = Math.min(mw / w, mh / h);
+      return { width: w * s, height: h * s };
+    };
+
+    const dateStr = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+
     let periodLabel = 'Todo período';
     if (filterMonth !== 'all') {
-      const [y, m] = filterMonth.split('-');
-      const d = new Date(parseInt(y), parseInt(m) - 1);
+      const [yr, mo] = filterMonth.split('-');
+      const d = new Date(parseInt(yr), parseInt(mo) - 1);
       periodLabel = format(d, 'MMMM yyyy', { locale: ptBR });
     } else if (dateFrom && dateTo) {
       periodLabel = `${format(dateFrom, 'dd/MM/yyyy')} — ${format(dateTo, 'dd/MM/yyyy')}`;
     }
-    pdf.text(periodLabel, pw - 12, 20, { align: 'right' });
+
+    // Header (padrão Relatórios)
+    const headerH = 25;
+    const leftX = margin + 5;
+    const rightX = pw - margin - 5;
+    const reportTitle = 'Vendas de Resíduos';
+
+    pdf.setFillColor(...colors.grayBg);
+    pdf.rect(margin, y, pw - 2 * margin, headerH, 'F');
+    pdf.setDrawColor(...colors.border);
+    pdf.setLineWidth(0.5);
+    pdf.rect(margin, y, pw - 2 * margin, headerH, 'S');
+
+    // Left: logo or company name + date
+    if (logoInfo) {
+      try {
+        const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+        pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
+      } catch {
+        if (companyName) {
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...colors.textDark);
+          pdf.text(companyName, leftX, y + 10);
+        }
+      }
+    } else if (companyName) {
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      pdf.text(companyName, leftX, y + 10);
+    }
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.textMid);
+    pdf.text(dateStr, leftX, y + 22);
+
+    // Center: title
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.textDark);
+    const titleW = pdf.getTextWidth(reportTitle);
+    pdf.text(reportTitle, (pw - titleW) / 2, y + 14);
+
+    // Right: period
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.textMid);
+    const pLabelW = pdf.getTextWidth(periodLabel);
+    pdf.text(periodLabel, rightX - pLabelW, y + 22);
+
+    y += headerH + 10;
 
     // Table
     const rows = filteredSales.map(s => [
@@ -333,19 +403,20 @@ export default function ResidueSales() {
     ]);
 
     autoTable(pdf, {
-      startY: 28,
+      startY: y,
       head: [['Data', 'Material', 'Cliente', 'Qtd', 'Preço Unit.', 'Total', 'Romaneio']],
       body: rows,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [60, 60, 60] },
-      margin: { left: 10, right: 10 },
+      margin: { left: margin, right: margin },
     });
 
     // Totals
-    const finalY = (pdf as any).lastAutoTable?.finalY || 28;
+    const finalY = (pdf as any).lastAutoTable?.finalY || y;
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
-    pdf.text(`Total: ${formatCurrency(kpis.totalValue)} | Registros: ${kpis.count}`, 12, finalY + 8);
+    pdf.setTextColor(...colors.textDark);
+    pdf.text(`Total: ${formatCurrency(kpis.totalValue)} | Registros: ${kpis.count}`, margin, finalY + 8);
 
     pdf.save(`vendas-residuos-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast({ title: 'PDF exportado' });

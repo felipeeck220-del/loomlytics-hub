@@ -1140,6 +1140,26 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 16:00** — **MÓDULO VENDAS DE RESÍDUOS:** Implementação completa do controle de vendas de materiais residuais (papelão, plástico, óleo sujo, etc.): (1) 2 tabelas criadas: `residue_materials` (nome, unidade kg/un, preço padrão) e `residue_sales` (material, cliente, data, quantidade, preço unitário, total, romaneio, observações) com RLS por `company_id`; (2) Página `/residuos` com 2 abas: **Materiais** (CRUD de materiais com unidade dinâmica) e **Registros de Venda** (formulário com material, cliente, quantidade adaptativa kg/un, preço pré-preenchido, romaneio, preview de total); (3) KPIs filtráveis: Total Vendido (R$), Peso (kg), Unidades, Nº Registros; (4) Filtros: mês (Select), período De/Até (Calendar), busca textual (material, cliente, romaneio); (5) Exportação PDF com jsPDF+autoTable; (6) Modal mantém aberto após salvar (limpa campos exceto cliente); (7) Validação de data ±5 anos; (8) Sidebar: ícone Recycle, key `residuos`, acesso admin; (9) Rota, permissões e `enabled_nav_items` configurados; (10) Documentação em `Recycle.md`.
 
+- **03/04/2026 17:00** — **Padronização PDF — regra global + Resíduos atualizado:** (1) Documentada regra global: **toda exportação PDF futura deve seguir o padrão visual da página Relatórios > Exportar** (cabeçalho com retângulo cinza `grayBg` + borda `border`, logo ou nome da empresa à esquerda, título centralizado fonte 14 bold, data/hora embaixo à esquerda, período do filtro embaixo à direita, mesmas cores semânticas `colors.textDark`/`textMid`/`grayBg`/`border`); (2) PDF de Vendas de Resíduos refatorado para seguir este padrão (antes usava header simples sem logo/borda).
+
 ---
 
-*Última atualização: 03/04/2026 16:00 (Brasília)*
+## 📐 Padrão de Exportação PDF (Regra Global)
+
+> **REGRA:** Toda exportação PDF criada futuramente no projeto DEVE seguir como referência o código de exportação da página **Relatórios (`Reports.tsx`) > Exportar**.
+
+### Elementos obrigatórios do cabeçalho:
+1. **Retângulo de fundo** cinza claro (`grayBg: [249, 250, 251]`) com borda (`border: [229, 231, 235]`), altura 25mm
+2. **Lado esquerdo:** Logo da empresa (via `addImage`, max 24×14mm) OU nome da empresa (bold, 10pt); abaixo, data/hora atual (normal, 8pt, `textMid`)
+3. **Centro:** Título do relatório (bold, 14pt, `textDark`)
+4. **Lado direito:** Período do filtro ativo (normal, 8pt, `textMid`), alinhado à direita embaixo
+5. **Cores semânticas:** `textDark: [17, 24, 39]`, `textMid: [75, 85, 99]`, `grayBg: [249, 250, 251]`, `border: [229, 231, 235]`
+6. **Tabelas:** `headStyles: { fillColor: [60, 60, 60] }`, fontSize 8
+7. **Margens:** 15mm
+
+### Arquivo de referência:
+`src/pages/Reports.tsx` — função `doExport()` → `addHeader()`
+
+---
+
+*Última atualização: 03/04/2026 17:00 (Brasília)*
