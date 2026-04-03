@@ -27,6 +27,7 @@ import Admin from "./pages/Admin";
 import Vendas from "./pages/Vendas";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import AccountsPayable from "./pages/AccountsPayable";
+import ResidueSales from "./pages/ResidueSales";
 import TvCodeEntry from "./pages/TvCodeEntry";
 import TvPanel from "./pages/TvPanel";
 
@@ -167,6 +168,7 @@ const App = () => (
               <Route path="reports" element={<ProtectedRoute routeKey="reports"><Reports /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute routeKey="settings"><SettingsPage /></ProtectedRoute>} />
               <Route path="contas-pagar" element={<ProtectedRoute routeKey="contas-pagar"><AccountsPayable /></ProtectedRoute>} />
+              <Route path="residuos" element={<ProtectedRoute routeKey="residuos"><ResidueSales /></ProtectedRoute>} />
             </Route>
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
