@@ -249,6 +249,7 @@ function CompaniesTab({ companies, companyId, loading }: {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', contact: '', observations: '' });
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const resetForm = () => { setForm({ name: '', contact: '', observations: '' }); setEditId(null); };
 
