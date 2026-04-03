@@ -37,7 +37,7 @@ export default function IotDevicesManager() {
   const [devices, setDevices] = useState<IotDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState<IotDevice | null>(null);
+  const [showDelete, setShowDelete] = useState<IotDevice | null>(null);
   const [showDelete, setShowDelete] = useState<IotDevice | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', machine_id: '', token: '' });
