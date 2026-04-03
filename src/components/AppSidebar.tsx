@@ -164,7 +164,7 @@ export function AppSidebar() {
                           to={item.url}
                           end={item.path === ''}
                           onClick={() => { if (isMobile) setOpenMobile(false); }}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-150 text-[13px]"
+                          className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'} py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-150 text-[13px]`}
                           activeClassName="bg-primary/10 text-primary font-medium"
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
