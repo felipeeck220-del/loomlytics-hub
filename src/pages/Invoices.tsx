@@ -140,6 +140,32 @@ export default function Invoices() {
     enabled: !!companyId,
   });
 
+  // ===== Fetch Outsource Companies =====
+  const { data: outsourceCompanies = [] } = useQuery({
+    queryKey: ['outsource_companies', companyId],
+    queryFn: async () => {
+      const { data, error } = await sb('outsource_companies').select('id, name').eq('company_id', companyId).order('name');
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name: string }>;
+    },
+    enabled: !!companyId,
+  });
+
+  // ===== Fetch Outsource Yarn Stock =====
+  const { data: outsourceYarnStock = [], isLoading: loadingYarnStock } = useQuery({
+    queryKey: ['outsource_yarn_stock', companyId],
+    queryFn: async () => {
+      const { data, error } = await sb('outsource_yarn_stock').select('*').eq('company_id', companyId).order('reference_month', { ascending: false });
+      if (error) throw error;
+      return (data || []) as Array<{
+        id: string; company_id: string; outsource_company_id: string; yarn_type_id: string;
+        quantity_kg: number; reference_month: string; observations: string | null;
+        created_at: string; updated_at: string;
+      }>;
+    },
+    enabled: !!companyId,
+  });
+
   // ===== State =====
   const [activeTab, setActiveTab] = useState('entrada');
   const [dialogOpen, setDialogOpen] = useState(false);
