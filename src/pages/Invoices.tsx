@@ -1781,15 +1781,18 @@ export default function Invoices() {
           <div className="space-y-3">
             <div>
               <Label className="text-xs">Facção *</Label>
-              <SearchableSelect
-                value={eftFormCompany}
-                onValueChange={v => setEftFormCompany(v)}
-                options={outsourceCompanies.map(c => ({ value: c.id, label: c.name }))}
-                placeholder="Selecione a facção..."
-                searchPlaceholder="Buscar facção..."
-                triggerClassName="h-9 text-xs"
-                disabled={!!eftEditing}
-              />
+              {eftEditing ? (
+                <Input className="h-9 text-xs" value={outsourceCompanies.find(c => c.id === eftFormCompany)?.name || ''} disabled />
+              ) : (
+                <SearchableSelect
+                  value={eftFormCompany}
+                  onValueChange={v => setEftFormCompany(v)}
+                  options={outsourceCompanies.map(c => ({ value: c.id, label: c.name }))}
+                  placeholder="Selecione a facção..."
+                  searchPlaceholder="Buscar facção..."
+                  triggerClassName="h-9 text-xs"
+                />
+              )}
             </div>
             <div>
               <Label className="text-xs">Tipo de Fio *</Label>
