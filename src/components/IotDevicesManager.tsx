@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Wifi, WifiOff, Copy, Cpu } from 'lucide-react';
+import { Plus, Trash2, Loader2, Wifi, WifiOff, Copy, Cpu } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -37,7 +37,6 @@ export default function IotDevicesManager() {
   const [devices, setDevices] = useState<IotDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState<IotDevice | null>(null);
   const [showDelete, setShowDelete] = useState<IotDevice | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', machine_id: '', token: '' });
@@ -60,14 +59,7 @@ export default function IotDevicesManager() {
   };
 
   const openNew = () => {
-    setEditing(null);
     setForm({ name: '', machine_id: '', token: generateToken() });
-    setShowModal(true);
-  };
-
-  const openEdit = (d: IotDevice) => {
-    setEditing(d);
-    setForm({ name: d.name || '', machine_id: d.machine_id, token: d.token });
     setShowModal(true);
   };
 
@@ -75,32 +67,19 @@ export default function IotDevicesManager() {
     if (!form.machine_id) { toast.error('Selecione uma máquina'); return; }
     if (!form.token.trim()) { toast.error('Token é obrigatório'); return; }
 
-    // Check if machine already has a device (when creating new or changing machine)
-    if (!editing || editing.machine_id !== form.machine_id) {
-      const existing = devices.find(d => d.machine_id === form.machine_id && d.id !== editing?.id);
-      if (existing) { toast.error('Esta máquina já possui um dispositivo IoT cadastrado'); return; }
-    }
+    const existing = devices.find(d => d.machine_id === form.machine_id);
+    if (existing) { toast.error('Esta máquina já possui um dispositivo IoT cadastrado'); return; }
 
     setSaving(true);
     try {
-      if (editing) {
-        const { error } = await sb('iot_devices').update({
-          name: form.name.trim() || null,
-          machine_id: form.machine_id,
-          token: form.token.trim(),
-        }).eq('id', editing.id);
-        if (error) throw error;
-        toast.success('Dispositivo atualizado');
-      } else {
-        const { error } = await sb('iot_devices').insert({
-          company_id: companyId,
-          machine_id: form.machine_id,
-          token: form.token.trim(),
-          name: form.name.trim() || null,
-        });
-        if (error) throw error;
-        toast.success('Dispositivo cadastrado');
-      }
+      const { error } = await sb('iot_devices').insert({
+        company_id: companyId,
+        machine_id: form.machine_id,
+        token: form.token.trim(),
+        name: form.name.trim() || null,
+      });
+      if (error) throw error;
+      toast.success('Dispositivo cadastrado');
       setShowModal(false);
       fetchDevices();
     } catch (err: any) {
@@ -143,14 +122,12 @@ export default function IotDevicesManager() {
 
   const isOnline = (lastSeen: string | null) => {
     if (!lastSeen) return false;
-    const diff = Date.now() - new Date(lastSeen).getTime();
-    return diff < 5 * 60 * 1000; // 5 minutes
+    return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000;
   };
 
-  // Filter machines that don't have a device yet (for new device creation)
-  const availableMachines = machines.filter(m => 
-    !devices.some(d => d.machine_id === m.id && d.id !== editing?.id)
-  );
+  const maskToken = (token: string) => token.slice(0, 6) + '••••••••' + token.slice(-4);
+
+  const availableMachines = machines.filter(m => !devices.some(d => d.machine_id === m.id));
 
   if (loading) {
     return (
@@ -176,7 +153,7 @@ export default function IotDevicesManager() {
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Cadastre e gerencie os sensores ESP32 conectados às suas máquinas.
+          Cadastre e gerencie os sensores ESP32. Após criado, o dispositivo não pode ser editado — exclua e crie outro se necessário.
         </p>
 
         {devices.length === 0 ? (
@@ -213,6 +190,7 @@ export default function IotDevicesManager() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{getMachineName(d.machine_id)}</p>
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      <span className="font-mono">{maskToken(d.token)}</span>
                       {d.firmware_version && <span>FW: {d.firmware_version}</span>}
                       {d.last_seen_at && (
                         <span>Visto: {formatDistanceToNow(new Date(d.last_seen_at), { addSuffix: true, locale: ptBR })}</span>
@@ -221,17 +199,8 @@ export default function IotDevicesManager() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(d.token, 'Token')} title="Copiar Token">
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(d.machine_id, 'Machine ID')} title="Copiar Machine ID">
-                    <Cpu className="h-3.5 w-3.5" />
-                  </Button>
                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleActive(d)} title={d.active ? 'Desativar' : 'Ativar'}>
                     {d.active ? <WifiOff className="h-3.5 w-3.5 text-warning" /> : <Wifi className="h-3.5 w-3.5 text-emerald-500" />}
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(d)} title="Editar">
-                    <Pencil className="h-3.5 w-3.5" />
                   </Button>
                   <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setShowDelete(d)} title="Remover">
                     <Trash2 className="h-3.5 w-3.5" />
@@ -243,11 +212,11 @@ export default function IotDevicesManager() {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Create Modal — no editing allowed */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Editar Dispositivo' : 'Novo Dispositivo IoT'}</DialogTitle>
+            <DialogTitle>Novo Dispositivo IoT</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
@@ -259,7 +228,7 @@ export default function IotDevicesManager() {
               <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
                 <SelectContent>
-                  {(editing ? machines : availableMachines).map(m => (
+                  {availableMachines.map(m => (
                     <SelectItem key={m.id} value={m.id}>
                       TEAR {String(m.number).padStart(2, '0')} - {m.name}
                     </SelectItem>
@@ -278,36 +247,14 @@ export default function IotDevicesManager() {
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Use este token no firmware do ESP32 (variável DEVICE_TOKEN)</p>
+              <p className="text-xs text-muted-foreground mt-1">⚠️ Copie e salve este token agora. Após cadastrar, ele não poderá ser visualizado novamente.</p>
             </div>
-            {!editing && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1">
-                <p className="text-xs font-semibold text-foreground">📋 Dados para o firmware:</p>
-                <p className="text-xs text-muted-foreground font-mono">COMPANY_ID: {companyId}
-                  <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 inline-flex" onClick={() => copyToClipboard(companyId, 'Company ID')}>
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </p>
-                {form.machine_id && (
-                  <p className="text-xs text-muted-foreground font-mono">MACHINE_ID: {form.machine_id}
-                    <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 inline-flex" onClick={() => copyToClipboard(form.machine_id, 'Machine ID')}>
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground font-mono">DEVICE_TOKEN: {form.token}
-                  <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 inline-flex" onClick={() => copyToClipboard(form.token, 'Token')}>
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </p>
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowModal(false)}>Cancelar</Button>
             <Button className="btn-gradient" disabled={saving} onClick={handleSave}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              {editing ? 'Salvar' : 'Cadastrar'}
+              Cadastrar
             </Button>
           </DialogFooter>
         </DialogContent>
