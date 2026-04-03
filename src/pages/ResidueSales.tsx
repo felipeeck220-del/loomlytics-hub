@@ -645,9 +645,7 @@ export default function ResidueSales() {
                           <TableCell className="text-right font-medium">{formatCurrency(s.total)}</TableCell>
                           <TableCell>{s.romaneio || '-'}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="icon" onClick={() => {
-                              if (confirm('Remover este registro?')) deleteSale.mutate(s.id);
-                            }}>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteSaleConfirmId(s.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </TableCell>
