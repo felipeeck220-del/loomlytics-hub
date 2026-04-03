@@ -495,6 +495,18 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
      saveMutation.mutate();
    };
 
+   const filteredProductions = useMemo(() => {
+     const sorted = [...productions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+     if (!prodSearch.trim()) return sorted;
+     const q = prodSearch.toLowerCase();
+     return sorted.filter(p =>
+       p.outsource_company_name?.toLowerCase().includes(q) ||
+       p.article_name?.toLowerCase().includes(q) ||
+       p.client_name?.toLowerCase().includes(q) ||
+       p.nf_rom?.toLowerCase().includes(q)
+     );
+   }, [productions, prodSearch]);
+
    if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   return (
