@@ -415,6 +415,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   const [toOpen, setToOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
+  const [prodDeleteConfirmId, setProdDeleteConfirmId] = useState<string | null>(null);
   const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
    const articleSearchRef = useRef<HTMLInputElement>(null);
    const [articleHighlight, setArticleHighlight] = useState(-1);
