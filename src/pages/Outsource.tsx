@@ -743,6 +743,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
           <p className="text-center text-muted-foreground py-8">Cadastre uma malharia primeiro na aba "Malharias".</p>
         ) : productions.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhuma produção terceirizada registrada.</p>
+        ) : filteredProductions.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Nenhum resultado encontrado.</p>
         ) : (
           <div className="overflow-auto">
             <Table>
@@ -763,9 +765,16 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {productions.map(p => (
+                {filteredProductions.map(p => {
+                  const dateStr = p.date;
+                  const createdAt = new Date(p.created_at);
+                  const timeStr = !isNaN(createdAt.getTime()) ? format(createdAt, 'HH:mm') : '';
+                  return (
                   <TableRow key={p.id}>
-                    <TableCell className="whitespace-nowrap">{p.date}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div>{dateStr}</div>
+                      {timeStr && <div className="text-xs text-muted-foreground">{timeStr}</div>}
+                    </TableCell>
                     <TableCell className="font-medium">{p.outsource_company_name || '—'}</TableCell>
                     <TableCell>{p.article_name || '—'}</TableCell>
                     <TableCell>{p.client_name || '—'}</TableCell>
@@ -783,7 +792,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                         {formatCurrency(p.total_profit)}
                       </span>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{(p as any).nf_rom || '—'}</TableCell>
+                    <TableCell className="whitespace-nowrap">{p.nf_rom || '—'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Edit className="h-4 w-4" /></Button>
@@ -793,7 +802,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
