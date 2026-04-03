@@ -1523,7 +1523,7 @@ export default function Invoices() {
                             }}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteYarn(y)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteYarnConfirm(y)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
