@@ -447,6 +447,8 @@ export default function AccountsPayable() {
                 <Label>Vencimento *</Label>
                 <Input
                   type="date"
+                  min={getDateLimits().minDate}
+                  max={getDateLimits().maxDate}
                   value={form.due_date}
                   onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
                 />

@@ -596,7 +596,7 @@ export default function MecanicaPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Data Fim</Label>
-                <Input type="date" value={addEndDate} onChange={e => setAddEndDate(e.target.value)} />
+                <Input type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={addEndDate} onChange={e => setAddEndDate(e.target.value)} />
               </div>
               <div>
                 <Label>Hora Fim</Label>

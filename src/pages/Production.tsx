@@ -239,6 +239,9 @@ export default function ProductionPage() {
     if (!form.shift || !form.machine_id || !form.article_id) {
       toast.error('Preencha todos os campos obrigatórios'); return;
     }
+    if (!isDateValid(filterDate)) {
+      toast.error('Data inválida. O ano deve estar entre os últimos 5 e próximos 5 anos.'); return;
+    }
     if (machineMode === 'voltas') {
       if (!form.voltas_inicio || !form.voltas_fim || Number(form.voltas_fim) <= Number(form.voltas_inicio)) {
         toast.error('Preencha as voltas de início e fim corretamente'); return;
