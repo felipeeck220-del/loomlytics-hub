@@ -136,22 +136,14 @@ export default function Invoices() {
   // ===== Fetch Invoices =====
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ['invoices', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('invoices').select('*').eq('company_id', companyId).order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as Invoice[];
-    },
+    queryFn: () => fetchAllPaginated<Invoice>('invoices', companyId, 'created_at', false),
     enabled: !!companyId,
   });
 
   // ===== Fetch Invoice Items =====
   const { data: invoiceItems = [] } = useQuery({
     queryKey: ['invoice_items', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('invoice_items').select('*').eq('company_id', companyId).order('created_at');
-      if (error) throw error;
-      return (data || []) as InvoiceItem[];
-    },
+    queryFn: () => fetchAllPaginated<InvoiceItem>('invoice_items', companyId, 'created_at'),
     enabled: !!companyId,
   });
 
