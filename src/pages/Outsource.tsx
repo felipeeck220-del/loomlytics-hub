@@ -773,7 +773,60 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
         </Dialog>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Filters */}
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button variant={filterMonth === '' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setFilterMonth(''); setFilterFrom(undefined); setFilterTo(undefined); }}>
+                Todos
+              </Button>
+              {availableMonths.slice(0, 6).map(m => {
+                const [y, mo] = m.split('-');
+                const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMM/yy', { locale: ptBR });
+                return (
+                  <Button key={m} variant={filterMonth === m ? 'default' : 'outline'} size="sm" className="h-7 text-xs capitalize" onClick={() => { setFilterMonth(m); setFilterFrom(undefined); setFilterTo(undefined); }}>
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Período personalizado</Label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Popover open={fromOpen} onOpenChange={setFromOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !filterFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                    {filterFrom ? format(filterFrom, 'dd/MM/yy') : 'De'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={filterFrom} onSelect={(d) => { setFilterFrom(d); setFromOpen(false); setFilterMonth(''); }} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">até</span>
+              <Popover open={toOpen} onOpenChange={setToOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !filterTo && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                    {filterTo ? format(filterTo, 'dd/MM/yy') : 'Até'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={filterTo} onSelect={(d) => { setFilterTo(d); setToOpen(false); setFilterMonth(''); }} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setFilterMonth(''); setFilterFrom(undefined); setFilterTo(undefined); }}>
+                  ✕ Limpar
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
         {companies.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Cadastre uma malharia primeiro na aba "Malharias".</p>
         ) : productions.length === 0 ? (
