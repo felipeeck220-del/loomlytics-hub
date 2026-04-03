@@ -351,9 +351,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
   const [editId, setEditId] = useState<string | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
   const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
-  const articleSearchRef = useRef<HTMLInputElement>(null);
-  const [articleHighlight, setArticleHighlight] = useState(-1);
-  const weightRef = useRef<HTMLInputElement>(null);
+   const articleSearchRef = useRef<HTMLInputElement>(null);
+   const [articleHighlight, setArticleHighlight] = useState(-1);
+   const weightRef = useRef<HTMLInputElement>(null);
+   const nfRomRef = useRef<HTMLInputElement>(null);
+   const dateTabCount = useRef(0);
   const [form, setForm] = useState({
     outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
     weight_kg: '', rolls: '', outsource_value_per_kg: '', nf_rom: '', observations: '',
@@ -450,7 +452,30 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     setOpen(true);
   };
 
-  if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+   const handleSaveWithValidation = async () => {
+     if (!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg) return;
+     if (saveMutation.isPending) return;
+
+     // Check NF/ROM duplicate
+     if (form.nf_rom && form.nf_rom.trim()) {
+       const { data: existing } = await sb('outsource_productions')
+         .select('id, date')
+         .eq('company_id', companyId)
+         .eq('nf_rom', form.nf_rom.trim())
+         .limit(1);
+       if (existing && existing.length > 0 && existing[0].id !== editId) {
+         toast({
+           title: 'NF/ROM duplicada',
+           description: `O número "${form.nf_rom}" já está cadastrado (data: ${existing[0].date}). Verifique antes de continuar.`,
+           variant: 'destructive',
+         });
+         return;
+       }
+     }
+     saveMutation.mutate();
+   };
+
+   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   return (
     <Card>
@@ -481,12 +506,18 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Data *</Label>
+                   <Label>Data *</Label>
                    <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                     onFocus={() => { dateTabCount.current = 0; }}
                      onKeyDown={e => {
                        if (e.key === 'Tab' && !e.shiftKey) {
-                         e.preventDefault();
-                         articleSearchRef.current?.focus();
+                         dateTabCount.current++;
+                         // Date input has 3 segments (day/month/year), after 3rd tab go to article
+                         if (dateTabCount.current >= 3) {
+                           e.preventDefault();
+                           dateTabCount.current = 0;
+                           articleSearchRef.current?.focus();
+                         }
                        }
                      }}
                    />
@@ -592,10 +623,21 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                   <Label>Valor Repasse (R$/kg) *</Label>
                   <Input type="number" step="0.01" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: e.target.value }))} />
                 </div>
-                <div className="space-y-2">
-                  <Label>NF/ROM</Label>
-                  <Input placeholder="Nota fiscal ou romaneio" value={form.nf_rom} onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))} />
-                </div>
+                 <div className="space-y-2">
+                   <Label>NF/ROM</Label>
+                   <Input
+                     ref={nfRomRef}
+                     placeholder="Nota fiscal ou romaneio"
+                     value={form.nf_rom}
+                     onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))}
+                     onKeyDown={e => {
+                       if (e.key === 'Enter') {
+                         e.preventDefault();
+                         handleSaveWithValidation();
+                       }
+                     }}
+                   />
+                 </div>
               </div>
 
               {/* Preview calculations */}
@@ -646,10 +688,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
             </div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-              <Button
-                onClick={() => saveMutation.mutate()}
-                disabled={!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg || saveMutation.isPending}
-              >
+               <Button
+                 onClick={() => handleSaveWithValidation()}
+                 disabled={!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg || saveMutation.isPending}
+               >
                 {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                 {editId ? 'Salvar' : 'Registrar'}
               </Button>
