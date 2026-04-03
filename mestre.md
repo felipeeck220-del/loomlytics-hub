@@ -1166,4 +1166,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 03/04/2026 18:00 (Brasília)*
+*Última atualização: 03/04/2026 19:00 (Brasília)*
