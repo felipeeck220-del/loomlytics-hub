@@ -211,6 +211,10 @@ export default function AccountsPayable() {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
+    if (!isDateValid(form.due_date)) {
+      toast.error('Data inválida. O ano deve estar entre os últimos 5 e próximos 5 anos.');
+      return;
+    }
     saveMutation.mutate(form);
   }
 
