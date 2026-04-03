@@ -1,0 +1,1 @@
+UPDATE outsource_productions SET date = '2026-03-20' WHERE id = 'c6772879-0e24-410c-b96b-0e8a53c2501c' AND date = '0202-03-20';
