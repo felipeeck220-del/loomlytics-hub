@@ -413,6 +413,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   setFilterTo: (v: Date | undefined) => void;
 }) {
   const queryClient = useQueryClient();
+  const { userCode, userName } = useAuditLog();
   const [open, setOpen] = useState(false);
   const [prodSearch, setProdSearch] = useState('');
   const [fromOpen, setFromOpen] = useState(false);
