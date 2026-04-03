@@ -369,6 +369,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [prodSearch, setProdSearch] = useState('');
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterFrom, setFilterFrom] = useState<Date | undefined>(undefined);
+  const [filterTo, setFilterTo] = useState<Date | undefined>(undefined);
+  const [fromOpen, setFromOpen] = useState(false);
+  const [toOpen, setToOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
   const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
