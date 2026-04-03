@@ -1031,7 +1031,11 @@ export default function Invoices() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {yarnTypes.map(y => (
+                    {yarnTypes.filter(y => {
+                      if (!yarnSearchTerm.trim()) return true;
+                      const q = yarnSearchTerm.toLowerCase();
+                      return y.name.toLowerCase().includes(q) || (y.composition || '').toLowerCase().includes(q) || (y.color || '').toLowerCase().includes(q);
+                    }).map(y => (
                       <TableRow key={y.id}>
                         <TableCell className="text-xs font-medium">{y.name}</TableCell>
                         <TableCell className="text-xs">{y.composition || '—'}</TableCell>
