@@ -719,7 +719,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Peso (kg) *</Label>
-                  <Input ref={weightRef} type="number" step="0.01" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value }))} />
+                  <Input ref={weightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: formatBrInput(e.target.value, 2) }))} />
                 </div>
                 <div className="space-y-2">
                   <Label>Rolos</Label>
