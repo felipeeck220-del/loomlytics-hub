@@ -33,6 +33,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   reports: 'reports',
   'contas-pagar': 'contas-pagar',
   residuos: 'residuos',
+  invoices: 'invoices',
   settings: 'settings',
 };
 

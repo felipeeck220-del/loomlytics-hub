@@ -36,6 +36,7 @@ const allItems = [
   { title: 'Relatórios', path: 'reports', icon: FileText, key: 'reports' },
   { title: 'Contas a Pagar', path: 'contas-pagar', icon: Receipt, key: 'contas-pagar' },
   { title: 'Vendas de Resíduos', path: 'residuos', icon: Recycle, key: 'residuos' },
+  { title: 'Notas Fiscais', path: 'invoices', icon: FileText, key: 'invoices' },
   { title: 'Configurações', path: 'settings', icon: Settings, key: 'settings' },
 ];
 
