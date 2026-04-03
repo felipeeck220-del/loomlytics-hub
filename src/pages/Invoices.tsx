@@ -398,6 +398,10 @@ export default function Invoices() {
   const [saldoMonth, setSaldoMonth] = useState('all');
   const [yarnSearchTerm, setYarnSearchTerm] = useState('');
 
+  // ===== Saldo Global Filters =====
+  const [saldoGlobalMonth, setSaldoGlobalMonth] = useState('all');
+  const [saldoGlobalYarn, setSaldoGlobalYarn] = useState('all');
+
   // ===== Saldo de Fios =====
   const yarnBalance = useMemo(() => {
     const map = new Map<string, Map<string, { received: number; sold: number; consumed: number }>>();
