@@ -1130,6 +1130,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 10:00** — **Terceirizados — filtros aprimorados:** (1) Filtro de mês trocado de botões para Select dropdown (listagem completa de todos os meses com dados) em Produções e Relatórios; (2) Relatórios: adicionado seletor de malharia com busca (lupa), opção "Todas as malharias" e filtro por empresa específica; (3) Exportação PDF dinâmica: se "Todas" selecionado, mostra botões "Exportar por Malharia" e "Exportar PDF"; se malharia específica selecionada, exporta apenas dados daquela malharia; (4) Layout dos filtros compactado em linha horizontal (mês + período + malharia + resultado + limpar).
 
+- **03/04/2026 11:00** — **Modal Terceirizado — manter aberto + formatação BR:** (1) Após salvar novo registro, modal permanece aberto com mesma malharia selecionada e demais campos limpos (artigo, peso, rolos, valor repasse, NF/ROM, obs); foco volta para data; (2) Peso (kg) agora formata em tempo real no padrão brasileiro (1.000,55) com separador de milhar e vírgula decimal; (3) Valor Repasse (R$/kg) também formata em BR (1,20); (4) Parsing correto de valores BR para cálculos e persistência no banco.
+
 ---
 
-*Última atualização: 03/04/2026 10:00 (Brasília)*
+*Última atualização: 03/04/2026 11:00 (Brasília)*
