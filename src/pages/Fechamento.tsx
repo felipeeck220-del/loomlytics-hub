@@ -253,7 +253,7 @@ export default function Fechamento() {
       delivMap.set(key, cur);
     });
     const clientGroups = new Map<string, { clientName: string; items: { artName: string; prodKg: number; delivKg: number; stockKg: number; prodRolls: number; delivRolls: number; stockRolls: number }[] }>();
-    const allArticleIds = new Set([...prodMap.keys(), ...delivMap.keys()]);
+    const allArticleIds = new Set([...Array.from(prodMap.keys()), ...Array.from(delivMap.keys())]);
     allArticleIds.forEach(artId => {
       const art = articleMap.get(artId);
       const clientName = art?.client_name || 'Sem cliente';
