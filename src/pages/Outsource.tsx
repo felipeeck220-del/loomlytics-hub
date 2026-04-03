@@ -443,6 +443,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
       weight_kg: String(p.weight_kg),
       rolls: String(p.rolls),
       outsource_value_per_kg: String(p.outsource_value_per_kg),
+      nf_rom: (p as any).nf_rom || '',
       observations: p.observations || '',
     });
     setOpen(true);
