@@ -899,20 +899,22 @@ export default function Invoices() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={estoqueClient} onValueChange={setEstoqueClient}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Cliente" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos clientes</SelectItem>
-                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={estoqueArticle} onValueChange={setEstoqueArticle}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Artigo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos artigos</SelectItem>
-                    {articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={estoqueClient === 'all' ? '' : estoqueClient}
+                  onValueChange={v => setEstoqueClient(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todos clientes"
+                  searchPlaceholder="Buscar cliente..."
+                  triggerClassName="w-[160px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={estoqueArticle === 'all' ? '' : estoqueArticle}
+                  onValueChange={v => setEstoqueArticle(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
+                  placeholder="Todos artigos"
+                  searchPlaceholder="Buscar artigo..."
+                  triggerClassName="w-[160px] h-8 text-xs"
+                />
                 {(estoqueClient !== 'all' || estoqueArticle !== 'all' || estoqueMonth !== 'all') && (
                   <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEstoqueClient('all'); setEstoqueArticle('all'); setEstoqueMonth('all'); }}>Limpar</Button>
                 )}
