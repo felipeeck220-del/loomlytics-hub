@@ -1118,7 +1118,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **03/04/2026 03:00** — **UUIDs removidos das páginas Máquinas e Empresa:** O UUID da empresa (Configurações → Empresa → Identidade) e o UUID da máquina (cards de Máquinas) foram removidos dessas páginas. Agora esses IDs só aparecem no modal de cadastro de dispositivo IoT (`IotDevicesManager`), onde são realmente necessários para configurar o firmware do ESP32.
 - **03/04/2026 03:30** — **IoT: dispositivos imutáveis + segurança:** (1) Dispositivos IoT não podem mais ser editados após criação — apenas excluir e criar novo (segurança); (2) Botão de editar removido da listagem; (3) Token mascarado na listagem (6 primeiros + 4 últimos) com botão de copiar token completo; (4) COMPANY_ID/MACHINE_ID mantidos no modal de criação com botões de copiar (único local onde aparecem); (5) UUIDs removidos das páginas Máquinas e Empresa — agora só visíveis no modal de cadastro IoT.
 - **03/04/2026 04:00** — **IoT: botão copiar token na listagem:** Adicionado botão de copiar token completo na listagem de dispositivos (o token é mascarado visualmente mas pode ser copiado integralmente a qualquer momento).
+- **03/04/2026 05:00** — **Cadeado "Em breve" em funcionalidades inacabadas:** (1) Sidebar: "Contas a Pagar" agora exibido com ícone de cadeado e badge "Em breve", não clicável; (2) Configurações → aba "Telas": tab desabilitada com badge "Em breve"; (3) Configurações → Empresa → "Dispositivos IoT": seção com overlay de cadeado e badge "Em breve", conteúdo desfocado e não interativo.
 
 ---
 
-*Última atualização: 03/04/2026 04:00 (Brasília)*
+*Última atualização: 03/04/2026 05:00 (Brasília)*

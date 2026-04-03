@@ -52,7 +52,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor } from 'lucide-react';
+import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions, OVERRIDE_PERMISSIONS } from '@/hooks/usePermissions';
 import ProductionModeModal from '@/components/ProductionModeModal';
@@ -613,7 +613,14 @@ export default function SettingsPage() {
           <TabsTrigger value="profile">Meu Perfil</TabsTrigger>
           {isAdmin && <TabsTrigger value="users">Usuários</TabsTrigger>}
           <TabsTrigger value="company">Empresa</TabsTrigger>
-          {isAdmin && <TabsTrigger value="telas">Telas</TabsTrigger>}
+          {isAdmin && (
+            <TabsTrigger value="telas" disabled className="relative opacity-50 cursor-not-allowed">
+              Telas
+              <span className="ml-1.5 text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium leading-none">
+                Em breve
+              </span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="plans">Planos</TabsTrigger>
         </TabsList>
 
@@ -1040,8 +1047,18 @@ export default function SettingsPage() {
               )}
 
 
-              {/* IoT Devices */}
-              {isAdmin && <IotDevicesManager />}
+              {/* IoT Devices — Em breve */}
+              {isAdmin && (
+                <div className="card-glass p-5 border-primary/10 relative">
+                  <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] rounded-xl z-10 flex flex-col items-center justify-center gap-2">
+                    <Lock className="h-5 w-5 text-muted-foreground/50" />
+                    <span className="text-xs font-medium text-muted-foreground/70 bg-primary/10 text-primary px-2 py-0.5 rounded-full">Em breve</span>
+                  </div>
+                  <div className="opacity-40 pointer-events-none">
+                    <IotDevicesManager />
+                  </div>
+                </div>
+              )}
 
               {/* Email Patterns */}
               <div className="card-glass p-5 border-primary/10">
