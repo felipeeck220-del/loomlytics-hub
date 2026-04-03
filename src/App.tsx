@@ -28,6 +28,7 @@ import Vendas from "./pages/Vendas";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import AccountsPayable from "./pages/AccountsPayable";
 import ResidueSales from "./pages/ResidueSales";
+import Invoices from "./pages/Invoices";
 import TvCodeEntry from "./pages/TvCodeEntry";
 import TvPanel from "./pages/TvPanel";
 
