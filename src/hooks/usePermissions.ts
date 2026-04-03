@@ -32,6 +32,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   weavers: 'weavers',
   reports: 'reports',
   'contas-pagar': 'contas-pagar',
+  residuos: 'residuos',
   settings: 'settings',
 };
 

@@ -168,6 +168,7 @@ const App = () => (
               <Route path="reports" element={<ProtectedRoute routeKey="reports"><Reports /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute routeKey="settings"><SettingsPage /></ProtectedRoute>} />
               <Route path="contas-pagar" element={<ProtectedRoute routeKey="contas-pagar"><AccountsPayable /></ProtectedRoute>} />
+              <Route path="residuos" element={<ProtectedRoute routeKey="residuos"><ResidueSales /></ProtectedRoute>} />
             </Route>
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
