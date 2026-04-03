@@ -1650,8 +1650,13 @@ function exportOutsourcePdf(
     pdf.text('TOTAL', m + 2, y + 5);
     let x = m + cols[0] + cols[1] + cols[2] + cols[3];
     pdf.text(`${fmtN(totals.weight, 1)} kg`, x + 2, y + 5); x += cols[4];
-    pdf.text(String(totals.rolls), x + 2, y + 5); x += cols[5] + cols[6] + cols[7] + cols[8];
+    pdf.text(String(totals.rolls), x + 2, y + 5); x += cols[5] + cols[6] + cols[7];
+    // Lucro/kg skip
+    x += cols[8];
+    // Lucro Total colored
+    pdf.setTextColor(totals.profit >= 0 ? 22 : 220, totals.profit >= 0 ? 163 : 38, totals.profit >= 0 ? 74 : 38);
     pdf.text(fmtR(totals.profit), x + 2, y + 5);
+    pdf.setTextColor(...textDark);
     y += rowH + 8;
 
     // Footer
