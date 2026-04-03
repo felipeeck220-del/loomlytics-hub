@@ -807,13 +807,14 @@ export default function Invoices() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-6 sm:w-auto sm:inline-flex">
-          <TabsTrigger value="entrada">Entrada</TabsTrigger>
-          <TabsTrigger value="saida">Saída</TabsTrigger>
-          <TabsTrigger value="saldo">Saldo Fios</TabsTrigger>
-          <TabsTrigger value="saldoGlobal">Saldo Global</TabsTrigger>
-          <TabsTrigger value="estoque">Estoque Malha</TabsTrigger>
-          <TabsTrigger value="fios">Tipos de Fio</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-4 sm:w-auto sm:inline-flex">
+          <TabsTrigger value="entrada" className="text-xs">Entrada</TabsTrigger>
+          <TabsTrigger value="saida" className="text-xs">Saída</TabsTrigger>
+          <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
+          <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
+          <TabsTrigger value="estoque" className="text-xs">Est. Malha</TabsTrigger>
+          <TabsTrigger value="efterceiro" className="text-xs">Fio Terceiros</TabsTrigger>
+          <TabsTrigger value="fios" className="text-xs">Tipos de Fio</TabsTrigger>
         </TabsList>
 
         {/* ===== ENTRADA & SAIDA TABS ===== */}
