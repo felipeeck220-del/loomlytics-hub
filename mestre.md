@@ -1126,6 +1126,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 08:00** — **Terceirizados — melhorias visuais e busca:** (1) KPI "Receita (Cliente)" renomeado para "Receita (PrimeiroNome)" e "Lucro" para "Lucro (PrimeiroNome)" usando primeiro nome da empresa cadastrada; (2) Card "Prejuízos" adicionado após Lucro (soma dos registros com lucro negativo); (3) Data dos registros agora exibe também a hora do registro (created_at); (4) Busca avançada na aba Produções (malharia, artigo, cliente, NF/ROM); (5) Busca na aba Malharias (por nome/contato); (6) Listagem de produções ordenada do mais recente para o mais antigo (por created_at DESC); (7) Interface `OutsourceProduction` agora inclui campo `nf_rom` tipado.
 
+- **03/04/2026 09:00** — **Terceirizados — filtros de mês e período:** (1) Aba Produções: adicionados filtros por mês (botões dos últimos 6 meses com dados) e período personalizado (De/Até com calendário), integrados com busca textual existente; (2) Aba Relatórios: adicionado filtro por mês (mesma UX), complementando os filtros De/Até já existentes; (3) Selecionar mês limpa período personalizado e vice-versa; (4) Botão "Limpar" reseta todos os filtros; (5) periodLabel do PDF agora inclui nome do mês quando filtro por mês está ativo.
+
 ---
 
-*Última atualização: 03/04/2026 08:00 (Brasília)*
+*Última atualização: 03/04/2026 09:00 (Brasília)*

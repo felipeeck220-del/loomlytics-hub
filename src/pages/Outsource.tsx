@@ -369,6 +369,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [prodSearch, setProdSearch] = useState('');
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterFrom, setFilterFrom] = useState<Date | undefined>(undefined);
+  const [filterTo, setFilterTo] = useState<Date | undefined>(undefined);
+  const [fromOpen, setFromOpen] = useState(false);
+  const [toOpen, setToOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
   const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
@@ -496,17 +501,47 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
      saveMutation.mutate();
    };
 
+   // Available months for filter
+   const availableMonths = useMemo(() => {
+     const months = new Set<string>();
+     productions.forEach(p => {
+       if (p.date) months.add(p.date.substring(0, 7)); // yyyy-MM
+     });
+     return Array.from(months).sort().reverse();
+   }, [productions]);
+
    const filteredProductions = useMemo(() => {
-     const sorted = [...productions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-     if (!prodSearch.trim()) return sorted;
-     const q = prodSearch.toLowerCase();
-     return sorted.filter(p =>
-       p.outsource_company_name?.toLowerCase().includes(q) ||
-       p.article_name?.toLowerCase().includes(q) ||
-       p.client_name?.toLowerCase().includes(q) ||
-       p.nf_rom?.toLowerCase().includes(q)
-     );
-   }, [productions, prodSearch]);
+     let result = [...productions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+     // Month filter
+     if (filterMonth) {
+       result = result.filter(p => p.date.startsWith(filterMonth));
+     }
+
+     // Date range filter
+     if (filterFrom) {
+       const from = format(filterFrom, 'yyyy-MM-dd');
+       result = result.filter(p => p.date >= from);
+     }
+     if (filterTo) {
+       const to = format(filterTo, 'yyyy-MM-dd');
+       result = result.filter(p => p.date <= to);
+     }
+
+     // Text search
+     if (prodSearch.trim()) {
+       const q = prodSearch.toLowerCase();
+       result = result.filter(p =>
+         p.outsource_company_name?.toLowerCase().includes(q) ||
+         p.article_name?.toLowerCase().includes(q) ||
+         p.client_name?.toLowerCase().includes(q) ||
+         p.nf_rom?.toLowerCase().includes(q)
+       );
+     }
+     return result;
+   }, [productions, prodSearch, filterMonth, filterFrom, filterTo]);
+
+   const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo;
 
    if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
@@ -738,7 +773,60 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
         </Dialog>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Filters */}
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button variant={filterMonth === '' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setFilterMonth(''); setFilterFrom(undefined); setFilterTo(undefined); }}>
+                Todos
+              </Button>
+              {availableMonths.slice(0, 6).map(m => {
+                const [y, mo] = m.split('-');
+                const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMM/yy', { locale: ptBR });
+                return (
+                  <Button key={m} variant={filterMonth === m ? 'default' : 'outline'} size="sm" className="h-7 text-xs capitalize" onClick={() => { setFilterMonth(m); setFilterFrom(undefined); setFilterTo(undefined); }}>
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Período personalizado</Label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Popover open={fromOpen} onOpenChange={setFromOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !filterFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                    {filterFrom ? format(filterFrom, 'dd/MM/yy') : 'De'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={filterFrom} onSelect={(d) => { setFilterFrom(d); setFromOpen(false); setFilterMonth(''); }} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">até</span>
+              <Popover open={toOpen} onOpenChange={setToOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !filterTo && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                    {filterTo ? format(filterTo, 'dd/MM/yy') : 'Até'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={filterTo} onSelect={(d) => { setFilterTo(d); setToOpen(false); setFilterMonth(''); }} className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setFilterMonth(''); setFilterFrom(undefined); setFilterTo(undefined); }}>
+                  ✕ Limpar
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
         {companies.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Cadastre uma malharia primeiro na aba "Malharias".</p>
         ) : productions.length === 0 ? (
@@ -826,9 +914,19 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
   const [profitFilter, setProfitFilter] = useState<'all' | 'profit' | 'loss'>('all');
   const [startOpen, setStartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
+  const [reportMonth, setReportMonth] = useState<string>('');
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    productions.forEach(p => { if (p.date) months.add(p.date.substring(0, 7)); });
+    return Array.from(months).sort().reverse();
+  }, [productions]);
 
   const filtered = useMemo(() => {
     let result = [...productions];
+    if (reportMonth) {
+      result = result.filter(p => p.date.startsWith(reportMonth));
+    }
     if (startDate) {
       const start = format(startDate, 'yyyy-MM-dd');
       result = result.filter(p => p.date >= start);
@@ -840,7 +938,7 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
     if (profitFilter === 'profit') result = result.filter(p => p.total_profit > 0);
     else if (profitFilter === 'loss') result = result.filter(p => p.total_profit < 0);
     return result;
-  }, [productions, startDate, endDate, profitFilter]);
+  }, [productions, startDate, endDate, profitFilter, reportMonth]);
 
   const totals = useMemo(() => ({
     revenue: filtered.reduce((s, p) => s + p.total_revenue, 0),
@@ -855,8 +953,12 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
     if (startDate && endDate) return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
     if (startDate) return `${format(startDate, 'dd/MM/yyyy')} a ${today}`;
     if (endDate) return `Até ${format(endDate, 'dd/MM/yyyy')}`;
+    if (reportMonth) {
+      const [y, mo] = reportMonth.split('-');
+      return format(new Date(Number(y), Number(mo) - 1, 1), 'MMMM/yyyy', { locale: ptBR });
+    }
     return 'Todo período';
-  }, [startDate, endDate]);
+  }, [startDate, endDate, reportMonth]);
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
@@ -867,20 +969,37 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
         <CardDescription>Filtre por período e tipo de resultado</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Filters */}
+         {/* Filters */}
         <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Período</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button variant={reportMonth === '' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setReportMonth(''); setStartDate(undefined); setEndDate(undefined); }}>
+                Todos
+              </Button>
+              {availableMonths.slice(0, 6).map(m => {
+                const [y, mo] = m.split('-');
+                const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMM/yy', { locale: ptBR });
+                return (
+                  <Button key={m} variant={reportMonth === m ? 'default' : 'outline'} size="sm" className="h-7 text-xs capitalize" onClick={() => { setReportMonth(m); setStartDate(undefined); setEndDate(undefined); }}>
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Período personalizado</Label>
             <div className="flex items-center gap-2 flex-wrap">
               <Popover open={startOpen} onOpenChange={setStartOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !startDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
-                    {startDate ? format(startDate, 'dd/MM/yy') : 'Início'}
+                    {startDate ? format(startDate, 'dd/MM/yy') : 'De'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={startDate} onSelect={(d) => { setStartDate(d); setStartOpen(false); }} className="p-3 pointer-events-auto" />
+                  <Calendar mode="single" selected={startDate} onSelect={(d) => { setStartDate(d); setStartOpen(false); setReportMonth(''); }} className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
               <span className="text-xs text-muted-foreground">até</span>
@@ -888,11 +1007,11 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !endDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
-                    {endDate ? format(endDate, 'dd/MM/yy') : 'Fim'}
+                    {endDate ? format(endDate, 'dd/MM/yy') : 'Até'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={endDate} onSelect={(d) => { setEndDate(d); setEndOpen(false); }} className="p-3 pointer-events-auto" />
+                  <Calendar mode="single" selected={endDate} onSelect={(d) => { setEndDate(d); setEndOpen(false); setReportMonth(''); }} className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
             </div>
@@ -911,8 +1030,8 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
                 </SelectContent>
               </Select>
             </div>
-            {(startDate || endDate || profitFilter !== 'all') && (
-              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); }}>
+            {(startDate || endDate || profitFilter !== 'all' || reportMonth) && (
+              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); setReportMonth(''); }}>
                 ✕ Limpar
               </Button>
             )}
