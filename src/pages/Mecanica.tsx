@@ -182,6 +182,10 @@ export default function MecanicaPage() {
       toast.error('Preencha todos os campos obrigatórios.');
       return;
     }
+    if (!isDateValid(addStartDate) || !isDateValid(addEndDate)) {
+      toast.error('Data inválida. O ano deve estar entre os últimos 5 e próximos 5 anos.');
+      return;
+    }
     setSaving(true);
     try {
       const newLog: MachineLog = {
