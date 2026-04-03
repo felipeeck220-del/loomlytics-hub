@@ -428,6 +428,18 @@ export default function Invoices() {
   const [saldoGlobalMonth, setSaldoGlobalMonth] = useState('all');
   const [saldoGlobalYarn, setSaldoGlobalYarn] = useState('all');
 
+  // ===== Estoque Fio Terceiros State =====
+  const [eftMonth, setEftMonth] = useState('all');
+  const [eftCompany, setEftCompany] = useState('all');
+  const [eftYarn, setEftYarn] = useState('all');
+  const [eftDialogOpen, setEftDialogOpen] = useState(false);
+  const [eftEditing, setEftEditing] = useState<any>(null);
+  const [eftFormCompany, setEftFormCompany] = useState('');
+  const [eftFormYarn, setEftFormYarn] = useState('');
+  const [eftFormMonth, setEftFormMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [eftFormQty, setEftFormQty] = useState('');
+  const [eftFormObs, setEftFormObs] = useState('');
+
   // ===== Saldo de Fios =====
   const yarnBalance = useMemo(() => {
     const map = new Map<string, Map<string, { received: number; sold: number; consumed: number }>>();
