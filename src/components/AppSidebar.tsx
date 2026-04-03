@@ -126,7 +126,7 @@ export function AppSidebar() {
           </div>
         )}
       </SidebarHeader>
-      <SidebarContent className="px-2 py-3">
+      <SidebarContent className={collapsed ? "px-0 py-3" : "px-2 py-3"}>
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="text-muted-foreground/50 text-[10px] uppercase tracking-widest font-medium px-3 mb-1">
@@ -144,7 +144,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       {isLocked || isComingSoon ? (
                         <div
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted-foreground/40 cursor-not-allowed transition-all duration-150 text-[13px]"
+                          className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'} py-2 rounded-lg text-muted-foreground/40 cursor-not-allowed transition-all duration-150 text-[13px]`}
                           title={isComingSoon ? 'Em breve' : 'Assinatura inativa'}
                         >
                           <Lock className="h-4 w-4 shrink-0" />
@@ -164,7 +164,7 @@ export function AppSidebar() {
                           to={item.url}
                           end={item.path === ''}
                           onClick={() => { if (isMobile) setOpenMobile(false); }}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-150 text-[13px]"
+                          className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'} py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-150 text-[13px]`}
                           activeClassName="bg-primary/10 text-primary font-medium"
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
@@ -190,14 +190,14 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* Install App + Logout */}
-      <SidebarFooter className="px-2 py-3 border-t border-sidebar-border">
+      <SidebarFooter className={`${collapsed ? 'px-0' : 'px-2'} py-3 border-t border-sidebar-border`}>
         <SidebarMenu>
           {canInstall && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <button
                   onClick={() => { install(); if (isMobile) setOpenMobile(false); }}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-primary hover:bg-primary/10 transition-all duration-150 text-[13px] w-full"
+                  className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'} py-2 rounded-lg text-primary hover:bg-primary/10 transition-all duration-150 text-[13px] w-full`}
                 >
                   {platform === 'ios' ? (
                     <Share2 className="h-4 w-4 shrink-0" />
@@ -220,7 +220,7 @@ export function AppSidebar() {
               <SidebarMenuButton asChild>
                 <button
                   onClick={() => setShowLogoutDialog(true)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-150 text-[13px] w-full"
+                  className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'} py-2 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-150 text-[13px] w-full`}
                 >
                   <LogOut className="h-4 w-4 shrink-0" />
                   {!collapsed && <span>Sair</span>}
