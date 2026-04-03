@@ -914,9 +914,19 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
   const [profitFilter, setProfitFilter] = useState<'all' | 'profit' | 'loss'>('all');
   const [startOpen, setStartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
+  const [reportMonth, setReportMonth] = useState<string>('');
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    productions.forEach(p => { if (p.date) months.add(p.date.substring(0, 7)); });
+    return Array.from(months).sort().reverse();
+  }, [productions]);
 
   const filtered = useMemo(() => {
     let result = [...productions];
+    if (reportMonth) {
+      result = result.filter(p => p.date.startsWith(reportMonth));
+    }
     if (startDate) {
       const start = format(startDate, 'yyyy-MM-dd');
       result = result.filter(p => p.date >= start);
@@ -928,7 +938,7 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
     if (profitFilter === 'profit') result = result.filter(p => p.total_profit > 0);
     else if (profitFilter === 'loss') result = result.filter(p => p.total_profit < 0);
     return result;
-  }, [productions, startDate, endDate, profitFilter]);
+  }, [productions, startDate, endDate, profitFilter, reportMonth]);
 
   const totals = useMemo(() => ({
     revenue: filtered.reduce((s, p) => s + p.total_revenue, 0),
