@@ -469,5 +469,5 @@ O módulo NF alimenta diretamente o **Fechamento Mensal** com:
 ---
 
 *Documento criado em: 29/03/2026 03:30 UTC*
-*Última atualização: 03/04/2026 (adicionado tipo venda_fio, chave de acesso SEFAZ, estoque de malha, integração com fechamento mensal)*
+*Última atualização: 03/04/2026 (adicionado tipo venda_fio, chave de acesso SEFAZ, estoque de malha, integração com fechamento mensal, referência ao saldofiosglobal.md)*
 *Status: PLANEJADO — Aguardando aprovação para implementação*
