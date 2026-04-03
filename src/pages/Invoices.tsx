@@ -816,7 +816,7 @@ export default function Invoices() {
           <TabsTrigger value="saida" className="text-xs">Saída</TabsTrigger>
           <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
           <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
-          <TabsTrigger value="estoque" className="text-xs">Est. Malha</TabsTrigger>
+          <TabsTrigger value="estoque" className="text-xs">Estoque Malha</TabsTrigger>
           <TabsTrigger value="efterceiro" className="text-xs">Fio Terceiros</TabsTrigger>
           <TabsTrigger value="fios" className="text-xs">Tipos de Fio</TabsTrigger>
         </TabsList>
