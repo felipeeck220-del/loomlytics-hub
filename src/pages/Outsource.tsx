@@ -561,6 +561,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
    const handleSaveWithValidation = async () => {
      if (!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg) return;
      if (saveMutation.isPending) return;
+     if (!isDateValid(form.date)) {
+       toast({ title: 'Data inválida', description: 'O ano deve estar entre os últimos 5 e próximos 5 anos.', variant: 'destructive' });
+       return;
+     }
 
      // Check NF/ROM duplicate
      if (form.nf_rom && form.nf_rom.trim()) {
