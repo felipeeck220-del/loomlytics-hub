@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, getDateLimits, isDateValid } from '@/lib/formatters';
 
 interface AccountPayable {
   id: string;
@@ -209,6 +209,10 @@ export default function AccountsPayable() {
     e.preventDefault();
     if (!form.supplier_name || !form.description || !form.amount || !form.due_date || !form.whatsapp_number) {
       toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    if (!isDateValid(form.due_date)) {
+      toast.error('Data inválida. O ano deve estar entre os últimos 5 e próximos 5 anos.');
       return;
     }
     saveMutation.mutate(form);
@@ -447,6 +451,8 @@ export default function AccountsPayable() {
                 <Label>Vencimento *</Label>
                 <Input
                   type="date"
+                  min={getDateLimits().minDate}
+                  max={getDateLimits().maxDate}
                   value={form.due_date}
                   onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
                 />

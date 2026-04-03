@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
-import { formatNumber, formatCurrency } from '@/lib/formatters';
+import { formatNumber, formatCurrency, getDateLimits, isDateValid } from '@/lib/formatters';
 import { usePermissions } from '@/hooks/usePermissions';
 import { calculateShiftDowntime, formatDowntimeMinutes, type ShiftDowntimeInfo } from '@/lib/downtimeUtils';
 
@@ -238,6 +238,9 @@ export default function ProductionPage() {
   const handleSave = useCallback(async () => {
     if (!form.shift || !form.machine_id || !form.article_id) {
       toast.error('Preencha todos os campos obrigatórios'); return;
+    }
+    if (!isDateValid(filterDate)) {
+      toast.error('Data inválida. O ano deve estar entre os últimos 5 e próximos 5 anos.'); return;
     }
     if (machineMode === 'voltas') {
       if (!form.voltas_inicio || !form.voltas_fim || Number(form.voltas_fim) <= Number(form.voltas_inicio)) {
@@ -537,7 +540,7 @@ export default function ProductionPage() {
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
             <div className="space-y-1">
               <Label className="text-sm">Data</Label>
-              <Input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
+              <Input type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={filterDate} onChange={e => setFilterDate(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-sm">Máquina</Label>

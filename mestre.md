@@ -1136,6 +1136,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 13:00** — **Terceirizados — correção filtro de meses:** Registro com data inválida `0202-03-20` corrigido para `2026-03-20` no banco. Adicionada validação no código: `availableMonths` agora filtra datas fora do range 2020-2099 para evitar meses inválidos no dropdown (Produções e Relatórios).
 
+- **03/04/2026 14:00** — **Validação de data ±5 anos em todo o sistema:** (1) Criadas funções `getDateLimits()` e `isDateValid()` em `formatters.ts` para validar que o ano está no range ±5 do ano atual; (2) Todos os inputs `type="date"` agora possuem atributos `min`/`max` nativos do HTML (Outsource, Production, AccountsPayable, Mecanica); (3) Validação antes de salvar em todas as páginas: Outsource (`handleSaveWithValidation`), Production (`handleSave`), AccountsPayable (`handleSubmit`), Mecanica (`handleAddLog`); (4) Filtro de `availableMonths` em Outsource já filtrava datas fora de 2020-2099.
+
 ---
 
-*Última atualização: 03/04/2026 13:00 (Brasília)*
+*Última atualização: 03/04/2026 14:00 (Brasília)*

@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus, type MachineLog } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getDateLimits, isDateValid } from '@/lib/formatters';
 import { usePermissions } from '@/hooks/usePermissions';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
@@ -179,6 +180,10 @@ export default function MecanicaPage() {
   const handleAddLog = async () => {
     if (!addMachineId || !addStartDate || !addStartTime || !addEndDate || !addEndTime) {
       toast.error('Preencha todos os campos obrigatórios.');
+      return;
+    }
+    if (!isDateValid(addStartDate) || !isDateValid(addEndDate)) {
+      toast.error('Data inválida. O ano deve estar entre os últimos 5 e próximos 5 anos.');
       return;
     }
     setSaving(true);
@@ -585,7 +590,7 @@ export default function MecanicaPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Data Início</Label>
-                <Input type="date" value={addStartDate} onChange={e => setAddStartDate(e.target.value)} />
+                <Input type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={addStartDate} onChange={e => setAddStartDate(e.target.value)} />
               </div>
               <div>
                 <Label>Hora Início</Label>
@@ -595,7 +600,7 @@ export default function MecanicaPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Data Fim</Label>
-                <Input type="date" value={addEndDate} onChange={e => setAddEndDate(e.target.value)} />
+                <Input type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={addEndDate} onChange={e => setAddEndDate(e.target.value)} />
               </div>
               <div>
                 <Label>Hora Fim</Label>

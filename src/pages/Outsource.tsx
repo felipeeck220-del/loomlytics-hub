@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
-import { formatCurrency, formatWeight, formatNumber } from '@/lib/formatters';
+import { formatCurrency, formatWeight, formatNumber, getDateLimits, isDateValid } from '@/lib/formatters';
 import {
   Plus, Trash2, Edit, Factory, Building2, DollarSign, Scale, TrendingUp,
   Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search
@@ -561,6 +561,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
    const handleSaveWithValidation = async () => {
      if (!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg) return;
      if (saveMutation.isPending) return;
+     if (!isDateValid(form.date)) {
+       toast({ title: 'Data inválida', description: 'O ano deve estar entre os últimos 5 e próximos 5 anos.', variant: 'destructive' });
+       return;
+     }
 
      // Check NF/ROM duplicate
      if (form.nf_rom && form.nf_rom.trim()) {
@@ -662,7 +666,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </div>
                 <div className="space-y-2">
                    <Label>Data *</Label>
-                   <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                   <Input type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                      onFocus={() => { dateTabCount.current = 0; }}
                      onKeyDown={e => {
                        if (e.key === 'Tab' && !e.shiftKey) {
