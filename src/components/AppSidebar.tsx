@@ -99,13 +99,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarHeader className="px-4 h-14 flex items-center border-b border-sidebar-border">
+      <SidebarHeader className="h-14 flex items-center justify-center border-b border-sidebar-border px-2">
         {logoUrl ? (
           <div className="flex items-center justify-center w-full">
-            <img src={logoUrl} alt="Logo" className="max-h-10 w-full object-contain rounded-lg" />
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className={collapsed ? "h-8 w-8 object-contain rounded-lg" : "max-h-10 w-full object-contain rounded-lg"}
+            />
           </div>
         ) : (
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
               <Factory className="h-4 w-4 text-primary-foreground" />
             </div>
