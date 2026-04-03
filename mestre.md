@@ -1146,6 +1146,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 19:00** — **MÓDULO NOTAS FISCAIS (Fase 1):** Implementação completa do controle de NFs conforme `nf.md`: (1) 3 tabelas criadas: `yarn_types` (tipos de fio com composição e cor), `invoices` (NFs de entrada/saída/venda_fio com chave de acesso SEFAZ opcional), `invoice_items` (itens com fio ou artigo, peso, rolos, valor) — todas com RLS por `company_id`; (2) Coluna `yarn_type_id` adicionada à tabela `articles`; (3) Página `/:slug/invoices` com 4 abas: **Entrada** (NFs de fio recebido), **Saída** (NFs de malha + venda de fio), **Saldo de Fios** (consolidado por cliente/fio: recebido−vendido−consumido), **Tipos de Fio** (CRUD); (4) Formulário de nova NF com seleção de cliente, itens dinâmicos, chave de acesso, status pendente/conferida; (5) Listagem com filtros (mês, status, cliente, busca); (6) KPIs: NFs, peso total, valor total, pendentes; (7) Ações: visualizar, conferir, cancelar; (8) Sidebar: ícone FileText, key `invoices`, acesso admin; (9) Rota, permissões e `ROLE_ALLOWED_KEYS` configurados.
 
+- **03/04/2026 21:00** — **SALDO DE FIOS + VÍNCULO ARTIGO↔FIO (saldofios.md):** (1) Campo `yarn_type_id` adicionado à interface `Article` e ao mapper `mapArticle` em `useCompanyData.ts`; (2) Formulário de artigo em `ClientsArticles.tsx` agora inclui campo "Tipo de Fio" (Select com yarn_types, opcional, permite limpar); (3) Cards de artigos exibem nome do fio vinculado; (4) Aba "Saldo de Fios" em `Invoices.tsx` completamente refeita: cálculo de **consumo** via `productions` cruzando `articles.yarn_type_id`, KPIs (Recebido/Consumido/Vendido/Saldo), filtros (mês, cliente, tipo de fio), grupos colapsáveis por cliente com totais, badge de alerta para saldo negativo, linha de total por cliente; (5) Sem migrations — `yarn_type_id` já existia em `articles`.
+
 ---
 
 ## 📐 Padrão de Exportação PDF (Regra Global)
@@ -1166,4 +1168,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 03/04/2026 19:00 (Brasília)*
+*Última atualização: 03/04/2026 21:00 (Brasília)*
