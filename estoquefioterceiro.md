@@ -586,4 +586,5 @@ O estoque de fio em terceiros **ainda requer cadastro manual inicial** porque:
 ---
 
 *Documento criado em: 03/04/2026*
-*Status: DOCUMENTADO — Aguardando implementação*
+*Última atualização: 04/04/2026 (desconto automático via produção terceirizada)*
+*Status: IMPLEMENTADO*
