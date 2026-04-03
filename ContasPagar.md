@@ -216,7 +216,7 @@ SELECT cron.schedule(
 
 - **RLS ativo**: Cada empresa acessa apenas seus próprios registros
 - **Validação de input**: Zod na Edge Function para validar corpo da requisição
-- **Números WhatsApp**: Validados no formato E.164 antes de enviar
+- **Números WhatsApp**: Armazenados sem prefixo (ex: 47992102017), formatados para +55XXXXXXXXXXX pela Edge Function antes do envio à Reportana
 - **Service Role**: Usado apenas na Edge Function para consultas cross-company no cron
 - **Webhook URL como Secret**: URL com token embutido armazenada como `REPORTANA_WEBHOOK_URL`, nunca hardcoded
 - **Rate limiting**: Controle de envio para evitar spam
