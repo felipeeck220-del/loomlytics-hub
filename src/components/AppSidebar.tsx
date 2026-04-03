@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet,
 } from 'lucide-react';
 import { useInstallApp } from '@/hooks/useInstallApp';
 import {
@@ -37,6 +37,7 @@ const allItems = [
   { title: 'Contas a Pagar', path: 'contas-pagar', icon: Receipt, key: 'contas-pagar' },
   { title: 'Vendas de Resíduos', path: 'residuos', icon: Recycle, key: 'residuos' },
   { title: 'Notas Fiscais', path: 'invoices', icon: FileText, key: 'invoices' },
+  { title: 'Fechamento', path: 'fechamento', icon: FileSpreadsheet, key: 'fechamento' },
   { title: 'Configurações', path: 'settings', icon: Settings, key: 'settings' },
 ];
 

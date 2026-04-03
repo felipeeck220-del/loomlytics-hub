@@ -1158,7 +1158,9 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **04/04/2026 01:00** — **DESCONTO AUTOMÁTICO FIO TERCEIROS ↔ PRODUÇÃO TERCEIRIZADA:** Ao registrar/editar/excluir uma produção terceirizada (`outsource_productions`), o sistema agora desconta/devolve automaticamente o peso (kg) do estoque de fio (`outsource_yarn_stock`) para a facção correspondente. Requisitos: artigo deve ter `yarn_type_id` vinculado E deve existir registro de estoque para aquele mês/facção/fio. Na edição, reverte dedução antiga e aplica nova. Na exclusão, devolve peso ao estoque. Cache `outsource_yarn_stock` invalidado após operações. Documentado em `estoquefioterceiro.md`.
 
----
+- **04/04/2026 17:01** — **MÓDULO FECHAMENTO MENSAL:** Implementação completa conforme `fechamentomensal.md`: (1) Página `/:slug/fechamento` com 10 seções consolidadas: Fechamento KG, Saldo de Fios por Tipo, Estoque de Malha, Receitas Próprias, Receitas de Terceiros, Prejuízos de Terceiros, Resíduos, Venda de Fio, Estoque Fio em Terceiros, Faturamento Total; (2) Seletor de mês + botão "Carregar Dados" (10 queries paralelas via Promise.all com paginação); (3) Preview visual em Cards com tabelas formatadas pt-BR, collapsibles por cliente/facção, indicadores visuais (success/destructive); (4) Exportação PDF multi-página (10 páginas) com cabeçalho padrão global (logo, título, data, período), jsPDF + autoTable; (5) Sidebar: ícone FileSpreadsheet, key `fechamento`, após Notas Fiscais; (6) Permissões: apenas admin; (7) Rota, ROLE_ALLOWED_KEYS, ROUTE_KEY_MAP e enabled_nav_items atualizados.
+
+
 
 ## 📐 Padrão de Exportação PDF (Regra Global)
 
@@ -1178,4 +1180,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 04/04/2026 01:00 (Brasília)*
+*Última atualização: 04/04/2026 17:01 (Brasília)*
