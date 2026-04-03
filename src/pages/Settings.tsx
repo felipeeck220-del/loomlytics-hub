@@ -56,6 +56,7 @@ import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock
 import { toast } from 'sonner';
 import { usePermissions, OVERRIDE_PERMISSIONS } from '@/hooks/usePermissions';
 import ProductionModeModal from '@/components/ProductionModeModal';
+import IotDevicesManager from '@/components/IotDevicesManager';
 import SettingsTelasTab from '@/components/SettingsTelasTab';
 import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
@@ -1058,6 +1059,10 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">Configure se cada máquina registra produção por <strong>rolos</strong> ou por <strong>voltas</strong>.</p>
                 </div>
               )}
+
+
+              {/* IoT Devices */}
+              {isAdmin && <IotDevicesManager />}
 
               {/* Email Patterns */}
               <div className="card-glass p-5 border-primary/10">
