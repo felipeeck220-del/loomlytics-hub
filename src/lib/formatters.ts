@@ -23,3 +23,19 @@ export function formatWeight(value: number): string {
 export function formatPercent(value: number): string {
   return `${formatNumber(value, 2)}%`;
 }
+
+/** Returns min/max date strings (yyyy-MM-dd) for ±5 years from now */
+export function getDateLimits(): { minDate: string; maxDate: string } {
+  const now = new Date();
+  const y = now.getFullYear();
+  const minDate = `${y - 5}-01-01`;
+  const maxDate = `${y + 5}-12-31`;
+  return { minDate, maxDate };
+}
+
+/** Validates that a date string is within ±5 years */
+export function isDateValid(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const { minDate, maxDate } = getDateLimits();
+  return dateStr >= minDate && dateStr <= maxDate;
+}
