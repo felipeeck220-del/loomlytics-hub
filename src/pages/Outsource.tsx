@@ -382,6 +382,13 @@ function CompaniesTab({ companies, companyId, loading }: {
           </Table>
         )}
       </CardContent>
+      <DeleteConfirmDialog
+        open={!!deleteConfirmId}
+        onOpenChange={(v) => { if (!v) setDeleteConfirmId(null); }}
+        title="Remover malharia"
+        description="Tem certeza que deseja remover esta malharia? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (deleteConfirmId) deleteMutation.mutate(deleteConfirmId); setDeleteConfirmId(null); }}
+      />
     </Card>
   );
 }
