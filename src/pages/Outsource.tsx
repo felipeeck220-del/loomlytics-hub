@@ -396,18 +396,40 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     );
   }, [articles, articleSearch]);
 
-  const resetForm = () => {
-    setForm({
-      outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
+  const resetForm = (keepCompany = false) => {
+    setForm(f => ({
+      outsource_company_id: keepCompany ? f.outsource_company_id : '',
+      article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
       weight_kg: '', rolls: '', outsource_value_per_kg: '', nf_rom: '', observations: '',
-    });
+    }));
     setEditId(null);
+    setArticleSearch('');
+    setArticleDropdownOpen(false);
+  };
+
+  // Brazilian number formatting helpers
+  const parseBrNumber = (str: string): number => {
+    if (!str) return 0;
+    return Number(str.replace(/\./g, '').replace(',', '.')) || 0;
+  };
+
+  const formatBrInput = (value: string, decimals: number): string => {
+    // Remove non-numeric except comma
+    let raw = value.replace(/[^\d,]/g, '');
+    const parts = raw.split(',');
+    let intPart = parts[0] || '';
+    let decPart = parts.length > 1 ? parts[1].slice(0, decimals) : undefined;
+    // Add thousand separators
+    intPart = intPart.replace(/^0+(?=\d)/, '');
+    if (!intPart) intPart = '0';
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return decPart !== undefined ? `${intPart},${decPart}` : intPart;
   };
 
   const selectedArticle = articles.find(a => a.id === form.article_id);
   const clientValuePerKg = selectedArticle ? Number(selectedArticle.value_per_kg) : 0;
-  const outsourceValuePerKg = Number(form.outsource_value_per_kg) || 0;
-  const weightKg = Number(form.weight_kg) || 0;
+  const outsourceValuePerKg = parseBrNumber(form.outsource_value_per_kg);
+  const weightKg = parseBrNumber(form.weight_kg);
   const profitPerKg = clientValuePerKg - outsourceValuePerKg;
   const totalRevenue = weightKg * clientValuePerKg;
   const totalCost = weightKg * outsourceValuePerKg;
@@ -446,7 +468,18 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
       toast({ title: editId ? 'Registro atualizado!' : 'Produção registrada!' });
-      setOpen(false); resetForm();
+      if (editId) {
+        setOpen(false);
+        resetForm();
+      } else {
+        // Keep modal open with same malharia, clear rest
+        resetForm(true);
+        // Focus date field after reset
+        setTimeout(() => {
+          const dateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+          dateInput?.focus();
+        }, 100);
+      }
     },
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
@@ -463,15 +496,19 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
+  const formatNumberToBr = (num: number, decimals: number): string => {
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  };
+
   const openEdit = (p: OutsourceProduction) => {
     setEditId(p.id);
     setForm({
       outsource_company_id: p.outsource_company_id,
       article_id: p.article_id,
       date: p.date,
-      weight_kg: String(p.weight_kg),
+      weight_kg: formatNumberToBr(p.weight_kg, 2),
       rolls: String(p.rolls),
-      outsource_value_per_kg: String(p.outsource_value_per_kg),
+      outsource_value_per_kg: formatNumberToBr(p.outsource_value_per_kg, 2),
       nf_rom: p.nf_rom || '',
       observations: p.observations || '',
     });
@@ -686,7 +723,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Peso (kg) *</Label>
-                  <Input ref={weightRef} type="number" step="0.01" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: e.target.value }))} />
+                  <Input ref={weightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: formatBrInput(e.target.value, 2) }))} />
                 </div>
                 <div className="space-y-2">
                   <Label>Rolos</Label>
@@ -694,7 +731,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                 </div>
                 <div className="space-y-2">
                   <Label>Valor Repasse (R$/kg) *</Label>
-                  <Input type="number" step="0.01" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: e.target.value }))} />
+                  <Input type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatBrInput(e.target.value, 2) }))} />
                 </div>
                  <div className="space-y-2">
                    <Label>NF/ROM</Label>
