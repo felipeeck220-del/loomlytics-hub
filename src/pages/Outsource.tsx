@@ -600,10 +600,21 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                   <Label>Valor Repasse (R$/kg) *</Label>
                   <Input type="number" step="0.01" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: e.target.value }))} />
                 </div>
-                <div className="space-y-2">
-                  <Label>NF/ROM</Label>
-                  <Input placeholder="Nota fiscal ou romaneio" value={form.nf_rom} onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))} />
-                </div>
+                 <div className="space-y-2">
+                   <Label>NF/ROM</Label>
+                   <Input
+                     ref={nfRomRef}
+                     placeholder="Nota fiscal ou romaneio"
+                     value={form.nf_rom}
+                     onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))}
+                     onKeyDown={e => {
+                       if (e.key === 'Enter') {
+                         e.preventDefault();
+                         handleSaveWithValidation();
+                       }
+                     }}
+                   />
+                 </div>
               </div>
 
               {/* Preview calculations */}
