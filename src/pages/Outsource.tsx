@@ -465,7 +465,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
               <Plus className="h-4 w-4" /> Nova Produção
             </Button>
           </DialogTrigger>
-          <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] sm:w-[90vw] sm:max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editId ? 'Editar Produção' : 'Registrar Produção Terceirizada'}</DialogTitle>
             </DialogHeader>
@@ -482,7 +482,14 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                 </div>
                 <div className="space-y-2">
                   <Label>Data *</Label>
-                  <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                   <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                     onKeyDown={e => {
+                       if (e.key === 'Tab' && !e.shiftKey) {
+                         e.preventDefault();
+                         articleSearchRef.current?.focus();
+                       }
+                     }}
+                   />
                 </div>
               </div>
 
@@ -503,10 +510,18 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                       if (!articleDropdownOpen) return;
                       if (e.key === 'ArrowDown') {
                         e.preventDefault();
-                        setArticleHighlight(h => Math.min(h + 1, filteredArticles.length - 1));
+                        setArticleHighlight(h => {
+                          const next = Math.min(h + 1, filteredArticles.length - 1);
+                          document.querySelector(`[data-article-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+                          return next;
+                        });
                       } else if (e.key === 'ArrowUp') {
                         e.preventDefault();
-                        setArticleHighlight(h => Math.max(h - 1, 0));
+                        setArticleHighlight(h => {
+                          const next = Math.max(h - 1, 0);
+                          document.querySelector(`[data-article-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+                          return next;
+                        });
                       } else if (e.key === 'Enter' && articleHighlight >= 0 && filteredArticles[articleHighlight]) {
                         e.preventDefault();
                         const a = filteredArticles[articleHighlight];
@@ -533,7 +548,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                     className="w-full"
                   />
                   {articleDropdownOpen && (
-                    <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md">
+                    <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                       {filteredArticles.length === 0 ? (
                         <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum artigo encontrado</p>
                       ) : (
@@ -542,6 +557,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                             key={a.id}
                             type="button"
                             tabIndex={-1}
+                            data-article-idx={idx}
                             className={cn(
                               'w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground',
                               (idx === articleHighlight || form.article_id === a.id) && 'bg-accent text-accent-foreground'
