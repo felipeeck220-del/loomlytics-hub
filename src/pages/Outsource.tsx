@@ -17,7 +17,7 @@ import { toast } from '@/hooks/use-toast';
 import { formatCurrency, formatWeight, formatNumber } from '@/lib/formatters';
 import {
   Plus, Trash2, Edit, Factory, Building2, DollarSign, Scale, TrendingUp,
-  Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download
+  Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
