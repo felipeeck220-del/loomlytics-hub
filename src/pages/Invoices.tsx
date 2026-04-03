@@ -161,15 +161,11 @@ export default function Invoices() {
   // ===== Fetch Outsource Yarn Stock =====
   const { data: outsourceYarnStock = [], isLoading: loadingYarnStock } = useQuery({
     queryKey: ['outsource_yarn_stock', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('outsource_yarn_stock').select('*').eq('company_id', companyId).order('reference_month', { ascending: false });
-      if (error) throw error;
-      return (data || []) as Array<{
-        id: string; company_id: string; outsource_company_id: string; yarn_type_id: string;
-        quantity_kg: number; reference_month: string; observations: string | null;
-        created_at: string; updated_at: string;
-      }>;
-    },
+    queryFn: () => fetchAllPaginated<{
+      id: string; company_id: string; outsource_company_id: string; yarn_type_id: string;
+      quantity_kg: number; reference_month: string; observations: string | null;
+      created_at: string; updated_at: string;
+    }>('outsource_yarn_stock', companyId, 'reference_month', false),
     enabled: !!companyId,
   });
 
