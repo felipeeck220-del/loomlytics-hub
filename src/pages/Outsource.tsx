@@ -743,8 +743,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
             </DialogHeader>
             <div className="space-y-4 py-2" onKeyDown={e => {
               if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
-              // Ctrl+Enter to save
-              if (e.ctrlKey && e.key === 'Enter') {
+              // Enter to save (only when dropdown is closed)
+              if (e.key === 'Enter' && !articleDropdownOpen) {
                 e.preventDefault();
                 handleSaveWithValidation();
                 return;
