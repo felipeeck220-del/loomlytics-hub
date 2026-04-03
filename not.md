@@ -17,7 +17,21 @@ O sistema de notificações WhatsApp do MalhaGest é dividido em **duas partes**
 
 ### Integração de Envio
 
-Todas as mensagens são enviadas via **Reportana** (webhook), utilizando a **API Oficial do WhatsApp Business (Meta)**.
+Todas as mensagens são enviadas via **Reportana** utilizando **um único webhook** (`REPORTANA_WEBHOOK_URL` — o mesmo já usado no módulo Contas a Pagar), com a **API Oficial do WhatsApp Business (Meta)**.
+
+**Diferenciação por `type`:** Cada envio inclui um campo `type` no body do POST. Do lado da Reportana, o usuário cria uma validação que verifica o `type` e direciona para a automação/mensagem correta.
+
+```
+MalhaGest (Edge Function)
+    → POST para REPORTANA_WEBHOOK_URL (único)
+    → body: { type: "boas_vindas", phone: "55...", ...variáveis }
+
+Reportana (lado do usuário)
+    → IF type == "boas_vindas" → automação de boas-vindas
+    → IF type == "pag_pix_confirmado" → automação pix confirmado
+    → IF type == "pag_card_erro" → automação erro cartão
+    → ... etc (8 types no total)
+```
 
 - Números armazenados apenas como dígitos no banco (ex: `47992102017`)
 - Máscara visual no front-end: `(XX) X XXXX-XXXX`
@@ -236,12 +250,143 @@ Qualquer dúvida, estamos à disposição.
 
 ---
 
+## 📡 Referência Completa de Types para Reportana
+
+> **IMPORTANTE:** Todos os types usam o **mesmo webhook** (`REPORTANA_WEBHOOK_URL`).  
+> A diferenciação da mensagem é feita **do lado da Reportana** com base no campo `type`.
+
+---
+
+### Tabela Resumo
+
+| # | `type` | Descrição | Destino | Gatilho |
+|---|--------|-----------|---------|---------|
+| 1 | `boas_vindas` | Após cadastro da empresa | WhatsApp empresa | Cadastro |
+| 2 | `pag_pix_confirmado` | Pagamento Pix confirmado | WhatsApp empresa | Webhook SyncPay |
+| 3 | `pag_card_confirmado` | Pagamento Cartão confirmado | WhatsApp empresa | Webhook Stripe |
+| 4 | `pag_pix_lembrete` | 1 dia antes do vencimento (Pix) | WhatsApp empresa | Cron diário 08h |
+| 5 | `pag_card_erro` | Erro na cobrança do cartão | WhatsApp empresa | Webhook Stripe |
+| 6 | `pag_aviso_suspensao` | Venceu, faltam 5 dias p/ suspensão | WhatsApp empresa | Cron diário 08h |
+| 7 | `pag_conta_suspensa` | Conta suspensa por inadimplência | WhatsApp empresa | Cron diário 08h |
+| 8 | `lembrete` | Lembrete personalizado do usuário | WhatsApp do lembrete | Cron 5 min |
+
+---
+
+### Payloads Detalhados por Type
+
+#### 1. `boas_vindas`
+```json
+{
+  "type": "boas_vindas",
+  "phone": "5547992102017",
+  "admin_name": "João Silva",
+  "company_name": "Tecelagem João",
+  "slug_url": "https://loomlytics-hub.lovable.app/tecelagem-joao",
+  "trial_days": 90,
+  "trial_end_date": "02/07/2026"
+}
+```
+
+#### 2. `pag_pix_confirmado`
+```json
+{
+  "type": "pag_pix_confirmado",
+  "phone": "5547992102017",
+  "admin_name": "João Silva",
+  "company_name": "Tecelagem João",
+  "amount": "147.00",
+  "paid_at": "03/04/2026 14:32",
+  "next_due_date": "03/05/2026"
+}
+```
+
+#### 3. `pag_card_confirmado`
+```json
+{
+  "type": "pag_card_confirmado",
+  "phone": "5547992102017",
+  "admin_name": "João Silva",
+  "company_name": "Tecelagem João",
+  "amount": "147.00",
+  "paid_at": "03/04/2026 14:32",
+  "next_due_date": "03/05/2026"
+}
+```
+
+#### 4. `pag_pix_lembrete`
+```json
+{
+  "type": "pag_pix_lembrete",
+  "phone": "5547992102017",
+  "admin_name": "João Silva",
+  "company_name": "Tecelagem João",
+  "due_date": "04/04/2026",
+  "amount": "147.00",
+  "slug_url": "https://loomlytics-hub.lovable.app/tecelagem-joao"
+}
+```
+
+#### 5. `pag_card_erro`
+```json
+{
+  "type": "pag_card_erro",
+  "phone": "5547992102017",
+  "admin_name": "João Silva",
+  "company_name": "Tecelagem João",
+  "amount": "147.00",
+  "error_date": "03/04/2026",
+  "slug_url": "https://loomlytics-hub.lovable.app/tecelagem-joao"
+}
+```
+
+#### 6. `pag_aviso_suspensao`
+```json
+{
+  "type": "pag_aviso_suspensao",
+  "phone": "5547992102017",
+  "admin_name": "João Silva",
+  "company_name": "Tecelagem João",
+  "due_date": "28/03/2026",
+  "suspension_date": "02/04/2026",
+  "slug_url": "https://loomlytics-hub.lovable.app/tecelagem-joao"
+}
+```
+
+#### 7. `pag_conta_suspensa`
+```json
+{
+  "type": "pag_conta_suspensa",
+  "phone": "5547992102017",
+  "admin_name": "João Silva",
+  "company_name": "Tecelagem João",
+  "due_date": "28/03/2026",
+  "suspended_at": "02/04/2026"
+}
+```
+
+#### 8. `lembrete`
+```json
+{
+  "type": "lembrete",
+  "phone": "5547999887766",
+  "title": "Reunião com fornecedor",
+  "description": "Levar amostras do artigo novo",
+  "scheduled_date": "15/04/2026",
+  "scheduled_time": "14:00",
+  "notify_mode_label": "30 minutos antes",
+  "created_by_name": "Maria"
+}
+```
+
+---
+
 ## 🏗️ Arquitetura Técnica
 
 ```
 ┌─────────────────────────────────────────┐
 │         EVENTOS DO SISTEMA              │
 │  Cadastro │ Pagamento │ Vencimento      │
+│  Lembretes do usuário                   │
 └──────────────┬──────────────────────────┘
                │
                ▼
@@ -256,17 +401,21 @@ Qualquer dúvida, estamos à disposição.
                │
                ▼
 ┌─────────────────────────────────────────┐
-│        REPORTANA (WEBHOOK)              │
-│    API Oficial WhatsApp Business        │
+│     REPORTANA (WEBHOOK ÚNICO)           │
+│     REPORTANA_WEBHOOK_URL               │
+│     API Oficial WhatsApp Business       │
+│                                         │
+│  Recebe { type, phone, ...vars }        │
+│  Valida o type → direciona para         │
+│  automação correta com mensagem pronta  │
 └──────────────┬──────────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────────┐
 │   DESTINATÁRIO                          │
 │                                         │
-│   Parte 1: WhatsApp da empresa          │
-│   Parte 2: WhatsApp informado no        │
-│            cadastro do lembrete         │
+│   Types 1-7: WhatsApp da empresa        │
+│   Type 8:    WhatsApp do lembrete       │
 └─────────────────────────────────────────┘
 ```
 
@@ -274,19 +423,21 @@ Qualquer dúvida, estamos à disposição.
 
 ## 📋 Regras de Negócio Importantes
 
-1. **Parte 1 (Automáticas):** O número de destino é SEMPRE o `whatsapp` da tabela `companies`. Se estiver vazio, a notificação é silenciosamente ignorada.
+1. **Webhook único:** Todos os envios usam o mesmo `REPORTANA_WEBHOOK_URL`. A separação das mensagens é feita na Reportana pelo campo `type`.
 
-2. **Parte 2 (Lembretes):** O número de destino é informado pelo usuário ao criar cada lembrete individualmente, no campo `whatsapp_number` da tabela `notifications`. O campo é obrigatório.
+2. **Parte 1 (Automáticas — types 1 a 7):** O número de destino é SEMPRE o `whatsapp` da tabela `companies`. Se estiver vazio, a notificação é silenciosamente ignorada.
 
-3. **Formato de números:** Armazenar apenas dígitos. Adicionar `+55` somente no momento do envio via Reportana.
+3. **Parte 2 (Lembretes — type 8):** O número de destino é informado pelo usuário ao criar cada lembrete individualmente, no campo `whatsapp_number` da tabela `notifications`. O campo é obrigatório.
 
-4. **Horário de referência:** Todos os crons e cálculos de horário usam **horário de Brasília (BRT/BRST)**.
+4. **Formato de números:** Armazenar apenas dígitos. Adicionar `+55` somente no momento do envio via Reportana.
 
-5. **Idempotência:** Após enviar um lembrete, o status muda para `sent`. O cron nunca reenvia lembretes já marcados como `sent` ou `cancelled`.
+5. **Horário de referência:** Todos os crons e cálculos de horário usam **horário de Brasília (BRT/BRST)**.
 
-6. **Sem envio duplicado:** O cron de 5 minutos deve verificar se o lembrete ainda está `pending` antes de enviar, evitando race conditions.
+6. **Idempotência:** Após enviar um lembrete, o status muda para `sent`. O cron nunca reenvia lembretes já marcados como `sent` ou `cancelled`.
 
-7. **Segurança (RLS):** Lembretes são visíveis e editáveis apenas por usuários da mesma `company_id`.
+7. **Sem envio duplicado:** O cron de 5 minutos deve verificar se o lembrete ainda está `pending` antes de enviar, evitando race conditions.
+
+8. **Segurança (RLS):** Lembretes são visíveis e editáveis apenas por usuários da mesma `company_id`.
 
 ---
 
@@ -323,3 +474,4 @@ Qualquer dúvida, estamos à disposição.
 | Data | Alteração |
 |------|-----------|
 | 03/04/2026 | Criação do documento com plano completo detalhado |
+| 03/04/2026 | Adicionada seção de Types para Reportana com payloads detalhados; esclarecido uso de webhook único com diferenciação por `type` |
