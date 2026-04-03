@@ -1138,6 +1138,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 14:00** — **Validação de data ±5 anos em todo o sistema:** (1) Criadas funções `getDateLimits()` e `isDateValid()` em `formatters.ts` para validar que o ano está no range ±5 do ano atual; (2) Todos os inputs `type="date"` agora possuem atributos `min`/`max` nativos do HTML (Outsource, Production, AccountsPayable, Mecanica); (3) Validação antes de salvar em todas as páginas: Outsource (`handleSaveWithValidation`), Production (`handleSave`), AccountsPayable (`handleSubmit`), Mecanica (`handleAddLog`); (4) Filtro de `availableMonths` em Outsource já filtrava datas fora de 2020-2099.
 
+- **03/04/2026 15:00** — **Pente fino pré-lançamento:** (1) Corrigidas 89 produções com datas inválidas no banco: 26 registros `0025-08-28` → `2025-08-28` e 63 registros `0225-07-19` → `2025-07-19` (dados de migração); (2) Verificados: outsource_productions (49 registros OK, sem peso/repasse zero, sem NF/ROM duplicada, sem artigo nulo), defect_records (sem datas inválidas), build TypeScript sem erros; (3) Validação de data ±5 anos já impede novos registros com ano incorreto em todas as páginas.
+
 ---
 
-*Última atualização: 03/04/2026 14:00 (Brasília)*
+*Última atualização: 03/04/2026 15:00 (Brasília)*
