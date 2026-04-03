@@ -221,6 +221,7 @@ function CompaniesTab({ companies, companyId, loading }: {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', contact: '', observations: '' });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const resetForm = () => { setForm({ name: '', contact: '', observations: '' }); setEditId(null); };
 
