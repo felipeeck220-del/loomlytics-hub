@@ -60,6 +60,8 @@ export default function ResidueSales() {
   const queryClient = useQueryClient();
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [deleteMatConfirmId, setDeleteMatConfirmId] = useState<string | null>(null);
+  const [deleteSaleConfirmId, setDeleteSaleConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!companyId) return;
