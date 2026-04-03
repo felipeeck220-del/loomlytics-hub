@@ -19,7 +19,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign,
-  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight
+  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers
 } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -478,6 +478,76 @@ export default function Invoices() {
     }), { received: 0, sold: 0, consumed: 0, balance: 0 });
   }, [yarnBalance]);
 
+  // ===== Estoque de Malha Filters =====
+  const [estoqueClient, setEstoqueClient] = useState('all');
+  const [estoqueArticle, setEstoqueArticle] = useState('all');
+  const [estoqueMonth, setEstoqueMonth] = useState('all');
+
+  // ===== Estoque de Malha =====
+  const malhaEstoque = useMemo(() => {
+    const map = new Map<string, Map<string, { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number }>>();
+    const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
+
+    // 1. Produção por client_id + article_id
+    for (const prod of productions) {
+      if (!matchMonth(prod.date)) continue;
+      const art = articles.find(a => a.id === prod.article_id);
+      if (!art || !art.client_id) continue;
+      if (!map.has(art.client_id)) map.set(art.client_id, new Map());
+      const artMap = map.get(art.client_id)!;
+      if (!artMap.has(prod.article_id!)) artMap.set(prod.article_id!, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
+      const entry = artMap.get(prod.article_id!)!;
+      entry.producedKg += Number(prod.weight_kg);
+      entry.producedRolls += Number(prod.rolls_produced);
+    }
+
+    // 2. Entregas (NFs saída não canceladas)
+    const saidaInvs = invoices.filter(i => i.type === 'saida' && i.status !== 'cancelada' && matchMonth(i.issue_date));
+    for (const inv of saidaInvs) {
+      const items = invoiceItems.filter(it => it.invoice_id === inv.id);
+      for (const item of items) {
+        if (!item.article_id || !inv.client_id) continue;
+        if (!map.has(inv.client_id)) map.set(inv.client_id, new Map());
+        const artMap = map.get(inv.client_id)!;
+        if (!artMap.has(item.article_id)) artMap.set(item.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
+        const entry = artMap.get(item.article_id)!;
+        entry.deliveredKg += Number(item.weight_kg);
+        entry.deliveredRolls += Number(item.quantity_rolls || 0);
+      }
+    }
+
+    // 3. Montar resultado
+    const result: Array<{
+      clientId: string; clientName: string;
+      articles: Array<{ articleId: string; articleName: string; producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; stockKg: number; stockRolls: number }>;
+      totalProducedKg: number; totalProducedRolls: number; totalDeliveredKg: number; totalDeliveredRolls: number; totalStockKg: number; totalStockRolls: number;
+    }> = [];
+
+    map.forEach((artMap, clientId) => {
+      if (estoqueClient !== 'all' && clientId !== estoqueClient) return;
+      const client = clients.find(c => c.id === clientId);
+      const arts: typeof result[0]['articles'] = [];
+      let tPK = 0, tPR = 0, tDK = 0, tDR = 0;
+      artMap.forEach((vals, articleId) => {
+        if (estoqueArticle !== 'all' && articleId !== estoqueArticle) return;
+        const article = articles.find(a => a.id === articleId);
+        arts.push({ articleId, articleName: article?.name || 'Artigo removido', ...vals, stockKg: vals.producedKg - vals.deliveredKg, stockRolls: vals.producedRolls - vals.deliveredRolls });
+        tPK += vals.producedKg; tPR += vals.producedRolls; tDK += vals.deliveredKg; tDR += vals.deliveredRolls;
+      });
+      if (arts.length > 0) {
+        result.push({ clientId, clientName: client?.name || 'Cliente removido', articles: arts.sort((a, b) => a.articleName.localeCompare(b.articleName)), totalProducedKg: tPK, totalProducedRolls: tPR, totalDeliveredKg: tDK, totalDeliveredRolls: tDR, totalStockKg: tPK - tDK, totalStockRolls: tPR - tDR });
+      }
+    });
+    return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
+  }, [productions, invoices, invoiceItems, articles, clients, estoqueClient, estoqueArticle, estoqueMonth]);
+
+  const estoqueKpis = useMemo(() => malhaEstoque.reduce((acc, g) => ({
+    producedKg: acc.producedKg + g.totalProducedKg,
+    deliveredKg: acc.deliveredKg + g.totalDeliveredKg,
+    stockKg: acc.stockKg + g.totalStockKg,
+    stockRolls: acc.stockRolls + g.totalStockRolls,
+  }), { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0 }), [malhaEstoque]);
+
   // ===== Clear filters =====
   const clearFilters = () => {
     setSearchTerm('');
@@ -503,10 +573,11 @@ export default function Invoices() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-4 sm:w-auto sm:inline-flex">
+        <TabsList className="w-full grid grid-cols-5 sm:w-auto sm:inline-flex">
           <TabsTrigger value="entrada">Entrada</TabsTrigger>
           <TabsTrigger value="saida">Saída</TabsTrigger>
           <TabsTrigger value="saldo">Saldo Fios</TabsTrigger>
+          <TabsTrigger value="estoque">Estoque Malha</TabsTrigger>
           <TabsTrigger value="fios">Tipos de Fio</TabsTrigger>
         </TabsList>
 
@@ -775,6 +846,137 @@ export default function Invoices() {
                               <TableCell className="text-xs text-right">{formatWeight(group.totalConsumed)}</TableCell>
                               <TableCell className="text-xs text-right">{formatWeight(group.totalSold)}</TableCell>
                               <TableCell className={cn('text-xs text-right', group.totalBalance < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalBalance)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ===== ESTOQUE DE MALHA TAB ===== */}
+        <TabsContent value="estoque" className="space-y-4">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Produzido</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.producedKg)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Entregue</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.deliveredKg)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Em Estoque</div>
+              <p className={cn('text-xl font-bold', estoqueKpis.stockKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(estoqueKpis.stockKg)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Layers className="h-3.5 w-3.5" />Rolos em Estoque</div>
+              <p className={cn('text-xl font-bold', estoqueKpis.stockRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(estoqueKpis.stockRolls)}</p>
+            </CardContent></Card>
+          </div>
+
+          {/* Filters */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={estoqueMonth} onValueChange={setEstoqueMonth}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todo período</SelectItem>
+                    {availableMonths.map(m => (
+                      <SelectItem key={m} value={m}>
+                        {format(parse(m, 'yyyy-MM', new Date()), 'MMMM yyyy', { locale: ptBR })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={estoqueClient} onValueChange={setEstoqueClient}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Cliente" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos clientes</SelectItem>
+                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={estoqueArticle} onValueChange={setEstoqueArticle}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Artigo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos artigos</SelectItem>
+                    {articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {(estoqueClient !== 'all' || estoqueArticle !== 'all' || estoqueMonth !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEstoqueClient('all'); setEstoqueArticle('all'); setEstoqueMonth('all'); }}>Limpar</Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Grouped by client */}
+          {malhaEstoque.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Nenhum dado de estoque encontrado. Registre produção e NFs de saída para ver o estoque de malha.
+            </CardContent></Card>
+          ) : (
+            <div className="space-y-3">
+              {malhaEstoque.map(group => (
+                <Collapsible key={group.clientId} defaultOpen>
+                  <Card>
+                    <CollapsibleTrigger className="w-full">
+                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
+                          <CardTitle className="text-sm font-semibold">{group.clientName}</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Produzido: <span className="font-semibold text-foreground">{formatWeight(group.totalProducedKg)}</span></span>
+                          <span>Estoque: <span className={cn('font-semibold', group.totalStockKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalStockKg)}</span></span>
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Artigo</TableHead>
+                              <TableHead className="text-xs text-right">Produzido kg</TableHead>
+                              <TableHead className="text-xs text-right">Rolos</TableHead>
+                              <TableHead className="text-xs text-right">Entregue kg</TableHead>
+                              <TableHead className="text-xs text-right">Rolos</TableHead>
+                              <TableHead className="text-xs text-right font-bold">Estoque kg</TableHead>
+                              <TableHead className="text-xs text-right font-bold">Rolos</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.articles.map(a => (
+                              <TableRow key={a.articleId}>
+                                <TableCell className="text-xs">{a.articleName}</TableCell>
+                                <TableCell className="text-xs text-right">{formatWeight(a.producedKg)}</TableCell>
+                                <TableCell className="text-xs text-right">{formatNumber(a.producedRolls)}</TableCell>
+                                <TableCell className="text-xs text-right">{formatWeight(a.deliveredKg)}</TableCell>
+                                <TableCell className="text-xs text-right">{formatNumber(a.deliveredRolls)}</TableCell>
+                                <TableCell className={cn('text-xs text-right font-bold', a.stockKg < 0 ? 'text-destructive' : a.stockKg === 0 ? 'text-muted-foreground' : 'text-success')}>
+                                  {formatWeight(a.stockKg)}
+                                  {a.stockKg < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
+                                </TableCell>
+                                <TableCell className={cn('text-xs text-right font-bold', a.stockRolls < 0 ? 'text-destructive' : a.stockRolls === 0 ? 'text-muted-foreground' : 'text-success')}>
+                                  {formatNumber(a.stockRolls)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-muted/30 font-semibold">
+                              <TableCell className="text-xs">TOTAL</TableCell>
+                              <TableCell className="text-xs text-right">{formatWeight(group.totalProducedKg)}</TableCell>
+                              <TableCell className="text-xs text-right">{formatNumber(group.totalProducedRolls)}</TableCell>
+                              <TableCell className="text-xs text-right">{formatWeight(group.totalDeliveredKg)}</TableCell>
+                              <TableCell className="text-xs text-right">{formatNumber(group.totalDeliveredRolls)}</TableCell>
+                              <TableCell className={cn('text-xs text-right', group.totalStockKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalStockKg)}</TableCell>
+                              <TableCell className={cn('text-xs text-right', group.totalStockRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(group.totalStockRolls)}</TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
