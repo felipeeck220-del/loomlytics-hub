@@ -29,7 +29,7 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
 | `category` | TEXT | Não | Categoria da despesa (ex: "Insumos", "Peças", "Serviços") |
 | `amount` | NUMERIC | Sim | Valor a pagar (R$) |
 | `due_date` | DATE | Sim | Data de vencimento |
-| `whatsapp_number` | TEXT | Sim | Número WhatsApp para notificação (formato: +5511999999999) |
+| `whatsapp_number` | TEXT | Sim | Número WhatsApp para notificação (armazenado sem prefixo, ex: 47992102017). A Edge Function formata para +55XXXXXXXXXXX antes do envio. |
 | `status` | TEXT | Sim | Status: `pendente`, `pago`, `vencido` (padrão: `pendente`) |
 | `paid_at` | TIMESTAMPTZ | Não | Data/hora em que foi marcado como pago |
 | `notification_sent` | BOOLEAN | Sim | Se a notificação já foi enviada (padrão: false) |
@@ -83,7 +83,7 @@ A Edge Function envia um POST com o seguinte JSON:
 
 ```json
 {
-  "phone": "+5511999999999",
+  "phone": "+5547992102017",
   "supplier_name": "Fornecedor XYZ",
   "description": "Óleo lubrificante",
   "amount": "1.250,00",
@@ -182,7 +182,7 @@ SELECT cron.schedule(
 3. **Categoria** (select: Insumos, Peças, Agulhas, Serviços, Outros)
 4. **Valor (R$)** (numérico, obrigatório)
 5. **Data de Vencimento** (date, obrigatório)
-6. **WhatsApp para Notificação** (telefone, obrigatório, formato brasileiro)
+6. **WhatsApp para Notificação** (telefone, obrigatório, sem +55, ex: 47992102017. Máscara visual: (XX) X XXXX-XXXX)
 7. **Observações** (textarea, opcional)
 
 ### Navegação
@@ -216,7 +216,7 @@ SELECT cron.schedule(
 
 - **RLS ativo**: Cada empresa acessa apenas seus próprios registros
 - **Validação de input**: Zod na Edge Function para validar corpo da requisição
-- **Números WhatsApp**: Validados no formato E.164 antes de enviar
+- **Números WhatsApp**: Armazenados sem prefixo (ex: 47992102017), formatados para +55XXXXXXXXXXX pela Edge Function antes do envio à Reportana
 - **Service Role**: Usado apenas na Edge Function para consultas cross-company no cron
 - **Webhook URL como Secret**: URL com token embutido armazenada como `REPORTANA_WEBHOOK_URL`, nunca hardcoded
 - **Rate limiting**: Controle de envio para evitar spam
@@ -246,3 +246,4 @@ SELECT cron.schedule(
 | 01/04/2026 - XX:XX | Documentação inicial do módulo Contas a Pagar |
 | 02/04/2026 - 10:45 | Substituição do Twilio pela Reportana (webhook) para notificações WhatsApp. Secret `REPORTANA_WEBHOOK_URL` configurado. Documentação atualizada com fluxo, dados do webhook e template de mensagem. |
 | 02/04/2026 - 11:30 | Implementação completa: tabela `accounts_payable` (RLS), página `/contas-pagar` (CRUD + filtros + KPIs), Edge Function `notify-accounts-due` (deploy + teste OK), cron job diário 08:00 Brasília, integração rotas/sidebar/permissões. |
+| 03/04/2026 - XX:XX | Documentação atualizada: formato do número WhatsApp corrigido para +55XXXXXXXXXXX (formatado pela Edge Function). Número armazenado sem prefixo, com máscara visual (XX) X XXXX-XXXX no formulário. Botão "Enviar Teste" adicionado com Edge Function `test-webhook`. |
