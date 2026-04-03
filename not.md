@@ -17,7 +17,21 @@ O sistema de notificações WhatsApp do MalhaGest é dividido em **duas partes**
 
 ### Integração de Envio
 
-Todas as mensagens são enviadas via **Reportana** (webhook), utilizando a **API Oficial do WhatsApp Business (Meta)**.
+Todas as mensagens são enviadas via **Reportana** utilizando **um único webhook** (`REPORTANA_WEBHOOK_URL` — o mesmo já usado no módulo Contas a Pagar), com a **API Oficial do WhatsApp Business (Meta)**.
+
+**Diferenciação por `type`:** Cada envio inclui um campo `type` no body do POST. Do lado da Reportana, o usuário cria uma validação que verifica o `type` e direciona para a automação/mensagem correta.
+
+```
+MalhaGest (Edge Function)
+    → POST para REPORTANA_WEBHOOK_URL (único)
+    → body: { type: "boas_vindas", phone: "55...", ...variáveis }
+
+Reportana (lado do usuário)
+    → IF type == "boas_vindas" → automação de boas-vindas
+    → IF type == "pag_pix_confirmado" → automação pix confirmado
+    → IF type == "pag_card_erro" → automação erro cartão
+    → ... etc (8 types no total)
+```
 
 - Números armazenados apenas como dígitos no banco (ex: `47992102017`)
 - Máscara visual no front-end: `(XX) X XXXX-XXXX`
