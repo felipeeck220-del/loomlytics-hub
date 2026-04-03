@@ -690,7 +690,6 @@ export default function Invoices() {
   };
 
   const handleDeleteEft = async (id: string) => {
-    if (!confirm('Excluir este registro de estoque?')) return;
     const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
