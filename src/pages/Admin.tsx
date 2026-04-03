@@ -680,7 +680,7 @@ export default function Admin() {
                             variant="destructive"
                             size="sm"
                             disabled={restoringId === b.id}
-                            onClick={() => handleRestoreBackup(b.id, b.company_name)}
+                            onClick={() => setRestoreConfirm({ id: b.id, name: b.company_name })}
                           >
                             <RotateCcw className="h-4 w-4 mr-1" />
                             {restoringId === b.id ? 'Restaurando...' : 'Reverter'}
