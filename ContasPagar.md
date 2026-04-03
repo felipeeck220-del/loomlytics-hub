@@ -182,7 +182,7 @@ SELECT cron.schedule(
 3. **Categoria** (select: Insumos, Peças, Agulhas, Serviços, Outros)
 4. **Valor (R$)** (numérico, obrigatório)
 5. **Data de Vencimento** (date, obrigatório)
-6. **WhatsApp para Notificação** (telefone, obrigatório, formato brasileiro)
+6. **WhatsApp para Notificação** (telefone, obrigatório, sem +55, ex: 47992102017. Máscara visual: (XX) X XXXX-XXXX)
 7. **Observações** (textarea, opcional)
 
 ### Navegação
