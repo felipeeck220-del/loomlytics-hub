@@ -1297,6 +1297,49 @@ if (total_rotations < lastReading.total_rotations) {
 
 ---
 
+## 18. Obtendo os UUIDs no Sistema
+
+Para configurar o firmware do ESP32, você precisa dos UUIDs da **empresa** e da **máquina**. Esses valores são exibidos diretamente na interface do sistema, **somente para usuários com perfil Admin**.
+
+### 18.1 UUID da Empresa (`company_id`)
+
+**Onde encontrar**: `Configurações → Empresa`
+
+- Na seção de dados da empresa, o UUID é exibido com um **botão de copiar** (ícone 📋)
+- Clique no botão para copiar o UUID para a área de transferência
+- Cole no firmware do ESP32 na variável `COMPANY_ID`
+
+```
+Exemplo: COMPANY_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+```
+
+### 18.2 UUID da Máquina (`machine_id`)
+
+**Onde encontrar**: `Máquinas` (listagem de máquinas)
+
+- Cada máquina exibe seu UUID com um **botão de copiar** (ícone 📋)
+- O UUID é visível apenas para usuários Admin
+- Clique no botão para copiar e cole no firmware na variável `MACHINE_ID`
+
+```
+Exemplo: MACHINE_ID = "f9e8d7c6-b5a4-3210-fedc-ba0987654321"
+```
+
+### 18.3 Fluxo de Configuração
+
+```
+1. Acesse Configurações → Empresa → Copie o UUID da Empresa
+2. Acesse Máquinas → Copie o UUID da máquina desejada
+3. Abra o firmware (firmware_loomlytics.ino)
+4. Cole os UUIDs nas variáveis COMPANY_ID e MACHINE_ID
+5. Configure Wi-Fi (SSID e senha)
+6. Faça upload para o ESP32
+```
+
+> ⚠️ **Segurança**: Os UUIDs são visíveis **somente para administradores** da empresa. Usuários com outros perfis (Líder, Mecânico, Revisador) não têm acesso a essa informação.
+
+---
+
 ## 🔗 Links Úteis
 
 - [Documentação ESP32 (Espressif)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
@@ -1307,5 +1350,5 @@ if (total_rotations < lastReading.total_rotations) {
 
 ---
 
-> **Última atualização**: Março 2026
+> **Última atualização**: Abril 2026
 > **Status**: Planejamento — aguardando implementação
