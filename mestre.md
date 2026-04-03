@@ -1124,6 +1124,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 07:00** — **Modal Terceirizado — TAB data + Enter salvar + NF/ROM única:** (1) Data agora permite 3 tabs naturais (dia→mês→ano) e após o 3º tab vai para artigo (contador `dateTabCount`); (2) Enter no campo NF/ROM salva o registro (atalho); (3) Validação de NF/ROM duplicada: antes de salvar, verifica se o número já existe em todo o período — se duplicado, exibe alerta de erro com a data do registro existente; (4) Botão salvar também usa a mesma validação.
 
+- **03/04/2026 08:00** — **Terceirizados — melhorias visuais e busca:** (1) KPI "Receita (Cliente)" renomeado para "Receita (PrimeiroNome)" e "Lucro" para "Lucro (PrimeiroNome)" usando primeiro nome da empresa cadastrada; (2) Card "Prejuízos" adicionado após Lucro (soma dos registros com lucro negativo); (3) Data dos registros agora exibe também a hora do registro (created_at); (4) Busca avançada na aba Produções (malharia, artigo, cliente, NF/ROM); (5) Busca na aba Malharias (por nome/contato); (6) Listagem de produções ordenada do mais recente para o mais antigo (por created_at DESC); (7) Interface `OutsourceProduction` agora inclui campo `nf_rom` tipado.
+
 ---
 
-*Última atualização: 03/04/2026 07:00 (Brasília)*
+*Última atualização: 03/04/2026 08:00 (Brasília)*
