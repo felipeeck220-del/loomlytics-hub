@@ -930,7 +930,7 @@ export default function Invoices() {
           ) : (
             <div className="space-y-3">
               {malhaEstoque.map(group => (
-                <Collapsible key={group.clientId} defaultOpen>
+                <Collapsible key={group.clientId}>
                   <Card>
                     <CollapsibleTrigger className="w-full">
                       <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
