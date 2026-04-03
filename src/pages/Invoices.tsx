@@ -204,6 +204,9 @@ export default function Invoices() {
   const [yarnColor, setYarnColor] = useState('');
   const [yarnObs, setYarnObs] = useState('');
   const [editingYarn, setEditingYarn] = useState<YarnType | null>(null);
+  const [cancelConfirmInvoice, setCancelConfirmInvoice] = useState<Invoice | null>(null);
+  const [deleteYarnConfirm, setDeleteYarnConfirm] = useState<YarnType | null>(null);
+  const [deleteEftConfirmId, setDeleteEftConfirmId] = useState<string | null>(null);
 
   // ===== Helpers =====
   const selectedClient = clients.find(c => c.id === formClientId);
