@@ -1796,7 +1796,6 @@ export default function Invoices() {
             </div>
             <div>
               <Label className="text-xs">Tipo de Fio *</Label>
-              <SearchableSelect
               {eftEditing ? (
                 <Input className="h-9 text-xs" value={yarnTypes.find(y => y.id === eftFormYarn)?.name || ''} disabled />
               ) : (
