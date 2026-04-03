@@ -949,27 +949,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Company UUID for IoT — admin only */}
-                {isAdmin && user?.company_id && (
-                  <div className="border-t border-border pt-4">
-                    <p className="text-xs text-muted-foreground mb-1">UUID da Empresa (IoT)</p>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs font-mono text-foreground bg-muted/50 px-2 py-1 rounded flex-1 truncate">{user.company_id}</code>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7 shrink-0"
-                        onClick={() => {
-                          navigator.clipboard.writeText(user.company_id);
-                          toast.success('UUID da empresa copiado!');
-                        }}
-                      >
-                        <Key className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">Use este UUID no firmware do ESP32 (COMPANY_ID)</p>
-                  </div>
-                )}
               </div>
 
               {/* Roles Card */}
