@@ -268,48 +268,62 @@ function CompaniesTab({ companies, companyId, loading }: {
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
+  const filteredCompanies = useMemo(() => {
+    if (!searchQuery.trim()) return companies;
+    const q = searchQuery.toLowerCase();
+    return companies.filter(c => c.name.toLowerCase().includes(q) || c.contact?.toLowerCase().includes(q));
+  }, [companies, searchQuery]);
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
         <div>
           <CardTitle className="text-lg">Malharias Terceirizadas</CardTitle>
           <CardDescription>Empresas que tecem para você</CardDescription>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Nova Malharia</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editId ? 'Editar Malharia' : 'Nova Malharia'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label>Nome *</Label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Malharia São José" />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Pesquisar malharia..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 w-48" />
+          </div>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Nova Malharia</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editId ? 'Editar Malharia' : 'Nova Malharia'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label>Nome *</Label>
+                  <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Malharia São José" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contato</Label>
+                  <Input value={form.contact} onChange={e => setForm(f => ({ ...f, contact: e.target.value }))} placeholder="Telefone ou email" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Observações</Label>
+                  <Textarea value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Contato</Label>
-                <Input value={form.contact} onChange={e => setForm(f => ({ ...f, contact: e.target.value }))} placeholder="Telefone ou email" />
-              </div>
-              <div className="space-y-2">
-                <Label>Observações</Label>
-                <Textarea value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-              <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>
-                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                {editId ? 'Salvar' : 'Cadastrar'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>
+                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                  {editId ? 'Salvar' : 'Cadastrar'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {companies.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhuma malharia cadastrada ainda.</p>
+        ) : filteredCompanies.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Nenhuma malharia encontrada.</p>
         ) : (
           <Table>
             <TableHeader>
@@ -321,7 +335,7 @@ function CompaniesTab({ companies, companyId, loading }: {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {companies.map(c => (
+              {filteredCompanies.map(c => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.contact || '—'}</TableCell>
