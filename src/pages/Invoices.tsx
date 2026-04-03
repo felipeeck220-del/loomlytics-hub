@@ -364,7 +364,6 @@ export default function Invoices() {
 
   // ===== Cancel Invoice =====
   const handleCancelInvoice = async (inv: Invoice) => {
-    if (!confirm(`Cancelar NF ${inv.invoice_number}?`)) return;
     const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
