@@ -379,6 +379,7 @@ Visão por cliente expandível:
 | **Artigos**         | Campo "Tipo de Fio" no cadastro do artigo                      |
 | **Backup**          | Tabelas `yarn_types`, `invoices`, `invoice_items` incluídas    |
 | **Fechamento**      | Estoque de malha e saldo de fio alimentam o fechamento mensal  |
+| **Saldo Global**    | Visão por tipo de fio: Compra/Estoque/Vendas (ver `saldofiosglobal.md`) |
 
 ---
 
@@ -389,14 +390,17 @@ O módulo NF alimenta diretamente o **Fechamento Mensal** com:
 1. **Estoque de Malha** — malha produzida menos NFs de saída = malha ainda na facção
 2. **Receitas** — valor das NFs de saída (malha entregue × valor/kg)
 3. **Venda de Fio** — valor das NFs tipo `venda_fio` (receita adicional)
-4. **Saldo de Fio** — controle de matéria-prima por cliente
+4. **Saldo de Fio por Cliente** — controle de matéria-prima por cliente (ver `saldofios.md`)
+5. **Saldo de Fio Global por Tipo** — compra, estoque e vendas consolidados por tipo de fio (ver `saldofiosglobal.md`)
 
 ### Seções do PDF de Fechamento que dependem do módulo NF:
+- **Fechamento KG** — usa: Compra de Fio (Σ NFs entrada), Estoque Final (saldo acumulado), Vendas de Fio (Σ NFs venda_fio)
 - **Estoque de Malha** (rolos + kg por cliente)
 - **Receitas Próprias** (produção interna — já existe, NF valida as entregas)
 - **Receitas de Terceiros** (já existe via outsource_productions)
 - **Prejuízos de Terceiros** (já existe via outsource_productions com lucro negativo)
 - **Receitas Diversas** (já existe via residue_sales)
+- **Saldo de Fios por Tipo** — tabela com Compra/Estoque/Vendas por fio (ver `saldofiosglobal.md`)
 - **Faturamento Total** = Receitas + Terceiros - Prejuízos + Resíduos + Venda de Fio
 
 ---
@@ -465,5 +469,5 @@ O módulo NF alimenta diretamente o **Fechamento Mensal** com:
 ---
 
 *Documento criado em: 29/03/2026 03:30 UTC*
-*Última atualização: 03/04/2026 (adicionado tipo venda_fio, chave de acesso SEFAZ, estoque de malha, integração com fechamento mensal)*
+*Última atualização: 03/04/2026 (adicionado tipo venda_fio, chave de acesso SEFAZ, estoque de malha, integração com fechamento mensal, referência ao saldofiosglobal.md)*
 *Status: PLANEJADO — Aguardando aprovação para implementação*
