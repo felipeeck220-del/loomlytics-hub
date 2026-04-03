@@ -27,6 +27,8 @@ interface MachineTurnRow {
 export default function ClientsArticles() {
   const { getClients, saveClients, getArticles, saveArticles, getMachines, getArticleMachineTurns, saveArticleMachineTurns, loading } = useSharedCompanyData();
   const { canSeeFinancial } = usePermissions();
+  const { user } = useAuth();
+  const companyId = user?.company_id || '';
   const clients = getClients();
   const articles = getArticles();
   const machines = getMachines();
@@ -35,13 +37,24 @@ export default function ClientsArticles() {
   const [clientSearch, setClientSearch] = useState('');
   const [articleSearch, setArticleSearch] = useState('');
 
+  // Fetch yarn types for article form
+  const { data: yarnTypes = [] } = useQuery({
+    queryKey: ['yarn_types', companyId],
+    queryFn: async () => {
+      const { data, error } = await sb('yarn_types').select('*').eq('company_id', companyId).order('name');
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name: string }>;
+    },
+    enabled: !!companyId,
+  });
+
   const [showClientModal, setShowClientModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [clientForm, setClientForm] = useState({ name: '', contact: '', observations: '' });
 
   const [showArticleModal, setShowArticleModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' });
+  const [articleForm, setArticleForm] = useState({ name: '', client_id: '', yarn_type_id: '', weight_per_roll: '', value_per_kg: '', turns_per_roll: '', target_efficiency: '80', observations: '' });
 
   const [showDelete, setShowDelete] = useState<{ type: 'client' | 'article'; item: any } | null>(null);
   const [deleteWord, setDeleteWord] = useState('');
