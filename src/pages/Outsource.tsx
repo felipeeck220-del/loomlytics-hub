@@ -369,6 +369,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [prodSearch, setProdSearch] = useState('');
+  const [editId, setEditId] = useState<string | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
   const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
    const articleSearchRef = useRef<HTMLInputElement>(null);
