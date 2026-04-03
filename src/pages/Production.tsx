@@ -345,7 +345,7 @@ export default function ProductionPage() {
       setSaveQueue(prev => prev.map(q => q.id === queueId ? { ...q, status: 'error' } : q));
       toast.error(`Erro ao salvar produção — ${machineName}`);
     });
-  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, addProductions, updateProductions, advanceToNext, extraArticles, articles, companyShiftLabels, machineMode]);
+  }, [form, preview, saving, productions, selectedMachine, selectedArticle, weavers, editing, editingGroupItems, addProductions, updateProductions, advanceToNext, extraArticles, articles, companyShiftLabels, machineMode, userName, userCode, logAction]);
 
   const handleDelete = async () => {
     if (!showDelete) return;

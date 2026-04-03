@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,8 @@ interface ResidueSale {
   total: number;
   romaneio: string | null;
   observations: string | null;
+  created_by_name: string | null;
+  created_by_code: string | null;
   created_at: string;
 }
 
@@ -58,6 +61,7 @@ export default function ResidueSales() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
+  const { userCode, userName } = useAuditLog();
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const [deleteMatConfirmId, setDeleteMatConfirmId] = useState<string | null>(null);
@@ -196,6 +200,8 @@ export default function ResidueSales() {
         total: qty * price,
         romaneio: saleRomaneio.trim() || null,
         observations: saleObs.trim() || null,
+        created_by_name: userName || null,
+        created_by_code: userCode || null,
       });
       if (error) throw error;
     },

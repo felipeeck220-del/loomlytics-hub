@@ -1119,6 +1119,8 @@ export type Database = {
           client_value_per_kg: number
           company_id: string
           created_at: string
+          created_by_code: string | null
+          created_by_name: string | null
           date: string
           id: string
           nf_rom: string | null
@@ -1140,6 +1142,8 @@ export type Database = {
           client_value_per_kg?: number
           company_id: string
           created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
           date: string
           id?: string
           nf_rom?: string | null
@@ -1161,6 +1165,8 @@ export type Database = {
           client_value_per_kg?: number
           company_id?: string
           created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
           date?: string
           id?: string
           nf_rom?: string | null
@@ -1525,6 +1531,8 @@ export type Database = {
           client_name: string
           company_id: string
           created_at: string
+          created_by_code: string | null
+          created_by_name: string | null
           date: string
           id: string
           material_id: string
@@ -1540,6 +1548,8 @@ export type Database = {
           client_name: string
           company_id: string
           created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
           date: string
           id?: string
           material_id: string
@@ -1555,6 +1565,8 @@ export type Database = {
           client_name?: string
           company_id?: string
           created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
           date?: string
           id?: string
           material_id?: string

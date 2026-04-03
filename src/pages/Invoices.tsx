@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -115,6 +116,7 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
 export default function Invoices() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
+  const { userCode, userName } = useAuditLog();
   const queryClient = useQueryClient();
   const { canSeeFinancial } = usePermissions();
   const { getClients, getArticles, getProductions } = useSharedCompanyData();
@@ -322,8 +324,8 @@ export default function Invoices() {
         total_value: totalValue,
         status: formStatus,
         observations: formObservations.trim() || null,
-        created_by_name: user?.name || null,
-        created_by_code: (user as any)?.code || null,
+        created_by_name: userName || null,
+        created_by_code: userCode || null,
       }).select('id').single();
 
       if (invError) throw invError;

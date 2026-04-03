@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,8 @@ interface OutsourceProduction {
   total_profit: number;
   observations?: string;
   nf_rom?: string;
+  created_by_name?: string;
+  created_by_code?: string;
   created_at: string;
 }
 
@@ -63,6 +66,7 @@ export default function Outsource() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
+  const { userCode, userName } = useAuditLog();
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
 
@@ -546,6 +550,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
         total_profit: totalProfit,
         observations: form.observations || null,
         nf_rom: form.nf_rom || null,
+        created_by_name: userName || null,
+        created_by_code: userCode || null,
       };
       if (editId) {
         // Get old record to calculate delta
