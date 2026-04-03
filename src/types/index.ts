@@ -7,11 +7,12 @@ export interface Company {
   created_at: string;
 }
 
-export type ProductionMode = 'rolos' | 'voltas';
+export type ProductionMode = 'rolos' | 'voltas' | 'iot';
 
 export const PRODUCTION_MODE_LABELS: Record<ProductionMode, string> = {
   rolos: 'Rolos',
   voltas: 'Voltas',
+  iot: 'IoT (Automático)',
 };
 
 export interface Machine {

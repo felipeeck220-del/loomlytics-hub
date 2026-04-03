@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, FileBarChart, Loader2, Monitor, CheckCircle2, XCircle, Wrench, Settings, AlertCircle, Search, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileBarChart, Loader2, Monitor, CheckCircle2, XCircle, Wrench, Settings, AlertCircle, Search, Eye, Copy } from 'lucide-react';
 import MaintenanceViewModal from '@/components/MaintenanceViewModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
