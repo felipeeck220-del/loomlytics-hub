@@ -761,6 +761,21 @@ export default function ResidueSales() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmDialog
+        open={!!deleteMatConfirmId}
+        onOpenChange={(v) => { if (!v) setDeleteMatConfirmId(null); }}
+        title="Remover material"
+        description="Tem certeza que deseja remover este material? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (deleteMatConfirmId) deleteMat.mutate(deleteMatConfirmId); setDeleteMatConfirmId(null); }}
+      />
+      <DeleteConfirmDialog
+        open={!!deleteSaleConfirmId}
+        onOpenChange={(v) => { if (!v) setDeleteSaleConfirmId(null); }}
+        title="Remover registro de venda"
+        description="Tem certeza que deseja remover este registro de venda? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (deleteSaleConfirmId) deleteSale.mutate(deleteSaleConfirmId); setDeleteSaleConfirmId(null); }}
+      />
     </div>
   );
 }
