@@ -164,9 +164,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 9. Update shift state (accumulate turns)
+    // 9. Update shift state (accumulate turns + RPM tracking)
     if (deltaRotations > 0 && machine.article_id) {
       await updateShiftState(supabase, device, deltaRotations, safeRpm, machine, currentShift);
+    } else if (safeRpm > 0 && machine.article_id) {
+      // Even without delta rotations, track RPM for average calculation
+      await trackRpm(supabase, device.machine_id, safeRpm);
     }
 
     // 10. Check shift change
@@ -206,6 +209,27 @@ function determineShift(settings: any): string {
   return "noite";
 }
 
+// Track RPM for average calculation without delta rotations
+async function trackRpm(supabase: any, machineId: string, rpm: number) {
+  const { data: state } = await supabase
+    .from("iot_shift_state")
+    .select("id, rpm_sum, rpm_count")
+    .eq("machine_id", machineId)
+    .single();
+
+  if (!state) return;
+
+  await supabase
+    .from("iot_shift_state")
+    .update({
+      rpm_sum: (state.rpm_sum || 0) + rpm,
+      rpm_count: (state.rpm_count || 0) + 1,
+      last_rpm: rpm,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", state.id);
+}
+
 async function updateShiftState(
   supabase: any,
   device: any,
@@ -240,6 +264,8 @@ async function updateShiftState(
         completed_rolls: 0,
         roll_position: 0,
         last_rpm: rpm,
+        rpm_sum: rpm,
+        rpm_count: 1,
       })
       .select()
       .single();
@@ -265,20 +291,22 @@ async function updateShiftState(
   const turnsPerRoll = amt?.turns_per_roll || article?.turns_per_roll || 0;
   if (turnsPerRoll === 0) return;
 
-  // Accumulate turns
-  const newPartialTurns = (state.partial_turns || 0) + deltaRotations;
+  // Accumulate turns — roll_position tracks position within current roll
   const newRollPosition = (state.roll_position || 0) + deltaRotations;
   const completedRolls = Math.floor(newRollPosition / turnsPerRoll);
   const remainingRollPosition = newRollPosition % turnsPerRoll;
 
+  // partial_turns = remainder within current roll (FIX: was accumulating like total_turns)
   await supabase
     .from("iot_shift_state")
     .update({
-      partial_turns: newPartialTurns,
+      partial_turns: remainingRollPosition,
       total_turns: (state.total_turns || 0) + deltaRotations,
       completed_rolls: (state.completed_rolls || 0) + completedRolls,
       roll_position: remainingRollPosition,
       last_rpm: rpm,
+      rpm_sum: (state.rpm_sum || 0) + rpm,
+      rpm_count: (state.rpm_count || 0) + 1,
       article_id: machine.article_id,
       updated_at: new Date().toISOString(),
     })
@@ -345,7 +373,7 @@ async function finalizeShift(supabase: any, device: any, state: any) {
     weaverName = weaver?.name;
   }
 
-  // Calculate efficiency
+  // Calculate efficiency using AVERAGE RPM (FIX: was using last_rpm)
   const shiftStarted = new Date(state.shift_started_at);
   const now = new Date();
   const shiftMinutes = (now.getTime() - shiftStarted.getTime()) / 60000;
@@ -380,8 +408,8 @@ async function finalizeShift(supabase: any, device: any, state: any) {
   const uptimeMinutes = Math.max(availableMinutes - downtimeMinutes, 0);
   const targetRpm = machine?.target_rpm || 25;
 
-  // Efficiency = (uptime/available) × (avg_rpm/target_rpm) × 100
-  const avgRpm = state.last_rpm || 0;
+  // FIX: Use average RPM instead of last RPM
+  const avgRpm = (state.rpm_count > 0) ? (state.rpm_sum / state.rpm_count) : (state.last_rpm || 0);
   const efficiency = availableMinutes > 0
     ? (uptimeMinutes / availableMinutes) * (avgRpm / targetRpm) * 100
     : 0;
@@ -436,6 +464,8 @@ async function startNewShift(supabase: any, device: any, newShift: string, rollP
       completed_rolls: 0,
       roll_position: rollPosition, // Maintain physical roll position
       last_rpm: 0,
+      rpm_sum: 0,
+      rpm_count: 0,
       shift_started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
