@@ -776,23 +776,23 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
       <CardContent className="space-y-4">
         {/* Filters */}
         <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Button variant={filterMonth === '' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setFilterMonth(''); setFilterFrom(undefined); setFilterTo(undefined); }}>
-                Todos
-              </Button>
-              {availableMonths.slice(0, 6).map(m => {
-                const [y, mo] = m.split('-');
-                const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMM/yy', { locale: ptBR });
-                return (
-                  <Button key={m} variant={filterMonth === m ? 'default' : 'outline'} size="sm" className="h-7 text-xs capitalize" onClick={() => { setFilterMonth(m); setFilterFrom(undefined); setFilterTo(undefined); }}>
-                    {label}
-                  </Button>
-                );
-              })}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
+              <Select value={filterMonth || '_all'} onValueChange={v => { setFilterMonth(v === '_all' ? '' : v); setFilterFrom(undefined); setFilterTo(undefined); }}>
+                <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_all">Todos os meses</SelectItem>
+                  {availableMonths.map(m => {
+                    const [y, mo] = m.split('-');
+                    const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMMM/yyyy', { locale: ptBR });
+                    return <SelectItem key={m} value={m} className="capitalize">{label}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Período personalizado</Label>
             <div className="flex items-center gap-2 flex-wrap">
