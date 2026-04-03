@@ -23,6 +23,7 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
