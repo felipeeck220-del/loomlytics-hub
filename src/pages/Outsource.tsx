@@ -875,7 +875,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </div>
                 <div className="space-y-2">
                   <Label>Rolos</Label>
-                  <Input type="number" value={form.rolls} onChange={e => setForm(f => ({ ...f, rolls: e.target.value }))} />
+                  <Input ref={rollsRef} type="number" value={form.rolls} onChange={e => setForm(f => ({ ...f, rolls: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label>Valor Repasse (R$/kg) *</Label>
