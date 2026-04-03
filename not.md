@@ -474,3 +474,4 @@ Qualquer dúvida, estamos à disposição.
 | Data | Alteração |
 |------|-----------|
 | 03/04/2026 | Criação do documento com plano completo detalhado |
+| 03/04/2026 | Adicionada seção de Types para Reportana com payloads detalhados; esclarecido uso de webhook único com diferenciação por `type` |
