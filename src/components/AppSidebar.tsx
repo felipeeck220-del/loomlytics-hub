@@ -21,6 +21,9 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
 
+/** Keys of features not yet finished — shown with a lock in the sidebar */
+const COMING_SOON_KEYS = new Set(['contas-pagar']);
+
 const allItems = [
   { title: 'Dashboard', path: '', icon: LayoutDashboard, key: 'dashboard' },
   { title: 'Máquinas', path: 'machines', icon: Settings2, key: 'machines' },
