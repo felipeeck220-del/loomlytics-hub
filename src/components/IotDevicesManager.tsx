@@ -249,6 +249,26 @@ export default function IotDevicesManager() {
               </div>
               <p className="text-xs text-muted-foreground mt-1">⚠️ Copie e salve este token agora. Após cadastrar, ele não poderá ser visualizado novamente.</p>
             </div>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1">
+              <p className="text-xs font-semibold text-foreground">📋 Dados para o firmware:</p>
+              <p className="text-xs text-muted-foreground font-mono">COMPANY_ID: {companyId}
+                <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 inline-flex" onClick={() => copyToClipboard(companyId, 'Company ID')}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </p>
+              {form.machine_id && (
+                <p className="text-xs text-muted-foreground font-mono">MACHINE_ID: {form.machine_id}
+                  <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 inline-flex" onClick={() => copyToClipboard(form.machine_id, 'Machine ID')}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground font-mono">DEVICE_TOKEN: {form.token}
+                <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 inline-flex" onClick={() => copyToClipboard(form.token, 'Token')}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowModal(false)}>Cancelar</Button>
