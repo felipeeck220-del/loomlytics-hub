@@ -311,7 +311,6 @@ export default function Admin() {
   };
 
   const handleRestoreBackup = async (backupId: string, companyName: string) => {
-    if (!confirm(`Tem certeza que deseja restaurar o backup de "${companyName}"? Todos os dados atuais desta empresa serão substituídos pelos dados do backup.`)) return;
     setRestoringId(backupId);
     try {
       const { data, error } = await supabase.functions.invoke('restore-backup', {
