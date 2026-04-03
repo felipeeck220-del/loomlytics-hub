@@ -220,7 +220,7 @@ export function AppSidebar() {
               <SidebarMenuButton asChild>
                 <button
                   onClick={() => setShowLogoutDialog(true)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-150 text-[13px] w-full"
+                  className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'} py-2 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-150 text-[13px] w-full`}
                 >
                   <LogOut className="h-4 w-4 shrink-0" />
                   {!collapsed && <span>Sair</span>}
