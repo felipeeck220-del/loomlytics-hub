@@ -1207,6 +1207,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 - **Not-null violation** → "Preencha todos os campos obrigatórios"
 - **Outros** → Mensagem original (fallback)
 
+- **03/04/2026 (horário real)** — **TERCEIRIZADOS — 3 melhorias UX no modal de produção:** (1) Validação de NF/ROM duplicada agora é **por malharia** (não global) — malharias diferentes podem ter mesmo número de romaneio; (2) Tecla ESC desabilitada no modal de Registrar Produção Terceirizada (evita fechar acidentalmente); (3) Navegação entre campos (Malharia, Data, Artigo, Peso, Rolos, Repasse, NF/ROM, Observações) via **setas ↑↓ do teclado** para troca rápida de input.
+
 ---
 
-*Última atualização: 04/04/2026 18:00 (Brasília)*
+*Última atualização: 03/04/2026 (Brasília)*

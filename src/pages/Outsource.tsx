@@ -412,6 +412,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
    const weightRef = useRef<HTMLInputElement>(null);
    const nfRomRef = useRef<HTMLInputElement>(null);
    const dateTabCount = useRef(0);
+   const companySelectRef = useRef<HTMLButtonElement>(null);
+   const dateRef = useRef<HTMLInputElement>(null);
+   const rollsRef = useRef<HTMLInputElement>(null);
+   const repasseRef = useRef<HTMLInputElement>(null);
+   const obsRef = useRef<HTMLTextAreaElement>(null);
   const [form, setForm] = useState({
     outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
     weight_kg: '', rolls: '', outsource_value_per_kg: '', nf_rom: '', observations: '',
@@ -633,17 +638,19 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
        return;
      }
 
-     // Check NF/ROM duplicate
+     // Check NF/ROM duplicate per malharia (same outsource company)
      if (form.nf_rom && form.nf_rom.trim()) {
        const { data: existing } = await sb('outsource_productions')
          .select('id, date')
          .eq('company_id', companyId)
+         .eq('outsource_company_id', form.outsource_company_id)
          .eq('nf_rom', form.nf_rom.trim())
          .limit(1);
+       const selectedCompanyName = companies.find(c => c.id === form.outsource_company_id)?.name || 'malharia';
        if (existing && existing.length > 0 && existing[0].id !== editId) {
          toast({
            title: 'NF/ROM duplicada',
-           description: `O número "${form.nf_rom}" já está cadastrado (data: ${existing[0].date}). Verifique antes de continuar.`,
+           description: `O número "${form.nf_rom}" já está cadastrado para ${selectedCompanyName} (data: ${existing[0].date}). Verifique antes de continuar.`,
            variant: 'destructive',
          });
          return;
@@ -716,16 +723,41 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
               <Plus className="h-4 w-4" /> Nova Produção
             </Button>
           </DialogTrigger>
-          <DialogContent className="w-[95vw] sm:w-[90vw] sm:max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogContent
+            className="w-[95vw] sm:w-[90vw] sm:max-w-3xl max-h-[80vh] overflow-y-auto"
+            onEscapeKeyDown={e => e.preventDefault()}
+            onInteractOutside={e => e.preventDefault()}
+          >
             <DialogHeader>
               <DialogTitle>{editId ? 'Editar Produção' : 'Registrar Produção Terceirizada'}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 py-2" onKeyDown={e => {
+              if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
+              if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+              // Don't hijack arrows when article dropdown is open
+              if (articleDropdownOpen) return;
+              const fields: (HTMLElement | null)[] = [
+                companySelectRef.current,
+                dateRef.current,
+                articleSearchRef.current,
+                weightRef.current,
+                rollsRef.current,
+                repasseRef.current,
+                nfRomRef.current,
+                obsRef.current,
+              ];
+              const active = document.activeElement as HTMLElement;
+              const idx = fields.findIndex(f => f === active || f?.contains(active));
+              if (idx === -1) return;
+              e.preventDefault();
+              const next = e.key === 'ArrowDown' ? Math.min(idx + 1, fields.length - 1) : Math.max(idx - 1, 0);
+              fields[next]?.focus();
+            }}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Malharia *</Label>
                   <Select value={form.outsource_company_id} onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectTrigger ref={companySelectRef}><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
@@ -733,7 +765,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </div>
                 <div className="space-y-2">
                    <Label>Data *</Label>
-                   <Input type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                   <Input ref={dateRef} type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                      onFocus={() => { dateTabCount.current = 0; }}
                      onKeyDown={e => {
                        if (e.key === 'Tab' && !e.shiftKey) {
@@ -843,11 +875,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </div>
                 <div className="space-y-2">
                   <Label>Rolos</Label>
-                  <Input type="number" value={form.rolls} onChange={e => setForm(f => ({ ...f, rolls: e.target.value }))} />
+                  <Input ref={rollsRef} type="number" value={form.rolls} onChange={e => setForm(f => ({ ...f, rolls: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label>Valor Repasse (R$/kg) *</Label>
-                  <Input type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatRepasseInput(e.target.value) }))} />
+                  <Input ref={repasseRef} type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatRepasseInput(e.target.value) }))} />
                 </div>
                  <div className="space-y-2">
                    <Label>NF/ROM</Label>
@@ -909,7 +941,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 
               <div className="space-y-2">
                 <Label>Observações</Label>
-                <Textarea value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+                <Textarea ref={obsRef} value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
               </div>
             </div>
             <DialogFooter>
