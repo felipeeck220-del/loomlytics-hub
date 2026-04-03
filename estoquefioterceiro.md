@@ -564,14 +564,24 @@ const { data } = await supabase
 | **Precisa de NF?**   | Sim (NFs alimentam o cálculo)              | Não (entrada manual de saldo)              |
 | **Tela**             | Aba "Saldo Fios" em Invoices               | Aba "Estoque Fio Terceiros" em Invoices    |
 
-### Por que é manual (e não calculado)?
-O estoque de fio em terceiros **não pode ser calculado automaticamente** porque:
-1. O envio de fio para terceiros geralmente **não gera NF no sistema** (pode ser feito por romaneio informal)
-2. O consumo pelo terceiro **não é rastreado** na tabela `productions` (que registra apenas produção da empresa principal)
-3. O terceiro pode devolver fio parcialmente ou consumir quantidades não previstas
-4. O controle mais confiável é o **inventário periódico** — o usuário conta o fio lá e informa o saldo
+### Desconto automático via produção terceirizada
+Desde 04/04/2026, ao registrar uma **produção terceirizada** (`outsource_productions`), o sistema **desconta automaticamente** o peso (kg) do estoque de fio da facção correspondente:
 
-> **Futuro possível:** Integrar com NFs de remessa para terceiros e calcular automaticamente, mas isso requer novo tipo de NF (`remessa_terceiro`) e rastreamento bidirecional.
+1. O artigo produzido possui um `yarn_type_id` vinculado
+2. O sistema busca o registro em `outsource_yarn_stock` para a combinação: facção + tipo de fio + mês da produção
+3. Se encontrar, deduz o `weight_kg` produzido do `quantity_kg` do estoque (mínimo 0)
+4. Na edição, reverte a dedução antiga e aplica a nova
+5. Na exclusão, devolve o peso ao estoque
+
+**Requisito:** O artigo deve ter um tipo de fio vinculado (`yarn_type_id`) E deve existir um registro de estoque para aquele mês/facção/fio.
+
+### Por que o cadastro inicial ainda é manual?
+O estoque de fio em terceiros **ainda requer cadastro manual inicial** porque:
+1. O envio de fio para terceiros geralmente **não gera NF no sistema** (pode ser feito por romaneio informal)
+2. O terceiro pode devolver fio parcialmente ou consumir quantidades não previstas
+3. O controle mais confiável é o **inventário periódico** — o usuário informa o saldo inicial
+
+> **Fluxo completo:** Usuário cadastra o estoque inicial do mês → registra produções terceirizadas → sistema desconta automaticamente → saldo final reflete o consumo real.
 
 ---
 
