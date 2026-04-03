@@ -17,7 +17,7 @@ import { toast } from '@/hooks/use-toast';
 import { formatCurrency, formatWeight, formatNumber } from '@/lib/formatters';
 import {
   Plus, Trash2, Edit, Factory, Building2, DollarSign, Scale, TrendingUp,
-  Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download
+  Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,6 +54,7 @@ interface OutsourceProduction {
   total_cost: number;
   total_profit: number;
   observations?: string;
+  nf_rom?: string;
   created_at: string;
 }
 
@@ -126,8 +127,11 @@ export default function Outsource() {
     const totalProfit = productions.reduce((s, p) => s + p.total_profit, 0);
     const totalWeight = productions.reduce((s, p) => s + p.weight_kg, 0);
     const totalRolls = productions.reduce((s, p) => s + p.rolls, 0);
-    return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls };
+    const totalLoss = productions.filter(p => p.total_profit < 0).reduce((s, p) => s + p.total_profit, 0);
+    return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss };
   }, [productions]);
+
+  const firstName = companyName.split(' ')[0] || 'Empresa';
 
   return (
     <div className="space-y-6">
@@ -143,12 +147,13 @@ export default function Outsource() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
         <KpiCard icon={Package} label="Rolos" value={formatNumber(totals.totalRolls)} color="border-l-amber-500" />
         <KpiCard icon={Scale} label="Peso Total" value={formatWeight(totals.totalWeight)} color="border-l-orange-500" />
-        <KpiCard icon={DollarSign} label="Receita (Cliente)" value={formatCurrency(totals.totalRevenue)} color="border-l-emerald-500" />
+        <KpiCard icon={DollarSign} label={`Receita (${firstName})`} value={formatCurrency(totals.totalRevenue)} color="border-l-emerald-500" />
         <KpiCard icon={DollarSign} label="Custo (Repasse)" value={formatCurrency(totals.totalCost)} color="border-l-red-500" />
-        <KpiCard icon={TrendingUp} label="Lucro" value={formatCurrency(totals.totalProfit)} color={totals.totalProfit >= 0 ? "border-l-primary" : "border-l-destructive"} />
+        <KpiCard icon={TrendingUp} label={`Lucro (${firstName})`} value={formatCurrency(totals.totalProfit)} color={totals.totalProfit >= 0 ? "border-l-primary" : "border-l-destructive"} />
+        <KpiCard icon={TrendingUp} label="Prejuízos" value={formatCurrency(totals.totalLoss)} color="border-l-destructive" />
       </div>
 
       {/* Tabs */}
@@ -216,6 +221,7 @@ function CompaniesTab({ companies, companyId, loading }: {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', contact: '', observations: '' });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const resetForm = () => { setForm({ name: '', contact: '', observations: '' }); setEditId(null); };
 
@@ -260,50 +266,64 @@ function CompaniesTab({ companies, companyId, loading }: {
     setOpen(true);
   };
 
+  const filteredCompanies = useMemo(() => {
+    if (!searchQuery.trim()) return companies;
+    const q = searchQuery.toLowerCase();
+    return companies.filter(c => c.name.toLowerCase().includes(q) || c.contact?.toLowerCase().includes(q));
+  }, [companies, searchQuery]);
+
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
         <div>
           <CardTitle className="text-lg">Malharias Terceirizadas</CardTitle>
           <CardDescription>Empresas que tecem para você</CardDescription>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Nova Malharia</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editId ? 'Editar Malharia' : 'Nova Malharia'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label>Nome *</Label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Malharia São José" />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Pesquisar malharia..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 w-48" />
+          </div>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Nova Malharia</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editId ? 'Editar Malharia' : 'Nova Malharia'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label>Nome *</Label>
+                  <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Malharia São José" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contato</Label>
+                  <Input value={form.contact} onChange={e => setForm(f => ({ ...f, contact: e.target.value }))} placeholder="Telefone ou email" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Observações</Label>
+                  <Textarea value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Contato</Label>
-                <Input value={form.contact} onChange={e => setForm(f => ({ ...f, contact: e.target.value }))} placeholder="Telefone ou email" />
-              </div>
-              <div className="space-y-2">
-                <Label>Observações</Label>
-                <Textarea value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-              <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>
-                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                {editId ? 'Salvar' : 'Cadastrar'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>
+                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                  {editId ? 'Salvar' : 'Cadastrar'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {companies.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhuma malharia cadastrada ainda.</p>
+        ) : filteredCompanies.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Nenhuma malharia encontrada.</p>
         ) : (
           <Table>
             <TableHeader>
@@ -315,7 +335,7 @@ function CompaniesTab({ companies, companyId, loading }: {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {companies.map(c => (
+              {filteredCompanies.map(c => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.contact || '—'}</TableCell>
@@ -348,6 +368,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
 }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [prodSearch, setProdSearch] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
   const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
@@ -446,7 +467,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
       weight_kg: String(p.weight_kg),
       rolls: String(p.rolls),
       outsource_value_per_kg: String(p.outsource_value_per_kg),
-      nf_rom: (p as any).nf_rom || '',
+      nf_rom: p.nf_rom || '',
       observations: p.observations || '',
     });
     setOpen(true);
@@ -475,15 +496,32 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
      saveMutation.mutate();
    };
 
+   const filteredProductions = useMemo(() => {
+     const sorted = [...productions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+     if (!prodSearch.trim()) return sorted;
+     const q = prodSearch.toLowerCase();
+     return sorted.filter(p =>
+       p.outsource_company_name?.toLowerCase().includes(q) ||
+       p.article_name?.toLowerCase().includes(q) ||
+       p.client_name?.toLowerCase().includes(q) ||
+       p.nf_rom?.toLowerCase().includes(q)
+     );
+   }, [productions, prodSearch]);
+
    if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
         <div>
           <CardTitle className="text-lg">Produções Terceirizadas</CardTitle>
           <CardDescription>Registros de produção com repasse</CardDescription>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar malharia, artigo, NF..." value={prodSearch} onChange={e => setProdSearch(e.target.value)} className="pl-9 h-9 w-56" />
+          </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1.5" disabled={companies.length === 0}>
@@ -698,12 +736,15 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {companies.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Cadastre uma malharia primeiro na aba "Malharias".</p>
         ) : productions.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhuma produção terceirizada registrada.</p>
+        ) : filteredProductions.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Nenhum resultado encontrado.</p>
         ) : (
           <div className="overflow-auto">
             <Table>
@@ -724,9 +765,16 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {productions.map(p => (
+                {filteredProductions.map(p => {
+                  const dateStr = p.date;
+                  const createdAt = new Date(p.created_at);
+                  const timeStr = !isNaN(createdAt.getTime()) ? format(createdAt, 'HH:mm') : '';
+                  return (
                   <TableRow key={p.id}>
-                    <TableCell className="whitespace-nowrap">{p.date}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div>{dateStr}</div>
+                      {timeStr && <div className="text-xs text-muted-foreground">{timeStr}</div>}
+                    </TableCell>
                     <TableCell className="font-medium">{p.outsource_company_name || '—'}</TableCell>
                     <TableCell>{p.article_name || '—'}</TableCell>
                     <TableCell>{p.client_name || '—'}</TableCell>
@@ -744,7 +792,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                         {formatCurrency(p.total_profit)}
                       </span>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{(p as any).nf_rom || '—'}</TableCell>
+                    <TableCell className="whitespace-nowrap">{p.nf_rom || '—'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Edit className="h-4 w-4" /></Button>
@@ -754,7 +802,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
