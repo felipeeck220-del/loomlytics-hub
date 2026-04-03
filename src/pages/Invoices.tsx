@@ -100,9 +100,10 @@ export default function Invoices() {
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
   const { canSeeFinancial } = usePermissions();
-  const { getClients, getArticles } = useSharedCompanyData();
+  const { getClients, getArticles, getProductions } = useSharedCompanyData();
   const clients = getClients();
   const articles = getArticles();
+  const productions = getProductions();
   const { minDate, maxDate } = getDateLimits();
 
   // ===== Fetch Yarn Types =====
