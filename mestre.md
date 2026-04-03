@@ -1215,7 +1215,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **03/04/2026 21:30 (Brasília)** — **SIDEBAR COLLAPSED — Logo centralizada:** Quando o sidebar está colapsado (modo ícone), a logo da empresa agora aparece reduzida (32×32px) e centralizada, em vez de desaparecer. Fallback (ícone Factory) também centralizado. **Fix build:** corrigido `userName`/`userCode` fora de escopo em `ProductionsTab` do `Outsource.tsx` — adicionado `useAuditLog()` dentro do componente.
 - **03/04/2026 22:00 (Brasília)** — **4 FIXES MOBILE:** (1) **Settings.tsx** — TabsList agora usa `flex flex-wrap` com `min-w-[80px]` em vez de `grid-cols-5`, evitando que abas fiquem espremidas no mobile; (2) **Outsource.tsx (Malharias)** — header do card mudado para `flex-col sm:flex-row` com botão "Nova Malharia" quebrando linha no mobile; (3) **Outsource.tsx (Produções)** — mesma correção para botão "Nova Produção"; (4) **Production.tsx** — card de produção registrada mudado para `flex-col sm:flex-row` evitando que nome do tear sobreponha Rolos/Meta/% no mobile.
+- **03/04/2026 23:00 (Brasília)** — **FIX SESSÃO/LOGIN — Sessão única e persistente:** (1) Logout agora limpa completamente localStorage (remove todas as chaves `sb-*` e `supabase*`), sessionStorage e `malhagest_last_slug`, eliminando sessões fantasma de outros usuários; (2) `onAuthStateChange` agora trata explicitamente evento `SIGNED_OUT` para limpar estado imediatamente; (3) Guard `mounted` adicionado ao listener de auth para evitar updates em componente desmontado; (4) Sessão continua persistida (`persistSession: true`, `autoRefreshToken: true`) — usuário permanece logado até sair manualmente, inclusive no app PWA para Windows.
 
 ---
 
-*Última atualização: 03/04/2026 22:00 (Brasília)*
+*Última atualização: 03/04/2026 23:00 (Brasília)*
