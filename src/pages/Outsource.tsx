@@ -603,7 +603,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
       toast({ title: 'Registro removido!' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   const formatNumberToBr = (num: number, decimals: number): string => {
