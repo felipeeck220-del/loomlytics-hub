@@ -1097,6 +1097,13 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
           </div>
         )}
       </CardContent>
+      <DeleteConfirmDialog
+        open={!!prodDeleteConfirmId}
+        onOpenChange={(v) => { if (!v) setProdDeleteConfirmId(null); }}
+        title="Remover registro"
+        description="Tem certeza que deseja remover este registro de produção? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (prodDeleteConfirmId) deleteMutation.mutate(prodDeleteConfirmId); setProdDeleteConfirmId(null); }}
+      />
     </Card>
   );
 }
