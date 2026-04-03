@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import type { Client, Article, ArticleMachineTurns } from '@/types';
 
 const sb = (table: string) => (supabase.from as any)(table);
+
+interface MachineTurnRow {
   id: string;
   machine_id: string;
   turns_per_roll: string;
