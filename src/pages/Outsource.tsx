@@ -501,17 +501,47 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
      saveMutation.mutate();
    };
 
+   // Available months for filter
+   const availableMonths = useMemo(() => {
+     const months = new Set<string>();
+     productions.forEach(p => {
+       if (p.date) months.add(p.date.substring(0, 7)); // yyyy-MM
+     });
+     return Array.from(months).sort().reverse();
+   }, [productions]);
+
    const filteredProductions = useMemo(() => {
-     const sorted = [...productions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-     if (!prodSearch.trim()) return sorted;
-     const q = prodSearch.toLowerCase();
-     return sorted.filter(p =>
-       p.outsource_company_name?.toLowerCase().includes(q) ||
-       p.article_name?.toLowerCase().includes(q) ||
-       p.client_name?.toLowerCase().includes(q) ||
-       p.nf_rom?.toLowerCase().includes(q)
-     );
-   }, [productions, prodSearch]);
+     let result = [...productions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+     // Month filter
+     if (filterMonth) {
+       result = result.filter(p => p.date.startsWith(filterMonth));
+     }
+
+     // Date range filter
+     if (filterFrom) {
+       const from = format(filterFrom, 'yyyy-MM-dd');
+       result = result.filter(p => p.date >= from);
+     }
+     if (filterTo) {
+       const to = format(filterTo, 'yyyy-MM-dd');
+       result = result.filter(p => p.date <= to);
+     }
+
+     // Text search
+     if (prodSearch.trim()) {
+       const q = prodSearch.toLowerCase();
+       result = result.filter(p =>
+         p.outsource_company_name?.toLowerCase().includes(q) ||
+         p.article_name?.toLowerCase().includes(q) ||
+         p.client_name?.toLowerCase().includes(q) ||
+         p.nf_rom?.toLowerCase().includes(q)
+       );
+     }
+     return result;
+   }, [productions, prodSearch, filterMonth, filterFrom, filterTo]);
+
+   const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo;
 
    if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
