@@ -60,14 +60,7 @@ export default function IotDevicesManager() {
   };
 
   const openNew = () => {
-    setEditing(null);
     setForm({ name: '', machine_id: '', token: generateToken() });
-    setShowModal(true);
-  };
-
-  const openEdit = (d: IotDevice) => {
-    setEditing(d);
-    setForm({ name: d.name || '', machine_id: d.machine_id, token: d.token });
     setShowModal(true);
   };
 
