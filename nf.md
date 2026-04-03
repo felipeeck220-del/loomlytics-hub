@@ -379,6 +379,7 @@ Visão por cliente expandível:
 | **Artigos**         | Campo "Tipo de Fio" no cadastro do artigo                      |
 | **Backup**          | Tabelas `yarn_types`, `invoices`, `invoice_items` incluídas    |
 | **Fechamento**      | Estoque de malha e saldo de fio alimentam o fechamento mensal  |
+| **Saldo Global**    | Visão por tipo de fio: Compra/Estoque/Vendas (ver `saldofiosglobal.md`) |
 
 ---
 
