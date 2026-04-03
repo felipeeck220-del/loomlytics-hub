@@ -1271,6 +1271,104 @@ export type Database = {
           },
         ]
       }
+      residue_materials: {
+        Row: {
+          company_id: string
+          created_at: string
+          default_price: number
+          id: string
+          name: string
+          unit: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          default_price?: number
+          id?: string
+          name: string
+          unit?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          default_price?: number
+          id?: string
+          name?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residue_materials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      residue_sales: {
+        Row: {
+          client_name: string
+          company_id: string
+          created_at: string
+          date: string
+          id: string
+          material_id: string
+          material_name: string | null
+          observations: string | null
+          quantity: number
+          romaneio: string | null
+          total: number
+          unit: string
+          unit_price: number
+        }
+        Insert: {
+          client_name: string
+          company_id: string
+          created_at?: string
+          date: string
+          id?: string
+          material_id: string
+          material_name?: string | null
+          observations?: string | null
+          quantity?: number
+          romaneio?: string | null
+          total?: number
+          unit?: string
+          unit_price?: number
+        }
+        Update: {
+          client_name?: string
+          company_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          material_id?: string
+          material_name?: string | null
+          observations?: string | null
+          quantity?: number
+          romaneio?: string | null
+          total?: number
+          unit?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residue_sales_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "residue_sales_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "residue_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tv_panels: {
         Row: {
           code: string
