@@ -551,7 +551,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
       date: p.date,
       weight_kg: formatNumberToBr(p.weight_kg, 2),
       rolls: String(p.rolls),
-      outsource_value_per_kg: formatNumberToBr(p.outsource_value_per_kg, 2),
+      outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
       nf_rom: p.nf_rom || '',
       observations: p.observations || '',
     });
