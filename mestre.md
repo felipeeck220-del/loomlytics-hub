@@ -1142,6 +1142,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 17:00** — **Padronização PDF — regra global + Resíduos atualizado:** (1) Documentada regra global: **toda exportação PDF futura deve seguir o padrão visual da página Relatórios > Exportar** (cabeçalho com retângulo cinza `grayBg` + borda `border`, logo ou nome da empresa à esquerda, título centralizado fonte 14 bold, data/hora embaixo à esquerda, período do filtro embaixo à direita, mesmas cores semânticas `colors.textDark`/`textMid`/`grayBg`/`border`); (2) PDF de Vendas de Resíduos refatorado para seguir este padrão (antes usava header simples sem logo/borda).
 
+- **03/04/2026 18:00** — **nf.md atualizado com 4 novidades da análise de fechamento:** (1) Tipo `venda_fio` adicionado — saída de fio sem tecer (devolução ou venda direta ao cliente); (2) Campo `access_key` (chave de acesso SEFAZ, 44 dígitos, opcional) adicionado à tabela `invoices` — preparado para busca automática futura via API; (3) Seção "Controle de Estoque de Malha" adicionada — calcula malha produzida menos NFs de saída por cliente/artigo; (4) Seção "Integração com Fechamento Mensal" adicionada — documenta como o módulo NF alimenta o PDF de fechamento (estoque, receitas, venda de fio, faturamento total); (5) Fase 4 (Fechamento) e Fase 5 (SEFAZ) adicionadas ao roadmap.
+
 ---
 
 ## 📐 Padrão de Exportação PDF (Regra Global)
