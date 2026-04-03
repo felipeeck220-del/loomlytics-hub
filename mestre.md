@@ -1154,6 +1154,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 23:30** — **SALDO GLOBAL DE FIOS (saldofiosglobal.md):** Nova aba "Saldo Global" na página Notas Fiscais (4ª aba, entre Saldo Fios e Estoque Malha). Consolida TODOS os clientes e mostra por tipo de fio: (1) **Compra (mês):** soma `invoice_items.weight_kg` de NFs `entrada` no mês selecionado; (2) **Consumido (mês):** soma `productions.weight_kg` via `articles.yarn_type_id`; (3) **Vendas (mês):** soma `invoice_items.weight_kg` de NFs `venda_fio`; (4) **Estoque (acumulado):** compra total − consumo total − vendas total até o mês selecionado; (5) KPIs: Compra, Consumido, Vendas, Estoque; (6) Filtros: período (mês) + tipo de fio (SearchableSelect); (7) Tabela flat com linha TOTAL; (8) Indicadores visuais: positivo (success), negativo (destructive + badge Alerta); (9) Sem migrations — 100% frontend com dados já carregados.
 
+- **04/04/2026 00:00** — **ESTOQUE FIO TERCEIROS (estoquefioterceiro.md):** (1) Migration: tabela `outsource_yarn_stock` criada com colunas `outsource_company_id`, `yarn_type_id`, `quantity_kg`, `reference_month`, `observations` + UNIQUE composta (company+facção+fio+mês) + RLS completa (SELECT/INSERT/UPDATE/DELETE) + índices + trigger `updated_at`; (2) Frontend: nova aba "Fio Terceiros" na página Notas Fiscais (7ª aba) com CRUD completo: queries diretas para `outsource_yarn_stock` e `outsource_companies`, 3 KPIs (Total em Terceiros, Facções com Estoque, Tipos de Fio), filtros (mês/facção/tipo de fio com SearchableSelect), tabela Collapsible agrupada por facção com linha TOTAL, ações editar/excluir (apenas admin); (3) Modal de adicionar/editar com SearchableSelect para facção e fio, input month, quantidade, observações; upsert na inserção; modal preserva facção após salvar.
+
 ---
 
 ## 📐 Padrão de Exportação PDF (Regra Global)
@@ -1174,4 +1176,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 03/04/2026 23:30 (Brasília)*
+*Última atualização: 04/04/2026 00:00 (Brasília)*
