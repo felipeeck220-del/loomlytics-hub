@@ -155,9 +155,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    // Clear all app state first
     setUser(null);
     setCompanies([]);
+
+    // Sign out from Supabase (clears auth tokens)
+    await supabase.auth.signOut({ scope: 'local' });
+
+    // Thoroughly clear ALL cached data to prevent ghost sessions
+    localStorage.removeItem('malhagest_last_slug');
+    
+    // Remove all Supabase auth keys from localStorage
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('sb-') || key.startsWith('supabase'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    // Clear sessionStorage as well
+    sessionStorage.clear();
   };
 
   return (
