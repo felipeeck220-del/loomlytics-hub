@@ -1050,7 +1050,7 @@ export default function Invoices() {
                               setYarnObs(y.observations || '');
                               setYarnDialogOpen(true);
                             }}>
-                              <FileText className="h-3.5 w-3.5" />
+                              <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteYarn(y)}>
                               <Trash2 className="h-3.5 w-3.5" />
