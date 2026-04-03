@@ -724,19 +724,19 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <CardTitle className="text-lg">Produções Terceirizadas</CardTitle>
           <CardDescription>Registros de produção com repasse</CardDescription>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar malharia, artigo, NF..." value={prodSearch} onChange={e => setProdSearch(e.target.value)} className="pl-9 h-9 w-56" />
+            <Input placeholder="Buscar malharia, artigo, NF..." value={prodSearch} onChange={e => setProdSearch(e.target.value)} className="pl-9 h-9 w-full sm:w-56" />
           </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5" disabled={companies.length === 0}>
+            <Button size="sm" className="gap-1.5 whitespace-nowrap" disabled={companies.length === 0}>
               <Plus className="h-4 w-4" /> Nova Produção
             </Button>
           </DialogTrigger>

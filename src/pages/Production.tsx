@@ -699,7 +699,7 @@ export default function ProductionPage() {
                 return (
                   <div key={group.key} className="card-glass overflow-hidden">
                     {/* Row Header */}
-                    <div className="p-4 flex items-center justify-between gap-4">
+                    <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="font-display font-bold text-foreground text-lg">{group.machine_name}</p>
                         <p className="text-sm text-muted-foreground truncate">
@@ -710,7 +710,7 @@ export default function ProductionPage() {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-4 shrink-0">
+                      <div className="flex items-center gap-3 sm:gap-4 shrink-0 flex-wrap">
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground">Rolos</p>
                           <p className="font-bold text-foreground">{group.totalRolls}</p>
