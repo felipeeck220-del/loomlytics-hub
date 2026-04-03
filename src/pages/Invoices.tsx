@@ -780,7 +780,7 @@ export default function Invoices() {
                   options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
                   placeholder="Todos clientes"
                   searchPlaceholder="Buscar cliente..."
-                  triggerClassName="w-[160px] h-8 text-xs"
+                  triggerClassName="w-[220px] h-8 text-xs"
                 />
                 <SearchableSelect
                   value={saldoYarn === 'all' ? '' : saldoYarn}
@@ -788,7 +788,7 @@ export default function Invoices() {
                   options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
                   placeholder="Todos os fios"
                   searchPlaceholder="Buscar fio..."
-                  triggerClassName="w-[160px] h-8 text-xs"
+                  triggerClassName="w-[220px] h-8 text-xs"
                 />
                 {(saldoClient !== 'all' || saldoYarn !== 'all' || saldoMonth !== 'all') && (
                   <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setSaldoClient('all'); setSaldoYarn('all'); setSaldoMonth('all'); }}>Limpar</Button>
@@ -905,7 +905,7 @@ export default function Invoices() {
                   options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
                   placeholder="Todos clientes"
                   searchPlaceholder="Buscar cliente..."
-                  triggerClassName="w-[160px] h-8 text-xs"
+                  triggerClassName="w-[220px] h-8 text-xs"
                 />
                 <SearchableSelect
                   value={estoqueArticle === 'all' ? '' : estoqueArticle}
@@ -913,7 +913,7 @@ export default function Invoices() {
                   options={[{ value: 'all', label: 'Todos artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
                   placeholder="Todos artigos"
                   searchPlaceholder="Buscar artigo..."
-                  triggerClassName="w-[160px] h-8 text-xs"
+                  triggerClassName="w-[220px] h-8 text-xs"
                 />
                 {(estoqueClient !== 'all' || estoqueArticle !== 'all' || estoqueMonth !== 'all') && (
                   <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEstoqueClient('all'); setEstoqueArticle('all'); setEstoqueMonth('all'); }}>Limpar</Button>
