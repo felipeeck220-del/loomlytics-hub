@@ -16,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, formatWeight, getDateLimits, isDateValid } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign,
   CalendarIcon, Eye, XCircle, Filter
