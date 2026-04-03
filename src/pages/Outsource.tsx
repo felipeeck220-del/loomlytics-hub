@@ -468,7 +468,18 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
       toast({ title: editId ? 'Registro atualizado!' : 'Produção registrada!' });
-      setOpen(false); resetForm();
+      if (editId) {
+        setOpen(false);
+        resetForm();
+      } else {
+        // Keep modal open with same malharia, clear rest
+        resetForm(true);
+        // Focus date field after reset
+        setTimeout(() => {
+          const dateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+          dateInput?.focus();
+        }, 100);
+      }
     },
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
