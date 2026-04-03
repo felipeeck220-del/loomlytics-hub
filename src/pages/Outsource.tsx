@@ -266,13 +266,13 @@ function CompaniesTab({ companies, companyId, loading }: {
     setOpen(true);
   };
 
-  if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
-
   const filteredCompanies = useMemo(() => {
     if (!searchQuery.trim()) return companies;
     const q = searchQuery.toLowerCase();
     return companies.filter(c => c.name.toLowerCase().includes(q) || c.contact?.toLowerCase().includes(q));
   }, [companies, searchQuery]);
+
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   return (
     <Card>
