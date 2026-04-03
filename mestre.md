@@ -1150,6 +1150,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 22:00** — **ESTOQUE DE MALHA (estoquemalhas.md):** Nova aba "Estoque Malha" na página Notas Fiscais (5ª aba, entre Saldo Fios e Tipos de Fio). Calcula `Produzido − Entregue = Em Estoque` por cliente/artigo: (1) Produzido: soma `productions.weight_kg` e `rolls_produced` agrupado por `articles.client_id` + `article_id`; (2) Entregue: soma `invoice_items.weight_kg` e `quantity_rolls` de NFs tipo `saida` não canceladas; (3) KPIs: Produzido (kg), Entregue (kg), Em Estoque (kg), Rolos em Estoque; (4) Filtros: período (mês), cliente, artigo com botão limpar; (5) Tabela collapsible por cliente com colunas Produzido/Entregue/Estoque em kg e rolos; (6) Linha de TOTAL por cliente; (7) Indicadores visuais: positivo (success), negativo (destructive + badge Alerta), zero (muted); (8) Sem migrations — 100% frontend com dados já carregados.
 
+- **03/04/2026 23:00** — **UX NOTAS FISCAIS — Lupas de busca e melhorias visuais:** (1) Aba "Estoque Malha": filtros de cliente e artigo substituídos por `SearchableSelect` com lupa de busca; clientes agora iniciam fechados (usuário clica para expandir); (2) Aba "Saldo de Fios": filtros de cliente e tipo de fio substituídos por `SearchableSelect` com lupa de busca; (3) Aba "Tipos de Fio": campo de busca com lupa adicionado ao cabeçalho (filtra por nome, composição, cor); ícone de editar fio trocado de `FileText` para `Pencil`.
+
 ---
 
 ## 📐 Padrão de Exportação PDF (Regra Global)
