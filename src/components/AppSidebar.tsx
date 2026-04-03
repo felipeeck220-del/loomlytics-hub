@@ -126,7 +126,7 @@ export function AppSidebar() {
           </div>
         )}
       </SidebarHeader>
-      <SidebarContent className="px-2 py-3">
+      <SidebarContent className={collapsed ? "px-0 py-3" : "px-2 py-3"}>
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="text-muted-foreground/50 text-[10px] uppercase tracking-widest font-medium px-3 mb-1">
