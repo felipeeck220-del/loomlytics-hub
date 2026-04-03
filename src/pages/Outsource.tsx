@@ -452,7 +452,30 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     setOpen(true);
   };
 
-  if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+   const handleSaveWithValidation = async () => {
+     if (!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg) return;
+     if (saveMutation.isPending) return;
+
+     // Check NF/ROM duplicate
+     if (form.nf_rom && form.nf_rom.trim()) {
+       const { data: existing } = await sb('outsource_productions')
+         .select('id, date')
+         .eq('company_id', companyId)
+         .eq('nf_rom', form.nf_rom.trim())
+         .limit(1);
+       if (existing && existing.length > 0 && existing[0].id !== editId) {
+         toast({
+           title: 'NF/ROM duplicada',
+           description: `O número "${form.nf_rom}" já está cadastrado (data: ${existing[0].date}). Verifique antes de continuar.`,
+           variant: 'destructive',
+         });
+         return;
+       }
+     }
+     saveMutation.mutate();
+   };
+
+   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   return (
     <Card>
