@@ -609,19 +609,19 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className={`w-full grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-3'}`}>
-          <TabsTrigger value="profile">Meu Perfil</TabsTrigger>
-          {isAdmin && <TabsTrigger value="users">Usuários</TabsTrigger>}
-          <TabsTrigger value="company">Empresa</TabsTrigger>
+        <TabsList className={`w-full flex flex-wrap gap-1 h-auto p-1 ${isAdmin ? '' : ''}`}>
+          <TabsTrigger value="profile" className="flex-1 min-w-[80px] text-xs sm:text-sm">Perfil</TabsTrigger>
+          {isAdmin && <TabsTrigger value="users" className="flex-1 min-w-[80px] text-xs sm:text-sm">Usuários</TabsTrigger>}
+          <TabsTrigger value="company" className="flex-1 min-w-[80px] text-xs sm:text-sm">Empresa</TabsTrigger>
           {isAdmin && (
-            <TabsTrigger value="telas" disabled className="relative opacity-50 cursor-not-allowed">
+            <TabsTrigger value="telas" disabled className="relative opacity-50 cursor-not-allowed flex-1 min-w-[80px] text-xs sm:text-sm">
               Telas
-              <span className="ml-1.5 text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium leading-none">
-                Em breve
+              <span className="ml-1 text-[8px] sm:text-[9px] bg-primary/10 text-primary px-1 py-0.5 rounded-full font-medium leading-none">
+                Breve
               </span>
             </TabsTrigger>
           )}
-          <TabsTrigger value="plans">Planos</TabsTrigger>
+          <TabsTrigger value="plans" className="flex-1 min-w-[80px] text-xs sm:text-sm">Planos</TabsTrigger>
         </TabsList>
 
         {/* ===== MEU PERFIL ===== */}
