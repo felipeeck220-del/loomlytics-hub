@@ -1771,6 +1771,60 @@ export default function Invoices() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ===== OUTSOURCE YARN STOCK DIALOG ===== */}
+      <Dialog open={eftDialogOpen} onOpenChange={setEftDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{eftEditing ? 'Editar Estoque de Fio' : 'Adicionar Estoque de Fio'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Facção *</Label>
+              <SearchableSelect
+                value={eftFormCompany}
+                onValueChange={v => setEftFormCompany(v)}
+                options={outsourceCompanies.map(c => ({ value: c.id, label: c.name }))}
+                placeholder="Selecione a facção..."
+                searchPlaceholder="Buscar facção..."
+                triggerClassName="h-9 text-xs"
+                disabled={!!eftEditing}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Tipo de Fio *</Label>
+              <SearchableSelect
+                value={eftFormYarn}
+                onValueChange={v => setEftFormYarn(v)}
+                options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
+                placeholder="Selecione o fio..."
+                searchPlaceholder="Buscar fio..."
+                triggerClassName="h-9 text-xs"
+                disabled={!!eftEditing}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Mês Referência *</Label>
+              <Input type="month" className="h-9 text-xs" value={eftFormMonth} onChange={e => setEftFormMonth(e.target.value)} disabled={!!eftEditing} />
+            </div>
+            <div>
+              <Label className="text-xs">Quantidade (kg) *</Label>
+              <Input className="h-9 text-xs" type="number" step="0.01" min="0" value={eftFormQty} onChange={e => setEftFormQty(e.target.value)} placeholder="Ex: 1234.56" />
+            </div>
+            <div>
+              <Label className="text-xs">Observações</Label>
+              <Textarea className="text-xs" rows={2} value={eftFormObs} onChange={e => setEftFormObs(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEftDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveEft} disabled={saving} className="gap-1.5">
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {eftEditing ? 'Atualizar' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
