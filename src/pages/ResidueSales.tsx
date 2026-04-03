@@ -60,6 +60,7 @@ export default function ResidueSales() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
+  const { userCode, userName } = useAuditLog();
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const [deleteMatConfirmId, setDeleteMatConfirmId] = useState<string | null>(null);
