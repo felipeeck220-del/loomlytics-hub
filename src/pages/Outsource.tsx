@@ -941,7 +941,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 
               <div className="space-y-2">
                 <Label>Observações</Label>
-                <Textarea value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+                <Textarea ref={obsRef} value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
               </div>
             </div>
             <DialogFooter>
