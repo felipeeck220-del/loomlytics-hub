@@ -24,6 +24,9 @@ import {
 /** Keys of features not yet finished — shown with a lock in the sidebar */
 const COMING_SOON_KEYS = new Set(['contas-pagar']);
 
+/** Keys of features in testing phase — shown with "Em teste" badge but accessible */
+const TESTING_KEYS = new Set(['residuos', 'invoices']);
+
 const allItems = [
   { title: 'Dashboard', path: '', icon: LayoutDashboard, key: 'dashboard' },
   { title: 'Máquinas', path: 'machines', icon: Settings2, key: 'machines' },
@@ -131,6 +134,7 @@ export function AppSidebar() {
               {items.map((item) => {
                 const isLocked = sidebarLocked && item.key !== 'settings';
                 const isComingSoon = COMING_SOON_KEYS.has(item.key);
+                const isTesting = TESTING_KEYS.has(item.key);
                 return (
                   <SidebarMenuItem key={item.key}>
                     <SidebarMenuButton asChild>
@@ -160,7 +164,16 @@ export function AppSidebar() {
                           activeClassName="bg-primary/10 text-primary font-medium"
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
-                          {!collapsed && <span>{item.title}</span>}
+                          {!collapsed && (
+                            <span className="flex items-center gap-2">
+                              {item.title}
+                              {isTesting && (
+                                <span className="text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-medium leading-none">
+                                  Em teste
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </NavLink>
                       )}
                     </SidebarMenuButton>
