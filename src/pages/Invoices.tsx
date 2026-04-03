@@ -478,6 +478,76 @@ export default function Invoices() {
     }), { received: 0, sold: 0, consumed: 0, balance: 0 });
   }, [yarnBalance]);
 
+  // ===== Estoque de Malha Filters =====
+  const [estoqueClient, setEstoqueClient] = useState('all');
+  const [estoqueArticle, setEstoqueArticle] = useState('all');
+  const [estoqueMonth, setEstoqueMonth] = useState('all');
+
+  // ===== Estoque de Malha =====
+  const malhaEstoque = useMemo(() => {
+    const map = new Map<string, Map<string, { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number }>>();
+    const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
+
+    // 1. Produção por client_id + article_id
+    for (const prod of productions) {
+      if (!matchMonth(prod.date)) continue;
+      const art = articles.find(a => a.id === prod.article_id);
+      if (!art || !art.client_id) continue;
+      if (!map.has(art.client_id)) map.set(art.client_id, new Map());
+      const artMap = map.get(art.client_id)!;
+      if (!artMap.has(prod.article_id!)) artMap.set(prod.article_id!, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
+      const entry = artMap.get(prod.article_id!)!;
+      entry.producedKg += Number(prod.weight_kg);
+      entry.producedRolls += Number(prod.rolls_produced);
+    }
+
+    // 2. Entregas (NFs saída não canceladas)
+    const saidaInvs = invoices.filter(i => i.type === 'saida' && i.status !== 'cancelada' && matchMonth(i.issue_date));
+    for (const inv of saidaInvs) {
+      const items = invoiceItems.filter(it => it.invoice_id === inv.id);
+      for (const item of items) {
+        if (!item.article_id || !inv.client_id) continue;
+        if (!map.has(inv.client_id)) map.set(inv.client_id, new Map());
+        const artMap = map.get(inv.client_id)!;
+        if (!artMap.has(item.article_id)) artMap.set(item.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
+        const entry = artMap.get(item.article_id)!;
+        entry.deliveredKg += Number(item.weight_kg);
+        entry.deliveredRolls += Number(item.quantity_rolls || 0);
+      }
+    }
+
+    // 3. Montar resultado
+    const result: Array<{
+      clientId: string; clientName: string;
+      articles: Array<{ articleId: string; articleName: string; producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; stockKg: number; stockRolls: number }>;
+      totalProducedKg: number; totalProducedRolls: number; totalDeliveredKg: number; totalDeliveredRolls: number; totalStockKg: number; totalStockRolls: number;
+    }> = [];
+
+    map.forEach((artMap, clientId) => {
+      if (estoqueClient !== 'all' && clientId !== estoqueClient) return;
+      const client = clients.find(c => c.id === clientId);
+      const arts: typeof result[0]['articles'] = [];
+      let tPK = 0, tPR = 0, tDK = 0, tDR = 0;
+      artMap.forEach((vals, articleId) => {
+        if (estoqueArticle !== 'all' && articleId !== estoqueArticle) return;
+        const article = articles.find(a => a.id === articleId);
+        arts.push({ articleId, articleName: article?.name || 'Artigo removido', ...vals, stockKg: vals.producedKg - vals.deliveredKg, stockRolls: vals.producedRolls - vals.deliveredRolls });
+        tPK += vals.producedKg; tPR += vals.producedRolls; tDK += vals.deliveredKg; tDR += vals.deliveredRolls;
+      });
+      if (arts.length > 0) {
+        result.push({ clientId, clientName: client?.name || 'Cliente removido', articles: arts.sort((a, b) => a.articleName.localeCompare(b.articleName)), totalProducedKg: tPK, totalProducedRolls: tPR, totalDeliveredKg: tDK, totalDeliveredRolls: tDR, totalStockKg: tPK - tDK, totalStockRolls: tPR - tDR });
+      }
+    });
+    return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
+  }, [productions, invoices, invoiceItems, articles, clients, estoqueClient, estoqueArticle, estoqueMonth]);
+
+  const estoqueKpis = useMemo(() => malhaEstoque.reduce((acc, g) => ({
+    producedKg: acc.producedKg + g.totalProducedKg,
+    deliveredKg: acc.deliveredKg + g.totalDeliveredKg,
+    stockKg: acc.stockKg + g.totalStockKg,
+    stockRolls: acc.stockRolls + g.totalStockRolls,
+  }), { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0 }), [malhaEstoque]);
+
   // ===== Clear filters =====
   const clearFilters = () => {
     setSearchTerm('');
