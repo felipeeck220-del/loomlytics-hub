@@ -548,7 +548,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                     className="w-full"
                   />
                   {articleDropdownOpen && (
-                    <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} ref={(el) => { if (el) el.style.setProperty('--webkit-scrollbar-display', 'none'); }}>
+                    <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                       {filteredArticles.length === 0 ? (
                         <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum artigo encontrado</p>
                       ) : (
