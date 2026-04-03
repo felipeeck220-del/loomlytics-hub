@@ -1797,14 +1797,18 @@ export default function Invoices() {
             <div>
               <Label className="text-xs">Tipo de Fio *</Label>
               <SearchableSelect
-                value={eftFormYarn}
-                onValueChange={v => setEftFormYarn(v)}
-                options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
-                placeholder="Selecione o fio..."
-                searchPlaceholder="Buscar fio..."
-                triggerClassName="h-9 text-xs"
-                disabled={!!eftEditing}
-              />
+              {eftEditing ? (
+                <Input className="h-9 text-xs" value={yarnTypes.find(y => y.id === eftFormYarn)?.name || ''} disabled />
+              ) : (
+                <SearchableSelect
+                  value={eftFormYarn}
+                  onValueChange={v => setEftFormYarn(v)}
+                  options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
+                  placeholder="Selecione o fio..."
+                  searchPlaceholder="Buscar fio..."
+                  triggerClassName="h-9 text-xs"
+                />
+              )}
             </div>
             <div>
               <Label className="text-xs">Mês Referência *</Label>
