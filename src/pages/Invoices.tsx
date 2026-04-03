@@ -1326,6 +1326,142 @@ export default function Invoices() {
           )}
         </TabsContent>
 
+        {/* ===== ESTOQUE FIO TERCEIROS TAB ===== */}
+        <TabsContent value="efterceiro" className="space-y-4">
+          {/* KPIs */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Total em Terceiros</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(eftKpis.totalKg)}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Building2 className="h-3.5 w-3.5" />Facções com Estoque</div>
+              <p className="text-xl font-bold text-foreground">{eftKpis.totalCompanies}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Layers className="h-3.5 w-3.5" />Tipos de Fio</div>
+              <p className="text-xl font-bold text-foreground">{eftKpis.totalYarnTypes}</p>
+            </CardContent></Card>
+          </div>
+
+          {/* Filters + Actions */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {canSeeFinancial && (
+                  <Button onClick={openNewEft} size="sm" className="gap-1.5">
+                    <Plus className="h-4 w-4" /> Adicionar Estoque
+                  </Button>
+                )}
+                <div className="flex-1" />
+                <Select value={eftMonth} onValueChange={setEftMonth}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os meses</SelectItem>
+                    {eftAvailableMonths.map(m => (
+                      <SelectItem key={m} value={m}>
+                        {format(parse(m, 'yyyy-MM', new Date()), 'MMMM yyyy', { locale: ptBR })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <SearchableSelect
+                  value={eftCompany === 'all' ? '' : eftCompany}
+                  onValueChange={v => setEftCompany(v || 'all')}
+                  options={[{ value: 'all', label: 'Todas facções' }, ...outsourceCompanies.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todas facções"
+                  searchPlaceholder="Buscar facção..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={eftYarn === 'all' ? '' : eftYarn}
+                  onValueChange={v => setEftYarn(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
+                  placeholder="Todos os fios"
+                  searchPlaceholder="Buscar fio..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                {(eftMonth !== 'all' || eftCompany !== 'all' || eftYarn !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEftMonth('all'); setEftCompany('all'); setEftYarn('all'); }}>Limpar</Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Grouped by outsource company */}
+          {loadingYarnStock ? (
+            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : eftGroups.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Nenhum estoque de fio em terceiros encontrado. Cadastre registros para controlar o fio enviado às facções.
+            </CardContent></Card>
+          ) : (
+            <div className="space-y-3">
+              {eftGroups.map(group => (
+                <Collapsible key={group.outsourceCompanyId} defaultOpen>
+                  <Card>
+                    <CollapsibleTrigger className="w-full">
+                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
+                          <CardTitle className="text-sm font-semibold">{group.outsourceCompanyName}</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Total: <span className="font-semibold text-foreground">{formatWeight(group.totalKg)}</span></span>
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Tipo de Fio</TableHead>
+                              <TableHead className="text-xs text-right">Quantidade</TableHead>
+                              <TableHead className="text-xs">Mês Ref.</TableHead>
+                              <TableHead className="text-xs">Observações</TableHead>
+                              {canSeeFinancial && <TableHead className="text-xs text-right">Ações</TableHead>}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.items.map(item => (
+                              <TableRow key={item.id}>
+                                <TableCell className="text-xs font-medium">{item.yarnTypeName}</TableCell>
+                                <TableCell className="text-xs text-right">{formatWeight(item.quantityKg)}</TableCell>
+                                <TableCell className="text-xs">
+                                  {format(parse(item.referenceMonth, 'yyyy-MM', new Date()), 'MMM/yyyy', { locale: ptBR })}
+                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{item.observations || '—'}</TableCell>
+                                {canSeeFinancial && (
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEft(item, group.outsourceCompanyId)}>
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteEft(item.id)}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-muted/30 font-semibold">
+                              <TableCell className="text-xs">TOTAL</TableCell>
+                              <TableCell className="text-xs text-right">{formatWeight(group.totalKg)}</TableCell>
+                              <TableCell className="text-xs" colSpan={canSeeFinancial ? 3 : 2}></TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         {/* ===== TIPOS DE FIO TAB ===== */}
         <TabsContent value="fios" className="space-y-4">
           <Card>
