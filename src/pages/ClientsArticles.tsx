@@ -477,11 +477,10 @@ export default function ClientsArticles() {
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Excluir {showDelete?.item?.name}?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Digite <strong>EXCLUIR</strong> para confirmar.</p>
-          <Input value={deleteWord} onChange={e => setDeleteWord(e.target.value)} placeholder="EXCLUIR" />
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este {showDelete?.type === 'client' ? 'cliente' : 'artigo'}? Esta ação não pode ser desfeita.</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDelete(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDelete}>Confirmar</Button>
+            <Button variant="destructive" onClick={handleDelete}>Sim, Excluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
