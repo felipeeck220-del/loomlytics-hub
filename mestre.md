@@ -1132,6 +1132,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 11:00** — **Modal Terceirizado — manter aberto + formatação BR:** (1) Após salvar novo registro, modal permanece aberto com mesma malharia selecionada e demais campos limpos (artigo, peso, rolos, valor repasse, NF/ROM, obs); foco volta para data; (2) Peso (kg) agora formata em tempo real no padrão brasileiro (1.000,55) com separador de milhar e vírgula decimal; (3) Valor Repasse (R$/kg) também formata em BR (1,20); (4) Parsing correto de valores BR para cálculos e persistência no banco.
 
+- **03/04/2026 12:00** — **Terceirizados — KPIs filtrados + Valor Repasse auto-vírgula:** (1) KPIs (Rolos, Peso, Receita, Custo, Lucro, Prejuízos) agora atualizam conforme filtro de mês/período selecionado na aba Produções; (2) Valor Repasse (R$/kg) reformatado: como nunca passa de R$10, auto-insere vírgula após 1º dígito (digitando "120" → "1,20", "350" → "3,50") para agilizar digitação; (3) Estado dos filtros (mês, de, até) movido para componente pai para sincronizar KPIs com dados filtrados.
+
 ---
 
-*Última atualização: 03/04/2026 11:00 (Brasília)*
+*Última atualização: 03/04/2026 12:00 (Brasília)*

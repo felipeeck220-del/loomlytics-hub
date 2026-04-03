@@ -120,16 +120,37 @@ export default function Outsource() {
     enabled: !!companyId,
   });
 
-  // KPIs
+  // Lifted filter state so KPIs reflect filtered data
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterFrom, setFilterFrom] = useState<Date | undefined>(undefined);
+  const [filterTo, setFilterTo] = useState<Date | undefined>(undefined);
+
+  const displayProductions = useMemo(() => {
+    let result = productions;
+    if (filterMonth) {
+      result = result.filter(p => p.date.startsWith(filterMonth));
+    }
+    if (filterFrom) {
+      const from = format(filterFrom, 'yyyy-MM-dd');
+      result = result.filter(p => p.date >= from);
+    }
+    if (filterTo) {
+      const to = format(filterTo, 'yyyy-MM-dd');
+      result = result.filter(p => p.date <= to);
+    }
+    return result;
+  }, [productions, filterMonth, filterFrom, filterTo]);
+
+  // KPIs based on filtered productions
   const totals = useMemo(() => {
-    const totalRevenue = productions.reduce((s, p) => s + p.total_revenue, 0);
-    const totalCost = productions.reduce((s, p) => s + p.total_cost, 0);
-    const totalProfit = productions.reduce((s, p) => s + p.total_profit, 0);
-    const totalWeight = productions.reduce((s, p) => s + p.weight_kg, 0);
-    const totalRolls = productions.reduce((s, p) => s + p.rolls, 0);
-    const totalLoss = productions.filter(p => p.total_profit < 0).reduce((s, p) => s + p.total_profit, 0);
+    const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
+    const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
+    const totalProfit = displayProductions.reduce((s, p) => s + p.total_profit, 0);
+    const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
+    const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
+    const totalLoss = displayProductions.filter(p => p.total_profit < 0).reduce((s, p) => s + p.total_profit, 0);
     return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss };
-  }, [productions]);
+  }, [displayProductions]);
 
   const firstName = companyName.split(' ')[0] || 'Empresa';
 
@@ -177,6 +198,12 @@ export default function Outsource() {
              articles={articles}
              companyId={companyId}
              loading={loadingProductions}
+             filterMonth={filterMonth}
+             setFilterMonth={setFilterMonth}
+             filterFrom={filterFrom}
+             setFilterFrom={setFilterFrom}
+             filterTo={filterTo}
+             setFilterTo={setFilterTo}
            />
          </TabsContent>
 
@@ -359,19 +386,22 @@ function CompaniesTab({ companies, companyId, loading }: {
 }
 
 // ─── Productions Tab ─────────────────────────────────────────
-function ProductionsTab({ productions, companies, articles, companyId, loading }: {
+function ProductionsTab({ productions, companies, articles, companyId, loading, filterMonth, setFilterMonth, filterFrom, setFilterFrom, filterTo, setFilterTo }: {
   productions: OutsourceProduction[];
   companies: OutsourceCompany[];
   articles: any[];
   companyId: string;
   loading: boolean;
+  filterMonth: string;
+  setFilterMonth: (v: string) => void;
+  filterFrom: Date | undefined;
+  setFilterFrom: (v: Date | undefined) => void;
+  filterTo: Date | undefined;
+  setFilterTo: (v: Date | undefined) => void;
 }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [prodSearch, setProdSearch] = useState('');
-  const [filterMonth, setFilterMonth] = useState<string>('');
-  const [filterFrom, setFilterFrom] = useState<Date | undefined>(undefined);
-  const [filterTo, setFilterTo] = useState<Date | undefined>(undefined);
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -424,6 +454,19 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     if (!intPart) intPart = '0';
     intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     return decPart !== undefined ? `${intPart},${decPart}` : intPart;
+  };
+
+  // Auto-format for values always < 10: typing "120" → "1,20"
+  const formatRepasseInput = (value: string): string => {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return '';
+    // Pad to at least 3 digits for formatting (e.g. "1" → "001" → "0,01")
+    const padded = digits.padStart(3, '0');
+    // Take last 3 digits only (max 9,99)
+    const last3 = padded.slice(-3);
+    const intPart = last3[0] === '0' ? '0' : last3[0];
+    const decPart = last3.slice(1);
+    return `${intPart},${decPart}`;
   };
 
   const selectedArticle = articles.find(a => a.id === form.article_id);
@@ -508,7 +551,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
       date: p.date,
       weight_kg: formatNumberToBr(p.weight_kg, 2),
       rolls: String(p.rolls),
-      outsource_value_per_kg: formatNumberToBr(p.outsource_value_per_kg, 2),
+      outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
       nf_rom: p.nf_rom || '',
       observations: p.observations || '',
     });
@@ -731,7 +774,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                 </div>
                 <div className="space-y-2">
                   <Label>Valor Repasse (R$/kg) *</Label>
-                  <Input type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatBrInput(e.target.value, 2) }))} />
+                  <Input type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatRepasseInput(e.target.value) }))} />
                 </div>
                  <div className="space-y-2">
                    <Label>NF/ROM</Label>
