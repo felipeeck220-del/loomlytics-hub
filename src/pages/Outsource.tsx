@@ -965,20 +965,37 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
         <CardDescription>Filtre por período e tipo de resultado</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Filters */}
+         {/* Filters */}
         <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Período</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button variant={reportMonth === '' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setReportMonth(''); setStartDate(undefined); setEndDate(undefined); }}>
+                Todos
+              </Button>
+              {availableMonths.slice(0, 6).map(m => {
+                const [y, mo] = m.split('-');
+                const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMM/yy', { locale: ptBR });
+                return (
+                  <Button key={m} variant={reportMonth === m ? 'default' : 'outline'} size="sm" className="h-7 text-xs capitalize" onClick={() => { setReportMonth(m); setStartDate(undefined); setEndDate(undefined); }}>
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Período personalizado</Label>
             <div className="flex items-center gap-2 flex-wrap">
               <Popover open={startOpen} onOpenChange={setStartOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !startDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
-                    {startDate ? format(startDate, 'dd/MM/yy') : 'Início'}
+                    {startDate ? format(startDate, 'dd/MM/yy') : 'De'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={startDate} onSelect={(d) => { setStartDate(d); setStartOpen(false); }} className="p-3 pointer-events-auto" />
+                  <Calendar mode="single" selected={startDate} onSelect={(d) => { setStartDate(d); setStartOpen(false); setReportMonth(''); }} className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
               <span className="text-xs text-muted-foreground">até</span>
@@ -986,11 +1003,11 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !endDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
-                    {endDate ? format(endDate, 'dd/MM/yy') : 'Fim'}
+                    {endDate ? format(endDate, 'dd/MM/yy') : 'Até'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={endDate} onSelect={(d) => { setEndDate(d); setEndOpen(false); }} className="p-3 pointer-events-auto" />
+                  <Calendar mode="single" selected={endDate} onSelect={(d) => { setEndDate(d); setEndOpen(false); setReportMonth(''); }} className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
             </div>
@@ -1009,8 +1026,8 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
                 </SelectContent>
               </Select>
             </div>
-            {(startDate || endDate || profitFilter !== 'all') && (
-              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); }}>
+            {(startDate || endDate || profitFilter !== 'all' || reportMonth) && (
+              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); setReportMonth(''); }}>
                 ✕ Limpar
               </Button>
             )}
