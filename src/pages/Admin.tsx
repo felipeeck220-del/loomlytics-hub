@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { Lock, Building2, Users, Calendar, Mail, Phone, Shield, LogOut, User, Settings2, Database, RotateCcw, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard' },
