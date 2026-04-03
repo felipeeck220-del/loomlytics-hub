@@ -31,6 +31,21 @@ import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
+async function fetchAllPaginated<T>(table: string, companyId: string, orderCol: string = 'created_at', ascending = true): Promise<T[]> {
+  const PAGE = 1000;
+  let all: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await sb(table).select('*').eq('company_id', companyId).order(orderCol, { ascending }).order('id', { ascending: true }).range(from, from + PAGE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all = all.concat(data as T[]);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 type InvoiceType = 'entrada' | 'saida' | 'venda_fio';
 type InvoiceStatus = 'pendente' | 'conferida' | 'cancelada';
 
