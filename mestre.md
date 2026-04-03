@@ -1144,6 +1144,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 - **03/04/2026 18:00** — **nf.md atualizado com 4 novidades da análise de fechamento:** (1) Tipo `venda_fio` adicionado — saída de fio sem tecer (devolução ou venda direta ao cliente); (2) Campo `access_key` (chave de acesso SEFAZ, 44 dígitos, opcional) adicionado à tabela `invoices` — preparado para busca automática futura via API; (3) Seção "Controle de Estoque de Malha" adicionada — calcula malha produzida menos NFs de saída por cliente/artigo; (4) Seção "Integração com Fechamento Mensal" adicionada — documenta como o módulo NF alimenta o PDF de fechamento (estoque, receitas, venda de fio, faturamento total); (5) Fase 4 (Fechamento) e Fase 5 (SEFAZ) adicionadas ao roadmap.
 
+- **03/04/2026 19:00** — **MÓDULO NOTAS FISCAIS (Fase 1):** Implementação completa do controle de NFs conforme `nf.md`: (1) 3 tabelas criadas: `yarn_types` (tipos de fio com composição e cor), `invoices` (NFs de entrada/saída/venda_fio com chave de acesso SEFAZ opcional), `invoice_items` (itens com fio ou artigo, peso, rolos, valor) — todas com RLS por `company_id`; (2) Coluna `yarn_type_id` adicionada à tabela `articles`; (3) Página `/:slug/invoices` com 4 abas: **Entrada** (NFs de fio recebido), **Saída** (NFs de malha + venda de fio), **Saldo de Fios** (consolidado por cliente/fio: recebido−vendido−consumido), **Tipos de Fio** (CRUD); (4) Formulário de nova NF com seleção de cliente, itens dinâmicos, chave de acesso, status pendente/conferida; (5) Listagem com filtros (mês, status, cliente, busca); (6) KPIs: NFs, peso total, valor total, pendentes; (7) Ações: visualizar, conferir, cancelar; (8) Sidebar: ícone FileText, key `invoices`, acesso admin; (9) Rota, permissões e `ROLE_ALLOWED_KEYS` configurados.
+
 ---
 
 ## 📐 Padrão de Exportação PDF (Regra Global)
@@ -1164,4 +1166,4 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 03/04/2026 18:00 (Brasília)*
+*Última atualização: 03/04/2026 19:00 (Brasília)*

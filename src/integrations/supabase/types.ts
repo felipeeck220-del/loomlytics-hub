@@ -138,6 +138,7 @@ export type Database = {
           turns_per_roll: number
           value_per_kg: number
           weight_per_roll: number
+          yarn_type_id: string | null
         }
         Insert: {
           client_id?: string | null
@@ -151,6 +152,7 @@ export type Database = {
           turns_per_roll?: number
           value_per_kg?: number
           weight_per_roll?: number
+          yarn_type_id?: string | null
         }
         Update: {
           client_id?: string | null
@@ -164,6 +166,7 @@ export type Database = {
           turns_per_roll?: number
           value_per_kg?: number
           weight_per_roll?: number
+          yarn_type_id?: string | null
         }
         Relationships: [
           {
@@ -178,6 +181,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_yarn_type_id_fkey"
+            columns: ["yarn_type_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_types"
             referencedColumns: ["id"]
           },
         ]
@@ -499,6 +509,152 @@ export type Database = {
           old_email?: string
         }
         Relationships: []
+      }
+      invoice_items: {
+        Row: {
+          article_id: string | null
+          article_name: string | null
+          company_id: string
+          created_at: string
+          id: string
+          invoice_id: string
+          observations: string | null
+          quantity_rolls: number | null
+          subtotal: number | null
+          value_per_kg: number | null
+          weight_kg: number
+          yarn_type_id: string | null
+          yarn_type_name: string | null
+        }
+        Insert: {
+          article_id?: string | null
+          article_name?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          invoice_id: string
+          observations?: string | null
+          quantity_rolls?: number | null
+          subtotal?: number | null
+          value_per_kg?: number | null
+          weight_kg?: number
+          yarn_type_id?: string | null
+          yarn_type_name?: string | null
+        }
+        Update: {
+          article_id?: string | null
+          article_name?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          observations?: string | null
+          quantity_rolls?: number | null
+          subtotal?: number | null
+          value_per_kg?: number | null
+          weight_kg?: number
+          yarn_type_id?: string | null
+          yarn_type_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_yarn_type_id_fkey"
+            columns: ["yarn_type_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          access_key: string | null
+          client_id: string | null
+          client_name: string | null
+          company_id: string
+          created_at: string
+          created_by_code: string | null
+          created_by_name: string | null
+          id: string
+          invoice_number: string
+          issue_date: string
+          observations: string | null
+          status: string
+          total_value: number | null
+          total_weight_kg: number
+          type: string
+        }
+        Insert: {
+          access_key?: string | null
+          client_id?: string | null
+          client_name?: string | null
+          company_id: string
+          created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
+          id?: string
+          invoice_number: string
+          issue_date: string
+          observations?: string | null
+          status?: string
+          total_value?: number | null
+          total_weight_kg?: number
+          type?: string
+        }
+        Update: {
+          access_key?: string | null
+          client_id?: string | null
+          client_name?: string | null
+          company_id?: string
+          created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          observations?: string | null
+          status?: string
+          total_value?: number | null
+          total_weight_kg?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       iot_devices: {
         Row: {
@@ -1473,6 +1629,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "weavers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yarn_types: {
+        Row: {
+          color: string | null
+          company_id: string
+          composition: string | null
+          created_at: string
+          id: string
+          name: string
+          observations: string | null
+        }
+        Insert: {
+          color?: string | null
+          company_id: string
+          composition?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          observations?: string | null
+        }
+        Update: {
+          color?: string | null
+          company_id?: string
+          composition?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          observations?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yarn_types_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
