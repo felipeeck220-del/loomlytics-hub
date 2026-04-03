@@ -386,19 +386,24 @@ function CompaniesTab({ companies, companyId, loading }: {
 }
 
 // ─── Productions Tab ─────────────────────────────────────────
-function ProductionsTab({ productions, companies, articles, companyId, loading }: {
+function ProductionsTab({ productions, companies, articles, companyId, loading, filterMonth, setFilterMonth, filterFrom, setFilterFrom, filterTo, setFilterTo }: {
   productions: OutsourceProduction[];
   companies: OutsourceCompany[];
   articles: any[];
   companyId: string;
   loading: boolean;
+  filterMonth: string;
+  setFilterMonth: (v: string) => void;
+  filterFrom: Date | undefined;
+  setFilterFrom: (v: Date | undefined) => void;
+  filterTo: Date | undefined;
+  setFilterTo: (v: Date | undefined) => void;
 }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [prodSearch, setProdSearch] = useState('');
-  const [filterMonth, setFilterMonth] = useState<string>('');
-  const [filterFrom, setFilterFrom] = useState<Date | undefined>(undefined);
-  const [filterTo, setFilterTo] = useState<Date | undefined>(undefined);
+  const [fromOpen, setFromOpen] = useState(false);
+  const [toOpen, setToOpen] = useState(false);
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
