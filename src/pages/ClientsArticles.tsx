@@ -267,6 +267,10 @@ export default function ClientsArticles() {
                   <div>
                     <p className="font-display font-semibold text-foreground">{a.name}</p>
                     <p className="text-sm text-muted-foreground">Cliente: {a.client_name || '—'}</p>
+                    {a.yarn_type_id && (() => {
+                      const yarn = yarnTypes.find(y => y.id === a.yarn_type_id);
+                      return yarn ? <p className="text-sm text-muted-foreground">Fio: <span className="text-foreground font-medium">{yarn.name}</span></p> : null;
+                    })()}
                   </div>
                   <div className="text-sm space-y-0.5">
                     <p className="text-muted-foreground">Peso Rolo: <span className="font-semibold text-foreground">{a.weight_per_roll} kg</span></p>
