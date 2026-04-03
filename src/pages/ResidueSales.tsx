@@ -200,6 +200,8 @@ export default function ResidueSales() {
         total: qty * price,
         romaneio: saleRomaneio.trim() || null,
         observations: saleObs.trim() || null,
+        created_by_name: userName || null,
+        created_by_code: userCode || null,
       });
       if (error) throw error;
     },
