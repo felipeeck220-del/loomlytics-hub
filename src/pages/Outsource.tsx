@@ -198,6 +198,12 @@ export default function Outsource() {
              articles={articles}
              companyId={companyId}
              loading={loadingProductions}
+             filterMonth={filterMonth}
+             setFilterMonth={setFilterMonth}
+             filterFrom={filterFrom}
+             setFilterFrom={setFilterFrom}
+             filterTo={filterTo}
+             setFilterTo={setFilterTo}
            />
          </TabsContent>
 
