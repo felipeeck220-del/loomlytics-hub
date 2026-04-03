@@ -1,0 +1,1 @@
+ALTER TABLE public.outsource_productions ADD COLUMN nf_rom TEXT DEFAULT NULL;
