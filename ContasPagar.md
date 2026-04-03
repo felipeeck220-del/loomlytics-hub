@@ -246,3 +246,4 @@ SELECT cron.schedule(
 | 01/04/2026 - XX:XX | Documentação inicial do módulo Contas a Pagar |
 | 02/04/2026 - 10:45 | Substituição do Twilio pela Reportana (webhook) para notificações WhatsApp. Secret `REPORTANA_WEBHOOK_URL` configurado. Documentação atualizada com fluxo, dados do webhook e template de mensagem. |
 | 02/04/2026 - 11:30 | Implementação completa: tabela `accounts_payable` (RLS), página `/contas-pagar` (CRUD + filtros + KPIs), Edge Function `notify-accounts-due` (deploy + teste OK), cron job diário 08:00 Brasília, integração rotas/sidebar/permissões. |
+| 03/04/2026 - XX:XX | Documentação atualizada: formato do número WhatsApp corrigido para +55XXXXXXXXXXX (formatado pela Edge Function). Número armazenado sem prefixo, com máscara visual (XX) X XXXX-XXXX no formulário. Botão "Enviar Teste" adicionado com Edge Function `test-webhook`. |
