@@ -127,16 +127,26 @@ export function AppSidebar() {
             <SidebarMenu className="space-y-0.5">
               {items.map((item) => {
                 const isLocked = sidebarLocked && item.key !== 'settings';
+                const isComingSoon = COMING_SOON_KEYS.has(item.key);
                 return (
                   <SidebarMenuItem key={item.key}>
                     <SidebarMenuButton asChild>
-                      {isLocked ? (
+                      {isLocked || isComingSoon ? (
                         <div
                           className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted-foreground/40 cursor-not-allowed transition-all duration-150 text-[13px]"
-                          title="Assinatura inativa"
+                          title={isComingSoon ? 'Em breve' : 'Assinatura inativa'}
                         >
                           <Lock className="h-4 w-4 shrink-0" />
-                          {!collapsed && <span>{item.title}</span>}
+                          {!collapsed && (
+                            <span className="flex items-center gap-2">
+                              {item.title}
+                              {isComingSoon && (
+                                <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium leading-none">
+                                  Em breve
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <NavLink

@@ -1047,8 +1047,18 @@ export default function SettingsPage() {
               )}
 
 
-              {/* IoT Devices */}
-              {isAdmin && <IotDevicesManager />}
+              {/* IoT Devices — Em breve */}
+              {isAdmin && (
+                <div className="card-glass p-5 border-primary/10 relative">
+                  <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] rounded-xl z-10 flex flex-col items-center justify-center gap-2">
+                    <Lock className="h-5 w-5 text-muted-foreground/50" />
+                    <span className="text-xs font-medium text-muted-foreground/70 bg-primary/10 text-primary px-2 py-0.5 rounded-full">Em breve</span>
+                  </div>
+                  <div className="opacity-40 pointer-events-none">
+                    <IotDevicesManager />
+                  </div>
+                </div>
+              )}
 
               {/* Email Patterns */}
               <div className="card-glass p-5 border-primary/10">
