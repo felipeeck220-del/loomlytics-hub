@@ -51,6 +51,8 @@ interface ResidueSale {
   total: number;
   romaneio: string | null;
   observations: string | null;
+  created_by_name: string | null;
+  created_by_code: string | null;
   created_at: string;
 }
 

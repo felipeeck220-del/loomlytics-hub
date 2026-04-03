@@ -56,6 +56,8 @@ interface OutsourceProduction {
   total_profit: number;
   observations?: string;
   nf_rom?: string;
+  created_by_name?: string;
+  created_by_code?: string;
   created_at: string;
 }
 
