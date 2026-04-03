@@ -410,7 +410,6 @@ export default function Invoices() {
   };
 
   const handleDeleteYarn = async (y: YarnType) => {
-    if (!confirm(`Excluir fio "${y.name}"?`)) return;
     const { error } = await sb('yarn_types').delete().eq('id', y.id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
