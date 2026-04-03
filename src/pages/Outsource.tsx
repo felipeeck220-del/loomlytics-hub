@@ -478,6 +478,38 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   const totalCost = weightKg * outsourceValuePerKg;
   const totalProfit = weightKg * profitPerKg;
 
+  // Helper: adjust outsource yarn stock (deduct on production, add back on delete)
+  const adjustOutsourceYarnStock = async (
+    outsourceCompanyId: string,
+    articleId: string,
+    date: string,
+    deltaKg: number // positive = deduct from stock, negative = add back
+  ) => {
+    // Find yarn_type_id from article
+    const article = articles.find(a => a.id === articleId);
+    const yarnTypeId = article?.yarn_type_id;
+    if (!yarnTypeId || deltaKg === 0) return; // No yarn linked, skip
+
+    const referenceMonth = date.substring(0, 7); // "YYYY-MM"
+
+    // Check if stock record exists for this combination
+    const { data: existing } = await sb('outsource_yarn_stock')
+      .select('id, quantity_kg')
+      .eq('company_id', companyId)
+      .eq('outsource_company_id', outsourceCompanyId)
+      .eq('yarn_type_id', yarnTypeId)
+      .eq('reference_month', referenceMonth)
+      .maybeSingle();
+
+    if (existing) {
+      const newQty = Math.max(0, Number(existing.quantity_kg) - deltaKg);
+      await sb('outsource_yarn_stock')
+        .update({ quantity_kg: newQty })
+        .eq('id', existing.id);
+    }
+    // If no stock record exists, we can't deduct (no stock was registered)
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const selectedCompany = companies.find(c => c.id === form.outsource_company_id);
@@ -501,15 +533,36 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
         nf_rom: form.nf_rom || null,
       };
       if (editId) {
+        // Get old record to calculate delta
+        const oldRecord = productions.find(p => p.id === editId);
+        const oldWeight = oldRecord?.weight_kg || 0;
+        const oldOutsourceCompanyId = oldRecord?.outsource_company_id || form.outsource_company_id;
+        const oldArticleId = oldRecord?.article_id || form.article_id;
+        const oldDate = oldRecord?.date || form.date;
+
         const { error } = await sb('outsource_productions').update(row).eq('id', editId);
         if (error) throw error;
+
+        // Reverse old deduction, apply new deduction
+        if (oldWeight > 0) {
+          await adjustOutsourceYarnStock(oldOutsourceCompanyId, oldArticleId, oldDate, -oldWeight);
+        }
+        if (weightKg > 0) {
+          await adjustOutsourceYarnStock(form.outsource_company_id, form.article_id, form.date, weightKg);
+        }
       } else {
         const { error } = await sb('outsource_productions').insert(row);
         if (error) throw error;
+
+        // Deduct yarn from outsource stock
+        if (weightKg > 0) {
+          await adjustOutsourceYarnStock(form.outsource_company_id, form.article_id, form.date, weightKg);
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
+      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
       toast({ title: editId ? 'Registro atualizado!' : 'Produção registrada!' });
       if (editId) {
         setOpen(false);
@@ -529,11 +582,25 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Get record before deleting to add back yarn stock
+      const record = productions.find(p => p.id === id);
+      
       const { error } = await sb('outsource_productions').delete().eq('id', id);
       if (error) throw error;
+
+      // Add back yarn to outsource stock
+      if (record && record.weight_kg > 0) {
+        await adjustOutsourceYarnStock(
+          record.outsource_company_id,
+          record.article_id,
+          record.date,
+          -record.weight_kg // negative = add back
+        );
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
+      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
       toast({ title: 'Registro removido!' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
