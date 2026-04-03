@@ -500,6 +500,244 @@ export type Database = {
         }
         Relationships: []
       }
+      iot_devices: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          firmware_version: string | null
+          id: string
+          last_seen_at: string | null
+          machine_id: string
+          name: string | null
+          token: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          firmware_version?: string | null
+          id?: string
+          last_seen_at?: string | null
+          machine_id: string
+          name?: string | null
+          token: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          firmware_version?: string | null
+          id?: string
+          last_seen_at?: string | null
+          machine_id?: string
+          name?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iot_devices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iot_devices_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      iot_downtime_events: {
+        Row: {
+          company_id: string
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          machine_id: string
+          shift: string
+          started_at: string
+          weaver_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          machine_id: string
+          shift: string
+          started_at: string
+          weaver_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          machine_id?: string
+          shift?: string
+          started_at?: string
+          weaver_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iot_downtime_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iot_downtime_events_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iot_downtime_events_weaver_id_fkey"
+            columns: ["weaver_id"]
+            isOneToOne: false
+            referencedRelation: "weavers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      iot_machine_assignments: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          id: string
+          machine_id: string
+          shift: string
+          weaver_id: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          machine_id: string
+          shift: string
+          weaver_id: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          machine_id?: string
+          shift?: string
+          weaver_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iot_machine_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iot_machine_assignments_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iot_machine_assignments_weaver_id_fkey"
+            columns: ["weaver_id"]
+            isOneToOne: false
+            referencedRelation: "weavers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      iot_shift_state: {
+        Row: {
+          article_id: string | null
+          company_id: string
+          completed_rolls: number
+          current_shift: string
+          id: string
+          last_rpm: number | null
+          machine_id: string
+          partial_turns: number
+          roll_position: number
+          shift_started_at: string
+          total_turns: number
+          updated_at: string
+          weaver_id: string | null
+        }
+        Insert: {
+          article_id?: string | null
+          company_id: string
+          completed_rolls?: number
+          current_shift: string
+          id?: string
+          last_rpm?: number | null
+          machine_id: string
+          partial_turns?: number
+          roll_position?: number
+          shift_started_at?: string
+          total_turns?: number
+          updated_at?: string
+          weaver_id?: string | null
+        }
+        Update: {
+          article_id?: string | null
+          company_id?: string
+          completed_rolls?: number
+          current_shift?: string
+          id?: string
+          last_rpm?: number | null
+          machine_id?: string
+          partial_turns?: number
+          roll_position?: number
+          shift_started_at?: string
+          total_turns?: number
+          updated_at?: string
+          weaver_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iot_shift_state_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iot_shift_state_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iot_shift_state_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: true
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iot_shift_state_weaver_id_fkey"
+            columns: ["weaver_id"]
+            isOneToOne: false
+            referencedRelation: "weavers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machine_logs: {
         Row: {
           ended_at: string | null
@@ -570,6 +808,57 @@ export type Database = {
           observation?: string
         }
         Relationships: []
+      }
+      machine_readings: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_running: boolean
+          machine_id: string
+          rpm: number
+          total_rotations: number
+          uptime_ms: number | null
+          wifi_rssi: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_running?: boolean
+          machine_id: string
+          rpm?: number
+          total_rotations: number
+          uptime_ms?: number | null
+          wifi_rssi?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_running?: boolean
+          machine_id?: string
+          rpm?: number
+          total_rotations?: number
+          uptime_ms?: number | null
+          wifi_rssi?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_readings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machine_readings_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       machines: {
         Row: {
