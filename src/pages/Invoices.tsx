@@ -573,10 +573,11 @@ export default function Invoices() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-4 sm:w-auto sm:inline-flex">
+        <TabsList className="w-full grid grid-cols-5 sm:w-auto sm:inline-flex">
           <TabsTrigger value="entrada">Entrada</TabsTrigger>
           <TabsTrigger value="saida">Saída</TabsTrigger>
           <TabsTrigger value="saldo">Saldo Fios</TabsTrigger>
+          <TabsTrigger value="estoque">Estoque Malha</TabsTrigger>
           <TabsTrigger value="fios">Tipos de Fio</TabsTrigger>
         </TabsList>
 
