@@ -1602,8 +1602,10 @@ function exportOutsourcePdf(
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...textDark);
 
+      const dateParts = p.date.split('-');
+      const formattedDate = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
       const cells = [
-        p.date, p.outsource_company_name || '—', p.article_name || '—', p.client_name || '—',
+        formattedDate, p.outsource_company_name || '—', p.article_name || '—', p.client_name || '—',
         `${fmtN(p.weight_kg, 1)} kg`, String(p.rolls),
         fmtR(p.client_value_per_kg), fmtR(p.outsource_value_per_kg),
         fmtR(p.profit_per_kg), fmtR(p.total_profit),
@@ -1612,7 +1614,21 @@ function exportOutsourcePdf(
       let x = m;
       cells.forEach((cell, ci) => {
         const text = cell.length > 18 ? cell.substring(0, 17) + '…' : cell;
+        // Color Lucro/kg (8) and Lucro Total (9)
+        if (ci === 8 || ci === 9) {
+          const isProfit = ci === 8 ? p.profit_per_kg >= 0 : p.total_profit >= 0;
+          pdf.setFont('helvetica', 'bold');
+          if (isProfit) {
+            pdf.setTextColor(22, 163, 74); // green
+          } else {
+            pdf.setTextColor(220, 38, 38); // red
+          }
+        }
         pdf.text(text, x + 2, y + 5);
+        if (ci === 8 || ci === 9) {
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(...textDark);
+        }
         x += cols[ci];
       });
       y += rowH;
