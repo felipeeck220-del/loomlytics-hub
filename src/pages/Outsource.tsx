@@ -284,7 +284,7 @@ function CompaniesTab({ companies, companyId, loading }: {
       queryClient.invalidateQueries({ queryKey: ['outsource_companies'] });
       toast({ title: 'Malharia removida!' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   const openEdit = (c: OutsourceCompany) => {

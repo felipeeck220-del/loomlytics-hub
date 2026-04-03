@@ -215,7 +215,7 @@ export default function ResidueSales() {
       queryClient.invalidateQueries({ queryKey: ['residue_sales'] });
       toast({ title: 'Registro removido' });
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   // ===== Filters =====
