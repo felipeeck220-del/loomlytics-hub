@@ -407,10 +407,29 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     setArticleDropdownOpen(false);
   };
 
+  // Brazilian number formatting helpers
+  const parseBrNumber = (str: string): number => {
+    if (!str) return 0;
+    return Number(str.replace(/\./g, '').replace(',', '.')) || 0;
+  };
+
+  const formatBrInput = (value: string, decimals: number): string => {
+    // Remove non-numeric except comma
+    let raw = value.replace(/[^\d,]/g, '');
+    const parts = raw.split(',');
+    let intPart = parts[0] || '';
+    let decPart = parts.length > 1 ? parts[1].slice(0, decimals) : undefined;
+    // Add thousand separators
+    intPart = intPart.replace(/^0+(?=\d)/, '');
+    if (!intPart) intPart = '0';
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return decPart !== undefined ? `${intPart},${decPart}` : intPart;
+  };
+
   const selectedArticle = articles.find(a => a.id === form.article_id);
   const clientValuePerKg = selectedArticle ? Number(selectedArticle.value_per_kg) : 0;
-  const outsourceValuePerKg = Number(form.outsource_value_per_kg) || 0;
-  const weightKg = Number(form.weight_kg) || 0;
+  const outsourceValuePerKg = parseBrNumber(form.outsource_value_per_kg);
+  const weightKg = parseBrNumber(form.weight_kg);
   const profitPerKg = clientValuePerKg - outsourceValuePerKg;
   const totalRevenue = weightKg * clientValuePerKg;
   const totalCost = weightKg * outsourceValuePerKg;
