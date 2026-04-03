@@ -371,7 +371,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
   const resetForm = () => {
     setForm({
       outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
-      weight_kg: '', rolls: '', outsource_value_per_kg: '', observations: '',
+      weight_kg: '', rolls: '', outsource_value_per_kg: '', nf_rom: '', observations: '',
     });
     setEditId(null);
   };
