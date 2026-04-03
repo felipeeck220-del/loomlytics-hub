@@ -1199,6 +1199,64 @@ export type Database = {
           },
         ]
       }
+      outsource_yarn_stock: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          observations: string | null
+          outsource_company_id: string
+          quantity_kg: number
+          reference_month: string
+          updated_at: string
+          yarn_type_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          observations?: string | null
+          outsource_company_id: string
+          quantity_kg?: number
+          reference_month: string
+          updated_at?: string
+          yarn_type_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          observations?: string | null
+          outsource_company_id?: string
+          quantity_kg?: number
+          reference_month?: string
+          updated_at?: string
+          yarn_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outsource_yarn_stock_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outsource_yarn_stock_outsource_company_id_fkey"
+            columns: ["outsource_company_id"]
+            isOneToOne: false
+            referencedRelation: "outsource_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outsource_yarn_stock_yarn_type_id_fkey"
+            columns: ["yarn_type_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_history: {
         Row: {
           amount: number
