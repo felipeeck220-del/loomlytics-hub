@@ -1213,6 +1213,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **03/04/2026 21:00 (Brasília)** — **RASTREAMENTO DE AUTORIA (created_by) — Correções e adições em 4 módulos:** (1) **Production.tsx** — corrigido bug de stale closure no `handleSave` (faltavam `userName`, `userCode`, `logAction` nas dependências do `useCallback`), que impedia o `created_by_code` (#43 etc.) de aparecer nos registros; (2) **ResidueSales.tsx** — adicionado `useAuditLog` + colunas `created_by_name`/`created_by_code` no insert de vendas; (3) **Outsource.tsx** — adicionado `useAuditLog` + colunas `created_by_name`/`created_by_code` no insert de produções terceirizadas; (4) **Invoices.tsx** — substituído `(user as any)?.code` (que retornava `null`) por `userCode` do `useAuditLog` para correto rastreamento. **Migração:** adicionadas colunas `created_by_name` e `created_by_code` nas tabelas `residue_sales` e `outsource_productions`.
 
+- **03/04/2026 21:30 (Brasília)** — **SIDEBAR COLLAPSED — Logo centralizada:** Quando o sidebar está colapsado (modo ícone), a logo da empresa agora aparece reduzida (32×32px) e centralizada, em vez de desaparecer. Fallback (ícone Factory) também centralizado. **Fix build:** corrigido `userName`/`userCode` fora de escopo em `ProductionsTab` do `Outsource.tsx` — adicionado `useAuditLog()` dentro do componente.
+
 ---
 
-*Última atualização: 03/04/2026 21:00 (Brasília)*
+*Última atualização: 03/04/2026 21:30 (Brasília)*
