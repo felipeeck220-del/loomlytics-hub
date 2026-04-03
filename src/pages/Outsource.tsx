@@ -577,7 +577,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
         }, 100);
       }
     },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   const deleteMutation = useMutation({

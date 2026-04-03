@@ -169,7 +169,6 @@ export default function ClientsArticles() {
   };
 
   const handleDelete = async () => {
-    if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
     if (showDelete?.type === 'client') {
       await saveClients(clients.filter(c => c.id !== showDelete.item.id));
     } else {
