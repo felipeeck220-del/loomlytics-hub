@@ -1004,7 +1004,11 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
-    productions.forEach(p => { if (p.date) months.add(p.date.substring(0, 7)); });
+    productions.forEach(p => {
+      if (p.date && p.date.length >= 7 && p.date >= '2020' && p.date <= '2099') {
+        months.add(p.date.substring(0, 7));
+      }
+    });
     return Array.from(months).sort().reverse();
   }, [productions]);
 
