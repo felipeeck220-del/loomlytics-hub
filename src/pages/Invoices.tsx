@@ -774,20 +774,22 @@ export default function Invoices() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={saldoClient} onValueChange={setSaldoClient}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Cliente" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos clientes</SelectItem>
-                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={saldoYarn} onValueChange={setSaldoYarn}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Tipo de Fio" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os fios</SelectItem>
-                    {yarnTypes.map(y => <SelectItem key={y.id} value={y.id}>{y.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={saldoClient === 'all' ? '' : saldoClient}
+                  onValueChange={v => setSaldoClient(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todos clientes"
+                  searchPlaceholder="Buscar cliente..."
+                  triggerClassName="w-[160px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={saldoYarn === 'all' ? '' : saldoYarn}
+                  onValueChange={v => setSaldoYarn(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
+                  placeholder="Todos os fios"
+                  searchPlaceholder="Buscar fio..."
+                  triggerClassName="w-[160px] h-8 text-xs"
+                />
                 {(saldoClient !== 'all' || saldoYarn !== 'all' || saldoMonth !== 'all') && (
                   <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setSaldoClient('all'); setSaldoYarn('all'); setSaldoMonth('all'); }}>Limpar</Button>
                 )}
