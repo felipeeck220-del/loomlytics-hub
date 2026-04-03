@@ -1835,6 +1835,30 @@ export default function Invoices() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete/Cancel confirm dialogs */}
+      <DeleteConfirmDialog
+        open={!!cancelConfirmInvoice}
+        onOpenChange={(v) => { if (!v) setCancelConfirmInvoice(null); }}
+        title="Cancelar Nota Fiscal"
+        description={`Tem certeza que deseja cancelar a NF ${cancelConfirmInvoice?.invoice_number}?`}
+        onConfirm={() => { if (cancelConfirmInvoice) handleCancelInvoice(cancelConfirmInvoice); setCancelConfirmInvoice(null); }}
+        confirmLabel="Cancelar NF"
+      />
+      <DeleteConfirmDialog
+        open={!!deleteYarnConfirm}
+        onOpenChange={(v) => { if (!v) setDeleteYarnConfirm(null); }}
+        title="Excluir tipo de fio"
+        description={`Tem certeza que deseja excluir o fio "${deleteYarnConfirm?.name}"? Esta ação não pode ser desfeita.`}
+        onConfirm={() => { if (deleteYarnConfirm) handleDeleteYarn(deleteYarnConfirm); setDeleteYarnConfirm(null); }}
+      />
+      <DeleteConfirmDialog
+        open={!!deleteEftConfirmId}
+        onOpenChange={(v) => { if (!v) setDeleteEftConfirmId(null); }}
+        title="Excluir registro de estoque"
+        description="Tem certeza que deseja excluir este registro de estoque? Esta ação não pode ser desfeita."
+        onConfirm={() => { if (deleteEftConfirmId) handleDeleteEft(deleteEftConfirmId); setDeleteEftConfirmId(null); }}
+      />
     </div>
   );
 }
