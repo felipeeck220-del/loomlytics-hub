@@ -1161,6 +1161,9 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **04/04/2026 17:01** — **MÓDULO FECHAMENTO MENSAL:** Implementação completa conforme `fechamentomensal.md`: (1) Página `/:slug/fechamento` com 10 seções consolidadas: Fechamento KG, Saldo de Fios por Tipo, Estoque de Malha, Receitas Próprias, Receitas de Terceiros, Prejuízos de Terceiros, Resíduos, Venda de Fio, Estoque Fio em Terceiros, Faturamento Total; (2) Seletor de mês + botão "Carregar Dados" (10 queries paralelas via Promise.all com paginação); (3) Preview visual em Cards com tabelas formatadas pt-BR, collapsibles por cliente/facção, indicadores visuais (success/destructive); (4) Exportação PDF multi-página (10 páginas) com cabeçalho padrão global (logo, título, data, período), jsPDF + autoTable; (5) Sidebar: ícone FileSpreadsheet, key `fechamento`, após Notas Fiscais; (6) Permissões: apenas admin; (7) Rota, ROLE_ALLOWED_KEYS, ROUTE_KEY_MAP e enabled_nav_items atualizados.
 
 
+- **04/04/2026 17:30** — **MENSAGENS DE ERRO AMIGÁVEIS (getFriendlyErrorMessage):** Criada função utilitária `getFriendlyErrorMessage()` em `src/lib/utils.ts` que traduz erros técnicos do banco de dados em mensagens legíveis para o usuário. Trata: (1) Foreign key constraint → explica qual módulo impede a exclusão; (2) RLS → "sem permissão"; (3) Unique constraint → "registro duplicado"; (4) Not-null → "campos obrigatórios". Aplicada em todas as operações de exclusão: `Invoices.tsx` (yarn_types, outsource_yarn_stock), `ResidueSales.tsx` (residue_materials, residue_sales), `Outsource.tsx` (outsource_companies, outsource_productions).
+
+
 
 ## 📐 Padrão de Exportação PDF (Regra Global)
 
@@ -1180,4 +1183,25 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-*Última atualização: 04/04/2026 17:01 (Brasília)*
+## 🛡️ Padrão de Mensagens de Erro (Regra Global)
+
+> **REGRA:** Todo erro exibido ao usuário DEVE ser traduzido via `getFriendlyErrorMessage()` de `src/lib/utils.ts`. Nunca exibir mensagens técnicas do banco (ex: "violates foreign key constraint").
+
+### Uso:
+```typescript
+import { getFriendlyErrorMessage } from '@/lib/utils';
+
+// Em toast de erro:
+toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' });
+```
+
+### Erros tratados:
+- **Foreign key constraint** → Mensagem específica por tabela referenciada
+- **RLS violation** → "Você não tem permissão"
+- **Unique constraint** → "Já existe um registro com esses dados"
+- **Not-null violation** → "Preencha todos os campos obrigatórios"
+- **Outros** → Mensagem original (fallback)
+
+---
+
+*Última atualização: 04/04/2026 17:30 (Brasília)*
