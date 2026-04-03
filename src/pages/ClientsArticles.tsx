@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +15,7 @@ import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings } from 'lucide-r
 import { toast } from 'sonner';
 import type { Client, Article, ArticleMachineTurns } from '@/types';
 
-interface MachineTurnRow {
+const sb = (table: string) => (supabase.from as any)(table);
   id: string;
   machine_id: string;
   turns_per_roll: string;
