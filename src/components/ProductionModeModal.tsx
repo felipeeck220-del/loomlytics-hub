@@ -52,9 +52,10 @@ export default function ProductionModeModal({ open, onOpenChange, machines, onSa
           <p className="text-sm text-muted-foreground">Configure como cada máquina registra a produção: por rolos ou por voltas.</p>
         </DialogHeader>
 
-        <div className="flex gap-2 mb-2">
+        <div className="flex gap-2 mb-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => setAllMode('rolos')}>Todas por Rolos</Button>
           <Button variant="outline" size="sm" onClick={() => setAllMode('voltas')}>Todas por Voltas</Button>
+          <Button variant="outline" size="sm" onClick={() => setAllMode('iot')}>Todas por IoT</Button>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
