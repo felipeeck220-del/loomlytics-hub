@@ -29,7 +29,7 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
 | `category` | TEXT | Não | Categoria da despesa (ex: "Insumos", "Peças", "Serviços") |
 | `amount` | NUMERIC | Sim | Valor a pagar (R$) |
 | `due_date` | DATE | Sim | Data de vencimento |
-| `whatsapp_number` | TEXT | Sim | Número WhatsApp para notificação (formato: +5511999999999) |
+| `whatsapp_number` | TEXT | Sim | Número WhatsApp para notificação (armazenado sem prefixo, ex: 47992102017). A Edge Function formata para +55XXXXXXXXXXX antes do envio. |
 | `status` | TEXT | Sim | Status: `pendente`, `pago`, `vencido` (padrão: `pendente`) |
 | `paid_at` | TIMESTAMPTZ | Não | Data/hora em que foi marcado como pago |
 | `notification_sent` | BOOLEAN | Sim | Se a notificação já foi enviada (padrão: false) |
