@@ -1119,7 +1119,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 - **03/04/2026 03:30** — **IoT: dispositivos imutáveis + segurança:** (1) Dispositivos IoT não podem mais ser editados após criação — apenas excluir e criar novo (segurança); (2) Botão de editar removido da listagem; (3) Token mascarado na listagem (6 primeiros + 4 últimos) com botão de copiar token completo; (4) COMPANY_ID/MACHINE_ID mantidos no modal de criação com botões de copiar (único local onde aparecem); (5) UUIDs removidos das páginas Máquinas e Empresa — agora só visíveis no modal de cadastro IoT.
 - **03/04/2026 04:00** — **IoT: botão copiar token na listagem:** Adicionado botão de copiar token completo na listagem de dispositivos (o token é mascarado visualmente mas pode ser copiado integralmente a qualquer momento).
 - **03/04/2026 05:00** — **Cadeado "Em breve" em funcionalidades inacabadas:** (1) Sidebar: "Contas a Pagar" agora exibido com ícone de cadeado e badge "Em breve", não clicável; (2) Configurações → aba "Telas": tab desabilitada com badge "Em breve"; (3) Configurações → Empresa → "Dispositivos IoT": seção com overlay de cadeado e badge "Em breve", conteúdo desfocado e não interativo.
+- **03/04/2026 06:00** — **Modal Produção Terceirizada — melhorias de navegação por teclado:** (1) Campo NF/ROM adicionado ao formulário e tabela (coluna `nf_rom` TEXT na tabela `outsource_productions`); (2) Navegação por setas ↑↓ no dropdown de artigos (substitui TAB que causava loop); (3) Enter seleciona artigo e avança para Peso automaticamente; (4) TAB no dropdown de artigo seleciona item destacado e avança normalmente; (5) Botões do dropdown com `tabIndex={-1}` para não roubar foco do fluxo TAB; (6) Grid de campos reorganizado (Peso, Rolos, Valor Repasse, NF/ROM em 4 colunas).
 
 ---
 
-*Última atualização: 03/04/2026 05:00 (Brasília)*
+*Última atualização: 03/04/2026 06:00 (Brasília)*

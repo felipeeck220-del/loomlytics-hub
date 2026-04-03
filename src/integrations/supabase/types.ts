@@ -965,6 +965,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          nf_rom: string | null
           observations: string | null
           outsource_company_id: string
           outsource_company_name: string | null
@@ -985,6 +986,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
+          nf_rom?: string | null
           observations?: string | null
           outsource_company_id: string
           outsource_company_name?: string | null
@@ -1005,6 +1007,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          nf_rom?: string | null
           observations?: string | null
           outsource_company_id?: string
           outsource_company_name?: string | null
