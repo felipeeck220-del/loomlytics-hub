@@ -869,6 +869,15 @@ export default function Admin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmDialog
+        open={!!restoreConfirm}
+        onOpenChange={(v) => { if (!v) setRestoreConfirm(null); }}
+        title="Restaurar backup"
+        description={`Tem certeza que deseja restaurar o backup de "${restoreConfirm?.name}"? Todos os dados atuais desta empresa serão substituídos pelos dados do backup.`}
+        onConfirm={() => { if (restoreConfirm) handleRestoreBackup(restoreConfirm.id, restoreConfirm.name); setRestoreConfirm(null); }}
+        confirmLabel="Restaurar"
+      />
     </div>
   );
 }
