@@ -757,7 +757,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 <div className="space-y-2">
                   <Label>Malharia *</Label>
                   <Select value={form.outsource_company_id} onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectTrigger ref={companySelectRef}><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
