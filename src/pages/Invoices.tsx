@@ -19,8 +19,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign,
-  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers
+  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil
 } from 'lucide-react';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
