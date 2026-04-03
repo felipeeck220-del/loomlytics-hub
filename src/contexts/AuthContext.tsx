@@ -73,21 +73,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          setTimeout(async () => {
-            await loadUserData(session.user);
-          }, 0);
-        } else {
+        if (!mounted) return;
+
+        if (event === 'SIGNED_OUT' || !session?.user) {
           setUser(null);
           setCompanies([]);
           setLoading(false);
+          return;
+        }
+
+        // For SIGNED_IN, TOKEN_REFRESHED, etc.
+        if (session?.user) {
+          // Use setTimeout to avoid Supabase deadlock on token refresh
+          setTimeout(async () => {
+            if (!mounted) return;
+            await loadUserData(session.user);
+          }, 0);
         }
       }
     );
 
+    // Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
       if (session?.user) {
         await loadUserData(session.user);
       } else {
@@ -95,7 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [loadUserData]);
 
   const login = async (email: string, password: string) => {
