@@ -144,7 +144,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       {isLocked || isComingSoon ? (
                         <div
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted-foreground/40 cursor-not-allowed transition-all duration-150 text-[13px]"
+                          className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'} py-2 rounded-lg text-muted-foreground/40 cursor-not-allowed transition-all duration-150 text-[13px]`}
                           title={isComingSoon ? 'Em breve' : 'Assinatura inativa'}
                         >
                           <Lock className="h-4 w-4 shrink-0" />
