@@ -510,10 +510,18 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                       if (!articleDropdownOpen) return;
                       if (e.key === 'ArrowDown') {
                         e.preventDefault();
-                        setArticleHighlight(h => Math.min(h + 1, filteredArticles.length - 1));
+                        setArticleHighlight(h => {
+                          const next = Math.min(h + 1, filteredArticles.length - 1);
+                          document.querySelector(`[data-article-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+                          return next;
+                        });
                       } else if (e.key === 'ArrowUp') {
                         e.preventDefault();
-                        setArticleHighlight(h => Math.max(h - 1, 0));
+                        setArticleHighlight(h => {
+                          const next = Math.max(h - 1, 0);
+                          document.querySelector(`[data-article-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
+                          return next;
+                        });
                       } else if (e.key === 'Enter' && articleHighlight >= 0 && filteredArticles[articleHighlight]) {
                         e.preventDefault();
                         const a = filteredArticles[articleHighlight];
