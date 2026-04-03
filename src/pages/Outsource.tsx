@@ -904,8 +904,9 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
 
 // ─── Reports Tab ─────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
-function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
+function ReportsTab({ productions, companies, loading, companyName, companyLogoUrl }: {
   productions: OutsourceProduction[];
+  companies: OutsourceCompany[];
   loading: boolean;
   companyName?: string;
   companyLogoUrl?: string | null;
@@ -916,6 +917,8 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
   const [startOpen, setStartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
   const [reportMonth, setReportMonth] = useState<string>('');
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('_all');
+  const [companySearch, setCompanySearch] = useState('');
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -923,8 +926,17 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
     return Array.from(months).sort().reverse();
   }, [productions]);
 
+  const filteredCompanies = useMemo(() => {
+    if (!companySearch.trim()) return companies;
+    const q = companySearch.toLowerCase();
+    return companies.filter(c => c.name.toLowerCase().includes(q));
+  }, [companies, companySearch]);
+
   const filtered = useMemo(() => {
     let result = [...productions];
+    if (selectedCompanyId !== '_all') {
+      result = result.filter(p => p.outsource_company_id === selectedCompanyId);
+    }
     if (reportMonth) {
       result = result.filter(p => p.date.startsWith(reportMonth));
     }
@@ -939,7 +951,7 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
     if (profitFilter === 'profit') result = result.filter(p => p.total_profit > 0);
     else if (profitFilter === 'loss') result = result.filter(p => p.total_profit < 0);
     return result;
-  }, [productions, startDate, endDate, profitFilter, reportMonth]);
+  }, [productions, startDate, endDate, profitFilter, reportMonth, selectedCompanyId]);
 
   const totals = useMemo(() => ({
     revenue: filtered.reduce((s, p) => s + p.total_revenue, 0),
@@ -961,63 +973,94 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
     return 'Todo período';
   }, [startDate, endDate, reportMonth]);
 
+  const hasActiveFilters = !!reportMonth || !!startDate || !!endDate || profitFilter !== 'all' || selectedCompanyId !== '_all';
+
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2"><FileBarChart className="h-5 w-5" /> Relatório de Terceirizados</CardTitle>
-        <CardDescription>Filtre por período e tipo de resultado</CardDescription>
+        <CardDescription>Filtre por período, malharia e tipo de resultado</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-         {/* Filters */}
-        <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Button variant={reportMonth === '' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => { setReportMonth(''); setStartDate(undefined); setEndDate(undefined); }}>
-                Todos
-              </Button>
-              {availableMonths.slice(0, 6).map(m => {
-                const [y, mo] = m.split('-');
-                const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMM/yy', { locale: ptBR });
-                return (
-                  <Button key={m} variant={reportMonth === m ? 'default' : 'outline'} size="sm" className="h-7 text-xs capitalize" onClick={() => { setReportMonth(m); setStartDate(undefined); setEndDate(undefined); }}>
-                    {label}
-                  </Button>
-                );
-              })}
+        {/* Filters */}
+        <div className="rounded-lg border bg-muted/30 p-3">
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
+              <Select value={reportMonth || '_all'} onValueChange={v => { setReportMonth(v === '_all' ? '' : v); setStartDate(undefined); setEndDate(undefined); }}>
+                <SelectTrigger className="w-[160px] h-8 text-xs capitalize">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_all">Todos os meses</SelectItem>
+                  {availableMonths.map(m => {
+                    const [y, mo] = m.split('-');
+                    const label = format(new Date(Number(y), Number(mo) - 1, 1), 'MMMM/yyyy', { locale: ptBR });
+                    return <SelectItem key={m} value={m} className="capitalize">{label}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Período personalizado</Label>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Popover open={startOpen} onOpenChange={setStartOpen}>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Período</Label>
+              <div className="flex items-center gap-2">
+                <Popover open={startOpen} onOpenChange={setStartOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !startDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                      {startDate ? format(startDate, 'dd/MM/yy') : 'De'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={startDate} onSelect={(d) => { setStartDate(d); setStartOpen(false); setReportMonth(''); }} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+                <span className="text-xs text-muted-foreground">até</span>
+                <Popover open={endOpen} onOpenChange={setEndOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !endDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
+                      {endDate ? format(endDate, 'dd/MM/yy') : 'Até'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={endDate} onSelect={(d) => { setEndDate(d); setEndOpen(false); setReportMonth(''); }} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Malharia</Label>
+              <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !startDate && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
-                    {startDate ? format(startDate, 'dd/MM/yy') : 'De'}
+                  <Button variant="outline" size="sm" className="w-[180px] justify-between h-8 text-xs font-normal">
+                    <span className="truncate">
+                      {selectedCompanyId === '_all' ? 'Todas as malharias' : companies.find(c => c.id === selectedCompanyId)?.name || 'Selecione'}
+                    </span>
+                    <Search className="ml-1 h-3 w-3 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={startDate} onSelect={(d) => { setStartDate(d); setStartOpen(false); setReportMonth(''); }} className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-              <span className="text-xs text-muted-foreground">até</span>
-              <Popover open={endOpen} onOpenChange={setEndOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn("w-[120px] justify-start text-left font-normal h-8 text-xs", !endDate && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-1 h-3 w-3 shrink-0" />
-                    {endDate ? format(endDate, 'dd/MM/yy') : 'Até'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={endDate} onSelect={(d) => { setEndDate(d); setEndOpen(false); setReportMonth(''); }} className="p-3 pointer-events-auto" />
+                <PopoverContent className="w-[220px] p-0" align="start">
+                  <div className="flex items-center border-b px-2 py-1.5">
+                    <Search className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    <Input placeholder="Buscar malharia..." value={companySearch} onChange={e => setCompanySearch(e.target.value)} className="h-7 border-0 p-0 text-xs shadow-none focus-visible:ring-0" />
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto p-1">
+                    <button type="button" className={cn("w-full text-left px-3 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground", selectedCompanyId === '_all' && 'bg-accent text-accent-foreground')} onClick={() => { setSelectedCompanyId('_all'); setCompanySearch(''); }}>
+                      Todas as malharias
+                    </button>
+                    {filteredCompanies.map(c => (
+                      <button key={c.id} type="button" className={cn("w-full text-left px-3 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground", selectedCompanyId === c.id && 'bg-accent text-accent-foreground')} onClick={() => { setSelectedCompanyId(c.id); setCompanySearch(''); }}>
+                        {c.name}
+                      </button>
+                    ))}
+                    {filteredCompanies.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">Nenhuma encontrada</p>}
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
-          <div className="flex items-end gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Resultado</Label>
               <Select value={profitFilter} onValueChange={(v: any) => setProfitFilter(v)}>
@@ -1031,8 +1074,8 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
                 </SelectContent>
               </Select>
             </div>
-            {(startDate || endDate || profitFilter !== 'all' || reportMonth) && (
-              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); setReportMonth(''); }}>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); setReportMonth(''); setSelectedCompanyId('_all'); }}>
                 ✕ Limpar
               </Button>
             )}
@@ -1041,12 +1084,23 @@ function ReportsTab({ productions, loading, companyName, companyLogoUrl }: {
 
         {/* Export PDFs */}
         <div className="flex justify-end gap-2 flex-wrap">
-          <Button onClick={() => exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
-            <Factory className="h-4 w-4 mr-2" /> Exportar por Malharia
-          </Button>
-          <Button onClick={() => exportOutsourcePdf(filtered, totals, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> Exportar PDF
-          </Button>
+          {selectedCompanyId === '_all' ? (
+            <>
+              <Button onClick={() => exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
+                <Factory className="h-4 w-4 mr-2" /> Exportar por Malharia
+              </Button>
+              <Button onClick={() => exportOutsourcePdf(filtered, totals, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+                <Download className="h-4 w-4 mr-2" /> Exportar PDF
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => {
+              const selectedName = companies.find(c => c.id === selectedCompanyId)?.name || '';
+              exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl);
+            }} className="btn-gradient" disabled={filtered.length === 0}>
+              <Download className="h-4 w-4 mr-2" /> Exportar PDF ({companies.find(c => c.id === selectedCompanyId)?.name})
+            </Button>
+          )}
         </div>
 
         {/* Summary cards */}
