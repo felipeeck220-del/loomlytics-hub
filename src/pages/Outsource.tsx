@@ -774,7 +774,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </div>
                 <div className="space-y-2">
                   <Label>Valor Repasse (R$/kg) *</Label>
-                  <Input type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatBrInput(e.target.value, 2) }))} />
+                  <Input type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatRepasseInput(e.target.value) }))} />
                 </div>
                  <div className="space-y-2">
                    <Label>NF/ROM</Label>
