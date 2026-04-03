@@ -1376,7 +1376,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
                     <TableCell className="text-right">{formatCurrency(p.client_value_per_kg)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.outsource_value_per_kg)}</TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={p.profit_per_kg >= 0 ? 'default' : 'destructive'} className={p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : ''}>
+                      <Badge variant="outline" className={p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}>
                         {formatCurrency(p.profit_per_kg)}
                       </Badge>
                     </TableCell>
