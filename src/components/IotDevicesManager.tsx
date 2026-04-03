@@ -199,6 +199,9 @@ export default function IotDevicesManager() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(d.token, 'Token')} title="Copiar Token">
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleActive(d)} title={d.active ? 'Desativar' : 'Ativar'}>
                     {d.active ? <WifiOff className="h-3.5 w-3.5 text-warning" /> : <Wifi className="h-3.5 w-3.5 text-emerald-500" />}
                   </Button>
