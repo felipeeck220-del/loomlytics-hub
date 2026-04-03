@@ -35,6 +35,7 @@ const allItems = [
   { title: 'Tecelões', path: 'weavers', icon: HardHat, key: 'weavers' },
   { title: 'Relatórios', path: 'reports', icon: FileText, key: 'reports' },
   { title: 'Contas a Pagar', path: 'contas-pagar', icon: Receipt, key: 'contas-pagar' },
+  { title: 'Vendas de Resíduos', path: 'residuos', icon: Recycle, key: 'residuos' },
   { title: 'Configurações', path: 'settings', icon: Settings, key: 'settings' },
 ];
 
