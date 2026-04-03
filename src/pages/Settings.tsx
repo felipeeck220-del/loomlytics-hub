@@ -613,7 +613,14 @@ export default function SettingsPage() {
           <TabsTrigger value="profile">Meu Perfil</TabsTrigger>
           {isAdmin && <TabsTrigger value="users">Usuários</TabsTrigger>}
           <TabsTrigger value="company">Empresa</TabsTrigger>
-          {isAdmin && <TabsTrigger value="telas">Telas</TabsTrigger>}
+          {isAdmin && (
+            <TabsTrigger value="telas" disabled className="relative opacity-50 cursor-not-allowed">
+              Telas
+              <span className="ml-1.5 text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium leading-none">
+                Em breve
+              </span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="plans">Planos</TabsTrigger>
         </TabsList>
 
