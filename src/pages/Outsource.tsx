@@ -765,7 +765,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </div>
                 <div className="space-y-2">
                    <Label>Data *</Label>
-                   <Input type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                   <Input ref={dateRef} type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                      onFocus={() => { dateTabCount.current = 0; }}
                      onKeyDown={e => {
                        if (e.key === 'Tab' && !e.shiftKey) {
