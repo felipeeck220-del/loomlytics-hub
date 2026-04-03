@@ -405,6 +405,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
         total_cost: totalCost,
         total_profit: totalProfit,
         observations: form.observations || null,
+        nf_rom: form.nf_rom || null,
       };
       if (editId) {
         const { error } = await sb('outsource_productions').update(row).eq('id', editId);
