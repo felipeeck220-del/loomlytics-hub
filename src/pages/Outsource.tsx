@@ -1061,7 +1061,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
               </TableHeader>
               <TableBody>
                 {filteredProductions.map(p => {
-                  const dateStr = p.date;
+                  const dateParts = p.date.split('-');
+                  const dateStr = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
                   const createdAt = new Date(p.created_at);
                   const timeStr = !isNaN(createdAt.getTime()) ? format(createdAt, 'HH:mm') : '';
                   return (
@@ -1078,7 +1079,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                     <TableCell className="text-right">{formatCurrency(p.client_value_per_kg)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.outsource_value_per_kg)}</TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={p.profit_per_kg >= 0 ? 'default' : 'destructive'} className={p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : ''}>
+                      <Badge variant="outline" className={p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}>
                         {formatCurrency(p.profit_per_kg)}
                       </Badge>
                     </TableCell>
@@ -1367,7 +1368,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
               <TableBody>
                 {filtered.map(p => (
                   <TableRow key={p.id}>
-                    <TableCell className="whitespace-nowrap">{p.date}</TableCell>
+                    <TableCell className="whitespace-nowrap">{(() => { const parts = p.date.split('-'); return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : p.date; })()}</TableCell>
                     <TableCell className="font-medium">{p.outsource_company_name || '—'}</TableCell>
                     <TableCell>{p.article_name || '—'}</TableCell>
                     <TableCell>{p.client_name || '—'}</TableCell>
@@ -1376,7 +1377,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
                     <TableCell className="text-right">{formatCurrency(p.client_value_per_kg)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.outsource_value_per_kg)}</TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={p.profit_per_kg >= 0 ? 'default' : 'destructive'} className={p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : ''}>
+                      <Badge variant="outline" className={p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}>
                         {formatCurrency(p.profit_per_kg)}
                       </Badge>
                     </TableCell>
@@ -1601,8 +1602,10 @@ function exportOutsourcePdf(
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...textDark);
 
+      const dateParts = p.date.split('-');
+      const formattedDate = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
       const cells = [
-        p.date, p.outsource_company_name || '—', p.article_name || '—', p.client_name || '—',
+        formattedDate, p.outsource_company_name || '—', p.article_name || '—', p.client_name || '—',
         `${fmtN(p.weight_kg, 1)} kg`, String(p.rolls),
         fmtR(p.client_value_per_kg), fmtR(p.outsource_value_per_kg),
         fmtR(p.profit_per_kg), fmtR(p.total_profit),
@@ -1611,7 +1614,21 @@ function exportOutsourcePdf(
       let x = m;
       cells.forEach((cell, ci) => {
         const text = cell.length > 18 ? cell.substring(0, 17) + '…' : cell;
+        // Color Lucro/kg (8) and Lucro Total (9)
+        if (ci === 8 || ci === 9) {
+          const isProfit = ci === 8 ? p.profit_per_kg >= 0 : p.total_profit >= 0;
+          pdf.setFont('helvetica', 'bold');
+          if (isProfit) {
+            pdf.setTextColor(22, 163, 74); // green
+          } else {
+            pdf.setTextColor(220, 38, 38); // red
+          }
+        }
         pdf.text(text, x + 2, y + 5);
+        if (ci === 8 || ci === 9) {
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(...textDark);
+        }
         x += cols[ci];
       });
       y += rowH;
@@ -1633,8 +1650,13 @@ function exportOutsourcePdf(
     pdf.text('TOTAL', m + 2, y + 5);
     let x = m + cols[0] + cols[1] + cols[2] + cols[3];
     pdf.text(`${fmtN(totals.weight, 1)} kg`, x + 2, y + 5); x += cols[4];
-    pdf.text(String(totals.rolls), x + 2, y + 5); x += cols[5] + cols[6] + cols[7] + cols[8];
+    pdf.text(String(totals.rolls), x + 2, y + 5); x += cols[5] + cols[6] + cols[7];
+    // Lucro/kg skip
+    x += cols[8];
+    // Lucro Total colored
+    pdf.setTextColor(totals.profit >= 0 ? 22 : 220, totals.profit >= 0 ? 163 : 38, totals.profit >= 0 ? 74 : 38);
     pdf.text(fmtR(totals.profit), x + 2, y + 5);
+    pdf.setTextColor(...textDark);
     y += rowH + 8;
 
     // Footer
