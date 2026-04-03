@@ -557,6 +557,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
                             key={a.id}
                             type="button"
                             tabIndex={-1}
+                            data-article-idx={idx}
                             className={cn(
                               'w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground',
                               (idx === articleHighlight || form.article_id === a.id) && 'bg-accent text-accent-foreground'
