@@ -396,12 +396,15 @@ function ProductionsTab({ productions, companies, articles, companyId, loading }
     );
   }, [articles, articleSearch]);
 
-  const resetForm = () => {
-    setForm({
-      outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
+  const resetForm = (keepCompany = false) => {
+    setForm(f => ({
+      outsource_company_id: keepCompany ? f.outsource_company_id : '',
+      article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
       weight_kg: '', rolls: '', outsource_value_per_kg: '', nf_rom: '', observations: '',
-    });
+    }));
     setEditId(null);
+    setArticleSearch('');
+    setArticleDropdownOpen(false);
   };
 
   const selectedArticle = articles.find(a => a.id === form.article_id);
