@@ -99,4 +99,4 @@ Ambas as tabelas usam `company_id = get_user_company_id()` para todas as operaç
 - Formatação BR: `formatCurrency()`, `formatNumber()`, `formatWeight()`
 - Validação de data: `isDateValid()`, `getDateLimits()`
 - Design: shadcn/ui + Tailwind tokens semânticos
-- Exportação PDF: jsPDF com cabeçalho padrão (logo/empresa, título, data/hora, período)
+- Exportação PDF: **segue padrão global** definido em `mestre.md` (seção "Padrão de Exportação PDF") — cabeçalho com retângulo cinza, logo/empresa à esquerda, título centralizado, data/hora e período, mesmas cores semânticas de `Reports.tsx > doExport() > addHeader()`
