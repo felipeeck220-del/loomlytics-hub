@@ -998,11 +998,22 @@ export default function Invoices() {
         {/* ===== TIPOS DE FIO TAB ===== */}
         <TabsContent value="fios" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+           <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Tipos de Fio Cadastrados</CardTitle>
-              <Button size="sm" onClick={() => { setEditingYarn(null); setYarnName(''); setYarnComposition(''); setYarnColor(''); setYarnObs(''); setYarnDialogOpen(true); }} className="gap-1.5">
-                <Plus className="h-4 w-4" /> Novo Fio
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    className="pl-7 h-8 w-[180px] text-xs"
+                    placeholder="Buscar fio..."
+                    value={yarnSearchTerm}
+                    onChange={e => setYarnSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button size="sm" onClick={() => { setEditingYarn(null); setYarnName(''); setYarnComposition(''); setYarnColor(''); setYarnObs(''); setYarnDialogOpen(true); }} className="gap-1.5">
+                  <Plus className="h-4 w-4" /> Novo Fio
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               {loadingYarns ? (
