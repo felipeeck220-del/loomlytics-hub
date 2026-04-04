@@ -1089,6 +1089,9 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                     <TableCell className="whitespace-nowrap">
                       <div>{dateStr}</div>
                       {timeStr && <div className="text-xs text-muted-foreground">{timeStr}</div>}
+                      {p.created_by_name && (
+                        <div className="text-xs text-muted-foreground">{p.created_by_name}{p.created_by_code ? ` #${p.created_by_code}` : ''}</div>
+                      )}
                     </TableCell>
                     <TableCell className="font-medium">{p.outsource_company_name || '—'}</TableCell>
                     <TableCell>{p.article_name || '—'}</TableCell>
