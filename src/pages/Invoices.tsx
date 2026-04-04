@@ -116,7 +116,7 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
 export default function Invoices() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
-  const { userCode, userName } = useAuditLog();
+  const { userCode, userName, logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const { canSeeFinancial } = usePermissions();
   const { getClients, getArticles, getProductions } = useSharedCompanyData();
