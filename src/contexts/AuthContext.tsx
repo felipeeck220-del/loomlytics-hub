@@ -53,6 +53,7 @@ async function fetchProfile(supabaseUser: SupabaseUser): Promise<AppUser | null>
     company_name: profile.companies?.name || '',
     company_slug: profile.companies?.slug || '',
     role: profile.role || 'admin',
+    status: profile.status || 'active',
     permission_overrides: Array.isArray(profile.permission_overrides) ? profile.permission_overrides : [],
   };
 }
