@@ -54,21 +54,35 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // Helper: generate unique code 100-999 not used by profiles or weavers in this company
-    const generateUniqueCode = async (): Promise<string> => {
+    // Helper: generate unique code for a given role
+    // Admins: sequential #2-#50 (next available after highest existing admin code)
+    // Non-admins: random #100-#999 (not used by profiles or weavers)
+    const generateUniqueCode = async (userRole: string): Promise<string> => {
       const { data: existingProfiles } = await supabaseAdmin
         .from("profiles")
-        .select("code")
+        .select("code, role")
         .eq("company_id", callerProfile.company_id)
         .not("code", "is", null);
 
+      if (userRole === "admin") {
+        // Find highest admin code (2-50) and assign next
+        const adminCodes = (existingProfiles || [])
+          .filter((p: any) => p.role === "admin" && p.code)
+          .map((p: any) => Number(p.code))
+          .filter((c: number) => c >= 1 && c <= 50);
+        const maxCode = adminCodes.length > 0 ? Math.max(...adminCodes) : 1;
+        const nextCode = maxCode + 1;
+        if (nextCode > 50) throw new Error("Limite de 50 administradores atingido");
+        return String(nextCode);
+      }
+
+      // Non-admin: random 100-999
       const { data: existingWeavers } = await supabaseAdmin
         .from("weavers")
         .select("code")
         .eq("company_id", callerProfile.company_id);
 
       const usedCodes = new Set([
-        "1",
         ...(existingProfiles || []).map((p: any) => p.code),
         ...(existingWeavers || []).map((w: any) => w.code),
       ]);
@@ -89,7 +103,7 @@ serve(async (req) => {
         });
       }
 
-      const code = await generateUniqueCode();
+      const code = await generateUniqueCode(role);
       let userId: string;
 
       const { data: authData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
