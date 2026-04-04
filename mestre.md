@@ -823,16 +823,28 @@ const MOBILE_FOOTER_KEYS = {
 
 ### Edge Function `daily-backup`
 - Busca todas as empresas
-- Para cada empresa, busca dados de 14 tabelas:
+- Para cada empresa, busca dados de **29 tabelas**:
   ```
   machines, machine_logs, machine_maintenance_observations, articles,
   article_machine_turns, clients, weavers, productions, defect_records,
-  outsource_companies, outsource_productions, profiles, company_settings,
-  audit_logs, payment_history, companies (o próprio registro)
+  outsource_companies, outsource_productions, outsource_yarn_stock,
+  profiles, company_settings, audit_logs, payment_history,
+  invoices, invoice_items, residue_materials, residue_sales,
+  accounts_payable, yarn_types, tv_panels, email_history,
+  iot_devices, iot_downtime_events, iot_machine_assignments,
+  iot_shift_state, machine_readings, companies (o próprio registro)
   ```
 - `machine_logs` é buscado via `machine_id IN (machines da empresa)`
 - Insere registro em `company_backups` com JSON completo
 - Limpa backups > 30 por empresa (mantém os 30 mais recentes)
+
+### ⚠️ REGRA OBRIGATÓRIA — Novas Tabelas e Backup
+> **Toda vez que uma nova tabela for criada no banco de dados**, ela **DEVE** ser adicionada em:
+> 1. `supabase/functions/daily-backup/index.ts` → array `TABLES_TO_BACKUP`
+> 2. `supabase/functions/restore-backup/index.ts` → arrays `DELETE_ORDER` e `INSERT_ORDER` (respeitando ordem de dependência FK)
+> 3. Esta seção do `mestre.md` → lista de tabelas acima
+>
+> **NÃO é permitido** criar uma tabela com dados de empresa sem incluí-la no sistema de backup. Isso garante que nenhum dado seja perdido em restaurações.
 
 ### Edge Function `restore-backup`
 - Requer autenticação de platform_admin
