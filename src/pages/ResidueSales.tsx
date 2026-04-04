@@ -226,7 +226,9 @@ export default function ResidueSales() {
       const { error } = await sb('residue_sales').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, id: string) => {
+      const sale = sales.find(s => s.id === id);
+      logAction('residue_sale_delete', { material: sale?.material_name, client: sale?.client_name });
       queryClient.invalidateQueries({ queryKey: ['residue_sales'] });
       toast({ title: 'Registro removido' });
     },
