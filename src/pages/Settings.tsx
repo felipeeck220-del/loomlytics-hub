@@ -865,31 +865,41 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   </div>
-                  {isAdmin && (
+                  {isAdmin && (() => {
+                    const currentUserProfile = profiles.find(pr => pr.user_id === user?.id);
+                    const isCurrentUserMainAdmin = currentUserProfile?.code === '1';
+                    const isTargetMainAdmin = p.code === '1';
+                    const canEditTarget = isCurrentUserMainAdmin || !isTargetMainAdmin;
+                    return (
                     <div className="flex items-center gap-1 shrink-0">
-                      {p.role !== 'admin' && (
+                      {p.role !== 'admin' && canEditTarget && (
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openPermissionsModal(p)} title="Permissões Extras">
                           <Eye className="h-3.5 w-3.5 text-primary" />
                         </Button>
                       )}
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditUser(p)} title="Editar">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
-                        <Key className="h-3.5 w-3.5" />
-                      </Button>
-                      {p.user_id !== user?.id && (
+                      {canEditTarget && (
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditUser(p)} title="Editar">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {canEditTarget && (
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
+                          <Key className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {p.user_id !== user?.id && canEditTarget && (
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(p)} title={p.status === 'active' ? 'Desativar' : 'Ativar'}>
                           <XCircle className="h-3.5 w-3.5 text-warning" />
                         </Button>
                       )}
-                      {p.user_id !== user?.id && (
+                      {p.user_id !== user?.id && canEditTarget && (
                         <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDeleteUser(p); setDeleteWord(''); }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
               ))}
             </div>
