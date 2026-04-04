@@ -81,15 +81,18 @@ export default function Weavers() {
       const idx = all.findIndex(w => w.id === editing.id);
       all[idx] = { ...all[idx], name: form.name, phone: form.phone || undefined, shift_type: form.shift_type, fixed_shift: form.shift_type === 'fixo' ? (form.fixed_shift as ShiftType) : undefined, start_time: form.shift_type === 'especifico' ? form.start_time : undefined, end_time: form.shift_type === 'especifico' ? form.end_time : undefined };
       await saveWeavers(all); toast.success('Tecelão atualizado');
+      logAction('weaver_update', { name: form.name, code: editing.code, shift_type: form.shift_type });
     } else {
+      const newCode = generateCode();
       all.push({
-        id: crypto.randomUUID(), company_id: '', code: generateCode(), name: form.name, phone: form.phone || undefined,
+        id: crypto.randomUUID(), company_id: '', code: newCode, name: form.name, phone: form.phone || undefined,
         shift_type: form.shift_type, fixed_shift: form.shift_type === 'fixo' ? (form.fixed_shift as ShiftType) : undefined,
         start_time: form.shift_type === 'especifico' ? form.start_time : undefined,
         end_time: form.shift_type === 'especifico' ? form.end_time : undefined,
         created_at: new Date().toISOString(),
       });
       await saveWeavers(all); toast.success('Tecelão cadastrado');
+      logAction('weaver_create', { name: form.name, code: newCode, shift_type: form.shift_type });
     }
     setShowModal(false);
   };
