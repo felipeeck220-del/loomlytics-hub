@@ -1242,6 +1242,9 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **04/04/2026 04:00 (Brasília)** — **CÓDIGOS SEQUENCIAIS PARA ADMINS (#2-#50):** (1) Edge Function `manage-users` atualizada: admins agora recebem códigos sequenciais #2, #3, #4... (próximo após o maior existente), com limite de 50 admins por empresa; #1 continua reservado ao criador; (2) Não-admins (líder, mecânico, revisador) continuam com códigos aleatórios #100-#999; (3) Usuário `admin@tales.com` adicionado como admin #2 na empresa de `felipeeck182@gmail.com`.
 
+
+- **04/04/2026 04:15 (Brasília)** — **CONFIGURAÇÕES — Botão editar restrito ao admin #1:** Na aba Usuários, apenas o administrador principal (#1) vê o ícone de editar (lápis) para alterar nome e função de outros usuários. Admins não-#1 não veem mais esse botão.
+
 ---
 
-*Última atualização: 04/04/2026 04:00 (Brasília)*
+*Última atualização: 04/04/2026 04:15 (Brasília)*
