@@ -2181,7 +2181,7 @@ function exportByClientPdf(
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(21, 128, 61);
-      pdf.text(`👤 ${clientLabel}`, m + 4, y + 7);
+      pdf.text(sanitizePdfText(clientLabel), m + 4, y + 7);
 
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
