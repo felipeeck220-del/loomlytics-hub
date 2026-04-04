@@ -116,6 +116,9 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: '' });
   const [saving, setSaving] = useState(false);
+  const [emailCheckStatus, setEmailCheckStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [emailCheckError, setEmailCheckError] = useState('');
+  const emailCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [changePasswordUser, setChangePasswordUser] = useState<Profile | null>(null);
   const [adminNewPassword, setAdminNewPassword] = useState('');
   const [showAdminNewPw, setShowAdminNewPw] = useState(false);
@@ -456,7 +459,39 @@ export default function SettingsPage() {
     setEditingUser(null);
     setUserForm({ name: '', email: '', password: '', role: '' });
     setShowPassword(false);
+    setEmailCheckStatus('idle');
+    setEmailCheckError('');
     setShowUserModal(true);
+  };
+
+  // Real-time email check for admin role
+  const checkAdminEmail = (email: string) => {
+    if (emailCheckTimer.current) clearTimeout(emailCheckTimer.current);
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setEmailCheckStatus('idle');
+      setEmailCheckError('');
+      return;
+    }
+    setEmailCheckStatus('checking');
+    emailCheckTimer.current = setTimeout(async () => {
+      try {
+        const { data } = await (supabase.from as any)('profiles')
+          .select('id, email')
+          .eq('email', email)
+          .limit(1)
+          .maybeSingle();
+        if (data) {
+          setEmailCheckStatus('invalid');
+          setEmailCheckError('Este email já está cadastrado no sistema.');
+        } else {
+          setEmailCheckStatus('valid');
+          setEmailCheckError('');
+        }
+      } catch {
+        setEmailCheckStatus('valid');
+        setEmailCheckError('');
+      }
+    }, 600);
   };
 
   const openEditUser = (p: Profile) => {
@@ -1337,7 +1372,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             {/* 1. Nome */}
             <div className="space-y-2">
-              <Label>Nome Completo <span className="text-destructive">*</span></Label>
+              <Label>Nome <span className="text-destructive">*</span></Label>
               <Input value={userForm.name} onChange={e => setUserForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: João Silva" />
             </div>
 
@@ -1353,7 +1388,11 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground mt-1">Administradores não podem ter a função alterada após a criação.</p>
                 </div>
               ) : (
-                <Select value={userForm.role} onValueChange={v => setUserForm(p => ({ ...p, role: v }))}>
+                <Select value={userForm.role} onValueChange={v => {
+                  setUserForm(p => ({ ...p, role: v, email: '', password: '' }));
+                  setEmailCheckStatus('idle');
+                  setEmailCheckError('');
+                }}>
                   <SelectTrigger><SelectValue placeholder="Selecione a função" /></SelectTrigger>
                   <SelectContent>
                     {ROLES.map(r => (
@@ -1371,26 +1410,52 @@ export default function SettingsPage() {
               <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                 <div className="text-xs text-warning">
-                  <strong>Atenção:</strong> Administradores fazem login na página principal do sistema (não na URL da empresa). O email será verificado globalmente para evitar conflitos.
+                  <strong>Atenção:</strong> Administradores fazem login na página principal do sistema. O email será verificado globalmente.
                 </div>
               </div>
             )}
 
-            {/* 3. Email */}
+            {/* 3. Email & Senha — creation mode */}
             {!editingUser && (
               <>
                 <div className="space-y-2">
-                  <Label>Email <span className="text-destructive">*</span></Label>
-                  <Input type="email" value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} placeholder="usuario@empresa.com" />
+                  <Label className={!userForm.role ? 'text-muted-foreground' : ''}>Email <span className="text-destructive">*</span></Label>
+                  <Input
+                    type="email"
+                    value={userForm.email}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setUserForm(p => ({ ...p, email: val, password: '' }));
+                      if (userForm.role === 'admin') {
+                        checkAdminEmail(val);
+                      }
+                    }}
+                    placeholder="usuario@empresa.com"
+                    disabled={!userForm.role}
+                  />
+                  {userForm.role === 'admin' && emailCheckStatus === 'checking' && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Verificando email...
+                    </div>
+                  )}
+                  {userForm.role === 'admin' && emailCheckStatus === 'valid' && (
+                    <p className="text-xs text-emerald-600">✓ Email disponível</p>
+                  )}
+                  {userForm.role === 'admin' && emailCheckStatus === 'invalid' && (
+                    <p className="text-xs text-destructive">{emailCheckError}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Senha <span className="text-destructive">*</span></Label>
+                  <Label className={(!userForm.role || (userForm.role === 'admin' && emailCheckStatus !== 'valid')) ? 'text-muted-foreground' : ''}>
+                    Senha <span className="text-destructive">*</span>
+                  </Label>
                   <div className="relative">
                     <Input
                       type={showPassword ? 'text' : 'password'}
                       value={userForm.password}
                       onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))}
                       placeholder="Mínimo 6 caracteres"
+                      disabled={!userForm.role || (userForm.role === 'admin' && emailCheckStatus !== 'valid')}
                     />
                     <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -1399,6 +1464,7 @@ export default function SettingsPage() {
                 </div>
               </>
             )}
+            {/* Edit mode — admin #1 only */}
             {editingUser && (() => {
               const currentUserProfile = profiles.find(pr => pr.user_id === user?.id);
               const isMainAdmin = currentUserProfile?.code === '1';
@@ -1429,7 +1495,15 @@ export default function SettingsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowUserModal(false)}>Cancelar</Button>
-            <Button onClick={handleSaveUser} className="btn-gradient" disabled={saving}>
+            <Button
+              onClick={handleSaveUser}
+              className="btn-gradient"
+              disabled={saving || (!editingUser && (
+                !userForm.name || !userForm.role || !userForm.email ||
+                (userForm.role === 'admin' && emailCheckStatus !== 'valid') ||
+                !userForm.password || userForm.password.length < 6
+              ))}
+            >
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               {editingUser ? 'Salvar' : 'Criar Usuário'}
             </Button>

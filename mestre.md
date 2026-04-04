@@ -1278,6 +1278,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 06:30 (Brasília)** — **SEGURANÇA CRÍTICA — Verificação global de email para admins + bloqueio de mudança de função:** (1) Modal de criação de usuário reordenado: agora pede Nome → Função → Email → Senha; (2) Se função = admin, exibe alerta informando que admins fazem login na raiz e o email será verificado globalmente; (3) Edge Function `manage-users` agora faz verificação global de email (todas as empresas) para admins antes de criar; (4) Admins não podem ter a função alterada após criação — campo bloqueado no modal de edição e validado server-side na edge function; (5) No update, role não é enviado para admins existentes.
 
+- **04/04/2026 07:00 (Brasília)** — **MODAL CRIAR USUÁRIO — UX progressiva:** (1) Label alterado de "Nome Completo" para "Nome"; (2) Email e Senha ficam desativados até selecionar função; (3) Para função Admin: email é liberado mas senha fica bloqueada até verificação em tempo real (debounce 600ms) confirmar que o email não existe globalmente — mostra "Verificando...", "✓ Email disponível" ou erro; (4) Para outras funções: email e senha são liberados imediatamente após seleção; (5) Botão "Criar Usuário" só é habilitado quando todos os campos estão válidos; (6) Ao trocar função, email e senha são resetados.
+
 ---
 
-*Última atualização: 04/04/2026 06:30 (Brasília)*
+*Última atualização: 04/04/2026 07:00 (Brasília)*
