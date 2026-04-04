@@ -1804,7 +1804,7 @@ function exportByCompanyPdf(
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...textDark);
-      pdf.text(companyName, leftX, y + 10);
+      pdf.text(sanitizePdfText(companyName), leftX, y + 10);
     }
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
