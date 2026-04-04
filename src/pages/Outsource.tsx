@@ -1152,6 +1152,18 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     return companies.filter(c => c.name.toLowerCase().includes(q));
   }, [companies, companySearch]);
 
+  const availableClients = useMemo(() => {
+    const clients = new Set<string>();
+    productions.forEach(p => { if (p.client_name) clients.add(p.client_name); });
+    return Array.from(clients).sort();
+  }, [productions]);
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return availableClients;
+    const q = clientSearch.toLowerCase();
+    return availableClients.filter(c => c.toLowerCase().includes(q));
+  }, [availableClients, clientSearch]);
+
   const filtered = useMemo(() => {
     let result = [...productions];
     if (selectedCompanyId !== '_all') {
