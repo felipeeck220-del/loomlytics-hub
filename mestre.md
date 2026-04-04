@@ -794,7 +794,8 @@ const MOBILE_FOOTER_KEYS = {
 - Cálculo automático do plano anual (40% desconto)
 
 **4. Backups:**
-- Tabela: Empresa, Data do Backup (badge), Criado em (data+hora), Ações
+- Listagem agrupada por empresa em cards, cada card com nome da empresa + badge de contagem
+- Dentro de cada card: tabela com Data do Backup (badge), Criado em (data+hora), botão Reverter
 - Botão "Executar Backup Agora" → chama `admin-api` action `trigger_backup`
 - Botão "Reverter" por backup → `confirm()` + chama `restore-backup` Edge Function
 - Filtro por nome da empresa
