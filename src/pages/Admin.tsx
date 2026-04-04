@@ -519,63 +519,77 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Usuários Cadastrados
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Cargo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Criado em</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map(u => (
-                      <TableRow
-                        key={u.id}
-                        className="cursor-pointer hover:bg-accent/50"
-                        onClick={() => openUserModal(u)}
-                      >
-                        <TableCell className="font-medium">{u.name}</TableCell>
-                        <TableCell>{u.email}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{u.company_name}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="capitalize">{u.role}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {u.status === 'active' ? (
-                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">Ativo</Badge>
-                          ) : (
-                            <Badge variant="destructive">Inativo</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {new Date(u.created_at).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {users.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                          Nenhum usuário cadastrado
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              {(() => {
+                // Group users by company
+                const grouped = users.reduce<Record<string, { name: string; users: UserProfile[] }>>((acc, u) => {
+                  if (!acc[u.company_id]) {
+                    acc[u.company_id] = { name: u.company_name || 'Sem empresa', users: [] };
+                  }
+                  acc[u.company_id].users.push(u);
+                  return acc;
+                }, {});
+                const entries = Object.entries(grouped);
+                if (entries.length === 0) {
+                  return (
+                    <Card>
+                      <CardContent className="py-8 text-center text-muted-foreground">
+                        Nenhum usuário cadastrado
+                      </CardContent>
+                    </Card>
+                  );
+                }
+                return entries.map(([companyId, group]) => (
+                  <Card key={companyId}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Building2 className="h-4 w-4" />
+                        {group.name}
+                        <Badge variant="secondary" className="ml-auto">{group.users.length} usuário(s)</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Cargo</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Criado em</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {group.users.map(u => (
+                            <TableRow
+                              key={u.id}
+                              className="cursor-pointer hover:bg-accent/50"
+                              onClick={() => openUserModal(u)}
+                            >
+                              <TableCell className="font-medium">{u.name}</TableCell>
+                              <TableCell>{u.email}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className="capitalize">{u.role}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                {u.status === 'active' ? (
+                                  <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">Ativo</Badge>
+                                ) : (
+                                  <Badge variant="destructive">Inativo</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-sm">
+                                {new Date(u.created_at).toLocaleDateString('pt-BR')}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                ));
+              })()}
+            </div>
           </TabsContent>
           <TabsContent value="platform-settings">
             <Card>
