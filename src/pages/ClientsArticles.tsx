@@ -143,10 +143,10 @@ export default function ClientsArticles() {
     if (editingClient) {
       const idx = all.findIndex(c => c.id === editingClient.id);
       all[idx] = { ...all[idx], ...clientForm };
-      await saveClients(all); toast.success('Cliente atualizado');
+      await saveClients(all); logAction('client_update', { name: clientForm.name }); toast.success('Cliente atualizado');
     } else {
       all.push({ id: crypto.randomUUID(), company_id: '', name: clientForm.name, contact: clientForm.contact || undefined, observations: clientForm.observations || undefined, created_at: new Date().toISOString() });
-      await saveClients(all); toast.success('Cliente cadastrado');
+      await saveClients(all); logAction('client_create', { name: clientForm.name }); toast.success('Cliente cadastrado');
     }
     setShowClientModal(false);
   };
