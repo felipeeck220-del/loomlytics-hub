@@ -162,10 +162,10 @@ export default function ClientsArticles() {
     if (editingArticle) {
       const idx = all.findIndex(a => a.id === editingArticle.id);
       all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined };
-      await saveArticles(all); toast.success('Artigo atualizado');
+      await saveArticles(all); logAction('article_update', { name: articleForm.name }); toast.success('Artigo atualizado');
     } else {
       all.push({ id: crypto.randomUUID(), company_id: '', name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined, created_at: new Date().toISOString() });
-      await saveArticles(all); toast.success('Artigo cadastrado');
+      await saveArticles(all); logAction('article_create', { name: articleForm.name }); toast.success('Artigo cadastrado');
     }
     setShowArticleModal(false);
   };
