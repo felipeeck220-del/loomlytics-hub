@@ -2264,7 +2264,7 @@ function exportByClientPdf(
         pdf.setTextColor(...textDark);
 
         const cells = [
-          artName, stats.malharia, `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
+          sanitizePdfText(artName), sanitizePdfText(stats.malharia), `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
           fmtR(stats.revenue), fmtR(stats.cost), fmtR(stats.profit),
         ];
 
