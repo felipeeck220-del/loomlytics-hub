@@ -1207,6 +1207,27 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 - **Not-null violation** → "Preencha todos os campos obrigatórios"
 - **Outros** → Mensagem original (fallback)
 
+---
+
+## 🔍 Padrão de Auditoria (Regra Global — OBRIGATÓRIA)
+
+> **REGRA:** Toda nova funcionalidade que envolva criação, edição ou exclusão de dados **DEVE** incluir chamadas de auditoria via `useAuditLog`. Documentação completa em `auditoria.md`.
+
+### Checklist obrigatório para novas features:
+1. ✅ Importar `useAuditLog` no componente
+2. ✅ Chamar `logAction('{modulo}_{operacao}', { detalhes })` em todo CREATE, UPDATE, DELETE
+3. ✅ Seguir convenção de nomes: `{modulo}_{operacao}` (ex: `client_create`, `article_delete`)
+4. ✅ Incluir `details` com informações úteis (nome do item, valores alterados)
+5. ✅ Se tabela tiver `created_by_name`/`created_by_code`, usar `userTrackingInfo`
+6. ✅ Atualizar `auditoria.md` com as novas ações
+
+### Referência rápida:
+```typescript
+import { useAuditLog } from '@/hooks/useAuditLog';
+const { logAction, userTrackingInfo } = useAuditLog();
+logAction('modulo_create', { name: 'Item X', value: 100 });
+```
+
 - **03/04/2026 (horário real)** — **TERCEIRIZADOS — 3 melhorias UX no modal de produção:** (1) Validação de NF/ROM duplicada agora é **por malharia** (não global) — malharias diferentes podem ter mesmo número de romaneio; (2) Tecla ESC desabilitada no modal de Registrar Produção Terceirizada (evita fechar acidentalmente); (3) Navegação entre campos (Malharia, Data, Artigo, Peso, Rolos, Repasse, NF/ROM, Observações) via **setas ↑↓ do teclado** para troca rápida de input.
 
 - **03/04/2026 (horário real)** — **4 MELHORIAS UX GLOBAIS:** (1) **Fechamento "Em teste"** — badge amber adicionado ao sidebar; (2) **DeleteConfirmDialog** — componente reutilizável criado (`src/components/DeleteConfirmDialog.tsx`) substituindo TODOS os `confirm()` nativos do navegador por modais visuais Excluir/Cancelar em: `Outsource.tsx` (malharias + produções), `ResidueSales.tsx` (materiais + vendas), `Invoices.tsx` (cancelar NF + fios + estoque terceiros), `Admin.tsx` (restaurar backup); (3) **Setas ↑↓←→** no modal de Produção Terceirizada — todas as 4 setas navegam entre campos (←→ não interferem em inputs de texto, apenas em date e selects); (4) **Ctrl+Enter** para salvar no modal (substituiu Enter simples no NF/ROM).
@@ -1245,6 +1266,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **04/04/2026 04:15 (Brasília)** — **CONFIGURAÇÕES — Botão editar restrito ao admin #1:** Na aba Usuários, apenas o administrador principal (#1) vê o ícone de editar (lápis) para alterar nome e função de outros usuários. Admins não-#1 não veem mais esse botão.
 
+- **04/04/2026 04:30 (Brasília)** — **DOCUMENTAÇÃO AUDITORIA:** Criado `auditoria.md` com documentação 100% detalhada do sistema de auditoria: arquitetura (`audit_logs` + `useAuditLog`), cobertura atual por módulo (7 com auditoria, 7 pendentes), convenção de nomes de ações, estrutura do campo `details`, especificação do modal de histórico (a implementar), e regra obrigatória para novas funcionalidades. Adicionada seção "Padrão de Auditoria (Regra Global — OBRIGATÓRIA)" no `mestre.md` com checklist de 6 itens que toda nova feature deve seguir.
+
 ---
 
-*Última atualização: 04/04/2026 04:15 (Brasília)*
+*Última atualização: 04/04/2026 04:30 (Brasília)*
