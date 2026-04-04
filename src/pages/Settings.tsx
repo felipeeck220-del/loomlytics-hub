@@ -475,19 +475,24 @@ export default function SettingsPage() {
     setEmailCheckStatus('checking');
     emailCheckTimer.current = setTimeout(async () => {
       try {
-        const { data } = await (supabase.from as any)('profiles')
-          .select('id, email')
-          .eq('email', email)
-          .limit(1)
-          .maybeSingle();
-        if (data) {
+        // Use edge function for global check (service role bypasses RLS)
+        const { data, error } = await supabase.functions.invoke('manage-users', {
+          body: { action: 'check_email', email },
+        });
+        if (error) throw error;
+        if (data?.exists) {
           setEmailCheckStatus('invalid');
-          setEmailCheckError('Este email já está cadastrado no sistema.');
+          setEmailCheckError(
+            data?.in_current_company
+              ? 'Este email já está cadastrado nesta empresa.'
+              : 'Este email já está cadastrado em outra empresa do sistema.'
+          );
         } else {
           setEmailCheckStatus('valid');
           setEmailCheckError('');
         }
       } catch {
+        // On error, allow to proceed (server-side will catch it)
         setEmailCheckStatus('valid');
         setEmailCheckError('');
       }
