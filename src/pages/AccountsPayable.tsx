@@ -169,7 +169,9 @@ export default function AccountsPayable() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, id: string) => {
+      const acc = accounts.find(a => a.id === id);
+      logAction('account_delete', { supplier_name: acc?.supplier_name, description: acc?.description });
       toast.success('Conta excluída!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
       setDeleteId(null);
