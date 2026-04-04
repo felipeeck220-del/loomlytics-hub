@@ -444,7 +444,7 @@ export default function Fechamento() {
           }
         } else {
           pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
-          if (companyName) pdf.text(companyName, leftX, y + 10);
+          if (companyName) pdf.text(sanitizePdfText(companyName), leftX, y + 10);
         }
         pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textMid);
         pdf.text(dateStr, leftX, y + 22);
