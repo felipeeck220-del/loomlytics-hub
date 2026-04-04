@@ -30,6 +30,7 @@ const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
 export default function Weavers() {
   const { getWeavers, saveWeavers, getProductions, getDefectRecords, loading } = useSharedCompanyData();
   const { canSeeFinancial } = usePermissions();
+  const { logAction } = useAuditLog();
   const weavers = getWeavers();
   const productions = getProductions();
   const defectRecords = getDefectRecords();
