@@ -1276,6 +1276,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 06:00 (Brasília)** — **SEGURANÇA — Ações de usuário restritas ao admin #1:** Botões de desativar (XCircle), excluir (Trash2) e permissões extras (Eye) na aba Usuários agora são visíveis **somente** para o admin #1. Admins não-#1 não veem mais nenhum botão de ação sobre outros usuários, apenas visualizam a lista.
 
+- **04/04/2026 06:30 (Brasília)** — **SEGURANÇA CRÍTICA — Verificação global de email para admins + bloqueio de mudança de função:** (1) Modal de criação de usuário reordenado: agora pede Nome → Função → Email → Senha; (2) Se função = admin, exibe alerta informando que admins fazem login na raiz e o email será verificado globalmente; (3) Edge Function `manage-users` agora faz verificação global de email (todas as empresas) para admins antes de criar; (4) Admins não podem ter a função alterada após criação — campo bloqueado no modal de edição e validado server-side na edge function; (5) No update, role não é enviado para admins existentes.
+
 ---
 
-*Última atualização: 04/04/2026 06:00 (Brasília)*
+*Última atualização: 04/04/2026 06:30 (Brasília)*

@@ -103,6 +103,23 @@ serve(async (req) => {
         });
       }
 
+      // Global email verification for admin role — admins login at root, email must be unique globally
+      if (role === "admin") {
+        const { data: globalProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("id, company_id, role")
+          .eq("email", email)
+          .limit(1)
+          .maybeSingle();
+
+        if (globalProfile) {
+          return new Response(JSON.stringify({ error: "Este email já está cadastrado no sistema. Administradores fazem login na página principal — o email deve ser único globalmente." }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const code = await generateUniqueCode(role);
       let userId: string;
 
@@ -206,6 +223,23 @@ serve(async (req) => {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // SECURITY: Block role change for admin users
+      if (role) {
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user_id)
+          .eq("company_id", callerProfile.company_id)
+          .single();
+
+        if (targetProfile?.role === "admin" && role !== "admin") {
+          return new Response(JSON.stringify({ error: "Administradores não podem ter a função alterada após a criação" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       const updates: Record<string, string> = {};
