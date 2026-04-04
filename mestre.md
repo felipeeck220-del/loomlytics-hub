@@ -1228,6 +1228,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **04/04/2026 01:15 (Brasília)** — **TERCEIRIZADOS — Atalho de salvar revertido para Enter simples:** Removida exigência de `Ctrl+Enter`, agora basta pressionar `Enter` (quando dropdown de artigo está fechado) para salvar o registro, conforme fluxo de alta velocidade documentado.
 
+- **04/04/2026 01:30 (Brasília)** — **TERCEIRIZADOS — BUG created_by_name/code null:** Campos `created_by_name` e `created_by_code` estavam sempre `null` nas produções terceirizadas devido a stale closure no `useMutation` — os valores de `userName`/`userCode` do `useAuditLog` eram capturados antes do carregamento do perfil. Corrigido com `useRef` + `useEffect` para garantir valores atualizados no momento da execução da mutation.
+
 ---
 
-*Última atualização: 04/04/2026 01:15 (Brasília)*
+*Última atualização: 04/04/2026 01:30 (Brasília)*
