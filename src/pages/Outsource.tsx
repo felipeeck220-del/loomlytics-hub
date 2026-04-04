@@ -1133,6 +1133,8 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
   const [reportMonth, setReportMonth] = useState<string>('');
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('_all');
   const [companySearch, setCompanySearch] = useState('');
+  const [selectedClientName, setSelectedClientName] = useState<string>('_all');
+  const [clientSearch, setClientSearch] = useState('');
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
