@@ -794,7 +794,8 @@ const MOBILE_FOOTER_KEYS = {
 - Cálculo automático do plano anual (40% desconto)
 
 **4. Backups:**
-- Tabela: Empresa, Data do Backup (badge), Criado em (data+hora), Ações
+- Listagem agrupada por empresa em cards, cada card com nome da empresa + badge de contagem
+- Dentro de cada card: tabela com Data do Backup (badge), Criado em (data+hora), botão Reverter
 - Botão "Executar Backup Agora" → chama `admin-api` action `trigger_backup`
 - Botão "Reverter" por backup → `confirm()` + chama `restore-backup` Edge Function
 - Filtro por nome da empresa
@@ -822,16 +823,28 @@ const MOBILE_FOOTER_KEYS = {
 
 ### Edge Function `daily-backup`
 - Busca todas as empresas
-- Para cada empresa, busca dados de 14 tabelas:
+- Para cada empresa, busca dados de **29 tabelas**:
   ```
   machines, machine_logs, machine_maintenance_observations, articles,
   article_machine_turns, clients, weavers, productions, defect_records,
-  outsource_companies, outsource_productions, profiles, company_settings,
-  audit_logs, payment_history, companies (o próprio registro)
+  outsource_companies, outsource_productions, outsource_yarn_stock,
+  profiles, company_settings, audit_logs, payment_history,
+  invoices, invoice_items, residue_materials, residue_sales,
+  accounts_payable, yarn_types, tv_panels, email_history,
+  iot_devices, iot_downtime_events, iot_machine_assignments,
+  iot_shift_state, machine_readings, companies (o próprio registro)
   ```
 - `machine_logs` é buscado via `machine_id IN (machines da empresa)`
 - Insere registro em `company_backups` com JSON completo
 - Limpa backups > 30 por empresa (mantém os 30 mais recentes)
+
+### ⚠️ REGRA OBRIGATÓRIA — Novas Tabelas e Backup
+> **Toda vez que uma nova tabela for criada no banco de dados**, ela **DEVE** ser adicionada em:
+> 1. `supabase/functions/daily-backup/index.ts` → array `TABLES_TO_BACKUP`
+> 2. `supabase/functions/restore-backup/index.ts` → arrays `DELETE_ORDER` e `INSERT_ORDER` (respeitando ordem de dependência FK)
+> 3. Esta seção do `mestre.md` → lista de tabelas acima
+>
+> **NÃO é permitido** criar uma tabela com dados de empresa sem incluí-la no sistema de backup. Isso garante que nenhum dado seja perdido em restaurações.
 
 ### Edge Function `restore-backup`
 - Requer autenticação de platform_admin
@@ -1284,6 +1297,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 08:00 (Brasília)** — **PAINEL ADMINISTRATIVO — 3 melhorias:** (1) **NAV_ITEMS atualizados:** Adicionados Resíduos, Notas Fiscais e Fechamento à lista de itens de navegação do painel admin (modal de empresa e usuário); (2) **Usuários agrupados por empresa:** Aba Usuários agora exibe cards separados por empresa, cada um com tabela própria e badge de contagem; (3) **Backup automático à meia-noite:** Configurado pg_cron para executar `daily-backup` às 03:00 UTC (00:00 Brasília) automaticamente todos os dias.
 
+- **04/04/2026 09:00 (Brasília)** — **BACKUP — Cobertura completa + listagem agrupada:** (1) **29 tabelas no backup:** Adicionadas 15 tabelas faltantes ao `daily-backup` e `restore-backup`: invoices, invoice_items, residue_materials, residue_sales, outsource_yarn_stock, accounts_payable, yarn_types, tv_panels, email_history, iot_devices, iot_downtime_events, iot_machine_assignments, iot_shift_state, machine_readings; (2) **Listagem agrupada por empresa:** Aba Backups no /admin agora exibe cards separados por empresa com badge de contagem, em vez de tabela única; (3) **Regra obrigatória documentada:** Adicionada regra no mestre.md exigindo que toda nova tabela seja incluída no sistema de backup.
+
 ---
 
-*Última atualização: 04/04/2026 08:00 (Brasília)*
+*Última atualização: 04/04/2026 09:00 (Brasília)*
