@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel('profile-status-watch')
+      .channel(`profile-status-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -88,14 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const newStatus = (payload.new as any).status;
-          const newName = (payload.new as any).name;
-          if (newStatus && newStatus !== user.status) {
-            setUser(prev => prev ? { ...prev, status: newStatus } : prev);
-          }
-          if (newName && newName !== user.name) {
-            setUser(prev => prev ? { ...prev, name: newName } : prev);
-          }
+          const newData = payload.new as any;
+          setUser(prev => {
+            if (!prev) return prev;
+            const updates: Partial<AppUser> = {};
+            if (newData.status && newData.status !== prev.status) updates.status = newData.status;
+            if (newData.name && newData.name !== prev.name) updates.name = newData.name;
+            if (Object.keys(updates).length === 0) return prev;
+            return { ...prev, ...updates };
+          });
         }
       )
       .subscribe();
@@ -103,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, user?.status, user?.name]);
+  }, [user?.id]);
 
   useEffect(() => {
     let mounted = true;
