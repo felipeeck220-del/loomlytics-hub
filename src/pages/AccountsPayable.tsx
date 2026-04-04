@@ -134,6 +134,8 @@ export default function AccountsPayable() {
       }
     },
     onSuccess: () => {
+      const action = editingId ? 'account_update' : 'account_create';
+      logAction(action, { supplier_name: form.supplier_name, description: form.description, amount: form.amount });
       toast.success(editingId ? 'Conta atualizada!' : 'Conta cadastrada!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
       closeForm();
