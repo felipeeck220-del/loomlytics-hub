@@ -1272,6 +1272,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 05:15 (Brasília)** — **MODAL HISTÓRICO DE AÇÕES — Correções:** (1) Corrigido scroll que não funcionava — substituído `ScrollArea` por `overflow-y-auto` com layout flex correto; (2) Modal redimensionado para 80vw × 80vh conforme padrão do projeto; (3) Layout interno reestruturado com `shrink-0` no header/filtros/footer e `flex-1 min-h-0` na área de logs.
 
+- **04/04/2026 05:45 (Brasília)** — **CORREÇÃO DE BUGS — Pente fino nas atualizações recentes:** (1) **AuditHistoryModal — loop infinito corrigido:** `fetchLogs` nos deps do `useEffect` causava refetch a cada mudança de filtro; refatorado para usar `doFetch` com filtros como parâmetro, eliminando closures obsoletas no `handleClear`; (2) **Segurança — `change_password` restrito ao admin #1:** A action `change_password` da edge function `manage-users` não verificava se o chamador era admin #1, permitindo que qualquer admin alterasse senhas; adicionada verificação server-side; (3) **UI — Botão Key (senha) restrito ao #1:** O botão de alterar senha na lista de usuários era visível para todos os admins; agora só aparece para o admin #1 (mesma regra do botão Pencil).
+
 ---
 
-*Última atualização: 04/04/2026 05:15 (Brasília)*
+*Última atualização: 04/04/2026 05:45 (Brasília)*
