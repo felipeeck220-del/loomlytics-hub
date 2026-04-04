@@ -1334,10 +1334,48 @@ export default function SettingsPage() {
             {!editingUser && <p className="text-sm text-muted-foreground">Preencha os dados para criar um novo usuário</p>}
           </DialogHeader>
           <div className="space-y-4">
+            {/* 1. Nome */}
             <div className="space-y-2">
               <Label>Nome Completo <span className="text-destructive">*</span></Label>
               <Input value={userForm.name} onChange={e => setUserForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: João Silva" />
             </div>
+
+            {/* 2. Função */}
+            <div className="space-y-2">
+              <Label>Função <span className="text-destructive">*</span></Label>
+              {editingUser && editingUser.role === 'admin' ? (
+                <div>
+                  <div className="flex items-center gap-2 rounded-md border border-input bg-muted/50 px-3 py-2">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground">Administrador</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Administradores não podem ter a função alterada após a criação.</p>
+                </div>
+              ) : (
+                <Select value={userForm.role} onValueChange={v => setUserForm(p => ({ ...p, role: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a função" /></SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map(r => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label} - {r.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Admin warning */}
+            {!editingUser && userForm.role === 'admin' && (
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                <div className="text-xs text-warning">
+                  <strong>Atenção:</strong> Administradores fazem login na página principal do sistema (não na URL da empresa). O email será verificado globalmente para evitar conflitos.
+                </div>
+              </div>
+            )}
+
+            {/* 3. Email */}
             {!editingUser && (
               <>
                 <div className="space-y-2">
@@ -1387,19 +1425,6 @@ export default function SettingsPage() {
                 </>
               );
             })()}
-            <div className="space-y-2">
-              <Label>Função <span className="text-destructive">*</span></Label>
-              <Select value={userForm.role} onValueChange={v => setUserForm(p => ({ ...p, role: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione a função" /></SelectTrigger>
-                <SelectContent>
-                  {ROLES.map(r => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label} - {r.description}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowUserModal(false)}>Cancelar</Button>
