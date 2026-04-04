@@ -57,6 +57,7 @@ const emptyForm = {
 export default function AccountsPayable() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
