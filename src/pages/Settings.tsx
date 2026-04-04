@@ -561,6 +561,7 @@ export default function SettingsPage() {
         body: { action: 'update_permissions', user_id: permissionsUser.user_id, permission_overrides: permOverrides },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
+      logAction('user_permissions_update', { name: permissionsUser.name, code: permissionsUser.code, permissions: permOverrides });
       toast.success('Permissões atualizadas');
       await refreshProfiles();
       setPermissionsUser(null);
