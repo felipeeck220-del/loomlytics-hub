@@ -1234,6 +1234,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **04/04/2026 02:00 (Brasília)** — **CONFIGURAÇÕES — Restrição de edição de perfil:** Apenas o administrador principal (#1) pode alterar nome e e-mail em Configurações > Meu Perfil. Outros admins veem uma mensagem informativa e podem apenas alterar a senha.
 
+- **04/04/2026 02:15 (Brasília)** — **CONFIGURAÇÕES — Proteção total do admin #1:** Na aba Usuários, outros admins não conseguem mais editar, alterar senha, desativar ou excluir o administrador principal (#1). Apenas o próprio #1 pode gerenciar seu perfil. Botões de ação são completamente ocultados para o #1 quando visualizado por outros admins.
+
 ---
 
-*Última atualização: 04/04/2026 02:00 (Brasília)*
+*Última atualização: 04/04/2026 02:15 (Brasília)*
