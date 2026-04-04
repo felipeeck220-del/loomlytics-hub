@@ -671,49 +671,75 @@ export default function Admin() {
                     className="max-w-sm"
                   />
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Data do Backup</TableHead>
-                      <TableHead>Criado em</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredBackups.map(b => (
-                      <TableRow key={b.id}>
-                        <TableCell className="font-medium">{b.company_name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {new Date(b.backup_date + 'T00:00:00').toLocaleDateString('pt-BR')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {new Date(b.created_at).toLocaleString('pt-BR')}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            disabled={restoringId === b.id}
-                            onClick={() => setRestoreConfirm({ id: b.id, name: b.company_name })}
-                          >
-                            <RotateCcw className="h-4 w-4 mr-1" />
-                            {restoringId === b.id ? 'Restaurando...' : 'Reverter'}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {filteredBackups.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                          Nenhum backup encontrado
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                {(() => {
+                  const grouped = filteredBackups.reduce<Record<string, BackupEntry[]>>((acc, b) => {
+                    const key = b.company_name || b.company_id;
+                    if (!acc[key]) acc[key] = [];
+                    acc[key].push(b);
+                    return acc;
+                  }, {});
+                  const sortedKeys = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+                  
+                  if (sortedKeys.length === 0) {
+                    return (
+                      <p className="text-center text-muted-foreground py-8">Nenhum backup encontrado</p>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {sortedKeys.map(companyName => (
+                        <Card key={companyName} className="border">
+                          <CardHeader className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-semibold text-sm">{companyName}</span>
+                              <Badge variant="outline" className="ml-auto text-xs">
+                                {grouped[companyName].length} backup(s)
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="px-4 pb-3 pt-0">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Data do Backup</TableHead>
+                                  <TableHead>Criado em</TableHead>
+                                  <TableHead className="text-right">Ações</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {grouped[companyName].map(b => (
+                                  <TableRow key={b.id}>
+                                    <TableCell>
+                                      <Badge variant="outline">
+                                        {new Date(b.backup_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground text-sm">
+                                      {new Date(b.created_at).toLocaleString('pt-BR')}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        disabled={restoringId === b.id}
+                                        onClick={() => setRestoreConfirm({ id: b.id, name: b.company_name })}
+                                      >
+                                        <RotateCcw className="h-4 w-4 mr-1" />
+                                        {restoringId === b.id ? 'Restaurando...' : 'Reverter'}
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
