@@ -478,8 +478,9 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       if (editingUser) {
-        const bodyPayload: any = { action: 'update', user_id: editingUser.user_id, name: userForm.name, role: userForm.role };
-        // Admin #1 can also update email and password
+        const bodyPayload: any = { action: 'update', user_id: editingUser.user_id, name: userForm.name };
+        // Only send role if it's not an admin (admins can't change role)
+        if (editingUser.role !== 'admin') bodyPayload.role = userForm.role;
         const currentUserProfile = profiles.find(pr => pr.user_id === user?.id);
         if (currentUserProfile?.code === '1') {
           if (userForm.email && userForm.email !== editingUser.email) bodyPayload.email = userForm.email;
