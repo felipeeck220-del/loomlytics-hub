@@ -1166,6 +1166,9 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
 
   const filtered = useMemo(() => {
     let result = [...productions];
+    if (selectedClientName !== '_all') {
+      result = result.filter(p => p.client_name === selectedClientName);
+    }
     if (selectedCompanyId !== '_all') {
       result = result.filter(p => p.outsource_company_id === selectedCompanyId);
     }
