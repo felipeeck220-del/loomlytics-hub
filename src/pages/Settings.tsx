@@ -116,6 +116,9 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: '' });
   const [saving, setSaving] = useState(false);
+  const [emailCheckStatus, setEmailCheckStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [emailCheckError, setEmailCheckError] = useState('');
+  const emailCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [changePasswordUser, setChangePasswordUser] = useState<Profile | null>(null);
   const [adminNewPassword, setAdminNewPassword] = useState('');
   const [showAdminNewPw, setShowAdminNewPw] = useState(false);
