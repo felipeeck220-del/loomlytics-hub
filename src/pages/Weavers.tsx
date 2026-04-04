@@ -19,6 +19,7 @@ import { formatNumber, formatWeight, formatCurrency } from '@/lib/formatters';
 import type { Weaver, ShiftType, Production, DefectRecord } from '@/types';
 import { SHIFT_LABELS } from '@/types';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
   manha: '05:00 às 13:30',
