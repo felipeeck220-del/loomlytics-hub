@@ -96,10 +96,24 @@ export default function Outsource() {
   const { data: productions = [], isLoading: loadingProductions } = useQuery({
     queryKey: ['outsource_productions', companyId],
     queryFn: async () => {
-      const { data, error } = await sb('outsource_productions')
-        .select('*').eq('company_id', companyId).order('date', { ascending: false });
-      if (error) throw error;
-      return (data as OutsourceProduction[]).map(p => ({
+      // Paginate past the 1000-row default limit
+      const PAGE_SIZE = 1000;
+      let allData: any[] = [];
+      let from = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await sb('outsource_productions')
+          .select('*').eq('company_id', companyId)
+          .order('date', { ascending: false })
+          .order('id', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!data) break;
+        allData = allData.concat(data);
+        hasMore = data.length === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+      return (allData as OutsourceProduction[]).map(p => ({
         ...p,
         weight_kg: Number(p.weight_kg),
         rolls: Number(p.rolls),
@@ -752,11 +766,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
             <div className="space-y-4 py-2" onKeyDown={e => {
               if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
               // Enter to save (only when dropdown is closed)
-              if (e.key === 'Enter' && !articleDropdownOpen) {
-                e.preventDefault();
-                handleSaveWithValidation();
-                return;
-              }
+               if (e.key === 'Enter' && e.ctrlKey && !articleDropdownOpen) {
+                 e.preventDefault();
+                 handleSaveWithValidation();
+                 return;
+               }
               // Don't hijack arrows when article dropdown is open
               if (articleDropdownOpen) return;
               if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
@@ -1960,7 +1974,7 @@ function exportByCompanyPdf(
         pdf.setTextColor(...textDark);
 
         const cells = [
-          artName, stats.client, `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
+          sanitizePdfText(artName), sanitizePdfText(stats.client), `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
           fmtR(stats.revenue), fmtR(stats.cost), fmtR(stats.profit),
         ];
 
@@ -2250,7 +2264,7 @@ function exportByClientPdf(
         pdf.setTextColor(...textDark);
 
         const cells = [
-          artName, stats.malharia, `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
+          sanitizePdfText(artName), sanitizePdfText(stats.malharia), `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
           fmtR(stats.revenue), fmtR(stats.cost), fmtR(stats.profit),
         ];
 

@@ -1223,6 +1223,9 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **04/04/2026 00:30 (Brasília)** — **PDF — Correção de caracteres garbled:** Criado utilitário `sanitizePdfText()` em `src/lib/pdfUtils.ts` que remove emoji e caracteres Unicode fora do Latin-1 (que jsPDF não renderiza), substituindo pontuação Unicode comum (em-dash, aspas curvas, etc.) por equivalentes ASCII. Aplicado em todos os 4 arquivos com exportação PDF: `Outsource.tsx`, `Reports.tsx`, `Fechamento.tsx`, `ResidueSales.tsx`. Corrigidos prefixos emoji (`🏭`, `👤`) nos cabeçalhos de seção do PDF por malharia/cliente.
 
+
+- **04/04/2026 01:00 (Brasília)** — **TERCEIRIZADOS — Pente fino, 3 bugs corrigidos:** (1) **BUG — Limite 1000 registros:** Query de `outsource_productions` não paginava, truncando silenciosamente dados acima de 1000 registros. Corrigido com loop de paginação recursiva (PAGE_SIZE 1000); (2) **BUG — Enter simples salvava:** Regressão onde `Enter` sozinho salvava o registro no modal, deveria ser `Ctrl+Enter` conforme documentado. Corrigido para `e.ctrlKey && e.key === 'Enter'`; (3) **BUG — sanitizePdfText faltando:** Nomes de artigos e clientes/malharias nos PDFs "Exportar por Malharia" e "Exportar por Cliente" não passavam por `sanitizePdfText()`, podendo gerar caracteres corrompidos. Corrigido.
+
 ---
 
-*Última atualização: 04/04/2026 00:30 (Brasília)*
+*Última atualização: 04/04/2026 01:00 (Brasília)*
