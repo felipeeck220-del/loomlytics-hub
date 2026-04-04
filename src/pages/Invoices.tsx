@@ -703,6 +703,9 @@ export default function Invoices() {
   const handleDeleteEft = async (id: string) => {
     const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
+    const item = outsourceYarnStock.find((s: any) => s.id === id);
+    const compName = outsourceCompanies.find(c => c.id === item?.outsource_company_id)?.name;
+    logAction('outsource_yarn_stock_delete', { company: compName, month: item?.reference_month });
     queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
     toast({ title: 'Registro excluído' });
   };
