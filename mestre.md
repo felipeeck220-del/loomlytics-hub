@@ -1230,6 +1230,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **04/04/2026 01:30 (Brasília)** — **TERCEIRIZADOS — BUG created_by_name/code null:** Campos `created_by_name` e `created_by_code` estavam sempre `null` nas produções terceirizadas devido a stale closure no `useMutation` — os valores de `userName`/`userCode` do `useAuditLog` eram capturados antes do carregamento do perfil. Corrigido com `useRef` + `useEffect` para garantir valores atualizados no momento da execução da mutation.
 
+- **04/04/2026 01:45 (Brasília)** — **TERCEIRIZADOS — Exibição de autor na listagem:** Adicionada linha com `Nome #ID` do autor abaixo da data/hora em cada registro da tabela de Produções Terceirizadas. Todos os registros existentes foram atualizados com `Felipe #1` como autor.
+
 ---
 
-*Última atualização: 04/04/2026 01:30 (Brasília)*
+*Última atualização: 04/04/2026 01:45 (Brasília)*
