@@ -30,6 +30,7 @@ export default function ClientsArticles() {
   const { canSeeFinancial } = usePermissions();
   const { user } = useAuth();
   const companyId = user?.company_id || '';
+  const { logAction } = useAuditLog();
   const clients = getClients();
   const articles = getArticles();
   const machines = getMachines();
