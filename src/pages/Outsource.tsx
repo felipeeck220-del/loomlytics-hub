@@ -429,6 +429,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 }) {
   const queryClient = useQueryClient();
   const { userCode, userName } = useAuditLog();
+  const userNameRef = useRef(userName);
+  const userCodeRef = useRef(userCode);
+  useEffect(() => { userNameRef.current = userName; }, [userName]);
+  useEffect(() => { userCodeRef.current = userCode; }, [userCode]);
   const [open, setOpen] = useState(false);
   const [prodSearch, setProdSearch] = useState('');
   const [fromOpen, setFromOpen] = useState(false);
