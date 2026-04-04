@@ -405,6 +405,7 @@ export default function Invoices() {
       } else {
         await sb('yarn_types').insert({ company_id: companyId, name: yarnName.trim(), composition: yarnComposition.trim() || null, color: yarnColor.trim() || null, observations: yarnObs.trim() || null });
       }
+      logAction(editingYarn ? 'yarn_type_update' : 'yarn_type_create', { name: yarnName.trim() });
       queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
       toast({ title: editingYarn ? 'Fio atualizado!' : 'Fio cadastrado!' });
       setYarnDialogOpen(false);
