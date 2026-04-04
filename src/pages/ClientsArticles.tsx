@@ -173,8 +173,10 @@ export default function ClientsArticles() {
   const handleDelete = async () => {
     if (showDelete?.type === 'client') {
       await saveClients(clients.filter(c => c.id !== showDelete.item.id));
+      logAction('client_delete', { name: showDelete.item.name });
     } else {
       await saveArticles(articles.filter(a => a.id !== showDelete?.item.id));
+      logAction('article_delete', { name: showDelete?.item.name });
     }
     setShowDelete(null); setDeleteWord(''); toast.success('Excluído com sucesso');
   };
