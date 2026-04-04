@@ -1887,7 +1887,7 @@ function exportByCompanyPdf(
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(30, 64, 175);
-      pdf.text(`🏭 ${companyLabel}`, m + 4, y + 7);
+      pdf.text(sanitizePdfText(companyLabel), m + 4, y + 7);
 
       // Summary on right side of bar
       pdf.setFontSize(8);
