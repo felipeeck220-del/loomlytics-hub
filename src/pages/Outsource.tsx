@@ -646,6 +646,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      logAction('outsource_production_delete', { id });
       toast({ title: 'Registro removido!' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
