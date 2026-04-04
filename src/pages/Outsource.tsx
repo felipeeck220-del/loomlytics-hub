@@ -1974,7 +1974,7 @@ function exportByCompanyPdf(
         pdf.setTextColor(...textDark);
 
         const cells = [
-          artName, stats.client, `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
+          sanitizePdfText(artName), sanitizePdfText(stats.client), `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
           fmtR(stats.revenue), fmtR(stats.cost), fmtR(stats.profit),
         ];
 
