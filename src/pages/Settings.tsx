@@ -100,11 +100,13 @@ const getRoleLabel = (role: string) => ROLES.find(r => r.value === role)?.label 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { shiftSettings, saveShiftSettings, getMachines, saveMachines } = useSharedCompanyData();
+  const { logAction } = useAuditLog();
   const [tab, setTab] = useState('profile');
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [company, setCompany] = useState<any>(null);
+  const [showAuditHistory, setShowAuditHistory] = useState(false);
 
   // User management
   const [showUserModal, setShowUserModal] = useState(false);
