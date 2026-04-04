@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatNumber, formatCurrency, formatWeight } from '@/lib/formatters';
+import { sanitizePdfText } from '@/lib/pdfUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { toast } from 'sonner';
@@ -439,18 +440,19 @@ export default function Fechamento() {
             pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, ls.width, ls.height);
           } catch {
             pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
-            pdf.text(companyName, leftX, y + 10);
+            pdf.text(sanitizePdfText(companyName), leftX, y + 10);
           }
         } else {
           pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
-          if (companyName) pdf.text(companyName, leftX, y + 10);
+          if (companyName) pdf.text(sanitizePdfText(companyName), leftX, y + 10);
         }
         pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textMid);
         pdf.text(dateStr, leftX, y + 22);
 
         pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
-        const tw = pdf.getTextWidth(title);
-        pdf.text(title, (pw - tw) / 2, y + 14);
+        const sanitizedTitle = sanitizePdfText(title);
+        const tw = pdf.getTextWidth(sanitizedTitle);
+        pdf.text(sanitizedTitle, (pw - tw) / 2, y + 14);
 
         pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textMid);
         const pW2 = pdf.getTextWidth(periodText);

@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, type ShiftType, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
+import { sanitizePdfText } from '@/lib/pdfUtils';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -1379,7 +1380,7 @@ function handleExport(
               pdf.setFontSize(10);
               pdf.setFont('helvetica', 'bold');
               pdf.setTextColor(...colors.textDark);
-              pdf.text(cName, leftX, y + 10);
+              pdf.text(sanitizePdfText(cName), leftX, y + 10);
             }
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'normal');
@@ -1391,7 +1392,7 @@ function handleExport(
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(...colors.textDark);
           if (cName) {
-            pdf.text(cName, leftX, y + 10);
+            pdf.text(sanitizePdfText(cName), leftX, y + 10);
           }
           pdf.setFontSize(8);
           pdf.setFont('helvetica', 'normal');

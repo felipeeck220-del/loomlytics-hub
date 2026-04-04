@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency, formatWeight, formatNumber, getDateLimits, isDateValid } from '@/lib/formatters';
+import { sanitizePdfText } from '@/lib/pdfUtils';
 import {
   Plus, Trash2, Edit, Factory, Building2, DollarSign, Scale, TrendingUp,
   Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search
@@ -1532,7 +1533,7 @@ function exportOutsourcePdf(
           pdf.setFontSize(10);
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(...textDark);
-          pdf.text(companyName, leftX, y + 10);
+          pdf.text(sanitizePdfText(companyName), leftX, y + 10);
         }
         pdf.setFontSize(8);
         pdf.setFont('helvetica', 'normal');
@@ -1543,7 +1544,7 @@ function exportOutsourcePdf(
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...textDark);
-      if (companyName) pdf.text(companyName, leftX, y + 10);
+      if (companyName) pdf.text(sanitizePdfText(companyName), leftX, y + 10);
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...textMid);
@@ -1656,7 +1657,7 @@ function exportOutsourcePdf(
       const dateParts = p.date.split('-');
       const formattedDate = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
       const cells = [
-        formattedDate, p.outsource_company_name || '—', p.article_name || '—', p.client_name || '—',
+        formattedDate, sanitizePdfText(p.outsource_company_name || ''), sanitizePdfText(p.article_name || ''), sanitizePdfText(p.client_name || ''),
         `${fmtN(p.weight_kg, 1)} kg`, String(p.rolls),
         fmtR(p.client_value_per_kg), fmtR(p.outsource_value_per_kg),
         fmtR(p.profit_per_kg), fmtR(p.total_profit),
@@ -1803,7 +1804,7 @@ function exportByCompanyPdf(
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...textDark);
-      pdf.text(companyName, leftX, y + 10);
+      pdf.text(sanitizePdfText(companyName), leftX, y + 10);
     }
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
@@ -1887,7 +1888,7 @@ function exportByCompanyPdf(
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(30, 64, 175);
-      pdf.text(`🏭 ${companyLabel}`, m + 4, y + 7);
+      pdf.text(sanitizePdfText(companyLabel), m + 4, y + 7);
 
       // Summary on right side of bar
       pdf.setFontSize(8);
@@ -2099,7 +2100,7 @@ function exportByClientPdf(
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...textDark);
-      pdf.text(companyName, leftX, y + 10);
+      pdf.text(sanitizePdfText(companyName), leftX, y + 10);
     }
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'normal');
@@ -2181,7 +2182,7 @@ function exportByClientPdf(
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(21, 128, 61);
-      pdf.text(`👤 ${clientLabel}`, m + 4, y + 7);
+      pdf.text(sanitizePdfText(clientLabel), m + 4, y + 7);
 
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
