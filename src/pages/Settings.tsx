@@ -579,6 +579,7 @@ export default function SettingsPage() {
         body: { action: 'delete', user_id: showDeleteUser?.user_id },
       });
       if (error || data?.error) { toast.error(data?.error || 'Erro ao excluir'); return; }
+      logAction('user_delete', { name: showDeleteUser?.name, code: showDeleteUser?.code, email: showDeleteUser?.email });
       toast.success('Usuário excluído');
       setShowDeleteUser(null);
       setDeleteWord('');
