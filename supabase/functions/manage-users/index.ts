@@ -186,6 +186,14 @@ serve(async (req) => {
 
       const isCallerMainAdmin = callerFullProfile?.code === "1";
 
+      // SECURITY: Block email/password changes by non-#1 admins BEFORE applying
+      if ((email || password) && !isCallerMainAdmin) {
+        return new Response(JSON.stringify({ error: "Apenas o administrador principal (#1) pode alterar email e senha" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const updates: Record<string, string> = {};
       if (name) updates.name = name;
       if (role) updates.role = role;
@@ -238,13 +246,6 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-      }
-
-      if ((email || password) && !isCallerMainAdmin) {
-        return new Response(JSON.stringify({ error: "Apenas o administrador principal (#1) pode alterar email e senha" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
       }
 
       return new Response(JSON.stringify({ success: true }), {
