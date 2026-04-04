@@ -607,6 +607,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      logAction(editId ? 'outsource_production_update' : 'outsource_production_create', { date: form.date, article: form.article_id });
       toast({ title: editId ? 'Registro atualizado!' : 'Produção registrada!' });
       if (editId) {
         setOpen(false);
