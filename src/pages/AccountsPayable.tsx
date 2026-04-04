@@ -153,7 +153,9 @@ export default function AccountsPayable() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, id: string) => {
+      const acc = accounts.find(a => a.id === id);
+      logAction('account_pay', { supplier_name: acc?.supplier_name, amount: acc?.amount });
       toast.success('Conta marcada como paga!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
     },
