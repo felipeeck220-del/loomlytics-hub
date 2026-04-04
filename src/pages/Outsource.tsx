@@ -96,10 +96,24 @@ export default function Outsource() {
   const { data: productions = [], isLoading: loadingProductions } = useQuery({
     queryKey: ['outsource_productions', companyId],
     queryFn: async () => {
-      const { data, error } = await sb('outsource_productions')
-        .select('*').eq('company_id', companyId).order('date', { ascending: false });
-      if (error) throw error;
-      return (data as OutsourceProduction[]).map(p => ({
+      // Paginate past the 1000-row default limit
+      const PAGE_SIZE = 1000;
+      let allData: any[] = [];
+      let from = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await sb('outsource_productions')
+          .select('*').eq('company_id', companyId)
+          .order('date', { ascending: false })
+          .order('id', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!data) break;
+        allData = allData.concat(data);
+        hasMore = data.length === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+      return (allData as OutsourceProduction[]).map(p => ({
         ...p,
         weight_kg: Number(p.weight_kg),
         rolls: Number(p.rolls),
