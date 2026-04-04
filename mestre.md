@@ -1274,6 +1274,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 05:45 (Brasília)** — **CORREÇÃO DE BUGS — Pente fino nas atualizações recentes:** (1) **AuditHistoryModal — loop infinito corrigido:** `fetchLogs` nos deps do `useEffect` causava refetch a cada mudança de filtro; refatorado para usar `doFetch` com filtros como parâmetro, eliminando closures obsoletas no `handleClear`; (2) **Segurança — `change_password` restrito ao admin #1:** A action `change_password` da edge function `manage-users` não verificava se o chamador era admin #1, permitindo que qualquer admin alterasse senhas; adicionada verificação server-side; (3) **UI — Botão Key (senha) restrito ao #1:** O botão de alterar senha na lista de usuários era visível para todos os admins; agora só aparece para o admin #1 (mesma regra do botão Pencil).
 
+- **04/04/2026 06:00 (Brasília)** — **SEGURANÇA — Ações de usuário restritas ao admin #1:** Botões de desativar (XCircle), excluir (Trash2) e permissões extras (Eye) na aba Usuários agora são visíveis **somente** para o admin #1. Admins não-#1 não veem mais nenhum botão de ação sobre outros usuários, apenas visualizam a lista.
+
 ---
 
-*Última atualização: 04/04/2026 05:45 (Brasília)*
+*Última atualização: 04/04/2026 06:00 (Brasília)*
