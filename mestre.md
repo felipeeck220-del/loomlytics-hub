@@ -1219,6 +1219,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **03/04/2026 23:30 (Brasília)** — **TERCEIRIZADOS — 3 melhorias visuais:** (1) **Badge Lucro/kg negativo** — mudado de `destructive` (fundo vermelho escuro, texto ilegível) para `outline` com fundo `red-100` e texto `red-700`, garantindo legibilidade tanto para lucro (verde) quanto prejuízo (vermelho); (2) **Formato de data** — listagem de produções e relatórios agora exibe datas no formato `dd-MM-yyyy` em vez de `yyyy-MM-dd`; (3) **PDF Export** — colunas Lucro/kg e Lucro Total agora coloridas em verde (lucro) e vermelho (prejuízo) com texto visível no PDF exportado.
 
+- **04/04/2026 00:00 (Brasília)** — **TERCEIRIZADOS — Filtro e Exportação por Cliente:** Adicionado filtro de Cliente (com lupa de pesquisa) na aba Relatórios do módulo Terceirizado, idêntico ao filtro de Malharia existente. Adicionado botão "Exportar por Cliente" que gera PDF agrupado por cliente com artigos, malharias, receita, custo e lucro por artigo — seguindo o mesmo padrão visual do "Exportar por Malharia" (cabeçalho verde para clientes vs azul para malharias). O filtro de cliente também afeta os KPIs e a tabela de relatório.
+
 ---
 
-*Última atualização: 03/04/2026 23:30 (Brasília)*
+*Última atualização: 04/04/2026 00:00 (Brasília)*
