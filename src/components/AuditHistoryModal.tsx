@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Search, ChevronDown, ChevronUp, Filter, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -222,13 +221,13 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="w-[80vw] max-w-4xl h-[80vh] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6 pb-0 shrink-0">
           <DialogTitle className="font-display text-lg">Histórico de Ações</DialogTitle>
         </DialogHeader>
 
         {/* Filters */}
-        <div className="space-y-3 pb-3 border-b border-border">
+        <div className="px-6 py-3 border-b border-border space-y-3 shrink-0">
           <div className="flex flex-wrap gap-2">
             <Select value={filterUser} onValueChange={v => { setFilterUser(v); }}>
               <SelectTrigger className="w-[160px] h-9 text-sm">
@@ -282,9 +281,9 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
           </div>
         </div>
 
-        {/* Log List */}
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="space-y-1 pr-3">
+        {/* Log List — scrollable area */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-3">
+          <div className="space-y-1">
             {loading && logs.length === 0 ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -354,9 +353,9 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
-        <div className="text-xs text-muted-foreground text-right pt-2 border-t border-border">
+        <div className="text-xs text-muted-foreground text-right px-6 py-2 border-t border-border shrink-0">
           {logs.length} registro{logs.length !== 1 ? 's' : ''} exibido{logs.length !== 1 ? 's' : ''}
         </div>
       </DialogContent>

@@ -1268,6 +1268,10 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 04:30 (Brasília)** — **DOCUMENTAÇÃO AUDITORIA:** Criado `auditoria.md` com documentação 100% detalhada do sistema de auditoria: arquitetura (`audit_logs` + `useAuditLog`), cobertura atual por módulo (7 com auditoria, 7 pendentes), convenção de nomes de ações, estrutura do campo `details`, especificação do modal de histórico (a implementar), e regra obrigatória para novas funcionalidades. Adicionada seção "Padrão de Auditoria (Regra Global — OBRIGATÓRIA)" no `mestre.md` com checklist de 6 itens que toda nova feature deve seguir.
 
+- **04/04/2026 05:00 (Brasília)** — **AUDITORIA COMPLETA — Todos os módulos:** Implementado `logAction` explícito em todos os módulos pendentes: Tecelões (`weaver_create/update/delete`), Contas a Pagar (`account_create/update/delete/pay`), Resíduos (`residue_material_create/update/delete`, `residue_sale_create/delete`), Notas Fiscais (`invoice_create/confirm/cancel`, `yarn_type_create/update/delete`, `outsource_yarn_stock_create/update/delete`), Clientes & Artigos, Terceirizados e Configurações (usuários). Atualizado `auditoria.md` movendo todos para "✅ Implementado".
+
+- **04/04/2026 05:15 (Brasília)** — **MODAL HISTÓRICO DE AÇÕES — Correções:** (1) Corrigido scroll que não funcionava — substituído `ScrollArea` por `overflow-y-auto` com layout flex correto; (2) Modal redimensionado para 80vw × 80vh conforme padrão do projeto; (3) Layout interno reestruturado com `shrink-0` no header/filtros/footer e `flex-1 min-h-0` na área de logs.
+
 ---
 
-*Última atualização: 04/04/2026 04:30 (Brasília)*
+*Última atualização: 04/04/2026 05:15 (Brasília)*
