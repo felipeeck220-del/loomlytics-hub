@@ -168,7 +168,7 @@ serve(async (req) => {
     }
 
     if (action === "update") {
-      const { user_id, name, role, status } = body;
+      const { user_id, name, role, status, email, password } = body;
       if (!user_id) {
         return new Response(JSON.stringify({ error: "Missing user_id" }), {
           status: 400,
@@ -176,20 +176,73 @@ serve(async (req) => {
         });
       }
 
+      // Check if caller is main admin (#1) for email/password changes
+      const { data: callerFullProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("code")
+        .eq("user_id", callingUser.id)
+        .eq("company_id", callerProfile.company_id)
+        .single();
+
+      const isCallerMainAdmin = callerFullProfile?.code === "1";
+
       const updates: Record<string, string> = {};
       if (name) updates.name = name;
       if (role) updates.role = role;
       if (status) updates.status = status;
+      if (email && isCallerMainAdmin) updates.email = email;
 
-      const { error } = await supabaseAdmin
-        .from("profiles")
-        .update(updates)
-        .eq("user_id", user_id)
-        .eq("company_id", callerProfile.company_id);
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabaseAdmin
+          .from("profiles")
+          .update(updates)
+          .eq("user_id", user_id)
+          .eq("company_id", callerProfile.company_id);
 
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
+        if (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      // Update auth email if changed by main admin
+      if (email && isCallerMainAdmin) {
+        const { error: authEmailError } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
+          email: email,
+          email_confirm: true,
+        });
+        if (authEmailError) {
+          return new Response(JSON.stringify({ error: "Erro ao atualizar email: " + authEmailError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      // Update auth password if changed by main admin
+      if (password && isCallerMainAdmin) {
+        if (password.length < 6) {
+          return new Response(JSON.stringify({ error: "Senha deve ter no mínimo 6 caracteres" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { error: authPwError } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
+          password: password,
+        });
+        if (authPwError) {
+          return new Response(JSON.stringify({ error: "Erro ao atualizar senha: " + authPwError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      if ((email || password) && !isCallerMainAdmin) {
+        return new Response(JSON.stringify({ error: "Apenas o administrador principal (#1) pode alterar email e senha" }), {
+          status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

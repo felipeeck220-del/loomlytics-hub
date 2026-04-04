@@ -474,9 +474,14 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       if (editingUser) {
-        const { data, error } = await supabase.functions.invoke('manage-users', {
-          body: { action: 'update', user_id: editingUser.user_id, name: userForm.name, role: userForm.role },
-        });
+        const bodyPayload: any = { action: 'update', user_id: editingUser.user_id, name: userForm.name, role: userForm.role };
+        // Admin #1 can also update email and password
+        const currentUserProfile = profiles.find(pr => pr.user_id === user?.id);
+        if (currentUserProfile?.code === '1') {
+          if (userForm.email && userForm.email !== editingUser.email) bodyPayload.email = userForm.email;
+          if (userForm.password && userForm.password.length >= 6) bodyPayload.password = userForm.password;
+        }
+        const { data, error } = await supabase.functions.invoke('manage-users', { body: bodyPayload });
         if (error || data?.error) throw new Error(data?.error || error?.message);
         toast.success('Usuário atualizado');
       } else {
@@ -1338,6 +1343,33 @@ export default function SettingsPage() {
                 </div>
               </>
             )}
+            {editingUser && (() => {
+              const currentUserProfile = profiles.find(pr => pr.user_id === user?.id);
+              const isMainAdmin = currentUserProfile?.code === '1';
+              if (!isMainAdmin) return null;
+              return (
+                <>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input type="email" value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} placeholder="usuario@empresa.com" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nova Senha <span className="text-xs text-muted-foreground">(deixe vazio para manter)</span></Label>
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        value={userForm.password}
+                        onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))}
+                        placeholder="Mínimo 6 caracteres"
+                      />
+                      <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
             <div className="space-y-2">
               <Label>Função <span className="text-destructive">*</span></Label>
               <Select value={userForm.role} onValueChange={v => setUserForm(p => ({ ...p, role: v }))}>
