@@ -1186,7 +1186,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     if (profitFilter === 'profit') result = result.filter(p => p.total_profit > 0);
     else if (profitFilter === 'loss') result = result.filter(p => p.total_profit < 0);
     return result;
-  }, [productions, startDate, endDate, profitFilter, reportMonth, selectedCompanyId]);
+  }, [productions, startDate, endDate, profitFilter, reportMonth, selectedCompanyId, selectedClientName]);
 
   const totals = useMemo(() => ({
     revenue: filtered.reduce((s, p) => s + p.total_revenue, 0),
