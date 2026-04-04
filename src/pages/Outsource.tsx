@@ -1349,8 +1349,19 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
 
         {/* Export PDFs */}
         <div className="flex justify-end gap-2 flex-wrap">
-          {selectedCompanyId === '_all' ? (
+          {selectedClientName !== '_all' ? (
+            <Button onClick={() => exportByClientPdf(filtered, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+              <Download className="h-4 w-4 mr-2" /> Exportar PDF ({selectedClientName})
+            </Button>
+          ) : selectedCompanyId !== '_all' ? (
+            <Button onClick={() => exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+              <Download className="h-4 w-4 mr-2" /> Exportar PDF ({companies.find(c => c.id === selectedCompanyId)?.name})
+            </Button>
+          ) : (
             <>
+              <Button onClick={() => exportByClientPdf(filtered, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
+                <Users className="h-4 w-4 mr-2" /> Exportar por Cliente
+              </Button>
               <Button onClick={() => exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
                 <Factory className="h-4 w-4 mr-2" /> Exportar por Malharia
               </Button>
@@ -1358,13 +1369,6 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
                 <Download className="h-4 w-4 mr-2" /> Exportar PDF
               </Button>
             </>
-          ) : (
-            <Button onClick={() => {
-              const selectedName = companies.find(c => c.id === selectedCompanyId)?.name || '';
-              exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl);
-            }} className="btn-gradient" disabled={filtered.length === 0}>
-              <Download className="h-4 w-4 mr-2" /> Exportar PDF ({companies.find(c => c.id === selectedCompanyId)?.name})
-            </Button>
           )}
         </div>
 
