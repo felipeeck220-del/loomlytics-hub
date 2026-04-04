@@ -450,8 +450,9 @@ export default function Fechamento() {
         pdf.text(dateStr, leftX, y + 22);
 
         pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
-        const tw = pdf.getTextWidth(title);
-        pdf.text(title, (pw - tw) / 2, y + 14);
+        const sanitizedTitle = sanitizePdfText(title);
+        const tw = pdf.getTextWidth(sanitizedTitle);
+        pdf.text(sanitizedTitle, (pw - tw) / 2, y + 14);
 
         pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textMid);
         const pW2 = pdf.getTextWidth(periodText);
