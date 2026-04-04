@@ -1266,6 +1266,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 04:15 (Brasília)** — **CONFIGURAÇÕES — Botão editar restrito ao admin #1:** Na aba Usuários, apenas o administrador principal (#1) vê o ícone de editar (lápis) para alterar nome e função de outros usuários. Admins não-#1 não veem mais esse botão.
 
+- **04/04/2026 04:30 (Brasília)** — **DOCUMENTAÇÃO AUDITORIA:** Criado `auditoria.md` com documentação 100% detalhada do sistema de auditoria: arquitetura (`audit_logs` + `useAuditLog`), cobertura atual por módulo (7 com auditoria, 7 pendentes), convenção de nomes de ações, estrutura do campo `details`, especificação do modal de histórico (a implementar), e regra obrigatória para novas funcionalidades. Adicionada seção "Padrão de Auditoria (Regra Global — OBRIGATÓRIA)" no `mestre.md` com checklist de 6 itens que toda nova feature deve seguir.
+
 ---
 
-*Última atualização: 04/04/2026 04:15 (Brasília)*
+*Última atualização: 04/04/2026 04:30 (Brasília)*
