@@ -429,6 +429,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 }) {
   const queryClient = useQueryClient();
   const { userCode, userName } = useAuditLog();
+  const userNameRef = useRef(userName);
+  const userCodeRef = useRef(userCode);
+  useEffect(() => { userNameRef.current = userName; }, [userName]);
+  useEffect(() => { userCodeRef.current = userCode; }, [userCode]);
   const [open, setOpen] = useState(false);
   const [prodSearch, setProdSearch] = useState('');
   const [fromOpen, setFromOpen] = useState(false);
@@ -566,8 +570,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
         total_profit: totalProfit,
         observations: form.observations || null,
         nf_rom: form.nf_rom || null,
-        created_by_name: userName || null,
-        created_by_code: userCode || null,
+        created_by_name: userNameRef.current || null,
+        created_by_code: userCodeRef.current || null,
       };
       if (editId) {
         // Get old record to calculate delta
