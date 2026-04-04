@@ -1380,7 +1380,7 @@ function handleExport(
               pdf.setFontSize(10);
               pdf.setFont('helvetica', 'bold');
               pdf.setTextColor(...colors.textDark);
-              pdf.text(cName, leftX, y + 10);
+              pdf.text(sanitizePdfText(cName), leftX, y + 10);
             }
             pdf.setFontSize(8);
             pdf.setFont('helvetica', 'normal');
