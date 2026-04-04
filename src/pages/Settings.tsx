@@ -823,9 +823,16 @@ export default function SettingsPage() {
               </div>
             </div>
             {isAdmin && (
-              <Button onClick={openNewUser} className="btn-gradient">
-                <Plus className="h-4 w-4 mr-1" /> Novo Usuário
-              </Button>
+              <div className="flex items-center gap-2">
+                {profiles.find(pr => pr.user_id === user?.id)?.code === '1' && (
+                  <Button variant="outline" onClick={() => setShowAuditHistory(true)}>
+                    <History className="h-4 w-4 mr-1" /> Histórico
+                  </Button>
+                )}
+                <Button onClick={openNewUser} className="btn-gradient">
+                  <Plus className="h-4 w-4 mr-1" /> Novo Usuário
+                </Button>
+              </div>
             )}
           </div>
 
