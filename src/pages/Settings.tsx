@@ -474,9 +474,14 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       if (editingUser) {
-        const { data, error } = await supabase.functions.invoke('manage-users', {
-          body: { action: 'update', user_id: editingUser.user_id, name: userForm.name, role: userForm.role },
-        });
+        const bodyPayload: any = { action: 'update', user_id: editingUser.user_id, name: userForm.name, role: userForm.role };
+        // Admin #1 can also update email and password
+        const currentUserProfile = profiles.find(pr => pr.user_id === user?.id);
+        if (currentUserProfile?.code === '1') {
+          if (userForm.email && userForm.email !== editingUser.email) bodyPayload.email = userForm.email;
+          if (userForm.password && userForm.password.length >= 6) bodyPayload.password = userForm.password;
+        }
+        const { data, error } = await supabase.functions.invoke('manage-users', { body: bodyPayload });
         if (error || data?.error) throw new Error(data?.error || error?.message);
         toast.success('Usuário atualizado');
       } else {
