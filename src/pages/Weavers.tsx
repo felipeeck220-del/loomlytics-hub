@@ -99,7 +99,9 @@ export default function Weavers() {
 
   const handleDelete = async () => {
     if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
-    await saveWeavers(weavers.filter(w => w.id !== showDelete?.id));
+    const deleted = showDelete!;
+    await saveWeavers(weavers.filter(w => w.id !== deleted.id));
+    logAction('weaver_delete', { name: deleted.name, code: deleted.code });
     setShowDelete(null); setDeleteWord(''); toast.success('Tecelão excluído');
   };
 
