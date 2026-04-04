@@ -420,6 +420,39 @@ serve(async (req) => {
       });
     }
 
+    if (action === "check_email") {
+      const { email } = body;
+      if (!email) {
+        return new Response(JSON.stringify({ error: "Missing email" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Global check across ALL companies (service role bypasses RLS)
+      const { data: existingProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("id, company_id, role")
+        .eq("email", email)
+        .limit(1)
+        .maybeSingle();
+
+      // Also check auth.users for emails not yet in profiles
+      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1 });
+      let authEmailExists = false;
+      if (!existingProfile) {
+        const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+        authEmailExists = (usersData?.users || []).some((u: any) => u.email === email);
+      }
+
+      return new Response(JSON.stringify({
+        exists: !!existingProfile || authEmailExists,
+        in_current_company: existingProfile?.company_id === callerProfile.company_id,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
