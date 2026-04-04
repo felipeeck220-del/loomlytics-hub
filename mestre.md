@@ -1280,6 +1280,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 07:00 (Brasília)** — **MODAL CRIAR USUÁRIO — UX progressiva:** (1) Label alterado de "Nome Completo" para "Nome"; (2) Email e Senha ficam desativados até selecionar função; (3) Para função Admin: email é liberado mas senha fica bloqueada até verificação em tempo real (debounce 600ms) confirmar que o email não existe globalmente — mostra "Verificando...", "✓ Email disponível" ou erro; (4) Para outras funções: email e senha são liberados imediatamente após seleção; (5) Botão "Criar Usuário" só é habilitado quando todos os campos estão válidos; (6) Ao trocar função, email e senha são resetados.
 
+- **04/04/2026 07:30 (Brasília)** — **VERIFICAÇÃO GLOBAL DE EMAIL — Cross-empresa:** Verificação de email no modal de criação de admin agora é verdadeiramente global: usa action `check_email` na edge function `manage-users` (service role bypassa RLS) para verificar em TODAS as empresas do sistema + auth.users. Mensagens diferenciadas: "já cadastrado nesta empresa" vs "já cadastrado em outra empresa do sistema".
+
 ---
 
-*Última atualização: 04/04/2026 07:00 (Brasília)*
+*Última atualização: 04/04/2026 07:30 (Brasília)*
