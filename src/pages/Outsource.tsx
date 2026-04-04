@@ -1133,6 +1133,8 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
   const [reportMonth, setReportMonth] = useState<string>('');
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('_all');
   const [companySearch, setCompanySearch] = useState('');
+  const [selectedClientName, setSelectedClientName] = useState<string>('_all');
+  const [clientSearch, setClientSearch] = useState('');
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -1150,8 +1152,23 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     return companies.filter(c => c.name.toLowerCase().includes(q));
   }, [companies, companySearch]);
 
+  const availableClients = useMemo(() => {
+    const clients = new Set<string>();
+    productions.forEach(p => { if (p.client_name) clients.add(p.client_name); });
+    return Array.from(clients).sort();
+  }, [productions]);
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return availableClients;
+    const q = clientSearch.toLowerCase();
+    return availableClients.filter(c => c.toLowerCase().includes(q));
+  }, [availableClients, clientSearch]);
+
   const filtered = useMemo(() => {
     let result = [...productions];
+    if (selectedClientName !== '_all') {
+      result = result.filter(p => p.client_name === selectedClientName);
+    }
     if (selectedCompanyId !== '_all') {
       result = result.filter(p => p.outsource_company_id === selectedCompanyId);
     }
@@ -1169,7 +1186,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     if (profitFilter === 'profit') result = result.filter(p => p.total_profit > 0);
     else if (profitFilter === 'loss') result = result.filter(p => p.total_profit < 0);
     return result;
-  }, [productions, startDate, endDate, profitFilter, reportMonth, selectedCompanyId]);
+  }, [productions, startDate, endDate, profitFilter, reportMonth, selectedCompanyId, selectedClientName]);
 
   const totals = useMemo(() => ({
     revenue: filtered.reduce((s, p) => s + p.total_revenue, 0),
@@ -1191,7 +1208,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     return 'Todo período';
   }, [startDate, endDate, reportMonth]);
 
-  const hasActiveFilters = !!reportMonth || !!startDate || !!endDate || profitFilter !== 'all' || selectedCompanyId !== '_all';
+  const hasActiveFilters = !!reportMonth || !!startDate || !!endDate || profitFilter !== 'all' || selectedCompanyId !== '_all' || selectedClientName !== '_all';
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
@@ -1280,6 +1297,36 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
               </Popover>
             </div>
             <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Cliente</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-[180px] justify-between h-8 text-xs font-normal">
+                    <span className="truncate">
+                      {selectedClientName === '_all' ? 'Todos os clientes' : selectedClientName}
+                    </span>
+                    <Search className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[220px] p-0" align="start">
+                  <div className="flex items-center border-b px-2 py-1.5">
+                    <Search className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    <Input placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="h-7 border-0 p-0 text-xs shadow-none focus-visible:ring-0" />
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto p-1">
+                    <button type="button" className={cn("w-full text-left px-3 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground", selectedClientName === '_all' && 'bg-accent text-accent-foreground')} onClick={() => { setSelectedClientName('_all'); setClientSearch(''); }}>
+                      Todos os clientes
+                    </button>
+                    {filteredClients.map(c => (
+                      <button key={c} type="button" className={cn("w-full text-left px-3 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground", selectedClientName === c && 'bg-accent text-accent-foreground')} onClick={() => { setSelectedClientName(c); setClientSearch(''); }}>
+                        {c}
+                      </button>
+                    ))}
+                    {filteredClients.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">Nenhum encontrado</p>}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Resultado</Label>
               <Select value={profitFilter} onValueChange={(v: any) => setProfitFilter(v)}>
                 <SelectTrigger className="w-[120px] h-8 text-xs">
@@ -1293,7 +1340,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
               </Select>
             </div>
             {hasActiveFilters && (
-              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); setReportMonth(''); setSelectedCompanyId('_all'); }}>
+              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); setReportMonth(''); setSelectedCompanyId('_all'); setSelectedClientName('_all'); }}>
                 ✕ Limpar
               </Button>
             )}
@@ -1302,8 +1349,19 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
 
         {/* Export PDFs */}
         <div className="flex justify-end gap-2 flex-wrap">
-          {selectedCompanyId === '_all' ? (
+          {selectedClientName !== '_all' ? (
+            <Button onClick={() => exportByClientPdf(filtered, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+              <Download className="h-4 w-4 mr-2" /> Exportar PDF ({selectedClientName})
+            </Button>
+          ) : selectedCompanyId !== '_all' ? (
+            <Button onClick={() => exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+              <Download className="h-4 w-4 mr-2" /> Exportar PDF ({companies.find(c => c.id === selectedCompanyId)?.name})
+            </Button>
+          ) : (
             <>
+              <Button onClick={() => exportByClientPdf(filtered, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
+                <Users className="h-4 w-4 mr-2" /> Exportar por Cliente
+              </Button>
               <Button onClick={() => exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
                 <Factory className="h-4 w-4 mr-2" /> Exportar por Malharia
               </Button>
@@ -1311,13 +1369,6 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
                 <Download className="h-4 w-4 mr-2" /> Exportar PDF
               </Button>
             </>
-          ) : (
-            <Button onClick={() => {
-              const selectedName = companies.find(c => c.id === selectedCompanyId)?.name || '';
-              exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl);
-            }} className="btn-gradient" disabled={filtered.length === 0}>
-              <Download className="h-4 w-4 mr-2" /> Exportar PDF ({companies.find(c => c.id === selectedCompanyId)?.name})
-            </Button>
           )}
         </div>
 
@@ -1930,6 +1981,296 @@ function exportByCompanyPdf(
       });
 
       // Company total row
+      if (y + rowH > ph - m) {
+        pdf.addPage();
+        y = m;
+      }
+      pdf.setFillColor(226, 232, 240);
+      pdf.rect(m, y, pw - 2 * m, rowH, 'F');
+      pdf.setDrawColor(148, 163, 184);
+      pdf.setLineWidth(0.3);
+      pdf.line(m, y, pw - m, y);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.setTextColor(...textDark);
+      pdf.text('TOTAL', m + 2, y + 5);
+      x = m + cols[0] + cols[1];
+      pdf.text(`${fmtN(cWeight, 1)} kg`, x + 2, y + 5); x += cols[2];
+      pdf.text(String(cRolls), x + 2, y + 5); x += cols[3];
+      pdf.text(fmtR(cRevenue), x + 2, y + 5); x += cols[4];
+      pdf.text(fmtR(cCost), x + 2, y + 5); x += cols[5];
+      pdf.setTextColor(cProfit >= 0 ? 22 : 220, cProfit >= 0 ? 163 : 38, cProfit >= 0 ? 74 : 38);
+      pdf.text(fmtR(cProfit), x + 2, y + 5);
+      pdf.setTextColor(...textDark);
+      y += rowH + 8;
+    });
+
+    // Footer
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(148, 163, 184);
+    const footer = `Relatório gerado automaticamente pelo sistema MalhaGest · ${date}`;
+    const fw = pdf.getTextWidth(footer);
+    if (y + 10 > ph - m) { pdf.addPage(); y = m; }
+    pdf.text(footer, (pw - fw) / 2, y);
+
+    pdf.save(fileName);
+  };
+
+  doExport();
+}
+
+function exportByClientPdf(
+  data: OutsourceProduction[],
+  periodLabel: string,
+  companyName?: string,
+  logoUrl?: string | null,
+) {
+  const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
+  const date = new Date().toLocaleString('pt-BR');
+  const fileName = `relatorio_por_cliente_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+
+  // Group by client
+  const grouped = new Map<string, OutsourceProduction[]>();
+  data.forEach(p => {
+    const key = p.client_name || 'Sem cliente';
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(p);
+  });
+
+  const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+        } catch { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
+  const doExport = async () => {
+    let logoInfo: { data: string; width: number; height: number } | null = null;
+    if (logoUrl) logoInfo = await loadLogo(logoUrl);
+
+    const { jsPDF } = await import('jspdf');
+    const pdf = new jsPDF('l', 'mm', 'a4');
+    const pw = pdf.internal.pageSize.getWidth();
+    const ph = pdf.internal.pageSize.getHeight();
+    const m = 12;
+    let y = m;
+
+    const textDark: [number, number, number] = [17, 24, 39];
+    const textMid: [number, number, number] = [75, 85, 99];
+    const border: [number, number, number] = [229, 231, 235];
+
+    const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+      if (!width || !height) return { width: maxWidth, height: maxHeight };
+      const scale = Math.min(maxWidth / width, maxHeight / height);
+      return { width: width * scale, height: height * scale };
+    };
+
+    // Header
+    const headerH = 25;
+    pdf.setFillColor(249, 250, 251);
+    pdf.rect(m, y, pw - 2 * m, headerH, 'F');
+    pdf.setDrawColor(...border);
+    pdf.setLineWidth(0.5);
+    pdf.rect(m, y, pw - 2 * m, headerH, 'S');
+
+    const leftX = m + 5;
+    const rightX = pw - m - 5;
+
+    if (logoInfo) {
+      try {
+        const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+        pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
+      } catch {}
+    } else if (companyName) {
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...textDark);
+      pdf.text(companyName, leftX, y + 10);
+    }
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...textMid);
+    pdf.text(date, leftX, y + 22);
+
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...textDark);
+    const titleText = 'RELATÓRIO POR CLIENTE';
+    const titleW = pdf.getTextWidth(titleText);
+    pdf.text(titleText, (pw - titleW) / 2, y + 10);
+
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...textDark);
+    const periodTitle = 'Período';
+    pdf.text(periodTitle, rightX - pdf.getTextWidth(periodTitle), y + 10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...textMid);
+    const periodLines = pdf.splitTextToSize(periodLabel, 42) as string[];
+    periodLines.slice(0, 2).forEach((line, index) => {
+      pdf.text(line, rightX - pdf.getTextWidth(line), y + 16 + index * 5);
+    });
+
+    y += headerH + 10;
+
+    // Grand totals
+    const grandTotalWeight = data.reduce((s, p) => s + p.weight_kg, 0);
+    const grandTotalProfit = data.reduce((s, p) => s + p.total_profit, 0);
+    const grandTotalRevenue = data.reduce((s, p) => s + p.total_revenue, 0);
+    const grandTotalCost = data.reduce((s, p) => s + p.total_cost, 0);
+
+    const kpis = [
+      { label: 'Clientes', value: String(grouped.size) },
+      { label: 'Peso Total', value: `${fmtN(grandTotalWeight, 1)} kg` },
+      { label: 'Receita', value: fmtR(grandTotalRevenue) },
+      { label: 'Custo', value: fmtR(grandTotalCost) },
+      { label: 'Lucro Total', value: fmtR(grandTotalProfit) },
+    ];
+    const kpiW = (pw - 2 * m - 4 * 4) / 5;
+    kpis.forEach((kpi, i) => {
+      const x = m + i * (kpiW + 4);
+      pdf.setDrawColor(...border);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(x, y, kpiW, 16, 2, 2, 'S');
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...textMid);
+      pdf.text(kpi.label.toUpperCase(), x + 4, y + 6);
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...textDark);
+      pdf.text(kpi.value, x + 4, y + 13);
+    });
+    y += 22;
+
+    // Per-client sections
+    const sortedClients = [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
+    sortedClients.forEach(([clientLabel, prods]) => {
+      if (y + 30 > ph - m) {
+        pdf.addPage();
+        y = m;
+      }
+
+      const cWeight = prods.reduce((s, p) => s + p.weight_kg, 0);
+      const cRolls = prods.reduce((s, p) => s + p.rolls, 0);
+      const cRevenue = prods.reduce((s, p) => s + p.total_revenue, 0);
+      const cCost = prods.reduce((s, p) => s + p.total_cost, 0);
+      const cProfit = prods.reduce((s, p) => s + p.total_profit, 0);
+
+      // Client header bar (green-ish to differentiate from malharia blue)
+      pdf.setFillColor(220, 252, 231);
+      pdf.rect(m, y, pw - 2 * m, 10, 'F');
+      pdf.setDrawColor(134, 239, 172);
+      pdf.setLineWidth(0.3);
+      pdf.rect(m, y, pw - 2 * m, 10, 'S');
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(21, 128, 61);
+      pdf.text(`👤 ${clientLabel}`, m + 4, y + 7);
+
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(21, 128, 61);
+      const summary = `${fmtN(cWeight, 1)} kg · ${cRolls} rolos · Lucro: ${fmtR(cProfit)}`;
+      pdf.text(summary, pw - m - 4 - pdf.getTextWidth(summary), y + 7);
+      y += 14;
+
+      // Group by article within this client
+      const articleMap = new Map<string, { weight: number; rolls: number; revenue: number; cost: number; profit: number; malharia: string }>();
+      prods.forEach(p => {
+        const artKey = p.article_name || 'Sem artigo';
+        if (!articleMap.has(artKey)) {
+          articleMap.set(artKey, { weight: 0, rolls: 0, revenue: 0, cost: 0, profit: 0, malharia: p.outsource_company_name || '—' });
+        }
+        const a = articleMap.get(artKey)!;
+        a.weight += p.weight_kg;
+        a.rolls += p.rolls;
+        a.revenue += p.total_revenue;
+        a.cost += p.total_cost;
+        a.profit += p.total_profit;
+      });
+
+      const headers = ['Artigo', 'Malharia', 'Kg Produzidos', 'Rolos', 'Receita', 'Custo', 'Lucro'];
+      const colWidths = [40, 35, 30, 20, 35, 35, 35];
+      const totalW = colWidths.reduce((a, b) => a + b, 0);
+      const scale = (pw - 2 * m) / totalW;
+      const cols = colWidths.map(w => w * scale);
+      const rowH = 7;
+
+      if (y + rowH * 2 > ph - m) {
+        pdf.addPage();
+        y = m;
+      }
+      pdf.setFillColor(241, 245, 249);
+      pdf.rect(m, y, pw - 2 * m, 8, 'F');
+      pdf.setDrawColor(...border);
+      pdf.rect(m, y, pw - 2 * m, 8);
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(71, 85, 105);
+      let x = m;
+      headers.forEach((h, i) => {
+        pdf.text(h, x + 2, y + 5.5);
+        x += cols[i];
+      });
+      y += 8;
+
+      const sortedArticles = [...articleMap.entries()].sort((a, b) => b[1].profit - a[1].profit);
+      sortedArticles.forEach(([artName, stats], ri) => {
+        if (y + rowH > ph - m) {
+          pdf.addPage();
+          y = m;
+        }
+        if (ri % 2 === 1) {
+          pdf.setFillColor(250, 251, 252);
+          pdf.rect(m, y, pw - 2 * m, rowH, 'F');
+        }
+        pdf.setDrawColor(241, 245, 249);
+        pdf.setLineWidth(0.1);
+        pdf.rect(m, y, pw - 2 * m, rowH);
+
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(...textDark);
+
+        const cells = [
+          artName, stats.malharia, `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
+          fmtR(stats.revenue), fmtR(stats.cost), fmtR(stats.profit),
+        ];
+
+        x = m;
+        cells.forEach((cell, ci) => {
+          const text = cell.length > 22 ? cell.substring(0, 21) + '…' : cell;
+          if (ci === 6) {
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(stats.profit >= 0 ? 22 : 220, stats.profit >= 0 ? 163 : 38, stats.profit >= 0 ? 74 : 38);
+          }
+          pdf.text(text, x + 2, y + 5);
+          if (ci === 6) {
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(...textDark);
+          }
+          x += cols[ci];
+        });
+        y += rowH;
+      });
+
+      // Client total row
       if (y + rowH > ph - m) {
         pdf.addPage();
         y = m;
