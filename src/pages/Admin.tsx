@@ -24,6 +24,9 @@ const NAV_ITEMS = [
   { key: 'weavers', label: 'Tecelões' },
   { key: 'reports', label: 'Relatórios' },
   { key: 'contas-pagar', label: 'Contas a Pagar' },
+  { key: 'residuos', label: 'Resíduos' },
+  { key: 'invoices', label: 'Notas Fiscais' },
+  { key: 'fechamento', label: 'Fechamento' },
   { key: 'settings', label: 'Configurações' },
 ];
 
