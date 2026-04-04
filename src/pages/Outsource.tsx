@@ -1657,7 +1657,7 @@ function exportOutsourcePdf(
       const dateParts = p.date.split('-');
       const formattedDate = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
       const cells = [
-        formattedDate, p.outsource_company_name || '—', p.article_name || '—', p.client_name || '—',
+        formattedDate, sanitizePdfText(p.outsource_company_name || ''), sanitizePdfText(p.article_name || ''), sanitizePdfText(p.client_name || ''),
         `${fmtN(p.weight_kg, 1)} kg`, String(p.rolls),
         fmtR(p.client_value_per_kg), fmtR(p.outsource_value_per_kg),
         fmtR(p.profit_per_kg), fmtR(p.total_profit),
