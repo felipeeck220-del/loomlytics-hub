@@ -1240,8 +1240,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **04/04/2026 03:00 (Brasília)** — **BLOQUEIO EM TEMPO REAL — Usuário desativado:** Quando o admin #1 desativa um usuário, a tela é bloqueada em tempo real (sem necessidade de recarregar) com overlay cinza, ícone de cadeado e mensagem informando que a conta foi desativada pelo administrador. O usuário pode fazer login mas verá a tela bloqueada. Implementado via Supabase Realtime na tabela `profiles` (realtime habilitado via migration). O campo `status` foi adicionado ao tipo `User` e o `AuthContext` escuta mudanças de status em tempo real.
 
-- **04/04/2026 03:30 (Brasília)** — **PENTE FINO — 2 bugs corrigidos:** (1) **BUG SEGURANÇA — manage-users edge function:** A verificação de permissão `isCallerMainAdmin` para alteração de email/senha estava posicionada APÓS a execução das alterações, permitindo que um admin não-#1 conseguisse alterar email/senha antes de receber o erro 403. Corrigido movendo o check para ANTES de qualquer modificação; (2) **BUG PERFORMANCE — Realtime AuthContext:** O `useEffect` de realtime tinha `user.status` e `user.name` nas dependências, causando re-criação desnecessária do channel a cada mudança. Corrigido removendo essas deps e usando `setUser` com callback funcional. Channel agora usa ID único por usuário.
+- **04/04/2026 04:00 (Brasília)** — **CÓDIGOS SEQUENCIAIS PARA ADMINS (#2-#50):** (1) Edge Function `manage-users` atualizada: admins agora recebem códigos sequenciais #2, #3, #4... (próximo após o maior existente), com limite de 50 admins por empresa; #1 continua reservado ao criador; (2) Não-admins (líder, mecânico, revisador) continuam com códigos aleatórios #100-#999; (3) Usuário `admin@tales.com` adicionado como admin #2 na empresa de `felipeeck182@gmail.com`.
 
 ---
 
-*Última atualização: 04/04/2026 03:30 (Brasília)*
+*Última atualização: 04/04/2026 04:00 (Brasília)*
