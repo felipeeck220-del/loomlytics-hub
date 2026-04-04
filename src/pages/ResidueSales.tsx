@@ -141,7 +141,9 @@ export default function ResidueSales() {
       const { error } = await sb('residue_materials').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, id: string) => {
+      const mat = materials.find(m => m.id === id);
+      logAction('residue_material_delete', { name: mat?.name });
       queryClient.invalidateQueries({ queryKey: ['residue_materials'] });
       toast({ title: 'Material removido' });
     },
