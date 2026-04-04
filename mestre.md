@@ -1297,6 +1297,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 08:00 (Brasília)** — **PAINEL ADMINISTRATIVO — 3 melhorias:** (1) **NAV_ITEMS atualizados:** Adicionados Resíduos, Notas Fiscais e Fechamento à lista de itens de navegação do painel admin (modal de empresa e usuário); (2) **Usuários agrupados por empresa:** Aba Usuários agora exibe cards separados por empresa, cada um com tabela própria e badge de contagem; (3) **Backup automático à meia-noite:** Configurado pg_cron para executar `daily-backup` às 03:00 UTC (00:00 Brasília) automaticamente todos os dias.
 
+- **04/04/2026 09:00 (Brasília)** — **BACKUP — Cobertura completa + listagem agrupada:** (1) **29 tabelas no backup:** Adicionadas 15 tabelas faltantes ao `daily-backup` e `restore-backup`: invoices, invoice_items, residue_materials, residue_sales, outsource_yarn_stock, accounts_payable, yarn_types, tv_panels, email_history, iot_devices, iot_downtime_events, iot_machine_assignments, iot_shift_state, machine_readings; (2) **Listagem agrupada por empresa:** Aba Backups no /admin agora exibe cards separados por empresa com badge de contagem, em vez de tabela única; (3) **Regra obrigatória documentada:** Adicionada regra no mestre.md exigindo que toda nova tabela seja incluída no sistema de backup.
+
 ---
 
-*Última atualização: 04/04/2026 08:00 (Brasília)*
+*Última atualização: 04/04/2026 09:00 (Brasília)*
