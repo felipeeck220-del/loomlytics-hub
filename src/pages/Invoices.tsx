@@ -354,6 +354,8 @@ export default function Invoices() {
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
+      const clientObj2 = clients.find(c => c.id === formClientId);
+      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim(), type: formType, client: clientObj2?.name, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
       resetForm();
       setDialogOpen(false);
