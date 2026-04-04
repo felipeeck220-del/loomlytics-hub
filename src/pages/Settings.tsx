@@ -459,7 +459,39 @@ export default function SettingsPage() {
     setEditingUser(null);
     setUserForm({ name: '', email: '', password: '', role: '' });
     setShowPassword(false);
+    setEmailCheckStatus('idle');
+    setEmailCheckError('');
     setShowUserModal(true);
+  };
+
+  // Real-time email check for admin role
+  const checkAdminEmail = (email: string) => {
+    if (emailCheckTimer.current) clearTimeout(emailCheckTimer.current);
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setEmailCheckStatus('idle');
+      setEmailCheckError('');
+      return;
+    }
+    setEmailCheckStatus('checking');
+    emailCheckTimer.current = setTimeout(async () => {
+      try {
+        const { data } = await (supabase.from as any)('profiles')
+          .select('id, email')
+          .eq('email', email)
+          .limit(1)
+          .maybeSingle();
+        if (data) {
+          setEmailCheckStatus('invalid');
+          setEmailCheckError('Este email já está cadastrado no sistema.');
+        } else {
+          setEmailCheckStatus('valid');
+          setEmailCheckError('');
+        }
+      } catch {
+        setEmailCheckStatus('valid');
+        setEmailCheckError('');
+      }
+    }, 600);
   };
 
   const openEditUser = (p: Profile) => {
