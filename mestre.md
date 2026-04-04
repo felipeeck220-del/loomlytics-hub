@@ -1236,6 +1236,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **04/04/2026 02:15 (Brasília)** — **CONFIGURAÇÕES — Proteção total do admin #1:** Na aba Usuários, outros admins não conseguem mais editar, alterar senha, desativar ou excluir o administrador principal (#1). Apenas o próprio #1 pode gerenciar seu perfil. Botões de ação são completamente ocultados para o #1 quando visualizado por outros admins.
 
+- **04/04/2026 02:30 (Brasília)** — **CONFIGURAÇÕES — Admin #1 pode editar email/senha de usuários:** No modal de edição de usuários (aba Usuários), o administrador principal (#1) agora pode alterar email e senha de qualquer usuário diretamente, sem precisar excluir e recriar. O campo de senha é opcional (deixar vazio mantém a atual). A edge function `manage-users` foi atualizada para suportar alteração de email (auth + profiles) e senha via `action: 'update'`, com verificação de que apenas #1 pode fazer essas alterações.
+
 ---
 
-*Última atualização: 04/04/2026 02:15 (Brasília)*
+*Última atualização: 04/04/2026 02:30 (Brasília)*
