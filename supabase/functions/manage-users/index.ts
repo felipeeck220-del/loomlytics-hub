@@ -103,7 +103,7 @@ serve(async (req) => {
         });
       }
 
-      const code = await generateUniqueCode();
+      const code = await generateUniqueCode(role);
       let userId: string;
 
       const { data: authData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
