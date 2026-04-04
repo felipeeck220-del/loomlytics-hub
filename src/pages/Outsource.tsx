@@ -428,7 +428,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   setFilterTo: (v: Date | undefined) => void;
 }) {
   const queryClient = useQueryClient();
-  const { userCode, userName } = useAuditLog();
+  const { userCode, userName, logAction } = useAuditLog();
   const userNameRef = useRef(userName);
   const userCodeRef = useRef(userCode);
   useEffect(() => { userNameRef.current = userName; }, [userName]);
