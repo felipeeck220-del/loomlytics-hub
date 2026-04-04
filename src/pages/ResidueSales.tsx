@@ -129,6 +129,8 @@ export default function ResidueSales() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residue_materials'] });
       setMatDialogOpen(false);
+      const action = editingMat ? 'residue_material_update' : 'residue_material_create';
+      logAction(action, { name: matName.trim(), unit: matUnit });
       toast({ title: editingMat ? 'Material atualizado' : 'Material cadastrado' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
