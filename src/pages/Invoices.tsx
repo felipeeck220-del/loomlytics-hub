@@ -686,6 +686,9 @@ export default function Invoices() {
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      const compName = outsourceCompanies.find(c => c.id === eftFormCompany)?.name;
+      const yarnName2 = yarnTypes.find(y => y.id === eftFormYarn)?.name;
+      logAction(eftEditing ? 'outsource_yarn_stock_update' : 'outsource_yarn_stock_create', { company: compName, yarn: yarnName2, month: eftFormMonth, qty });
       toast({ title: eftEditing ? 'Estoque atualizado!' : 'Estoque salvo!' });
       // Keep modal open, preserve company
       setEftFormYarn('');
