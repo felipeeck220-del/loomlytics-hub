@@ -73,6 +73,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  // Realtime subscription for profile status changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('profile-status-watch')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newStatus = (payload.new as any).status;
+          const newName = (payload.new as any).name;
+          if (newStatus && newStatus !== user.status) {
+            setUser(prev => prev ? { ...prev, status: newStatus } : prev);
+          }
+          if (newName && newName !== user.name) {
+            setUser(prev => prev ? { ...prev, name: newName } : prev);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, user?.status, user?.name]);
+
   useEffect(() => {
     let mounted = true;
 
