@@ -116,7 +116,7 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
 export default function Invoices() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
-  const { userCode, userName } = useAuditLog();
+  const { userCode, userName, logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const { canSeeFinancial } = usePermissions();
   const { getClients, getArticles, getProductions } = useSharedCompanyData();
@@ -354,6 +354,8 @@ export default function Invoices() {
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
+      const clientObj2 = clients.find(c => c.id === formClientId);
+      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim(), type: formType, client: clientObj2?.name, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
       resetForm();
       setDialogOpen(false);
@@ -368,6 +370,7 @@ export default function Invoices() {
   const handleCancelInvoice = async (inv: Invoice) => {
     const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
     toast({ title: 'NF cancelada' });
   };
@@ -376,6 +379,7 @@ export default function Invoices() {
   const handleConfirmInvoice = async (inv: Invoice) => {
     const { error } = await sb('invoices').update({ status: 'conferida' }).eq('id', inv.id);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    logAction('invoice_confirm', { invoice_number: inv.invoice_number, client: inv.client_name });
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
     toast({ title: 'NF conferida' });
   };
@@ -401,6 +405,7 @@ export default function Invoices() {
       } else {
         await sb('yarn_types').insert({ company_id: companyId, name: yarnName.trim(), composition: yarnComposition.trim() || null, color: yarnColor.trim() || null, observations: yarnObs.trim() || null });
       }
+      logAction(editingYarn ? 'yarn_type_update' : 'yarn_type_create', { name: yarnName.trim() });
       queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
       toast({ title: editingYarn ? 'Fio atualizado!' : 'Fio cadastrado!' });
       setYarnDialogOpen(false);
@@ -414,6 +419,7 @@ export default function Invoices() {
   const handleDeleteYarn = async (y: YarnType) => {
     const { error } = await sb('yarn_types').delete().eq('id', y.id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
+    logAction('yarn_type_delete', { name: y.name });
     queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
     toast({ title: 'Fio excluído' });
   };
@@ -680,6 +686,9 @@ export default function Invoices() {
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      const compName = outsourceCompanies.find(c => c.id === eftFormCompany)?.name;
+      const yarnName2 = yarnTypes.find(y => y.id === eftFormYarn)?.name;
+      logAction(eftEditing ? 'outsource_yarn_stock_update' : 'outsource_yarn_stock_create', { company: compName, yarn: yarnName2, month: eftFormMonth, qty });
       toast({ title: eftEditing ? 'Estoque atualizado!' : 'Estoque salvo!' });
       // Keep modal open, preserve company
       setEftFormYarn('');
@@ -694,6 +703,9 @@ export default function Invoices() {
   const handleDeleteEft = async (id: string) => {
     const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
+    const item = outsourceYarnStock.find((s: any) => s.id === id);
+    const compName = outsourceCompanies.find(c => c.id === item?.outsource_company_id)?.name;
+    logAction('outsource_yarn_stock_delete', { company: compName, month: item?.reference_month });
     queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
     toast({ title: 'Registro excluído' });
   };

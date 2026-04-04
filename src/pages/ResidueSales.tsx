@@ -62,7 +62,7 @@ export default function ResidueSales() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
-  const { userCode, userName } = useAuditLog();
+  const { userCode, userName, logAction } = useAuditLog();
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const [deleteMatConfirmId, setDeleteMatConfirmId] = useState<string | null>(null);
@@ -129,6 +129,8 @@ export default function ResidueSales() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residue_materials'] });
       setMatDialogOpen(false);
+      const action = editingMat ? 'residue_material_update' : 'residue_material_create';
+      logAction(action, { name: matName.trim(), unit: matUnit });
       toast({ title: editingMat ? 'Material atualizado' : 'Material cadastrado' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
@@ -139,7 +141,9 @@ export default function ResidueSales() {
       const { error } = await sb('residue_materials').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, id: string) => {
+      const mat = materials.find(m => m.id === id);
+      logAction('residue_material_delete', { name: mat?.name });
       queryClient.invalidateQueries({ queryKey: ['residue_materials'] });
       toast({ title: 'Material removido' });
     },
@@ -208,7 +212,8 @@ export default function ResidueSales() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residue_sales'] });
-      // Keep dialog open, reset fields except client
+      const mat = materials.find(m => m.id === saleMaterialId);
+      logAction('residue_sale_create', { material: mat?.name, client: saleClient.trim(), date: saleDate });
       setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
       setSaleRomaneio(''); setSaleObs('');
       toast({ title: 'Venda registrada' });
@@ -221,7 +226,9 @@ export default function ResidueSales() {
       const { error } = await sb('residue_sales').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, id: string) => {
+      const sale = sales.find(s => s.id === id);
+      logAction('residue_sale_delete', { material: sale?.material_name, client: sale?.client_name });
       queryClient.invalidateQueries({ queryKey: ['residue_sales'] });
       toast({ title: 'Registro removido' });
     },

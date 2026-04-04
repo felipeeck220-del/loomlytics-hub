@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { formatCurrency, getDateLimits, isDateValid } from '@/lib/formatters';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface AccountPayable {
   id: string;
@@ -56,6 +57,7 @@ const emptyForm = {
 export default function AccountsPayable() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -132,6 +134,8 @@ export default function AccountsPayable() {
       }
     },
     onSuccess: () => {
+      const action = editingId ? 'account_update' : 'account_create';
+      logAction(action, { supplier_name: form.supplier_name, description: form.description, amount: form.amount });
       toast.success(editingId ? 'Conta atualizada!' : 'Conta cadastrada!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
       closeForm();
@@ -149,7 +153,9 @@ export default function AccountsPayable() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, id: string) => {
+      const acc = accounts.find(a => a.id === id);
+      logAction('account_pay', { supplier_name: acc?.supplier_name, amount: acc?.amount });
       toast.success('Conta marcada como paga!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
     },
@@ -163,7 +169,9 @@ export default function AccountsPayable() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, id: string) => {
+      const acc = accounts.find(a => a.id === id);
+      logAction('account_delete', { supplier_name: acc?.supplier_name, description: acc?.description });
       toast.success('Conta excluída!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
       setDeleteId(null);
