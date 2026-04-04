@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency, formatWeight, formatNumber, getDateLimits, isDateValid } from '@/lib/formatters';
+import { sanitizePdfText } from '@/lib/pdfUtils';
 import {
   Plus, Trash2, Edit, Factory, Building2, DollarSign, Scale, TrendingUp,
   Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search

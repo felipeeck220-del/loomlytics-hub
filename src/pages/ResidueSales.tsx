@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, getDateLimits, isDateValid } from '@/lib/formatters';
+import { sanitizePdfText } from '@/lib/pdfUtils';
 import {
   Plus, Trash2, Edit, Loader2, Package, DollarSign, Scale, Search,
   Recycle, Download, Filter, Hash, CalendarIcon
