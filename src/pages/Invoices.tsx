@@ -379,6 +379,7 @@ export default function Invoices() {
   const handleConfirmInvoice = async (inv: Invoice) => {
     const { error } = await sb('invoices').update({ status: 'conferida' }).eq('id', inv.id);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    logAction('invoice_confirm', { invoice_number: inv.invoice_number, client: inv.client_name });
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
     toast({ title: 'NF conferida' });
   };
