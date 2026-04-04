@@ -440,7 +440,7 @@ export default function Fechamento() {
             pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, ls.width, ls.height);
           } catch {
             pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
-            pdf.text(companyName, leftX, y + 10);
+            pdf.text(sanitizePdfText(companyName), leftX, y + 10);
           }
         } else {
           pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
