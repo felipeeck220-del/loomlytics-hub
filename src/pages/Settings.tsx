@@ -527,6 +527,7 @@ export default function SettingsPage() {
         body: { action: 'change_password', user_id: changePasswordUser.user_id, new_password: adminNewPassword },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
+      logAction('user_password_change', { name: changePasswordUser.name, code: changePasswordUser.code });
       toast.success('Senha alterada com sucesso');
       setChangePasswordUser(null);
       setAdminNewPassword('');
