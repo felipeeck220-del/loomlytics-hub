@@ -1297,6 +1297,36 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
               </Popover>
             </div>
             <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Cliente</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-[180px] justify-between h-8 text-xs font-normal">
+                    <span className="truncate">
+                      {selectedClientName === '_all' ? 'Todos os clientes' : selectedClientName}
+                    </span>
+                    <Search className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[220px] p-0" align="start">
+                  <div className="flex items-center border-b px-2 py-1.5">
+                    <Search className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    <Input placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="h-7 border-0 p-0 text-xs shadow-none focus-visible:ring-0" />
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto p-1">
+                    <button type="button" className={cn("w-full text-left px-3 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground", selectedClientName === '_all' && 'bg-accent text-accent-foreground')} onClick={() => { setSelectedClientName('_all'); setClientSearch(''); }}>
+                      Todos os clientes
+                    </button>
+                    {filteredClients.map(c => (
+                      <button key={c} type="button" className={cn("w-full text-left px-3 py-1.5 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground", selectedClientName === c && 'bg-accent text-accent-foreground')} onClick={() => { setSelectedClientName(c); setClientSearch(''); }}>
+                        {c}
+                      </button>
+                    ))}
+                    {filteredClients.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">Nenhum encontrado</p>}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Resultado</Label>
               <Select value={profitFilter} onValueChange={(v: any) => setProfitFilter(v)}>
                 <SelectTrigger className="w-[120px] h-8 text-xs">
@@ -1310,7 +1340,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
               </Select>
             </div>
             {hasActiveFilters && (
-              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); setReportMonth(''); setSelectedCompanyId('_all'); }}>
+              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setStartDate(undefined); setEndDate(undefined); setProfitFilter('all'); setReportMonth(''); setSelectedCompanyId('_all'); setSelectedClientName('_all'); }}>
                 ✕ Limpar
               </Button>
             )}
