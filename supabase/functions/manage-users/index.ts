@@ -276,6 +276,21 @@ serve(async (req) => {
         });
       }
 
+      // SECURITY: Only admin #1 can change passwords
+      const { data: callerFullProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("code")
+        .eq("user_id", callingUser.id)
+        .eq("company_id", callerProfile.company_id)
+        .single();
+
+      if (callerFullProfile?.code !== "1") {
+        return new Response(JSON.stringify({ error: "Apenas o administrador principal (#1) pode alterar senhas" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Verify user belongs to admin's company
       const { data: targetProfile } = await supabaseAdmin
         .from("profiles")
