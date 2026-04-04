@@ -691,47 +691,60 @@ export default function SettingsPage() {
             {/* Right: Edit Forms + Permissions */}
             <div className="lg:col-span-2 space-y-5">
               {/* Edit Profile Form */}
-              {editingProfile && (
+              {editingProfile && (() => {
+                const myProfile = profiles.find(p => p.user_id === user?.id);
+                const isMainAdmin = myProfile?.code === '1';
+                return (
                 <div className="card-glass p-6 space-y-4 border-primary/30">
                   <div className="flex items-center gap-2">
                     <Pencil className="h-4 w-4 text-primary" />
                     <h3 className="font-display font-semibold text-foreground">Editar Perfil</h3>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Nome</Label>
-                      <Input value={profileName} onChange={e => setProfileName(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Novo Email</Label>
-                      <Input type="email" placeholder={user?.email || 'Novo email'} value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
-                      <p className="text-xs text-muted-foreground">Deixe em branco para manter o atual.</p>
-                    </div>
-                  </div>
-                  {profileEmail.trim() !== '' && profileEmail.trim() !== user?.email && (
-                    <div className="space-y-2 max-w-sm">
-                      <Label>Senha Atual (obrigatória para alterar email)</Label>
-                      <div className="relative">
-                        <Input
-                          type={showProfilePassword ? 'text' : 'password'}
-                          value={profilePassword}
-                          onChange={e => setProfilePassword(e.target.value)}
-                          placeholder="Digite sua senha atual"
-                        />
-                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowProfilePassword(!showProfilePassword)}>
-                          {showProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
+                  {!isMainAdmin && (
+                    <div className="rounded-md bg-muted/50 border border-border p-3">
+                      <p className="text-sm text-muted-foreground">Somente o administrador principal (#1) pode alterar nome e e-mail. Você pode alterar sua senha na opção ao lado.</p>
                     </div>
                   )}
-                  <div className="flex gap-2 pt-2">
-                    <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(''); setProfilePassword(''); }}>Cancelar</Button>
-                    <Button size="sm" className="btn-gradient" disabled={savingProfile} onClick={handleSaveProfile}>
-                      {savingProfile && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
-                    </Button>
-                  </div>
+                  {isMainAdmin && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Nome</Label>
+                          <Input value={profileName} onChange={e => setProfileName(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Novo Email</Label>
+                          <Input type="email" placeholder={user?.email || 'Novo email'} value={profileEmail} onChange={e => setProfileEmail(e.target.value)} />
+                          <p className="text-xs text-muted-foreground">Deixe em branco para manter o atual.</p>
+                        </div>
+                      </div>
+                      {profileEmail.trim() !== '' && profileEmail.trim() !== user?.email && (
+                        <div className="space-y-2 max-w-sm">
+                          <Label>Senha Atual (obrigatória para alterar email)</Label>
+                          <div className="relative">
+                            <Input
+                              type={showProfilePassword ? 'text' : 'password'}
+                              value={profilePassword}
+                              onChange={e => setProfilePassword(e.target.value)}
+                              placeholder="Digite sua senha atual"
+                            />
+                            <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowProfilePassword(!showProfilePassword)}>
+                              {showProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex gap-2 pt-2">
+                        <Button variant="outline" size="sm" onClick={() => { setEditingProfile(false); setProfileName(user?.name || ''); setProfileEmail(''); setProfilePassword(''); }}>Cancelar</Button>
+                        <Button size="sm" className="btn-gradient" disabled={savingProfile} onClick={handleSaveProfile}>
+                          {savingProfile && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* Change Password Form */}
               {changingPassword && (
