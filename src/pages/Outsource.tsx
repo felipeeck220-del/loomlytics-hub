@@ -1208,7 +1208,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     return 'Todo período';
   }, [startDate, endDate, reportMonth]);
 
-  const hasActiveFilters = !!reportMonth || !!startDate || !!endDate || profitFilter !== 'all' || selectedCompanyId !== '_all';
+  const hasActiveFilters = !!reportMonth || !!startDate || !!endDate || profitFilter !== 'all' || selectedCompanyId !== '_all' || selectedClientName !== '_all';
 
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
