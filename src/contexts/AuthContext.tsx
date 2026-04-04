@@ -53,6 +53,7 @@ async function fetchProfile(supabaseUser: SupabaseUser): Promise<AppUser | null>
     company_name: profile.companies?.name || '',
     company_slug: profile.companies?.slug || '',
     role: profile.role || 'admin',
+    status: profile.status || 'active',
     permission_overrides: Array.isArray(profile.permission_overrides) ? profile.permission_overrides : [],
   };
 }
@@ -71,6 +72,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCompanies(userCompanies);
     setLoading(false);
   }, []);
+
+  // Realtime subscription for profile status changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('profile-status-watch')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newStatus = (payload.new as any).status;
+          const newName = (payload.new as any).name;
+          if (newStatus && newStatus !== user.status) {
+            setUser(prev => prev ? { ...prev, status: newStatus } : prev);
+          }
+          if (newName && newName !== user.name) {
+            setUser(prev => prev ? { ...prev, name: newName } : prev);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, user?.status, user?.name]);
 
   useEffect(() => {
     let mounted = true;

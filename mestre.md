@@ -1238,6 +1238,8 @@ toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), vari
 
 - **04/04/2026 02:30 (Brasília)** — **CONFIGURAÇÕES — Admin #1 pode editar email/senha de usuários:** No modal de edição de usuários (aba Usuários), o administrador principal (#1) agora pode alterar email e senha de qualquer usuário diretamente, sem precisar excluir e recriar. O campo de senha é opcional (deixar vazio mantém a atual). A edge function `manage-users` foi atualizada para suportar alteração de email (auth + profiles) e senha via `action: 'update'`, com verificação de que apenas #1 pode fazer essas alterações.
 
+- **04/04/2026 03:00 (Brasília)** — **BLOQUEIO EM TEMPO REAL — Usuário desativado:** Quando o admin #1 desativa um usuário, a tela é bloqueada em tempo real (sem necessidade de recarregar) com overlay cinza, ícone de cadeado e mensagem informando que a conta foi desativada pelo administrador. O usuário pode fazer login mas verá a tela bloqueada. Implementado via Supabase Realtime na tabela `profiles` (realtime habilitado via migration). O campo `status` foi adicionado ao tipo `User` e o `AuthContext` escuta mudanças de status em tempo real.
+
 ---
 
-*Última atualização: 04/04/2026 02:30 (Brasília)*
+*Última atualização: 04/04/2026 03:00 (Brasília)*
