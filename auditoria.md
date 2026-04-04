@@ -74,21 +74,19 @@ const record = {
 | **Produção** | `Production.tsx` | `production_create`, `production_update` |
 | **Revisão** | `Revision.tsx` | `defect_create`, `defect_delete` |
 | **Mecânica** | `Mecanica.tsx` | `maintenance_manual_add` |
-| **Terceirizados** | `Outsource.tsx` | Usa `useAuditLog` para `created_by_name/code` nos inserts |
-| **Resíduos** | `ResidueSales.tsx` | Usa `useAuditLog` para `created_by_name/code` nos inserts |
-| **Notas Fiscais** | `Invoices.tsx` | Usa `useAuditLog` para `created_by_name/code` nos inserts |
+| **Clientes & Artigos** | `ClientsArticles.tsx` | `client_create`, `client_update`, `client_delete`, `article_create`, `article_update`, `article_delete` |
+| **Tecelões** | `Weavers.tsx` | `weaver_create`, `weaver_update`, `weaver_delete` |
+| **Contas a Pagar** | `AccountsPayable.tsx` | `account_create`, `account_update`, `account_delete`, `account_pay` |
+| **Configurações** | `Settings.tsx` | `user_create`, `user_update`, `user_delete`, `user_deactivate`, `user_reactivate`, `user_password_change`, `user_permissions_update` |
+| **Terceirizados** | `Outsource.tsx` | `outsource_company_create`, `outsource_company_update`, `outsource_company_delete`, `outsource_production_create`, `outsource_production_delete` |
+| **Resíduos** | `ResidueSales.tsx` | `residue_material_create`, `residue_material_update`, `residue_material_delete`, `residue_sale_create`, `residue_sale_delete` |
+| **Notas Fiscais** | `Invoices.tsx` | `invoice_create`, `invoice_confirm`, `invoice_cancel`, `yarn_type_create`, `yarn_type_update`, `yarn_type_delete`, `outsource_yarn_stock_create`, `outsource_yarn_stock_update`, `outsource_yarn_stock_delete` |
 
 ### ❌ Módulos SEM auditoria (pendente)
 
 | Módulo | Arquivo | Ações que DEVEM ser auditadas |
 |--------|---------|-------------------------------|
-| **Clientes & Artigos** | `ClientsArticles.tsx` | `client_create`, `client_update`, `client_delete`, `article_create`, `article_update`, `article_delete` |
-| **Tecelões** | `Weavers.tsx` | `weaver_create`, `weaver_update`, `weaver_delete` |
-| **Contas a Pagar** | `AccountsPayable.tsx` | `account_create`, `account_update`, `account_delete`, `account_pay`, `account_cancel` |
-| **Configurações** | `Settings.tsx` | `user_create`, `user_update`, `user_delete`, `user_deactivate`, `user_reactivate`, `user_password_change`, `user_permissions_update`, `shift_settings_update`, `company_logo_update`, `production_mode_change` |
-| **Terceirizados** | `Outsource.tsx` | `outsource_company_create`, `outsource_company_update`, `outsource_company_delete`, `outsource_production_create`, `outsource_production_delete` (falta `logAction` explícito) |
-| **Resíduos** | `ResidueSales.tsx` | `residue_material_create`, `residue_material_update`, `residue_material_delete`, `residue_sale_create`, `residue_sale_delete` (falta `logAction` explícito) |
-| **Notas Fiscais** | `Invoices.tsx` | `invoice_create`, `invoice_confirm`, `invoice_cancel`, `yarn_type_create`, `yarn_type_update`, `yarn_type_delete`, `outsource_yarn_stock_create`, `outsource_yarn_stock_update`, `outsource_yarn_stock_delete` (falta `logAction` explícito) |
+| **Configurações** | `Settings.tsx` | `shift_settings_update`, `company_logo_update`, `production_mode_change` (falta `logAction` explícito) |
 
 ---
 
