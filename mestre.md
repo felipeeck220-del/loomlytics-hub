@@ -1282,6 +1282,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 07:30 (Brasília)** — **VERIFICAÇÃO GLOBAL DE EMAIL — Cross-empresa:** Verificação de email no modal de criação de admin agora é verdadeiramente global: usa action `check_email` na edge function `manage-users` (service role bypassa RLS) para verificar em TODAS as empresas do sistema + auth.users. Mensagens diferenciadas: "já cadastrado nesta empresa" vs "já cadastrado em outra empresa do sistema".
 
+- **04/04/2026 08:00 (Brasília)** — **PAINEL ADMINISTRATIVO — 3 melhorias:** (1) **NAV_ITEMS atualizados:** Adicionados Resíduos, Notas Fiscais e Fechamento à lista de itens de navegação do painel admin (modal de empresa e usuário); (2) **Usuários agrupados por empresa:** Aba Usuários agora exibe cards separados por empresa, cada um com tabela própria e badge de contagem; (3) **Backup automático à meia-noite:** Configurado pg_cron para executar `daily-backup` às 03:00 UTC (00:00 Brasília) automaticamente todos os dias.
+
 ---
 
-*Última atualização: 04/04/2026 07:30 (Brasília)*
+*Última atualização: 04/04/2026 08:00 (Brasília)*
