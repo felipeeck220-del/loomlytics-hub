@@ -487,12 +487,14 @@ export default function SettingsPage() {
         }
         const { data, error } = await supabase.functions.invoke('manage-users', { body: bodyPayload });
         if (error || data?.error) throw new Error(data?.error || error?.message);
+        logAction('user_update', { name: userForm.name, role: userForm.role, email: userForm.email });
         toast.success('Usuário atualizado');
       } else {
         const { data, error } = await supabase.functions.invoke('manage-users', {
           body: { action: 'create', ...userForm },
         });
         if (error || data?.error) throw new Error(data?.error || error?.message);
+        logAction('user_create', { name: userForm.name, email: userForm.email, role: userForm.role, code: data?.code });
         toast.success('Usuário criado');
       }
       await refreshProfiles();
