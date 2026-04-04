@@ -225,6 +225,23 @@ serve(async (req) => {
         });
       }
 
+      // SECURITY: Block role change for admin users
+      if (role) {
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user_id)
+          .eq("company_id", callerProfile.company_id)
+          .single();
+
+        if (targetProfile?.role === "admin" && role !== "admin") {
+          return new Response(JSON.stringify({ error: "Administradores não podem ter a função alterada após a criação" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const updates: Record<string, string> = {};
       if (name) updates.name = name;
       if (role) updates.role = role;
