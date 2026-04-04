@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -118,6 +118,9 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
   // Available actions from logs
   const [availableActions, setAvailableActions] = useState<string[]>([]);
 
+  // Track if initial load done
+  const initialLoadDone = useRef(false);
+
   const fetchUsers = useCallback(async () => {
     const { data } = await (supabase.from as any)('profiles')
       .select('name, code')
@@ -127,16 +130,22 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
   }, [companyId]);
 
   const fetchActions = useCallback(async () => {
+    // Use a limited query to get distinct actions
     const { data } = await (supabase.from as any)('audit_logs')
       .select('action')
-      .eq('company_id', companyId);
+      .eq('company_id', companyId)
+      .limit(1000);
     if (data) {
       const unique = [...new Set(data.map((d: any) => d.action))].sort() as string[];
       setAvailableActions(unique);
     }
   }, [companyId]);
 
-  const fetchLogs = useCallback(async (pageNum: number, append = false) => {
+  const doFetch = useCallback(async (
+    pageNum: number,
+    append: boolean,
+    filters: { user: string; action: string; search: string; dateFrom: string; dateTo: string }
+  ) => {
     setLoading(true);
     let query = (supabase.from as any)('audit_logs')
       .select('id, user_name, user_code, user_role, action, details, created_at')
@@ -144,24 +153,24 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
       .order('created_at', { ascending: false })
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
-    if (filterUser !== 'all') {
-      query = query.eq('user_code', filterUser);
+    if (filters.user !== 'all') {
+      query = query.eq('user_code', filters.user);
     }
-    if (filterAction !== 'all') {
-      query = query.eq('action', filterAction);
+    if (filters.action !== 'all') {
+      query = query.eq('action', filters.action);
     }
-    if (dateFrom) {
-      query = query.gte('created_at', `${dateFrom}T00:00:00`);
+    if (filters.dateFrom) {
+      query = query.gte('created_at', `${filters.dateFrom}T00:00:00`);
     }
-    if (dateTo) {
-      query = query.lte('created_at', `${dateTo}T23:59:59`);
+    if (filters.dateTo) {
+      query = query.lte('created_at', `${filters.dateTo}T23:59:59`);
     }
 
     const { data, error } = await query;
     if (!error && data) {
       let filtered = data as AuditLog[];
-      if (search) {
-        const s = search.toLowerCase();
+      if (filters.search) {
+        const s = filters.search.toLowerCase();
         filtered = filtered.filter(l =>
           (l.user_name || '').toLowerCase().includes(s) ||
           (ACTION_LABELS[l.action] || l.action).toLowerCase().includes(s) ||
@@ -176,20 +185,30 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
       setHasMore(data.length === PAGE_SIZE);
     }
     setLoading(false);
-  }, [companyId, filterUser, filterAction, dateFrom, dateTo, search]);
+  }, [companyId]);
 
+  // Only fetch on open
   useEffect(() => {
     if (open && companyId) {
+      initialLoadDone.current = true;
+      setFilterUser('all');
+      setFilterAction('all');
+      setSearch('');
+      setDateFrom('');
+      setDateTo('');
+      setPage(0);
+      setExpandedId(null);
       fetchUsers();
       fetchActions();
-      setPage(0);
-      fetchLogs(0);
+      doFetch(0, false, { user: 'all', action: 'all', search: '', dateFrom: '', dateTo: '' });
+    } else {
+      initialLoadDone.current = false;
     }
-  }, [open, companyId, fetchUsers, fetchActions, fetchLogs]);
+  }, [open, companyId, fetchUsers, fetchActions, doFetch]);
 
   const handleFilter = () => {
     setPage(0);
-    fetchLogs(0);
+    doFetch(0, false, { user: filterUser, action: filterAction, search, dateFrom, dateTo });
   };
 
   const handleClear = () => {
@@ -199,13 +218,13 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
     setDateFrom('');
     setDateTo('');
     setPage(0);
-    setTimeout(() => fetchLogs(0), 0);
+    doFetch(0, false, { user: 'all', action: 'all', search: '', dateFrom: '', dateTo: '' });
   };
 
   const loadMore = () => {
     const next = page + 1;
     setPage(next);
-    fetchLogs(next, true);
+    doFetch(next, true, { user: filterUser, action: filterAction, search, dateFrom, dateTo });
   };
 
   const formatDetails = (details: Record<string, any> | null) => {
@@ -229,7 +248,7 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
         {/* Filters */}
         <div className="px-6 py-3 border-b border-border space-y-3 shrink-0">
           <div className="flex flex-wrap gap-2">
-            <Select value={filterUser} onValueChange={v => { setFilterUser(v); }}>
+            <Select value={filterUser} onValueChange={v => setFilterUser(v)}>
               <SelectTrigger className="w-[160px] h-9 text-sm">
                 <SelectValue placeholder="Usuário" />
               </SelectTrigger>
@@ -241,7 +260,7 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
               </SelectContent>
             </Select>
 
-            <Select value={filterAction} onValueChange={v => { setFilterAction(v); }}>
+            <Select value={filterAction} onValueChange={v => setFilterAction(v)}>
               <SelectTrigger className="w-[180px] h-9 text-sm">
                 <SelectValue placeholder="Tipo de ação" />
               </SelectTrigger>

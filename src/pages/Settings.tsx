@@ -904,7 +904,7 @@ export default function SettingsPage() {
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      {canEditTarget && (
+                      {canEditTarget && isCurrentUserMainAdmin && (
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
                           <Key className="h-3.5 w-3.5" />
                         </Button>
