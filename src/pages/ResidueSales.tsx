@@ -212,7 +212,8 @@ export default function ResidueSales() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residue_sales'] });
-      // Keep dialog open, reset fields except client
+      const mat = materials.find(m => m.id === saleMaterialId);
+      logAction('residue_sale_create', { material: mat?.name, client: saleClient.trim(), date: saleDate });
       setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
       setSaleRomaneio(''); setSaleObs('');
       toast({ title: 'Venda registrada' });
