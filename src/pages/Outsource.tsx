@@ -302,8 +302,9 @@ function CompaniesTab({ companies, companyId, loading }: {
       const { error } = await sb('outsource_companies').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_: any, id: string) => {
       queryClient.invalidateQueries({ queryKey: ['outsource_companies'] });
+      logAction('outsource_company_delete', { id });
       toast({ title: 'Malharia removida!' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
