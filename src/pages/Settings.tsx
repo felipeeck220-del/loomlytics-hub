@@ -1658,6 +1658,13 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Audit History Modal */}
+      <AuditHistoryModal
+        open={showAuditHistory}
+        onOpenChange={setShowAuditHistory}
+        companyId={user?.company_id || ''}
+      />
     </div>
   );
 }
