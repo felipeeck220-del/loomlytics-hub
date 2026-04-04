@@ -27,11 +27,20 @@
 ## 🏗️ Arquitetura de Pastas
 
 ```
+docs/                           # 📄 Documentação centralizada (mestre.md, nf.md, iot.md, etc.)
 src/
-├── App.tsx                    # Rotas, providers, proteção de rotas
+├── App.tsx                    # Rotas e providers (lógica extraída para components/routes/)
 ├── main.tsx                   # Entry point
 ├── index.css                  # Tokens de design (CSS variables HSL)
-├── types/index.ts             # Interfaces e tipos globais (Machine, Production, etc.)
+├── types/                     # Tipos organizados por domínio
+│   ├── index.ts               # Re-exports (compatibilidade — imports existentes continuam funcionando)
+│   ├── company.ts             # Company
+│   ├── machine.ts             # Machine, MachineLog, MachineStatus, ProductionMode
+│   ├── client.ts              # Client, Article, ArticleMachineTurns
+│   ├── shift.ts               # ShiftType, CompanyShiftSettings, getShiftMinutes, etc.
+│   ├── weaver.ts              # Weaver
+│   ├── production.ts          # Production, DefectRecord, MeasureType
+│   └── user.ts                # User
 ├── contexts/
 │   ├── AuthContext.tsx         # Autenticação, login, registro, sessão, multi-empresa
 │   ├── CompanyDataContext.tsx  # Provider global — wraps useCompanyData
@@ -48,6 +57,12 @@ src/
 │   ├── fbPixel.ts             # Utilitário Facebook Pixel — fbTrack(event, params?)
 │   └── utils.ts               # cn() e utilitários
 ├── components/
+│   ├── routes/                 # Componentes de roteamento (extraídos de App.tsx)
+│   │   ├── RootRedirect.tsx    # Redirect / → /admin ou /:slug
+│   │   ├── PublicRoute.tsx     # Guard para rotas públicas
+│   │   ├── CompanyRoute.tsx    # Resolve slug → empresa ativa
+│   │   ├── CompanyRouteInner.tsx # Bloqueios (inativo, assinatura expirada)
+│   │   └── ProtectedRoute.tsx  # Guard por role/permissão
 │   ├── AppLayout.tsx           # Layout: header + sidebar + content + bottom nav
 │   ├── AppSidebar.tsx          # Sidebar lateral com items filtrados por role + enabled_nav_items
 │   ├── MobileBottomNav.tsx     # Navegação inferior mobile (role-specific)
@@ -1299,6 +1314,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 09:00 (Brasília)** — **BACKUP — Cobertura completa + listagem agrupada:** (1) **29 tabelas no backup:** Adicionadas 15 tabelas faltantes ao `daily-backup` e `restore-backup`: invoices, invoice_items, residue_materials, residue_sales, outsource_yarn_stock, accounts_payable, yarn_types, tv_panels, email_history, iot_devices, iot_downtime_events, iot_machine_assignments, iot_shift_state, machine_readings; (2) **Listagem agrupada por empresa:** Aba Backups no /admin agora exibe cards separados por empresa com badge de contagem, em vez de tabela única; (3) **Regra obrigatória documentada:** Adicionada regra no mestre.md exigindo que toda nova tabela seja incluída no sistema de backup.
 
+- **04/04/2026 10:00 (Brasília)** — **REFATORAÇÃO ARQUITETURAL — 3 melhorias de organização:** (1) **Documentação organizada:** Todos os 15 arquivos `.md` de documentação movidos da raiz para pasta `docs/` (mestre.md, nf.md, iot.md, modotv.md, etc.) — README.md permanece na raiz; (2) **App.tsx refatorado:** Extraídos 5 componentes de roteamento para `src/components/routes/`: RootRedirect, PublicRoute, CompanyRoute, CompanyRouteInner, ProtectedRoute — App.tsx reduzido de 213 para 85 linhas; (3) **types/index.ts dividido por domínio:** Tipos separados em 7 arquivos: company.ts, machine.ts, client.ts, shift.ts, weaver.ts, production.ts, user.ts — index.ts mantém re-exports para compatibilidade total.
+
 ---
 
-*Última atualização: 04/04/2026 09:00 (Brasília)*
+*Última atualização: 04/04/2026 10:00 (Brasília)*
