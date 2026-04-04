@@ -1316,6 +1316,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 10:00 (Brasília)** — **REFATORAÇÃO ARQUITETURAL — 3 melhorias de organização:** (1) **Documentação organizada:** Todos os 15 arquivos `.md` de documentação movidos da raiz para pasta `docs/` (mestre.md, nf.md, iot.md, modotv.md, etc.) — README.md permanece na raiz; (2) **App.tsx refatorado:** Extraídos 5 componentes de roteamento para `src/components/routes/`: RootRedirect, PublicRoute, CompanyRoute, CompanyRouteInner, ProtectedRoute — App.tsx reduzido de 213 para 85 linhas; (3) **types/index.ts dividido por domínio:** Tipos separados em 7 arquivos: company.ts, machine.ts, client.ts, shift.ts, weaver.ts, production.ts, user.ts — index.ts mantém re-exports para compatibilidade total.
 
+- **04/04/2026 20:40 (Brasília)** — **CORREÇÃO DADOS — Remoção de produções duplicadas:** Identificados e removidos registros de produção duplicados na empresa de `felipeeck182@gmail.com`. Foram encontrados **77 grupos duplicados** em 2 datas (19/07/2025 e 28/08/2025) — cada combinação de máquina+turno+artigo tinha 2 registros idênticos com mesmos valores. Mantido o registro mais antigo de cada grupo e removido o duplicado. Verificação pós-correção confirmou zero duplicatas restantes no banco.
+
 ---
 
-*Última atualização: 04/04/2026 10:00 (Brasília)*
+*Última atualização: 04/04/2026 20:40 (Brasília)*
