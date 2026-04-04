@@ -511,6 +511,7 @@ export default function SettingsPage() {
       body: { action: 'update', user_id: p.user_id, status: newStatus },
     });
     if (error || data?.error) { toast.error('Erro ao atualizar status'); return; }
+    logAction(newStatus === 'active' ? 'user_reactivate' : 'user_deactivate', { name: p.name, code: p.code });
     toast.success(newStatus === 'active' ? 'Usuário ativado' : 'Usuário desativado');
     await refreshProfiles();
   };
