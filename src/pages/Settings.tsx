@@ -894,7 +894,7 @@ export default function SettingsPage() {
                     const canEditTarget = isCurrentUserMainAdmin || !isTargetMainAdmin;
                     return (
                     <div className="flex items-center gap-1 shrink-0">
-                      {p.role !== 'admin' && canEditTarget && (
+                      {p.role !== 'admin' && isCurrentUserMainAdmin && (
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openPermissionsModal(p)} title="Permissões Extras">
                           <Eye className="h-3.5 w-3.5 text-primary" />
                         </Button>
