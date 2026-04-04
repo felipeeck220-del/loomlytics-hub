@@ -27,11 +27,20 @@
 ## 🏗️ Arquitetura de Pastas
 
 ```
+docs/                           # 📄 Documentação centralizada (mestre.md, nf.md, iot.md, etc.)
 src/
-├── App.tsx                    # Rotas, providers, proteção de rotas
+├── App.tsx                    # Rotas e providers (lógica extraída para components/routes/)
 ├── main.tsx                   # Entry point
 ├── index.css                  # Tokens de design (CSS variables HSL)
-├── types/index.ts             # Interfaces e tipos globais (Machine, Production, etc.)
+├── types/                     # Tipos organizados por domínio
+│   ├── index.ts               # Re-exports (compatibilidade — imports existentes continuam funcionando)
+│   ├── company.ts             # Company
+│   ├── machine.ts             # Machine, MachineLog, MachineStatus, ProductionMode
+│   ├── client.ts              # Client, Article, ArticleMachineTurns
+│   ├── shift.ts               # ShiftType, CompanyShiftSettings, getShiftMinutes, etc.
+│   ├── weaver.ts              # Weaver
+│   ├── production.ts          # Production, DefectRecord, MeasureType
+│   └── user.ts                # User
 ├── contexts/
 │   ├── AuthContext.tsx         # Autenticação, login, registro, sessão, multi-empresa
 │   ├── CompanyDataContext.tsx  # Provider global — wraps useCompanyData
@@ -48,6 +57,12 @@ src/
 │   ├── fbPixel.ts             # Utilitário Facebook Pixel — fbTrack(event, params?)
 │   └── utils.ts               # cn() e utilitários
 ├── components/
+│   ├── routes/                 # Componentes de roteamento (extraídos de App.tsx)
+│   │   ├── RootRedirect.tsx    # Redirect / → /admin ou /:slug
+│   │   ├── PublicRoute.tsx     # Guard para rotas públicas
+│   │   ├── CompanyRoute.tsx    # Resolve slug → empresa ativa
+│   │   ├── CompanyRouteInner.tsx # Bloqueios (inativo, assinatura expirada)
+│   │   └── ProtectedRoute.tsx  # Guard por role/permissão
 │   ├── AppLayout.tsx           # Layout: header + sidebar + content + bottom nav
 │   ├── AppSidebar.tsx          # Sidebar lateral com items filtrados por role + enabled_nav_items
 │   ├── MobileBottomNav.tsx     # Navegação inferior mobile (role-specific)
