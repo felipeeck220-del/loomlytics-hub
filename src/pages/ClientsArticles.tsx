@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ export default function ClientsArticles() {
   const { canSeeFinancial } = usePermissions();
   const { user } = useAuth();
   const companyId = user?.company_id || '';
+  const { logAction } = useAuditLog();
   const clients = getClients();
   const articles = getArticles();
   const machines = getMachines();
@@ -141,10 +143,10 @@ export default function ClientsArticles() {
     if (editingClient) {
       const idx = all.findIndex(c => c.id === editingClient.id);
       all[idx] = { ...all[idx], ...clientForm };
-      await saveClients(all); toast.success('Cliente atualizado');
+      await saveClients(all); logAction('client_update', { name: clientForm.name }); toast.success('Cliente atualizado');
     } else {
       all.push({ id: crypto.randomUUID(), company_id: '', name: clientForm.name, contact: clientForm.contact || undefined, observations: clientForm.observations || undefined, created_at: new Date().toISOString() });
-      await saveClients(all); toast.success('Cliente cadastrado');
+      await saveClients(all); logAction('client_create', { name: clientForm.name }); toast.success('Cliente cadastrado');
     }
     setShowClientModal(false);
   };
@@ -160,10 +162,10 @@ export default function ClientsArticles() {
     if (editingArticle) {
       const idx = all.findIndex(a => a.id === editingArticle.id);
       all[idx] = { ...all[idx], name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined };
-      await saveArticles(all); toast.success('Artigo atualizado');
+      await saveArticles(all); logAction('article_update', { name: articleForm.name }); toast.success('Artigo atualizado');
     } else {
       all.push({ id: crypto.randomUUID(), company_id: '', name: articleForm.name, client_id: articleForm.client_id, client_name: clientName, yarn_type_id: yarnTypeId, weight_per_roll: Number(articleForm.weight_per_roll), value_per_kg: Number(articleForm.value_per_kg), turns_per_roll: Number(articleForm.turns_per_roll), target_efficiency: Number(articleForm.target_efficiency) || 80, observations: articleForm.observations || undefined, created_at: new Date().toISOString() });
-      await saveArticles(all); toast.success('Artigo cadastrado');
+      await saveArticles(all); logAction('article_create', { name: articleForm.name }); toast.success('Artigo cadastrado');
     }
     setShowArticleModal(false);
   };
@@ -171,8 +173,10 @@ export default function ClientsArticles() {
   const handleDelete = async () => {
     if (showDelete?.type === 'client') {
       await saveClients(clients.filter(c => c.id !== showDelete.item.id));
+      logAction('client_delete', { name: showDelete.item.name });
     } else {
       await saveArticles(articles.filter(a => a.id !== showDelete?.item.id));
+      logAction('article_delete', { name: showDelete?.item.name });
     }
     setShowDelete(null); setDeleteWord(''); toast.success('Excluído com sucesso');
   };

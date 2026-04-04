@@ -67,7 +67,7 @@ export default function Outsource() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
-  const { userCode, userName } = useAuditLog();
+  const { userCode, userName, logAction } = useAuditLog();
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
 
@@ -265,6 +265,7 @@ function CompaniesTab({ companies, companyId, loading }: {
   loading: boolean;
 }) {
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', contact: '', observations: '' });
@@ -290,6 +291,7 @@ function CompaniesTab({ companies, companyId, loading }: {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_companies'] });
+      logAction(editId ? 'outsource_company_update' : 'outsource_company_create', { name: form.name });
       toast({ title: editId ? 'Malharia atualizada!' : 'Malharia cadastrada!' });
       setOpen(false); resetForm();
     },
@@ -301,8 +303,9 @@ function CompaniesTab({ companies, companyId, loading }: {
       const { error } = await sb('outsource_companies').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_: any, id: string) => {
       queryClient.invalidateQueries({ queryKey: ['outsource_companies'] });
+      logAction('outsource_company_delete', { id });
       toast({ title: 'Malharia removida!' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
@@ -428,7 +431,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   setFilterTo: (v: Date | undefined) => void;
 }) {
   const queryClient = useQueryClient();
-  const { userCode, userName } = useAuditLog();
+  const { userCode, userName, logAction } = useAuditLog();
   const userNameRef = useRef(userName);
   const userCodeRef = useRef(userCode);
   useEffect(() => { userNameRef.current = userName; }, [userName]);
@@ -604,6 +607,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      logAction(editId ? 'outsource_production_update' : 'outsource_production_create', { date: form.date, article: form.article_id });
       toast({ title: editId ? 'Registro atualizado!' : 'Produção registrada!' });
       if (editId) {
         setOpen(false);
@@ -642,6 +646,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      logAction('outsource_production_delete', {});
       toast({ title: 'Registro removido!' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),

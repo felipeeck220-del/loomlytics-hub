@@ -52,12 +52,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor, Lock } from 'lucide-react';
+import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor, Lock, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions, OVERRIDE_PERMISSIONS } from '@/hooks/usePermissions';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import ProductionModeModal from '@/components/ProductionModeModal';
 import IotDevicesManager from '@/components/IotDevicesManager';
 import SettingsTelasTab from '@/components/SettingsTelasTab';
+import AuditHistoryModal from '@/components/AuditHistoryModal';
 import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -98,11 +100,13 @@ const getRoleLabel = (role: string) => ROLES.find(r => r.value === role)?.label 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { shiftSettings, saveShiftSettings, getMachines, saveMachines } = useSharedCompanyData();
+  const { logAction } = useAuditLog();
   const [tab, setTab] = useState('profile');
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [company, setCompany] = useState<any>(null);
+  const [showAuditHistory, setShowAuditHistory] = useState(false);
 
   // User management
   const [showUserModal, setShowUserModal] = useState(false);
@@ -483,12 +487,14 @@ export default function SettingsPage() {
         }
         const { data, error } = await supabase.functions.invoke('manage-users', { body: bodyPayload });
         if (error || data?.error) throw new Error(data?.error || error?.message);
+        logAction('user_update', { name: userForm.name, role: userForm.role, email: userForm.email });
         toast.success('Usuário atualizado');
       } else {
         const { data, error } = await supabase.functions.invoke('manage-users', {
           body: { action: 'create', ...userForm },
         });
         if (error || data?.error) throw new Error(data?.error || error?.message);
+        logAction('user_create', { name: userForm.name, email: userForm.email, role: userForm.role, code: data?.code });
         toast.success('Usuário criado');
       }
       await refreshProfiles();
@@ -505,6 +511,7 @@ export default function SettingsPage() {
       body: { action: 'update', user_id: p.user_id, status: newStatus },
     });
     if (error || data?.error) { toast.error('Erro ao atualizar status'); return; }
+    logAction(newStatus === 'active' ? 'user_reactivate' : 'user_deactivate', { name: p.name, code: p.code });
     toast.success(newStatus === 'active' ? 'Usuário ativado' : 'Usuário desativado');
     await refreshProfiles();
   };
@@ -520,6 +527,7 @@ export default function SettingsPage() {
         body: { action: 'change_password', user_id: changePasswordUser.user_id, new_password: adminNewPassword },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
+      logAction('user_password_change', { name: changePasswordUser.name, code: changePasswordUser.code });
       toast.success('Senha alterada com sucesso');
       setChangePasswordUser(null);
       setAdminNewPassword('');
@@ -553,6 +561,7 @@ export default function SettingsPage() {
         body: { action: 'update_permissions', user_id: permissionsUser.user_id, permission_overrides: permOverrides },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
+      logAction('user_permissions_update', { name: permissionsUser.name, code: permissionsUser.code, permissions: permOverrides });
       toast.success('Permissões atualizadas');
       await refreshProfiles();
       setPermissionsUser(null);
@@ -570,6 +579,7 @@ export default function SettingsPage() {
         body: { action: 'delete', user_id: showDeleteUser?.user_id },
       });
       if (error || data?.error) { toast.error(data?.error || 'Erro ao excluir'); return; }
+      logAction('user_delete', { name: showDeleteUser?.name, code: showDeleteUser?.code, email: showDeleteUser?.email });
       toast.success('Usuário excluído');
       setShowDeleteUser(null);
       setDeleteWord('');
@@ -819,9 +829,16 @@ export default function SettingsPage() {
               </div>
             </div>
             {isAdmin && (
-              <Button onClick={openNewUser} className="btn-gradient">
-                <Plus className="h-4 w-4 mr-1" /> Novo Usuário
-              </Button>
+              <div className="flex items-center gap-2">
+                {profiles.find(pr => pr.user_id === user?.id)?.code === '1' && (
+                  <Button variant="outline" onClick={() => setShowAuditHistory(true)}>
+                    <History className="h-4 w-4 mr-1" /> Histórico
+                  </Button>
+                )}
+                <Button onClick={openNewUser} className="btn-gradient">
+                  <Plus className="h-4 w-4 mr-1" /> Novo Usuário
+                </Button>
+              </div>
             )}
           </div>
 
@@ -1647,6 +1664,13 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Audit History Modal */}
+      <AuditHistoryModal
+        open={showAuditHistory}
+        onOpenChange={setShowAuditHistory}
+        companyId={user?.company_id || ''}
+      />
     </div>
   );
 }
