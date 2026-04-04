@@ -290,6 +290,7 @@ function CompaniesTab({ companies, companyId, loading }: {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_companies'] });
+      logAction(editId ? 'outsource_company_update' : 'outsource_company_create', { name: form.name });
       toast({ title: editId ? 'Malharia atualizada!' : 'Malharia cadastrada!' });
       setOpen(false); resetForm();
     },
