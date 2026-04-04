@@ -67,7 +67,7 @@ export default function Outsource() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
-  const { userCode, userName } = useAuditLog();
+  const { userCode, userName, logAction } = useAuditLog();
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
 
