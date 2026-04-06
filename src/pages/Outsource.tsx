@@ -477,7 +477,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     setForm(f => ({
       outsource_company_id: keepCompany ? f.outsource_company_id : '',
       article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
-      weight_kg: '', rolls: '', outsource_value_per_kg: '', nf_rom: '', observations: '',
+      weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '', nf_rom: '', observations: '',
     }));
     setEditId(null);
     setArticleSearch('');
@@ -670,6 +670,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
       weight_kg: formatNumberToBr(p.weight_kg, 2),
       rolls: String(p.rolls),
       outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
+      freight_per_kg: p.freight_per_kg > 0 ? formatRepasseInput(String(Math.round(p.freight_per_kg * 100))) : '',
       nf_rom: p.nf_rom || '',
       observations: p.observations || '',
     });
