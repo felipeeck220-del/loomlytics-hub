@@ -79,10 +79,6 @@ Deno.serve(async (req) => {
         const [year, month, day] = account.due_date.split("-");
         const dueDateFormatted = `${day}/${month}/${year}`;
 
-        // Format phone to +55XXXXXXXXXXX
-        const cleanPhone = account.whatsapp_number.replace(/\D/g, '');
-        const formattedPhone = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
-
         const messageBody = `🔔 *Lembrete de Pagamento - MalhaGest*
 
 Você tem um pagamento com vencimento *amanhã*:
@@ -94,30 +90,48 @@ Você tem um pagamento com vencimento *amanhã*:
 
 Acesse o sistema para mais detalhes.`;
 
-        console.log(`[notify-accounts-due] Sending to ${formattedPhone} for account ${account.id}`);
+        // Parse multiple phone numbers (comma-separated)
+        const phoneNumbers = account.whatsapp_number
+          .split(',')
+          .map((n: string) => n.trim().replace(/\D/g, ''))
+          .filter((n: string) => n.length >= 10);
 
-        const response = await fetch(ultramsgUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            token: ultramsgToken,
-            to: formattedPhone,
-            body: messageBody,
-          }),
-        });
+        let allSent = true;
 
-        const result = await response.json();
+        for (const cleanPhone of phoneNumbers) {
+          const formattedPhone = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
 
-        if (result.sent === "true") {
+          console.log(`[notify-accounts-due] Sending to ${formattedPhone} for account ${account.id}`);
+
+          const response = await fetch(ultramsgUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: ultramsgToken,
+              to: formattedPhone,
+              body: messageBody,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.sent !== "true") {
+            console.error(`[notify-accounts-due] ❌ UltraMsg failed for ${formattedPhone}: ${result.message}`);
+            allSent = false;
+          } else {
+            console.log(`[notify-accounts-due] ✅ Sent to ${formattedPhone}`);
+          }
+        }
+
+        if (allSent && phoneNumbers.length > 0) {
           // Mark as notified
           await supabase
             .from("accounts_payable")
             .update({ notification_sent: true })
             .eq("id", account.id);
           notified++;
-          console.log(`[notify-accounts-due] ✅ Notified account ${account.id}`);
+          console.log(`[notify-accounts-due] ✅ Notified account ${account.id} (${phoneNumbers.length} numbers)`);
         } else {
-          console.error(`[notify-accounts-due] ❌ UltraMsg failed for ${account.id}: ${result.message}`);
           errors++;
         }
       } catch (err) {
