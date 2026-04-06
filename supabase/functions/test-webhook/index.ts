@@ -33,7 +33,8 @@ Deno.serve(async (req) => {
     const cleanPhone = phone.replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("55") ? `+${cleanPhone}` : `+55${cleanPhone}`;
 
-    const tomorrowDate = new Date(Date.now() + 86400000).toLocaleDateString("pt-BR");
+    const tmrw = new Date(Date.now() + 86400000);
+    const tomorrowDate = `${String(tmrw.getDate()).padStart(2, '0')}/${String(tmrw.getMonth() + 1).padStart(2, '0')}/${tmrw.getFullYear()}`;
 
     const messageBody = `🔔 *Teste de Notificação - MalhaGest*
 
