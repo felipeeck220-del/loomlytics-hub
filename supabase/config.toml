@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.machine-webhook]
 verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
