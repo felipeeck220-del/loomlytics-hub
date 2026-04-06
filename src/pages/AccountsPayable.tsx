@@ -39,6 +39,8 @@ interface AccountPayable {
   observations: string | null;
   created_at: string;
   updated_at: string;
+  short_id: string | null;
+  paid_amount: number | null;
 }
 
 const CATEGORIES = ['Insumos', 'Peças', 'Agulhas', 'Serviços', 'Outros'];
@@ -92,6 +94,7 @@ export default function AccountsPayable() {
   const [form, setForm] = useState(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [confirmPayId, setConfirmPayId] = useState<string | null>(null);
+  const [paidAmountInput, setPaidAmountInput] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
   const [filterSupplier, setFilterSupplier] = useState('all');
@@ -151,7 +154,8 @@ export default function AccountsPayable() {
       const term = searchTerm.toLowerCase();
       result = result.filter(a =>
         a.supplier_name.toLowerCase().includes(term) ||
-        a.description.toLowerCase().includes(term)
+        a.description.toLowerCase().includes(term) ||
+        (a.short_id && a.short_id.includes(term))
       );
     }
     return result;
@@ -161,7 +165,7 @@ export default function AccountsPayable() {
   const totals = useMemo(() => {
     const pendente = accounts.filter(a => a.status === 'pendente').reduce((s, a) => s + Number(a.amount), 0);
     const vencido = accounts.filter(a => a.status === 'vencido').reduce((s, a) => s + Number(a.amount), 0);
-    const pago = accounts.filter(a => a.status === 'pago').reduce((s, a) => s + Number(a.amount), 0);
+    const pago = accounts.filter(a => a.status === 'pago').reduce((s, a) => s + Number(a.paid_amount ?? a.amount), 0);
     return { pendente, vencido, pago };
   }, [accounts]);
 
@@ -204,7 +208,7 @@ export default function AccountsPayable() {
 
   // Mark as paid
   const markPaidMutation = useMutation({
-    mutationFn: async ({ id, file }: { id: string; file: File | null }) => {
+    mutationFn: async ({ id, file, paidAmount }: { id: string; file: File | null; paidAmount: number | null }) => {
       let receiptUrl: string | null = null;
 
       if (file) {
@@ -222,6 +226,9 @@ export default function AccountsPayable() {
       }
 
       const updateData: any = { status: 'pago', paid_at: new Date().toISOString() };
+      if (paidAmount !== null) {
+        updateData.paid_amount = paidAmount;
+      }
       if (receiptUrl) {
         updateData.receipt_url = receiptUrl;
         updateData.receipt_change_count = 0;
@@ -232,13 +239,14 @@ export default function AccountsPayable() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: (_data: unknown, { id }: { id: string; file: File | null }) => {
+    onSuccess: (_data: unknown, { id }: { id: string; file: File | null; paidAmount: number | null }) => {
       const acc = accounts.find(a => a.id === id);
       logAction('account_pay', { supplier_name: acc?.supplier_name, amount: acc?.amount });
       toast.success('Conta marcada como paga!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
       setConfirmPayId(null);
       setReceiptFile(null);
+      setPaidAmountInput('');
     },
   });
 
@@ -326,7 +334,6 @@ export default function AccountsPayable() {
   }
 
   function handlePhoneChange(index: number, value: string) {
-    // Extract only digits from raw input value
     const digits = value.replace(/\D/g, '').slice(0, 11);
     const formatted = formatPhone(digits);
     setForm(f => {
@@ -397,6 +404,7 @@ export default function AccountsPayable() {
   }
 
   const confirmPayAccount = confirmPayId ? accounts.find(a => a.id === confirmPayId) : null;
+  const isConfirmPayVencido = confirmPayAccount?.status === 'vencido';
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -411,7 +419,7 @@ export default function AccountsPayable() {
             Gerencie suas obrigações financeiras com fornecedores
           </p>
           <p className="text-xs text-muted-foreground/70 mt-0.5 flex items-center gap-1">
-            📲 Notificação automática via WhatsApp 1 dia antes do vencimento
+            📲 Notificação automática via WhatsApp 1 dia antes e no dia do vencimento
           </p>
         </div>
         <div className="flex gap-2">
@@ -454,7 +462,7 @@ export default function AccountsPayable() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar fornecedor ou descrição..."
+              placeholder="Buscar por ID, fornecedor ou descrição..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -512,6 +520,7 @@ export default function AccountsPayable() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[70px]">ID</TableHead>
                     <TableHead>Fornecedor</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead className="hidden md:table-cell">Categoria</TableHead>
@@ -525,10 +534,23 @@ export default function AccountsPayable() {
                 <TableBody>
                   {filtered.map(account => (
                     <TableRow key={account.id}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        #{account.short_id || '—'}
+                      </TableCell>
                       <TableCell className="font-medium">{account.supplier_name}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{account.description}</TableCell>
                       <TableCell className="hidden md:table-cell">{account.category || '—'}</TableCell>
-                      <TableCell>{formatCurrency(Number(account.amount))}</TableCell>
+                      <TableCell>
+                        {account.status === 'pago' && account.paid_amount != null && account.paid_amount !== account.amount ? (
+                          <div>
+                            <span className="line-through text-muted-foreground text-xs">{formatCurrency(Number(account.amount))}</span>
+                            <br />
+                            <span className="font-semibold text-green-600 dark:text-green-400">{formatCurrency(Number(account.paid_amount))}</span>
+                          </div>
+                        ) : (
+                          formatCurrency(Number(account.amount))
+                        )}
+                      </TableCell>
                       <TableCell>
                         {format(new Date(account.due_date + 'T12:00:00'), 'dd/MM/yyyy')}
                       </TableCell>
@@ -573,7 +595,10 @@ export default function AccountsPayable() {
                               variant="ghost"
                               size="icon"
                               title="Confirmar pagamento"
-                              onClick={() => setConfirmPayId(account.id)}
+                              onClick={() => {
+                                setConfirmPayId(account.id);
+                                setPaidAmountInput('');
+                              }}
                               disabled={markPaidMutation.isPending}
                             >
                               <Check className="h-4 w-4 text-green-600" />
@@ -598,7 +623,6 @@ export default function AccountsPayable() {
                               onClick={async () => {
                                 try {
                                   setReceiptLoading(true);
-                                  // Extract storage path from public URL
                                   const urlParts = account.receipt_url!.split('/payment-receipts/');
                                   const storagePath = urlParts[urlParts.length - 1];
                                   const { data, error } = await supabase.storage
@@ -630,14 +654,17 @@ export default function AccountsPayable() {
                               <Upload className="h-4 w-4 text-amber-600" />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="Excluir"
-                            onClick={() => setDeleteId(account.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {/* Delete button hidden for paid accounts */}
+                          {account.status !== 'pago' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Excluir"
+                              onClick={() => setDeleteId(account.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -765,7 +792,7 @@ export default function AccountsPayable() {
       </Dialog>
 
       {/* Confirm Payment Dialog */}
-      <AlertDialog open={!!confirmPayId} onOpenChange={open => { if (!open) { setConfirmPayId(null); setReceiptFile(null); } }}>
+      <AlertDialog open={!!confirmPayId} onOpenChange={open => { if (!open) { setConfirmPayId(null); setReceiptFile(null); setPaidAmountInput(''); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
@@ -773,9 +800,27 @@ export default function AccountsPayable() {
               <div>
                 {confirmPayAccount && (
                   <p>
-                    Deseja marcar a conta de <strong>{confirmPayAccount.supplier_name}</strong> no valor de{' '}
+                    Deseja marcar a conta <strong>#{confirmPayAccount.short_id}</strong> de <strong>{confirmPayAccount.supplier_name}</strong> no valor de{' '}
                     <strong>{formatCurrency(Number(confirmPayAccount.amount))}</strong> como paga?
                   </p>
+                )}
+                {/* Show paid amount input for overdue accounts */}
+                {isConfirmPayVencido && (
+                  <div className="mt-4 space-y-2">
+                    <Label className="text-sm font-medium text-foreground">Valor com juros (R$)</Label>
+                    <Input
+                      value={paidAmountInput}
+                      onChange={e => {
+                        const v = e.target.value.replace(/[^0-9.,]/g, '');
+                        setPaidAmountInput(v);
+                      }}
+                      inputMode="decimal"
+                      placeholder={confirmPayAccount ? String(confirmPayAccount.amount).replace('.', ',') : '0,00'}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Se o valor foi atualizado com juros, informe o novo valor. Deixe vazio para manter o valor original.
+                    </p>
+                  </div>
                 )}
                 <div className="mt-4 space-y-2">
                   <Label className="text-sm font-medium text-foreground">Comprovante (opcional)</Label>
@@ -802,7 +847,13 @@ export default function AccountsPayable() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => confirmPayId && markPaidMutation.mutate({ id: confirmPayId, file: receiptFile })}
+              onClick={() => {
+                if (!confirmPayId) return;
+                const paidAmount = paidAmountInput
+                  ? parseFloat(paidAmountInput.replace(',', '.'))
+                  : null;
+                markPaidMutation.mutate({ id: confirmPayId, file: receiptFile, paidAmount });
+              }}
               className="bg-green-600 text-white hover:bg-green-700"
             >
               {markPaidMutation.isPending ? 'Confirmando...' : 'Confirmar Pagamento'}
