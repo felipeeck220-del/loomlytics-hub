@@ -101,6 +101,9 @@ export default function AccountsPayable() {
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [showReceiptChange, setShowReceiptChange] = useState<string | null>(null);
   const [receiptChangeFile, setReceiptChangeFile] = useState<File | null>(null);
+  const [viewingReceiptUrl, setViewingReceiptUrl] = useState<string | null>(null);
+  const [viewingReceiptType, setViewingReceiptType] = useState<string>('');
+  const [receiptLoading, setReceiptLoading] = useState(false);
 
   const companyId = user?.company_id;
 
@@ -542,7 +545,28 @@ export default function AccountsPayable() {
                               variant="ghost"
                               size="icon"
                               title="Ver comprovante"
-                              onClick={() => window.open(account.receipt_url!, '_blank')}
+                              disabled={receiptLoading}
+                              onClick={async () => {
+                                try {
+                                  setReceiptLoading(true);
+                                  // Extract storage path from public URL
+                                  const urlParts = account.receipt_url!.split('/payment-receipts/');
+                                  const storagePath = urlParts[urlParts.length - 1];
+                                  const { data, error } = await supabase.storage
+                                    .from('payment-receipts')
+                                    .download(storagePath);
+                                  if (error) throw error;
+                                  const blobUrl = URL.createObjectURL(data);
+                                  const ext = storagePath.split('.').pop()?.toLowerCase() || '';
+                                  const mimeMap: Record<string, string> = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+                                  setViewingReceiptType(mimeMap[ext] || 'application/octet-stream');
+                                  setViewingReceiptUrl(blobUrl);
+                                } catch (err: any) {
+                                  toast.error('Erro ao carregar comprovante: ' + (err.message || 'Erro desconhecido'));
+                                } finally {
+                                  setReceiptLoading(false);
+                                }
+                              }}
                             >
                               <Eye className="h-4 w-4 text-blue-600" />
                             </Button>
@@ -824,6 +848,50 @@ export default function AccountsPayable() {
             <Button onClick={handleTestWebhook} disabled={testSending} className="gap-2">
               <Send className="h-4 w-4" />
               {testSending ? 'Enviando...' : 'Enviar Teste'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Receipt Viewer Dialog */}
+      <Dialog open={!!viewingReceiptUrl} onOpenChange={(open) => {
+        if (!open) {
+          if (viewingReceiptUrl) URL.revokeObjectURL(viewingReceiptUrl);
+          setViewingReceiptUrl(null);
+          setViewingReceiptType('');
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Comprovante de Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-[60vh]">
+            {viewingReceiptType === 'application/pdf' ? (
+              <iframe
+                src={viewingReceiptUrl || ''}
+                className="w-full h-[70vh] border rounded"
+                title="Comprovante PDF"
+              />
+            ) : viewingReceiptType.startsWith('image/') ? (
+              <img
+                src={viewingReceiptUrl || ''}
+                alt="Comprovante"
+                className="max-w-full max-h-[70vh] mx-auto object-contain rounded"
+              />
+            ) : (
+              <p className="text-center text-muted-foreground py-8">Formato não suportado para visualização</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              if (viewingReceiptUrl) {
+                const a = document.createElement('a');
+                a.href = viewingReceiptUrl;
+                a.download = `comprovante.${viewingReceiptType.split('/')[1] || 'pdf'}`;
+                a.click();
+              }
+            }}>
+              <FileText className="h-4 w-4 mr-2" />
+              Baixar
             </Button>
           </DialogFooter>
         </DialogContent>

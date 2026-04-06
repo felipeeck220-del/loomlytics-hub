@@ -1332,6 +1332,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 09:00 (Brasília)** — **CONTAS A PAGAR — Comprovante de pagamento:** (1) **Storage:** Bucket `payment-receipts` criado (público) para armazenar comprovantes PDF/PNG/JPG; (2) **Novos campos:** `receipt_url` e `receipt_change_count` adicionados à tabela `accounts_payable`; (3) **Modal de pagamento:** Campo de upload opcional de comprovante integrado ao modal de confirmação; (4) **Ações na tabela:** Botão visualizar (👁 azul) abre comprovante em nova aba, botão alterar (⬆ âmbar) permite substituir — máximo 2 alterações, após isso botão é removido permanentemente; (5) **Documentação:** ContasPagar.md atualizado com nova seção de comprovantes.
 
+- **07/04/2026 09:30 (Brasília)** — **CONTAS A PAGAR — Modal interno para comprovantes:** Substituído `window.open` (que era bloqueado pelo navegador com `ERR_BLOCKED_BY_CLIENT`) por download via SDK Supabase Storage + exibição em Dialog interno. PDF exibido em iframe, imagens exibidas inline. Inclui botão "Baixar". Documentação ContasPagar.md atualizada.
+
 ---
 
-*Última atualização: 07/04/2026 09:00 (Brasília)*
+*Última atualização: 07/04/2026 09:30 (Brasília)*
