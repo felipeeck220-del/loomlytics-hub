@@ -1372,6 +1372,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 14:00 (Brasília)** — **SETTINGS — Remoção de botão duplicado de alterar senha:** Removido o botão antigo (ícone Key/chave) da listagem de usuários que abria modal separado de troca de senha. A funcionalidade de alterar senha agora existe apenas dentro do modal de edição de usuário, evitando duplicidade.
 
+- **06/04/2026 13:08 (Brasília)** — **CHECK-SUBSCRIPTION — Correção de autenticação da Edge Function:** A função deixou de depender de sessão implícita no runtime e passou a validar o JWT recebido via `Authorization` com `getClaims()`, usando client autenticado do usuário para validar o token e client administrativo para leituras/atualizações de assinatura. Com isso, o erro `Auth session missing!` deixa de derrubar a tela.
+
 ---
 
-*Última atualização: 07/04/2026 14:00 (Brasília)*
+*Última atualização: 06/04/2026 13:08 (Brasília)*

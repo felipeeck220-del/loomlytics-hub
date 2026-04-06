@@ -7,139 +7,149 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
-
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader || authHeader === "Bearer " || authHeader === "Bearer null" || authHeader === "Bearer undefined") {
-      return new Response(JSON.stringify({ status: 'unknown', blocked: false, error: 'No auth session' }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonResponse({ status: "unknown", blocked: false, error: "No auth session" });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(userError.message);
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated");
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (!token || token === "null" || token === "undefined") {
+      return jsonResponse({ status: "unknown", blocked: false, error: "No auth session" });
+    }
 
-    // Get user's company_id from profiles
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('company_id')
-      .eq('user_id', user.id)
-      .limit(1)
-      .single();
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      },
+    );
 
-    if (!profile) throw new Error("Profile not found");
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
 
-    // Get company settings
-    const { data: settings } = await supabaseClient
-      .from('company_settings')
-      .select('trial_end_date, subscription_status, subscription_plan, grace_period_end')
-      .eq('company_id', profile.company_id)
-      .single();
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      return jsonResponse({ status: "unknown", blocked: false, error: "Invalid auth session" });
+    }
+
+    const userId = claimsData.claims.sub;
+    const userEmail = typeof claimsData.claims.email === "string" ? claimsData.claims.email : null;
+
+    const { data: activeCompany } = await adminClient
+      .from("user_active_company")
+      .select("company_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    let profileQuery = adminClient
+      .from("profiles")
+      .select("company_id")
+      .eq("user_id", userId)
+      .limit(1);
+
+    if (activeCompany?.company_id) {
+      profileQuery = profileQuery.eq("company_id", activeCompany.company_id);
+    }
+
+    const { data: profile, error: profileError } = await profileQuery.maybeSingle();
+
+    if (profileError || !profile?.company_id) {
+      return jsonResponse({ status: "unknown", blocked: false, error: "Profile not found" });
+    }
+
+    const { data: settings, error: settingsError } = await adminClient
+      .from("company_settings")
+      .select("trial_end_date, subscription_status, subscription_plan, grace_period_end")
+      .eq("company_id", profile.company_id)
+      .maybeSingle();
+
+    if (settingsError || !settings) {
+      return jsonResponse({ status: "unknown", blocked: false, error: "Company settings not found" });
+    }
 
     const now = new Date();
 
-    // Check if free user
-    if (settings?.subscription_status === 'free') {
-      return new Response(JSON.stringify({
-        status: 'free',
-        blocked: false,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (settings.subscription_status === "free") {
+      return jsonResponse({ status: "free", blocked: false });
     }
 
-    // Check if subscription is already active (paid via Pix or other method)
-    if (settings?.subscription_status === 'active') {
-      return new Response(JSON.stringify({
-        status: 'active',
+    if (settings.subscription_status === "active") {
+      return jsonResponse({
+        status: "active",
         plan: settings.subscription_plan,
         blocked: false,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check if subscription was cancelled but still within paid period
-    if (settings?.subscription_status === 'cancelling') {
-      // Check if grace_period_end has passed
+    if (settings.subscription_status === "cancelling") {
       if (settings.grace_period_end && new Date(settings.grace_period_end) < now) {
-        // Period ended, mark as cancelled
-        await supabaseClient
-          .from('company_settings')
-          .update({ 
-            subscription_status: 'cancelled',
+        await adminClient
+          .from("company_settings")
+          .update({
+            subscription_status: "cancelled",
             platform_active: false,
           })
-          .eq('company_id', profile.company_id);
+          .eq("company_id", profile.company_id);
 
-        return new Response(JSON.stringify({
-          status: 'cancelled',
-          blocked: true,
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResponse({ status: "cancelled", blocked: true });
       }
 
-      return new Response(JSON.stringify({
-        status: 'cancelling',
+      return jsonResponse({
+        status: "cancelling",
         plan: settings.subscription_plan,
         blocked: false,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check if already blocked/cancelled
-    if (settings?.subscription_status === 'blocked' || settings?.subscription_status === 'cancelled') {
-      return new Response(JSON.stringify({
+    if (settings.subscription_status === "blocked" || settings.subscription_status === "cancelled") {
+      return jsonResponse({
         status: settings.subscription_status,
         blocked: true,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    
-    // Check trial status
-    if (settings?.trial_end_date) {
+
+    if (settings.trial_end_date) {
       const trialEnd = new Date(settings.trial_end_date);
-      
+
       if (now < trialEnd) {
-        // Still in trial
         const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        return new Response(JSON.stringify({
-          status: 'trial',
+        return jsonResponse({
+          status: "trial",
           days_left: daysLeft,
           trial_end: settings.trial_end_date,
           blocked: false,
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     }
 
-    // Try Stripe check (wrapped in try-catch for resilience)
     try {
       const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-      if (stripeKey && user.email) {
+      if (stripeKey && userEmail) {
         const stripe = new Stripe(stripeKey, {
           apiVersion: "2025-08-27.basil",
         });
 
-        const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-        
+        const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+
         if (customers.data.length > 0) {
           const subscriptions = await stripe.subscriptions.list({
             customer: customers.data[0].id,
@@ -150,80 +160,63 @@ serve(async (req) => {
           if (subscriptions.data.length > 0) {
             const sub = subscriptions.data[0];
             const endDate = new Date(sub.current_period_end * 1000);
-            
-            // Update company settings
-            await supabaseClient
-              .from('company_settings')
+
+            await adminClient
+              .from("company_settings")
               .update({
-                subscription_status: 'active',
+                subscription_status: "active",
                 subscription_plan: sub.items.data[0].price.id,
                 subscription_paid_at: new Date().toISOString(),
                 stripe_customer_id: customers.data[0].id,
                 platform_active: true,
               })
-              .eq('company_id', profile.company_id);
+              .eq("company_id", profile.company_id);
 
-            return new Response(JSON.stringify({
-              status: 'active',
+            return jsonResponse({
+              status: "active",
               plan: sub.items.data[0].price.id,
               subscription_end: endDate.toISOString(),
               blocked: false,
-            }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
         }
       }
     } catch (stripeErr) {
-      // Stripe check failed — continue without it (Pix-based system)
       console.log("[CHECK-SUBSCRIPTION] Stripe check skipped/failed:", stripeErr);
     }
 
-    // No active subscription and trial ended - check grace period
-    const trialEnd = settings?.trial_end_date ? new Date(settings.trial_end_date) : null;
-    
+    const trialEnd = settings.trial_end_date ? new Date(settings.trial_end_date) : null;
+
     if (trialEnd && now > trialEnd) {
-      const graceEnd = new Date(trialEnd.getTime() + 5 * 24 * 60 * 60 * 1000); // 5 days grace
-      
+      const graceEnd = new Date(trialEnd.getTime() + 5 * 24 * 60 * 60 * 1000);
+
       if (now < graceEnd) {
         const graceDaysLeft = Math.ceil((graceEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        return new Response(JSON.stringify({
-          status: 'grace',
+        return jsonResponse({
+          status: "grace",
           days_left: graceDaysLeft,
           grace_end: graceEnd.toISOString(),
           blocked: false,
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Grace period ended - block
-      await supabaseClient
-        .from('company_settings')
-        .update({ 
-          platform_active: false, 
-          subscription_status: 'blocked',
+      await adminClient
+        .from("company_settings")
+        .update({
+          platform_active: false,
+          subscription_status: "blocked",
         })
-        .eq('company_id', profile.company_id);
+        .eq("company_id", profile.company_id);
 
-      return new Response(JSON.stringify({
-        status: 'blocked',
-        blocked: true,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ status: "blocked", blocked: true });
     }
 
-    return new Response(JSON.stringify({
-      status: settings?.subscription_status || 'unknown',
+    return jsonResponse({
+      status: settings.subscription_status || "unknown",
       blocked: false,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    const message = error instanceof Error ? error.message : "Unexpected error";
+    return jsonResponse({ error: message }, 500);
   }
 });
