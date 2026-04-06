@@ -101,6 +101,9 @@ export default function AccountsPayable() {
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [showReceiptChange, setShowReceiptChange] = useState<string | null>(null);
   const [receiptChangeFile, setReceiptChangeFile] = useState<File | null>(null);
+  const [viewingReceiptUrl, setViewingReceiptUrl] = useState<string | null>(null);
+  const [viewingReceiptType, setViewingReceiptType] = useState<string>('');
+  const [receiptLoading, setReceiptLoading] = useState(false);
 
   const companyId = user?.company_id;
 
