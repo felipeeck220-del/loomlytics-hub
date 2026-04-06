@@ -93,6 +93,8 @@ export default function AccountsPayable() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [confirmPayId, setConfirmPayId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterMonth, setFilterMonth] = useState('all');
+  const [filterSupplier, setFilterSupplier] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [testPhone, setTestPhone] = useState('');
@@ -121,11 +123,29 @@ export default function AccountsPayable() {
     enabled: !!companyId,
   });
 
+  // Unique suppliers for filter
+  const uniqueSuppliers = useMemo(() => {
+    const suppliers = [...new Set(accounts.map(a => a.supplier_name))].sort();
+    return suppliers;
+  }, [accounts]);
+
+  // Unique months for filter
+  const uniqueMonths = useMemo(() => {
+    const months = [...new Set(accounts.map(a => a.due_date.slice(0, 7)))].sort().reverse();
+    return months;
+  }, [accounts]);
+
   // Filtered accounts
   const filtered = useMemo(() => {
     let result = accounts;
     if (filterStatus !== 'all') {
       result = result.filter(a => a.status === filterStatus);
+    }
+    if (filterMonth !== 'all') {
+      result = result.filter(a => a.due_date.startsWith(filterMonth));
+    }
+    if (filterSupplier !== 'all') {
+      result = result.filter(a => a.supplier_name === filterSupplier);
     }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -135,7 +155,7 @@ export default function AccountsPayable() {
       );
     }
     return result;
-  }, [accounts, filterStatus, searchTerm]);
+  }, [accounts, filterStatus, filterMonth, filterSupplier, searchTerm]);
 
   // Totals
   const totals = useMemo(() => {
@@ -435,12 +455,36 @@ export default function AccountsPayable() {
               className="pl-9"
             />
           </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="Mês" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os meses</SelectItem>
+              {uniqueMonths.map(m => {
+                const [y, mo] = m.split('-');
+                const label = format(new Date(parseInt(y), parseInt(mo) - 1, 1), 'MMM/yyyy', { locale: ptBR });
+                return <SelectItem key={m} value={m}>{label}</SelectItem>;
+              })}
+            </SelectContent>
+          </Select>
+          <Select value={filterSupplier} onValueChange={setFilterSupplier}>
             <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Fornecedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos fornecedores</SelectItem>
+              {uniqueSuppliers.map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">Todos status</SelectItem>
               <SelectItem value="pendente">Pendente</SelectItem>
               <SelectItem value="pago">Pago</SelectItem>
               <SelectItem value="vencido">Vencido</SelectItem>
@@ -519,7 +563,7 @@ export default function AccountsPayable() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
-                          {account.status === 'pendente' && account.notification_status !== 'erro' && (
+                          {(account.status === 'pendente' || account.status === 'vencido') && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -530,7 +574,7 @@ export default function AccountsPayable() {
                               <Check className="h-4 w-4 text-green-600" />
                             </Button>
                           )}
-                          {account.status !== 'pago' && account.notification_status !== 'erro' && (
+                          {account.status !== 'pago' && (
                             <Button
                               variant="ghost"
                               size="icon"

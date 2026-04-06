@@ -167,10 +167,12 @@ SELECT cron.schedule(
 ### Página: Contas a Pagar (`/contas-pagar`)
 
 #### Funcionalidades
-- **Listagem**: Tabela com todas as contas, filtro por status (pendente, pago, vencido) e período
+- **Listagem**: Tabela com todas as contas, filtro por status (pendente, pago, vencido), mês de vencimento e fornecedor
+- **Filtro por Mês**: Select com meses disponíveis baseado nas datas de vencimento, formatado como "abr/2026"
+- **Filtro por Fornecedor**: Select com lista única de fornecedores cadastrados
 - **Cadastro**: Modal/formulário para registrar nova conta com campos obrigatórios
 - **Edição**: Editar dados da conta antes do vencimento
-- **Marcar como Pago**: Botão para alterar status para `pago` e registrar `paid_at` (oculto se notificação falhou). Modal inclui campo de upload de comprovante (opcional).
+- **Marcar como Pago**: Botão para alterar status para `pago` e registrar `paid_at`. Disponível para contas pendentes e vencidas. Modal inclui campo de upload de comprovante (opcional).
 - **Comprovante de Pagamento**: Upload de PDF, PNG ou JPG no momento da confirmação. Armazenado no Storage bucket `payment-receipts`.
 - **Exclusão**: Remover registro (com confirmação)
 
@@ -192,7 +194,7 @@ SELECT cron.schedule(
 | Enviado | Badge verde "Enviado" | Notificação entregue com sucesso |
 | Erro | Badge vermelho "Não Enviado" + tooltip com motivo | Falha no envio — hover mostra o erro |
 
-> **Regra de UI:** Quando `notification_status = 'erro'`, os botões de **Confirmar pagamento** e **Editar** são ocultados, permanecendo apenas o botão de **Excluir**.
+> **Regra de UI:** Quando `notification_status = 'erro'`, o badge vermelho "Não Enviado" é exibido como alerta visual, mas **NÃO bloqueia** os botões de Confirmar pagamento e Editar. Todas as ações financeiras permanecem disponíveis independentemente do status da notificação.
 
 #### Campos do Formulário
 1. **Fornecedor** (texto, obrigatório)
@@ -268,3 +270,4 @@ SELECT cron.schedule(
 | 07/04/2026 - 08:30 | **Rastreamento de erros de notificação:** Adicionados campos `notification_status` e `notification_error` à tabela. Edge Function `notify-accounts-due` agora salva resultado (enviado/erro + motivo). Interface exibe badge "Não Enviado" com tooltip do erro e oculta botões confirmar/editar quando há falha. |
 | 07/04/2026 - 09:00 | **Comprovante de pagamento:** Bucket `payment-receipts` criado no Storage. Campos `receipt_url` e `receipt_change_count` adicionados. Modal de confirmação de pagamento agora inclui upload opcional de comprovante (PDF/PNG/JPG). Botões de visualizar (👁) e alterar (⬆) comprovante na tabela. Limite de 2 alterações do comprovante após envio inicial, com bloqueio permanente. |
 | 07/04/2026 - 09:30 | **Visualização de comprovante em modal interno:** Substituído `window.open` por download via SDK Supabase Storage + exibição em Dialog interno (PDF em iframe, imagens inline). Evita bloqueio `ERR_BLOCKED_BY_CLIENT` por navegadores/extensões. Inclui botão "Baixar" no modal. |
+| 07/04/2026 - 10:00 | **Pagamento desbloqueado + filtros:** (1) Botões Confirmar pagamento e Editar agora visíveis mesmo com erro de notificação — erro não bloqueia ações financeiras; (2) Confirmar pagamento disponível também para contas "vencido"; (3) Novos filtros: mês de vencimento e fornecedor. |

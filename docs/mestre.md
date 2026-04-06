@@ -1334,6 +1334,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 09:30 (Brasília)** — **CONTAS A PAGAR — Modal interno para comprovantes:** Substituído `window.open` (que era bloqueado pelo navegador com `ERR_BLOCKED_BY_CLIENT`) por download via SDK Supabase Storage + exibição em Dialog interno. PDF exibido em iframe, imagens exibidas inline. Inclui botão "Baixar". Documentação ContasPagar.md atualizada.
 
+- **07/04/2026 10:00 (Brasília)** — **CONTAS A PAGAR — Pagamento com erro de notificação + filtros:** (1) **Pagamento desbloqueado:** Botões "Confirmar pagamento" e "Editar" agora ficam visíveis mesmo quando `notification_status = 'erro'` — erro de notificação não bloqueia mais ações financeiras; badge vermelho "Não Enviado" permanece como alerta visual; (2) **Confirmar pagamento em vencido:** Botão de confirmar pagamento agora aparece também para contas com status "vencido" (antes só aparecia em "pendente"); (3) **Filtro por mês:** Select com meses disponíveis (baseado nas datas de vencimento das contas), formatados como "abr/2026"; (4) **Filtro por fornecedor:** Select com lista única de fornecedores cadastrados.
+
 ---
 
-*Última atualização: 07/04/2026 09:30 (Brasília)*
+*Última atualização: 07/04/2026 10:00 (Brasília)*
