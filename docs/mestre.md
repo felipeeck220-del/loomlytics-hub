@@ -987,11 +987,18 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 | `create-checkout` | — | Cria sessão de checkout Stripe |
 | `create-pix-checkout` | — | Gera cobrança Pix via SyncPayments |
 | `check-pix-payment` | — | Verifica status do pagamento Pix |
+| `check-pix-expiry` | — | Verifica Pix expirado nos dias 4-5 de atraso |
 | `syncpay-webhook` | — | Webhook para confirmação automática SyncPayments |
 | `check-subscription` | — | Verifica e atualiza status da assinatura |
 | `customer-portal` | — | Redireciona para portal Stripe |
 | `daily-backup` | false | Backup automático dos dados de todas as empresas |
 | `restore-backup` | false | Restauração de backup (verifica platform_admin internamente) |
+| `notify-accounts-due` | false | Notificação WhatsApp (UltraMsg) de contas a pagar (véspera + dia) |
+| `test-webhook` | false | Teste de envio WhatsApp via UltraMsg |
+| `notify-subscription-status` | false | Cron diário de verificação de pagamentos e alertas de suspensão |
+| `machine-webhook` | false | Recebe dados do ESP32 (IoT), processa leituras e produção automática |
+| `validate-tv-code` | false | Valida código de 5 dígitos e conecta TV à empresa |
+| `tv-panel-data` | false | Busca dados de produção para painéis TV |
 
 ---
 
