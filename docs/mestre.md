@@ -237,6 +237,19 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 | `platform_admins` | user_id, email | Admins da plataforma |
 | `platform_settings` | key, value | Configurações globais (trial_days, monthly_price) |
 | `email_history` | company_id, old_email, new_email, changed_by | Histórico de emails |
+| `yarn_types` | company_id, name, composition, color, observations | Tipos de fio |
+| `invoices` | company_id, type (entrada/saida/venda_fio), invoice_number, client_id, issue_date, total_weight_kg, total_value, status | Notas Fiscais |
+| `invoice_items` | invoice_id, company_id, yarn_type_id, article_id, weight_kg, quantity_rolls, value_per_kg, subtotal | Itens das NFs |
+| `outsource_yarn_stock` | company_id, outsource_company_id, yarn_type_id, quantity_kg, reference_month | Estoque de fio em terceiros |
+| `residue_materials` | company_id, name, unit (kg/unidade), default_price | Materiais residuais |
+| `residue_sales` | company_id, material_id, client_name, date, quantity, unit_price, total, romaneio | Vendas de resíduos |
+| `accounts_payable` | company_id, supplier_name, description, category, amount, due_date, whatsapp_number, status, short_id, paid_amount, receipt_url | Contas a pagar |
+| `tv_panels` | company_id, code, name, panel_type, enabled_machines, is_connected | Painéis TV |
+| `iot_devices` | company_id, machine_id, token, name, active, firmware_version, last_seen_at | Dispositivos IoT |
+| `machine_readings` | company_id, machine_id, rpm, total_rotations, is_running | Leituras IoT brutas |
+| `iot_shift_state` | company_id, machine_id, current_shift, total_turns, partial_turns, completed_rolls, rpm_sum, rpm_count | Estado do turno IoT |
+| `iot_downtime_events` | company_id, machine_id, shift, started_at, ended_at, duration_seconds | Paradas detectadas IoT |
+| `iot_machine_assignments` | company_id, machine_id, weaver_id, shift, active | Associação tecelão-máquina IoT |
 
 ### Status de Máquina (Enum `machine_status`)
 
