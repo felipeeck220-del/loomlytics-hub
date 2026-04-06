@@ -1320,6 +1320,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **06/04/2026 22:30 (Brasília)** — **ULTRAMSG — Substituição Reportana → UltraMsg:** Edge Functions `notify-accounts-due` e `test-webhook` atualizadas para usar API UltraMsg (instance168759) em vez do webhook Reportana. Secrets `ULTRAMSG_INSTANCE_ID` e `ULTRAMSG_TOKEN` configurados. Mensagens montadas diretamente na Edge Function (texto livre, sem templates Meta). Teste via curl confirmou envio com sucesso (`sent: "true"`). Secrets da Reportana mantidos como fallback. Documentação completa em `docs/ultramsg.md`.
 
+- **06/04/2026 23:15 (Brasília)** — **CONTAS A PAGAR — 3 melhorias:** (1) **Máscara WhatsApp corrigida:** Backspace agora funciona corretamente — input trabalha apenas com dígitos e formata na exibição, sem travar em parênteses/hífens; (2) **Múltiplos WhatsApp:** Campo WhatsApp agora suporta múltiplos números de envio com botão "Adicionar número" — armazenados como comma-separated no banco, Edge Function `notify-accounts-due` envia para todos; (3) **Modal confirmar pagamento:** Botão ✓ agora abre modal de confirmação (Confirmar/Cancelar) com dados da conta antes de marcar como pago; (4) **Label atualizado:** Campo WhatsApp agora informa que é o número que receberá a notificação de vencimento.
+
 ---
 
-*Última atualização: 06/04/2026 22:30 (Brasília)*
+*Última atualização: 06/04/2026 23:15 (Brasília)*

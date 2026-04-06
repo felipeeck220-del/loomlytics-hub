@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Trash2, Check, Pencil, Receipt, Search, Send } from 'lucide-react';
+import { Plus, Trash2, Check, Pencil, Receipt, Search, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -50,9 +50,33 @@ const emptyForm = {
   category: '',
   amount: '',
   due_date: '',
-  whatsapp_number: '',
+  whatsapp_numbers: [''] as string[],
   observations: '',
 };
+
+/** Format digits to (XX) X XXXX-XXXX */
+function formatPhone(digits: string): string {
+  const d = digits.replace(/\D/g, '').slice(0, 11);
+  let f = '';
+  if (d.length > 0) f += '(' + d.slice(0, 2);
+  if (d.length >= 2) f += ') ';
+  if (d.length >= 3) f += d.slice(2, 3);
+  if (d.length >= 4) f += ' ' + d.slice(3, 7);
+  if (d.length >= 7) f += '-' + d.slice(7, 11);
+  return f;
+}
+
+/** Parse stored whatsapp_number (comma-separated) into array of formatted strings */
+function parseStoredNumbers(stored: string): string[] {
+  if (!stored) return [''];
+  const numbers = stored.split(',').map(n => n.trim()).filter(Boolean);
+  return numbers.length > 0 ? numbers.map(n => formatPhone(n)) : [''];
+}
+
+/** Convert array of formatted numbers to comma-separated digits for storage */
+function numbersToStorage(numbers: string[]): string {
+  return numbers.map(n => n.replace(/\D/g, '')).filter(d => d.length >= 10).join(',');
+}
 
 export default function AccountsPayable() {
   const { user } = useAuth();
@@ -62,6 +86,7 @@ export default function AccountsPayable() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [confirmPayId, setConfirmPayId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestDialog, setShowTestDialog] = useState(false);
@@ -118,7 +143,7 @@ export default function AccountsPayable() {
         category: data.category || null,
         amount: parseFloat(data.amount.replace(',', '.')),
         due_date: data.due_date,
-        whatsapp_number: data.whatsapp_number.replace(/\D/g, ''),
+        whatsapp_number: numbersToStorage(data.whatsapp_numbers),
         observations: data.observations || null,
       };
 
@@ -158,6 +183,7 @@ export default function AccountsPayable() {
       logAction('account_pay', { supplier_name: acc?.supplier_name, amount: acc?.amount });
       toast.success('Conta marcada como paga!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
+      setConfirmPayId(null);
     },
   });
 
@@ -180,7 +206,7 @@ export default function AccountsPayable() {
 
   function openNew() {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, whatsapp_numbers: [''] });
     setShowForm(true);
   }
 
@@ -192,16 +218,7 @@ export default function AccountsPayable() {
       category: account.category || '',
       amount: String(account.amount).replace('.', ','),
       due_date: account.due_date,
-      whatsapp_number: (() => {
-        const d = account.whatsapp_number.replace(/\D/g, '').slice(0, 11);
-        let f = '';
-        if (d.length > 0) f += '(' + d.slice(0, 2);
-        if (d.length >= 2) f += ') ';
-        if (d.length >= 3) f += d.slice(2, 3);
-        if (d.length >= 4) f += ' ' + d.slice(3, 7);
-        if (d.length >= 7) f += '-' + d.slice(7, 11);
-        return f;
-      })(),
+      whatsapp_numbers: parseStoredNumbers(account.whatsapp_number),
       observations: account.observations || '',
     });
     setShowForm(true);
@@ -210,13 +227,40 @@ export default function AccountsPayable() {
   function closeForm() {
     setShowForm(false);
     setEditingId(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, whatsapp_numbers: [''] });
+  }
+
+  function handlePhoneChange(index: number, value: string) {
+    // Extract only digits from raw input value
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    const formatted = formatPhone(digits);
+    setForm(f => {
+      const updated = [...f.whatsapp_numbers];
+      updated[index] = formatted;
+      return { ...f, whatsapp_numbers: updated };
+    });
+  }
+
+  function addPhoneField() {
+    setForm(f => ({ ...f, whatsapp_numbers: [...f.whatsapp_numbers, ''] }));
+  }
+
+  function removePhoneField(index: number) {
+    setForm(f => {
+      const updated = f.whatsapp_numbers.filter((_, i) => i !== index);
+      return { ...f, whatsapp_numbers: updated.length > 0 ? updated : [''] };
+    });
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.supplier_name || !form.description || !form.amount || !form.due_date || !form.whatsapp_number) {
+    if (!form.supplier_name || !form.description || !form.amount || !form.due_date) {
       toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    const validNumbers = form.whatsapp_numbers.filter(n => n.replace(/\D/g, '').length >= 10);
+    if (validNumbers.length === 0) {
+      toast.error('Adicione pelo menos um número de WhatsApp válido');
       return;
     }
     if (!isDateValid(form.due_date)) {
@@ -251,6 +295,8 @@ export default function AccountsPayable() {
       setTestPhone('');
     }
   }
+
+  const confirmPayAccount = confirmPayId ? accounts.find(a => a.id === confirmPayId) : null;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -372,8 +418,8 @@ export default function AccountsPayable() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="Marcar como pago"
-                              onClick={() => markPaidMutation.mutate(account.id)}
+                              title="Confirmar pagamento"
+                              onClick={() => setConfirmPayId(account.id)}
                               disabled={markPaidMutation.isPending}
                             >
                               <Check className="h-4 w-4 text-green-600" />
@@ -454,36 +500,50 @@ export default function AccountsPayable() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Vencimento *</Label>
-                <Input
-                  type="date"
-                  min={getDateLimits().minDate}
-                  max={getDateLimits().maxDate}
-                  value={form.due_date}
-                  onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-                />
+            <div className="space-y-2">
+              <Label>Vencimento *</Label>
+              <Input
+                type="date"
+                min={getDateLimits().minDate}
+                max={getDateLimits().maxDate}
+                value={form.due_date}
+                onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>WhatsApp para notificação *</Label>
+                <Button type="button" variant="ghost" size="sm" onClick={addPhoneField} className="h-7 text-xs gap-1">
+                  <Plus className="h-3 w-3" />
+                  Adicionar número
+                </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Números que receberão a notificação de vencimento via WhatsApp
+              </p>
               <div className="space-y-2">
-                <Label>WhatsApp *</Label>
-                <Input
-                  value={form.whatsapp_number}
-                  onChange={e => {
-                    // Keep only digits
-                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                    // Format as (XX) X XXXX-XXXX
-                    let formatted = '';
-                    if (digits.length > 0) formatted += '(' + digits.slice(0, 2);
-                    if (digits.length >= 2) formatted += ') ';
-                    if (digits.length >= 3) formatted += digits.slice(2, 3);
-                    if (digits.length >= 4) formatted += ' ' + digits.slice(3, 7);
-                    if (digits.length >= 7) formatted += '-' + digits.slice(7, 11);
-                    setForm(f => ({ ...f, whatsapp_number: formatted }));
-                  }}
-                  placeholder="(47) 9 9210-2017"
-                  maxLength={16}
-                />
+                {form.whatsapp_numbers.map((phone, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <Input
+                      value={phone}
+                      onChange={e => handlePhoneChange(index, e.target.value)}
+                      placeholder="(47) 9 9210-2017"
+                      maxLength={16}
+                      className="flex-1"
+                    />
+                    {form.whatsapp_numbers.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => removePhoneField(index)}
+                      >
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
             <div className="space-y-2">
@@ -504,6 +564,32 @@ export default function AccountsPayable() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Payment Dialog */}
+      <AlertDialog open={!!confirmPayId} onOpenChange={open => { if (!open) setConfirmPayId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmPayAccount && (
+                <>
+                  Deseja marcar a conta de <strong>{confirmPayAccount.supplier_name}</strong> no valor de{' '}
+                  <strong>{formatCurrency(Number(confirmPayAccount.amount))}</strong> como paga?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmPayId && markPaidMutation.mutate(confirmPayId)}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              {markPaidMutation.isPending ? 'Confirmando...' : 'Confirmar Pagamento'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={open => { if (!open) setDeleteId(null); }}>
@@ -538,18 +624,12 @@ export default function AccountsPayable() {
               placeholder="(47) 9 9210-2017"
               value={testPhone}
               onChange={(e) => {
-                const raw = e.target.value.replace(/\D/g, '').slice(0, 11);
-                let formatted = '';
-                if (raw.length > 0) formatted += '(' + raw.slice(0, 2);
-                if (raw.length >= 2) formatted += ') ';
-                if (raw.length >= 3) formatted += raw.slice(2, 3);
-                if (raw.length >= 4) formatted += ' ' + raw.slice(3, 7);
-                if (raw.length >= 7) formatted += '-' + raw.slice(7, 11);
-                setTestPhone(formatted);
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                setTestPhone(formatPhone(digits));
               }}
             />
             <p className="text-xs text-muted-foreground">
-              Dados fictícios serão enviados para testar a integração com a Reportana.
+              Dados fictícios serão enviados para testar a integração.
             </p>
           </div>
           <DialogFooter>
