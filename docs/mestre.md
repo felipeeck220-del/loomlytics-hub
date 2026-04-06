@@ -1330,6 +1330,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 08:30 (Brasília)** — **CONTAS A PAGAR — Rastreamento de erros de notificação:** (1) **Novos campos no banco:** `notification_status` (pendente/enviado/erro) e `notification_error` (motivo do erro) adicionados à tabela `accounts_payable`; (2) **Edge Function atualizada:** `notify-accounts-due` agora salva o resultado do envio (sucesso → "enviado", falha → "erro" + mensagem de erro da UltraMsg); (3) **UI atualizada:** Coluna Notificação exibe badge "Enviado" (verde), "Não Enviado" (vermelho com tooltip do erro), ou data prevista (pendente); (4) **Botões ocultos em erro:** Confirmar pagamento e Editar são removidos quando `notification_status = 'erro'`, mantendo apenas Excluir. Documentação ContasPagar.md atualizada.
 
+- **07/04/2026 09:00 (Brasília)** — **CONTAS A PAGAR — Comprovante de pagamento:** (1) **Storage:** Bucket `payment-receipts` criado (público) para armazenar comprovantes PDF/PNG/JPG; (2) **Novos campos:** `receipt_url` e `receipt_change_count` adicionados à tabela `accounts_payable`; (3) **Modal de pagamento:** Campo de upload opcional de comprovante integrado ao modal de confirmação; (4) **Ações na tabela:** Botão visualizar (👁 azul) abre comprovante em nova aba, botão alterar (⬆ âmbar) permite substituir — máximo 2 alterações, após isso botão é removido permanentemente; (5) **Documentação:** ContasPagar.md atualizado com nova seção de comprovantes.
+
 ---
 
-*Última atualização: 07/04/2026 08:30 (Brasília)*
+*Última atualização: 07/04/2026 09:00 (Brasília)*
