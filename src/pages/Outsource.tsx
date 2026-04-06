@@ -1103,6 +1103,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                   <TableHead className="text-right">Rolos</TableHead>
                   <TableHead className="text-right">R$/kg Cliente</TableHead>
                   <TableHead className="text-right">R$/kg Repasse</TableHead>
+                  <TableHead className="text-right">Frete/kg</TableHead>
                   <TableHead className="text-right">Lucro/kg</TableHead>
                   <TableHead className="text-right">Lucro Total</TableHead>
                   <TableHead>NF/ROM</TableHead>
