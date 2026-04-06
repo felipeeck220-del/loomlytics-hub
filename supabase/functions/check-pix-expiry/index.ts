@@ -24,6 +24,10 @@ async function sendUltraMsg(phone: string, message: string) {
   }
 }
 
+function formatCurrency(value: number): string {
+  return value.toFixed(2).replace('.', ',');
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -35,7 +39,8 @@ serve(async (req) => {
   );
 
   try {
-    // Find pending pix payments created ~1 hour ago (between 55 and 70 minutes ago)
+    // Find auto_billing pending pix payments created ~1 hour ago (between 55 and 70 minutes ago)
+    // Only target auto-generated pix (plan = "auto_billing"), not user-initiated pix
     const now = new Date();
     const fiftyFiveMinAgo = new Date(now.getTime() - 55 * 60 * 1000).toISOString();
     const seventyMinAgo = new Date(now.getTime() - 70 * 60 * 1000).toISOString();
@@ -44,6 +49,7 @@ serve(async (req) => {
       .from("payment_history")
       .select("*")
       .eq("status", "pending")
+      .eq("plan", "auto_billing")
       .gte("created_at", seventyMinAgo)
       .lte("created_at", fiftyFiveMinAgo);
 
@@ -97,7 +103,7 @@ serve(async (req) => {
           : 4;
         const diaAtual = Math.min(daysSinceDue + 1, 5);
 
-        const amount = Number(payment.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        const amount = formatCurrency(Number(payment.amount));
         const slugUrl = `https://malhagest.site/${company.slug}`;
 
         const urgencyLine = diaAtual === 5
