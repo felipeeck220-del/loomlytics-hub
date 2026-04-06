@@ -881,16 +881,29 @@ export default function AccountsPayable() {
       <Dialog open={!!showReceiptChange} onOpenChange={open => { if (!open) { setShowReceiptChange(null); setReceiptChangeFile(null); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Alterar Comprovante</DialogTitle>
+            <DialogTitle>
+              {(() => {
+                const acc = showReceiptChange ? accounts.find(a => a.id === showReceiptChange) : null;
+                return acc && !acc.receipt_url ? 'Adicionar Comprovante' : 'Alterar Comprovante';
+              })()}
+            </DialogTitle>
           </DialogHeader>
           {(() => {
             const acc = showReceiptChange ? accounts.find(a => a.id === showReceiptChange) : null;
+            const isFirstUpload = acc && !acc.receipt_url;
             const remaining = acc ? 2 - (acc.receipt_change_count || 0) : 0;
             return (
               <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Alterações restantes: <strong>{remaining}</strong> de 2
-                </p>
+                {!isFirstUpload && (
+                  <p className="text-sm text-muted-foreground">
+                    Alterações restantes: <strong>{remaining}</strong> de 2
+                  </p>
+                )}
+                {isFirstUpload && (
+                  <p className="text-sm text-muted-foreground">
+                    Envie o comprovante de pagamento. Após o envio, você poderá alterá-lo até 2 vezes.
+                  </p>
+                )}
                 <Input
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg"
