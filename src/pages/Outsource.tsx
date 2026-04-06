@@ -457,10 +457,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
    const dateRef = useRef<HTMLInputElement>(null);
    const rollsRef = useRef<HTMLInputElement>(null);
    const repasseRef = useRef<HTMLInputElement>(null);
+   const freightRef = useRef<HTMLInputElement>(null);
    const obsRef = useRef<HTMLTextAreaElement>(null);
   const [form, setForm] = useState({
     outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
-    weight_kg: '', rolls: '', outsource_value_per_kg: '', nf_rom: '', observations: '',
+    weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '', nf_rom: '', observations: '',
   });
 
   const filteredArticles = useMemo(() => {
