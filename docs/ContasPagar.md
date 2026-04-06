@@ -167,10 +167,12 @@ SELECT cron.schedule(
 ### Página: Contas a Pagar (`/contas-pagar`)
 
 #### Funcionalidades
-- **Listagem**: Tabela com todas as contas, filtro por status (pendente, pago, vencido) e período
+- **Listagem**: Tabela com todas as contas, filtro por status (pendente, pago, vencido), mês de vencimento e fornecedor
+- **Filtro por Mês**: Select com meses disponíveis baseado nas datas de vencimento, formatado como "abr/2026"
+- **Filtro por Fornecedor**: Select com lista única de fornecedores cadastrados
 - **Cadastro**: Modal/formulário para registrar nova conta com campos obrigatórios
 - **Edição**: Editar dados da conta antes do vencimento
-- **Marcar como Pago**: Botão para alterar status para `pago` e registrar `paid_at` (oculto se notificação falhou). Modal inclui campo de upload de comprovante (opcional).
+- **Marcar como Pago**: Botão para alterar status para `pago` e registrar `paid_at`. Disponível para contas pendentes e vencidas. Modal inclui campo de upload de comprovante (opcional).
 - **Comprovante de Pagamento**: Upload de PDF, PNG ou JPG no momento da confirmação. Armazenado no Storage bucket `payment-receipts`.
 - **Exclusão**: Remover registro (com confirmação)
 
@@ -192,7 +194,7 @@ SELECT cron.schedule(
 | Enviado | Badge verde "Enviado" | Notificação entregue com sucesso |
 | Erro | Badge vermelho "Não Enviado" + tooltip com motivo | Falha no envio — hover mostra o erro |
 
-> **Regra de UI:** Quando `notification_status = 'erro'`, os botões de **Confirmar pagamento** e **Editar** são ocultados, permanecendo apenas o botão de **Excluir**.
+> **Regra de UI:** Quando `notification_status = 'erro'`, o badge vermelho "Não Enviado" é exibido como alerta visual, mas **NÃO bloqueia** os botões de Confirmar pagamento e Editar. Todas as ações financeiras permanecem disponíveis independentemente do status da notificação.
 
 #### Campos do Formulário
 1. **Fornecedor** (texto, obrigatório)
