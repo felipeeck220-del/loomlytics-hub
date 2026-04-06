@@ -19,7 +19,7 @@ import { formatCurrency, formatWeight, formatNumber, getDateLimits, isDateValid 
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import {
   Plus, Trash2, Edit, Factory, Building2, DollarSign, Scale, TrendingUp,
-  Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search
+  Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search, Truck
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -120,6 +120,7 @@ export default function Outsource() {
         rolls: Number(p.rolls),
         client_value_per_kg: Number(p.client_value_per_kg),
         outsource_value_per_kg: Number(p.outsource_value_per_kg),
+        freight_per_kg: Number((p as any).freight_per_kg) || 0,
         profit_per_kg: Number(p.profit_per_kg),
         total_revenue: Number(p.total_revenue),
         total_cost: Number(p.total_cost),
@@ -170,7 +171,8 @@ export default function Outsource() {
     const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
     const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
     const totalLoss = displayProductions.filter(p => p.total_profit < 0).reduce((s, p) => s + p.total_profit, 0);
-    return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss };
+    const totalFreight = displayProductions.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
+    return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
   }, [displayProductions]);
 
   const firstName = companyName.split(' ')[0] || 'Empresa';
