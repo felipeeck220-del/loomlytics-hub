@@ -176,6 +176,7 @@ Acesse o sistema para mais detalhes.
           .eq("id", account.id);
         errors++;
       }
+    }
 
     // 3. Update overdue accounts (due_date < today and still pending)
     const { data: overdueUpdated, error: overdueError } = await supabase
