@@ -393,6 +393,7 @@ export default function AccountsPayable() {
                     <TableHead className="hidden md:table-cell">Categoria</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Vencimento</TableHead>
+                    <TableHead className="hidden md:table-cell">Notificação</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -406,6 +407,13 @@ export default function AccountsPayable() {
                       <TableCell>{formatCurrency(Number(account.amount))}</TableCell>
                       <TableCell>
                         {format(new Date(account.due_date + 'T12:00:00'), 'dd/MM/yyyy')}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground text-xs">
+                        {(() => {
+                          const d = new Date(account.due_date + 'T12:00:00');
+                          d.setDate(d.getDate() - 1);
+                          return format(d, 'dd/MM/yyyy', { locale: ptBR }) + ' 8:00';
+                        })()}
                       </TableCell>
                       <TableCell>
                         <Badge className={STATUS_BADGE[account.status]?.className || ''}>
