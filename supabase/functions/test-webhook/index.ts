@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -11,13 +9,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const reportanaWebhookUrl = Deno.env.get("REPORTANA_WEBHOOK_URL");
-    if (!reportanaWebhookUrl) {
+    const instanceId = Deno.env.get("ULTRAMSG_INSTANCE_ID");
+    const ultramsgToken = Deno.env.get("ULTRAMSG_TOKEN");
+
+    if (!instanceId || !ultramsgToken) {
       return new Response(
-        JSON.stringify({ error: "REPORTANA_WEBHOOK_URL not configured" }),
+        JSON.stringify({ error: "ULTRAMSG_INSTANCE_ID ou ULTRAMSG_TOKEN não configurados" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const ultramsgUrl = `https://api.ultramsg.com/${instanceId}/messages/chat`;
 
     const { phone } = await req.json();
     if (!phone || typeof phone !== "string") {
@@ -30,32 +32,38 @@ Deno.serve(async (req) => {
     // Ensure format +55XXXXXXXXXXX
     const cleanPhone = phone.replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("55") ? `+${cleanPhone}` : `+55${cleanPhone}`;
-    const payload = {
-      phone: formattedPhone,
-      supplier_name: "Fornecedor Teste",
-      description: "Teste de notificação WhatsApp",
-      amount: "1.250,00",
-      due_date: new Date(Date.now() + 86400000).toLocaleDateString("pt-BR"),
-      company_name: "Empresa Teste",
-    };
 
-    console.log("[test-webhook] Sending:", JSON.stringify(payload));
+    const tomorrowDate = new Date(Date.now() + 86400000).toLocaleDateString("pt-BR");
 
-    const resp = await fetch(reportanaWebhookUrl, {
+    const messageBody = `🔔 *Teste de Notificação - MalhaGest*
+
+📋 *Fornecedor:* Fornecedor Teste
+📝 *Descrição:* Teste de notificação WhatsApp
+💰 *Valor:* R$ 1.250,00
+📅 *Vencimento:* ${tomorrowDate}
+
+✅ Se você recebeu esta mensagem, a integração está funcionando!`;
+
+    console.log(`[test-webhook] Sending to ${formattedPhone}`);
+
+    const resp = await fetch(ultramsgUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        token: ultramsgToken,
+        to: formattedPhone,
+        body: messageBody,
+      }),
     });
 
-    const respText = await resp.text();
-    console.log(`[test-webhook] Response: ${resp.status} - ${respText}`);
+    const result = await resp.json();
+    console.log(`[test-webhook] Response:`, JSON.stringify(result));
 
     return new Response(
       JSON.stringify({
-        success: resp.ok,
-        webhook_status: resp.status,
-        webhook_response: respText,
-        payload_sent: payload,
+        success: result.sent === "true",
+        ultramsg_response: result,
+        payload_sent: { to: formattedPhone, body: messageBody },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
