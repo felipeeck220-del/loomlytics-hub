@@ -237,32 +237,28 @@ SELECT cron.schedule(
 
 ---
 
-## 7. Configuração da Reportana
+## 7. Configuração da UltraMsg
 
 ### Pré-requisitos
-1. Conta Reportana ativa com WhatsApp conectado (API Oficial do Meta)
-2. Automação criada com trigger de **Webhook** na plataforma Reportana
+1. Conta UltraMsg ativa com WhatsApp conectado (WhatsApp Web)
+2. Instance ID e Token configurados como secrets
 
-### Passos Realizados
-1. ✅ Automação "Contas a Pagar" criada na Reportana com trigger Webhook
-2. ✅ URL do webhook salva como secret `REPORTANA_WEBHOOK_URL`
-3. ✅ Template de mensagem configurado na automação da Reportana
-4. Mapear variáveis do webhook (`phone`, `supplier_name`, `description`, `amount`, `due_date`, `company_name`) no editor da Reportana
-
-### Vantagem de Custo
-- Reportana cobra um valor **mensal fixo** com mensagens **ilimitadas**
-- Diferente do Twilio que cobra **por mensagem enviada**
-- Ideal para empresas com alto volume de contas a pagar
+### Configuração Realizada
+1. ✅ Secrets `ULTRAMSG_INSTANCE_ID` e `ULTRAMSG_TOKEN` configurados
+2. ✅ Edge Function `notify-accounts-due` implementada com envio direto via UltraMsg API
+3. ✅ Edge Function `test-webhook` implementada para testes manuais
+4. ✅ Templates de mensagem montados diretamente na Edge Function (texto livre, sem necessidade de aprovação)
+5. ✅ Suporte a múltiplos destinatários (números separados por vírgula)
 
 ---
 
 ## 8. Considerações de Segurança
 
 - **RLS ativo**: Cada empresa acessa apenas seus próprios registros
-- **Validação de input**: Zod na Edge Function para validar corpo da requisição
-- **Números WhatsApp**: Armazenados sem prefixo (ex: 47992102017), formatados para +55XXXXXXXXXXX pela Edge Function antes do envio à Reportana
+- **Validação de input**: Números de telefone formatados e validados na Edge Function
+- **Números WhatsApp**: Armazenados sem prefixo (ex: 47992102017), formatados para +55XXXXXXXXXXX pela Edge Function antes do envio
 - **Service Role**: Usado apenas na Edge Function para consultas cross-company no cron
-- **Webhook URL como Secret**: URL com token embutido armazenada como `REPORTANA_WEBHOOK_URL`, nunca hardcoded
+- **Secrets como variáveis**: `ULTRAMSG_INSTANCE_ID` e `ULTRAMSG_TOKEN` armazenados como secrets, nunca hardcoded
 - **Rate limiting**: Controle de envio para evitar spam
 
 ---
