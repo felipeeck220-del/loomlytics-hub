@@ -181,18 +181,81 @@ export default function AccountsPayable() {
 
   // Mark as paid
   const markPaidMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, file }: { id: string; file: File | null }) => {
+      let receiptUrl: string | null = null;
+
+      if (file) {
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+        const filePath = `${companyId}/${id}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('payment-receipts')
+          .upload(filePath, file, { upsert: true });
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('payment-receipts')
+          .getPublicUrl(filePath);
+        receiptUrl = urlData.publicUrl;
+      }
+
+      const updateData: any = { status: 'pago', paid_at: new Date().toISOString() };
+      if (receiptUrl) {
+        updateData.receipt_url = receiptUrl;
+        updateData.receipt_change_count = 0;
+      }
+
       const { error } = await (supabase.from as any)('accounts_payable')
-        .update({ status: 'pago', paid_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: (_data: unknown, id: string) => {
+    onSuccess: (_data: unknown, { id }: { id: string; file: File | null }) => {
       const acc = accounts.find(a => a.id === id);
       logAction('account_pay', { supplier_name: acc?.supplier_name, amount: acc?.amount });
       toast.success('Conta marcada como paga!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
       setConfirmPayId(null);
+      setReceiptFile(null);
+    },
+  });
+
+  // Change receipt (max 2 times)
+  const changeReceiptMutation = useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const account = accounts.find(a => a.id === id);
+      if (!account || account.receipt_change_count >= 2) {
+        throw new Error('Limite de alterações do comprovante atingido (máx. 2)');
+      }
+
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+      const filePath = `${companyId}/${id}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('payment-receipts')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('payment-receipts')
+        .getPublicUrl(filePath);
+
+      const { error } = await (supabase.from as any)('accounts_payable')
+        .update({
+          receipt_url: urlData.publicUrl,
+          receipt_change_count: (account.receipt_change_count || 0) + 1,
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_data: unknown, { id }: { id: string; file: File }) => {
+      const acc = accounts.find(a => a.id === id);
+      logAction('account_receipt_change', { supplier_name: acc?.supplier_name });
+      toast.success('Comprovante atualizado!');
+      queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
+      setShowReceiptChange(null);
+      setReceiptChangeFile(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Erro ao atualizar comprovante');
     },
   });
 
