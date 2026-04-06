@@ -1374,6 +1374,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **06/04/2026 13:08 (Brasília)** — **CHECK-SUBSCRIPTION — Correção de autenticação da Edge Function:** A função deixou de depender de sessão implícita no runtime e passou a validar o JWT recebido via `Authorization` com `getClaims()`, usando client autenticado do usuário para validar o token e client administrativo para leituras/atualizações de assinatura. Com isso, o erro `Auth session missing!` deixa de derrubar a tela.
 
+- **06/04/2026 13:12 (Brasília)** — **MANAGE-USERS — Correção de autenticação da Edge Function:** Mesmo padrão aplicado ao `check-subscription`: substituído `getUser(token)` por `getClaims(token)` via client autenticado do usuário + client admin para operações. Resolve o erro `Unauthorized` (401) que impedia gestão de usuários.
+
 ---
 
-*Última atualização: 06/04/2026 13:08 (Brasília)*
+*Última atualização: 06/04/2026 13:12 (Brasília)*
