@@ -60,7 +60,7 @@ Qualquer dúvida, estamos à disposição.
 | Variável | Origem |
 |----------|--------|
 | `admin_name` | `companies.admin_name` |
-| `slug_url` | `https://loomlytics-hub.lovable.app/{companies.slug}` |
+| `slug_url` | `https://malhagest.site/{companies.slug}` |
 | `trial_days` | 90 (padrão) |
 | `trial_end_date` | Calculado: data atual + 90 dias, formato DD/MM/AAAA |
 
