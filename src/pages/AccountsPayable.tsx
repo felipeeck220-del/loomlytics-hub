@@ -537,6 +537,26 @@ export default function AccountsPayable() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
+                          {account.status === 'pago' && account.receipt_url && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Ver comprovante"
+                              onClick={() => window.open(account.receipt_url!, '_blank')}
+                            >
+                              <Eye className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          )}
+                          {account.status === 'pago' && account.receipt_url && (account.receipt_change_count || 0) < 2 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={`Alterar comprovante (${2 - (account.receipt_change_count || 0)} restantes)`}
+                              onClick={() => setShowReceiptChange(account.id)}
+                            >
+                              <Upload className="h-4 w-4 text-amber-600" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
