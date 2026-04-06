@@ -85,46 +85,63 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
    - Recebe os dados via POST (token + número + mensagem)
    - Envia mensagem via WhatsApp Web
 
-### Dados enviados ao Webhook
+### Dados enviados à UltraMsg API
 
-A Edge Function envia um POST com o seguinte JSON:
+A Edge Function envia um POST direto para `https://api.ultramsg.com/{INSTANCE_ID}/messages/chat` com:
 
 ```json
 {
-  "phone": "+5547992102017",
-  "supplier_name": "Fornecedor XYZ",
-  "description": "Óleo lubrificante",
-  "amount": "1.250,00",
-  "due_date": "03/04/2026",
-  "company_name": "Malharia ABC"
+  "token": "ULTRAMSG_TOKEN",
+  "to": "+5547992102017",
+  "body": "🔔 *Lembrete de Pagamento - MalhaGest*\n\nVocê tem um pagamento com vencimento *amanhã*:\n\n🆔 *ID:* #0001\n📋 *Fornecedor:* Fornecedor XYZ\n📝 *Descrição:* Óleo lubrificante\n💰 *Valor:* R$ 1.250,00\n📅 *Vencimento:* 03/04/2026\n\nAcesse o sistema para mais detalhes.\n\n⚠️ Mensagem automática, esse não é um canal de suporte."
 }
 ```
 
-### Template da Mensagem (configurado na Reportana)
+### Templates das Mensagens (montados na Edge Function)
 
+**Véspera (dia anterior ao vencimento):**
 ```
 🔔 *Lembrete de Pagamento - MalhaGest*
 
 Você tem um pagamento com vencimento *amanhã*:
 
-📋 *Fornecedor:* {{supplier_name}}
-📝 *Descrição:* {{description}}
-💰 *Valor:* R$ {{amount}}
-📅 *Vencimento:* {{due_date}}
+🆔 *ID:* #{short_id}
+📋 *Fornecedor:* {supplier_name}
+📝 *Descrição:* {description}
+💰 *Valor:* R$ {amount}
+📅 *Vencimento:* {due_date}
 
 Acesse o sistema para mais detalhes.
+
+⚠️ Mensagem automática, esse não é um canal de suporte.
 ```
 
-> **Nota**: As variáveis `{{...}}` devem ser mapeadas na automação da Reportana para os campos recebidos via webhook.
+**Dia do vencimento (se ainda pendente):**
+```
+⚠️ *VENCIMENTO HOJE - MalhaGest*
+
+A conta *#{short_id}* vence *hoje* e ainda consta como pendente no sistema:
+
+📋 *Fornecedor:* {supplier_name}
+📝 *Descrição:* {description}
+💰 *Valor:* R$ {amount}
+📅 *Vencimento:* {due_date}
+
+Se já foi paga, atualize o sistema.
+Se não foi, pague para evitar juros.
+
+⚠️ Mensagem automática, esse não é um canal de suporte.
+```
 
 ### Variáveis de Ambiente (Secrets)
 
 | Variável | Descrição | Status |
 |----------|-----------|--------|
-| `REPORTANA_WEBHOOK_URL` | URL completa do webhook (com token) | ✅ Configurado |
+| `ULTRAMSG_INSTANCE_ID` | ID da instância UltraMsg | ✅ Configurado |
+| `ULTRAMSG_TOKEN` | Token de autenticação da instância | ✅ Configurado |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role para consultas sem RLS | ✅ Já configurado |
 
-> **Segurança**: A URL do webhook contém o token de autenticação embutido. Armazenada como secret, nunca no código.
+> **Nota:** O secret `REPORTANA_WEBHOOK_URL` ainda existe como legado/fallback, mas não é mais utilizado pelo notify-accounts-due.
 
 ---
 
