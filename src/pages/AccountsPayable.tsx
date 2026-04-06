@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { formatCurrency, getDateLimits, isDateValid } from '@/lib/formatters';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AccountPayable {
   id: string;
@@ -410,12 +411,34 @@ export default function AccountsPayable() {
                       <TableCell>
                         {format(new Date(account.due_date + 'T12:00:00'), 'dd/MM/yyyy')}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground text-xs">
-                        {(() => {
-                          const d = new Date(account.due_date + 'T12:00:00');
-                          d.setDate(d.getDate() - 1);
-                          return format(d, 'dd/MM/yyyy', { locale: ptBR }) + ' 8:00';
-                        })()}
+                      <TableCell className="hidden md:table-cell text-xs">
+                        {account.notification_status === 'erro' ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 cursor-help gap-1">
+                                  <AlertCircle className="h-3 w-3" />
+                                  Não Enviado
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="text-xs">{account.notification_error || 'Erro desconhecido'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : account.notification_status === 'enviado' ? (
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            Enviado
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            {(() => {
+                              const d = new Date(account.due_date + 'T12:00:00');
+                              d.setDate(d.getDate() - 1);
+                              return format(d, 'dd/MM/yyyy', { locale: ptBR }) + ' 8:00';
+                            })()}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge className={STATUS_BADGE[account.status]?.className || ''}>
