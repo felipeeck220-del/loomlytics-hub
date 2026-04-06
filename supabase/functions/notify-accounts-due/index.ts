@@ -14,16 +14,18 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const reportanaWebhookUrl = Deno.env.get("REPORTANA_WEBHOOK_URL");
+    const instanceId = Deno.env.get("ULTRAMSG_INSTANCE_ID");
+    const ultramsgToken = Deno.env.get("ULTRAMSG_TOKEN");
 
-    if (!reportanaWebhookUrl) {
-      console.error("REPORTANA_WEBHOOK_URL not configured");
+    if (!instanceId || !ultramsgToken) {
+      console.error("ULTRAMSG_INSTANCE_ID ou ULTRAMSG_TOKEN não configurados");
       return new Response(
-        JSON.stringify({ error: "Webhook URL not configured" }),
+        JSON.stringify({ error: "UltraMsg não configurado" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const ultramsgUrl = `https://api.ultramsg.com/${instanceId}/messages/chat`;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Get tomorrow's date in YYYY-MM-DD format (Brasília timezone = UTC-3)
@@ -62,7 +64,7 @@ Deno.serve(async (req) => {
     let notified = 0;
     let errors = 0;
 
-    // 2. Send notifications via Reportana webhook
+    // 2. Send notifications via UltraMsg API
     for (const account of accountsDue || []) {
       try {
         const companyName = (account as any).companies?.name || "Empresa";
@@ -77,28 +79,36 @@ Deno.serve(async (req) => {
         const [year, month, day] = account.due_date.split("-");
         const dueDateFormatted = `${day}/${month}/${year}`;
 
-        // Format phone to +55XXXXXXXXXXX as required by Reportana API
+        // Format phone to +55XXXXXXXXXXX
         const cleanPhone = account.whatsapp_number.replace(/\D/g, '');
         const formattedPhone = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
 
-        const payload = {
-          phone: formattedPhone,
-          supplier_name: account.supplier_name,
-          description: account.description,
-          amount: amountFormatted,
-          due_date: dueDateFormatted,
-          company_name: companyName,
-        };
+        const messageBody = `🔔 *Lembrete de Pagamento - MalhaGest*
 
-        console.log(`[notify-accounts-due] Sending to ${account.whatsapp_number}:`, payload);
+Você tem um pagamento com vencimento *amanhã*:
 
-        const webhookResponse = await fetch(reportanaWebhookUrl, {
+📋 *Fornecedor:* ${account.supplier_name}
+📝 *Descrição:* ${account.description}
+💰 *Valor:* R$ ${amountFormatted}
+📅 *Vencimento:* ${dueDateFormatted}
+
+Acesse o sistema para mais detalhes.`;
+
+        console.log(`[notify-accounts-due] Sending to ${formattedPhone} for account ${account.id}`);
+
+        const response = await fetch(ultramsgUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            token: ultramsgToken,
+            to: formattedPhone,
+            body: messageBody,
+          }),
         });
 
-        if (webhookResponse.ok) {
+        const result = await response.json();
+
+        if (result.sent === "true") {
           // Mark as notified
           await supabase
             .from("accounts_payable")
@@ -107,8 +117,7 @@ Deno.serve(async (req) => {
           notified++;
           console.log(`[notify-accounts-due] ✅ Notified account ${account.id}`);
         } else {
-          const respText = await webhookResponse.text();
-          console.error(`[notify-accounts-due] ❌ Webhook failed for ${account.id}: ${webhookResponse.status} ${respText}`);
+          console.error(`[notify-accounts-due] ❌ UltraMsg failed for ${account.id}: ${result.message}`);
           errors++;
         }
       } catch (err) {
