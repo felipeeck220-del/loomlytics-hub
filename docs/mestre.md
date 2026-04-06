@@ -1382,6 +1382,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 15:30 (Brasília)** — **TERCEIRIZADOS — Modal expandido +5vw:** Largura do modal "Registrar Produção Terceirizada" aumentada de `sm:w-[90vw] sm:max-w-3xl` para `sm:w-[95vw] sm:max-w-4xl` para mais espaço de preenchimento.
 
+- **07/04/2026 15:35 (Brasília)** — **TERCEIRIZADOS — Fix label quebra de linha:** Label "Valor Repasse (R$/kg) *" encurtado para "Repasse (R$/kg) *" com `whitespace-nowrap` para evitar quebra de linha no grid do modal.
+
 ---
 
-*Última atualização: 07/04/2026 15:30 (Brasília)*
+*Última atualização: 07/04/2026 15:35 (Brasília)*
