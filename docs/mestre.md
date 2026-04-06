@@ -162,7 +162,7 @@ interface AuthContextType {
 **Mapeamento completo:**
 ```typescript
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
-  admin:     ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'settings'],
+  admin:     ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'invoices', 'fechamento', 'settings'],
   lider:     ['machines', 'clients-articles', 'revision', 'mecanica', 'weavers'],
   mecanico:  ['machines', 'mecanica'],
   revisador: ['revision'],
@@ -237,6 +237,19 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 | `platform_admins` | user_id, email | Admins da plataforma |
 | `platform_settings` | key, value | Configurações globais (trial_days, monthly_price) |
 | `email_history` | company_id, old_email, new_email, changed_by | Histórico de emails |
+| `yarn_types` | company_id, name, composition, color, observations | Tipos de fio |
+| `invoices` | company_id, type (entrada/saida/venda_fio), invoice_number, client_id, issue_date, total_weight_kg, total_value, status | Notas Fiscais |
+| `invoice_items` | invoice_id, company_id, yarn_type_id, article_id, weight_kg, quantity_rolls, value_per_kg, subtotal | Itens das NFs |
+| `outsource_yarn_stock` | company_id, outsource_company_id, yarn_type_id, quantity_kg, reference_month | Estoque de fio em terceiros |
+| `residue_materials` | company_id, name, unit (kg/unidade), default_price | Materiais residuais |
+| `residue_sales` | company_id, material_id, client_name, date, quantity, unit_price, total, romaneio | Vendas de resíduos |
+| `accounts_payable` | company_id, supplier_name, description, category, amount, due_date, whatsapp_number, status, short_id, paid_amount, receipt_url | Contas a pagar |
+| `tv_panels` | company_id, code, name, panel_type, enabled_machines, is_connected | Painéis TV |
+| `iot_devices` | company_id, machine_id, token, name, active, firmware_version, last_seen_at | Dispositivos IoT |
+| `machine_readings` | company_id, machine_id, rpm, total_rotations, is_running | Leituras IoT brutas |
+| `iot_shift_state` | company_id, machine_id, current_shift, total_turns, partial_turns, completed_rolls, rpm_sum, rpm_count | Estado do turno IoT |
+| `iot_downtime_events` | company_id, machine_id, shift, started_at, ended_at, duration_seconds | Paradas detectadas IoT |
+| `iot_machine_assignments` | company_id, machine_id, weaver_id, shift, active | Associação tecelão-máquina IoT |
 
 ### Status de Máquina (Enum `machine_status`)
 
@@ -987,11 +1000,18 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 | `create-checkout` | — | Cria sessão de checkout Stripe |
 | `create-pix-checkout` | — | Gera cobrança Pix via SyncPayments |
 | `check-pix-payment` | — | Verifica status do pagamento Pix |
+| `check-pix-expiry` | — | Verifica Pix expirado nos dias 4-5 de atraso |
 | `syncpay-webhook` | — | Webhook para confirmação automática SyncPayments |
 | `check-subscription` | — | Verifica e atualiza status da assinatura |
 | `customer-portal` | — | Redireciona para portal Stripe |
 | `daily-backup` | false | Backup automático dos dados de todas as empresas |
 | `restore-backup` | false | Restauração de backup (verifica platform_admin internamente) |
+| `notify-accounts-due` | false | Notificação WhatsApp (UltraMsg) de contas a pagar (véspera + dia) |
+| `test-webhook` | false | Teste de envio WhatsApp via UltraMsg |
+| `notify-subscription-status` | false | Cron diário de verificação de pagamentos e alertas de suspensão |
+| `machine-webhook` | false | Recebe dados do ESP32 (IoT), processa leituras e produção automática |
+| `validate-tv-code` | false | Valida código de 5 dígitos e conecta TV à empresa |
+| `tv-panel-data` | false | Busca dados de produção para painéis TV |
 
 ---
 
@@ -1331,6 +1351,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 - **07/04/2026 08:30 (Brasília)** — **CONTAS A PAGAR — Rastreamento de erros de notificação:** (1) **Novos campos no banco:** `notification_status` (pendente/enviado/erro) e `notification_error` (motivo do erro) adicionados à tabela `accounts_payable`; (2) **Edge Function atualizada:** `notify-accounts-due` agora salva o resultado do envio (sucesso → "enviado", falha → "erro" + mensagem de erro da UltraMsg); (3) **UI atualizada:** Coluna Notificação exibe badge "Enviado" (verde), "Não Enviado" (vermelho com tooltip do erro), ou data prevista (pendente). *(Nota: inicialmente botões eram ocultados em erro, mas isso foi revertido na atualização de 07/04 10:00 — botões agora ficam sempre visíveis.)*
 
 - **07/04/2026 09:00 (Brasília)** — **CONTAS A PAGAR — Comprovante de pagamento:** (1) **Storage:** Bucket `payment-receipts` criado (público) para armazenar comprovantes PDF/PNG/JPG; (2) **Novos campos:** `receipt_url` e `receipt_change_count` adicionados à tabela `accounts_payable`; (3) **Modal de pagamento:** Campo de upload opcional de comprovante integrado ao modal de confirmação; (4) **Ações na tabela:** Botão visualizar (👁 azul) abre comprovante em nova aba, botão alterar (⬆ âmbar) permite substituir — máximo 2 alterações, após isso botão é removido permanentemente; (5) **Documentação:** ContasPagar.md atualizado com nova seção de comprovantes.
+
+- **06/04/2026 — PENTE FINO GERAL — Auditoria de documentação e integração:** (1) **ContasPagar.md:** Seções 3, 5, 7 e 8 corrigidas — todas as referências à Reportana substituídas por UltraMsg (API real utilizada). Templates de mensagem atualizados com short_id e mensagem de véspera+dia. Secrets atualizados (ULTRAMSG_INSTANCE_ID/TOKEN); (2) **mestre.md:** ROLE_ALLOWED_KEYS atualizado (faltavam contas-pagar, residuos, invoices, fechamento para admin). Tabela de Edge Functions completada (+8 funções: notify-accounts-due, test-webhook, machine-webhook, validate-tv-code, tv-panel-data, notify-subscription-status, check-pix-expiry). Modelo de dados completado (+13 tabelas: yarn_types, invoices, invoice_items, outsource_yarn_stock, residue_materials, residue_sales, accounts_payable, tv_panels, iot_devices, machine_readings, iot_shift_state, iot_downtime_events, iot_machine_assignments); (3) **test-webhook Edge Function:** Bug corrigido — `toLocaleDateString("pt-BR")` substituído por formatação manual (`dd/mm/yyyy`) para garantir funcionamento consistente no Deno runtime.
 
 - **07/04/2026 09:30 (Brasília)** — **CONTAS A PAGAR — Modal interno para comprovantes:** Substituído `window.open` (que era bloqueado pelo navegador com `ERR_BLOCKED_BY_CLIENT`) por download via SDK Supabase Storage + exibição em Dialog interno. PDF exibido em iframe, imagens exibidas inline. Inclui botão "Baixar". Documentação ContasPagar.md atualizada.
 

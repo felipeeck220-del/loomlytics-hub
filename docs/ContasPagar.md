@@ -52,86 +52,107 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
 
 ---
 
-## 3. Fluxo de Notificação WhatsApp (Reportana)
+## 3. Fluxo de Notificação WhatsApp (UltraMsg)
 
 ### Arquitetura
 
 ```
 ┌──────────────┐     ┌─────────────────────┐     ┌──────────────────┐     ┌──────────┐
-│  pg_cron     │────▶│  Edge Function       │────▶│  Reportana       │────▶│ WhatsApp │
-│ (diário)     │     │ notify-accounts-due  │     │  (Webhook)       │     │ Usuário  │
+│  pg_cron     │────▶│  Edge Function       │────▶│  UltraMsg API    │────▶│ WhatsApp │
+│ (diário)     │     │ notify-accounts-due  │     │  (REST POST)     │     │ Usuário  │
 └──────────────┘     └─────────────────────┘     └──────────────────┘     └──────────┘
 ```
 
-### Por que Reportana e não Twilio?
+### Por que UltraMsg?
 
-| Critério | Twilio | Reportana |
-|----------|--------|-----------|
-| Cobrança | Por mensagem enviada | Mensal fixo (ilimitado) |
+| Critério | Twilio | UltraMsg |
+|----------|--------|----------|
+| Cobrança | Por mensagem enviada | Mensal por plano |
 | Previsibilidade de custo | ❌ Variável | ✅ Fixo |
-| Integração | Connector Gateway | Webhook direto |
+| Templates | Obrigatório (aprovação Meta) | Texto livre |
+| Integração | Connector Gateway | API REST direta |
 
 ### Fluxo Detalhado
 
 1. **Cron Job (pg_cron + pg_net)**: Executa diariamente (ex: às 08:00 horário de Brasília)
 2. **Edge Function `notify-accounts-due`**:
-   - Busca todas as contas com `due_date = CURRENT_DATE + 1` e `notification_sent = false` e `status = 'pendente'`
-   - Para cada conta encontrada, envia POST para o **webhook da Reportana** com os dados
-   - Marca `notification_sent = true` após envio bem-sucedido
-3. **Reportana (Automação via Webhook)**:
-   - Recebe os dados via webhook
-   - Dispara mensagem WhatsApp usando template configurado na plataforma
-   - O número de WhatsApp remetente é o conectado na conta Reportana (API Oficial do Meta)
+   - Busca contas com `due_date = CURRENT_DATE + 1` (véspera) e `notification_sent = false` e `status = 'pendente'`
+   - Busca contas com `due_date = CURRENT_DATE` (dia do vencimento) e `status = 'pendente'`
+   - Para cada conta, envia POST direto para **UltraMsg API** com mensagem formatada
+   - Marca `notification_sent = true` e `notification_status = 'enviado'` após envio bem-sucedido (apenas véspera)
+   - Em caso de erro, registra `notification_status = 'erro'` e `notification_error` com motivo
+3. **UltraMsg API**:
+   - Recebe os dados via POST (token + número + mensagem)
+   - Envia mensagem via WhatsApp Web
 
-### Dados enviados ao Webhook
+### Dados enviados à UltraMsg API
 
-A Edge Function envia um POST com o seguinte JSON:
+A Edge Function envia um POST direto para `https://api.ultramsg.com/{INSTANCE_ID}/messages/chat` com:
 
 ```json
 {
-  "phone": "+5547992102017",
-  "supplier_name": "Fornecedor XYZ",
-  "description": "Óleo lubrificante",
-  "amount": "1.250,00",
-  "due_date": "03/04/2026",
-  "company_name": "Malharia ABC"
+  "token": "ULTRAMSG_TOKEN",
+  "to": "+5547992102017",
+  "body": "🔔 *Lembrete de Pagamento - MalhaGest*\n\nVocê tem um pagamento com vencimento *amanhã*:\n\n🆔 *ID:* #0001\n📋 *Fornecedor:* Fornecedor XYZ\n📝 *Descrição:* Óleo lubrificante\n💰 *Valor:* R$ 1.250,00\n📅 *Vencimento:* 03/04/2026\n\nAcesse o sistema para mais detalhes.\n\n⚠️ Mensagem automática, esse não é um canal de suporte."
 }
 ```
 
-### Template da Mensagem (configurado na Reportana)
+### Templates das Mensagens (montados na Edge Function)
 
+**Véspera (dia anterior ao vencimento):**
 ```
 🔔 *Lembrete de Pagamento - MalhaGest*
 
 Você tem um pagamento com vencimento *amanhã*:
 
-📋 *Fornecedor:* {{supplier_name}}
-📝 *Descrição:* {{description}}
-💰 *Valor:* R$ {{amount}}
-📅 *Vencimento:* {{due_date}}
+🆔 *ID:* #{short_id}
+📋 *Fornecedor:* {supplier_name}
+📝 *Descrição:* {description}
+💰 *Valor:* R$ {amount}
+📅 *Vencimento:* {due_date}
 
 Acesse o sistema para mais detalhes.
+
+⚠️ Mensagem automática, esse não é um canal de suporte.
 ```
 
-> **Nota**: As variáveis `{{...}}` devem ser mapeadas na automação da Reportana para os campos recebidos via webhook.
+**Dia do vencimento (se ainda pendente):**
+```
+⚠️ *VENCIMENTO HOJE - MalhaGest*
+
+A conta *#{short_id}* vence *hoje* e ainda consta como pendente no sistema:
+
+📋 *Fornecedor:* {supplier_name}
+📝 *Descrição:* {description}
+💰 *Valor:* R$ {amount}
+📅 *Vencimento:* {due_date}
+
+Se já foi paga, atualize o sistema.
+Se não foi, pague para evitar juros.
+
+⚠️ Mensagem automática, esse não é um canal de suporte.
+```
 
 ### Variáveis de Ambiente (Secrets)
 
 | Variável | Descrição | Status |
 |----------|-----------|--------|
-| `REPORTANA_WEBHOOK_URL` | URL completa do webhook (com token) | ✅ Configurado |
+| `ULTRAMSG_INSTANCE_ID` | ID da instância UltraMsg | ✅ Configurado |
+| `ULTRAMSG_TOKEN` | Token de autenticação da instância | ✅ Configurado |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role para consultas sem RLS | ✅ Já configurado |
 
-> **Segurança**: A URL do webhook contém o token de autenticação embutido. Armazenada como secret, nunca no código.
+> **Nota:** O secret `REPORTANA_WEBHOOK_URL` ainda existe como legado/fallback, mas não é mais utilizado pelo notify-accounts-due.
 
 ---
 
 ## 4. Edge Function: `notify-accounts-due`
 
 ### Responsabilidades
-1. Consultar `accounts_payable` onde `due_date = amanhã`, `status = 'pendente'`, `notification_sent = false`
-2. Para cada registro, enviar POST para `REPORTANA_WEBHOOK_URL` com dados da conta
-3. Atualizar `notification_sent = true` em caso de sucesso
+1. Consultar `accounts_payable` onde `due_date = amanhã`, `status = 'pendente'`, `notification_sent = false` (notificação de véspera)
+2. Consultar `accounts_payable` onde `due_date = hoje`, `status = 'pendente'` (notificação no dia do vencimento)
+3. Para cada registro, enviar POST direto para `UltraMsg API` com mensagem formatada (inclui short_id)
+4. Atualizar `notification_sent = true` e `notification_status = 'enviado'` em caso de sucesso (apenas véspera)
+5. Registrar `notification_status = 'erro'` e `notification_error` com motivo em caso de falha
 4. Logar erros para diagnóstico
 5. Atualizar status para `vencido` em contas com `due_date < hoje` e `status = 'pendente'`
 
@@ -216,32 +237,28 @@ SELECT cron.schedule(
 
 ---
 
-## 7. Configuração da Reportana
+## 7. Configuração da UltraMsg
 
 ### Pré-requisitos
-1. Conta Reportana ativa com WhatsApp conectado (API Oficial do Meta)
-2. Automação criada com trigger de **Webhook** na plataforma Reportana
+1. Conta UltraMsg ativa com WhatsApp conectado (WhatsApp Web)
+2. Instance ID e Token configurados como secrets
 
-### Passos Realizados
-1. ✅ Automação "Contas a Pagar" criada na Reportana com trigger Webhook
-2. ✅ URL do webhook salva como secret `REPORTANA_WEBHOOK_URL`
-3. ✅ Template de mensagem configurado na automação da Reportana
-4. Mapear variáveis do webhook (`phone`, `supplier_name`, `description`, `amount`, `due_date`, `company_name`) no editor da Reportana
-
-### Vantagem de Custo
-- Reportana cobra um valor **mensal fixo** com mensagens **ilimitadas**
-- Diferente do Twilio que cobra **por mensagem enviada**
-- Ideal para empresas com alto volume de contas a pagar
+### Configuração Realizada
+1. ✅ Secrets `ULTRAMSG_INSTANCE_ID` e `ULTRAMSG_TOKEN` configurados
+2. ✅ Edge Function `notify-accounts-due` implementada com envio direto via UltraMsg API
+3. ✅ Edge Function `test-webhook` implementada para testes manuais
+4. ✅ Templates de mensagem montados diretamente na Edge Function (texto livre, sem necessidade de aprovação)
+5. ✅ Suporte a múltiplos destinatários (números separados por vírgula)
 
 ---
 
 ## 8. Considerações de Segurança
 
 - **RLS ativo**: Cada empresa acessa apenas seus próprios registros
-- **Validação de input**: Zod na Edge Function para validar corpo da requisição
-- **Números WhatsApp**: Armazenados sem prefixo (ex: 47992102017), formatados para +55XXXXXXXXXXX pela Edge Function antes do envio à Reportana
+- **Validação de input**: Números de telefone formatados e validados na Edge Function
+- **Números WhatsApp**: Armazenados sem prefixo (ex: 47992102017), formatados para +55XXXXXXXXXXX pela Edge Function antes do envio
 - **Service Role**: Usado apenas na Edge Function para consultas cross-company no cron
-- **Webhook URL como Secret**: URL com token embutido armazenada como `REPORTANA_WEBHOOK_URL`, nunca hardcoded
+- **Secrets como variáveis**: `ULTRAMSG_INSTANCE_ID` e `ULTRAMSG_TOKEN` armazenados como secrets, nunca hardcoded
 - **Rate limiting**: Controle de envio para evitar spam
 
 ---
