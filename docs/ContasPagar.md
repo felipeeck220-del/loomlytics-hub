@@ -170,8 +170,20 @@ SELECT cron.schedule(
 - **Listagem**: Tabela com todas as contas, filtro por status (pendente, pago, vencido) e período
 - **Cadastro**: Modal/formulário para registrar nova conta com campos obrigatórios
 - **Edição**: Editar dados da conta antes do vencimento
-- **Marcar como Pago**: Botão para alterar status para `pago` e registrar `paid_at` (oculto se notificação falhou)
+- **Marcar como Pago**: Botão para alterar status para `pago` e registrar `paid_at` (oculto se notificação falhou). Modal inclui campo de upload de comprovante (opcional).
+- **Comprovante de Pagamento**: Upload de PDF, PNG ou JPG no momento da confirmação. Armazenado no Storage bucket `payment-receipts`.
 - **Exclusão**: Remover registro (com confirmação)
+
+#### Comprovante de Pagamento
+
+| Ação | Descrição |
+|------|-----------|
+| Upload no pagamento | Campo opcional no modal de confirmação de pagamento |
+| Visualizar | Ícone 👁 (azul) abre o comprovante em nova aba |
+| Alterar | Ícone ⬆ (âmbar) permite substituir o comprovante — **máximo 2 vezes** |
+| Bloqueio | Após 2 alterações, botão de alterar é removido permanentemente |
+
+> **Storage**: Bucket `payment-receipts` (público). Caminho: `{company_id}/{account_id}.{ext}`. Aceita PDF, PNG, JPG.
 
 #### Status de Notificação (coluna Notificação)
 | Status | Exibição | Descrição |
