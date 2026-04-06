@@ -962,7 +962,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 <div className="rounded-lg bg-muted/50 p-4 space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prévia do Cálculo</p>
                   <Separator />
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className={`grid ${freightPerKg > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm`}>
                     <div>
                       <p className="text-muted-foreground text-xs">Valor Cliente (o que ele paga)</p>
                       <p className="font-semibold text-foreground">{formatCurrency(clientValuePerKg)}/kg</p>
@@ -971,6 +971,12 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                       <p className="text-muted-foreground text-xs">Valor Repasse (o que você paga)</p>
                       <p className="font-semibold text-foreground">{formatCurrency(outsourceValuePerKg)}/kg</p>
                     </div>
+                    {freightPerKg > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Frete</p>
+                        <p className="font-semibold text-blue-600">{formatCurrency(freightPerKg)}/kg</p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-xs">Lucro/kg</p>
                       <p className={`font-semibold ${profitPerKg >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
@@ -979,7 +985,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                     </div>
                   </div>
                   <Separator />
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className={`grid ${freightPerKg > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm`}>
                     <div>
                       <p className="text-muted-foreground text-xs">Receita (Cliente)</p>
                       <p className="font-bold text-foreground">{formatCurrency(totalRevenue)}</p>
@@ -988,6 +994,12 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                       <p className="text-muted-foreground text-xs">Custo (Repasse)</p>
                       <p className="font-bold text-foreground">{formatCurrency(totalCost)}</p>
                     </div>
+                    {freightPerKg > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Frete Total</p>
+                        <p className="font-bold text-blue-600">{formatCurrency(totalFreightCalc)}</p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-xs">Lucro Total</p>
                       <p className={`font-bold ${totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
