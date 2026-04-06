@@ -803,6 +803,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 weightRef.current,
                 rollsRef.current,
                 repasseRef.current,
+                freightRef.current,
                 nfRomRef.current,
                 obsRef.current,
               ];
@@ -928,7 +929,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label>Peso (kg) *</Label>
                   <Input ref={weightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: formatBrInput(e.target.value, 2) }))} />
@@ -940,6 +941,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 <div className="space-y-2">
                   <Label>Valor Repasse (R$/kg) *</Label>
                   <Input ref={repasseRef} type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatRepasseInput(e.target.value) }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Frete (R$/kg)</Label>
+                  <Input ref={freightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.freight_per_kg} onChange={e => setForm(f => ({ ...f, freight_per_kg: formatRepasseInput(e.target.value) }))} />
                 </div>
                  <div className="space-y-2">
                    <Label>NF/ROM</Label>
