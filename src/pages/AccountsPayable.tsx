@@ -852,6 +852,50 @@ export default function AccountsPayable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Receipt Viewer Dialog */}
+      <Dialog open={!!viewingReceiptUrl} onOpenChange={(open) => {
+        if (!open) {
+          if (viewingReceiptUrl) URL.revokeObjectURL(viewingReceiptUrl);
+          setViewingReceiptUrl(null);
+          setViewingReceiptType('');
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Comprovante de Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-[60vh]">
+            {viewingReceiptType === 'application/pdf' ? (
+              <iframe
+                src={viewingReceiptUrl || ''}
+                className="w-full h-[70vh] border rounded"
+                title="Comprovante PDF"
+              />
+            ) : viewingReceiptType.startsWith('image/') ? (
+              <img
+                src={viewingReceiptUrl || ''}
+                alt="Comprovante"
+                className="max-w-full max-h-[70vh] mx-auto object-contain rounded"
+              />
+            ) : (
+              <p className="text-center text-muted-foreground py-8">Formato não suportado para visualização</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              if (viewingReceiptUrl) {
+                const a = document.createElement('a');
+                a.href = viewingReceiptUrl;
+                a.download = `comprovante.${viewingReceiptType.split('/')[1] || 'pdf'}`;
+                a.click();
+              }
+            }}>
+              <FileText className="h-4 w-4 mr-2" />
+              Baixar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
