@@ -52,6 +52,7 @@ interface OutsourceProduction {
   rolls: number;
   client_value_per_kg: number;
   outsource_value_per_kg: number;
+  freight_per_kg: number;
   profit_per_kg: number;
   total_revenue: number;
   total_cost: number;
