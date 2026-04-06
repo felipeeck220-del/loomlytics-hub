@@ -1251,6 +1251,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     profit: filtered.reduce((s, p) => s + p.total_profit, 0),
     weight: filtered.reduce((s, p) => s + p.weight_kg, 0),
     rolls: filtered.reduce((s, p) => s + p.rolls, 0),
+    freight: filtered.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0),
   }), [filtered]);
 
   const periodLabel = useMemo(() => {
@@ -1430,7 +1431,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
           <div className="rounded-lg border p-3">
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Registros</p>
             <p className="text-lg font-bold text-foreground">{filtered.length}</p>
@@ -1447,6 +1448,12 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Custo</p>
             <p className="text-lg font-bold text-foreground">{formatCurrency(totals.cost)}</p>
           </div>
+          {totals.freight > 0 && (
+            <div className="rounded-lg border p-3 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Frete</p>
+              <p className="text-lg font-bold text-blue-600">{formatCurrency(totals.freight)}</p>
+            </div>
+          )}
           <div className={cn("rounded-lg border p-3", totals.profit >= 0 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-destructive/30 bg-destructive/5")}>
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro</p>
             <p className={cn("text-lg font-bold", totals.profit >= 0 ? "text-emerald-600" : "text-destructive")}>{formatCurrency(totals.profit)}</p>
