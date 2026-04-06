@@ -35,6 +35,8 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
 | `notification_sent` | BOOLEAN | Sim | Se a notificação já foi processada (padrão: false) |
 | `notification_status` | TEXT | Sim | Status do envio: `pendente`, `enviado`, `erro` (padrão: `pendente`) |
 | `notification_error` | TEXT | Não | Mensagem de erro do envio quando `notification_status = 'erro'` |
+| `receipt_url` | TEXT | Não | URL pública do comprovante de pagamento (Storage bucket `payment-receipts`) |
+| `receipt_change_count` | INTEGER | Sim | Contador de alterações do comprovante (máximo 2, padrão: 0) |
 | `observations` | TEXT | Não | Observações adicionais |
 | `created_at` | TIMESTAMPTZ | Sim | Data de criação (auto-gerado) |
 | `updated_at` | TIMESTAMPTZ | Sim | Última atualização (auto-gerado) |
