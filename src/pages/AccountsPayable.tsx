@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Trash2, Check, Pencil, Receipt, Search, Send, X, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Check, Pencil, Receipt, Search, Send, X, AlertCircle, FileText, Upload, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,8 @@ interface AccountPayable {
   notification_sent: boolean;
   notification_status: string;
   notification_error: string | null;
+  receipt_url: string | null;
+  receipt_change_count: number;
   observations: string | null;
   created_at: string;
   updated_at: string;
@@ -95,6 +97,10 @@ export default function AccountsPayable() {
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [showReceiptChange, setShowReceiptChange] = useState<string | null>(null);
+  const [receiptChangeFile, setReceiptChangeFile] = useState<File | null>(null);
 
   const companyId = user?.company_id;
 
