@@ -250,11 +250,14 @@ export default function AccountsPayable() {
     },
   });
 
-  // Change receipt (max 2 times)
+  // Add or change receipt (max 2 changes after initial upload)
   const changeReceiptMutation = useMutation({
     mutationFn: async ({ id, file }: { id: string; file: File }) => {
       const account = accounts.find(a => a.id === id);
-      if (!account || account.receipt_change_count >= 2) {
+      if (!account) throw new Error('Conta não encontrada');
+      
+      const isFirstUpload = !account.receipt_url;
+      if (!isFirstUpload && account.receipt_change_count >= 2) {
         throw new Error('Limite de alterações do comprovante atingido (máx. 2)');
       }
 
@@ -269,11 +272,13 @@ export default function AccountsPayable() {
         .from('payment-receipts')
         .getPublicUrl(filePath);
 
+      const updateData: any = { receipt_url: urlData.publicUrl };
+      if (!isFirstUpload) {
+        updateData.receipt_change_count = (account.receipt_change_count || 0) + 1;
+      }
+
       const { error } = await (supabase.from as any)('accounts_payable')
-        .update({
-          receipt_url: urlData.publicUrl,
-          receipt_change_count: (account.receipt_change_count || 0) + 1,
-        })
+        .update(updateData)
         .eq('id', id);
       if (error) throw error;
     },
@@ -654,6 +659,16 @@ export default function AccountsPayable() {
                               <Upload className="h-4 w-4 text-amber-600" />
                             </Button>
                           )}
+                          {account.status === 'pago' && !account.receipt_url && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Adicionar comprovante"
+                              onClick={() => setShowReceiptChange(account.id)}
+                            >
+                              <Upload className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
                           {/* Delete button hidden for paid accounts */}
                           {account.status !== 'pago' && (
                             <Button
@@ -866,16 +881,29 @@ export default function AccountsPayable() {
       <Dialog open={!!showReceiptChange} onOpenChange={open => { if (!open) { setShowReceiptChange(null); setReceiptChangeFile(null); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Alterar Comprovante</DialogTitle>
+            <DialogTitle>
+              {(() => {
+                const acc = showReceiptChange ? accounts.find(a => a.id === showReceiptChange) : null;
+                return acc && !acc.receipt_url ? 'Adicionar Comprovante' : 'Alterar Comprovante';
+              })()}
+            </DialogTitle>
           </DialogHeader>
           {(() => {
             const acc = showReceiptChange ? accounts.find(a => a.id === showReceiptChange) : null;
+            const isFirstUpload = acc && !acc.receipt_url;
             const remaining = acc ? 2 - (acc.receipt_change_count || 0) : 0;
             return (
               <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Alterações restantes: <strong>{remaining}</strong> de 2
-                </p>
+                {!isFirstUpload && (
+                  <p className="text-sm text-muted-foreground">
+                    Alterações restantes: <strong>{remaining}</strong> de 2
+                  </p>
+                )}
+                {isFirstUpload && (
+                  <p className="text-sm text-muted-foreground">
+                    Envie o comprovante de pagamento. Após o envio, você poderá alterá-lo até 2 vezes.
+                  </p>
+                )}
                 <Input
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg"

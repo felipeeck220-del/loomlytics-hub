@@ -183,6 +183,7 @@ SELECT cron.schedule(
 | Ação | Descrição |
 |------|-----------|
 | Upload no pagamento | Campo opcional no modal de confirmação de pagamento |
+| Adicionar depois | Se não foi enviado na hora do pagamento, ícone ⬆ (azul) aparece para adicionar depois. Não conta como alteração. |
 | Visualizar | Ícone 👁 (azul) abre modal interno com preview do comprovante (PDF em iframe, imagens inline). Baixa o arquivo via SDK do Supabase Storage, evitando bloqueios de navegador (ERR_BLOCKED_BY_CLIENT). Inclui botão "Baixar". |
 | Alterar | Ícone ⬆ (âmbar) permite substituir o comprovante — **máximo 2 vezes** |
 | Bloqueio | Após 2 alterações, botão de alterar é removido permanentemente |
