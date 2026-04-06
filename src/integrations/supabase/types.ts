@@ -1140,6 +1140,7 @@ export type Database = {
           created_by_code: string | null
           created_by_name: string | null
           date: string
+          freight_per_kg: number
           id: string
           nf_rom: string | null
           observations: string | null
@@ -1163,6 +1164,7 @@ export type Database = {
           created_by_code?: string | null
           created_by_name?: string | null
           date: string
+          freight_per_kg?: number
           id?: string
           nf_rom?: string | null
           observations?: string | null
@@ -1186,6 +1188,7 @@ export type Database = {
           created_by_code?: string | null
           created_by_name?: string | null
           date?: string
+          freight_per_kg?: number
           id?: string
           nf_rom?: string | null
           observations?: string | null
