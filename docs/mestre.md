@@ -1376,6 +1376,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **06/04/2026 13:12 (Brasília)** — **MANAGE-USERS — Correção de autenticação da Edge Function:** Mesmo padrão aplicado ao `check-subscription`: substituído `getUser(token)` por `getClaims(token)` via client autenticado do usuário + client admin para operações. Resolve o erro `Unauthorized` (401) que impedia gestão de usuários.
 
+- **07/04/2026 14:30 (Brasília)** — **SETTINGS — Verificação global de email na edição de usuário:** Ao editar um usuário admin (#1 editando), o campo de email agora faz verificação global em tempo real (mesmo comportamento do cadastro de novo admin). O botão Salvar fica desabilitado enquanto a verificação está pendente ou se o email já está em uso. Feedback visual com spinner, ✓ e mensagem de erro.
+
 ---
 
-*Última atualização: 06/04/2026 13:12 (Brasília)*
+*Última atualização: 07/04/2026 14:30 (Brasília)*

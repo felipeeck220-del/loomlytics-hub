@@ -502,6 +502,8 @@ export default function SettingsPage() {
   const openEditUser = (p: Profile) => {
     setEditingUser(p);
     setUserForm({ name: p.name, email: p.email, password: '', role: p.role });
+    setEmailCheckStatus('idle');
+    setEmailCheckError('');
     setShowUserModal(true);
   };
 
@@ -1469,11 +1471,39 @@ export default function SettingsPage() {
               const currentUserProfile = profiles.find(pr => pr.user_id === user?.id);
               const isMainAdmin = currentUserProfile?.code === '1';
               if (!isMainAdmin) return null;
+              const emailChanged = userForm.email !== editingUser.email;
+              const emailInvalid = emailChanged && editingUser.role === 'admin' && emailCheckStatus === 'invalid';
+              const emailChecking = emailChanged && editingUser.role === 'admin' && emailCheckStatus === 'checking';
               return (
                 <>
                   <div className="space-y-2">
                     <Label>Email</Label>
-                    <Input type="email" value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} placeholder="usuario@empresa.com" />
+                    <Input
+                      type="email"
+                      value={userForm.email}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setUserForm(p => ({ ...p, email: val }));
+                        if (val !== editingUser.email) {
+                          checkAdminEmail(val);
+                        } else {
+                          setEmailCheckStatus('idle');
+                          setEmailCheckError('');
+                        }
+                      }}
+                      placeholder="usuario@empresa.com"
+                    />
+                    {emailChanged && emailCheckStatus === 'checking' && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Verificando email...
+                      </div>
+                    )}
+                    {emailChanged && emailCheckStatus === 'valid' && (
+                      <p className="text-xs text-emerald-600">✓ Email disponível</p>
+                    )}
+                    {emailChanged && emailCheckStatus === 'invalid' && (
+                      <p className="text-xs text-destructive">{emailCheckError}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Nova Senha <span className="text-xs text-muted-foreground">(deixe vazio para manter)</span></Label>
@@ -1502,7 +1532,7 @@ export default function SettingsPage() {
                 !userForm.name || !userForm.role || !userForm.email ||
                 (userForm.role === 'admin' && emailCheckStatus !== 'valid') ||
                 !userForm.password || userForm.password.length < 6
-              ))}
+              )) || (editingUser && userForm.email !== editingUser.email && editingUser.role === 'admin' && emailCheckStatus !== 'valid')}
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               {editingUser ? 'Salvar' : 'Criar Usuário'}
