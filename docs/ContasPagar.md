@@ -76,13 +76,14 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
 
 1. **Cron Job (pg_cron + pg_net)**: Executa diariamente (ex: às 08:00 horário de Brasília)
 2. **Edge Function `notify-accounts-due`**:
-   - Busca todas as contas com `due_date = CURRENT_DATE + 1` e `notification_sent = false` e `status = 'pendente'`
-   - Para cada conta encontrada, envia POST para o **webhook da Reportana** com os dados
-   - Marca `notification_sent = true` após envio bem-sucedido
-3. **Reportana (Automação via Webhook)**:
-   - Recebe os dados via webhook
-   - Dispara mensagem WhatsApp usando template configurado na plataforma
-   - O número de WhatsApp remetente é o conectado na conta Reportana (API Oficial do Meta)
+   - Busca contas com `due_date = CURRENT_DATE + 1` (véspera) e `notification_sent = false` e `status = 'pendente'`
+   - Busca contas com `due_date = CURRENT_DATE` (dia do vencimento) e `status = 'pendente'`
+   - Para cada conta, envia POST direto para **UltraMsg API** com mensagem formatada
+   - Marca `notification_sent = true` e `notification_status = 'enviado'` após envio bem-sucedido (apenas véspera)
+   - Em caso de erro, registra `notification_status = 'erro'` e `notification_error` com motivo
+3. **UltraMsg API**:
+   - Recebe os dados via POST (token + número + mensagem)
+   - Envia mensagem via WhatsApp Web
 
 ### Dados enviados ao Webhook
 
