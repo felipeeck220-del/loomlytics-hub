@@ -1370,6 +1370,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **06/04/2026 22:00 (Brasília)** — **CONTAS A PAGAR — Comprovante posterior:** Adicionada opção de adicionar comprovante após marcar conta como paga (sem contar como alteração). Botão ⬆ azul aparece para contas pagas sem comprovante. As 2 alterações permitidas contam apenas após o primeiro envio. Dialog exibe texto contextual ("Adicionar" vs "Alterar"). Docs atualizados.
 
+- **07/04/2026 14:00 (Brasília)** — **SETTINGS — Remoção de botão duplicado de alterar senha:** Removido o botão antigo (ícone Key/chave) da listagem de usuários que abria modal separado de troca de senha. A funcionalidade de alterar senha agora existe apenas dentro do modal de edição de usuário, evitando duplicidade.
+
 ---
 
-*Última atualização: 06/04/2026 22:00 (Brasília)*
+*Última atualização: 07/04/2026 14:00 (Brasília)*
