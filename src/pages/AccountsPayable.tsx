@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Trash2, Check, Pencil, Receipt, Search, Send, X, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Check, Pencil, Receipt, Search, Send, X, AlertCircle, FileText, Upload, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,8 @@ interface AccountPayable {
   notification_sent: boolean;
   notification_status: string;
   notification_error: string | null;
+  receipt_url: string | null;
+  receipt_change_count: number;
   observations: string | null;
   created_at: string;
   updated_at: string;
@@ -95,6 +97,10 @@ export default function AccountsPayable() {
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [showReceiptChange, setShowReceiptChange] = useState<string | null>(null);
+  const [receiptChangeFile, setReceiptChangeFile] = useState<File | null>(null);
 
   const companyId = user?.company_id;
 
@@ -175,18 +181,81 @@ export default function AccountsPayable() {
 
   // Mark as paid
   const markPaidMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, file }: { id: string; file: File | null }) => {
+      let receiptUrl: string | null = null;
+
+      if (file) {
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+        const filePath = `${companyId}/${id}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('payment-receipts')
+          .upload(filePath, file, { upsert: true });
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('payment-receipts')
+          .getPublicUrl(filePath);
+        receiptUrl = urlData.publicUrl;
+      }
+
+      const updateData: any = { status: 'pago', paid_at: new Date().toISOString() };
+      if (receiptUrl) {
+        updateData.receipt_url = receiptUrl;
+        updateData.receipt_change_count = 0;
+      }
+
       const { error } = await (supabase.from as any)('accounts_payable')
-        .update({ status: 'pago', paid_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: (_data: unknown, id: string) => {
+    onSuccess: (_data: unknown, { id }: { id: string; file: File | null }) => {
       const acc = accounts.find(a => a.id === id);
       logAction('account_pay', { supplier_name: acc?.supplier_name, amount: acc?.amount });
       toast.success('Conta marcada como paga!');
       queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
       setConfirmPayId(null);
+      setReceiptFile(null);
+    },
+  });
+
+  // Change receipt (max 2 times)
+  const changeReceiptMutation = useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const account = accounts.find(a => a.id === id);
+      if (!account || account.receipt_change_count >= 2) {
+        throw new Error('Limite de alterações do comprovante atingido (máx. 2)');
+      }
+
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+      const filePath = `${companyId}/${id}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('payment-receipts')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('payment-receipts')
+        .getPublicUrl(filePath);
+
+      const { error } = await (supabase.from as any)('accounts_payable')
+        .update({
+          receipt_url: urlData.publicUrl,
+          receipt_change_count: (account.receipt_change_count || 0) + 1,
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_data: unknown, { id }: { id: string; file: File }) => {
+      const acc = accounts.find(a => a.id === id);
+      logAction('account_receipt_change', { supplier_name: acc?.supplier_name });
+      toast.success('Comprovante atualizado!');
+      queryClient.invalidateQueries({ queryKey: ['accounts_payable'] });
+      setShowReceiptChange(null);
+      setReceiptChangeFile(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Erro ao atualizar comprovante');
     },
   });
 
@@ -468,6 +537,26 @@ export default function AccountsPayable() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
+                          {account.status === 'pago' && account.receipt_url && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Ver comprovante"
+                              onClick={() => window.open(account.receipt_url!, '_blank')}
+                            >
+                              <Eye className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          )}
+                          {account.status === 'pago' && account.receipt_url && (account.receipt_change_count || 0) < 2 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={`Alterar comprovante (${2 - (account.receipt_change_count || 0)} restantes)`}
+                              onClick={() => setShowReceiptChange(account.id)}
+                            >
+                              <Upload className="h-4 w-4 text-amber-600" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -599,23 +688,44 @@ export default function AccountsPayable() {
       </Dialog>
 
       {/* Confirm Payment Dialog */}
-      <AlertDialog open={!!confirmPayId} onOpenChange={open => { if (!open) setConfirmPayId(null); }}>
+      <AlertDialog open={!!confirmPayId} onOpenChange={open => { if (!open) { setConfirmPayId(null); setReceiptFile(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmPayAccount && (
-                <>
-                  Deseja marcar a conta de <strong>{confirmPayAccount.supplier_name}</strong> no valor de{' '}
-                  <strong>{formatCurrency(Number(confirmPayAccount.amount))}</strong> como paga?
-                </>
-              )}
+            <AlertDialogDescription asChild>
+              <div>
+                {confirmPayAccount && (
+                  <p>
+                    Deseja marcar a conta de <strong>{confirmPayAccount.supplier_name}</strong> no valor de{' '}
+                    <strong>{formatCurrency(Number(confirmPayAccount.amount))}</strong> como paga?
+                  </p>
+                )}
+                <div className="mt-4 space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Comprovante (opcional)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                      className="text-xs"
+                    />
+                  </div>
+                  {receiptFile && (
+                    <p className="text-xs text-muted-foreground">
+                      📎 {receiptFile.name} ({(receiptFile.size / 1024).toFixed(0)} KB)
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    PDF, PNG ou JPG. Após envio, o comprovante pode ser alterado no máximo 2 vezes.
+                  </p>
+                </div>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => confirmPayId && markPaidMutation.mutate(confirmPayId)}
+              onClick={() => confirmPayId && markPaidMutation.mutate({ id: confirmPayId, file: receiptFile })}
               className="bg-green-600 text-white hover:bg-green-700"
             >
               {markPaidMutation.isPending ? 'Confirmando...' : 'Confirmar Pagamento'}
@@ -623,6 +733,48 @@ export default function AccountsPayable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change Receipt Dialog */}
+      <Dialog open={!!showReceiptChange} onOpenChange={open => { if (!open) { setShowReceiptChange(null); setReceiptChangeFile(null); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar Comprovante</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const acc = showReceiptChange ? accounts.find(a => a.id === showReceiptChange) : null;
+            const remaining = acc ? 2 - (acc.receipt_change_count || 0) : 0;
+            return (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Alterações restantes: <strong>{remaining}</strong> de 2
+                </p>
+                <Input
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  onChange={(e) => setReceiptChangeFile(e.target.files?.[0] || null)}
+                  className="text-xs"
+                />
+                {receiptChangeFile && (
+                  <p className="text-xs text-muted-foreground">
+                    📎 {receiptChangeFile.name}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowReceiptChange(null); setReceiptChangeFile(null); }}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => showReceiptChange && receiptChangeFile && changeReceiptMutation.mutate({ id: showReceiptChange, file: receiptChangeFile })}
+              disabled={!receiptChangeFile || changeReceiptMutation.isPending}
+            >
+              {changeReceiptMutation.isPending ? 'Enviando...' : 'Alterar Comprovante'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={open => { if (!open) setDeleteId(null); }}>
