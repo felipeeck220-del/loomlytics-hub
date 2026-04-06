@@ -250,11 +250,14 @@ export default function AccountsPayable() {
     },
   });
 
-  // Change receipt (max 2 times)
+  // Add or change receipt (max 2 changes after initial upload)
   const changeReceiptMutation = useMutation({
     mutationFn: async ({ id, file }: { id: string; file: File }) => {
       const account = accounts.find(a => a.id === id);
-      if (!account || account.receipt_change_count >= 2) {
+      if (!account) throw new Error('Conta não encontrada');
+      
+      const isFirstUpload = !account.receipt_url;
+      if (!isFirstUpload && account.receipt_change_count >= 2) {
         throw new Error('Limite de alterações do comprovante atingido (máx. 2)');
       }
 
@@ -269,11 +272,13 @@ export default function AccountsPayable() {
         .from('payment-receipts')
         .getPublicUrl(filePath);
 
+      const updateData: any = { receipt_url: urlData.publicUrl };
+      if (!isFirstUpload) {
+        updateData.receipt_change_count = (account.receipt_change_count || 0) + 1;
+      }
+
       const { error } = await (supabase.from as any)('accounts_payable')
-        .update({
-          receipt_url: urlData.publicUrl,
-          receipt_change_count: (account.receipt_change_count || 0) + 1,
-        })
+        .update(updateData)
         .eq('id', id);
       if (error) throw error;
     },
