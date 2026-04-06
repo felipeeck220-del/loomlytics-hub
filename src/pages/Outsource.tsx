@@ -1476,6 +1476,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
                   <TableHead className="text-right">Rolos</TableHead>
                   <TableHead className="text-right">R$/kg Cliente</TableHead>
                   <TableHead className="text-right">R$/kg Repasse</TableHead>
+                  <TableHead className="text-right">Frete/kg</TableHead>
                   <TableHead className="text-right">Lucro/kg</TableHead>
                   <TableHead className="text-right">Lucro Total</TableHead>
                 </TableRow>
