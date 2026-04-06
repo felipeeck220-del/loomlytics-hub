@@ -362,6 +362,11 @@ export default function AccountsPayable() {
       toast.error('Data inválida. O ano deve estar entre os últimos 5 e próximos 5 anos.');
       return;
     }
+    const today = new Date().toISOString().split('T')[0];
+    if (form.due_date < today) {
+      toast.error('A data de vencimento não pode ser anterior a hoje.');
+      return;
+    }
     saveMutation.mutate(form);
   }
 
