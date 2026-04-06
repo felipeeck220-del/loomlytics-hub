@@ -1326,6 +1326,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 00:20 (Brasília)** — **PENTE FINO — 6 bugs corrigidos nas últimas atualizações:** (1) **`manage-users` check_email:** Removida chamada `listUsers({perPage:1})` desperdiçada e limitado busca auth a 50 em vez de 1000 (escalabilidade); (2) **`notify-subscription-status` — formatCurrency:** Substituído `toLocaleString('pt-BR')` por `toFixed(2).replace('.',',')` para garantir formatação correta no Deno; (3) **`notify-subscription-status` — stripe_customer_id:** Campo agora incluído na query SELECT e usado diretamente na verificação Pix/Cartão (antes fazia query extra desnecessária); (4) **`notify-subscription-status` — verificação "já pagou":** Movida para antes de todas as branches (evita duplicação de código); (5) **`check-pix-expiry` — filtro `plan=auto_billing`:** Agora filtra apenas Pix gerados automaticamente pelo cron (plan="auto_billing"), evitando marcar como expirado Pix manuais do usuário; (6) **`notify-accounts-due` — rodapé obrigatório:** Adicionado `⚠️ Mensagem automática, esse não é um canal de suporte.` às mensagens de contas a pagar.
 
+- **07/04/2026 08:00 (Brasília)** — **CONTAS A PAGAR — Coluna Notificação:** Adicionada coluna "Notificação" na tabela de listagem exibindo a data/hora prevista do envio da notificação WhatsApp (1 dia antes do vencimento às 8:00). Visível apenas em desktop (hidden em mobile).
+
 ---
 
-*Última atualização: 07/04/2026 00:20 (Brasília)*
+*Última atualização: 07/04/2026 08:00 (Brasília)*
