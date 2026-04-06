@@ -1318,6 +1318,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **04/04/2026 20:40 (Brasília)** — **CORREÇÃO DADOS — Remoção de produções duplicadas:** Identificados e removidos registros de produção duplicados na empresa de `felipeeck182@gmail.com`. Foram encontrados **77 grupos duplicados** em 2 datas (19/07/2025 e 28/08/2025) — cada combinação de máquina+turno+artigo tinha 2 registros idênticos com mesmos valores. Mantido o registro mais antigo de cada grupo e removido o duplicado. Verificação pós-correção confirmou zero duplicatas restantes no banco.
 
+- **06/04/2026 22:30 (Brasília)** — **ULTRAMSG — Substituição Reportana → UltraMsg:** Edge Functions `notify-accounts-due` e `test-webhook` atualizadas para usar API UltraMsg (instance168759) em vez do webhook Reportana. Secrets `ULTRAMSG_INSTANCE_ID` e `ULTRAMSG_TOKEN` configurados. Mensagens montadas diretamente na Edge Function (texto livre, sem templates Meta). Teste via curl confirmou envio com sucesso (`sent: "true"`). Secrets da Reportana mantidos como fallback. Documentação completa em `docs/ultramsg.md`.
+
 ---
 
-*Última atualização: 04/04/2026 20:40 (Brasília)*
+*Última atualização: 06/04/2026 22:30 (Brasília)*
