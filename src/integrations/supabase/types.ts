@@ -27,9 +27,11 @@ export type Database = {
           notification_sent: boolean
           notification_status: string
           observations: string | null
+          paid_amount: number | null
           paid_at: string | null
           receipt_change_count: number
           receipt_url: string | null
+          short_id: string | null
           status: string
           supplier_name: string
           updated_at: string
@@ -47,9 +49,11 @@ export type Database = {
           notification_sent?: boolean
           notification_status?: string
           observations?: string | null
+          paid_amount?: number | null
           paid_at?: string | null
           receipt_change_count?: number
           receipt_url?: string | null
+          short_id?: string | null
           status?: string
           supplier_name: string
           updated_at?: string
@@ -67,9 +71,11 @@ export type Database = {
           notification_sent?: boolean
           notification_status?: string
           observations?: string | null
+          paid_amount?: number | null
           paid_at?: string | null
           receipt_change_count?: number
           receipt_url?: string | null
+          short_id?: string | null
           status?: string
           supplier_name?: string
           updated_at?: string

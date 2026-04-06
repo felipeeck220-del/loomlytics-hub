@@ -1343,3 +1343,9 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 ---
 
 *Última atualização: 07/04/2026 11:00 (Brasília)*
+
+- **07/04/2026 01:20 (Brasília)** — **CONTAS A PAGAR — 5 melhorias:** (1) **ID único 4 dígitos:** Novo campo `short_id` (auto-gerado sequencial por empresa, ex: #0001, #0002) com trigger e constraint unique por empresa. Exibido na tabela e nas mensagens WhatsApp; (2) **Botão excluir removido para contas pagas;** (3) **Valor com juros para contas vencidas:** Campo "Valor com juros" no modal de pagamento, armazenado em `paid_amount`; (4) **Notificação no dia do vencimento:** 2 envios — véspera e dia do vencimento se ainda pendente; (5) **Busca por ID** no campo de pesquisa.
+
+---
+
+*Última atualização: 07/04/2026 01:20 (Brasília)*
