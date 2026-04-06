@@ -668,23 +668,44 @@ export default function AccountsPayable() {
       </Dialog>
 
       {/* Confirm Payment Dialog */}
-      <AlertDialog open={!!confirmPayId} onOpenChange={open => { if (!open) setConfirmPayId(null); }}>
+      <AlertDialog open={!!confirmPayId} onOpenChange={open => { if (!open) { setConfirmPayId(null); setReceiptFile(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmPayAccount && (
-                <>
-                  Deseja marcar a conta de <strong>{confirmPayAccount.supplier_name}</strong> no valor de{' '}
-                  <strong>{formatCurrency(Number(confirmPayAccount.amount))}</strong> como paga?
-                </>
-              )}
+            <AlertDialogDescription asChild>
+              <div>
+                {confirmPayAccount && (
+                  <p>
+                    Deseja marcar a conta de <strong>{confirmPayAccount.supplier_name}</strong> no valor de{' '}
+                    <strong>{formatCurrency(Number(confirmPayAccount.amount))}</strong> como paga?
+                  </p>
+                )}
+                <div className="mt-4 space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Comprovante (opcional)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                      className="text-xs"
+                    />
+                  </div>
+                  {receiptFile && (
+                    <p className="text-xs text-muted-foreground">
+                      📎 {receiptFile.name} ({(receiptFile.size / 1024).toFixed(0)} KB)
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    PDF, PNG ou JPG. Após envio, o comprovante pode ser alterado no máximo 2 vezes.
+                  </p>
+                </div>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => confirmPayId && markPaidMutation.mutate(confirmPayId)}
+              onClick={() => confirmPayId && markPaidMutation.mutate({ id: confirmPayId, file: receiptFile })}
               className="bg-green-600 text-white hover:bg-green-700"
             >
               {markPaidMutation.isPending ? 'Confirmando...' : 'Confirmar Pagamento'}
@@ -692,6 +713,48 @@ export default function AccountsPayable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change Receipt Dialog */}
+      <Dialog open={!!showReceiptChange} onOpenChange={open => { if (!open) { setShowReceiptChange(null); setReceiptChangeFile(null); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar Comprovante</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const acc = showReceiptChange ? accounts.find(a => a.id === showReceiptChange) : null;
+            const remaining = acc ? 2 - (acc.receipt_change_count || 0) : 0;
+            return (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Alterações restantes: <strong>{remaining}</strong> de 2
+                </p>
+                <Input
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  onChange={(e) => setReceiptChangeFile(e.target.files?.[0] || null)}
+                  className="text-xs"
+                />
+                {receiptChangeFile && (
+                  <p className="text-xs text-muted-foreground">
+                    📎 {receiptChangeFile.name}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowReceiptChange(null); setReceiptChangeFile(null); }}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => showReceiptChange && receiptChangeFile && changeReceiptMutation.mutate({ id: showReceiptChange, file: receiptChangeFile })}
+              disabled={!receiptChangeFile || changeReceiptMutation.isPending}
+            >
+              {changeReceiptMutation.isPending ? 'Enviando...' : 'Alterar Comprovante'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={open => { if (!open) setDeleteId(null); }}>
