@@ -17,6 +17,26 @@ function generateSlug(name: string): string {
     .replace(/^-|-$/g, '') || 'empresa';
 }
 
+async function sendUltraMsg(phone: string, message: string) {
+  const instanceId = Deno.env.get("ULTRAMSG_INSTANCE_ID");
+  const token = Deno.env.get("ULTRAMSG_TOKEN");
+  if (!instanceId || !token || !phone) return;
+
+  const to = phone.replace(/\D/g, '');
+  if (!to) return;
+
+  try {
+    const res = await fetch(`https://api.ultramsg.com/${instanceId}/messages/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, to: `+55${to}`, body: message }),
+    });
+    console.log("[ULTRAMSG] Welcome message sent, status:", res.status);
+  } catch (e) {
+    console.error("[ULTRAMSG] Failed to send welcome message:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -114,6 +134,15 @@ serve(async (req) => {
         trial_end_date: trialEndDate.toISOString(),
         subscription_status: 'trial',
       });
+
+    // 5. Send welcome WhatsApp notification
+    if (whatsapp) {
+      const trialEndFormatted = trialEndDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const slugUrl = `https://malhagest.site/${slug}`;
+      const message = `🎉 Olá, ${admin_name}!\n\nBem-vindo ao MalhaGest! Seu cadastro foi realizado com sucesso.\n\n🔗 Acesse seu sistema:\n${slugUrl}\n\n🎁 Você tem ${trialDays} dias de teste gratuito para explorar todos os recursos!\nSeu período de teste vai até ${trialEndFormatted}.\n\nQualquer dúvida, estamos à disposição.\n— Equipe MalhaGest\n\n⚠️ Mensagem automática, esse não é um canal de suporte.`;
+      
+      sendUltraMsg(whatsapp, message);
+    }
 
     return new Response(
       JSON.stringify({ company_id: company.id, slug }),
