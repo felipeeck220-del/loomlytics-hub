@@ -774,7 +774,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
             </Button>
           </DialogTrigger>
           <DialogContent
-            className="w-[95vw] sm:w-[90vw] sm:max-w-3xl max-h-[80vh] overflow-y-auto"
+            className="w-[95vw] sm:w-[95vw] sm:max-w-4xl max-h-[80vh] overflow-y-auto"
             onEscapeKeyDown={e => e.preventDefault()}
             onInteractOutside={e => e.preventDefault()}
           >
