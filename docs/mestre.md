@@ -1328,6 +1328,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 08:00 (Brasília)** — **CONTAS A PAGAR — Coluna Notificação:** Adicionada coluna "Notificação" na tabela de listagem exibindo a data/hora prevista do envio da notificação WhatsApp (1 dia antes do vencimento às 8:00). Visível apenas em desktop (hidden em mobile).
 
+- **07/04/2026 08:30 (Brasília)** — **CONTAS A PAGAR — Rastreamento de erros de notificação:** (1) **Novos campos no banco:** `notification_status` (pendente/enviado/erro) e `notification_error` (motivo do erro) adicionados à tabela `accounts_payable`; (2) **Edge Function atualizada:** `notify-accounts-due` agora salva o resultado do envio (sucesso → "enviado", falha → "erro" + mensagem de erro da UltraMsg); (3) **UI atualizada:** Coluna Notificação exibe badge "Enviado" (verde), "Não Enviado" (vermelho com tooltip do erro), ou data prevista (pendente); (4) **Botões ocultos em erro:** Confirmar pagamento e Editar são removidos quando `notification_status = 'erro'`, mantendo apenas Excluir. Documentação ContasPagar.md atualizada.
+
 ---
 
-*Última atualização: 07/04/2026 08:00 (Brasília)*
+*Última atualização: 07/04/2026 08:30 (Brasília)*
