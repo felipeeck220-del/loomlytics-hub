@@ -1328,7 +1328,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 08:00 (Brasília)** — **CONTAS A PAGAR — Coluna Notificação:** Adicionada coluna "Notificação" na tabela de listagem exibindo a data/hora prevista do envio da notificação WhatsApp (1 dia antes do vencimento às 8:00). Visível apenas em desktop (hidden em mobile).
 
-- **07/04/2026 08:30 (Brasília)** — **CONTAS A PAGAR — Rastreamento de erros de notificação:** (1) **Novos campos no banco:** `notification_status` (pendente/enviado/erro) e `notification_error` (motivo do erro) adicionados à tabela `accounts_payable`; (2) **Edge Function atualizada:** `notify-accounts-due` agora salva o resultado do envio (sucesso → "enviado", falha → "erro" + mensagem de erro da UltraMsg); (3) **UI atualizada:** Coluna Notificação exibe badge "Enviado" (verde), "Não Enviado" (vermelho com tooltip do erro), ou data prevista (pendente); (4) **Botões ocultos em erro:** Confirmar pagamento e Editar são removidos quando `notification_status = 'erro'`, mantendo apenas Excluir. Documentação ContasPagar.md atualizada.
+- **07/04/2026 08:30 (Brasília)** — **CONTAS A PAGAR — Rastreamento de erros de notificação:** (1) **Novos campos no banco:** `notification_status` (pendente/enviado/erro) e `notification_error` (motivo do erro) adicionados à tabela `accounts_payable`; (2) **Edge Function atualizada:** `notify-accounts-due` agora salva o resultado do envio (sucesso → "enviado", falha → "erro" + mensagem de erro da UltraMsg); (3) **UI atualizada:** Coluna Notificação exibe badge "Enviado" (verde), "Não Enviado" (vermelho com tooltip do erro), ou data prevista (pendente). *(Nota: inicialmente botões eram ocultados em erro, mas isso foi revertido na atualização de 07/04 10:00 — botões agora ficam sempre visíveis.)*
 
 - **07/04/2026 09:00 (Brasília)** — **CONTAS A PAGAR — Comprovante de pagamento:** (1) **Storage:** Bucket `payment-receipts` criado (público) para armazenar comprovantes PDF/PNG/JPG; (2) **Novos campos:** `receipt_url` e `receipt_change_count` adicionados à tabela `accounts_payable`; (3) **Modal de pagamento:** Campo de upload opcional de comprovante integrado ao modal de confirmação; (4) **Ações na tabela:** Botão visualizar (👁 azul) abre comprovante em nova aba, botão alterar (⬆ âmbar) permite substituir — máximo 2 alterações, após isso botão é removido permanentemente; (5) **Documentação:** ContasPagar.md atualizado com nova seção de comprovantes.
 
@@ -1338,6 +1338,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 10:30 (Brasília)** — **CONTAS A PAGAR — Validações de formulário:** (1) **Calendário bloqueado para datas passadas:** Campo de vencimento agora usa `min` = data atual, impedindo seleção de dias anteriores a hoje; validação server-side também rejeita datas passadas; (2) **Valor somente numérico:** Campo "Valor (R$)" agora aceita apenas dígitos, vírgula e ponto — caracteres alfabéticos e especiais são filtrados automaticamente; `inputMode="decimal"` ativado para teclado numérico em mobile.
 
+- **07/04/2026 11:00 (Brasília)** — **PENTE FINO — 2 correções:** (1) **`notify-accounts-due` — formatCurrency:** Substituído `toLocaleString('pt-BR')` por `toFixed(2).replace('.', ',')` para garantir formatação correta no Deno (mesmo fix aplicado anteriormente nas outras edge functions); (2) **Histórico mestre.md — inconsistência corrigida:** Entrada de 07/04 08:30 dizia "Botões ocultos em erro" mas isso foi revertido em 07/04 10:00 — texto atualizado com nota de que o comportamento foi revertido, eliminando ambiguidade.
+
 ---
 
-*Última atualização: 07/04/2026 10:30 (Brasília)*
+*Última atualização: 07/04/2026 11:00 (Brasília)*

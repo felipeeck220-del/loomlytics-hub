@@ -69,11 +69,8 @@ Deno.serve(async (req) => {
       try {
         const companyName = (account as any).companies?.name || "Empresa";
 
-        // Format amount to Brazilian format
-        const amountFormatted = Number(account.amount).toLocaleString("pt-BR", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
+        // Format amount to Brazilian format (toFixed para compatibilidade Deno)
+        const amountFormatted = Number(account.amount).toFixed(2).replace('.', ',');
 
         // Format due date to dd/MM/yyyy
         const [year, month, day] = account.due_date.split("-");
