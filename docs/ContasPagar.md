@@ -37,6 +37,8 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
 | `notification_error` | TEXT | Não | Mensagem de erro do envio quando `notification_status = 'erro'` |
 | `receipt_url` | TEXT | Não | URL pública do comprovante de pagamento (Storage bucket `payment-receipts`) |
 | `receipt_change_count` | INTEGER | Sim | Contador de alterações do comprovante (máximo 2, padrão: 0) |
+| `short_id` | TEXT | Sim | ID único de 4 dígitos por empresa (auto-gerado: 0001, 0002, ...) |
+| `paid_amount` | NUMERIC | Não | Valor efetivamente pago (quando diferente do original, ex: com juros) |
 | `observations` | TEXT | Não | Observações adicionais |
 | `created_at` | TIMESTAMPTZ | Sim | Data de criação (auto-gerado) |
 | `updated_at` | TIMESTAMPTZ | Sim | Última atualização (auto-gerado) |
