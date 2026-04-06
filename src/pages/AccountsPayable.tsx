@@ -654,6 +654,16 @@ export default function AccountsPayable() {
                               <Upload className="h-4 w-4 text-amber-600" />
                             </Button>
                           )}
+                          {account.status === 'pago' && !account.receipt_url && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Adicionar comprovante"
+                              onClick={() => setShowReceiptChange(account.id)}
+                            >
+                              <Upload className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
                           {/* Delete button hidden for paid accounts */}
                           {account.status !== 'pago' && (
                             <Button
