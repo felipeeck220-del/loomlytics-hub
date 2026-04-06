@@ -1136,6 +1136,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                       {p.freight_per_kg > 0 ? <span className="text-blue-600">{formatCurrency(p.freight_per_kg)}</span> : '—'}
                     </TableCell>
                     <TableCell className="text-right">
+                      <Badge variant="outline" className={`whitespace-nowrap ${p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}`}>
                         {formatCurrency(p.profit_per_kg)}
                       </Badge>
                     </TableCell>
