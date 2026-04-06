@@ -1322,6 +1322,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **06/04/2026 23:15 (Brasília)** — **CONTAS A PAGAR — 3 melhorias:** (1) **Máscara WhatsApp corrigida:** Backspace agora funciona corretamente — input trabalha apenas com dígitos e formata na exibição, sem travar em parênteses/hífens; (2) **Múltiplos WhatsApp:** Campo WhatsApp agora suporta múltiplos números de envio com botão "Adicionar número" — armazenados como comma-separated no banco, Edge Function `notify-accounts-due` envia para todos; (3) **Modal confirmar pagamento:** Botão ✓ agora abre modal de confirmação (Confirmar/Cancelar) com dados da conta antes de marcar como pago; (4) **Label atualizado:** Campo WhatsApp agora informa que é o número que receberá a notificação de vencimento.
 
+- **07/04/2026 00:15 (Brasília)** — **NOTIFICAÇÕES WHATSAPP — Implementação completa conforme not.md:** (1) **Boas-vindas:** `create-company-profile` envia mensagem WhatsApp via UltraMsg após cadastro com link do sistema, dias de trial e data de expiração; (2) **Pagamento Pix confirmado:** `syncpay-webhook` envia confirmação de pagamento com valor e próxima data de vencimento; (3) **Cron diário (08:00 BRT):** Criada edge function `notify-subscription-status` com lógica completa de 5 dias: dias 1-3 envia aviso de pendência, dias 4-5 gera Pix automático via SyncPayments e envia código, dia 6 suspende conta; (4) **Cron horário:** Criada edge function `check-pix-expiry` que verifica Pix expirados (~1h) e notifica; (5) **Cron jobs configurados:** pg_cron agendado: `notify-subscription-status` às 11:00 UTC (08:00 BRT) diário, `check-pix-expiry` a cada hora; (6) Todas as mensagens incluem rodapé obrigatório de mensagem automática.
+
 ---
 
-*Última atualização: 06/04/2026 23:15 (Brasília)*
+*Última atualização: 07/04/2026 00:15 (Brasília)*
