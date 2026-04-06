@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Trash2, Check, Pencil, Receipt, Search, Send, X } from 'lucide-react';
+import { Plus, Trash2, Check, Pencil, Receipt, Search, Send, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,8 @@ interface AccountPayable {
   status: string;
   paid_at: string | null;
   notification_sent: boolean;
+  notification_status: string;
+  notification_error: string | null;
   observations: string | null;
   created_at: string;
   updated_at: string;
