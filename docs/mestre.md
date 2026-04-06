@@ -1336,6 +1336,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 10:00 (Brasília)** — **CONTAS A PAGAR — Pagamento com erro de notificação + filtros:** (1) **Pagamento desbloqueado:** Botões "Confirmar pagamento" e "Editar" agora ficam visíveis mesmo quando `notification_status = 'erro'` — erro de notificação não bloqueia mais ações financeiras; badge vermelho "Não Enviado" permanece como alerta visual; (2) **Confirmar pagamento em vencido:** Botão de confirmar pagamento agora aparece também para contas com status "vencido" (antes só aparecia em "pendente"); (3) **Filtro por mês:** Select com meses disponíveis (baseado nas datas de vencimento das contas), formatados como "abr/2026"; (4) **Filtro por fornecedor:** Select com lista única de fornecedores cadastrados.
 
+- **07/04/2026 10:30 (Brasília)** — **CONTAS A PAGAR — Validações de formulário:** (1) **Calendário bloqueado para datas passadas:** Campo de vencimento agora usa `min` = data atual, impedindo seleção de dias anteriores a hoje; validação server-side também rejeita datas passadas; (2) **Valor somente numérico:** Campo "Valor (R$)" agora aceita apenas dígitos, vírgula e ponto — caracteres alfabéticos e especiais são filtrados automaticamente; `inputMode="decimal"` ativado para teclado numérico em mobile.
+
 ---
 
-*Última atualização: 07/04/2026 10:00 (Brasília)*
+*Última atualização: 07/04/2026 10:30 (Brasília)*

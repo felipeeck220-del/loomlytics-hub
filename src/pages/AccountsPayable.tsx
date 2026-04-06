@@ -362,6 +362,11 @@ export default function AccountsPayable() {
       toast.error('Data inválida. O ano deve estar entre os últimos 5 e próximos 5 anos.');
       return;
     }
+    const today = new Date().toISOString().split('T')[0];
+    if (form.due_date < today) {
+      toast.error('A data de vencimento não pode ser anterior a hoje.');
+      return;
+    }
     saveMutation.mutate(form);
   }
 
@@ -685,7 +690,11 @@ export default function AccountsPayable() {
                 <Label>Valor (R$) *</Label>
                 <Input
                   value={form.amount}
-                  onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                  onChange={e => {
+                    const v = e.target.value.replace(/[^0-9.,]/g, '');
+                    setForm(f => ({ ...f, amount: v }));
+                  }}
+                  inputMode="decimal"
                   placeholder="0,00"
                 />
               </div>
@@ -694,7 +703,7 @@ export default function AccountsPayable() {
               <Label>Vencimento *</Label>
               <Input
                 type="date"
-                min={getDateLimits().minDate}
+                min={new Date().toISOString().split('T')[0]}
                 max={getDateLimits().maxDate}
                 value={form.due_date}
                 onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
