@@ -545,7 +545,28 @@ export default function AccountsPayable() {
                               variant="ghost"
                               size="icon"
                               title="Ver comprovante"
-                              onClick={() => window.open(account.receipt_url!, '_blank')}
+                              disabled={receiptLoading}
+                              onClick={async () => {
+                                try {
+                                  setReceiptLoading(true);
+                                  // Extract storage path from public URL
+                                  const urlParts = account.receipt_url!.split('/payment-receipts/');
+                                  const storagePath = urlParts[urlParts.length - 1];
+                                  const { data, error } = await supabase.storage
+                                    .from('payment-receipts')
+                                    .download(storagePath);
+                                  if (error) throw error;
+                                  const blobUrl = URL.createObjectURL(data);
+                                  const ext = storagePath.split('.').pop()?.toLowerCase() || '';
+                                  const mimeMap: Record<string, string> = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+                                  setViewingReceiptType(mimeMap[ext] || 'application/octet-stream');
+                                  setViewingReceiptUrl(blobUrl);
+                                } catch (err: any) {
+                                  toast.error('Erro ao carregar comprovante: ' + (err.message || 'Erro desconhecido'));
+                                } finally {
+                                  setReceiptLoading(false);
+                                }
+                              }}
                             >
                               <Eye className="h-4 w-4 text-blue-600" />
                             </Button>
