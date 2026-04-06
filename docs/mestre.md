@@ -1378,6 +1378,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 14:30 (Brasília)** — **SETTINGS — Verificação global de email na edição de usuário:** Ao editar um usuário admin (#1 editando), o campo de email agora faz verificação global em tempo real (mesmo comportamento do cadastro de novo admin). O botão Salvar fica desabilitado enquanto a verificação está pendente ou se o email já está em uso. Feedback visual com spinner, ✓ e mensagem de erro.
 
+- **07/04/2026 15:00 (Brasília)** — **TERCEIRIZADOS — Frete por kg + Documentação:** (1) **Nova coluna `freight_per_kg`** (numeric, default 0) na tabela `outsource_productions`; (2) **Input "Frete (R$/kg)"** no modal de registro — opcional, auto-format igual ao repasse; (3) **Cálculo atualizado:** `lucro/kg = cliente - repasse - frete`; (4) **KPI "Frete Total"** (ícone Truck, cor azul) adicionado aos cards do topo; (5) **Coluna "Frete/kg"** na listagem (azul se > 0, "—" se zero); (6) **Prévia do cálculo** exibe frete quando > 0; (7) **Aba Relatórios** com card Frete condicional e coluna na tabela; (8) **Documentação completa:** Criado `docs/terceirizado.md` com toda a arquitetura do módulo.
+
 ---
 
-*Última atualização: 07/04/2026 14:30 (Brasília)*
+*Última atualização: 07/04/2026 15:00 (Brasília)*

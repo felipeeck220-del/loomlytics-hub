@@ -19,7 +19,7 @@ import { formatCurrency, formatWeight, formatNumber, getDateLimits, isDateValid 
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import {
   Plus, Trash2, Edit, Factory, Building2, DollarSign, Scale, TrendingUp,
-  Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search
+  Loader2, Package, Users, FileBarChart, CalendarIcon, Filter, Download, Search, Truck
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -52,6 +52,7 @@ interface OutsourceProduction {
   rolls: number;
   client_value_per_kg: number;
   outsource_value_per_kg: number;
+  freight_per_kg: number;
   profit_per_kg: number;
   total_revenue: number;
   total_cost: number;
@@ -119,6 +120,7 @@ export default function Outsource() {
         rolls: Number(p.rolls),
         client_value_per_kg: Number(p.client_value_per_kg),
         outsource_value_per_kg: Number(p.outsource_value_per_kg),
+        freight_per_kg: Number((p as any).freight_per_kg) || 0,
         profit_per_kg: Number(p.profit_per_kg),
         total_revenue: Number(p.total_revenue),
         total_cost: Number(p.total_cost),
@@ -169,7 +171,8 @@ export default function Outsource() {
     const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
     const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
     const totalLoss = displayProductions.filter(p => p.total_profit < 0).reduce((s, p) => s + p.total_profit, 0);
-    return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss };
+    const totalFreight = displayProductions.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
+    return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
   }, [displayProductions]);
 
   const firstName = companyName.split(' ')[0] || 'Empresa';
@@ -188,11 +191,12 @@ export default function Outsource() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-4">
         <KpiCard icon={Package} label="Rolos" value={formatNumber(totals.totalRolls)} color="border-l-amber-500" />
         <KpiCard icon={Scale} label="Peso Total" value={formatWeight(totals.totalWeight)} color="border-l-orange-500" />
         <KpiCard icon={DollarSign} label={`Receita (${firstName})`} value={formatCurrency(totals.totalRevenue)} color="border-l-emerald-500" />
         <KpiCard icon={DollarSign} label="Custo (Repasse)" value={formatCurrency(totals.totalCost)} color="border-l-red-500" />
+        <KpiCard icon={Truck} label="Frete Total" value={formatCurrency(totals.totalFreight)} color="border-l-blue-500" />
         <KpiCard icon={TrendingUp} label={`Lucro (${firstName})`} value={formatCurrency(totals.totalProfit)} color={totals.totalProfit >= 0 ? "border-l-primary" : "border-l-destructive"} />
         <KpiCard icon={TrendingUp} label="Prejuízos" value={formatCurrency(totals.totalLoss)} color="border-l-destructive" />
       </div>
@@ -453,10 +457,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
    const dateRef = useRef<HTMLInputElement>(null);
    const rollsRef = useRef<HTMLInputElement>(null);
    const repasseRef = useRef<HTMLInputElement>(null);
+   const freightRef = useRef<HTMLInputElement>(null);
    const obsRef = useRef<HTMLTextAreaElement>(null);
   const [form, setForm] = useState({
     outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
-    weight_kg: '', rolls: '', outsource_value_per_kg: '', nf_rom: '', observations: '',
+    weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '', nf_rom: '', observations: '',
   });
 
   const filteredArticles = useMemo(() => {
@@ -472,7 +477,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     setForm(f => ({
       outsource_company_id: keepCompany ? f.outsource_company_id : '',
       article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
-      weight_kg: '', rolls: '', outsource_value_per_kg: '', nf_rom: '', observations: '',
+      weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '', nf_rom: '', observations: '',
     }));
     setEditId(null);
     setArticleSearch('');
@@ -514,10 +519,12 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   const selectedArticle = articles.find(a => a.id === form.article_id);
   const clientValuePerKg = selectedArticle ? Number(selectedArticle.value_per_kg) : 0;
   const outsourceValuePerKg = parseBrNumber(form.outsource_value_per_kg);
+  const freightPerKg = parseBrNumber(form.freight_per_kg);
   const weightKg = parseBrNumber(form.weight_kg);
-  const profitPerKg = clientValuePerKg - outsourceValuePerKg;
+  const profitPerKg = clientValuePerKg - outsourceValuePerKg - freightPerKg;
   const totalRevenue = weightKg * clientValuePerKg;
   const totalCost = weightKg * outsourceValuePerKg;
+  const totalFreightCalc = weightKg * freightPerKg;
   const totalProfit = weightKg * profitPerKg;
 
   // Helper: adjust outsource yarn stock (deduct on production, add back on delete)
@@ -567,6 +574,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
         rolls: Number(form.rolls) || 0,
         client_value_per_kg: clientValuePerKg,
         outsource_value_per_kg: outsourceValuePerKg,
+        freight_per_kg: freightPerKg,
         profit_per_kg: profitPerKg,
         total_revenue: totalRevenue,
         total_cost: totalCost,
@@ -665,6 +673,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
       weight_kg: formatNumberToBr(p.weight_kg, 2),
       rolls: String(p.rolls),
       outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
+      freight_per_kg: p.freight_per_kg > 0 ? formatRepasseInput(String(Math.round(p.freight_per_kg * 100))) : '',
       nf_rom: p.nf_rom || '',
       observations: p.observations || '',
     });
@@ -794,6 +803,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 weightRef.current,
                 rollsRef.current,
                 repasseRef.current,
+                freightRef.current,
                 nfRomRef.current,
                 obsRef.current,
               ];
@@ -919,7 +929,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label>Peso (kg) *</Label>
                   <Input ref={weightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: formatBrInput(e.target.value, 2) }))} />
@@ -931,6 +941,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 <div className="space-y-2">
                   <Label>Valor Repasse (R$/kg) *</Label>
                   <Input ref={repasseRef} type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatRepasseInput(e.target.value) }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Frete (R$/kg)</Label>
+                  <Input ref={freightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.freight_per_kg} onChange={e => setForm(f => ({ ...f, freight_per_kg: formatRepasseInput(e.target.value) }))} />
                 </div>
                  <div className="space-y-2">
                    <Label>NF/ROM</Label>
@@ -948,7 +962,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 <div className="rounded-lg bg-muted/50 p-4 space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prévia do Cálculo</p>
                   <Separator />
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className={`grid ${freightPerKg > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm`}>
                     <div>
                       <p className="text-muted-foreground text-xs">Valor Cliente (o que ele paga)</p>
                       <p className="font-semibold text-foreground">{formatCurrency(clientValuePerKg)}/kg</p>
@@ -957,6 +971,12 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                       <p className="text-muted-foreground text-xs">Valor Repasse (o que você paga)</p>
                       <p className="font-semibold text-foreground">{formatCurrency(outsourceValuePerKg)}/kg</p>
                     </div>
+                    {freightPerKg > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Frete</p>
+                        <p className="font-semibold text-blue-600">{formatCurrency(freightPerKg)}/kg</p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-xs">Lucro/kg</p>
                       <p className={`font-semibold ${profitPerKg >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
@@ -965,7 +985,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                     </div>
                   </div>
                   <Separator />
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className={`grid ${freightPerKg > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm`}>
                     <div>
                       <p className="text-muted-foreground text-xs">Receita (Cliente)</p>
                       <p className="font-bold text-foreground">{formatCurrency(totalRevenue)}</p>
@@ -974,6 +994,12 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                       <p className="text-muted-foreground text-xs">Custo (Repasse)</p>
                       <p className="font-bold text-foreground">{formatCurrency(totalCost)}</p>
                     </div>
+                    {freightPerKg > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Frete Total</p>
+                        <p className="font-bold text-blue-600">{formatCurrency(totalFreightCalc)}</p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-xs">Lucro Total</p>
                       <p className={`font-bold ${totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
@@ -1077,6 +1103,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                   <TableHead className="text-right">Rolos</TableHead>
                   <TableHead className="text-right">R$/kg Cliente</TableHead>
                   <TableHead className="text-right">R$/kg Repasse</TableHead>
+                  <TableHead className="text-right">Frete/kg</TableHead>
                   <TableHead className="text-right">Lucro/kg</TableHead>
                   <TableHead className="text-right">Lucro Total</TableHead>
                   <TableHead>NF/ROM</TableHead>
@@ -1105,6 +1132,9 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                     <TableCell className="text-right">{p.rolls}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.client_value_per_kg)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.outsource_value_per_kg)}</TableCell>
+                    <TableCell className="text-right">
+                      {p.freight_per_kg > 0 ? <span className="text-blue-600">{formatCurrency(p.freight_per_kg)}</span> : '—'}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline" className={`whitespace-nowrap ${p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}`}>
                         {formatCurrency(p.profit_per_kg)}
@@ -1221,6 +1251,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     profit: filtered.reduce((s, p) => s + p.total_profit, 0),
     weight: filtered.reduce((s, p) => s + p.weight_kg, 0),
     rolls: filtered.reduce((s, p) => s + p.rolls, 0),
+    freight: filtered.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0),
   }), [filtered]);
 
   const periodLabel = useMemo(() => {
@@ -1400,7 +1431,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
           <div className="rounded-lg border p-3">
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Registros</p>
             <p className="text-lg font-bold text-foreground">{filtered.length}</p>
@@ -1417,6 +1448,12 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Custo</p>
             <p className="text-lg font-bold text-foreground">{formatCurrency(totals.cost)}</p>
           </div>
+          {totals.freight > 0 && (
+            <div className="rounded-lg border p-3 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Frete</p>
+              <p className="text-lg font-bold text-blue-600">{formatCurrency(totals.freight)}</p>
+            </div>
+          )}
           <div className={cn("rounded-lg border p-3", totals.profit >= 0 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-destructive/30 bg-destructive/5")}>
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro</p>
             <p className={cn("text-lg font-bold", totals.profit >= 0 ? "text-emerald-600" : "text-destructive")}>{formatCurrency(totals.profit)}</p>
@@ -1439,6 +1476,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
                   <TableHead className="text-right">Rolos</TableHead>
                   <TableHead className="text-right">R$/kg Cliente</TableHead>
                   <TableHead className="text-right">R$/kg Repasse</TableHead>
+                  <TableHead className="text-right">Frete/kg</TableHead>
                   <TableHead className="text-right">Lucro/kg</TableHead>
                   <TableHead className="text-right">Lucro Total</TableHead>
                 </TableRow>
@@ -1454,6 +1492,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
                     <TableCell className="text-right">{p.rolls}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.client_value_per_kg)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.outsource_value_per_kg)}</TableCell>
+                    <TableCell className="text-right">{p.freight_per_kg > 0 ? <span className="text-blue-600">{formatCurrency(p.freight_per_kg)}</span> : '—'}</TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline" className={p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}>
                         {formatCurrency(p.profit_per_kg)}
