@@ -1380,6 +1380,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 15:00 (Brasília)** — **TERCEIRIZADOS — Frete por kg + Documentação:** (1) **Nova coluna `freight_per_kg`** (numeric, default 0) na tabela `outsource_productions`; (2) **Input "Frete (R$/kg)"** no modal de registro — opcional, auto-format igual ao repasse; (3) **Cálculo atualizado:** `lucro/kg = cliente - repasse - frete`; (4) **KPI "Frete Total"** (ícone Truck, cor azul) adicionado aos cards do topo; (5) **Coluna "Frete/kg"** na listagem (azul se > 0, "—" se zero); (6) **Prévia do cálculo** exibe frete quando > 0; (7) **Aba Relatórios** com card Frete condicional e coluna na tabela; (8) **Documentação completa:** Criado `docs/terceirizado.md` com toda a arquitetura do módulo.
 
+- **07/04/2026 15:30 (Brasília)** — **TERCEIRIZADOS — Modal expandido +5vw:** Largura do modal "Registrar Produção Terceirizada" aumentada de `sm:w-[90vw] sm:max-w-3xl` para `sm:w-[95vw] sm:max-w-4xl` para mais espaço de preenchimento.
+
 ---
 
-*Última atualização: 07/04/2026 15:00 (Brasília)*
+*Última atualização: 07/04/2026 15:30 (Brasília)*
