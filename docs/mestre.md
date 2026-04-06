@@ -162,7 +162,7 @@ interface AuthContextType {
 **Mapeamento completo:**
 ```typescript
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
-  admin:     ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'settings'],
+  admin:     ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'invoices', 'fechamento', 'settings'],
   lider:     ['machines', 'clients-articles', 'revision', 'mecanica', 'weavers'],
   mecanico:  ['machines', 'mecanica'],
   revisador: ['revision'],
