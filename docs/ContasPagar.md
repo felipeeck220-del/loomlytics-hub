@@ -253,7 +253,7 @@ SELECT cron.schedule(
 - [ ] Testes end-to-end
 - [ ] Opção de recorrência mensal (auto-gerar próxima conta após pagamento)
 - [ ] Relatório de despesas por período/categoria
-- [ ] Anexar comprovante de pagamento (Storage)
+- [x] Anexar comprovante de pagamento (Storage)
 
 ---
 
@@ -266,3 +266,4 @@ SELECT cron.schedule(
 | 02/04/2026 - 11:30 | Implementação completa: tabela `accounts_payable` (RLS), página `/contas-pagar` (CRUD + filtros + KPIs), Edge Function `notify-accounts-due` (deploy + teste OK), cron job diário 08:00 Brasília, integração rotas/sidebar/permissões. |
 | 03/04/2026 - XX:XX | Documentação atualizada: formato do número WhatsApp corrigido para +55XXXXXXXXXXX (formatado pela Edge Function). Número armazenado sem prefixo, com máscara visual (XX) X XXXX-XXXX no formulário. Botão "Enviar Teste" adicionado com Edge Function `test-webhook`. |
 | 07/04/2026 - 08:30 | **Rastreamento de erros de notificação:** Adicionados campos `notification_status` e `notification_error` à tabela. Edge Function `notify-accounts-due` agora salva resultado (enviado/erro + motivo). Interface exibe badge "Não Enviado" com tooltip do erro e oculta botões confirmar/editar quando há falha. |
+| 07/04/2026 - 09:00 | **Comprovante de pagamento:** Bucket `payment-receipts` criado no Storage. Campos `receipt_url` e `receipt_change_count` adicionados. Modal de confirmação de pagamento agora inclui upload opcional de comprovante (PDF/PNG/JPG). Botões de visualizar (👁) e alterar (⬆) comprovante na tabela. Limite de 2 alterações do comprovante após envio inicial, com bloqueio permanente. |
