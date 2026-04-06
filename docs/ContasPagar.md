@@ -32,7 +32,9 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
 | `whatsapp_number` | TEXT | Sim | Número WhatsApp para notificação (armazenado sem prefixo, ex: 47992102017). A Edge Function formata para +55XXXXXXXXXXX antes do envio. |
 | `status` | TEXT | Sim | Status: `pendente`, `pago`, `vencido` (padrão: `pendente`) |
 | `paid_at` | TIMESTAMPTZ | Não | Data/hora em que foi marcado como pago |
-| `notification_sent` | BOOLEAN | Sim | Se a notificação já foi enviada (padrão: false) |
+| `notification_sent` | BOOLEAN | Sim | Se a notificação já foi processada (padrão: false) |
+| `notification_status` | TEXT | Sim | Status do envio: `pendente`, `enviado`, `erro` (padrão: `pendente`) |
+| `notification_error` | TEXT | Não | Mensagem de erro do envio quando `notification_status = 'erro'` |
 | `observations` | TEXT | Não | Observações adicionais |
 | `created_at` | TIMESTAMPTZ | Sim | Data de criação (auto-gerado) |
 | `updated_at` | TIMESTAMPTZ | Sim | Última atualização (auto-gerado) |
@@ -166,15 +168,17 @@ SELECT cron.schedule(
 - **Listagem**: Tabela com todas as contas, filtro por status (pendente, pago, vencido) e período
 - **Cadastro**: Modal/formulário para registrar nova conta com campos obrigatórios
 - **Edição**: Editar dados da conta antes do vencimento
-- **Marcar como Pago**: Botão para alterar status para `pago` e registrar `paid_at`
+- **Marcar como Pago**: Botão para alterar status para `pago` e registrar `paid_at` (oculto se notificação falhou)
 - **Exclusão**: Remover registro (com confirmação)
 
-#### Cores de Status
-| Status | Cor | Badge |
-|--------|-----|-------|
-| Pendente | Amarelo/Âmbar | `bg-amber-100 text-amber-800` |
-| Pago | Verde | `bg-green-100 text-green-800` |
-| Vencido | Vermelho | `bg-red-100 text-red-800` |
+#### Status de Notificação (coluna Notificação)
+| Status | Exibição | Descrição |
+|--------|----------|-----------|
+| Pendente | Data/hora prevista (ex: 07/04/2026 8:00) | Aguardando envio pelo cron diário |
+| Enviado | Badge verde "Enviado" | Notificação entregue com sucesso |
+| Erro | Badge vermelho "Não Enviado" + tooltip com motivo | Falha no envio — hover mostra o erro |
+
+> **Regra de UI:** Quando `notification_status = 'erro'`, os botões de **Confirmar pagamento** e **Editar** são ocultados, permanecendo apenas o botão de **Excluir**.
 
 #### Campos do Formulário
 1. **Fornecedor** (texto, obrigatório)
@@ -247,3 +251,4 @@ SELECT cron.schedule(
 | 02/04/2026 - 10:45 | Substituição do Twilio pela Reportana (webhook) para notificações WhatsApp. Secret `REPORTANA_WEBHOOK_URL` configurado. Documentação atualizada com fluxo, dados do webhook e template de mensagem. |
 | 02/04/2026 - 11:30 | Implementação completa: tabela `accounts_payable` (RLS), página `/contas-pagar` (CRUD + filtros + KPIs), Edge Function `notify-accounts-due` (deploy + teste OK), cron job diário 08:00 Brasília, integração rotas/sidebar/permissões. |
 | 03/04/2026 - XX:XX | Documentação atualizada: formato do número WhatsApp corrigido para +55XXXXXXXXXXX (formatado pela Edge Function). Número armazenado sem prefixo, com máscara visual (XX) X XXXX-XXXX no formulário. Botão "Enviar Teste" adicionado com Edge Function `test-webhook`. |
+| 07/04/2026 - 08:30 | **Rastreamento de erros de notificação:** Adicionados campos `notification_status` e `notification_error` à tabela. Edge Function `notify-accounts-due` agora salva resultado (enviado/erro + motivo). Interface exibe badge "Não Enviado" com tooltip do erro e oculta botões confirmar/editar quando há falha. |

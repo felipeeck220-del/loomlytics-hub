@@ -23,7 +23,9 @@ export type Database = {
           description: string
           due_date: string
           id: string
+          notification_error: string | null
           notification_sent: boolean
+          notification_status: string
           observations: string | null
           paid_at: string | null
           status: string
@@ -39,7 +41,9 @@ export type Database = {
           description: string
           due_date: string
           id?: string
+          notification_error?: string | null
           notification_sent?: boolean
+          notification_status?: string
           observations?: string | null
           paid_at?: string | null
           status?: string
@@ -55,7 +59,9 @@ export type Database = {
           description?: string
           due_date?: string
           id?: string
+          notification_error?: string | null
           notification_sent?: boolean
+          notification_status?: string
           observations?: string | null
           paid_at?: string | null
           status?: string

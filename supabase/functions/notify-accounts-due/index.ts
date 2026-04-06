@@ -99,6 +99,7 @@ Acesse o sistema para mais detalhes.
           .filter((n: string) => n.length >= 10);
 
         let allSent = true;
+        const errorMessages: string[] = [];
 
         for (const cleanPhone of phoneNumbers) {
           const formattedPhone = cleanPhone.startsWith('55') ? `+${cleanPhone}` : `+55${cleanPhone}`;
@@ -118,26 +119,61 @@ Acesse o sistema para mais detalhes.
           const result = await response.json();
 
           if (result.sent !== "true") {
-            console.error(`[notify-accounts-due] ❌ UltraMsg failed for ${formattedPhone}: ${result.message}`);
+            const errMsg = result.message || `Falha ao enviar para ${formattedPhone}`;
+            console.error(`[notify-accounts-due] ❌ UltraMsg failed for ${formattedPhone}: ${errMsg}`);
             allSent = false;
+            errorMessages.push(`${formattedPhone}: ${errMsg}`);
           } else {
             console.log(`[notify-accounts-due] ✅ Sent to ${formattedPhone}`);
           }
         }
 
-        if (allSent && phoneNumbers.length > 0) {
-          // Mark as notified
+        if (phoneNumbers.length === 0) {
+          // No valid phone numbers
           await supabase
             .from("accounts_payable")
-            .update({ notification_sent: true })
+            .update({
+              notification_sent: true,
+              notification_status: "erro",
+              notification_error: "Nenhum número válido cadastrado",
+            })
+            .eq("id", account.id);
+          errors++;
+        } else if (allSent) {
+          // All sent successfully
+          await supabase
+            .from("accounts_payable")
+            .update({
+              notification_sent: true,
+              notification_status: "enviado",
+              notification_error: null,
+            })
             .eq("id", account.id);
           notified++;
           console.log(`[notify-accounts-due] ✅ Notified account ${account.id} (${phoneNumbers.length} numbers)`);
         } else {
+          // Some or all failed
+          await supabase
+            .from("accounts_payable")
+            .update({
+              notification_sent: true,
+              notification_status: "erro",
+              notification_error: errorMessages.join("; "),
+            })
+            .eq("id", account.id);
           errors++;
+          console.log(`[notify-accounts-due] ❌ Errors for account ${account.id}: ${errorMessages.join("; ")}`);
         }
       } catch (err) {
         console.error(`[notify-accounts-due] ❌ Error processing account ${account.id}:`, err);
+        await supabase
+          .from("accounts_payable")
+          .update({
+            notification_sent: true,
+            notification_status: "erro",
+            notification_error: String(err),
+          })
+          .eq("id", account.id);
         errors++;
       }
     }
