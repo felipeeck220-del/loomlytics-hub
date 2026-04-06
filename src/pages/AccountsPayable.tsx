@@ -447,7 +447,7 @@ export default function AccountsPayable() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
-                          {account.status === 'pendente' && (
+                          {account.status === 'pendente' && account.notification_status !== 'erro' && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -458,7 +458,7 @@ export default function AccountsPayable() {
                               <Check className="h-4 w-4 text-green-600" />
                             </Button>
                           )}
-                          {account.status !== 'pago' && (
+                          {account.status !== 'pago' && account.notification_status !== 'erro' && (
                             <Button
                               variant="ghost"
                               size="icon"
