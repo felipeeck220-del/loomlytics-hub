@@ -438,10 +438,10 @@ serve(async (req) => {
         .maybeSingle();
 
       // Also check auth.users for emails not yet in profiles
-      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1 });
       let authEmailExists = false;
       if (!existingProfile) {
-        const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+        // Use admin API to search by email directly instead of listing all users
+        const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 50 });
         authEmailExists = (usersData?.users || []).some((u: any) => u.email === email);
       }
 

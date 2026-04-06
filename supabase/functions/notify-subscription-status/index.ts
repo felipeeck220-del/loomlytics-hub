@@ -44,6 +44,10 @@ function formatDate(d: Date): string {
   return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 }
 
+function formatCurrency(value: number): string {
+  return value.toFixed(2).replace('.', ',');
+}
+
 function daysBetween(from: Date, to: Date): number {
   const msPerDay = 86400000;
   const fromDay = new Date(from.getFullYear(), from.getMonth(), from.getDate());
@@ -65,7 +69,7 @@ serve(async (req) => {
     // Get all companies with settings
     const { data: settingsRows } = await supabaseAdmin
       .from("company_settings")
-      .select("company_id, subscription_status, trial_end_date, subscription_paid_at, monthly_plan_value, subscription_plan, grace_period_end");
+      .select("company_id, subscription_status, trial_end_date, subscription_paid_at, monthly_plan_value, subscription_plan, grace_period_end, stripe_customer_id");
 
     if (!settingsRows || settingsRows.length === 0) {
       return new Response(JSON.stringify({ ok: true, processed: 0 }), {
@@ -74,11 +78,12 @@ serve(async (req) => {
     }
 
     const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
     let processed = 0;
 
     for (const settings of settingsRows) {
       try {
-        const { subscription_status, trial_end_date, subscription_paid_at, monthly_plan_value, subscription_plan, company_id } = settings;
+        const { subscription_status, trial_end_date, subscription_paid_at, monthly_plan_value, company_id, stripe_customer_id } = settings;
 
         // Only process active or trial companies
         if (subscription_status !== 'active' && subscription_status !== 'trial') continue;
@@ -89,7 +94,6 @@ serve(async (req) => {
         if (subscription_status === 'trial' && trial_end_date) {
           dueDate = new Date(trial_end_date);
         } else if (subscription_status === 'active' && subscription_paid_at) {
-          // Next billing = paid_at + 1 month
           const paidAt = new Date(subscription_paid_at);
           dueDate = new Date(paidAt);
           dueDate.setMonth(dueDate.getMonth() + 1);
@@ -98,6 +102,9 @@ serve(async (req) => {
         if (!dueDate) continue;
 
         const daysSinceDue = daysBetween(dueDate, now);
+
+        // Skip if not yet due and not pre-due reminder day
+        if (daysSinceDue < -1) continue;
 
         // Get company info
         const { data: company } = await supabaseAdmin
@@ -110,47 +117,40 @@ serve(async (req) => {
 
         const slugUrl = `https://malhagest.site/${company.slug}`;
         const dueDateStr = formatDate(dueDate);
-        const amount = Number(monthly_plan_value || 147).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        const amount = formatCurrency(Number(monthly_plan_value || 147));
         const adminName = company.admin_name;
 
-        // Check if already sent notification today (idempotency via payment_history)
-        const todayStr = now.toISOString().split('T')[0];
-        const { data: todayNotifications } = await supabaseAdmin
+        // Idempotency: check if we already sent a notification today for this company
+        // We use a convention: payment_history with status "notification_sent" and today's date
+        // For days 0-2 we check audit_logs or use payment_history as marker
+        const { data: todayPendingPix } = await supabaseAdmin
           .from("payment_history")
           .select("id")
           .eq("company_id", company_id)
           .gte("created_at", `${todayStr}T00:00:00Z`)
-          .eq("status", "pending")
+          .lte("created_at", `${todayStr}T23:59:59Z`)
           .limit(1);
 
-        // -1 day: Pre-due reminder (Pix only)
-        if (daysSinceDue === -1) {
-          // Only for Pix payers (no stripe_customer_id = Pix)
-          const isPixPayer = !settings.subscription_plan || settings.subscription_plan === 'monthly';
-          const hasStripe = await supabaseAdmin
-            .from("company_settings")
-            .select("stripe_customer_id")
-            .eq("company_id", company_id)
-            .single();
+        // Check if there's a paid payment after due date (already paid)
+        const { data: recentPaid } = await supabaseAdmin
+          .from("payment_history")
+          .select("id")
+          .eq("company_id", company_id)
+          .eq("status", "paid")
+          .gte("paid_at", dueDate.toISOString())
+          .limit(1);
 
-          if (!hasStripe?.data?.stripe_customer_id) {
+        if (recentPaid && recentPaid.length > 0) continue; // Already paid
+
+        // -1 day: Pre-due reminder (Pix only — no stripe_customer_id)
+        if (daysSinceDue === -1) {
+          if (!stripe_customer_id) {
             const msg = `⏰ Lembrete de vencimento\n\nOlá, ${adminName}!\n\nSua assinatura do MalhaGest vence amanhã (${dueDateStr}).\nValor: R$ ${amount}\n\n🔗 Acesse o sistema para gerar seu Pix e evitar interrupção:\n${slugUrl}\n\n— Equipe MalhaGest\n\n⚠️ Mensagem automática, esse não é um canal de suporte.`;
             await sendUltraMsg(company.whatsapp, msg);
           }
         }
         // Days 0-2: Warning messages (days 1-3 of the flow)
         else if (daysSinceDue >= 0 && daysSinceDue <= 2) {
-          // Check if there's a paid payment after due date
-          const { data: recentPaid } = await supabaseAdmin
-            .from("payment_history")
-            .select("id")
-            .eq("company_id", company_id)
-            .eq("status", "paid")
-            .gte("paid_at", dueDate.toISOString())
-            .limit(1);
-
-          if (recentPaid && recentPaid.length > 0) continue; // Already paid
-
           const diaAtual = daysSinceDue + 1;
           const diasRestantes = 5 - diaAtual;
           const msg = `🔔 Aviso de pendência — Dia ${diaAtual}/5\n\nOlá, ${adminName}!\n\nSua assinatura do MalhaGest venceu em ${dueDateStr} e ainda não identificamos o pagamento.\n\n⚠️ Você tem ${diasRestantes} dia(s) para regularizar antes da suspensão do acesso.\n\n🔗 Acesse o sistema para efetuar o pagamento:\n${slugUrl}\n\n— Equipe MalhaGest\n\n⚠️ Mensagem automática, esse não é um canal de suporte.`;
@@ -158,24 +158,12 @@ serve(async (req) => {
         }
         // Days 3-4: Generate Pix + urgent warning (days 4-5 of the flow)
         else if (daysSinceDue >= 3 && daysSinceDue <= 4) {
-          // Check if already paid
-          const { data: recentPaid } = await supabaseAdmin
-            .from("payment_history")
-            .select("id")
-            .eq("company_id", company_id)
-            .eq("status", "paid")
-            .gte("paid_at", dueDate.toISOString())
-            .limit(1);
-
-          if (recentPaid && recentPaid.length > 0) continue;
-
           // Skip if we already generated a pix today
-          if (todayNotifications && todayNotifications.length > 0) continue;
+          if (todayPendingPix && todayPendingPix.length > 0) continue;
 
           const diaAtual = daysSinceDue + 1;
           const diasRestantes = 5 - diaAtual;
 
-          // Generate Pix via SyncPayments
           try {
             const syncToken = await getSyncPayToken();
             const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -206,9 +194,10 @@ serve(async (req) => {
               const nextBilling = new Date(now);
               nextBilling.setMonth(nextBilling.getMonth() + 1);
 
+              // Mark with plan "auto_billing" to differentiate from user-generated pix
               await supabaseAdmin.from("payment_history").insert({
                 company_id,
-                plan: "monthly",
+                plan: "auto_billing",
                 amount: Number(monthly_plan_value || 147),
                 status: "pending",
                 pix_code: pixData.pix_code,
@@ -229,17 +218,6 @@ serve(async (req) => {
         }
         // Day 5+: Suspend account
         else if (daysSinceDue >= 5) {
-          // Check if already paid
-          const { data: recentPaid } = await supabaseAdmin
-            .from("payment_history")
-            .select("id")
-            .eq("company_id", company_id)
-            .eq("status", "paid")
-            .gte("paid_at", dueDate.toISOString())
-            .limit(1);
-
-          if (recentPaid && recentPaid.length > 0) continue;
-
           // Suspend the account
           await supabaseAdmin
             .from("company_settings")

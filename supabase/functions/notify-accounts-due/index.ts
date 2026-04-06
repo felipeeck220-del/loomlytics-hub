@@ -88,7 +88,9 @@ Você tem um pagamento com vencimento *amanhã*:
 💰 *Valor:* R$ ${amountFormatted}
 📅 *Vencimento:* ${dueDateFormatted}
 
-Acesse o sistema para mais detalhes.`;
+Acesse o sistema para mais detalhes.
+
+⚠️ Mensagem automática, esse não é um canal de suporte.`;
 
         // Parse multiple phone numbers (comma-separated)
         const phoneNumbers = account.whatsapp_number
