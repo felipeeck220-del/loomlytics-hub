@@ -945,11 +945,6 @@ export default function SettingsPage() {
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      {canEditTarget && isCurrentUserMainAdmin && (
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); setShowAdminNewPw(false); }} title="Alterar Senha">
-                          <Key className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
                       {p.user_id !== user?.id && isCurrentUserMainAdmin && (
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(p)} title={p.status === 'active' ? 'Desativar' : 'Ativar'}>
                           <XCircle className="h-3.5 w-3.5 text-warning" />
@@ -1532,40 +1527,6 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Change Password Modal (Admin) */}
-      <Dialog open={!!changePasswordUser} onOpenChange={() => setChangePasswordUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Alterar Senha - {changePasswordUser?.name}</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              {changePasswordUser?.code && <span className="font-mono">#{changePasswordUser.code} · </span>}
-              {changePasswordUser?.email}
-            </p>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label>Nova Senha</Label>
-              <div className="relative">
-                <Input
-                  type={showAdminNewPw ? 'text' : 'password'}
-                  value={adminNewPassword}
-                  onChange={e => setAdminNewPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                />
-                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowAdminNewPw(!showAdminNewPw)}>
-                  {showAdminNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setChangePasswordUser(null)}>Cancelar</Button>
-            <Button onClick={handleAdminChangePassword} className="btn-gradient" disabled={savingAdminPw}>
-              {savingAdminPw && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Salvar Senha
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <ProductionModeModal
         open={showProductionMode}
