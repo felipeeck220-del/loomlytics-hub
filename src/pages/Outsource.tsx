@@ -519,10 +519,12 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   const selectedArticle = articles.find(a => a.id === form.article_id);
   const clientValuePerKg = selectedArticle ? Number(selectedArticle.value_per_kg) : 0;
   const outsourceValuePerKg = parseBrNumber(form.outsource_value_per_kg);
+  const freightPerKg = parseBrNumber(form.freight_per_kg);
   const weightKg = parseBrNumber(form.weight_kg);
-  const profitPerKg = clientValuePerKg - outsourceValuePerKg;
+  const profitPerKg = clientValuePerKg - outsourceValuePerKg - freightPerKg;
   const totalRevenue = weightKg * clientValuePerKg;
   const totalCost = weightKg * outsourceValuePerKg;
+  const totalFreightCalc = weightKg * freightPerKg;
   const totalProfit = weightKg * profitPerKg;
 
   // Helper: adjust outsource yarn stock (deduct on production, add back on delete)
