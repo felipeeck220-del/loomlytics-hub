@@ -52,24 +52,25 @@ O módulo **Contas a Pagar** permite que cada empresa cadastre e gerencie suas o
 
 ---
 
-## 3. Fluxo de Notificação WhatsApp (Reportana)
+## 3. Fluxo de Notificação WhatsApp (UltraMsg)
 
 ### Arquitetura
 
 ```
 ┌──────────────┐     ┌─────────────────────┐     ┌──────────────────┐     ┌──────────┐
-│  pg_cron     │────▶│  Edge Function       │────▶│  Reportana       │────▶│ WhatsApp │
-│ (diário)     │     │ notify-accounts-due  │     │  (Webhook)       │     │ Usuário  │
+│  pg_cron     │────▶│  Edge Function       │────▶│  UltraMsg API    │────▶│ WhatsApp │
+│ (diário)     │     │ notify-accounts-due  │     │  (REST POST)     │     │ Usuário  │
 └──────────────┘     └─────────────────────┘     └──────────────────┘     └──────────┘
 ```
 
-### Por que Reportana e não Twilio?
+### Por que UltraMsg?
 
-| Critério | Twilio | Reportana |
-|----------|--------|-----------|
-| Cobrança | Por mensagem enviada | Mensal fixo (ilimitado) |
+| Critério | Twilio | UltraMsg |
+|----------|--------|----------|
+| Cobrança | Por mensagem enviada | Mensal por plano |
 | Previsibilidade de custo | ❌ Variável | ✅ Fixo |
-| Integração | Connector Gateway | Webhook direto |
+| Templates | Obrigatório (aprovação Meta) | Texto livre |
+| Integração | Connector Gateway | API REST direta |
 
 ### Fluxo Detalhado
 
