@@ -22,10 +22,10 @@ import {
 } from '@/components/ui/sidebar';
 
 /** Keys of features not yet finished — shown with a lock in the sidebar */
-const COMING_SOON_KEYS = new Set(['contas-pagar']);
+const COMING_SOON_KEYS = new Set<string>([]);
 
 /** Keys of features in testing phase — shown with "Em teste" badge but accessible */
-const TESTING_KEYS = new Set(['residuos', 'invoices', 'fechamento']);
+const TESTING_KEYS = new Set(['contas-pagar', 'residuos', 'invoices', 'fechamento']);
 
 const allItems = [
   { title: 'Dashboard', path: '', icon: LayoutDashboard, key: 'dashboard' },
