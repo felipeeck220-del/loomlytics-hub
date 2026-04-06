@@ -148,9 +148,11 @@ Se não foi, pague para evitar juros.
 ## 4. Edge Function: `notify-accounts-due`
 
 ### Responsabilidades
-1. Consultar `accounts_payable` onde `due_date = amanhã`, `status = 'pendente'`, `notification_sent = false`
-2. Para cada registro, enviar POST para `REPORTANA_WEBHOOK_URL` com dados da conta
-3. Atualizar `notification_sent = true` em caso de sucesso
+1. Consultar `accounts_payable` onde `due_date = amanhã`, `status = 'pendente'`, `notification_sent = false` (notificação de véspera)
+2. Consultar `accounts_payable` onde `due_date = hoje`, `status = 'pendente'` (notificação no dia do vencimento)
+3. Para cada registro, enviar POST direto para `UltraMsg API` com mensagem formatada (inclui short_id)
+4. Atualizar `notification_sent = true` e `notification_status = 'enviado'` em caso de sucesso (apenas véspera)
+5. Registrar `notification_status = 'erro'` e `notification_error` com motivo em caso de falha
 4. Logar erros para diagnóstico
 5. Atualizar status para `vencido` em contas com `due_date < hoje` e `status = 'pendente'`
 
