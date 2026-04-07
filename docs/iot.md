@@ -113,6 +113,43 @@ O sensor detecta cada rotação do eixo principal da máquina circular. É insta
 
 ---
 
+### 2.5 LEDs Indicadores de Conexão
+
+LEDs visuais para indicar o status da conexão Wi-Fi diretamente no hardware, sem necessidade de acessar o sistema.
+
+| Item | Quantidade | Função | Link |
+|------|-----------|--------|------|
+| **LED Verde 5mm** | 1 | Indica conexão Wi-Fi ativa e envio de dados | [Mercado Livre — LED Verde 5mm](https://lista.mercadolivre.com.br/led-verde-5mm) |
+| **LED Vermelho 5mm** | 1 | Indica sem conexão Wi-Fi / erro de envio | [Mercado Livre — LED Vermelho 5mm](https://lista.mercadolivre.com.br/led-vermelho-5mm) |
+| **Resistor 220Ω** | 2 | Limitador de corrente dos LEDs (1 por LED) | [Mercado Livre — Resistor 220 Ohm](https://lista.mercadolivre.com.br/resistor-220-ohm) |
+
+> **Recomendação**: Use LEDs difusos (leitosos) para melhor visibilidade em ambientes iluminados. LEDs de alto brilho podem incomodar.
+
+**Preço médio**: R$ 1–5 (LEDs) + R$ 1–3 (resistores)
+
+**Custo total adicional**: ~R$ 2–8
+
+#### Esquema de ligação dos LEDs
+
+```
+  ESP32 GPIO 2 ──── [220Ω] ──── LED Verde (anodo +) ──── GND (catodo -)
+  ESP32 GPIO 4 ──── [220Ω] ──── LED Vermelho (anodo +) ──── GND (catodo -)
+```
+
+#### Significado das luzes
+
+| Estado | LED Verde | LED Vermelho | Significado |
+|--------|-----------|-------------|-------------|
+| Conectado e enviando | ✅ Aceso fixo | ❌ Apagado | Tudo funcionando normalmente |
+| Enviou dados com sucesso | 💚 Pisca rápido | ❌ Apagado | Confirmação visual de envio a cada 10s |
+| Sem Wi-Fi | ❌ Apagado | 🔴 Aceso fixo | Sem conexão — verificar roteador/rede |
+| Erro no envio HTTP | ❌ Apagado | 🔴 Pisca rápido | Conectado ao Wi-Fi mas servidor não responde |
+| Inicializando | ❌ Apagado | 🔴 Aceso fixo | ESP32 ligou, tentando conectar |
+
+> ⚠️ **Importante**: O perna mais longa do LED é o **anodo (+)** que vai no resistor. A perna mais curta é o **cátodo (-)** que vai no GND.
+
+---
+
 ### 2.5 Infraestrutura de Rede
 
 | Item | Especificação | Observação |
