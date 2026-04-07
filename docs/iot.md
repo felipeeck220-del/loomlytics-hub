@@ -413,8 +413,20 @@ void sendData(unsigned long rotations, float rpm, bool running) {
   if (httpCode == 200) {
     Serial.printf("[OK] Rotações: %lu | RPM: %.1f | Running: %s\n", 
       rotations, rpm, running ? "SIM" : "NÃO");
+    // Pisca verde = envio bem-sucedido
+    digitalWrite(LED_GREEN, LOW);
+    delay(50);
+    digitalWrite(LED_GREEN, HIGH);
   } else {
     Serial.printf("[ERRO] HTTP %d — tentando novamente em 10s\n", httpCode);
+    // Pisca vermelho = erro no envio
+    digitalWrite(LED_RED, HIGH);
+    delay(100);
+    digitalWrite(LED_RED, LOW);
+    delay(100);
+    digitalWrite(LED_RED, HIGH);
+    delay(100);
+    digitalWrite(LED_RED, LOW);
   }
   
   http.end();
@@ -422,6 +434,8 @@ void sendData(unsigned long rotations, float rpm, bool running) {
 
 void connectWiFi() {
   Serial.printf("Conectando a %s", WIFI_SSID);
+  digitalWrite(LED_RED, HIGH);     // Vermelho enquanto tenta conectar
+  digitalWrite(LED_GREEN, LOW);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.setAutoReconnect(true);
   
@@ -429,14 +443,20 @@ void connectWiFi() {
   while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
     Serial.print(".");
+    // Pisca vermelho durante tentativa de conexão
+    digitalWrite(LED_RED, !digitalRead(LED_RED));
     attempts++;
   }
   
   if (WiFi.status() == WL_CONNECTED) {
     Serial.printf("\nConectado! IP: %s | RSSI: %d dBm\n", 
       WiFi.localIP().toString().c_str(), WiFi.RSSI());
+    digitalWrite(LED_GREEN, HIGH);  // Verde ON = conectado
+    digitalWrite(LED_RED, LOW);     // Vermelho OFF
   } else {
     Serial.println("\nFalha na conexão. Tentando novamente em 5s...");
+    digitalWrite(LED_RED, HIGH);    // Vermelho fixo = falha
+    digitalWrite(LED_GREEN, LOW);
     delay(5000);
   }
 }
