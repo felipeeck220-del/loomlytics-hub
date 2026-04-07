@@ -223,7 +223,7 @@ export default function Invoices() {
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
-    setFormItems([{ weight_kg: '', quantity_rolls: '', value_per_kg: '' }]);
+    setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
   };
 
   const openNewInvoice = (type: InvoiceType) => {
@@ -427,7 +427,7 @@ export default function Invoices() {
   };
 
   // ===== Form Item Management =====
-  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', value_per_kg: '' }]);
+  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
   const removeItem = (idx: number) => setFormItems(prev => prev.filter((_, i) => i !== idx));
   const updateItem = (idx: number, field: string, value: string) => {
     setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
