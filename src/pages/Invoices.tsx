@@ -292,9 +292,10 @@ export default function Invoices() {
     if (!formClientId) { toast({ title: 'Selecione um cliente', variant: 'destructive' }); return; }
     if (!formInvoiceNumber.trim()) { toast({ title: 'Informe o nº da NF', variant: 'destructive' }); return; }
     if (!isDateValid(formIssueDate)) { toast({ title: 'Data inválida (limite ±5 anos)', variant: 'destructive' }); return; }
-    if (formAccessKey && (formAccessKey.length !== 44 || !/^\d+$/.test(formAccessKey))) {
-      toast({ title: 'Chave de acesso deve ter 44 dígitos numéricos', variant: 'destructive' }); return;
-    }
+    // Validação chave de acesso - temporariamente desabilitada (v2 SEFAZ)
+    // if (formAccessKey && (formAccessKey.length !== 44 || !/^\d+$/.test(formAccessKey))) {
+    //   toast({ title: 'Chave de acesso deve ter 44 dígitos numéricos', variant: 'destructive' }); return;
+    // }
 
     const validItems = formItems.filter(it => {
       if (formType === 'entrada' || formType === 'venda_fio') return it.yarn_type_id && parseFloat(it.weight_kg) > 0;
@@ -1583,11 +1584,11 @@ export default function Invoices() {
               </div>
             </div>
 
-            {/* Access Key */}
-            <div>
+            {/* Access Key - temporariamente oculto (v2 SEFAZ) */}
+            {/* <div>
               <Label className="text-xs">Chave de Acesso SEFAZ (44 dígitos, opcional)</Label>
               <Input className="h-9 text-xs font-mono" maxLength={44} value={formAccessKey} onChange={e => setFormAccessKey(e.target.value.replace(/\D/g, ''))} placeholder="00000000000000000000000000000000000000000000" />
-            </div>
+            </div> */}
 
             {/* Status */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1723,9 +1724,10 @@ export default function Invoices() {
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
                 {canSeeFinancial && <div><span className="text-muted-foreground text-xs">Valor Total:</span><br />{formatCurrency(Number(viewingInvoice.total_value || 0))}</div>}
               </div>
-              {viewingInvoice.access_key && (
+              {/* Chave de Acesso - temporariamente oculto (v2 SEFAZ) */}
+              {/* {viewingInvoice.access_key && (
                 <div className="text-xs"><span className="text-muted-foreground">Chave de Acesso:</span> <span className="font-mono">{viewingInvoice.access_key}</span></div>
-              )}
+              )} */}
               {viewingInvoice.observations && (
                 <div className="text-xs"><span className="text-muted-foreground">Observações:</span> {viewingInvoice.observations}</div>
               )}
