@@ -1583,11 +1583,11 @@ export default function Invoices() {
               </div>
             </div>
 
-            {/* Access Key */}
-            <div>
+            {/* Access Key - temporariamente oculto (v2 SEFAZ) */}
+            {/* <div>
               <Label className="text-xs">Chave de Acesso SEFAZ (44 dígitos, opcional)</Label>
               <Input className="h-9 text-xs font-mono" maxLength={44} value={formAccessKey} onChange={e => setFormAccessKey(e.target.value.replace(/\D/g, ''))} placeholder="00000000000000000000000000000000000000000000" />
-            </div>
+            </div> */}
 
             {/* Status */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1723,9 +1723,10 @@ export default function Invoices() {
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
                 {canSeeFinancial && <div><span className="text-muted-foreground text-xs">Valor Total:</span><br />{formatCurrency(Number(viewingInvoice.total_value || 0))}</div>}
               </div>
-              {viewingInvoice.access_key && (
+              {/* Chave de Acesso - temporariamente oculto (v2 SEFAZ) */}
+              {/* {viewingInvoice.access_key && (
                 <div className="text-xs"><span className="text-muted-foreground">Chave de Acesso:</span> <span className="font-mono">{viewingInvoice.access_key}</span></div>
-              )}
+              )} */}
               {viewingInvoice.observations && (
                 <div className="text-xs"><span className="text-muted-foreground">Observações:</span> {viewingInvoice.observations}</div>
               )}
