@@ -1384,6 +1384,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 15:35 (Brasília)** — **TERCEIRIZADOS — Fix label quebra de linha:** Label "Valor Repasse (R$/kg) *" encurtado para "Repasse (R$/kg) *" com `whitespace-nowrap` para evitar quebra de linha no grid do modal.
 
+- **07/04/2026 22:30 (Brasília)** — **NOTAS FISCAIS — Campo "Caixas" em Entrada e Venda de Fio:** (1) Nova coluna `quantity_boxes` (numeric, default 0) na tabela `invoice_items`; (2) Campo "Caixas" no formulário de itens para NFs tipo `entrada` e `venda_fio`; (3) Coluna "Caixas" exibida na visualização da NF para esses tipos; (4) Dados salvos e exibidos corretamente.
+
 ---
 
-*Última atualização: 07/04/2026 15:35 (Brasília)*
+*Última atualização: 07/04/2026 22:30 (Brasília)*
