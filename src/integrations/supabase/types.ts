@@ -537,6 +537,7 @@ export type Database = {
           id: string
           invoice_id: string
           observations: string | null
+          quantity_boxes: number | null
           quantity_rolls: number | null
           subtotal: number | null
           value_per_kg: number | null
@@ -552,6 +553,7 @@ export type Database = {
           id?: string
           invoice_id: string
           observations?: string | null
+          quantity_boxes?: number | null
           quantity_rolls?: number | null
           subtotal?: number | null
           value_per_kg?: number | null
@@ -567,6 +569,7 @@ export type Database = {
           id?: string
           invoice_id?: string
           observations?: string | null
+          quantity_boxes?: number | null
           quantity_rolls?: number | null
           subtotal?: number | null
           value_per_kg?: number | null
