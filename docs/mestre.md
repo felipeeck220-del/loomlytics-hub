@@ -1386,6 +1386,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 22:30 (Brasília)** — **NOTAS FISCAIS — Campo "Caixas" em Entrada e Venda de Fio:** (1) Nova coluna `quantity_boxes` (numeric, default 0) na tabela `invoice_items`; (2) Campo "Caixas" no formulário de itens para NFs tipo `entrada` e `venda_fio`; (3) Coluna "Caixas" exibida na visualização da NF para esses tipos; (4) Dados salvos e exibidos corretamente.
 
+- **07/04/2026 23:00 (Brasília)** — **NOTAS FISCAIS — Ocultar Chave de Acesso SEFAZ:** Campo "Chave de Acesso SEFAZ" temporariamente oculto no formulário de criação/edição e na visualização de NFs. Validação de 44 dígitos também desabilitada. Será reativado na v2 (integração SEFAZ).
+
 ---
 
-*Última atualização: 07/04/2026 22:30 (Brasília)*
+*Última atualização: 07/04/2026 23:00 (Brasília)*
