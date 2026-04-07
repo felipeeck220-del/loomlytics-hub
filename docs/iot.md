@@ -113,6 +113,43 @@ O sensor detecta cada rotação do eixo principal da máquina circular. É insta
 
 ---
 
+### 2.5 LEDs Indicadores de Conexão
+
+LEDs visuais para indicar o status da conexão Wi-Fi diretamente no hardware, sem necessidade de acessar o sistema.
+
+| Item | Quantidade | Função | Link |
+|------|-----------|--------|------|
+| **LED Verde 5mm** | 1 | Indica conexão Wi-Fi ativa e envio de dados | [Mercado Livre — LED Verde 5mm](https://lista.mercadolivre.com.br/led-verde-5mm) |
+| **LED Vermelho 5mm** | 1 | Indica sem conexão Wi-Fi / erro de envio | [Mercado Livre — LED Vermelho 5mm](https://lista.mercadolivre.com.br/led-vermelho-5mm) |
+| **Resistor 220Ω** | 2 | Limitador de corrente dos LEDs (1 por LED) | [Mercado Livre — Resistor 220 Ohm](https://lista.mercadolivre.com.br/resistor-220-ohm) |
+
+> **Recomendação**: Use LEDs difusos (leitosos) para melhor visibilidade em ambientes iluminados. LEDs de alto brilho podem incomodar.
+
+**Preço médio**: R$ 1–5 (LEDs) + R$ 1–3 (resistores)
+
+**Custo total adicional**: ~R$ 2–8
+
+#### Esquema de ligação dos LEDs
+
+```
+  ESP32 GPIO 2 ──── [220Ω] ──── LED Verde (anodo +) ──── GND (catodo -)
+  ESP32 GPIO 4 ──── [220Ω] ──── LED Vermelho (anodo +) ──── GND (catodo -)
+```
+
+#### Significado das luzes
+
+| Estado | LED Verde | LED Vermelho | Significado |
+|--------|-----------|-------------|-------------|
+| Conectado e enviando | ✅ Aceso fixo | ❌ Apagado | Tudo funcionando normalmente |
+| Enviou dados com sucesso | 💚 Pisca rápido | ❌ Apagado | Confirmação visual de envio a cada 10s |
+| Sem Wi-Fi | ❌ Apagado | 🔴 Aceso fixo | Sem conexão — verificar roteador/rede |
+| Erro no envio HTTP | ❌ Apagado | 🔴 Pisca rápido | Conectado ao Wi-Fi mas servidor não responde |
+| Inicializando | ❌ Apagado | 🔴 Aceso fixo | ESP32 ligou, tentando conectar |
+
+> ⚠️ **Importante**: O perna mais longa do LED é o **anodo (+)** que vai no resistor. A perna mais curta é o **cátodo (-)** que vai no GND.
+
+---
+
 ### 2.5 Infraestrutura de Rede
 
 | Item | Especificação | Observação |
@@ -200,6 +237,10 @@ O sensor detecta cada rotação do eixo principal da máquina circular. É insta
                    │     │     │
                    │   [100nF] │──── GND (debounce)
                    │           │
+                   │  GPIO 2 ──┤──[220Ω]── LED Verde (+) ── GND
+                   │           │
+                   │  GPIO 4 ──┤──[220Ω]── LED Vermelho (+) ── GND
+                   │           │
                    └───────────┘
 ```
 
@@ -234,6 +275,10 @@ const char* MACHINE_ID = "uuid-da-maquina-aqui";
 
 // Pino do sensor indutivo
 const int SENSOR_PIN = 14;
+
+// Pinos dos LEDs indicadores de conexão
+const int LED_GREEN = 2;   // GPIO 2 — LED verde (conectado)
+const int LED_RED = 4;     // GPIO 4 — LED vermelho (sem internet)
 
 // Intervalo de envio (milissegundos)
 const unsigned long SEND_INTERVAL = 10000; // 10 segundos
@@ -273,6 +318,12 @@ void setup() {
   // Configurar pino do sensor com pull-up interno
   pinMode(SENSOR_PIN, INPUT_PULLUP);
   
+  // Configurar LEDs indicadores
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  digitalWrite(LED_GREEN, LOW);    // Verde OFF
+  digitalWrite(LED_RED, HIGH);     // Vermelho ON (inicializando)
+  
   // Attachar interrupção na borda de descida (sensor NPN)
   attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), onSensorPulse, FALLING);
   
@@ -288,6 +339,8 @@ void setup() {
 void loop() {
   // Reconectar Wi-Fi se necessário
   if (WiFi.status() != WL_CONNECTED) {
+    digitalWrite(LED_GREEN, LOW);
+    digitalWrite(LED_RED, HIGH);   // Vermelho = sem Wi-Fi
     connectWiFi();
   }
   
@@ -360,8 +413,20 @@ void sendData(unsigned long rotations, float rpm, bool running) {
   if (httpCode == 200) {
     Serial.printf("[OK] Rotações: %lu | RPM: %.1f | Running: %s\n", 
       rotations, rpm, running ? "SIM" : "NÃO");
+    // Pisca verde = envio bem-sucedido
+    digitalWrite(LED_GREEN, LOW);
+    delay(50);
+    digitalWrite(LED_GREEN, HIGH);
   } else {
     Serial.printf("[ERRO] HTTP %d — tentando novamente em 10s\n", httpCode);
+    // Pisca vermelho = erro no envio
+    digitalWrite(LED_RED, HIGH);
+    delay(100);
+    digitalWrite(LED_RED, LOW);
+    delay(100);
+    digitalWrite(LED_RED, HIGH);
+    delay(100);
+    digitalWrite(LED_RED, LOW);
   }
   
   http.end();
@@ -369,6 +434,8 @@ void sendData(unsigned long rotations, float rpm, bool running) {
 
 void connectWiFi() {
   Serial.printf("Conectando a %s", WIFI_SSID);
+  digitalWrite(LED_RED, HIGH);     // Vermelho enquanto tenta conectar
+  digitalWrite(LED_GREEN, LOW);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.setAutoReconnect(true);
   
@@ -376,14 +443,20 @@ void connectWiFi() {
   while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
     Serial.print(".");
+    // Pisca vermelho durante tentativa de conexão
+    digitalWrite(LED_RED, !digitalRead(LED_RED));
     attempts++;
   }
   
   if (WiFi.status() == WL_CONNECTED) {
     Serial.printf("\nConectado! IP: %s | RSSI: %d dBm\n", 
       WiFi.localIP().toString().c_str(), WiFi.RSSI());
+    digitalWrite(LED_GREEN, HIGH);  // Verde ON = conectado
+    digitalWrite(LED_RED, LOW);     // Vermelho OFF
   } else {
     Serial.println("\nFalha na conexão. Tentando novamente em 5s...");
+    digitalWrite(LED_RED, HIGH);    // Vermelho fixo = falha
+    digitalWrite(LED_GREEN, LOW);
     delay(5000);
   }
 }
