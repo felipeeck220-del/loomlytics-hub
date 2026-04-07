@@ -1639,6 +1639,12 @@ export default function Invoices() {
                       <Label className="text-[10px]">Peso (kg)</Label>
                       <Input className="h-8 text-xs" type="number" step="0.1" min="0" value={item.weight_kg} onChange={e => updateItem(idx, 'weight_kg', e.target.value)} />
                     </div>
+                    {(formType === 'entrada' || formType === 'venda_fio') && (
+                      <div className="col-span-2">
+                        <Label className="text-[10px]">Caixas</Label>
+                        <Input className="h-8 text-xs" type="number" min="0" value={item.quantity_boxes} onChange={e => updateItem(idx, 'quantity_boxes', e.target.value)} />
+                      </div>
+                    )}
                     {formType === 'saida' && (
                       <div className="col-span-2">
                         <Label className="text-[10px]">Rolos</Label>
