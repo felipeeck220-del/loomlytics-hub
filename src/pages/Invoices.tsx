@@ -198,8 +198,9 @@ export default function Invoices() {
     article_id?: string;
     weight_kg: string;
     quantity_rolls: string;
+    quantity_boxes: string;
     value_per_kg: string;
-  }>>([{ weight_kg: '', quantity_rolls: '', value_per_kg: '' }]);
+  }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
 
   // Yarn Type form state
   const [yarnName, setYarnName] = useState('');
