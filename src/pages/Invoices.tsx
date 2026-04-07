@@ -89,6 +89,7 @@ interface InvoiceItem {
   article_name: string | null;
   weight_kg: number;
   quantity_rolls: number;
+  quantity_boxes: number;
   value_per_kg: number;
   subtotal: number;
   observations: string | null;
