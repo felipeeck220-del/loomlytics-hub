@@ -89,6 +89,7 @@ interface InvoiceItem {
   article_name: string | null;
   weight_kg: number;
   quantity_rolls: number;
+  quantity_boxes: number;
   value_per_kg: number;
   subtotal: number;
   observations: string | null;
@@ -197,8 +198,9 @@ export default function Invoices() {
     article_id?: string;
     weight_kg: string;
     quantity_rolls: string;
+    quantity_boxes: string;
     value_per_kg: string;
-  }>>([{ weight_kg: '', quantity_rolls: '', value_per_kg: '' }]);
+  }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
 
   // Yarn Type form state
   const [yarnName, setYarnName] = useState('');
@@ -221,7 +223,7 @@ export default function Invoices() {
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
-    setFormItems([{ weight_kg: '', quantity_rolls: '', value_per_kg: '' }]);
+    setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
   };
 
   const openNewInvoice = (type: InvoiceType) => {
@@ -344,6 +346,7 @@ export default function Invoices() {
           article_name: artObj?.name || null,
           weight_kg: w,
           quantity_rolls: parseFloat(it.quantity_rolls || '0'),
+          quantity_boxes: parseFloat(it.quantity_boxes || '0'),
           value_per_kg: v,
           subtotal: w * v,
         };
@@ -425,7 +428,7 @@ export default function Invoices() {
   };
 
   // ===== Form Item Management =====
-  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', value_per_kg: '' }]);
+  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
   const removeItem = (idx: number) => setFormItems(prev => prev.filter((_, i) => i !== idx));
   const updateItem = (idx: number, field: string, value: string) => {
     setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
@@ -1636,6 +1639,12 @@ export default function Invoices() {
                       <Label className="text-[10px]">Peso (kg)</Label>
                       <Input className="h-8 text-xs" type="number" step="0.1" min="0" value={item.weight_kg} onChange={e => updateItem(idx, 'weight_kg', e.target.value)} />
                     </div>
+                    {(formType === 'entrada' || formType === 'venda_fio') && (
+                      <div className="col-span-2">
+                        <Label className="text-[10px]">Caixas</Label>
+                        <Input className="h-8 text-xs" type="number" min="0" value={item.quantity_boxes} onChange={e => updateItem(idx, 'quantity_boxes', e.target.value)} />
+                      </div>
+                    )}
                     {formType === 'saida' && (
                       <div className="col-span-2">
                         <Label className="text-[10px]">Rolos</Label>
@@ -1730,6 +1739,7 @@ export default function Invoices() {
                       <TableHead className="text-xs">{viewingInvoice.type === 'saida' ? 'Artigo' : 'Fio'}</TableHead>
                       <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                       {viewingInvoice.type === 'saida' && <TableHead className="text-xs text-right">Rolos</TableHead>}
+                      {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableHead className="text-xs text-right">Caixas</TableHead>}
                       {canSeeFinancial && <TableHead className="text-xs text-right">R$/kg</TableHead>}
                       {canSeeFinancial && <TableHead className="text-xs text-right">Subtotal</TableHead>}
                     </TableRow>
@@ -1740,6 +1750,7 @@ export default function Invoices() {
                         <TableCell className="text-xs">{it.article_name || it.yarn_type_name || '—'}</TableCell>
                         <TableCell className="text-xs text-right">{formatNumber(Number(it.weight_kg), 1)}</TableCell>
                         {viewingInvoice.type === 'saida' && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_rolls))}</TableCell>}
+                        {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_boxes))}</TableCell>}
                         {canSeeFinancial && <TableCell className="text-xs text-right">{formatCurrency(Number(it.value_per_kg))}</TableCell>}
                         {canSeeFinancial && <TableCell className="text-xs text-right">{formatCurrency(Number(it.subtotal))}</TableCell>}
                       </TableRow>

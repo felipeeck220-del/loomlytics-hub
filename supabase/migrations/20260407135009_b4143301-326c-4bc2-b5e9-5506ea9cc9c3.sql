@@ -1,0 +1,1 @@
+ALTER TABLE public.invoice_items ADD COLUMN quantity_boxes numeric DEFAULT 0;
