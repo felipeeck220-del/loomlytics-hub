@@ -339,6 +339,8 @@ void setup() {
 void loop() {
   // Reconectar Wi-Fi se necessário
   if (WiFi.status() != WL_CONNECTED) {
+    digitalWrite(LED_GREEN, LOW);
+    digitalWrite(LED_RED, HIGH);   // Vermelho = sem Wi-Fi
     connectWiFi();
   }
   
