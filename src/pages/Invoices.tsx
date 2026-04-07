@@ -346,6 +346,7 @@ export default function Invoices() {
           article_name: artObj?.name || null,
           weight_kg: w,
           quantity_rolls: parseFloat(it.quantity_rolls || '0'),
+          quantity_boxes: parseFloat(it.quantity_boxes || '0'),
           value_per_kg: v,
           subtotal: w * v,
         };
