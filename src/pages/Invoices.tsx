@@ -1739,6 +1739,7 @@ export default function Invoices() {
                       <TableHead className="text-xs">{viewingInvoice.type === 'saida' ? 'Artigo' : 'Fio'}</TableHead>
                       <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                       {viewingInvoice.type === 'saida' && <TableHead className="text-xs text-right">Rolos</TableHead>}
+                      {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableHead className="text-xs text-right">Caixas</TableHead>}
                       {canSeeFinancial && <TableHead className="text-xs text-right">R$/kg</TableHead>}
                       {canSeeFinancial && <TableHead className="text-xs text-right">Subtotal</TableHead>}
                     </TableRow>
@@ -1749,6 +1750,7 @@ export default function Invoices() {
                         <TableCell className="text-xs">{it.article_name || it.yarn_type_name || '—'}</TableCell>
                         <TableCell className="text-xs text-right">{formatNumber(Number(it.weight_kg), 1)}</TableCell>
                         {viewingInvoice.type === 'saida' && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_rolls))}</TableCell>}
+                        {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_boxes))}</TableCell>}
                         {canSeeFinancial && <TableCell className="text-xs text-right">{formatCurrency(Number(it.value_per_kg))}</TableCell>}
                         {canSeeFinancial && <TableCell className="text-xs text-right">{formatCurrency(Number(it.subtotal))}</TableCell>}
                       </TableRow>
