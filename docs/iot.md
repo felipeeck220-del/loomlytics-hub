@@ -237,6 +237,10 @@ LEDs visuais para indicar o status da conexão Wi-Fi diretamente no hardware, se
                    │     │     │
                    │   [100nF] │──── GND (debounce)
                    │           │
+                   │  GPIO 2 ──┤──[220Ω]── LED Verde (+) ── GND
+                   │           │
+                   │  GPIO 4 ──┤──[220Ω]── LED Vermelho (+) ── GND
+                   │           │
                    └───────────┘
 ```
 
