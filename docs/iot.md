@@ -276,6 +276,10 @@ const char* MACHINE_ID = "uuid-da-maquina-aqui";
 // Pino do sensor indutivo
 const int SENSOR_PIN = 14;
 
+// Pinos dos LEDs indicadores de conexão
+const int LED_GREEN = 2;   // GPIO 2 — LED verde (conectado)
+const int LED_RED = 4;     // GPIO 4 — LED vermelho (sem internet)
+
 // Intervalo de envio (milissegundos)
 const unsigned long SEND_INTERVAL = 10000; // 10 segundos
 // ======================================
@@ -313,6 +317,12 @@ void setup() {
   
   // Configurar pino do sensor com pull-up interno
   pinMode(SENSOR_PIN, INPUT_PULLUP);
+  
+  // Configurar LEDs indicadores
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  digitalWrite(LED_GREEN, LOW);    // Verde OFF
+  digitalWrite(LED_RED, HIGH);     // Vermelho ON (inicializando)
   
   // Attachar interrupção na borda de descida (sensor NPN)
   attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), onSensorPulse, FALLING);
