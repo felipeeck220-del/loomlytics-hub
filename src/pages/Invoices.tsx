@@ -306,9 +306,13 @@ export default function Invoices() {
     //   toast({ title: 'Chave de acesso deve ter 44 dígitos numéricos', variant: 'destructive' }); return;
     // }
 
+    if (formType === 'venda_fio' && !formBuyerName.trim()) { toast({ title: 'Informe o comprador', variant: 'destructive' }); return; }
+    if (formType === 'saida_malha' && !formDestinationName.trim()) { toast({ title: 'Informe a tinturaria de destino', variant: 'destructive' }); return; }
+
     const validItems = formItems.filter(it => {
       if (formType === 'entrada' || formType === 'venda_fio') return it.yarn_type_id && parseFloat(it.weight_kg) > 0;
-      return it.article_id && parseFloat(it.weight_kg) > 0;
+      if (formType === 'saida' || formType === 'saida_malha') return it.article_id && parseFloat(it.weight_kg) > 0;
+      return false;
     });
 
     if (validItems.length === 0) { toast({ title: 'Adicione ao menos um item válido', variant: 'destructive' }); return; }
