@@ -1404,6 +1404,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **08/04/2026 19:00 (Brasília)** — **NOTAS FISCAIS — Implementação nftrama.md para admin@felipe.com:** Customizações condicionais (flag `isTrama`) aplicadas exclusivamente para o email `admin@felipe.com`: (1) **Aba "Venda de Fio" separada** — removida da aba Saída e adicionada como aba independente com KPIs, filtros e tabela próprios; (2) **Aba "Saída" renomeada para "Saída Malha"** — exibe apenas NFs tipo `saida`; (3) **Toggle "Sul Brasil"** no formulário de Entrada — quando ativo, muda label "Cliente" para "Fornecedor" e marca `[SUL BRASIL]` nas observações; (4) **Campo "Tinturaria"** no formulário de Saída Malha — salva em `destination_name` da tabela `invoices`; (5) **Coluna "Tinturaria"** na tabela da aba Saída Malha; (6) **SearchableSelect** substituiu Select padrão em: filtro cliente (todas abas), tipo de fio (itens NF), e campo cliente no formulário; (7) View Dialog exibe Tinturaria quando preenchido. Para outros usuários, comportamento permanece inalterado (v1). Documentação em `docs/nftrama.md`.
 
+- **08/04/2026 21:26 (Brasília)** — **NOTAS FISCAIS — Reversão completa para v1 (nf.md) para TODOS os usuários:** Removida toda a lógica condicional `isTrama` (admin@felipe.com). Revertido para comportamento uniforme v1: (1) Aba "Saída" mostra `saida` + `venda_fio` combinadas com botões separados; (2) Removido toggle "Sul Brasil" do formulário de Entrada; (3) Removido campo "Tinturaria" do formulário de Saída; (4) Removida coluna "Tinturaria" da tabela; (5) Removida aba "Venda de Fio" separada; (6) Aba "Saída" voltou ao nome original (sem "Malha"); (7) Import `Switch` removido. SearchableSelect e validação numérica mantidos. Colunas `buyer_name`/`destination_name` permanecem no banco.
+
 ---
 
-*Última atualização: 08/04/2026 19:00 (Brasília)*
+*Última atualização: 08/04/2026 21:26 (Brasília)*
