@@ -1414,6 +1414,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **09/04/2026 03:30 (Brasília)** — **UX — Padronização de modais de registro (ESC + clique fora):** Todos os modais de formulário/registro agora impedem fechamento acidental via ESC (`onEscapeKeyDown`) e clique fora (`onInteractOutside`), seguindo o padrão já implementado em Produção Terceirizada. Páginas atualizadas: Production.tsx, Revision.tsx, ResidueSales.tsx (4 modais), Invoices.tsx (3 modais), AccountsPayable.tsx, Machines.tsx, Weavers.tsx, ClientsArticles.tsx (2 modais), Mecanica.tsx, Outsource.tsx (modal malharia), Settings.tsx (modal usuário). Modais de exclusão/confirmação e visualização mantidos com comportamento padrão (ESC fecha).
 
+- **09/04/2026 04:00 (Brasília)** — **FATURAMENTO TOTAL — Nova página implementada (admin only):** (1) Nova página `FaturamentoTotal.tsx` com rota `/:slug/faturamento-total`; (2) Busca paralela via `fetchAllPaginated` em `productions` (revenue), `outsource_productions` (total_revenue) e `residue_sales` (total); (3) **4 KPI Cards** com border-l-4 colorido: Malhas, Terceirizado, Resíduos, Total Geral — cada um com comparativo % do período anterior e badge ▲/▼; (4) **Gráfico AreaChart empilhado** (recharts) com tendência diária das 3 fontes; (5) **Tabela resumo** com breakdown por fonte, variação % e barra de progresso "% do Total"; (6) **Filtros de data** completos: 7/15/30 dias, todo período, dia específico, mês, intervalo De/Até — mesma lógica do Dashboard; (7) Acesso restrito a `admin` via `usePermissions`; (8) Sidebar com ícone `DollarSign` posicionado abaixo de Dashboard; (9) Admin.tsx `NAV_ITEMS` atualizado; (10) Default de `enabled_nav_items` em `company_settings` atualizado via migration. Documentação em `docs/faturamentototal.md`.
+
 ---
 
-*Última atualização: 09/04/2026 03:30 (Brasília)*
+*Última atualização: 09/04/2026 04:00 (Brasília)*

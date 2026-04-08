@@ -15,6 +15,7 @@ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard' },
+  { key: 'faturamento-total', label: 'Faturamento Total' },
   { key: 'machines', label: 'Máquinas' },
   { key: 'clients-articles', label: 'Clientes & Artigos' },
   { key: 'production', label: 'Produção' },
