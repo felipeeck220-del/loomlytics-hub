@@ -48,7 +48,7 @@ async function fetchAllPaginated<T>(table: string, companyId: string, orderCol: 
   return all;
 }
 
-type InvoiceType = 'entrada' | 'saida' | 'venda_fio' | 'saida_malha';
+type InvoiceType = 'entrada' | 'saida' | 'venda_fio';
 type InvoiceStatus = 'pendente' | 'conferida' | 'cancelada';
 
 interface YarnType {
@@ -77,8 +77,6 @@ interface Invoice {
   created_by_name: string | null;
   created_by_code: string | null;
   created_at: string;
-  buyer_name: string | null;
-  destination_name: string | null;
 }
 
 interface InvoiceItem {
@@ -102,7 +100,6 @@ const TYPE_LABELS: Record<InvoiceType, string> = {
   entrada: 'Entrada (Fio)',
   saida: 'Saída (Malha)',
   venda_fio: 'Venda de Fio',
-  saida_malha: 'Saída Malha (Tinturaria)',
 };
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
@@ -204,8 +201,6 @@ export default function Invoices() {
     quantity_boxes: string;
     value_per_kg: string;
   }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
-  const [formBuyerName, setFormBuyerName] = useState('');
-  const [formDestinationName, setFormDestinationName] = useState('');
 
   // Yarn Type form state
   const [yarnName, setYarnName] = useState('');
@@ -229,8 +224,6 @@ export default function Invoices() {
     setFormStatus('pendente');
     setFormObservations('');
     setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
-    setFormBuyerName('');
-    setFormDestinationName('');
   };
 
   const openNewInvoice = (type: InvoiceType) => {
@@ -259,9 +252,7 @@ export default function Invoices() {
 
     // Tab filter
     if (activeTab === 'entrada') filtered = filtered.filter(i => i.type === 'entrada');
-    else if (activeTab === 'venda_fio') filtered = filtered.filter(i => i.type === 'venda_fio');
-    else if (activeTab === 'saida_malha') filtered = filtered.filter(i => i.type === 'saida_malha');
-    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida');
+    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida' || i.type === 'venda_fio');
 
     // Status
     if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
@@ -278,9 +269,7 @@ export default function Invoices() {
       filtered = filtered.filter(i =>
         i.invoice_number.toLowerCase().includes(q) ||
         (i.client_name || '').toLowerCase().includes(q) ||
-        (i.access_key || '').includes(q) ||
-        (i.buyer_name || '').toLowerCase().includes(q) ||
-        (i.destination_name || '').toLowerCase().includes(q)
+        (i.access_key || '').includes(q)
       );
     }
 
@@ -308,12 +297,10 @@ export default function Invoices() {
     //   toast({ title: 'Chave de acesso deve ter 44 dígitos numéricos', variant: 'destructive' }); return;
     // }
 
-    if (formType === 'venda_fio' && !formBuyerName.trim()) { toast({ title: 'Informe o comprador', variant: 'destructive' }); return; }
-    if (formType === 'saida_malha' && !formDestinationName.trim()) { toast({ title: 'Informe a tinturaria de destino', variant: 'destructive' }); return; }
 
     const validItems = formItems.filter(it => {
       if (formType === 'entrada' || formType === 'venda_fio') return it.yarn_type_id && parseFloat(it.weight_kg) > 0;
-      if (formType === 'saida' || formType === 'saida_malha') return it.article_id && parseFloat(it.weight_kg) > 0;
+      if (formType === 'saida') return it.article_id && parseFloat(it.weight_kg) > 0;
       return false;
     });
 
@@ -344,8 +331,6 @@ export default function Invoices() {
         observations: formObservations.trim() || null,
         created_by_name: userName || null,
         created_by_code: userCode || null,
-        buyer_name: formType === 'venda_fio' ? formBuyerName.trim() : null,
-        destination_name: formType === 'saida_malha' ? formDestinationName.trim() : null,
       }).select('id').single();
 
       if (invError) throw invError;
@@ -775,7 +760,7 @@ export default function Invoices() {
     }
 
     // 2. Entregas (NFs saída e saída malha não canceladas)
-    const saidaInvs = invoices.filter(i => (i.type === 'saida' || i.type === 'saida_malha') && i.status !== 'cancelada' && matchMonth(i.issue_date));
+    const saidaInvs = invoices.filter(i => i.type === 'saida' && i.status !== 'cancelada' && matchMonth(i.issue_date));
     for (const inv of saidaInvs) {
       const items = invoiceItems.filter(it => it.invoice_id === inv.id);
       for (const item of items) {
@@ -848,9 +833,7 @@ export default function Invoices() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
           <TabsTrigger value="entrada" className="text-xs">Entrada</TabsTrigger>
-          <TabsTrigger value="venda_fio" className="text-xs">Venda de Fio</TabsTrigger>
-          <TabsTrigger value="saida_malha" className="text-xs">Saída Malha</TabsTrigger>
-          <TabsTrigger value="saida" className="text-xs">Entrega Cliente</TabsTrigger>
+          <TabsTrigger value="saida" className="text-xs">Saída</TabsTrigger>
           <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
           <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
           <TabsTrigger value="estoque" className="text-xs">Estoque Malha</TabsTrigger>
@@ -859,8 +842,8 @@ export default function Invoices() {
         </TabsList>
 
         {/* ===== ENTRADA & SAIDA TABS ===== */}
-        {['entrada', 'venda_fio', 'saida_malha', 'saida'].map(tab => {
-          const tabLabel = tab === 'entrada' ? 'Entrada' : tab === 'venda_fio' ? 'Venda de Fio' : tab === 'saida_malha' ? 'Saída Malha (Tinturaria)' : 'Entrega Cliente';
+        {['entrada', 'saida'].map(tab => {
+          const tabLabel = tab === 'entrada' ? 'Entrada (Fio)' : 'Saída (Malha)';
           const invoiceType = tab as InvoiceType;
           return (
           <TabsContent key={tab} value={tab} className="space-y-4">
@@ -890,9 +873,20 @@ export default function Invoices() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button onClick={() => openNewInvoice(invoiceType)} size="sm" className="gap-1.5">
-                    <Plus className="h-4 w-4" /> Nova {tabLabel}
-                  </Button>
+                  {tab === 'entrada' ? (
+                    <Button onClick={() => openNewInvoice('entrada')} size="sm" className="gap-1.5">
+                      <Plus className="h-4 w-4" /> Nova Entrada
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1.5">
+                      <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
+                        <Plus className="h-4 w-4" /> Nova Saída
+                      </Button>
+                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
+                        <Plus className="h-4 w-4" /> Venda de Fio
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex-1" />
 
                   <Select value={filterMonth} onValueChange={setFilterMonth}>
@@ -956,8 +950,7 @@ export default function Invoices() {
                         <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
                           <TableHead className="text-xs">Cliente</TableHead>
-                          {tab === 'venda_fio' && <TableHead className="text-xs">Comprador</TableHead>}
-                          {tab === 'saida_malha' && <TableHead className="text-xs">Tinturaria</TableHead>}
+                          {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
@@ -970,8 +963,7 @@ export default function Invoices() {
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                             <TableCell className="text-xs">{inv.client_name || '—'}</TableCell>
-                            {tab === 'venda_fio' && <TableCell className="text-xs">{inv.buyer_name || '—'}</TableCell>}
-                            {tab === 'saida_malha' && <TableCell className="text-xs">{inv.destination_name || '—'}</TableCell>}
+                            {tab === 'saida' && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
                             </TableCell>
@@ -1600,19 +1592,6 @@ export default function Invoices() {
               </div>
             </div>
 
-            {/* Buyer Name (venda_fio) / Destination Name (saida_malha) */}
-            {formType === 'venda_fio' && (
-              <div>
-                <Label className="text-xs">Comprador / Cliente da Venda *</Label>
-                <Input className="h-9 text-xs" value={formBuyerName} onChange={e => setFormBuyerName(e.target.value)} placeholder="Ex: JR DUBLAGEM" />
-              </div>
-            )}
-            {formType === 'saida_malha' && (
-              <div>
-                <Label className="text-xs">Tinturaria (Destino) *</Label>
-                <Input className="h-9 text-xs" value={formDestinationName} onChange={e => setFormDestinationName(e.target.value)} placeholder="Ex: Tinturaria XYZ" />
-              </div>
-            )}
 
             {/* <div>
               <Label className="text-xs">Chave de Acesso SEFAZ (44 dígitos, opcional)</Label>
@@ -1645,9 +1624,9 @@ export default function Invoices() {
                 {formItems.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-2">
                     {/* Yarn or Article selection */}
-                    <div className={(formType === 'saida' || formType === 'saida_malha') ? 'col-span-3' : 'col-span-4'}>
-                      <Label className="text-[10px]">{(formType === 'saida' || formType === 'saida_malha') ? 'Artigo' : 'Tipo de Fio'}</Label>
-                      {(formType === 'saida' || formType === 'saida_malha') ? (
+                    <div className={formType === 'saida' ? 'col-span-3' : 'col-span-4'}>
+                      <Label className="text-[10px]">{formType === 'saida' ? 'Artigo' : 'Tipo de Fio'}</Label>
+                      {formType === 'saida' ? (
                         <SearchableSelect
                           value={item.article_id || ''}
                           onValueChange={v => updateItem(idx, 'article_id', v)}
@@ -1752,12 +1731,6 @@ export default function Invoices() {
                 <div><span className="text-muted-foreground text-xs">Status:</span><br /><Badge className={cn('text-[10px]', STATUS_COLORS[viewingInvoice.status])}>{STATUS_LABELS[viewingInvoice.status]}</Badge></div>
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
                 {canSeeFinancial && <div><span className="text-muted-foreground text-xs">Valor Total:</span><br />{formatCurrency(Number(viewingInvoice.total_value || 0))}</div>}
-                {viewingInvoice.type === 'venda_fio' && viewingInvoice.buyer_name && (
-                  <div><span className="text-muted-foreground text-xs">Comprador:</span><br />{viewingInvoice.buyer_name}</div>
-                )}
-                {viewingInvoice.type === 'saida_malha' && viewingInvoice.destination_name && (
-                  <div><span className="text-muted-foreground text-xs">Tinturaria:</span><br />{viewingInvoice.destination_name}</div>
-                )}
               </div>
               {/* Chave de Acesso - temporariamente oculto (v2 SEFAZ) */}
               {/* {viewingInvoice.access_key && (
@@ -1773,7 +1746,7 @@ export default function Invoices() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">{(viewingInvoice.type === 'saida' || viewingInvoice.type === 'saida_malha') ? 'Artigo' : 'Fio'}</TableHead>
+                      <TableHead className="text-xs">{viewingInvoice.type === 'saida' ? 'Artigo' : 'Fio'}</TableHead>
                       <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                       {viewingInvoice.type === 'saida' && <TableHead className="text-xs text-right">Rolos</TableHead>}
                       {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableHead className="text-xs text-right">Caixas</TableHead>}
