@@ -319,7 +319,7 @@ export default function ClientsArticles() {
 
       {/* Article Modal */}
       <Dialog open={showArticleModal} onOpenChange={setShowArticleModal}>
-        <DialogContent>
+        <DialogContent onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader><DialogTitle>{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Nome do Artigo</Label><Input value={articleForm.name} onChange={e => setArticleForm(p => ({ ...p, name: e.target.value }))} /></div>
