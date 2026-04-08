@@ -204,6 +204,12 @@ export default function Dashboard() {
   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
   const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
 
+  // Previous period KPIs
+  const prevTotalRolls = prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
+  const prevTotalWeight = prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
+  const prevTotalRevenue = prevFiltered.reduce((s, p) => s + p.revenue, 0);
+  const prevAvgEfficiency = prevFiltered.length ? prevFiltered.reduce((s, p) => s + p.efficiency, 0) / prevFiltered.length : 0;
+
   // Calculate weighted average target efficiency from articles used in filtered productions
   const avgTargetEfficiency = useMemo(() => {
     if (!filtered.length) return 80;
