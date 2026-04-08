@@ -1795,7 +1795,7 @@ export default function Invoices() {
 
       {/* ===== YARN TYPE DIALOG ===== */}
       <Dialog open={yarnDialogOpen} onOpenChange={setYarnDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{editingYarn ? 'Editar Tipo de Fio' : 'Novo Tipo de Fio'}</DialogTitle>
           </DialogHeader>
@@ -1829,7 +1829,7 @@ export default function Invoices() {
 
       {/* ===== OUTSOURCE YARN STOCK DIALOG ===== */}
       <Dialog open={eftDialogOpen} onOpenChange={setEftDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{eftEditing ? 'Editar Estoque de Fio' : 'Adicionar Estoque de Fio'}</DialogTitle>
           </DialogHeader>

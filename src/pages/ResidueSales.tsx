@@ -921,7 +921,7 @@ export default function ResidueSales() {
 
       {/* ===== Material Dialog ===== */}
       <Dialog open={matDialogOpen} onOpenChange={setMatDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{editingMat ? 'Editar Material' : 'Novo Material'}</DialogTitle>
           </DialogHeader>
@@ -953,7 +953,7 @@ export default function ResidueSales() {
 
       {/* ===== Client Dialog ===== */}
       <Dialog open={clientDialogOpen} onOpenChange={setClientDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
           </DialogHeader>
@@ -975,7 +975,7 @@ export default function ResidueSales() {
 
       {/* ===== Price Dialog ===== */}
       <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{editingPrice ? 'Editar Preço' : 'Adicionar Material ao Cliente'}</DialogTitle>
           </DialogHeader>
