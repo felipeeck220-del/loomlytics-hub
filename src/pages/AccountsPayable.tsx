@@ -693,7 +693,7 @@ export default function AccountsPayable() {
 
       {/* Form Dialog */}
       <Dialog open={showForm} onOpenChange={open => { if (!open) closeForm(); }}>
-        <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-lg max-h-[80vh] overflow-y-auto" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar Conta' : 'Nova Conta a Pagar'}</DialogTitle>
           </DialogHeader>

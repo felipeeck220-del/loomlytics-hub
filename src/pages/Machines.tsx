@@ -284,7 +284,7 @@ export default function Machines() {
 
       {/* Add/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-lg font-display">Informações Básicas</DialogTitle>
             <p className="text-sm text-muted-foreground">Dados principais da máquina</p>

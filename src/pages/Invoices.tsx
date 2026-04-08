@@ -1575,7 +1575,7 @@ export default function Invoices() {
 
       {/* ===== NEW INVOICE DIALOG ===== */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-3xl max-h-[85vh] overflow-y-auto" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Nova NF — {TYPE_LABELS[formType]}</DialogTitle>
           </DialogHeader>

@@ -303,7 +303,7 @@ export default function ClientsArticles() {
 
       {/* Client Modal */}
       <Dialog open={showClientModal} onOpenChange={setShowClientModal}>
-        <DialogContent>
+        <DialogContent onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader><DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Nome</Label><Input value={clientForm.name} onChange={e => setClientForm(p => ({ ...p, name: e.target.value }))} /></div>
