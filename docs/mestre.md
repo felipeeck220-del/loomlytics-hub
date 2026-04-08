@@ -241,8 +241,10 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 | `invoices` | company_id, type (entrada/saida/venda_fio), invoice_number, client_id, issue_date, total_weight_kg, total_value, status | Notas Fiscais |
 | `invoice_items` | invoice_id, company_id, yarn_type_id, article_id, weight_kg, quantity_rolls, value_per_kg, subtotal | Itens das NFs |
 | `outsource_yarn_stock` | company_id, outsource_company_id, yarn_type_id, quantity_kg, reference_month | Estoque de fio em terceiros |
-| `residue_materials` | company_id, name, unit (kg/unidade), default_price | Materiais residuais |
-| `residue_sales` | company_id, material_id, client_name, date, quantity, unit_price, total, romaneio | Vendas de resíduos |
+| `residue_materials` | company_id, name, unit (kg/unidade), default_price | Catálogo de materiais residuais |
+| `residue_clients` | company_id, name | Compradores de resíduos |
+| `residue_client_prices` | company_id, client_id, material_id, unit_price | Preço por material por cliente (UNIQUE client+material) |
+| `residue_sales` | company_id, client_id, material_id, client_name, date, quantity, unit_price, total, romaneio | Vendas de resíduos |
 | `accounts_payable` | company_id, supplier_name, description, category, amount, due_date, whatsapp_number, status, short_id, paid_amount, receipt_url | Contas a pagar |
 | `tv_panels` | company_id, code, name, panel_type, enabled_machines, is_connected | Painéis TV |
 | `iot_devices` | company_id, machine_id, token, name, active, firmware_version, last_seen_at | Dispositivos IoT |
