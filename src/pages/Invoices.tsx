@@ -276,7 +276,9 @@ export default function Invoices() {
       filtered = filtered.filter(i =>
         i.invoice_number.toLowerCase().includes(q) ||
         (i.client_name || '').toLowerCase().includes(q) ||
-        (i.access_key || '').includes(q)
+        (i.access_key || '').includes(q) ||
+        (i.buyer_name || '').toLowerCase().includes(q) ||
+        (i.destination_name || '').toLowerCase().includes(q)
       );
     }
 
