@@ -366,7 +366,7 @@ export default function Invoices() {
       resetForm();
       setDialogOpen(false);
     } catch (e: any) {
-      toast({ title: 'Erro ao salvar NF', description: e.message, variant: 'destructive' });
+      toast({ title: 'Erro ao salvar NF', description: getFriendlyErrorMessage(e.message), variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -375,7 +375,7 @@ export default function Invoices() {
   // ===== Cancel Invoice =====
   const handleCancelInvoice = async (inv: Invoice) => {
     const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
     toast({ title: 'NF cancelada' });
@@ -384,7 +384,7 @@ export default function Invoices() {
   // ===== Confirm Invoice =====
   const handleConfirmInvoice = async (inv: Invoice) => {
     const { error } = await sb('invoices').update({ status: 'conferida' }).eq('id', inv.id);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('invoice_confirm', { invoice_number: inv.invoice_number, client: inv.client_name });
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
     toast({ title: 'NF conferida' });
@@ -418,7 +418,7 @@ export default function Invoices() {
       setEditingYarn(null);
       setYarnName(''); setYarnComposition(''); setYarnColor(''); setYarnObs('');
     } catch (e: any) {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+      toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' });
     } finally { setSaving(false); }
   };
 
@@ -702,7 +702,7 @@ export default function Invoices() {
       setEftFormObs('');
       setEftEditing(null);
     } catch (e: any) {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+      toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' });
     } finally { setSaving(false); }
   };
 

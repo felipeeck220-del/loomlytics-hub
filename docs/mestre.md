@@ -1400,6 +1400,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **08/04/2026 17:00 (Brasília)** — **NOTAS FISCAIS — Reversão para v1 (nf.md):** Revertido o módulo de Notas Fiscais para o estado original v1 documentado em `docs/nf.md`. Removido tipo `saida_malha`, campos `buyer_name`/`destination_name` do formulário/interface, revertidas as abas para 7 originais (Entrada, Saída, Saldo Fios, Saldo Global, Estoque Malha, Fio Terceiros, Tipos de Fio). A aba "Saída" volta a mostrar NFs tipo `saida` e `venda_fio` combinadas com botões separados. Estoque de Malha volta a considerar apenas NFs tipo `saida`. Validação numérica e SearchableSelect no campo Artigo mantidos. As colunas `buyer_name` e `destination_name` permanecem no banco (não removidas) para não perder dados existentes.
 
+- **08/04/2026 18:00 (Brasília)** — **PENTE FINO — 5 mensagens de erro cruas corrigidas em Invoices.tsx:** Substituídos 5 usos de `error.message` / `e.message` por `getFriendlyErrorMessage()` em: (1) `handleSaveInvoice` (catch); (2) `handleCancelInvoice`; (3) `handleConfirmInvoice`; (4) `handleSaveYarn` (catch); (5) `handleSaveEft` (catch). Agora 100% dos erros exibidos ao usuário em Notas Fiscais passam pela tradução amigável.
+
 ---
 
-*Última atualização: 08/04/2026 17:00 (Brasília)*
+*Última atualização: 08/04/2026 18:00 (Brasília)*
