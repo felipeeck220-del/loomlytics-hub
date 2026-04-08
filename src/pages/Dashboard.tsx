@@ -823,31 +823,45 @@ export default function Dashboard() {
   );
 }
 
-function MaterialKpi({ icon, iconClass, label, value, footer, efficiencyValue, targetEfficiency }: {
-  icon: React.ReactNode; iconClass: string; label: string; value: string; footer: string; efficiencyValue?: number; targetEfficiency?: number;
+function DashboardKpiCard({ label, value, previousValue, currentRaw, borderColor, icon, showComparison, footer, formatPrev, efficiencyValue, targetEfficiency }: {
+  label: string; value: string; previousValue: number; currentRaw: number; borderColor: string; icon: React.ReactNode; showComparison: boolean; footer: string; formatPrev?: (v: number) => string; efficiencyValue?: number; targetEfficiency?: number;
 }) {
+  const variation = previousValue > 0
+    ? ((currentRaw - previousValue) / previousValue) * 100
+    : (currentRaw > 0 ? 100 : 0);
+  const isPositive = variation >= 0;
+  const showVariation = showComparison && (previousValue > 0 || currentRaw > 0);
+
   const target = targetEfficiency || 80;
   const effBg = efficiencyValue !== undefined
     ? efficiencyValue >= target ? 'bg-success/10' : efficiencyValue >= (target - 10) ? 'bg-warning/10' : 'bg-destructive/10'
     : '';
-  const effText = efficiencyValue !== undefined
-    ? efficiencyValue >= target ? 'text-success' : efficiencyValue >= (target - 10) ? 'text-warning' : 'text-destructive'
-    : 'text-foreground';
+
+  const prevDisplay = formatPrev ? formatPrev(previousValue) : formatNumber(previousValue);
 
   return (
-    <Card className={cn("shadow-material border-0 overflow-visible pt-4", effBg)}>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className={cn("icon-box shrink-0", iconClass)}>
-            {icon}
+    <Card className={cn('border-l-4', borderColor, effBg)}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
+            <p className="text-2xl font-bold text-foreground">{value}</p>
+            {showVariation && (
+              <Badge variant="outline" className={cn(
+                'text-[10px] mt-1',
+                isPositive
+                  ? 'bg-success/10 text-success border-success/20'
+                  : 'bg-destructive/10 text-destructive border-destructive/20'
+              )}>
+                {isPositive ? '▲' : '▼'} {formatPercent(Math.abs(variation))}
+              </Badge>
+            )}
+            {showComparison && (
+              <p className="text-xs text-muted-foreground mt-1">Anterior: {prevDisplay}</p>
+            )}
+            <p className="text-[11px] text-muted-foreground font-light mt-1">{footer}</p>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">{label}</p>
-            <p className={cn("text-lg font-display font-bold whitespace-nowrap", effText)}>{value}</p>
-          </div>
-        </div>
-        <div className="pt-2 mt-2 border-t border-border/50">
-          <p className="text-[11px] text-muted-foreground font-light whitespace-nowrap">{footer}</p>
+          <div className="text-muted-foreground">{icon}</div>
         </div>
       </CardContent>
     </Card>
