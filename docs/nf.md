@@ -1,473 +1,451 @@
-# 📄 NF.MD — Planejamento do Módulo de Notas Fiscais (Facção)
+# 📄 NF.MD — Snapshot do Módulo de Notas Fiscais (Estado Atual v1)
 
-> **⚠️ INSTRUÇÕES:**
-> Este arquivo documenta a estrutura planejada do módulo de Notas Fiscais para o MalhaGest.
+> **⚠️ DOCUMENTO DE REVERSÃO:**
+> Este arquivo documenta o estado 100% implementado do módulo de Notas Fiscais em 08/04/2026.
+> Se a v2 (nfv2.md) der errado, reverter para este estado exato.
 > Modelo de negócio: **Facção** — o cliente envia o fio, a malharia produz a malha e cobra por kg produzido.
-> A malharia NÃO compra fio — apenas recebe, produz e devolve como malha.
 
 ---
 
-## 📌 Visão Geral do Fluxo
+## 📌 Visão Geral Implementada
 
+### Arquivo principal: `src/pages/Invoices.tsx` (~1891 linhas)
+
+### Abas implementadas (TabsList):
+1. **Entrada** — NFs de fio recebido
+2. **Saída** — NFs de malha entregue + Venda de Fio
+3. **Saldo Fios** — Saldo por cliente/fio
+4. **Saldo Global** — Saldo global por tipo de fio (todos os clientes)
+5. **Estoque Malha** — Produção vs entregas por cliente/artigo
+6. **Fio Terceiros** — Estoque de fio em facções terceirizadas
+7. **Tipos de Fio** — CRUD de tipos de fio
+
+### Tipos de NF (`InvoiceType`):
+```typescript
+type InvoiceType = 'entrada' | 'saida' | 'venda_fio';
 ```
-Cliente envia NF com fio
-       ↓
-Fio é recebido e registrado (NF Entrada)
-       ↓
-Fio é vinculado a 1 ou mais artigos do cliente
-       ↓
-Produção consome o fio (registrado automaticamente via artigo)
-       ↓
-Malha produzida é entregue ao cliente (NF Saída — malha)
-  OU
-Fio é devolvido/vendido sem tecer (NF Saída — venda de fio)
-       ↓
-Saldo de fio = Recebido − Consumido − Vendido (por tipo de fio, por cliente)
+
+### Status de NF (`InvoiceStatus`):
+```typescript
+type InvoiceStatus = 'pendente' | 'conferida' | 'cancelada';
 ```
 
----
-
-## 🧶 Tipos de Fio (`yarn_types`)
-
-Cadastro dos tipos de fio que circulam na facção. Um tipo de fio pode ser usado por vários clientes e vários artigos.
-
-### Tabela: `yarn_types`
-
-| Campo         | Tipo         | Obrigatório | Descrição                                      |
-|---------------|--------------|-------------|------------------------------------------------|
-| id            | uuid (PK)    | Sim         | Identificador único                            |
-| company_id    | uuid (FK)    | Sim         | Multi-tenancy                                  |
-| name          | text         | Sim         | Nome do fio (ex: "Algodão 30/1 branco")        |
-| composition   | text         | Não         | Composição (ex: "100% algodão", "50/50 misto") |
-| color         | text         | Não         | Cor do fio                                     |
-| observations  | text         | Não         | Observações livres                             |
-| created_at    | timestamptz  | Sim         | Auto (now())                                   |
-
-### RLS
-- `company_id = get_user_company_id()` para SELECT, INSERT, UPDATE, DELETE
-
-### Exemplos de registros:
-```
-| Nome                    | Composição      | Cor     |
-|-------------------------|-----------------|---------|
-| Algodão 30/1            | 100% algodão    | Branco  |
-| Poliéster 150           | 100% poliéster  | Preto   |
-| Misto 50/50 30/1        | 50% alg / 50% pol | Cru   |
+### Labels:
+```typescript
+const TYPE_LABELS = { entrada: 'Entrada (Fio)', saida: 'Saída (Malha)', venda_fio: 'Venda de Fio' };
+const STATUS_LABELS = { pendente: 'Pendente', conferida: 'Conferida', cancelada: 'Cancelada' };
+const STATUS_COLORS = { pendente: 'bg-warning/10 text-warning', conferida: 'bg-success/10 text-success', cancelada: 'bg-destructive/10 text-destructive' };
 ```
 
 ---
 
-## 📥 Notas Fiscais (`invoices`)
+## 📊 Tabelas do Banco de Dados
 
-Tabela principal para NFs de **entrada** (fio recebido do cliente), **saída de malha** (malha entregue ao cliente) e **saída de fio** (devolução/venda de fio sem tecer).
+### `yarn_types`
+| Campo | Tipo | Nullable | Default |
+|-------|------|----------|---------|
+| id | uuid (PK) | No | gen_random_uuid() |
+| company_id | uuid | No | — |
+| name | text | No | — |
+| composition | text | Yes | — |
+| color | text | Yes | — |
+| observations | text | Yes | — |
+| created_at | timestamptz | No | now() |
 
-### Tabela: `invoices`
+### `invoices`
+| Campo | Tipo | Nullable | Default |
+|-------|------|----------|---------|
+| id | uuid (PK) | No | gen_random_uuid() |
+| company_id | uuid | No | — |
+| type | text | No | 'entrada' |
+| invoice_number | text | No | — |
+| access_key | text | Yes | — |
+| client_id | uuid | Yes | — |
+| client_name | text | Yes | — |
+| issue_date | text | No | — |
+| total_weight_kg | numeric | No | 0 |
+| total_value | numeric | Yes | 0 |
+| status | text | No | 'pendente' |
+| observations | text | Yes | — |
+| created_by_name | text | Yes | — |
+| created_by_code | text | Yes | — |
+| created_at | timestamptz | No | now() |
 
-| Campo                  | Tipo         | Obrigatório | Descrição                                                       |
-|------------------------|--------------|-------------|-----------------------------------------------------------------|
-| id                     | uuid (PK)    | Sim         | Identificador único                                             |
-| company_id             | uuid (FK)    | Sim         | Multi-tenancy                                                   |
-| type                   | text         | Sim         | `entrada` (fio recebido), `saida` (malha entregue) ou `venda_fio` (fio vendido/devolvido) |
-| invoice_number         | text         | Sim         | Número da nota fiscal                                           |
-| access_key             | text         | Não         | Chave de acesso SEFAZ (44 dígitos) — opcional, para referência e futura busca automática |
-| client_id              | uuid (FK)    | Sim         | Cliente vinculado                                               |
-| client_name            | text         | Não         | Nome denormalizado do cliente                                   |
-| issue_date             | text         | Sim         | Data de emissão (formato yyyy-MM-dd)                            |
-| total_weight_kg        | numeric      | Sim         | Peso total da NF (kg) — soma dos itens                          |
-| total_value            | numeric      | Não         | Valor total (NF saída/venda_fio — kg × valor/kg)                |
-| status                 | text         | Sim         | `pendente`, `conferida`, `cancelada`                            |
-| observations           | text         | Não         | Observações livres                                              |
-| created_by_name        | text         | Não         | Quem registrou                                                  |
-| created_by_code        | text         | Não         | Código do usuário que registrou                                 |
-| created_at             | timestamptz  | Sim         | Auto (now())                                                    |
+### `invoice_items`
+| Campo | Tipo | Nullable | Default |
+|-------|------|----------|---------|
+| id | uuid (PK) | No | gen_random_uuid() |
+| invoice_id | uuid | No | — |
+| company_id | uuid | No | — |
+| yarn_type_id | uuid | Yes | — |
+| yarn_type_name | text | Yes | — |
+| article_id | uuid | Yes | — |
+| article_name | text | Yes | — |
+| weight_kg | numeric | No | 0 |
+| quantity_rolls | numeric | Yes | 0 |
+| quantity_boxes | numeric | Yes | 0 |
+| value_per_kg | numeric | Yes | 0 |
+| subtotal | numeric | Yes | 0 |
+| observations | text | Yes | — |
+| created_at | timestamptz | No | now() |
 
-### RLS
-- `company_id = get_user_company_id()` para SELECT, INSERT, UPDATE, DELETE
+### `outsource_yarn_stock`
+| Campo | Tipo | Nullable | Default |
+|-------|------|----------|---------|
+| id | uuid (PK) | No | gen_random_uuid() |
+| company_id | uuid | No | — |
+| outsource_company_id | uuid | No | — |
+| yarn_type_id | uuid | No | — |
+| quantity_kg | numeric | No | 0 |
+| reference_month | text | No | — |
+| observations | text | Yes | — |
+| created_at | timestamptz | No | now() |
+| updated_at | timestamptz | No | now() |
 
-### Tipos de NF:
-
-| Tipo         | Descrição                                                |
-|--------------|----------------------------------------------------------|
-| `entrada`    | Fio recebido do cliente (NF de remessa do cliente)       |
-| `saida`      | Malha produzida entregue ao cliente                      |
-| `venda_fio`  | Fio devolvido ou vendido ao cliente sem ter sido tecido  |
-
-### Status possíveis:
-
-| Status       | Descrição                                    |
-|--------------|----------------------------------------------|
-| `pendente`   | NF registrada, aguardando conferência         |
-| `conferida`  | NF conferida e validada                       |
-| `cancelada`  | NF cancelada (não conta nos saldos)           |
-
----
-
-## 🔑 Chave de Acesso SEFAZ (`access_key`)
-
-### Fase atual (v1):
-- Campo **opcional** de 44 dígitos numéricos
-- Serve como referência para rastreabilidade
-- Validação: se preenchido, deve ter exatamente 44 caracteres numéricos
-- O operador digita manualmente os dados da NF
-
-### Fase futura (v2 — integração SEFAZ):
-- Botão "Buscar NF" ao lado do campo de chave de acesso
-- Consulta automática via API de terceiros (Nuvem Fiscal, Focus NFe, etc.)
-- Preenchimento automático: fornecedor, itens, pesos, valores
-- Requer secret de API configurado (ex: `NUVEM_FISCAL_API_KEY`)
-- **Não implementar agora** — apenas deixar o campo preparado
-
----
-
-## 📦 Itens da Nota Fiscal (`invoice_items`)
-
-Cada NF pode ter múltiplos itens. Na **entrada**, os itens são tipos de fio. Na **saída**, os itens são artigos (malha). Na **venda_fio**, os itens são tipos de fio.
-
-### Tabela: `invoice_items`
-
-| Campo           | Tipo         | Obrigatório | Descrição                                              |
-|-----------------|--------------|-------------|--------------------------------------------------------|
-| id              | uuid (PK)    | Sim         | Identificador único                                    |
-| invoice_id      | uuid (FK)    | Sim         | NF vinculada                                           |
-| company_id      | uuid (FK)    | Sim         | Multi-tenancy                                          |
-| yarn_type_id    | uuid (FK)    | Condicional | Tipo de fio (obrigatório se NF entrada ou venda_fio)   |
-| yarn_type_name  | text         | Não         | Nome denormalizado do fio                              |
-| article_id      | uuid (FK)    | Condicional | Artigo (obrigatório se NF saída)                       |
-| article_name    | text         | Não         | Nome denormalizado do artigo                           |
-| weight_kg       | numeric      | Sim         | Peso do item (kg)                                      |
-| quantity_rolls  | numeric      | Não         | Quantidade de rolos (apenas NF saída)                  |
-| value_per_kg    | numeric      | Não         | Valor por kg (NF saída e venda_fio)                    |
-| subtotal        | numeric      | Não         | weight_kg × value_per_kg                               |
-| observations    | text         | Não         | Observações do item                                    |
-| created_at      | timestamptz  | Sim         | Auto (now())                                           |
-
-### RLS
+### RLS em todas as tabelas:
 - `company_id = get_user_company_id()` para SELECT, INSERT, UPDATE, DELETE
 
 ---
 
-## 🔗 Vínculo Artigo ↔ Tipo de Fio
+## 🔧 Imports e Dependências
 
-### Alteração na tabela `articles` (existente)
-
-| Campo novo      | Tipo         | Obrigatório | Descrição                          |
-|-----------------|--------------|-------------|------------------------------------|
-| yarn_type_id    | uuid (FK)    | Não         | Tipo de fio que este artigo usa    |
-
-### Regras:
-- Um artigo usa **1 tipo de fio**
-- Vários artigos podem usar o **mesmo tipo de fio**
-- Quando a produção é registrada para um artigo, o sistema sabe automaticamente **qual fio está sendo consumido**
-
-### Exemplo:
-```
-Cliente: Sul Brasil
-├── NF 1234 (entrada) → Algodão 30/1 branco: 500kg
-├── NF 1235 (entrada) → Poliéster 150 preto: 300kg
-│
-├── Artigo: MALHA 1,12-115 MISTO → usa Algodão 30/1 branco
-├── Artigo: MALHA 1,35-115 MISTO → usa Algodão 30/1 branco
-└── Artigo: MALHA PRETA 1,20     → usa Poliéster 150 preto
+```typescript
+import { useState, useMemo, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// + shadcn components: Card, Button, Input, Label, Textarea, Select, Dialog, Table, Tabs, Badge, Collapsible
+// + lucide icons: Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign, CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil, Building2
+// + SearchableSelect, date-fns, DeleteConfirmDialog
 ```
 
----
+### Helper de paginação:
+```typescript
+const sb = (table: string) => (supabase.from as any)(table);
 
-## 📊 Controle de Saldo de Fio
-
-O saldo é calculado **por tipo de fio, por cliente**:
-
-```
-Saldo = Σ(kg NF entrada conferida) − Σ(kg produção dos artigos que usam esse fio) − Σ(kg NF venda_fio conferida)
-```
-
-### Exemplo de cálculo:
-
-```
-Cliente: Sul Brasil
-Fio: Algodão 30/1 branco
-
-ENTRADAS (NFs conferidas):
-  NF 1234: 500 kg
-  NF 1567: 300 kg
-  Total recebido: 800 kg
-
-CONSUMO (produção):
-  MALHA 1,12-115 MISTO: 420 kg produzidos
-  MALHA 1,35-115 MISTO: 200 kg produzidos
-  Total consumido: 620 kg
-
-VENDA DE FIO (NFs venda_fio conferidas):
-  NF 2001: 50 kg vendidos
-  Total vendido: 50 kg
-
-SALDO: 800 - 620 - 50 = 130 kg de fio ainda na facção
-```
-
-### Métricas disponíveis:
-
-| Métrica              | Cálculo                                    |
-|----------------------|--------------------------------------------|
-| Fio recebido         | Soma kg das NFs de entrada (status ≠ cancelada) |
-| Fio consumido        | Soma kg da produção dos artigos vinculados ao fio |
-| Fio vendido          | Soma kg das NFs de venda_fio (status ≠ cancelada) |
-| Saldo de fio         | Recebido − Consumido − Vendido             |
-| Rendimento           | kg malha produzida / kg fio consumido       |
-| Malha entregue       | Soma kg das NFs de saída (status ≠ cancelada) |
-| Malha pendente       | Produzido − Entregue (malha pronta não enviada) |
-
----
-
-## 📦 Controle de Estoque de Malha
-
-Estoque de malha = malha produzida que **ainda não foi entregue** ao cliente (sem NF de saída).
-
-### Cálculo por cliente:
-```
-Estoque de malha = Σ(kg produção interna) − Σ(kg NFs de saída conferidas)
-```
-
-### Exemplo:
-```
-Cliente: Sul Brasil
-
-PRODUÇÃO INTERNA:
-  MALHA 1,12-115 MISTO: 420 kg, 35 rolos
-  MALHA 1,35-115 MISTO: 200 kg, 18 rolos
-  Total produzido: 620 kg, 53 rolos
-
-NFs DE SAÍDA (malha entregue):
-  NF 5001: 300 kg, 25 rolos
-  Total entregue: 300 kg, 25 rolos
-
-ESTOQUE: 620 - 300 = 320 kg, 28 rolos (malha na facção)
-```
-
-### Visualização:
-- Exibido na aba "Saldo de Fios" ou em aba separada "Estoque"
-- Agrupado por cliente, expandível por artigo
-- Mostra rolos e kg pendentes de entrega
-
----
-
-## 📱 Telas Planejadas
-
-### 1. Página Principal — Notas Fiscais (`/:slug/invoices`)
-
-**Abas:**
-- **Entrada** — NFs de fio recebido
-- **Saída** — NFs de malha entregue + venda de fio
-- **Saldo de Fios** — Visão consolidada por cliente/fio
-- **Estoque de Malha** — Malha produzida não entregue
-
-**Filtros:**
-- Período (data)
-- Cliente
-- Status (pendente, conferida, cancelada)
-
-### 2. Listagem de NFs (por aba)
-
-| Coluna         | Descrição                     |
-|----------------|-------------------------------|
-| Nº NF          | Número da nota fiscal          |
-| Chave          | Últimos 8 dígitos da chave (se preenchida) |
-| Cliente        | Nome do cliente                |
-| Tipo           | Entrada / Saída / Venda Fio   |
-| Data           | Data de emissão                |
-| Peso (kg)      | Total de kg da NF              |
-| Valor (R$)     | Total (apenas NF saída/venda_fio) |
-| Status         | Badge colorido                 |
-| Ações          | Editar, Visualizar, Cancelar   |
-
-### 3. Formulário — Nova NF
-
-**NF Entrada (fio):**
-1. Selecionar cliente
-2. Informar Nº da NF, data e chave de acesso (opcional)
-3. Adicionar itens:
-   - Selecionar tipo de fio (ou cadastrar novo)
-   - Informar peso (kg)
-4. Observações
-5. Salvar como `pendente` ou `conferida`
-
-**NF Saída (malha):**
-1. Selecionar cliente
-2. Informar Nº da NF, data e chave de acesso (opcional)
-3. Adicionar itens:
-   - Selecionar artigo (filtrado pelo cliente)
-   - Informar rolos e/ou peso (kg)
-   - Valor/kg auto-preenchido do artigo
-   - Subtotal calculado
-4. Total calculado automaticamente
-5. Observações
-6. Salvar
-
-**NF Venda de Fio:**
-1. Selecionar cliente
-2. Informar Nº da NF, data e chave de acesso (opcional)
-3. Adicionar itens:
-   - Selecionar tipo de fio
-   - Informar peso (kg)
-   - Valor/kg
-4. Total calculado automaticamente
-5. Observações
-6. Salvar
-
-### 4. Tela de Saldo de Fios
-
-Visão por cliente expandível:
-
-```
-▼ Sul Brasil
-  ┌──────────────────────┬───────────┬───────────┬──────────┬─────────┐
-  │ Tipo de Fio          │ Recebido  │ Consumido │ Vendido  │ Saldo   │
-  ├──────────────────────┼───────────┼───────────┼──────────┼─────────┤
-  │ Algodão 30/1 branco  │ 800 kg    │ 620 kg    │ 50 kg    │ 130 kg  │
-  │ Poliéster 150 preto  │ 300 kg    │ 150 kg    │ 0 kg     │ 150 kg  │
-  └──────────────────────┴───────────┴───────────┴──────────┴─────────┘
-
-▶ Outro Cliente
-```
-
-### 5. Tela de Estoque de Malha
-
-Visão por cliente expandível:
-
-```
-▼ Sul Brasil
-  ┌─────────────────────────┬───────────┬──────────┬──────────┬────────┐
-  │ Artigo                  │ Produzido │ Entregue │ Estoque  │ Rolos  │
-  ├─────────────────────────┼───────────┼──────────┼──────────┼────────┤
-  │ MALHA 1,12-115 MISTO    │ 420 kg    │ 300 kg   │ 120 kg   │ 10     │
-  │ MALHA 1,35-115 MISTO    │ 200 kg    │ 0 kg     │ 200 kg   │ 18     │
-  └─────────────────────────┴───────────┴──────────┴──────────┴────────┘
-
-▶ Outro Cliente
+async function fetchAllPaginated<T>(table: string, companyId: string, orderCol = 'created_at', ascending = true): Promise<T[]> {
+  const PAGE = 1000;
+  let all: T[] = []; let from = 0;
+  while (true) {
+    const { data, error } = await sb(table).select('*').eq('company_id', companyId)
+      .order(orderCol, { ascending }).order('id', { ascending: true }).range(from, from + PAGE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all = all.concat(data as T[]);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
 ```
 
 ---
 
-## 🔐 Permissões
+## 📡 Queries (React Query)
 
-| Role       | Acesso                                           |
-|------------|--------------------------------------------------|
-| `admin`    | Tudo: criar, editar, visualizar, cancelar NFs    |
-| `lider`    | Tudo exceto cancelar NFs                          |
-| `mecanico` | Sem acesso                                        |
-| `revisador`| Sem acesso                                        |
+| Query Key | Tabela | Ordem | Notas |
+|-----------|--------|-------|-------|
+| `['yarn_types', companyId]` | yarn_types | name asc | Não paginado (simples select) |
+| `['invoices', companyId]` | invoices | created_at desc | Paginado com fetchAllPaginated |
+| `['invoice_items', companyId]` | invoice_items | created_at asc | Paginado |
+| `['outsource_companies', companyId]` | outsource_companies | name asc | Não paginado (select id, name) |
+| `['outsource_yarn_stock', companyId]` | outsource_yarn_stock | reference_month desc | Paginado |
 
-- Dados financeiros (valor/kg, subtotal, total) seguem a regra `canSeeFinancial` (apenas admin)
-
----
-
-## 🧭 Integração com Sidebar
-
-- Novo item: **"Notas Fiscais"** com ícone `FileText`
-- Rota: `/:slug/invoices`
-- Adicionado ao array padrão de `enabled_nav_items` em `company_settings`
-- Controlável pelo admin da plataforma (ativar/desativar por empresa)
+### Dados do CompanyDataContext:
+```typescript
+const { getClients, getArticles, getProductions } = useSharedCompanyData();
+const clients = getClients();
+const articles = getArticles();
+const productions = getProductions();
+```
 
 ---
 
-## 📈 Integração com Módulos Existentes
+## 📱 Estado (State) Completo
 
-| Módulo              | Integração                                                    |
-|---------------------|---------------------------------------------------------------|
-| **Dashboard**       | Card "Saldo de Fios" — resumo geral por cliente               |
-| **Relatórios**      | Nova aba "Notas Fiscais" com totais por cliente/período        |
-| **Clientes**        | Ver NFs de entrada/saída e saldo de fio por cliente            |
-| **Produção**        | Consumo de fio calculado automaticamente via artigo vinculado  |
-| **Artigos**         | Campo "Tipo de Fio" no cadastro do artigo                      |
-| **Backup**          | Tabelas `yarn_types`, `invoices`, `invoice_items` incluídas    |
-| **Fechamento**      | Estoque de malha e saldo de fio alimentam o fechamento mensal  |
-| **Saldo Global**    | Visão por tipo de fio: Compra/Estoque/Vendas (ver `saldofiosglobal.md`) |
+### Filtros globais (Entrada/Saída):
+```typescript
+const [activeTab, setActiveTab] = useState('entrada');
+const [searchTerm, setSearchTerm] = useState('');
+const [filterStatus, setFilterStatus] = useState('all');
+const [filterClient, setFilterClient] = useState('all');
+const [filterMonth, setFilterMonth] = useState('all');
+```
 
----
+### Formulário NF:
+```typescript
+const [dialogOpen, setDialogOpen] = useState(false);
+const [formType, setFormType] = useState<InvoiceType>('entrada');
+const [formInvoiceNumber, setFormInvoiceNumber] = useState('');
+const [formAccessKey, setFormAccessKey] = useState('');  // temporariamente oculto
+const [formClientId, setFormClientId] = useState('');
+const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
+const [formObservations, setFormObservations] = useState('');
+const [formItems, setFormItems] = useState<Array<{
+  yarn_type_id?: string; article_id?: string;
+  weight_kg: string; quantity_rolls: string; quantity_boxes: string; value_per_kg: string;
+}>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
+```
 
-## 📊 Integração com Fechamento Mensal
+### Formulário Tipo de Fio:
+```typescript
+const [yarnDialogOpen, setYarnDialogOpen] = useState(false);
+const [yarnName, setYarnName] = useState('');
+const [yarnComposition, setYarnComposition] = useState('');
+const [yarnColor, setYarnColor] = useState('');
+const [yarnObs, setYarnObs] = useState('');
+const [editingYarn, setEditingYarn] = useState<YarnType | null>(null);
+```
 
-O módulo NF alimenta diretamente o **Fechamento Mensal** com:
+### Filtros Saldo Fios:
+```typescript
+const [saldoClient, setSaldoClient] = useState('all');
+const [saldoYarn, setSaldoYarn] = useState('all');
+const [saldoMonth, setSaldoMonth] = useState('all');
+```
 
-1. **Estoque de Malha** — malha produzida menos NFs de saída = malha ainda na facção
-2. **Receitas** — valor das NFs de saída (malha entregue × valor/kg)
-3. **Venda de Fio** — valor das NFs tipo `venda_fio` (receita adicional)
-4. **Saldo de Fio por Cliente** — controle de matéria-prima por cliente (ver `saldofios.md`)
-5. **Saldo de Fio Global por Tipo** — compra, estoque e vendas consolidados por tipo de fio (ver `saldofiosglobal.md`)
+### Filtros Saldo Global:
+```typescript
+const [saldoGlobalMonth, setSaldoGlobalMonth] = useState('all');
+const [saldoGlobalYarn, setSaldoGlobalYarn] = useState('all');
+```
 
-### Seções do PDF de Fechamento que dependem do módulo NF:
-- **Fechamento KG** — usa: Compra de Fio (Σ NFs entrada), Estoque Final (saldo acumulado), Vendas de Fio (Σ NFs venda_fio)
-- **Estoque de Malha** (rolos + kg por cliente)
-- **Receitas Próprias** (produção interna — já existe, NF valida as entregas)
-- **Receitas de Terceiros** (já existe via outsource_productions)
-- **Prejuízos de Terceiros** (já existe via outsource_productions com lucro negativo)
-- **Receitas Diversas** (já existe via residue_sales)
-- **Saldo de Fios por Tipo** — tabela com Compra/Estoque/Vendas por fio (ver `saldofiosglobal.md`)
-- **Faturamento Total** = Receitas + Terceiros - Prejuízos + Resíduos + Venda de Fio
+### Filtros Estoque Malha:
+```typescript
+const [estoqueClient, setEstoqueClient] = useState('all');
+const [estoqueArticle, setEstoqueArticle] = useState('all');
+const [estoqueMonth, setEstoqueMonth] = useState('all');
+```
 
----
+### Filtros/State Fio Terceiros:
+```typescript
+const [eftMonth, setEftMonth] = useState('all');
+const [eftCompany, setEftCompany] = useState('all');
+const [eftYarn, setEftYarn] = useState('all');
+const [eftDialogOpen, setEftDialogOpen] = useState(false);
+const [eftEditing, setEftEditing] = useState<any>(null);
+const [eftFormCompany, setEftFormCompany] = useState('');
+const [eftFormYarn, setEftFormYarn] = useState('');
+const [eftFormMonth, setEftFormMonth] = useState(format(new Date(), 'yyyy-MM'));
+const [eftFormQty, setEftFormQty] = useState('');
+const [eftFormObs, setEftFormObs] = useState('');
+```
 
-## 🗄️ Resumo das Alterações no Banco
-
-### Tabelas novas:
-1. `yarn_types` — Tipos de fio
-2. `invoices` — Notas fiscais (entrada, saída e venda de fio)
-3. `invoice_items` — Itens de cada NF
-
-### Alterações em tabelas existentes:
-1. `articles` — Novo campo `yarn_type_id` (FK → yarn_types, nullable)
-
-### RLS em todas as tabelas novas:
-- `company_id = get_user_company_id()` para todas as operações (SELECT, INSERT, UPDATE, DELETE)
-
----
-
-## ⚠️ Considerações Importantes
-
-1. **NFs canceladas** não contam nos cálculos de saldo
-2. **O consumo de fio é automático** — baseado na produção registrada × artigo × tipo de fio
-3. **Não há emissão fiscal eletrônica** — é controle interno apenas (v1)
-4. **FIFO implícito** — o saldo é global por tipo de fio/cliente, sem rastrear NF específica de consumo
-5. **Rendimento** — a diferença entre fio recebido e malha produzida mostra a perda natural do processo
-6. **Venda de fio** — caso especial onde fio sai sem ter sido tecido (devolução ou venda direta)
-7. **Chave de acesso** — campo opcional agora, preparado para integração futura com SEFAZ
-
----
-
-## 🚀 Fases de Implementação
-
-### Fase 1 — Base
-- [ ] Criar tabelas (`yarn_types`, `invoices`, `invoice_items`)
-- [ ] Adicionar `yarn_type_id` em `articles`
-- [ ] Criar página de NFs com abas (entrada/saída/saldo/estoque)
-- [ ] Formulário de NF entrada (fio)
-- [ ] Formulário de NF saída (malha)
-- [ ] Formulário de NF venda de fio
-- [ ] Campo de chave de acesso (opcional, validação 44 dígitos)
-- [ ] Listagem e filtros
-- [ ] Integração com sidebar e permissões
-
-### Fase 2 — Saldo e Controle
-- [ ] Tela de saldo de fios por cliente
-- [ ] Tela de estoque de malha por cliente
-- [ ] Campo "Tipo de Fio" no cadastro de artigos
-- [ ] Cálculo automático de consumo via produção
-
-### Fase 3 — Relatórios e Dashboard
-- [ ] Aba "Notas Fiscais" em Relatórios
-- [ ] Card de saldo de fios no Dashboard
-- [ ] Exportação de dados de NF (PDF/CSV)
-
-### Fase 4 — Fechamento Mensal
-- [ ] Página de Fechamento Mensal consolidada
-- [ ] Integração: produção + terceiros + resíduos + NFs
-- [ ] Exportação PDF de fechamento
-
-### Fase 5 — Integração SEFAZ (futuro)
-- [ ] Busca automática por chave de acesso via API
-- [ ] Preenchimento automático de dados da NF
-- [ ] Integração com Nuvem Fiscal ou Focus NFe
+### Modais de confirmação:
+```typescript
+const [cancelConfirmInvoice, setCancelConfirmInvoice] = useState<Invoice | null>(null);
+const [deleteYarnConfirm, setDeleteYarnConfirm] = useState<YarnType | null>(null);
+const [deleteEftConfirmId, setDeleteEftConfirmId] = useState<string | null>(null);
+const [viewDialogOpen, setViewDialogOpen] = useState(false);
+const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+```
 
 ---
 
-*Documento criado em: 29/03/2026 03:30 UTC*
-*Última atualização: 03/04/2026 (adicionado tipo venda_fio, chave de acesso SEFAZ, estoque de malha, integração com fechamento mensal, referência ao saldofiosglobal.md)*
-*Status: PLANEJADO — Aguardando aprovação para implementação*
+## 📐 Lógica de Cálculos (useMemo)
+
+### 1. availableMonths
+- Coleta meses únicos de `invoices[].issue_date` (formato yyyy-MM)
+- Sempre inclui o mês atual
+- Ordenados desc
+
+### 2. filteredInvoices
+- Filtra por aba (`entrada` ou `saida`+`venda_fio`)
+- Aplica filtros: status, client_id, mês (startsWith), busca textual (nº NF, cliente, chave)
+
+### 3. KPIs (por aba)
+- `count`: NFs ativas (não canceladas)
+- `totalKg`: soma total_weight_kg
+- `totalValue`: soma total_value
+- `pendentes`: count status=pendente
+
+### 4. yarnBalance (Saldo de Fios por cliente)
+```
+Recebido = Σ(kg invoice_items de NFs entrada, status ≠ cancelada)
+Vendido  = Σ(kg invoice_items de NFs venda_fio, status ≠ cancelada)
+Consumido = Σ(kg produção dos artigos cujo yarn_type_id = fio do cliente)
+Saldo = Recebido - Vendido - Consumido
+```
+- Agrupado por client_id → yarn_type_id
+- Filtros: saldoMonth, saldoClient, saldoYarn
+
+### 5. yarnGlobalBalance (Saldo Global por tipo de fio)
+```
+Para cada yarn_type:
+  purchaseMonth = Σ(kg NFs entrada no mês selecionado)
+  consumedMonth = Σ(kg produções no mês via artigos vinculados)
+  salesMonth = Σ(kg NFs venda_fio no mês)
+  stockAccumulated = Σ(entradas acumuladas) - Σ(consumo acumulado) - Σ(vendas acumuladas) até o fim do mês
+```
+- Filtros: saldoGlobalMonth, saldoGlobalYarn
+
+### 6. malhaEstoque (Estoque de Malha por cliente)
+```
+Para cada client_id + article_id:
+  producedKg = Σ(weight_kg produções)
+  producedRolls = Σ(rolls_produced produções)
+  deliveredKg = Σ(weight_kg invoice_items de NFs saida, status ≠ cancelada)
+  deliveredRolls = Σ(quantity_rolls invoice_items de NFs saida)
+  stockKg = producedKg - deliveredKg
+  stockRolls = producedRolls - deliveredRolls
+```
+- Filtros: estoqueMonth, estoqueClient, estoqueArticle
+
+### 7. eftGroups (Fio Terceiros)
+- Agrupa outsource_yarn_stock por outsource_company_id
+- Resolve nomes via outsourceCompanies e yarnTypes
+- Filtros: eftMonth, eftCompany, eftYarn
+
+---
+
+## 🎨 Layout e Estilos
+
+### Header:
+```tsx
+<FileText className="h-6 w-6 text-primary" />
+<h1 className="text-2xl font-bold text-foreground">Notas Fiscais</h1>
+<p className="text-sm text-muted-foreground">Controle de entrada de fios e saída de malhas</p>
+```
+
+### Tabs:
+```tsx
+<TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
+  // 7 triggers com className="text-xs"
+</TabsList>
+```
+
+### KPIs (cards 2x2 ou 4 colunas):
+```tsx
+<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  // Cards com <CardContent className="p-4">
+  // Ícones h-3.5 w-3.5 + label text-xs text-muted-foreground
+  // Valores text-xl font-bold text-foreground
+</div>
+```
+
+### Filtros (dentro de Card):
+```tsx
+<Card><CardContent className="p-4">
+  <div className="flex flex-wrap items-center gap-2">
+    // Botões, Selects (h-8 text-xs, w-[140px] ou w-[120px])
+    // Input de busca com ícone Search (w-[160px])
+  </div>
+</CardContent></Card>
+```
+
+### Tabela de NFs:
+- Todas as cells com `text-xs`
+- Header: Nº NF, Cliente, [Tipo se aba saida], Data, Peso (kg), [Valor se canSeeFinancial], Status, Ações
+- Ações: Eye (ver), FileText/verde (conferir se pendente), XCircle/destructive (cancelar)
+- Badges de status com STATUS_COLORS
+
+### Saldo de Fios / Estoque de Malha:
+- Collapsible cards agrupados por cliente, defaultOpen
+- Header: ChevronDown + nome do cliente + resumo (Recebido/Saldo)
+- Tabela interna com totais em `bg-muted/30 font-semibold`
+- Valores negativos em `text-destructive` + Badge "Alerta"
+- Valores positivos em `text-success`
+- Zero em `text-muted-foreground`
+
+### Saldo Global:
+- Tabela simples (sem Collapsible)
+- Colunas: Tipo de Fio, Compra (mês), Consumo (mês), Vendas (mês), Estoque Acumulado
+- KPIs: Compra Mês, Estoque Total, Vendas Mês, Consumo Mês
+
+### Fio Terceiros:
+- Collapsible por facção (outsource_company)
+- Colunas: Tipo de Fio, Quantidade, Mês Ref., Observações, [Ações se canSeeFinancial]
+- Ações: Pencil (editar), Trash2 (excluir)
+
+---
+
+## 📝 Formulário Nova NF (Dialog)
+
+```tsx
+<Dialog>
+  <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+```
+
+### Campos:
+1. **Cliente*** — Select com todos os clientes
+2. **Nº da NF*** — Input text
+3. **Data Emissão*** — Input type="date" com min/maxDate
+4. ~~**Chave de Acesso SEFAZ**~~ — **Temporariamente oculto** (comentado no código, v2 SEFAZ)
+5. **Status** — Select (pendente/conferida)
+6. **Observações** — Textarea
+
+### Itens (dinâmicos):
+- Botão "Adicionar Item" / "Remover" por linha
+- **Se entrada ou venda_fio:**
+  - Tipo de Fio (SearchableSelect com yarnTypes)
+  - Quantidade (kg) — Input
+  - Caixas — Input
+  - Valor/kg — Input (se canSeeFinancial)
+- **Se saída (malha):**
+  - Artigo (SearchableSelect filtrado por cliente)
+  - Quantidade (kg) — Input
+  - Rolos — Input
+  - Valor/kg — Input (auto do artigo, se canSeeFinancial)
+
+### Subtotal:
+- Exibido por item: `weight_kg × value_per_kg`
+- Total da NF no rodapé
+
+### Validações:
+- Cliente obrigatório
+- Nº NF obrigatório
+- Data dentro dos limites (±5 anos)
+- Ao menos 1 item válido (com fio/artigo + peso > 0)
+- ~~Chave de acesso: 44 dígitos numéricos (desabilitado)~~
+
+---
+
+## 🔄 Operações CRUD
+
+### NF:
+- **Criar**: insert em `invoices` + insert em `invoice_items`
+- **Conferir**: update status → 'conferida'
+- **Cancelar**: update status → 'cancelada' (com confirmação)
+- **Visualizar**: Dialog read-only com itens
+
+### Tipo de Fio:
+- **Criar/Editar**: insert/update em `yarn_types`
+- **Excluir**: delete com confirmação (DeleteConfirmDialog)
+
+### Fio Terceiros:
+- **Criar**: upsert em `outsource_yarn_stock` (onConflict: company_id, outsource_company_id, yarn_type_id, reference_month)
+- **Editar**: update quantity_kg + observations
+- **Excluir**: delete com confirmação
+
+### Audit Log:
+- `invoice_create`, `invoice_cancel`, `invoice_confirm`
+- `yarn_type_create`, `yarn_type_update`, `yarn_type_delete`
+- `outsource_yarn_stock_create`, `outsource_yarn_stock_update`, `outsource_yarn_stock_delete`
+
+---
+
+## 🔒 Permissões
+
+- `canSeeFinancial` — controla visibilidade de:
+  - Coluna Valor na tabela de NFs
+  - Campos valor/kg e subtotal nos itens
+  - KPI "Valor Total"
+  - Botões de ação no Fio Terceiros
+
+---
+
+## ⚠️ Notas Importantes
+
+1. **Chave de Acesso SEFAZ** está **comentada no código** (linhas 1587-1591). Input e validação existem mas estão ocultos.
+2. **Venda de Fio NÃO tem campo "Cliente comprador"** — registra apenas o cliente dono do fio que está sendo vendido.
+3. **Saída de Malha** (tipo `saida`) registra malha entregue ao cliente, sem distinção de destino (tinturaria, etc.).
+4. **Estoque de Malha** calcula: Produção - NFs Saída = Estoque, sem campo de destino.
+5. O formulário de NF mantém o modal aberto no Fio Terceiros após salvar (resetando apenas fio/qty/obs).
+
+---
+
+*Documento de reversão criado em: 08/04/2026*
+*Corresponde ao estado exato do código em src/pages/Invoices.tsx (~1891 linhas)*
+*Status: IMPLEMENTADO — Snapshot para rollback*
