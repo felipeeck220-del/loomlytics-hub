@@ -204,6 +204,8 @@ export default function Invoices() {
     quantity_boxes: string;
     value_per_kg: string;
   }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
+  const [formBuyerName, setFormBuyerName] = useState('');
+  const [formDestinationName, setFormDestinationName] = useState('');
 
   // Yarn Type form state
   const [yarnName, setYarnName] = useState('');
