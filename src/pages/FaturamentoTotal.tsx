@@ -9,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, subDays, differenceInCalendarDays } from 'date-fns';
+import { format, subDays, differenceInCalendarDays, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CalendarIcon, Loader2, RotateCcw, Package, Factory, Recycle, DollarSign,
@@ -48,7 +48,7 @@ function RevenueKpiCard({ label, value, previousValue, icon, borderColor, showCo
     ? ((value - previousValue) / previousValue) * 100
     : (value > 0 ? 100 : 0);
   const isPositive = variation >= 0;
-  const showVariation = showComparison && previousValue > 0;
+  const showVariation = showComparison && (previousValue > 0 || value > 0);
 
   return (
     <Card className={cn('border-l-4', borderColor)}>
@@ -61,7 +61,7 @@ function RevenueKpiCard({ label, value, previousValue, icon, borderColor, showCo
               <Badge variant="outline" className={cn(
                 'text-[10px] mt-1',
                 isPositive
-                  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400'
+                  ? 'bg-success/10 text-success border-success/20'
                   : 'bg-destructive/10 text-destructive border-destructive/20'
               )}>
                 {isPositive ? '▲' : '▼'} {formatPercent(Math.abs(variation))}
@@ -113,7 +113,7 @@ export default function FaturamentoTotal() {
     setDateTo(undefined);
     setFilterMonth('all');
   };
-  const hasActiveFilters = filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
+  const hasActiveFilters = dayRange !== 15 || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
 
   // Available months from all 3 sources
   const availableMonths = useMemo(() => {
@@ -155,13 +155,29 @@ export default function FaturamentoTotal() {
   // Previous period for comparison
   const previousPeriod = useMemo(() => {
     if (!currentPeriod) return null;
+
+    if (filterMonth !== 'all') {
+      const currentMonthDate = new Date(`${filterMonth}-01T12:00:00`);
+      const previousMonthDate = subMonths(currentMonthDate, 1);
+      return {
+        start: format(startOfMonth(previousMonthDate), 'yyyy-MM-dd'),
+        end: format(endOfMonth(previousMonthDate), 'yyyy-MM-dd'),
+      };
+    }
+
+    if (customDate) {
+      const previousWeekDate = subDays(customDate, 7);
+      const previousDate = format(previousWeekDate, 'yyyy-MM-dd');
+      return { start: previousDate, end: previousDate };
+    }
+
     const startDate = new Date(currentPeriod.start + 'T12:00:00');
     const endDate = new Date(currentPeriod.end + 'T12:00:00');
     const durationDays = differenceInCalendarDays(endDate, startDate) + 1;
     const prevEnd = subDays(startDate, 1);
     const prevStart = subDays(prevEnd, durationDays - 1);
     return { start: format(prevStart, 'yyyy-MM-dd'), end: format(prevEnd, 'yyyy-MM-dd') };
-  }, [currentPeriod]);
+  }, [currentPeriod, filterMonth, customDate]);
 
   const filterByPeriod = <T extends { date: string }>(data: T[], period: { start: string; end: string } | null) => {
     if (!period) return data;
@@ -293,7 +309,7 @@ export default function FaturamentoTotal() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={customDate} onSelect={(d) => { setCustomDate(d || undefined); if (d) { setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); } }} locale={ptBR} />
+                <Calendar mode="single" selected={customDate} onSelect={(d) => { setCustomDate(d || undefined); if (d) { setDayRange(15); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); } }} locale={ptBR} />
               </PopoverContent>
             </Popover>
 
@@ -321,7 +337,7 @@ export default function FaturamentoTotal() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d || undefined); if (d) { setCustomDate(undefined); setFilterMonth('all'); } }} locale={ptBR} />
+                <Calendar mode="single" selected={dateFrom} onSelect={(d) => { setDateFrom(d || undefined); if (d) { setDayRange(15); setCustomDate(undefined); setFilterMonth('all'); } }} locale={ptBR} />
               </PopoverContent>
             </Popover>
             <Popover>
@@ -332,7 +348,7 @@ export default function FaturamentoTotal() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d || undefined); if (d) { setCustomDate(undefined); setFilterMonth('all'); } }} locale={ptBR} />
+                <Calendar mode="single" selected={dateTo} onSelect={(d) => { setDateTo(d || undefined); if (d) { setDayRange(15); setCustomDate(undefined); setFilterMonth('all'); } }} locale={ptBR} />
               </PopoverContent>
             </Popover>
           </div>
@@ -343,8 +359,8 @@ export default function FaturamentoTotal() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <RevenueKpiCard label="Malhas" value={malhasCurrent} previousValue={malhasPrev} borderColor="border-l-primary" icon={<Package className="h-5 w-5" />} showComparison={showComparison} />
         <RevenueKpiCard label="Terceirizado" value={tercCurrent} previousValue={tercPrev} borderColor="border-l-accent" icon={<Factory className="h-5 w-5" />} showComparison={showComparison} />
-        <RevenueKpiCard label="Resíduos" value={resCurrent} previousValue={resPrev} borderColor="border-l-yellow-500" icon={<Recycle className="h-5 w-5" />} showComparison={showComparison} />
-        <RevenueKpiCard label="Total Geral" value={totalCurrent} previousValue={totalPrev} borderColor="border-l-emerald-500" icon={<DollarSign className="h-5 w-5" />} showComparison={showComparison} />
+        <RevenueKpiCard label="Resíduos" value={resCurrent} previousValue={resPrev} borderColor="border-l-warning" icon={<Recycle className="h-5 w-5" />} showComparison={showComparison} />
+        <RevenueKpiCard label="Total Geral" value={totalCurrent} previousValue={totalPrev} borderColor="border-l-success" icon={<DollarSign className="h-5 w-5" />} showComparison={showComparison} />
       </div>
 
       {/* Chart */}
@@ -363,7 +379,7 @@ export default function FaturamentoTotal() {
                 <Legend />
                 <Area type="monotone" dataKey="malhas" name="Malhas" stackId="1" fill="hsl(var(--primary) / 0.3)" stroke="hsl(var(--primary))" />
                 <Area type="monotone" dataKey="terceirizado" name="Terceirizado" stackId="1" fill="hsl(var(--accent) / 0.3)" stroke="hsl(var(--accent))" />
-                <Area type="monotone" dataKey="residuos" name="Resíduos" stackId="1" fill="hsl(38, 92%, 50%, 0.3)" stroke="hsl(38, 92%, 50%)" />
+                <Area type="monotone" dataKey="residuos" name="Resíduos" stackId="1" fill="hsl(var(--warning) / 0.3)" stroke="hsl(var(--warning))" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -395,7 +411,7 @@ export default function FaturamentoTotal() {
                     <TableCell className="text-right">{formatCurrency(r.current)}</TableCell>
                     {showComparison && <TableCell className="text-right">{formatCurrency(r.prev)}</TableCell>}
                     {showComparison && (
-                      <TableCell className={cn('text-right font-medium', isPos ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
+                      <TableCell className={cn('text-right font-medium', isPos ? 'text-success' : 'text-destructive')}>
                         {isPos ? '▲' : '▼'} {formatPercent(Math.abs(r.variation))}
                       </TableCell>
                     )}
@@ -416,9 +432,9 @@ export default function FaturamentoTotal() {
                 <TableCell className="text-right">{formatCurrency(totalCurrent)}</TableCell>
                 {showComparison && <TableCell className="text-right">{formatCurrency(totalPrev)}</TableCell>}
                 {showComparison && (
-                  <TableCell className={cn('text-right', (totalPrev > 0 ? ((totalCurrent - totalPrev) / totalPrev) >= 0 : true) ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
-                    {totalPrev > 0
-                      ? `${((totalCurrent - totalPrev) / totalPrev) >= 0 ? '▲' : '▼'} ${formatPercent(Math.abs(((totalCurrent - totalPrev) / totalPrev) * 100))}`
+                  <TableCell className={cn('text-right', (totalPrev > 0 ? ((totalCurrent - totalPrev) / totalPrev) >= 0 : true) ? 'text-success' : 'text-destructive')}>
+                    {(totalPrev > 0 || totalCurrent > 0)
+                      ? `${(totalPrev > 0 ? ((totalCurrent - totalPrev) / totalPrev) >= 0 : true) ? '▲' : '▼'} ${formatPercent(Math.abs(totalPrev > 0 ? ((totalCurrent - totalPrev) / totalPrev) * 100 : 100))}`
                       : '—'}
                   </TableCell>
                 )}

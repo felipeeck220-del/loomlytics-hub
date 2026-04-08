@@ -167,7 +167,7 @@ interface AuthContextType {
 **Mapeamento completo:**
 ```typescript
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
-  admin:     ['dashboard', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'invoices', 'fechamento', 'settings'],
+  admin:     ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'invoices', 'fechamento', 'settings'],
   lider:     ['machines', 'clients-articles', 'revision', 'mecanica', 'weavers'],
   mecanico:  ['machines', 'mecanica'],
   revisador: ['revision'],
@@ -1423,6 +1423,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **09/04/2026 04:30 (Brasília)** — **AUDITORIA DE CÓDIGO — Pente fino nas últimas 10 atualizações:** Revisão completa de código e banco de dados cobrindo atualizações de 07/04 a 09/04: (1) **TypeScript:** Build 100% limpo (0 erros); (2) **Banco de dados:** 0 erros nos logs PostgreSQL; (3) **ESC/clique-fora nos modais:** Verificados todos os 15+ modais em 11 arquivos — 100% com `onEscapeKeyDown` e `onInteractOutside`; (4) **SearchableSelect:** `side="bottom"` e `avoidCollisions={false}` confirmados; (5) **Resíduos (cliente-cêntrico):** Tabelas `residue_clients`, `residue_client_prices` com RLS ok, fluxo de venda com `client_id` funcional; (6) **FaturamentoTotal:** Queries com `fetchAllPaginated`, filtros de data, KPIs e gráfico funcionais; (7) **Faturamento no sidebar:** Bug corrigido — `enabled_nav_items` de empresas existentes atualizado via migration para incluir `faturamento-total`; (8) **mestre.md:** Seção "Arquitetura de Pastas" atualizada com 5 páginas faltantes (FaturamentoTotal, AccountsPayable, ResidueSales, Invoices, Fechamento). Nenhum bug encontrado no código ou banco.
 
+- **09/04/2026 15:23 (Brasília)** — **PENTE FINO — Correções reais nas últimas 10 atualizações:** (1) **Faturamento Total:** corrigida a comparação do período anterior para filtro por **mês** (mês anterior completo) e **dia específico** (7 dias antes), eliminando percentuais incorretos; (2) **Faturamento Total:** badges e linha total agora mostram corretamente **+100%** quando o período anterior é zero e o atual possui receita; (3) **Faturamento Total:** botão **Limpar Filtros** e sincronização de `dayRange` ajustados para os filtros de dia e intervalo; (4) **Consultas defensivas:** trocado `.single()` por `.maybeSingle()` em Sidebar, Relatórios e Resíduos para evitar falhas quando não houver registro; (5) **mestre.md:** snippet de permissões do admin corrigido para incluir `faturamento-total`.
+
 ---
 
-*Última atualização: 09/04/2026 04:30 (Brasília)*
+*Última atualização: 09/04/2026 15:23 (Brasília)*
