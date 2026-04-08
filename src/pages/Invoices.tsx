@@ -22,7 +22,7 @@ import {
   Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign,
   CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil, Building2
 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
+
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -120,7 +120,7 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
 export default function Invoices() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
-  const isTrama = user?.email === 'admin@felipe.com';
+  
   const { userCode, userName, logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const { canSeeFinancial } = usePermissions();
@@ -206,9 +206,6 @@ export default function Invoices() {
     value_per_kg: string;
   }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
 
-  // Trama-specific form state
-  const [formSulBrasil, setFormSulBrasil] = useState(false);
-  const [formDestinationName, setFormDestinationName] = useState('');
 
   // Yarn Type form state
   const [yarnName, setYarnName] = useState('');
@@ -232,8 +229,6 @@ export default function Invoices() {
     setFormStatus('pendente');
     setFormObservations('');
     setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
-    setFormSulBrasil(false);
-    setFormDestinationName('');
   };
 
   const openNewInvoice = (type: InvoiceType) => {
@@ -262,14 +257,7 @@ export default function Invoices() {
 
     // Tab filter
     if (activeTab === 'entrada') filtered = filtered.filter(i => i.type === 'entrada');
-    else if (activeTab === 'saida') {
-      if (isTrama) {
-        filtered = filtered.filter(i => i.type === 'saida');
-      } else {
-        filtered = filtered.filter(i => i.type === 'saida' || i.type === 'venda_fio');
-      }
-    }
-    else if (activeTab === 'venda_fio') filtered = filtered.filter(i => i.type === 'venda_fio');
+    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida' || i.type === 'venda_fio');
 
     // Status
     if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
@@ -334,9 +322,7 @@ export default function Invoices() {
 
       const clientObj = clients.find(c => c.id === formClientId);
 
-      const observationsToSave = isTrama && formSulBrasil && formType === 'entrada'
-        ? `[SUL BRASIL]${formObservations.trim() ? ' ' + formObservations.trim() : ''}`
-        : formObservations.trim() || null;
+      const observationsToSave = formObservations.trim() || null;
 
       const { data: invData, error: invError } = await sb('invoices').insert({
         company_id: companyId,
@@ -350,7 +336,7 @@ export default function Invoices() {
         total_value: totalValue,
         status: formStatus,
         observations: observationsToSave,
-        destination_name: (isTrama && formType === 'saida') ? (formDestinationName.trim() || null) : null,
+        
         created_by_name: userName || null,
         created_by_code: userCode || null,
       }).select('id').single();
@@ -855,8 +841,7 @@ export default function Invoices() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
           <TabsTrigger value="entrada" className="text-xs">Entrada</TabsTrigger>
-          <TabsTrigger value="saida" className="text-xs">{isTrama ? 'Saída Malha' : 'Saída'}</TabsTrigger>
-          {isTrama && <TabsTrigger value="venda_fio" className="text-xs">Venda de Fio</TabsTrigger>}
+          <TabsTrigger value="saida" className="text-xs">Saída</TabsTrigger>
           <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
           <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
           <TabsTrigger value="estoque" className="text-xs">Estoque Malha</TabsTrigger>
@@ -865,7 +850,7 @@ export default function Invoices() {
         </TabsList>
 
         {/* ===== ENTRADA, SAIDA & VENDA_FIO TABS ===== */}
-        {['entrada', 'saida', ...(isTrama ? ['venda_fio'] : [])].map(tab => {
+        {['entrada', 'saida'].map(tab => {
           const tabLabel = tab === 'entrada' ? 'Entrada (Fio)' : 'Saída (Malha)';
           const invoiceType = tab as InvoiceType;
           return (
@@ -900,20 +885,14 @@ export default function Invoices() {
                     <Button onClick={() => openNewInvoice('entrada')} size="sm" className="gap-1.5">
                       <Plus className="h-4 w-4" /> Nova Entrada
                     </Button>
-                  ) : tab === 'venda_fio' ? (
-                    <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
-                      <Plus className="h-4 w-4" /> Nova Venda de Fio
-                    </Button>
                   ) : (
                     <div className="flex gap-1.5">
                       <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
                         <Plus className="h-4 w-4" /> Nova Saída
                       </Button>
-                      {!isTrama && (
-                        <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
-                          <Plus className="h-4 w-4" /> Venda de Fio
-                        </Button>
-                      )}
+                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
+                        <Plus className="h-4 w-4" /> Venda de Fio
+                      </Button>
                     </div>
                   )}
                   <div className="flex-1" />
@@ -980,8 +959,7 @@ export default function Invoices() {
                          <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
                           <TableHead className="text-xs">Cliente</TableHead>
-                          {isTrama && tab === 'saida' && <TableHead className="text-xs">Tinturaria</TableHead>}
-                          {tab === 'saida' && !isTrama && <TableHead className="text-xs">Tipo</TableHead>}
+                          {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
@@ -994,8 +972,7 @@ export default function Invoices() {
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                             <TableCell className="text-xs">{inv.client_name || '—'}</TableCell>
-                            {isTrama && tab === 'saida' && <TableCell className="text-xs">{inv.destination_name || '—'}</TableCell>}
-                            {tab === 'saida' && !isTrama && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
+                            {tab === 'saida' && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
                             </TableCell>
@@ -1603,20 +1580,11 @@ export default function Invoices() {
             <DialogTitle>Nova NF — {TYPE_LABELS[formType]}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Sul Brasil toggle (Trama only, entrada only) */}
-            {isTrama && formType === 'entrada' && (
-              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                <Switch checked={formSulBrasil} onCheckedChange={setFormSulBrasil} id="sul-brasil" />
-                <Label htmlFor="sul-brasil" className="text-xs font-medium cursor-pointer">
-                  Sul Brasil (compra própria de fio)
-                </Label>
-              </div>
-            )}
 
             {/* Client + NF Number + Date */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs">{isTrama && formSulBrasil && formType === 'entrada' ? 'Fornecedor *' : 'Cliente *'}</Label>
+                <Label className="text-xs">Cliente *</Label>
                 <SearchableSelect
                   value={formClientId}
                   onValueChange={setFormClientId}
@@ -1636,13 +1604,6 @@ export default function Invoices() {
               </div>
             </div>
 
-            {/* Tinturaria field (Trama only, saida only) */}
-            {isTrama && formType === 'saida' && (
-              <div>
-                <Label className="text-xs">Tinturaria (destino)</Label>
-                <Input className="h-9 text-xs" value={formDestinationName} onChange={e => setFormDestinationName(e.target.value)} placeholder="Ex: Tinturaria ABC (opcional)" />
-              </div>
-            )}
 
 
             {/* <div>
@@ -1785,7 +1746,7 @@ export default function Invoices() {
                 <div><span className="text-muted-foreground text-xs">Status:</span><br /><Badge className={cn('text-[10px]', STATUS_COLORS[viewingInvoice.status])}>{STATUS_LABELS[viewingInvoice.status]}</Badge></div>
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
                 {canSeeFinancial && <div><span className="text-muted-foreground text-xs">Valor Total:</span><br />{formatCurrency(Number(viewingInvoice.total_value || 0))}</div>}
-                {isTrama && viewingInvoice.destination_name && <div><span className="text-muted-foreground text-xs">Tinturaria:</span><br />{viewingInvoice.destination_name}</div>}
+                
               </div>
               {/* Chave de Acesso - temporariamente oculto (v2 SEFAZ) */}
               {/* {viewingInvoice.access_key && (
