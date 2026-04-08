@@ -1412,6 +1412,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **09/04/2026 02:00 (Brasília)** — **VENDAS DE RESÍDUOS — Reestruturação cliente-cêntrica (Opção A):** Modelo alterado de material-cêntrico para **cliente-cêntrico**: (1) **Nova tabela `residue_clients`** — cadastro de compradores de resíduos; (2) **Nova tabela `residue_client_prices`** — preço por material por cliente (UNIQUE client_id+material_id); (3) **Nova coluna `client_id`** em `residue_sales` (FK para residue_clients, nullable); (4) **3 abas** no módulo: "Registros de Venda" (default), "Clientes" (novo), "Materiais" (catálogo simples sem preço); (5) **Aba Clientes** com expansão accordion — cada cliente mostra materiais vinculados com preços; (6) **Fluxo de venda**: seleciona Cliente → filtra materiais do cliente → preço auto-preenche; (7) **SearchableSelect** nos campos Cliente e Material do modal de venda; (8) Tabela de materiais simplificada (removido preço padrão da UI); (9) RLS em todas as novas tabelas com `company_id = get_user_company_id()`. Documentação atualizada em `docs/Recycle.md`.
 
+- **09/04/2026 03:30 (Brasília)** — **UX — Padronização de modais de registro (ESC + clique fora):** Todos os modais de formulário/registro agora impedem fechamento acidental via ESC (`onEscapeKeyDown`) e clique fora (`onInteractOutside`), seguindo o padrão já implementado em Produção Terceirizada. Páginas atualizadas: Production.tsx, Revision.tsx, ResidueSales.tsx (4 modais), Invoices.tsx (3 modais), AccountsPayable.tsx, Machines.tsx, Weavers.tsx, ClientsArticles.tsx (2 modais), Mecanica.tsx, Outsource.tsx (modal malharia), Settings.tsx (modal usuário). Modais de exclusão/confirmação e visualização mantidos com comportamento padrão (ESC fecha).
+
 ---
 
-*Última atualização: 09/04/2026 02:00 (Brasília)*
+*Última atualização: 09/04/2026 03:30 (Brasília)*

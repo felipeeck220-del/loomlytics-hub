@@ -1366,7 +1366,7 @@ export default function SettingsPage() {
 
       {/* Create/Edit User Modal */}
       <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{editingUser ? 'Editar Usuário' : 'Criar Novo Usuário'}</DialogTitle>
             {!editingUser && <p className="text-sm text-muted-foreground">Preencha os dados para criar um novo usuário</p>}
