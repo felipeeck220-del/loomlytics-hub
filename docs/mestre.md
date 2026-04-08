@@ -1398,6 +1398,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **08/04/2026 16:00 (Brasília)** — **NOTAS FISCAIS — Validação numérica em todos os campos:** (1) **Nº da NF** agora filtra caracteres não-numéricos (`replace(/\D/g, '')`) com `inputMode="numeric"`; (2) **Peso (kg)** e **R$/kg** bloqueiam teclas `e`, `E`, `+`, `-` via `onKeyDown` com `inputMode="decimal"`; (3) **Caixas** e **Rolos** bloqueiam `e`, `E`, `+`, `-`, `.`, `,` (apenas inteiros); (4) **Quantidade (kg) Fio Terceiros** com mesma proteção; (5) Todos com `inputMode` adequado para teclado numérico em mobile.
 
+- **08/04/2026 17:00 (Brasília)** — **NOTAS FISCAIS — Reversão para v1 (nf.md):** Revertido o módulo de Notas Fiscais para o estado original v1 documentado em `docs/nf.md`. Removido tipo `saida_malha`, campos `buyer_name`/`destination_name` do formulário/interface, revertidas as abas para 7 originais (Entrada, Saída, Saldo Fios, Saldo Global, Estoque Malha, Fio Terceiros, Tipos de Fio). A aba "Saída" volta a mostrar NFs tipo `saida` e `venda_fio` combinadas com botões separados. Estoque de Malha volta a considerar apenas NFs tipo `saida`. Validação numérica e SearchableSelect no campo Artigo mantidos. As colunas `buyer_name` e `destination_name` permanecem no banco (não removidas) para não perder dados existentes.
+
 ---
 
-*Última atualização: 08/04/2026 16:00 (Brasília)*
+*Última atualização: 08/04/2026 17:00 (Brasília)*
