@@ -1610,7 +1610,20 @@ export default function Invoices() {
               </div>
             </div>
 
-            {/* Access Key - temporariamente oculto (v2 SEFAZ) */}
+            {/* Buyer Name (venda_fio) / Destination Name (saida_malha) */}
+            {formType === 'venda_fio' && (
+              <div>
+                <Label className="text-xs">Comprador / Cliente da Venda *</Label>
+                <Input className="h-9 text-xs" value={formBuyerName} onChange={e => setFormBuyerName(e.target.value)} placeholder="Ex: JR DUBLAGEM" />
+              </div>
+            )}
+            {formType === 'saida_malha' && (
+              <div>
+                <Label className="text-xs">Tinturaria (Destino) *</Label>
+                <Input className="h-9 text-xs" value={formDestinationName} onChange={e => setFormDestinationName(e.target.value)} placeholder="Ex: Tinturaria XYZ" />
+              </div>
+            )}
+
             {/* <div>
               <Label className="text-xs">Chave de Acesso SEFAZ (44 dígitos, opcional)</Label>
               <Input className="h-9 text-xs font-mono" maxLength={44} value={formAccessKey} onChange={e => setFormAccessKey(e.target.value.replace(/\D/g, ''))} placeholder="00000000000000000000000000000000000000000000" />
