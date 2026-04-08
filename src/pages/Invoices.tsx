@@ -120,6 +120,7 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
 export default function Invoices() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
+  const isTrama = user?.email === 'admin@felipe.com';
   const { userCode, userName, logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const { canSeeFinancial } = usePermissions();
