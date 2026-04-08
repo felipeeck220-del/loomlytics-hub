@@ -70,6 +70,8 @@ interface Invoice {
   access_key: string | null;
   client_id: string | null;
   client_name: string | null;
+  destination_name: string | null;
+  buyer_name: string | null;
   issue_date: string;
   total_weight_kg: number;
   total_value: number;
