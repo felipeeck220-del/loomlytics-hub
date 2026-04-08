@@ -259,7 +259,9 @@ export default function Invoices() {
 
     // Tab filter
     if (activeTab === 'entrada') filtered = filtered.filter(i => i.type === 'entrada');
-    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida' || i.type === 'venda_fio' || i.type === 'saida_malha');
+    else if (activeTab === 'venda_fio') filtered = filtered.filter(i => i.type === 'venda_fio');
+    else if (activeTab === 'saida_malha') filtered = filtered.filter(i => i.type === 'saida_malha');
+    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida');
 
     // Status
     if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
