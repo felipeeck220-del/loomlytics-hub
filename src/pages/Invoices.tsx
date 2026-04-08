@@ -229,6 +229,8 @@ export default function Invoices() {
     setFormStatus('pendente');
     setFormObservations('');
     setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
+    setFormBuyerName('');
+    setFormDestinationName('');
   };
 
   const openNewInvoice = (type: InvoiceType) => {
@@ -257,7 +259,7 @@ export default function Invoices() {
 
     // Tab filter
     if (activeTab === 'entrada') filtered = filtered.filter(i => i.type === 'entrada');
-    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida' || i.type === 'venda_fio');
+    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida' || i.type === 'venda_fio' || i.type === 'saida_malha');
 
     // Status
     if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
