@@ -777,16 +777,19 @@ export default function Dashboard() {
                   manutencao_preventiva: 'Manutenção Preventiva',
                   manutencao_corretiva: 'Manutenção Corretiva',
                   troca_artigo: 'Troca de Artigo',
+                  troca_agulhas: 'Troca de Agulhas',
                 };
                 const statusIcons: Record<string, React.ReactNode> = {
                   manutencao_preventiva: <Wrench className="h-4 w-4" />,
                   manutencao_corretiva: <AlertTriangle className="h-4 w-4" />,
                   troca_artigo: <RefreshCw className="h-4 w-4" />,
+                  troca_agulhas: <Settings2 className="h-4 w-4" />,
                 };
                 const statusColors: Record<string, string> = {
                   manutencao_preventiva: 'text-warning bg-warning/10 border-warning/20',
                   manutencao_corretiva: 'text-destructive bg-destructive/10 border-destructive/20',
                   troca_artigo: 'text-info bg-info/10 border-info/20',
+                  troca_agulhas: 'text-primary bg-primary/10 border-primary/20',
                 };
                 const colorClass = statusColors[m.status] || 'text-muted-foreground bg-muted border-border';
 
