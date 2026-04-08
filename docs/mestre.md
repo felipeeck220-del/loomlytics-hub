@@ -1425,6 +1425,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **09/04/2026 15:23 (Brasília)** — **PENTE FINO — Correções reais nas últimas 10 atualizações:** (1) **Faturamento Total:** corrigida a comparação do período anterior para filtro por **mês** (mês anterior completo) e **dia específico** (7 dias antes), eliminando percentuais incorretos; (2) **Faturamento Total:** badges e linha total agora mostram corretamente **+100%** quando o período anterior é zero e o atual possui receita; (3) **Faturamento Total:** botão **Limpar Filtros** e sincronização de `dayRange` ajustados para os filtros de dia e intervalo; (4) **Consultas defensivas:** trocado `.single()` por `.maybeSingle()` em Sidebar, Relatórios e Resíduos para evitar falhas quando não houver registro; (5) **mestre.md:** snippet de permissões do admin corrigido para incluir `faturamento-total`.
 
+- **08/04/2026 22:00 (Brasília)** — **FATURAMENTO TOTAL — Label "Malhas" dinâmico com nome da empresa:** O label "Malhas" nos KPI cards, gráfico e tabela resumo foi alterado para `Malhas (PrimeiroNome)`, onde PrimeiroNome é a primeira palavra do nome da empresa logada (ex: "Malhas (Têxtil)" para empresa "Têxtil Silva"). Derivado de `user.company_name.split(' ')[0]`.
+
 ---
 
-*Última atualização: 09/04/2026 15:23 (Brasília)*
+*Última atualização: 08/04/2026 22:00 (Brasília)*
