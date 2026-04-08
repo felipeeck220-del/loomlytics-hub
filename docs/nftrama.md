@@ -291,5 +291,5 @@ const [formDestinationName, setFormDestinationName] = useState('');
 ---
 
 *Documento criado em: 08/04/2026*
-*Status: ESPECIFICAÇÃO — Aguardando implementação*
+*Status: ❌ REVERTIDO — Implementado e revertido em 08/04/2026. A lógica condicional `isTrama` foi removida; todos os usuários usam a v1 (nf.md) uniformemente.*
 *Base: nf.md (v1) + customizações Trama Têxtil*

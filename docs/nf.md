@@ -62,6 +62,8 @@ const STATUS_COLORS = { pendente: 'bg-warning/10 text-warning', conferida: 'bg-s
 | access_key | text | Yes | — |
 | client_id | uuid | Yes | — |
 | client_name | text | Yes | — |
+| buyer_name | text | Yes | — |
+| destination_name | text | Yes | — |
 | issue_date | text | No | — |
 | total_weight_kg | numeric | No | 0 |
 | total_value | numeric | Yes | 0 |
@@ -447,5 +449,6 @@ Para cada client_id + article_id:
 ---
 
 *Documento de reversão criado em: 08/04/2026*
-*Corresponde ao estado exato do código em src/pages/Invoices.tsx (~1891 linhas)*
-*Status: IMPLEMENTADO — Snapshot para rollback*
+*Corresponde ao estado v1 do módulo de Notas Fiscais*
+*Status: ✅ ATIVO — Estado atual do sistema para TODOS os usuários*
+*Nota: Colunas `buyer_name` e `destination_name` existem no banco (adicionadas durante NFv2) mas não são usadas na UI v1.*

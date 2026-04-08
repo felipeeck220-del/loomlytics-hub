@@ -371,4 +371,4 @@ Herda as mesmas permissões da página de Notas Fiscais.
 ---
 
 *Documento criado em: 03/04/2026*
-*Status: DOCUMENTADO — Aguardando implementação junto com o Fechamento Mensal*
+*Status: ✅ IMPLEMENTADO — Aba "Saldo Global" funcional na página Invoices com KPIs, filtros e tabela.*
