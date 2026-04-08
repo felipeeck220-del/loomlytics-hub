@@ -1029,13 +1029,16 @@ export default function ResidueSales() {
             </div>
             <div>
               <Label>Material *</Label>
-              <SearchableSelect
-                value={saleMaterialId}
-                onValueChange={setSaleMaterialId}
-                placeholder={saleClientId ? "Selecione o material..." : "Selecione um cliente primeiro"}
-                options={saleClientMaterials.map(m => ({ value: m.id, label: `${m.name} (${m.unit})` }))}
-                disabled={!saleClientId}
-              />
+              {saleClientId ? (
+                <SearchableSelect
+                  value={saleMaterialId}
+                  onValueChange={setSaleMaterialId}
+                  placeholder="Selecione o material..."
+                  options={saleClientMaterials.map(m => ({ value: m.id, label: `${m.name} (${m.unit})` }))}
+                />
+              ) : (
+                <Input disabled placeholder="Selecione um cliente primeiro" className="text-muted-foreground" />
+              )}
             </div>
             <div>
               <Label>{selectedSaleMaterial?.unit === 'unidade' ? 'Quantidade (un) *' : 'Peso (kg) *'}</Label>
