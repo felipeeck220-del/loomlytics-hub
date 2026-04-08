@@ -1392,6 +1392,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **08/04/2026 14:30 (Brasília)** — **NOTAS FISCAIS — Lupa (SearchableSelect) no campo Artigo:** Substituído `<Select>` padrão por `SearchableSelect` (com lupa de pesquisa) no campo "Artigo" dos itens de NF para tipos `saida` e `saida_malha` (Saída Malha Tinturaria). Padroniza UX com o restante do sistema.
 
+- **08/04/2026 14:45 (Brasília)** — **SearchableSelect — Lista sempre abre para baixo:** Adicionado `side="bottom"` e `avoidCollisions={false}` no `PopoverContent` do componente `SearchableSelect` para garantir que a lista de opções sempre abra para baixo, evitando que abra para cima em campos próximos ao fundo da tela.
+
 ---
 
-*Última atualização: 08/04/2026 14:30 (Brasília)*
+*Última atualização: 08/04/2026 14:45 (Brasília)*
