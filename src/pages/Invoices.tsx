@@ -1603,16 +1603,28 @@ export default function Invoices() {
             <DialogTitle>Nova NF — {TYPE_LABELS[formType]}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Sul Brasil toggle (Trama only, entrada only) */}
+            {isTrama && formType === 'entrada' && (
+              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                <Switch checked={formSulBrasil} onCheckedChange={setFormSulBrasil} id="sul-brasil" />
+                <Label htmlFor="sul-brasil" className="text-xs font-medium cursor-pointer">
+                  Sul Brasil (compra própria de fio)
+                </Label>
+              </div>
+            )}
+
             {/* Client + NF Number + Date */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs">Cliente *</Label>
-                <Select value={formClientId} onValueChange={setFormClientId}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs">{isTrama && formSulBrasil && formType === 'entrada' ? 'Fornecedor *' : 'Cliente *'}</Label>
+                <SearchableSelect
+                  value={formClientId}
+                  onValueChange={setFormClientId}
+                  options={clients.map(c => ({ value: c.id, label: c.name }))}
+                  placeholder="Selecione..."
+                  searchPlaceholder="Buscar..."
+                  triggerClassName="h-9 text-xs"
+                />
               </div>
               <div>
                 <Label className="text-xs">Nº da NF *</Label>
@@ -1623,6 +1635,14 @@ export default function Invoices() {
                 <Input type="date" className="h-9 text-xs" value={formIssueDate} onChange={e => setFormIssueDate(e.target.value)} min={minDate} max={maxDate} />
               </div>
             </div>
+
+            {/* Tinturaria field (Trama only, saida only) */}
+            {isTrama && formType === 'saida' && (
+              <div>
+                <Label className="text-xs">Tinturaria (destino)</Label>
+                <Input className="h-9 text-xs" value={formDestinationName} onChange={e => setFormDestinationName(e.target.value)} placeholder="Ex: Tinturaria ABC (opcional)" />
+              </div>
+            )}
 
 
             {/* <div>
