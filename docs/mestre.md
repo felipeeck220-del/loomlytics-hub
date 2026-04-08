@@ -1388,6 +1388,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **07/04/2026 23:00 (Brasília)** — **NOTAS FISCAIS — Ocultar Chave de Acesso SEFAZ:** Campo "Chave de Acesso SEFAZ" temporariamente oculto no formulário de criação/edição e na visualização de NFs. Validação de 44 dígitos também desabilitada. Será reativado na v2 (integração SEFAZ).
 
+- **08/04/2026 14:00 (Brasília)** — **NOTAS FISCAIS v2 (NFv2) — Implementação completa:** (1) **Nova coluna `buyer_name`** (text, nullable) na tabela `invoices` — comprador da venda de fio; (2) **Nova coluna `destination_name`** (text, nullable) — tinturaria destino para saída de malha; (3) **Novo tipo de NF `saida_malha`** (Saída Malha Tinturaria) — permite registrar malha enviada diretamente para tinturaria; (4) **Campo "Comprador"** obrigatório no formulário de Venda de Fio; (5) **Campo "Tinturaria"** obrigatório no formulário de Saída Malha; (6) **Botão "Saída Malha (Tinturaria)"** na aba Saída; (7) **Coluna "Comprador/Destino"** na listagem da aba Saída; (8) **Estoque de Malha** atualizado: deduz tanto `saida` quanto `saida_malha`; (9) **View Dialog** exibe Comprador/Tinturaria conforme o tipo; (10) Documentação base em `docs/nf.md` (rollback) e plano em `docs/nfv2.md`.
+
 ---
 
-*Última atualização: 07/04/2026 23:00 (Brasília)*
+*Última atualização: 08/04/2026 14:00 (Brasília)*
