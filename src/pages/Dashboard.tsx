@@ -140,6 +140,65 @@ export default function Dashboard() {
     return data;
   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, articles]);
 
+  // ── Previous period for comparison ──
+  const currentPeriod = useMemo(() => {
+    const today = new Date();
+    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) return null;
+    if (dateFrom || dateTo) {
+      return {
+        start: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '2000-01-01',
+        end: dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd'),
+      };
+    }
+    if (filterMonth !== 'all') {
+      const [y, m] = filterMonth.split('-').map(Number);
+      const lastDay = new Date(y, m, 0).getDate();
+      return { start: `${filterMonth}-01`, end: `${filterMonth}-${String(lastDay).padStart(2, '0')}` };
+    }
+    if (customDate) {
+      const d = format(customDate, 'yyyy-MM-dd');
+      return { start: d, end: d };
+    }
+    return {
+      start: format(subDays(today, dayRange - 1), 'yyyy-MM-dd'),
+      end: format(today, 'yyyy-MM-dd'),
+    };
+  }, [dayRange, customDate, dateFrom, dateTo, filterMonth]);
+
+  const previousPeriod = useMemo(() => {
+    if (!currentPeriod) return null;
+    if (filterMonth !== 'all') {
+      const currentMonthDate = new Date(`${filterMonth}-01T12:00:00`);
+      const previousMonthDate = subMonths(currentMonthDate, 1);
+      return { start: format(startOfMonth(previousMonthDate), 'yyyy-MM-dd'), end: format(endOfMonth(previousMonthDate), 'yyyy-MM-dd') };
+    }
+    if (customDate) {
+      const prev = format(subDays(customDate, 7), 'yyyy-MM-dd');
+      return { start: prev, end: prev };
+    }
+    const startDate = new Date(currentPeriod.start + 'T12:00:00');
+    const endDate = new Date(currentPeriod.end + 'T12:00:00');
+    const durationDays = differenceInCalendarDays(endDate, startDate) + 1;
+    const prevEnd = subDays(startDate, 1);
+    const prevStart = subDays(prevEnd, durationDays - 1);
+    return { start: format(prevStart, 'yyyy-MM-dd'), end: format(prevEnd, 'yyyy-MM-dd') };
+  }, [currentPeriod, filterMonth, customDate]);
+
+  const prevFiltered = useMemo(() => {
+    if (!previousPeriod) return [];
+    let data = [...productions];
+    data = data.filter(p => p.date >= previousPeriod.start && p.date <= previousPeriod.end);
+    if (filterShift !== 'all') data = data.filter(p => p.shift === filterShift);
+    if (filterClient !== 'all') {
+      const clientArticles = articles.filter(a => a.client_id === filterClient).map(a => a.id);
+      data = data.filter(p => clientArticles.includes(p.article_id));
+    }
+    if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
+    return data;
+  }, [productions, previousPeriod, filterShift, filterClient, filterArticle, articles]);
+
+  const showComparison = currentPeriod !== null;
+
   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
   const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
