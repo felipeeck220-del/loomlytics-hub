@@ -1592,7 +1592,7 @@ export default function Invoices() {
               </div>
               <div>
                 <Label className="text-xs">Nº da NF *</Label>
-                <Input className="h-9 text-xs" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value)} placeholder="Ex: 12345" />
+                <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder="Ex: 12345" />
               </div>
               <div>
                 <Label className="text-xs">Data Emissão *</Label>
@@ -1666,25 +1666,26 @@ export default function Invoices() {
                     </div>
                     <div className="col-span-2">
                       <Label className="text-[10px]">Peso (kg)</Label>
-                      <Input className="h-8 text-xs" type="number" step="0.1" min="0" value={item.weight_kg} onChange={e => updateItem(idx, 'weight_kg', e.target.value)} />
+                      <Input className="h-8 text-xs" inputMode="decimal" type="number" step="0.1" min="0" value={item.weight_kg} onChange={e => updateItem(idx, 'weight_kg', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); }} />
                     </div>
                     {(formType === 'entrada' || formType === 'venda_fio') && (
                       <div className="col-span-2">
                         <Label className="text-[10px]">Caixas</Label>
-                        <Input className="h-8 text-xs" type="number" min="0" value={item.quantity_boxes} onChange={e => updateItem(idx, 'quantity_boxes', e.target.value)} />
+                        <Input className="h-8 text-xs" inputMode="numeric" type="number" min="0" value={item.quantity_boxes} onChange={e => updateItem(idx, 'quantity_boxes', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-', '.', ','].includes(e.key)) e.preventDefault(); }} />
                       </div>
                     )}
                     {formType === 'saida' && (
                       <div className="col-span-2">
                         <Label className="text-[10px]">Rolos</Label>
-                        <Input className="h-8 text-xs" type="number" min="0" value={item.quantity_rolls} onChange={e => updateItem(idx, 'quantity_rolls', e.target.value)} />
+                        <Input className="h-8 text-xs" inputMode="numeric" type="number" min="0" value={item.quantity_rolls} onChange={e => updateItem(idx, 'quantity_rolls', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-', '.', ','].includes(e.key)) e.preventDefault(); }} />
                       </div>
                     )}
                     {(formType === 'saida' || formType === 'venda_fio') && canSeeFinancial && (
                       <div className="col-span-2">
                         <Label className="text-[10px]">R$/kg</Label>
-                        <Input className="h-8 text-xs" type="number" step="0.01" min="0" value={item.value_per_kg}
+                        <Input className="h-8 text-xs" inputMode="decimal" type="number" step="0.01" min="0" value={item.value_per_kg}
                           onChange={e => updateItem(idx, 'value_per_kg', e.target.value)}
+                          onKeyDown={e => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); }}
                         />
                       </div>
                     )}
@@ -1880,7 +1881,7 @@ export default function Invoices() {
             </div>
             <div>
               <Label className="text-xs">Quantidade (kg) *</Label>
-              <Input className="h-9 text-xs" type="number" step="0.01" min="0" value={eftFormQty} onChange={e => setEftFormQty(e.target.value)} placeholder="Ex: 1234.56" />
+              <Input className="h-9 text-xs" inputMode="decimal" type="number" step="0.01" min="0" value={eftFormQty} onChange={e => setEftFormQty(e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); }} placeholder="Ex: 1234.56" />
             </div>
             <div>
               <Label className="text-xs">Observações</Label>
