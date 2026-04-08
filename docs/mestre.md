@@ -1427,6 +1427,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **08/04/2026 22:00 (Brasília)** — **FATURAMENTO TOTAL — Label "Malhas" dinâmico com nome da empresa:** O label "Malhas" nos KPI cards, gráfico e tabela resumo foi alterado para `Malhas (PrimeiroNome)`, onde PrimeiroNome é a primeira palavra do nome da empresa logada (ex: "Malhas (Têxtil)" para empresa "Têxtil Silva"). Derivado de `user.company_name.split(' ')[0]`.
 
+- **08/04/2026 23:00 (Brasília)** — **DASHBOARD — Cards KPI com estilo FaturamentoTotal + comparativo temporal:** (1) **Novo estilo `border-l-4`** nos 4 KPI cards do Dashboard (Rolos, Peso Total, Faturamento, Eficiência), substituindo o estilo anterior `MaterialKpi` com icon-box gradient; (2) **Comparativo temporal** automático com badge ▲/▼ percentual e "Anterior:" — mesma lógica de período anterior de FaturamentoTotal (N dias, mês anterior, 7 dias antes para dia específico); (3) **Cores border-l**: Rolos=primary, Peso=success, Faturamento=warning, Eficiência=dinâmico (success/warning/destructive conforme meta); (4) Footer mantido abaixo do comparativo (registros, kg/hora, R$/hora, status da meta); (5) Eficiência mantém background condicional (success/warning/destructive); (6) "Todo período" não exibe comparativo; (7) Componente renomeado de `MaterialKpi` para `DashboardKpiCard`.
+
 ---
 
-*Última atualização: 08/04/2026 22:00 (Brasília)*
+*Última atualização: 08/04/2026 23:00 (Brasília)*

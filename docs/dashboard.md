@@ -184,68 +184,62 @@ div.space-y-7.animate-fade-in
 
 ## 6. Componentes internos
 
-### 6.1 `MaterialKpi` (linhas 746-775)
-Componente local do arquivo Dashboard.tsx.
+### 6.1 `DashboardKpiCard` (componente local)
 
 **Props:**
 | Prop | Tipo | Descrição |
 |---|---|---|
-| `icon` | ReactNode | Ícone Lucide (branco, h-5 w-5) |
-| `iconClass` | string | Classe do icon-box (ex: icon-box-dark) |
-| `label` | string | Rótulo superior (11px, muted) |
-| `value` | string | Valor principal (lg, bold, font-display) |
+| `label` | string | Rótulo superior (uppercase, tracking-wider) |
+| `value` | string | Valor principal (text-2xl, bold) |
+| `previousValue` | number | Valor numérico do período anterior |
+| `currentRaw` | number | Valor numérico atual (para cálculo de variação) |
+| `borderColor` | string | Classe border-l (ex: border-l-primary) |
+| `icon` | ReactNode | Ícone Lucide (h-5 w-5, text-muted-foreground) |
+| `showComparison` | boolean | Se true, exibe badge ▲/▼ e "Anterior:" |
 | `footer` | string | Texto inferior (11px, muted, font-light) |
-| `efficiencyValue?` | number | Se presente, aplica cores condicionais |
+| `formatPrev?` | (v: number) => string | Formatador customizado para valor anterior |
+| `efficiencyValue?` | number | Se presente, aplica bg condicional no card |
 | `targetEfficiency?` | number | Meta para colorir (default 80) |
 
-**Lógica de cores do card de eficiência:**
-- `>= target` → `bg-success/10`, `text-success`
-- `>= target - 10` → `bg-warning/10`, `text-warning`
-- `< target - 10` → `bg-destructive/10`, `text-destructive`
+**Lógica de variação:**
+- `previousValue > 0` → `((currentRaw - previousValue) / previousValue) * 100`
+- `previousValue === 0 && currentRaw > 0` → `+100%`
+- Positivo → badge verde ▲, Negativo → badge vermelho ▼
+- "Todo período" (`showComparison=false`) → sem badge/anterior
+
+**Lógica de período anterior (mesma de FaturamentoTotal):**
+- N dias → N dias anteriores
+- Mês → mês anterior completo
+- Dia específico → 7 dias antes
+- Intervalo De/Até → mesmo intervalo deslocado
+- Todo período → sem comparativo
 
 **Estrutura:**
 ```
-Card.shadow-material.border-0.overflow-visible.pt-4 [+ effBg]
-  CardContent.p-4
-    div.flex.items-center.gap-3
-      div.icon-box.shrink-0 [iconClass]
-        {icon}
-      div.min-w-0.flex-1
-        p.text-[11px].font-medium.text-muted-foreground.whitespace-nowrap → label
-        p.text-lg.font-display.font-bold.whitespace-nowrap [effText] → value
-    div.pt-2.mt-2.border-t.border-border/50
-      p.text-[11px].text-muted-foreground.font-light.whitespace-nowrap → footer
+Card.border-l-4 [borderColor] [effBg]
+  CardContent.p-5
+    div.flex.items-start.justify-between
+      div.min-w-0
+        p.text-xs.font-medium.text-muted-foreground.uppercase.tracking-wider.mb-1 → label
+        p.text-2xl.font-bold.text-foreground → value
+        Badge.outline.text-[10px].mt-1 [success/destructive] → ▲/▼ variation%
+        p.text-xs.text-muted-foreground.mt-1 → Anterior: {prevDisplay}
+        p.text-[11px].text-muted-foreground.font-light.mt-1 → footer
+      div.text-muted-foreground → icon
 ```
 
----
+### 6.2 KPI Cards (grid responsivo)
+| Card | Border Color | Ícone | Footer |
+|---|---|---|---|
+| Rolos | border-l-primary | Package | "{N} registros" |
+| Peso Total | border-l-success | Scale | "{N} kg/hora" |
+| Faturamento | border-l-warning | DollarSign | "{R$}/hora" |
+| Eficiência | dinâmico* | Gauge | "Dentro/Abaixo da meta (X%)" |
 
-## 7. Cards do Dashboard — Detalhamento
-
-### 7.1 Card de Filtros
-- Botões rápidos: 7, 15, 30 dias + "Todo período"
-- Calendário "Dia" (single day picker)
-- Select "Mês" (lista todos os meses com produção + mês atual)
-- Separador vertical
-- Calendários "De" e "Até" (range customizado)
-- Separador vertical
-- Select "Turno"
-- Select "Cliente"
-- Select "Artigo"
-- Todos os selects: `w-[130px] h-9 rounded-lg`
-- Botões de período selecionado usam `btn-gradient`
-
-### 7.2 KPI Cards (grid responsivo)
-| Card | Ícone | IconClass | Valor | Footer |
-|---|---|---|---|---|
-| Rolos | Package | icon-box-dark | formatNumber(totalRolls) | "{N} registros" |
-| Peso Total | Scale | icon-box-success | "{N} kg" | "{N} kg/hora" |
-| Faturamento | DollarSign | icon-box-primary | formatCurrency | "{R$}/hora" |
-| Eficiência | Gauge | dinâmico* | formatPercent | "Dentro/Abaixo da meta (X%)" |
-
-*iconClass da eficiência:
-- `>= avgTargetEfficiency` → icon-box-success
-- `>= avgTargetEfficiency - 10` → icon-box-warning
-- else → icon-box-danger
+*borderColor da eficiência:
+- `>= avgTargetEfficiency` → border-l-success
+- `>= avgTargetEfficiency - 10` → border-l-warning
+- else → border-l-destructive
 
 Grid: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` (ou `lg:grid-cols-3` se !canSeeFinancial)
 
