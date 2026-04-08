@@ -940,13 +940,14 @@ export default function Invoices() {
                     </SelectContent>
                   </Select>
 
-                  <Select value={filterClient} onValueChange={setFilterClient}>
-                    <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Cliente" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos clientes</SelectItem>
-                      {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    value={filterClient === 'all' ? '' : filterClient}
+                    onValueChange={v => setFilterClient(v || 'all')}
+                    options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                    placeholder="Todos clientes"
+                    searchPlaceholder="Buscar cliente..."
+                    triggerClassName="w-[180px] h-8 text-xs"
+                  />
 
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
