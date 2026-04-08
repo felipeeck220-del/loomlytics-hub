@@ -232,6 +232,8 @@ export default function Invoices() {
     setFormStatus('pendente');
     setFormObservations('');
     setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
+    setFormSulBrasil(false);
+    setFormDestinationName('');
   };
 
   const openNewInvoice = (type: InvoiceType) => {
