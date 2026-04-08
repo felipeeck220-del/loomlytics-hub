@@ -64,7 +64,7 @@ export function AppSidebar() {
     (supabase.from as any)('companies')
       .select('logo_url')
       .eq('id', user.company_id)
-      .single()
+      .maybeSingle()
       .then(({ data }: any) => {
         if (data?.logo_url) setLogoUrl(data.logo_url);
       });

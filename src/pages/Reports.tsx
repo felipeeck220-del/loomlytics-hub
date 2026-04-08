@@ -57,7 +57,7 @@ export default function Reports() {
     (supabase.from as any)('companies')
       .select('logo_url, name')
       .eq('id', user.company_id)
-      .single()
+      .maybeSingle()
       .then(({ data }: any) => {
         if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
         if (data?.name) setCompanyName(data.name);

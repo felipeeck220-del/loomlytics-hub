@@ -90,7 +90,7 @@ export default function ResidueSales() {
 
   useEffect(() => {
     if (!companyId) return;
-    sb('companies').select('name, logo_url').eq('id', companyId).single().then(({ data }: any) => {
+    sb('companies').select('name, logo_url').eq('id', companyId).maybeSingle().then(({ data }: any) => {
       if (data?.name) setCompanyName(data.name);
       if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
     });
