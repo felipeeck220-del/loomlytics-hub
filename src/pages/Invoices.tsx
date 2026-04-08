@@ -342,6 +342,8 @@ export default function Invoices() {
         observations: formObservations.trim() || null,
         created_by_name: userName || null,
         created_by_code: userCode || null,
+        buyer_name: formType === 'venda_fio' ? formBuyerName.trim() : null,
+        destination_name: formType === 'saida_malha' ? formDestinationName.trim() : null,
       }).select('id').single();
 
       if (invError) throw invError;
