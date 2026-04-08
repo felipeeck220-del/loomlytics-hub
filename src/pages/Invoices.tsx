@@ -900,14 +900,20 @@ export default function Invoices() {
                     <Button onClick={() => openNewInvoice('entrada')} size="sm" className="gap-1.5">
                       <Plus className="h-4 w-4" /> Nova Entrada
                     </Button>
+                  ) : tab === 'venda_fio' ? (
+                    <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
+                      <Plus className="h-4 w-4" /> Nova Venda de Fio
+                    </Button>
                   ) : (
                     <div className="flex gap-1.5">
                       <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
                         <Plus className="h-4 w-4" /> Nova Saída
                       </Button>
-                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Venda de Fio
-                      </Button>
+                      {!isTrama && (
+                        <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
+                          <Plus className="h-4 w-4" /> Venda de Fio
+                        </Button>
+                      )}
                     </div>
                   )}
                   <div className="flex-1" />
