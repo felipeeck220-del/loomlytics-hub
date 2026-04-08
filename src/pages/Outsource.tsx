@@ -345,7 +345,7 @@ function CompaniesTab({ companies, companyId, loading }: {
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1.5 whitespace-nowrap"><Plus className="h-4 w-4" /> Nova Malharia</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle>{editId ? 'Editar Malharia' : 'Nova Malharia'}</DialogTitle>
               </DialogHeader>
