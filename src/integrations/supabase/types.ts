@@ -611,12 +611,14 @@ export type Database = {
       invoices: {
         Row: {
           access_key: string | null
+          buyer_name: string | null
           client_id: string | null
           client_name: string | null
           company_id: string
           created_at: string
           created_by_code: string | null
           created_by_name: string | null
+          destination_name: string | null
           id: string
           invoice_number: string
           issue_date: string
@@ -628,12 +630,14 @@ export type Database = {
         }
         Insert: {
           access_key?: string | null
+          buyer_name?: string | null
           client_id?: string | null
           client_name?: string | null
           company_id: string
           created_at?: string
           created_by_code?: string | null
           created_by_name?: string | null
+          destination_name?: string | null
           id?: string
           invoice_number: string
           issue_date: string
@@ -645,12 +649,14 @@ export type Database = {
         }
         Update: {
           access_key?: string | null
+          buyer_name?: string | null
           client_id?: string | null
           client_name?: string | null
           company_id?: string
           created_at?: string
           created_by_code?: string | null
           created_by_name?: string | null
+          destination_name?: string | null
           id?: string
           invoice_number?: string
           issue_date?: string
