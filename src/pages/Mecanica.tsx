@@ -560,7 +560,7 @@ export default function MecanicaPage() {
 
       {/* Add manual log modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Adicionar Registro Manual</DialogTitle>
           </DialogHeader>
