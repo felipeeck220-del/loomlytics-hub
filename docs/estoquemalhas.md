@@ -29,8 +29,8 @@ Estoque = Malha Produzida − Malha Entregue (NFs de saída)
 ## 📍 Localização na UI
 
 - Aba **"Estoque Malha"** dentro da página de Notas Fiscais (`/:slug/invoices`)
-- Posição: após a aba "Saldo Fios" e antes de "Tipos de Fio"
-- Ordem das abas: `Entrada` → `Saída` → `Saldo Fios` → `Estoque Malha` → `Tipos de Fio`
+- Posição: após a aba "Saldo Global" e antes de "Fio Terceiros"
+- Ordem das abas: `Entrada` → `Saída` → `Saldo Fios` → `Saldo Global` → `Estoque Malha` → `Fio Terceiros` → `Tipos de Fio`
 
 ---
 
@@ -370,4 +370,4 @@ Esta aba alimentará a seção **"Estoque de Malha"** no PDF de Fechamento Mensa
 ---
 
 *Documento criado em: 03/04/2026*
-*Status: DOCUMENTADO — Aguardando implementação*
+*Status: ✅ IMPLEMENTADO — Aba "Estoque Malha" funcional na página Invoices.*

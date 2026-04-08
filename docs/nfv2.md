@@ -287,4 +287,4 @@ Sem alteração — mesmas regras do `nf.md`.
 
 *Documento criado em: 08/04/2026*
 *Base: nf.md (snapshot v1 de 08/04/2026)*
-*Status: PLANEJADO — Aguardando aprovação para implementação*
+*Status: ❌ REVERTIDO — Implementado em 08/04/2026, revertido para v1 (nf.md) no mesmo dia. Colunas `buyer_name` e `destination_name` permanecem no banco mas não são usadas na UI.*

@@ -220,3 +220,8 @@ Seguir o padrão estabelecido no projeto:
 | `revisador`| Sem acesso |
 
 Herda as mesmas permissões da página de Notas Fiscais (key `invoices` no `enabled_nav_items`).
+
+---
+
+*Documento criado em: 03/04/2026*
+*Status: ✅ IMPLEMENTADO — Aba "Saldo Fios" funcional na página Invoices. Vínculo Artigo ↔ Tipo de Fio implementado em Clientes & Artigos.*
