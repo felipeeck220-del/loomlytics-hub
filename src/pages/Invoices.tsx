@@ -1655,9 +1655,9 @@ export default function Invoices() {
                 {formItems.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-2">
                     {/* Yarn or Article selection */}
-                    <div className={formType === 'saida' ? 'col-span-3' : 'col-span-4'}>
-                      <Label className="text-[10px]">{formType === 'saida' ? 'Artigo' : 'Tipo de Fio'}</Label>
-                      {formType === 'saida' ? (
+                    <div className={(formType === 'saida' || formType === 'saida_malha') ? 'col-span-3' : 'col-span-4'}>
+                      <Label className="text-[10px]">{(formType === 'saida' || formType === 'saida_malha') ? 'Artigo' : 'Tipo de Fio'}</Label>
+                      {(formType === 'saida' || formType === 'saida_malha') ? (
                         <Select value={item.article_id || ''} onValueChange={v => updateItem(idx, 'article_id', v)}>
                           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
