@@ -334,6 +334,10 @@ export default function Invoices() {
 
       const clientObj = clients.find(c => c.id === formClientId);
 
+      const observationsToSave = isTrama && formSulBrasil && formType === 'entrada'
+        ? `[SUL BRASIL]${formObservations.trim() ? ' ' + formObservations.trim() : ''}`
+        : formObservations.trim() || null;
+
       const { data: invData, error: invError } = await sb('invoices').insert({
         company_id: companyId,
         type: formType,
@@ -345,7 +349,8 @@ export default function Invoices() {
         total_weight_kg: totalWeight,
         total_value: totalValue,
         status: formStatus,
-        observations: formObservations.trim() || null,
+        observations: observationsToSave,
+        destination_name: (isTrama && formType === 'saida') ? (formDestinationName.trim() || null) : null,
         created_by_name: userName || null,
         created_by_code: userCode || null,
       }).select('id').single();
