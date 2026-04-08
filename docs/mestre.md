@@ -1396,6 +1396,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **08/04/2026 15:30 (Brasília)** — **NOTAS FISCAIS — Reorganização de abas (4 abas individuais):** Abas de NF reorganizadas de 2 (Entrada + Saída mista) para 4 abas separadas: **Entrada** (fio), **Venda de Fio** (com coluna Comprador), **Saída Malha** (tinturaria, com coluna Tinturaria), **Entrega Cliente** (malha ao cliente, renomeado de "Saída"). Cada aba tem seu próprio botão "Nova NF", filtros e KPIs independentes. Documentação nfv2.md atualizada.
 
+- **08/04/2026 16:00 (Brasília)** — **NOTAS FISCAIS — Validação numérica em todos os campos:** (1) **Nº da NF** agora filtra caracteres não-numéricos (`replace(/\D/g, '')`) com `inputMode="numeric"`; (2) **Peso (kg)** e **R$/kg** bloqueiam teclas `e`, `E`, `+`, `-` via `onKeyDown` com `inputMode="decimal"`; (3) **Caixas** e **Rolos** bloqueiam `e`, `E`, `+`, `-`, `.`, `,` (apenas inteiros); (4) **Quantidade (kg) Fio Terceiros** com mesma proteção; (5) Todos com `inputMode` adequado para teclado numérico em mobile.
+
 ---
 
-*Última atualização: 08/04/2026 15:30 (Brasília)*
+*Última atualização: 08/04/2026 16:00 (Brasília)*
