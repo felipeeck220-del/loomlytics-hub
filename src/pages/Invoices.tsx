@@ -22,7 +22,7 @@ import {
   Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign,
   CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil, Building2
 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
+
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
