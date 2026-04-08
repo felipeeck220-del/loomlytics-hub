@@ -259,7 +259,9 @@ export default function Invoices() {
 
     // Tab filter
     if (activeTab === 'entrada') filtered = filtered.filter(i => i.type === 'entrada');
-    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida' || i.type === 'venda_fio' || i.type === 'saida_malha');
+    else if (activeTab === 'venda_fio') filtered = filtered.filter(i => i.type === 'venda_fio');
+    else if (activeTab === 'saida_malha') filtered = filtered.filter(i => i.type === 'saida_malha');
+    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida');
 
     // Status
     if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
@@ -846,7 +848,9 @@ export default function Invoices() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
           <TabsTrigger value="entrada" className="text-xs">Entrada</TabsTrigger>
-          <TabsTrigger value="saida" className="text-xs">Saída</TabsTrigger>
+          <TabsTrigger value="venda_fio" className="text-xs">Venda de Fio</TabsTrigger>
+          <TabsTrigger value="saida_malha" className="text-xs">Saída Malha</TabsTrigger>
+          <TabsTrigger value="saida" className="text-xs">Entrega Cliente</TabsTrigger>
           <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
           <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
           <TabsTrigger value="estoque" className="text-xs">Estoque Malha</TabsTrigger>
@@ -855,7 +859,10 @@ export default function Invoices() {
         </TabsList>
 
         {/* ===== ENTRADA & SAIDA TABS ===== */}
-        {['entrada', 'saida'].map(tab => (
+        {['entrada', 'venda_fio', 'saida_malha', 'saida'].map(tab => {
+          const tabLabel = tab === 'entrada' ? 'Entrada' : tab === 'venda_fio' ? 'Venda de Fio' : tab === 'saida_malha' ? 'Saída Malha (Tinturaria)' : 'Entrega Cliente';
+          const invoiceType = tab as InvoiceType;
+          return (
           <TabsContent key={tab} value={tab} className="space-y-4">
             {/* KPIs */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -883,19 +890,9 @@ export default function Invoices() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button onClick={() => openNewInvoice(tab === 'entrada' ? 'entrada' : 'saida')} size="sm" className="gap-1.5">
-                    <Plus className="h-4 w-4" /> Nova NF {tab === 'entrada' ? 'Entrada' : 'Saída'}
+                  <Button onClick={() => openNewInvoice(invoiceType)} size="sm" className="gap-1.5">
+                    <Plus className="h-4 w-4" /> Nova {tabLabel}
                   </Button>
-                  {tab === 'saida' && (
-                    <>
-                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Venda de Fio
-                      </Button>
-                      <Button onClick={() => openNewInvoice('saida_malha')} size="sm" variant="outline" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Saída Malha (Tinturaria)
-                      </Button>
-                    </>
-                  )}
                   <div className="flex-1" />
 
                   <Select value={filterMonth} onValueChange={setFilterMonth}>
@@ -959,8 +956,8 @@ export default function Invoices() {
                         <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
                           <TableHead className="text-xs">Cliente</TableHead>
-                          {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
-                          {tab === 'saida' && <TableHead className="text-xs">Comprador/Destino</TableHead>}
+                          {tab === 'venda_fio' && <TableHead className="text-xs">Comprador</TableHead>}
+                          {tab === 'saida_malha' && <TableHead className="text-xs">Tinturaria</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
@@ -973,16 +970,8 @@ export default function Invoices() {
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                             <TableCell className="text-xs">{inv.client_name || '—'}</TableCell>
-                            {tab === 'saida' && (
-                              <TableCell className="text-xs">
-                                <Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type]}</Badge>
-                              </TableCell>
-                            )}
-                            {tab === 'saida' && (
-                              <TableCell className="text-xs">
-                                {inv.type === 'venda_fio' ? inv.buyer_name || '—' : inv.type === 'saida_malha' ? inv.destination_name || '—' : '—'}
-                              </TableCell>
-                            )}
+                            {tab === 'venda_fio' && <TableCell className="text-xs">{inv.buyer_name || '—'}</TableCell>}
+                            {tab === 'saida_malha' && <TableCell className="text-xs">{inv.destination_name || '—'}</TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
                             </TableCell>
@@ -1017,7 +1006,8 @@ export default function Invoices() {
               </CardContent>
             </Card>
           </TabsContent>
-        ))}
+          );
+        })}
 
         {/* ===== SALDO DE FIOS TAB ===== */}
         <TabsContent value="saldo" className="space-y-4">

@@ -107,38 +107,19 @@ ALTER TABLE public.invoices ADD COLUMN destination_name text DEFAULT NULL;
 | TERCEIROS | observations (texto livre) |
 
 #### Alteração nas Abas:
-A aba **"Saída"** passa a incluir 3 tipos:
-- `saida` (Malha para cliente)
-- `venda_fio` (Venda de fio)
-- `saida_malha` (Malha para tinturaria) — **NOVO**
+As abas de NF foram reorganizadas em **4 abas individuais** (cada tipo em sua própria aba):
+1. **Entrada** — NFs de entrada de fio (tipo `entrada`)
+2. **Venda de Fio** — NFs de venda de fio (tipo `venda_fio`) — com coluna "Comprador"
+3. **Saída Malha** — NFs de saída de malha para tinturaria (tipo `saida_malha`) — com coluna "Tinturaria"
+4. **Entrega Cliente** — NFs de saída/entrega ao cliente (tipo `saida`) — renomeado de "Saída"
 
-Na aba Saída, adicionar botão:
-```tsx
-<Button onClick={() => openNewInvoice('saida_malha')} size="sm" variant="outline" className="gap-1.5">
-  <Plus className="h-4 w-4" /> Saída Malha (Tinturaria)
-</Button>
-```
+Cada aba possui:
+- Seu próprio botão "Nova NF" com label contextual
+- Filtros independentes (mês, status, cliente, busca)
+- KPIs filtrados pelo tipo da aba
+- Tabela com colunas específicas (ex: "Comprador" só na aba Venda de Fio)
 
-#### Formulário para `saida_malha`:
-1. **Cliente*** — Select (cliente dono do artigo)
-2. **Tinturaria*** — Input texto livre (destination_name)
-3. **Nº da NF*** — Input
-4. **Data Emissão*** — Input date
-5. **Status** — Select (pendente/conferida)
-6. **Itens:**
-   - Artigo (filtrado pelo cliente selecionado)
-   - Peso (kg)
-   - *(sem rolos, sem valor/kg — é faturamento direto)*
-7. **Observações** — Textarea (campo "Terceiros" da planilha)
-
-#### Filtro na aba Saída:
-```typescript
-if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida' || i.type === 'venda_fio' || i.type === 'saida_malha');
-```
-
-#### Na tabela de listagem:
-- Coluna "Destino" exibida para `saida_malha` mostrando `destination_name`
-- Badge de tipo atualizado para incluir `saida_malha`
+As abas de saldo permanecem inalteradas: Saldo Fios, Saldo Global, Estoque Malha, Fio Terceiros, Tipos de Fio.
 
 ---
 
