@@ -492,35 +492,50 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* KPI Cards - Material style with gradient icon boxes */}
+      {/* KPI Cards - border-l-4 style with comparison */}
       <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4", canSeeFinancial ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
-        <MaterialKpi
-          icon={<Package className="h-5 w-5 text-white" />}
-          iconClass="icon-box-dark"
+        <DashboardKpiCard
           label="Rolos"
           value={formatNumber(totalRolls)}
+          previousValue={prevTotalRolls}
+          currentRaw={totalRolls}
+          borderColor="border-l-primary"
+          icon={<Package className="h-5 w-5" />}
+          showComparison={showComparison}
           footer={`${filtered.length} registros`}
         />
-        <MaterialKpi
-          icon={<Scale className="h-5 w-5 text-white" />}
-          iconClass="icon-box-success"
+        <DashboardKpiCard
           label="Peso Total"
           value={`${formatNumber(totalWeight, 1)} kg`}
+          previousValue={prevTotalWeight}
+          currentRaw={totalWeight}
+          borderColor="border-l-success"
+          icon={<Scale className="h-5 w-5" />}
+          showComparison={showComparison}
           footer={`${formatNumber(kgPerHour, 2)} kg/hora`}
+          formatPrev={(v) => `${formatNumber(v, 1)} kg`}
         />
-        {canSeeFinancial && <MaterialKpi
-          icon={<DollarSign className="h-5 w-5 text-white" />}
-          iconClass="icon-box-primary"
+        {canSeeFinancial && <DashboardKpiCard
           label="Faturamento"
           value={formatCurrency(totalRevenue)}
+          previousValue={prevTotalRevenue}
+          currentRaw={totalRevenue}
+          borderColor="border-l-warning"
+          icon={<DollarSign className="h-5 w-5" />}
+          showComparison={showComparison}
           footer={`${formatCurrency(revenuePerHour)}/hora`}
+          formatPrev={(v) => formatCurrency(v)}
         />}
-        <MaterialKpi
-          icon={<Gauge className="h-5 w-5 text-white" />}
-          iconClass={avgEfficiency >= avgTargetEfficiency ? "icon-box-success" : avgEfficiency >= (avgTargetEfficiency - 10) ? "icon-box-warning" : "icon-box-danger"}
+        <DashboardKpiCard
           label="Eficiência"
           value={formatPercent(avgEfficiency)}
+          previousValue={prevAvgEfficiency}
+          currentRaw={avgEfficiency}
+          borderColor={avgEfficiency >= avgTargetEfficiency ? "border-l-success" : avgEfficiency >= (avgTargetEfficiency - 10) ? "border-l-warning" : "border-l-destructive"}
+          icon={<Gauge className="h-5 w-5" />}
+          showComparison={showComparison}
           footer={avgEfficiency >= avgTargetEfficiency ? `Dentro da meta (${formatPercent(avgTargetEfficiency)})` : `Abaixo da meta (${formatPercent(avgTargetEfficiency)})`}
+          formatPrev={(v) => formatPercent(v)}
           efficiencyValue={avgEfficiency}
           targetEfficiency={avgTargetEfficiency}
         />
