@@ -1521,6 +1521,84 @@ export type Database = {
           },
         ]
       }
+      residue_client_prices: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          material_id: string
+          unit_price: number
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          material_id: string
+          unit_price?: number
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          material_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residue_client_prices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "residue_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "residue_client_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "residue_client_prices_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "residue_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      residue_clients: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residue_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       residue_materials: {
         Row: {
           company_id: string
@@ -1558,6 +1636,7 @@ export type Database = {
       }
       residue_sales: {
         Row: {
+          client_id: string | null
           client_name: string
           company_id: string
           created_at: string
@@ -1575,6 +1654,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          client_id?: string | null
           client_name: string
           company_id: string
           created_at?: string
@@ -1592,6 +1672,7 @@ export type Database = {
           unit_price?: number
         }
         Update: {
+          client_id?: string | null
           client_name?: string
           company_id?: string
           created_at?: string
@@ -1609,6 +1690,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "residue_sales_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "residue_clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "residue_sales_company_id_fkey"
             columns: ["company_id"]
