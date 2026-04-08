@@ -1406,6 +1406,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **08/04/2026 21:26 (Brasília)** — **NOTAS FISCAIS — Reversão completa para v1 (nf.md) para TODOS os usuários:** Removida toda a lógica condicional `isTrama` (admin@felipe.com). Revertido para comportamento uniforme v1: (1) Aba "Saída" mostra `saida` + `venda_fio` combinadas com botões separados; (2) Removido toggle "Sul Brasil" do formulário de Entrada; (3) Removido campo "Tinturaria" do formulário de Saída; (4) Removida coluna "Tinturaria" da tabela; (5) Removida aba "Venda de Fio" separada; (6) Aba "Saída" voltou ao nome original (sem "Malha"); (7) Import `Switch` removido. SearchableSelect e validação numérica mantidos. Colunas `buyer_name`/`destination_name` permanecem no banco.
 
+- **09/04/2026 00:26 (Brasília)** — **DOCUMENTAÇÃO — Pente fino em todos os docs/*.md:** Corrigidos status e inconsistências em 6 arquivos de documentação: (1) **nfv2.md** — status atualizado de "PLANEJADO" para "❌ REVERTIDO"; (2) **nftrama.md** — status atualizado de "ESPECIFICAÇÃO" para "❌ REVERTIDO"; (3) **nf.md** — adicionadas colunas `buyer_name` e `destination_name` na tabela `invoices` (existem no banco mas não usadas na UI), status atualizado para "✅ ATIVO"; (4) **saldofios.md** — status atualizado para "✅ IMPLEMENTADO"; (5) **saldofiosglobal.md** — status atualizado para "✅ IMPLEMENTADO"; (6) **estoquemalhas.md** — ordem das abas corrigida (faltavam "Saldo Global" e "Fio Terceiros"), status atualizado para "✅ IMPLEMENTADO". Nenhum bug de código ou banco encontrado.
+
 ---
 
-*Última atualização: 08/04/2026 21:26 (Brasília)*
+*Última atualização: 09/04/2026 00:26 (Brasília)*
