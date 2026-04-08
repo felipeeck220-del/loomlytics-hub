@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign,
 } from 'lucide-react';
 import { useInstallApp } from '@/hooks/useInstallApp';
 import {
@@ -29,6 +29,7 @@ const TESTING_KEYS = new Set(['contas-pagar', 'residuos', 'invoices', 'fechament
 
 const allItems = [
   { title: 'Dashboard', path: '', icon: LayoutDashboard, key: 'dashboard' },
+  { title: 'Faturamento Total', path: 'faturamento-total', icon: DollarSign, key: 'faturamento-total' },
   { title: 'Máquinas', path: 'machines', icon: Settings2, key: 'machines' },
   { title: 'Clientes & Artigos', path: 'clients-articles', icon: Users, key: 'clients-articles' },
   { title: 'Produção', path: 'production', icon: ClipboardList, key: 'production' },

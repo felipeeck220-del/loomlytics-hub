@@ -33,6 +33,7 @@ import Invoices from "./pages/Invoices";
 import TvCodeEntry from "./pages/TvCodeEntry";
 import TvPanel from "./pages/TvPanel";
 import Fechamento from "./pages/Fechamento";
+import FaturamentoTotal from "./pages/FaturamentoTotal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
               <Route path="/:slug/login" element={<CompanyLogin />} />
               <Route path="/:slug" element={<CompanyRoute />}>
                 <Route index element={<ProtectedRoute routeKey="dashboard"><Dashboard /></ProtectedRoute>} />
+                <Route path="faturamento-total" element={<ProtectedRoute routeKey="faturamento-total"><FaturamentoTotal /></ProtectedRoute>} />
                 <Route path="machines" element={<ProtectedRoute routeKey="machines"><Machines /></ProtectedRoute>} />
                 <Route path="clients-articles" element={<ProtectedRoute routeKey="clients-articles"><ClientsArticles /></ProtectedRoute>} />
                 <Route path="production" element={<ProtectedRoute routeKey="production"><ProductionPage /></ProtectedRoute>} />
