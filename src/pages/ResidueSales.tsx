@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, getDateLimits, isDateValid } from '@/lib/formatters';
 import { sanitizePdfText } from '@/lib/pdfUtils';
-import SearchableSelect from '@/components/SearchableSelect';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import {
   Plus, Trash2, Edit, Loader2, Package, DollarSign, Scale, Search,
   Recycle, Download, Hash, CalendarIcon, Users, ChevronDown, ChevronRight
