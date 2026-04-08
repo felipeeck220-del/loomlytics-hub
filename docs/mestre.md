@@ -1394,6 +1394,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **08/04/2026 14:45 (Brasília)** — **SearchableSelect — Lista sempre abre para baixo:** Adicionado `side="bottom"` e `avoidCollisions={false}` no `PopoverContent` do componente `SearchableSelect` para garantir que a lista de opções sempre abra para baixo, evitando que abra para cima em campos próximos ao fundo da tela.
 
+- **08/04/2026 15:30 (Brasília)** — **NOTAS FISCAIS — Reorganização de abas (4 abas individuais):** Abas de NF reorganizadas de 2 (Entrada + Saída mista) para 4 abas separadas: **Entrada** (fio), **Venda de Fio** (com coluna Comprador), **Saída Malha** (tinturaria, com coluna Tinturaria), **Entrega Cliente** (malha ao cliente, renomeado de "Saída"). Cada aba tem seu próprio botão "Nova NF", filtros e KPIs independentes. Documentação nfv2.md atualizada.
+
 ---
 
-*Última atualização: 08/04/2026 14:45 (Brasília)*
+*Última atualização: 08/04/2026 15:30 (Brasília)*
