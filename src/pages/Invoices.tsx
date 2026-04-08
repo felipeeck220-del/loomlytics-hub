@@ -1592,19 +1592,6 @@ export default function Invoices() {
               </div>
             </div>
 
-            {/* Buyer Name (venda_fio) / Destination Name (saida_malha) */}
-            {formType === 'venda_fio' && (
-              <div>
-                <Label className="text-xs">Comprador / Cliente da Venda *</Label>
-                <Input className="h-9 text-xs" value={formBuyerName} onChange={e => setFormBuyerName(e.target.value)} placeholder="Ex: JR DUBLAGEM" />
-              </div>
-            )}
-            {formType === 'saida_malha' && (
-              <div>
-                <Label className="text-xs">Tinturaria (Destino) *</Label>
-                <Input className="h-9 text-xs" value={formDestinationName} onChange={e => setFormDestinationName(e.target.value)} placeholder="Ex: Tinturaria XYZ" />
-              </div>
-            )}
 
             {/* <div>
               <Label className="text-xs">Chave de Acesso SEFAZ (44 dígitos, opcional)</Label>
@@ -1637,9 +1624,9 @@ export default function Invoices() {
                 {formItems.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-2">
                     {/* Yarn or Article selection */}
-                    <div className={(formType === 'saida' || formType === 'saida_malha') ? 'col-span-3' : 'col-span-4'}>
-                      <Label className="text-[10px]">{(formType === 'saida' || formType === 'saida_malha') ? 'Artigo' : 'Tipo de Fio'}</Label>
-                      {(formType === 'saida' || formType === 'saida_malha') ? (
+                    <div className={formType === 'saida' ? 'col-span-3' : 'col-span-4'}>
+                      <Label className="text-[10px]">{formType === 'saida' ? 'Artigo' : 'Tipo de Fio'}</Label>
+                      {formType === 'saida' ? (
                         <SearchableSelect
                           value={item.article_id || ''}
                           onValueChange={v => updateItem(idx, 'article_id', v)}
@@ -1744,12 +1731,6 @@ export default function Invoices() {
                 <div><span className="text-muted-foreground text-xs">Status:</span><br /><Badge className={cn('text-[10px]', STATUS_COLORS[viewingInvoice.status])}>{STATUS_LABELS[viewingInvoice.status]}</Badge></div>
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
                 {canSeeFinancial && <div><span className="text-muted-foreground text-xs">Valor Total:</span><br />{formatCurrency(Number(viewingInvoice.total_value || 0))}</div>}
-                {viewingInvoice.type === 'venda_fio' && viewingInvoice.buyer_name && (
-                  <div><span className="text-muted-foreground text-xs">Comprador:</span><br />{viewingInvoice.buyer_name}</div>
-                )}
-                {viewingInvoice.type === 'saida_malha' && viewingInvoice.destination_name && (
-                  <div><span className="text-muted-foreground text-xs">Tinturaria:</span><br />{viewingInvoice.destination_name}</div>
-                )}
               </div>
               {/* Chave de Acesso - temporariamente oculto (v2 SEFAZ) */}
               {/* {viewingInvoice.access_key && (
@@ -1765,7 +1746,7 @@ export default function Invoices() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">{(viewingInvoice.type === 'saida' || viewingInvoice.type === 'saida_malha') ? 'Artigo' : 'Fio'}</TableHead>
+                      <TableHead className="text-xs">{viewingInvoice.type === 'saida' ? 'Artigo' : 'Fio'}</TableHead>
                       <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                       {viewingInvoice.type === 'saida' && <TableHead className="text-xs text-right">Rolos</TableHead>}
                       {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableHead className="text-xs text-right">Caixas</TableHead>}
