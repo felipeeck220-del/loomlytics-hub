@@ -960,6 +960,7 @@ export default function Invoices() {
                           <TableHead className="text-xs">Nº NF</TableHead>
                           <TableHead className="text-xs">Cliente</TableHead>
                           {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
+                          {tab === 'saida' && <TableHead className="text-xs">Comprador/Destino</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
@@ -975,6 +976,11 @@ export default function Invoices() {
                             {tab === 'saida' && (
                               <TableCell className="text-xs">
                                 <Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type]}</Badge>
+                              </TableCell>
+                            )}
+                            {tab === 'saida' && (
+                              <TableCell className="text-xs">
+                                {inv.type === 'venda_fio' ? inv.buyer_name || '—' : inv.type === 'saida_malha' ? inv.destination_name || '—' : '—'}
                               </TableCell>
                             )}
                             <TableCell className="text-xs">
