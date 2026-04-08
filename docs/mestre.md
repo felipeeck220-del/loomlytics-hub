@@ -74,6 +74,7 @@ src/
 │   └── ui/                     # Componentes shadcn/ui
 ├── pages/
 │   ├── Dashboard.tsx           # Painel principal com KPIs e gráficos
+│   ├── FaturamentoTotal.tsx   # Faturamento consolidado (admin only) — malhas + terceirizado + resíduos
 │   ├── Machines.tsx            # Gestão de máquinas/teares
 │   ├── ClientsArticles.tsx     # Gestão de clientes e artigos
 │   ├── Production.tsx          # Registro de produção diária
@@ -82,6 +83,10 @@ src/
 │   ├── Outsource.tsx           # Produção terceirizada
 │   ├── Weavers.tsx             # Gestão de tecelões
 │   ├── Reports.tsx             # Relatórios analíticos com gráficos e exportação
+│   ├── AccountsPayable.tsx     # Contas a pagar
+│   ├── ResidueSales.tsx        # Vendas de resíduos (modelo cliente-cêntrico)
+│   ├── Invoices.tsx            # Notas fiscais (entrada/saída/venda de fio)
+│   ├── Fechamento.tsx          # Fechamento mensal
 │   ├── Settings.tsx            # Configurações da empresa (turnos, logo, usuários, assinatura)
 │   ├── Login.tsx               # Login global
 │   ├── CompanyLogin.tsx        # Login por slug /:slug/login
@@ -1416,6 +1421,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **09/04/2026 04:00 (Brasília)** — **FATURAMENTO TOTAL — Nova página implementada (admin only):** (1) Nova página `FaturamentoTotal.tsx` com rota `/:slug/faturamento-total`; (2) Busca paralela via `fetchAllPaginated` em `productions` (revenue), `outsource_productions` (total_revenue) e `residue_sales` (total); (3) **4 KPI Cards** com border-l-4 colorido: Malhas, Terceirizado, Resíduos, Total Geral — cada um com comparativo % do período anterior e badge ▲/▼; (4) **Gráfico AreaChart empilhado** (recharts) com tendência diária das 3 fontes; (5) **Tabela resumo** com breakdown por fonte, variação % e barra de progresso "% do Total"; (6) **Filtros de data** completos: 7/15/30 dias, todo período, dia específico, mês, intervalo De/Até — mesma lógica do Dashboard; (7) Acesso restrito a `admin` via `usePermissions`; (8) Sidebar com ícone `DollarSign` posicionado abaixo de Dashboard; (9) Admin.tsx `NAV_ITEMS` atualizado; (10) Default de `enabled_nav_items` em `company_settings` atualizado via migration. Documentação em `docs/faturamentototal.md`.
 
+- **09/04/2026 04:30 (Brasília)** — **AUDITORIA DE CÓDIGO — Pente fino nas últimas 10 atualizações:** Revisão completa de código e banco de dados cobrindo atualizações de 07/04 a 09/04: (1) **TypeScript:** Build 100% limpo (0 erros); (2) **Banco de dados:** 0 erros nos logs PostgreSQL; (3) **ESC/clique-fora nos modais:** Verificados todos os 15+ modais em 11 arquivos — 100% com `onEscapeKeyDown` e `onInteractOutside`; (4) **SearchableSelect:** `side="bottom"` e `avoidCollisions={false}` confirmados; (5) **Resíduos (cliente-cêntrico):** Tabelas `residue_clients`, `residue_client_prices` com RLS ok, fluxo de venda com `client_id` funcional; (6) **FaturamentoTotal:** Queries com `fetchAllPaginated`, filtros de data, KPIs e gráfico funcionais; (7) **Faturamento no sidebar:** Bug corrigido — `enabled_nav_items` de empresas existentes atualizado via migration para incluir `faturamento-total`; (8) **mestre.md:** Seção "Arquitetura de Pastas" atualizada com 5 páginas faltantes (FaturamentoTotal, AccountsPayable, ResidueSales, Invoices, Fechamento). Nenhum bug encontrado no código ou banco.
+
 ---
 
-*Última atualização: 09/04/2026 04:00 (Brasília)*
+*Última atualização: 09/04/2026 04:30 (Brasília)*
