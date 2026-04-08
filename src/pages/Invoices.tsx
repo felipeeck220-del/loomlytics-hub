@@ -772,8 +772,8 @@ export default function Invoices() {
       entry.producedRolls += Number(prod.rolls_produced);
     }
 
-    // 2. Entregas (NFs saída não canceladas)
-    const saidaInvs = invoices.filter(i => i.type === 'saida' && i.status !== 'cancelada' && matchMonth(i.issue_date));
+    // 2. Entregas (NFs saída e saída malha não canceladas)
+    const saidaInvs = invoices.filter(i => (i.type === 'saida' || i.type === 'saida_malha') && i.status !== 'cancelada' && matchMonth(i.issue_date));
     for (const inv of saidaInvs) {
       const items = invoiceItems.filter(it => it.invoice_id === inv.id);
       for (const item of items) {
