@@ -977,10 +977,11 @@ export default function Invoices() {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
+                         <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
                           <TableHead className="text-xs">Cliente</TableHead>
-                          {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
+                          {isTrama && tab === 'saida' && <TableHead className="text-xs">Tinturaria</TableHead>}
+                          {tab === 'saida' && !isTrama && <TableHead className="text-xs">Tipo</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
@@ -993,7 +994,8 @@ export default function Invoices() {
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                             <TableCell className="text-xs">{inv.client_name || '—'}</TableCell>
-                            {tab === 'saida' && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
+                            {isTrama && tab === 'saida' && <TableCell className="text-xs">{inv.destination_name || '—'}</TableCell>}
+                            {tab === 'saida' && !isTrama && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
                             </TableCell>
