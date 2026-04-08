@@ -1783,7 +1783,7 @@ export default function Invoices() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">{viewingInvoice.type === 'saida' ? 'Artigo' : 'Fio'}</TableHead>
+                      <TableHead className="text-xs">{(viewingInvoice.type === 'saida' || viewingInvoice.type === 'saida_malha') ? 'Artigo' : 'Fio'}</TableHead>
                       <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                       {viewingInvoice.type === 'saida' && <TableHead className="text-xs text-right">Rolos</TableHead>}
                       {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableHead className="text-xs text-right">Caixas</TableHead>}
