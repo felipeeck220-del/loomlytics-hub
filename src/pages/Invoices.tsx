@@ -1762,6 +1762,12 @@ export default function Invoices() {
                 <div><span className="text-muted-foreground text-xs">Status:</span><br /><Badge className={cn('text-[10px]', STATUS_COLORS[viewingInvoice.status])}>{STATUS_LABELS[viewingInvoice.status]}</Badge></div>
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
                 {canSeeFinancial && <div><span className="text-muted-foreground text-xs">Valor Total:</span><br />{formatCurrency(Number(viewingInvoice.total_value || 0))}</div>}
+                {viewingInvoice.type === 'venda_fio' && viewingInvoice.buyer_name && (
+                  <div><span className="text-muted-foreground text-xs">Comprador:</span><br />{viewingInvoice.buyer_name}</div>
+                )}
+                {viewingInvoice.type === 'saida_malha' && viewingInvoice.destination_name && (
+                  <div><span className="text-muted-foreground text-xs">Tinturaria:</span><br />{viewingInvoice.destination_name}</div>
+                )}
               </div>
               {/* Chave de Acesso - temporariamente oculto (v2 SEFAZ) */}
               {/* {viewingInvoice.access_key && (
