@@ -81,6 +81,8 @@ function RevenueKpiCard({ label, value, previousValue, icon, borderColor, showCo
 export default function FaturamentoTotal() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
+  const companyFirstName = (user?.company_name || '').split(' ')[0] || 'Empresa';
+  const malhasLabel = `Malhas (${companyFirstName})`;
 
   const [dayRange, setDayRange] = useState(15);
   const [customDate, setCustomDate] = useState<Date>();
@@ -251,7 +253,7 @@ export default function FaturamentoTotal() {
   // Table data
   const tableData = useMemo(() => {
     const rows = [
-      { fonte: 'Malhas', current: malhasCurrent, prev: malhasPrev },
+      { fonte: malhasLabel, current: malhasCurrent, prev: malhasPrev },
       { fonte: 'Terceirizado', current: tercCurrent, prev: tercPrev },
       { fonte: 'Resíduos', current: resCurrent, prev: resPrev },
     ];
@@ -357,7 +359,7 @@ export default function FaturamentoTotal() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <RevenueKpiCard label="Malhas" value={malhasCurrent} previousValue={malhasPrev} borderColor="border-l-primary" icon={<Package className="h-5 w-5" />} showComparison={showComparison} />
+        <RevenueKpiCard label={malhasLabel} value={malhasCurrent} previousValue={malhasPrev} borderColor="border-l-primary" icon={<Package className="h-5 w-5" />} showComparison={showComparison} />
         <RevenueKpiCard label="Terceirizado" value={tercCurrent} previousValue={tercPrev} borderColor="border-l-accent" icon={<Factory className="h-5 w-5" />} showComparison={showComparison} />
         <RevenueKpiCard label="Resíduos" value={resCurrent} previousValue={resPrev} borderColor="border-l-warning" icon={<Recycle className="h-5 w-5" />} showComparison={showComparison} />
         <RevenueKpiCard label="Total Geral" value={totalCurrent} previousValue={totalPrev} borderColor="border-l-success" icon={<DollarSign className="h-5 w-5" />} showComparison={showComparison} />
@@ -377,7 +379,7 @@ export default function FaturamentoTotal() {
                 <YAxis tickFormatter={v => formatCurrency(v)} className="text-xs" width={100} />
                 <Tooltip formatter={(v: number) => formatCurrency(v)} />
                 <Legend />
-                <Area type="monotone" dataKey="malhas" name="Malhas" stackId="1" fill="hsl(var(--primary) / 0.3)" stroke="hsl(var(--primary))" />
+                <Area type="monotone" dataKey="malhas" name={malhasLabel} stackId="1" fill="hsl(var(--primary) / 0.3)" stroke="hsl(var(--primary))" />
                 <Area type="monotone" dataKey="terceirizado" name="Terceirizado" stackId="1" fill="hsl(var(--accent) / 0.3)" stroke="hsl(var(--accent))" />
                 <Area type="monotone" dataKey="residuos" name="Resíduos" stackId="1" fill="hsl(var(--warning) / 0.3)" stroke="hsl(var(--warning))" />
               </AreaChart>
