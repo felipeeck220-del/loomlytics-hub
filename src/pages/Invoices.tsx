@@ -206,6 +206,10 @@ export default function Invoices() {
     value_per_kg: string;
   }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
 
+  // Trama-specific form state
+  const [formSulBrasil, setFormSulBrasil] = useState(false);
+  const [formDestinationName, setFormDestinationName] = useState('');
+
   // Yarn Type form state
   const [yarnName, setYarnName] = useState('');
   const [yarnComposition, setYarnComposition] = useState('');
