@@ -16,11 +16,12 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency, formatNumber, getDateLimits, isDateValid } from '@/lib/formatters';
 import { sanitizePdfText } from '@/lib/pdfUtils';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import {
   Plus, Trash2, Edit, Loader2, Package, DollarSign, Scale, Search,
-  Recycle, Download, Filter, Hash, CalendarIcon
+  Recycle, Download, Hash, CalendarIcon, Users, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -40,9 +41,26 @@ interface ResidueMaterial {
   created_at: string;
 }
 
+interface ResidueClient {
+  id: string;
+  company_id: string;
+  name: string;
+  created_at: string;
+}
+
+interface ResidueClientPrice {
+  id: string;
+  company_id: string;
+  client_id: string;
+  material_id: string;
+  unit_price: number;
+  created_at: string;
+}
+
 interface ResidueSale {
   id: string;
   company_id: string;
+  client_id: string | null;
   material_id: string;
   material_name: string | null;
   client_name: string;
@@ -67,6 +85,8 @@ export default function ResidueSales() {
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const [deleteMatConfirmId, setDeleteMatConfirmId] = useState<string | null>(null);
   const [deleteSaleConfirmId, setDeleteSaleConfirmId] = useState<string | null>(null);
+  const [deleteClientConfirmId, setDeleteClientConfirmId] = useState<string | null>(null);
+  const [deletePriceConfirmId, setDeletePriceConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!companyId) return;
@@ -88,6 +108,30 @@ export default function ResidueSales() {
     enabled: !!companyId,
   });
 
+  // ===== Fetch Clients =====
+  const { data: residueClients = [], isLoading: loadingClients } = useQuery({
+    queryKey: ['residue_clients', companyId],
+    queryFn: async () => {
+      const { data, error } = await sb('residue_clients')
+        .select('*').eq('company_id', companyId).order('name');
+      if (error) throw error;
+      return (data || []) as ResidueClient[];
+    },
+    enabled: !!companyId,
+  });
+
+  // ===== Fetch Client Prices =====
+  const { data: clientPrices = [] } = useQuery({
+    queryKey: ['residue_client_prices', companyId],
+    queryFn: async () => {
+      const { data, error } = await sb('residue_client_prices')
+        .select('*').eq('company_id', companyId).order('created_at');
+      if (error) throw error;
+      return (data || []) as ResidueClientPrice[];
+    },
+    enabled: !!companyId,
+  });
+
   // ===== Fetch Sales =====
   const { data: sales = [], isLoading: loadingSales } = useQuery({
     queryKey: ['residue_sales', companyId],
@@ -105,32 +149,27 @@ export default function ResidueSales() {
   const [editingMat, setEditingMat] = useState<ResidueMaterial | null>(null);
   const [matName, setMatName] = useState('');
   const [matUnit, setMatUnit] = useState('kg');
-  const [matPrice, setMatPrice] = useState('');
 
-  const openNewMat = () => { setEditingMat(null); setMatName(''); setMatUnit('kg'); setMatPrice(''); setMatDialogOpen(true); };
+  const openNewMat = () => { setEditingMat(null); setMatName(''); setMatUnit('kg'); setMatDialogOpen(true); };
   const openEditMat = (m: ResidueMaterial) => {
-    setEditingMat(m); setMatName(m.name); setMatUnit(m.unit);
-    setMatPrice(m.default_price.toFixed(2).replace('.', ','));
-    setMatDialogOpen(true);
+    setEditingMat(m); setMatName(m.name); setMatUnit(m.unit); setMatDialogOpen(true);
   };
 
   const saveMat = useMutation({
     mutationFn: async () => {
-      const price = parseFloat(matPrice.replace(',', '.')) || 0;
       if (!matName.trim()) throw new Error('Nome obrigatório');
       if (editingMat) {
-        const { error } = await sb('residue_materials').update({ name: matName.trim(), unit: matUnit, default_price: price }).eq('id', editingMat.id);
+        const { error } = await sb('residue_materials').update({ name: matName.trim(), unit: matUnit }).eq('id', editingMat.id);
         if (error) throw error;
       } else {
-        const { error } = await sb('residue_materials').insert({ company_id: companyId, name: matName.trim(), unit: matUnit, default_price: price });
+        const { error } = await sb('residue_materials').insert({ company_id: companyId, name: matName.trim(), unit: matUnit, default_price: 0 });
         if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residue_materials'] });
       setMatDialogOpen(false);
-      const action = editingMat ? 'residue_material_update' : 'residue_material_create';
-      logAction(action, { name: matName.trim(), unit: matUnit });
+      logAction(editingMat ? 'residue_material_update' : 'residue_material_create', { name: matName.trim(), unit: matUnit });
       toast({ title: editingMat ? 'Material atualizado' : 'Material cadastrado' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
@@ -145,14 +184,132 @@ export default function ResidueSales() {
       const mat = materials.find(m => m.id === id);
       logAction('residue_material_delete', { name: mat?.name });
       queryClient.invalidateQueries({ queryKey: ['residue_materials'] });
+      queryClient.invalidateQueries({ queryKey: ['residue_client_prices'] });
       toast({ title: 'Material removido' });
+    },
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
+  });
+
+  // ===== Client CRUD =====
+  const [clientDialogOpen, setClientDialogOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<ResidueClient | null>(null);
+  const [clientName, setClientName] = useState('');
+  const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
+
+  // Add price to client
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [priceClientId, setPriceClientId] = useState('');
+  const [priceMaterialId, setPriceMaterialId] = useState('');
+  const [priceValue, setPriceValue] = useState('');
+  const [editingPrice, setEditingPrice] = useState<ResidueClientPrice | null>(null);
+
+  const openNewClient = () => { setEditingClient(null); setClientName(''); setClientDialogOpen(true); };
+  const openEditClient = (c: ResidueClient) => { setEditingClient(c); setClientName(c.name); setClientDialogOpen(true); };
+
+  const saveClient = useMutation({
+    mutationFn: async () => {
+      if (!clientName.trim()) throw new Error('Nome obrigatório');
+      if (editingClient) {
+        const { error } = await sb('residue_clients').update({ name: clientName.trim() }).eq('id', editingClient.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb('residue_clients').insert({ company_id: companyId, name: clientName.trim() });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['residue_clients'] });
+      setClientDialogOpen(false);
+      logAction(editingClient ? 'residue_client_update' : 'residue_client_create', { name: clientName.trim() });
+      toast({ title: editingClient ? 'Cliente atualizado' : 'Cliente cadastrado' });
+    },
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
+  });
+
+  const deleteClient = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb('residue_clients').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_data: unknown, id: string) => {
+      const cl = residueClients.find(c => c.id === id);
+      logAction('residue_client_delete', { name: cl?.name });
+      queryClient.invalidateQueries({ queryKey: ['residue_clients'] });
+      queryClient.invalidateQueries({ queryKey: ['residue_client_prices'] });
+      toast({ title: 'Cliente removido' });
+    },
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
+  });
+
+  // ===== Client Price CRUD =====
+  const openAddPrice = (clientId: string) => {
+    setPriceClientId(clientId);
+    setPriceMaterialId('');
+    setPriceValue('');
+    setEditingPrice(null);
+    setPriceDialogOpen(true);
+  };
+
+  const openEditPrice = (p: ResidueClientPrice) => {
+    setPriceClientId(p.client_id);
+    setPriceMaterialId(p.material_id);
+    setPriceValue(p.unit_price.toFixed(2).replace('.', ','));
+    setEditingPrice(p);
+    setPriceDialogOpen(true);
+  };
+
+  const getClientPrices = (clientId: string) => clientPrices.filter(p => p.client_id === clientId);
+
+  const availableMaterialsForClient = (clientId: string) => {
+    const existingIds = getClientPrices(clientId).map(p => p.material_id);
+    if (editingPrice) {
+      return materials; // when editing, show all
+    }
+    return materials.filter(m => !existingIds.includes(m.id));
+  };
+
+  const savePrice = useMutation({
+    mutationFn: async () => {
+      if (!priceMaterialId) throw new Error('Selecione um material');
+      const price = parseFloat(priceValue.replace(',', '.')) || 0;
+      if (price <= 0) throw new Error('Preço deve ser maior que zero');
+
+      if (editingPrice) {
+        const { error } = await sb('residue_client_prices').update({ unit_price: price }).eq('id', editingPrice.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb('residue_client_prices').insert({
+          company_id: companyId,
+          client_id: priceClientId,
+          material_id: priceMaterialId,
+          unit_price: price,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['residue_client_prices'] });
+      setPriceDialogOpen(false);
+      toast({ title: editingPrice ? 'Preço atualizado' : 'Material adicionado ao cliente' });
+    },
+    onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
+  });
+
+  const deletePrice = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb('residue_client_prices').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['residue_client_prices'] });
+      toast({ title: 'Material removido do cliente' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
 
   // ===== Sale CRUD =====
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
-  const [saleClient, setSaleClient] = useState('');
+  const [saleClientId, setSaleClientId] = useState('');
   const [saleMaterialId, setSaleMaterialId] = useState('');
   const [saleQty, setSaleQty] = useState('');
   const [salePrice, setSalePrice] = useState('');
@@ -160,20 +317,39 @@ export default function ResidueSales() {
   const [saleObs, setSaleObs] = useState('');
   const [saleDate, setSaleDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
-  const selectedMaterial = materials.find(m => m.id === saleMaterialId);
+  const saleClientPrices = useMemo(() => {
+    if (!saleClientId) return [];
+    return clientPrices.filter(p => p.client_id === saleClientId);
+  }, [saleClientId, clientPrices]);
+
+  const saleClientMaterials = useMemo(() => {
+    return saleClientPrices.map(cp => {
+      const mat = materials.find(m => m.id === cp.material_id);
+      return mat ? { ...mat, clientPrice: cp.unit_price } : null;
+    }).filter(Boolean) as (ResidueMaterial & { clientPrice: number })[];
+  }, [saleClientPrices, materials]);
+
+  const selectedSaleMaterial = saleClientMaterials.find(m => m.id === saleMaterialId);
 
   const openNewSale = () => {
-    setSaleClient(''); setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
+    setSaleClientId(''); setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
     setSaleRomaneio(''); setSaleObs(''); setSaleDate(format(new Date(), 'yyyy-MM-dd'));
     setSaleDialogOpen(true);
   };
 
-  // When material changes, update price and unit
+  // When material changes in sale, update price from client price
   useEffect(() => {
-    if (selectedMaterial) {
-      setSalePrice(selectedMaterial.default_price.toFixed(2).replace('.', ','));
+    const cp = saleClientPrices.find(p => p.material_id === saleMaterialId);
+    if (cp) {
+      setSalePrice(cp.unit_price.toFixed(2).replace('.', ','));
     }
-  }, [saleMaterialId]);
+  }, [saleMaterialId, saleClientPrices]);
+
+  // When client changes, reset material
+  useEffect(() => {
+    setSaleMaterialId('');
+    setSalePrice('');
+  }, [saleClientId]);
 
   const parseBR = (v: string) => parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0;
 
@@ -183,7 +359,7 @@ export default function ResidueSales() {
 
   const saveSale = useMutation({
     mutationFn: async () => {
-      if (!saleClient.trim()) throw new Error('Cliente obrigatório');
+      if (!saleClientId) throw new Error('Selecione um cliente');
       if (!saleMaterialId) throw new Error('Selecione um material');
       if (!saleDate) throw new Error('Data obrigatória');
       if (!isDateValid(saleDate)) throw new Error('Data fora do intervalo permitido (±5 anos)');
@@ -193,11 +369,13 @@ export default function ResidueSales() {
       if (price <= 0) throw new Error('Preço deve ser maior que zero');
 
       const mat = materials.find(m => m.id === saleMaterialId)!;
+      const client = residueClients.find(c => c.id === saleClientId)!;
       const { error } = await sb('residue_sales').insert({
         company_id: companyId,
+        client_id: saleClientId,
         material_id: saleMaterialId,
         material_name: mat.name,
-        client_name: saleClient.trim(),
+        client_name: client.name,
         date: saleDate,
         quantity: qty,
         unit: mat.unit,
@@ -212,8 +390,11 @@ export default function ResidueSales() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residue_sales'] });
-      const mat = materials.find(m => m.id === saleMaterialId);
-      logAction('residue_sale_create', { material: mat?.name, client: saleClient.trim(), date: saleDate });
+      logAction('residue_sale_create', {
+        material: materials.find(m => m.id === saleMaterialId)?.name,
+        client: residueClients.find(c => c.id === saleClientId)?.name,
+        date: saleDate,
+      });
       setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
       setSaleRomaneio(''); setSaleObs('');
       toast({ title: 'Venda registrada' });
@@ -257,7 +438,6 @@ export default function ResidueSales() {
 
   const filteredSales = useMemo(() => {
     let filtered = sales;
-
     if (filterMonth !== 'all') {
       filtered = filtered.filter(s => s.date.startsWith(filterMonth));
     }
@@ -292,21 +472,12 @@ export default function ResidueSales() {
     setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); setSearchText('');
   };
 
-  // ===== Format helpers =====
-  const formatQtyInput = (value: string) => {
-    // Allow digits, comma, dot
-    const clean = value.replace(/[^\d,.]/g, '');
-    return clean;
-  };
-
-  const formatPriceInput = (value: string) => {
-    const clean = value.replace(/[^\d,.]/g, '');
-    return clean;
-  };
+  const formatQtyInput = (value: string) => value.replace(/[^\d,.]/g, '');
+  const formatPriceInput = (value: string) => value.replace(/[^\d,.]/g, '');
 
   const { minDate, maxDate } = getDateLimits();
 
-  // ===== PDF Export (padrão Relatórios > Exportar) =====
+  // ===== PDF Export =====
   const exportPDF = async () => {
     const pdf = new jsPDF('landscape', 'mm', 'a4');
     const pw = pdf.internal.pageSize.getWidth();
@@ -320,20 +491,14 @@ export default function ResidueSales() {
       textMid: [75, 85, 99] as [number, number, number],
     };
 
-    // Load logo
     let logoInfo: { data: string; width: number; height: number } | null = null;
     if (companyLogoUrl) {
       try {
         const img = new Image();
         img.crossOrigin = 'anonymous';
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject();
-          img.src = companyLogoUrl;
-        });
+        await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(); img.src = companyLogoUrl; });
         const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
+        canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
         canvas.getContext('2d')!.drawImage(img, 0, 0);
         logoInfo = { data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight };
       } catch { /* ignore */ }
@@ -346,7 +511,6 @@ export default function ResidueSales() {
     };
 
     const dateStr = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-
     let periodLabel = 'Todo período';
     if (filterMonth !== 'all') {
       const [yr, mo] = filterMonth.split('-');
@@ -356,7 +520,6 @@ export default function ResidueSales() {
       periodLabel = `${format(dateFrom, 'dd/MM/yyyy')} — ${format(dateTo, 'dd/MM/yyyy')}`;
     }
 
-    // Header (padrão Relatórios)
     const headerH = 25;
     const leftX = margin + 5;
     const rightX = pw - margin - 5;
@@ -368,47 +531,30 @@ export default function ResidueSales() {
     pdf.setLineWidth(0.5);
     pdf.rect(margin, y, pw - 2 * margin, headerH, 'S');
 
-    // Left: logo or company name + date
     if (logoInfo) {
       try {
         const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
         pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
       } catch {
-        if (companyName) {
-          pdf.setFontSize(10);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(...colors.textDark);
-          pdf.text(sanitizePdfText(companyName), leftX, y + 10);
-        }
+        if (companyName) { pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark); pdf.text(sanitizePdfText(companyName), leftX, y + 10); }
       }
     } else if (companyName) {
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...colors.textDark);
+      pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
       pdf.text(sanitizePdfText(companyName), leftX, y + 10);
     }
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(...colors.textMid);
+    pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textMid);
     pdf.text(dateStr, leftX, y + 22);
 
-    // Center: title
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(...colors.textDark);
+    pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
     const titleW = pdf.getTextWidth(reportTitle);
     pdf.text(reportTitle, (pw - titleW) / 2, y + 14);
 
-    // Right: period
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(...colors.textMid);
+    pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textMid);
     const pLabelW = pdf.getTextWidth(periodLabel);
     pdf.text(periodLabel, rightX - pLabelW, y + 22);
 
     y += headerH + 10;
 
-    // Table
     const rows = filteredSales.map(s => [
       s.date.split('-').reverse().join('/'),
       s.material_name || '-',
@@ -428,16 +574,16 @@ export default function ResidueSales() {
       margin: { left: margin, right: margin },
     });
 
-    // Totals
     const finalY = (pdf as any).lastAutoTable?.finalY || y;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9);
-    pdf.setTextColor(...colors.textDark);
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(...colors.textDark);
     pdf.text(`Total: ${formatCurrency(kpis.totalValue)} | Registros: ${kpis.count}`, margin, finalY + 8);
 
     pdf.save(`vendas-residuos-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast({ title: 'PDF exportado' });
   };
+
+  // Check if any client has materials configured
+  const hasClientsWithMaterials = residueClients.some(c => getClientPrices(c.id).length > 0);
 
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
@@ -455,15 +601,114 @@ export default function ResidueSales() {
       <Tabs defaultValue="sales" className="w-full">
         <TabsList>
           <TabsTrigger value="sales">Registros de Venda</TabsTrigger>
+          <TabsTrigger value="clients">Clientes</TabsTrigger>
           <TabsTrigger value="materials">Materiais</TabsTrigger>
         </TabsList>
+
+        {/* ======= CLIENTES TAB ======= */}
+        <TabsContent value="clients" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4" /> Clientes de Resíduos
+              </CardTitle>
+              <Button size="sm" onClick={openNewClient}>
+                <Plus className="h-4 w-4 mr-1" /> Novo Cliente
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {loadingClients ? (
+                <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+              ) : residueClients.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum cliente cadastrado</p>
+              ) : (
+                <div className="space-y-2">
+                  {residueClients.map(c => {
+                    const prices = getClientPrices(c.id);
+                    const isExpanded = expandedClientId === c.id;
+                    return (
+                      <Card key={c.id} className="border">
+                        <div
+                          className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setExpandedClientId(isExpanded ? null : c.id)}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                            <span className="font-medium">{c.name}</span>
+                            <Badge variant="outline" className="text-xs">{prices.length} {prices.length === 1 ? 'material' : 'materiais'}</Badge>
+                          </div>
+                          <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditClient(c)}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteClientConfirmId(c.id)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                        {isExpanded && (
+                          <div className="px-3 pb-3 border-t">
+                            <div className="mt-3 mb-2 flex items-center justify-between">
+                              <span className="text-sm font-medium text-muted-foreground">Materiais e Preços</span>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openAddPrice(c.id)} disabled={availableMaterialsForClient(c.id).length === 0}>
+                                <Plus className="h-3 w-3 mr-1" /> Material
+                              </Button>
+                            </div>
+                            {prices.length === 0 ? (
+                              <p className="text-xs text-muted-foreground py-2">Nenhum material configurado. Adicione materiais e seus preços.</p>
+                            ) : (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="text-xs">Material</TableHead>
+                                    <TableHead className="text-xs">Unidade</TableHead>
+                                    <TableHead className="text-xs">Preço</TableHead>
+                                    <TableHead className="text-xs w-[80px]">Ações</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {prices.map(p => {
+                                    const mat = materials.find(m => m.id === p.material_id);
+                                    return (
+                                      <TableRow key={p.id}>
+                                        <TableCell className="text-sm">{mat?.name || '?'}</TableCell>
+                                        <TableCell className="text-sm">
+                                          <Badge variant="outline" className="text-xs">{mat?.unit === 'kg' ? 'kg' : 'un'}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-sm">{formatCurrency(p.unit_price)}/{mat?.unit === 'kg' ? 'kg' : 'un'}</TableCell>
+                                        <TableCell>
+                                          <div className="flex gap-1">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditPrice(p)}>
+                                              <Edit className="h-3 w-3" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeletePriceConfirmId(p.id)}>
+                                              <Trash2 className="h-3 w-3 text-destructive" />
+                                            </Button>
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            )}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* ======= MATERIAIS TAB ======= */}
         <TabsContent value="materials" className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Package className="h-4 w-4" /> Materiais Cadastrados
+                <Package className="h-4 w-4" /> Catálogo de Materiais
               </CardTitle>
               <Button size="sm" onClick={openNewMat}>
                 <Plus className="h-4 w-4 mr-1" /> Novo Material
@@ -480,7 +725,6 @@ export default function ResidueSales() {
                     <TableRow>
                       <TableHead>Material</TableHead>
                       <TableHead>Unidade</TableHead>
-                      <TableHead>Preço Padrão</TableHead>
                       <TableHead className="w-[100px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -491,7 +735,6 @@ export default function ResidueSales() {
                         <TableCell>
                           <Badge variant="outline">{m.unit === 'kg' ? 'Quilograma (kg)' : 'Unidade (un)'}</Badge>
                         </TableCell>
-                        <TableCell>{formatCurrency(m.default_price)}/{m.unit === 'kg' ? 'kg' : 'un'}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEditMat(m)}>
@@ -610,7 +853,7 @@ export default function ResidueSales() {
                 <Download className="h-3 w-3" /> PDF
               </Button>
 
-              <Button size="sm" className="h-8 text-xs" onClick={openNewSale} disabled={materials.length === 0}>
+              <Button size="sm" className="h-8 text-xs" onClick={openNewSale} disabled={!hasClientsWithMaterials}>
                 <Plus className="h-4 w-4 mr-1" /> Nova Venda
               </Button>
             </CardContent>
@@ -623,7 +866,9 @@ export default function ResidueSales() {
                 <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
               ) : filteredSales.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  {materials.length === 0 ? 'Cadastre um material primeiro na aba "Materiais"' : 'Nenhum registro encontrado'}
+                  {!hasClientsWithMaterials
+                    ? 'Cadastre clientes e seus materiais/preços na aba "Clientes" primeiro'
+                    : 'Nenhum registro encontrado'}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -695,15 +940,66 @@ export default function ResidueSales() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Preço Padrão (R$/{matUnit === 'kg' ? 'kg' : 'un'})</Label>
-              <Input value={matPrice} onChange={e => setMatPrice(formatPriceInput(e.target.value))} placeholder="0,00" />
-            </div>
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
             <Button onClick={() => saveMat.mutate()} disabled={saveMat.isPending}>
               {saveMat.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== Client Dialog ===== */}
+      <Dialog open={clientDialogOpen} onOpenChange={setClientDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Nome *</Label>
+              <Input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Ex: Reciclagem ABC" />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+            <Button onClick={() => saveClient.mutate()} disabled={saveClient.isPending}>
+              {saveClient.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== Price Dialog ===== */}
+      <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{editingPrice ? 'Editar Preço' : 'Adicionar Material ao Cliente'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Material *</Label>
+              <Select value={priceMaterialId} onValueChange={setPriceMaterialId} disabled={!!editingPrice}>
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {availableMaterialsForClient(priceClientId).map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Preço (R$/{(() => { const mat = materials.find(m => m.id === priceMaterialId); return mat?.unit === 'unidade' ? 'un' : 'kg'; })()}) *</Label>
+              <Input value={priceValue} onChange={e => setPriceValue(formatPriceInput(e.target.value))} placeholder="0,00" />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+            <Button onClick={() => savePrice.mutate()} disabled={savePrice.isPending}>
+              {savePrice.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Salvar
             </Button>
           </DialogFooter>
@@ -724,26 +1020,33 @@ export default function ResidueSales() {
             </div>
             <div>
               <Label>Cliente *</Label>
-              <Input value={saleClient} onChange={e => setSaleClient(e.target.value)} placeholder="Nome do comprador" />
+              <SearchableSelect
+                value={saleClientId}
+                onValueChange={setSaleClientId}
+                placeholder="Selecione o cliente..."
+                options={residueClients.map(c => ({ value: c.id, label: c.name }))}
+              />
             </div>
             <div>
               <Label>Material *</Label>
-              <Select value={saleMaterialId} onValueChange={setSaleMaterialId}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {materials.map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {saleClientId ? (
+                <SearchableSelect
+                  value={saleMaterialId}
+                  onValueChange={setSaleMaterialId}
+                  placeholder="Selecione o material..."
+                  options={saleClientMaterials.map(m => ({ value: m.id, label: `${m.name} (${m.unit})` }))}
+                />
+              ) : (
+                <Input disabled placeholder="Selecione um cliente primeiro" className="text-muted-foreground" />
+              )}
             </div>
             <div>
-              <Label>{selectedMaterial?.unit === 'unidade' ? 'Quantidade (un) *' : 'Peso (kg) *'}</Label>
+              <Label>{selectedSaleMaterial?.unit === 'unidade' ? 'Quantidade (un) *' : 'Peso (kg) *'}</Label>
               <Input value={saleQty} onChange={e => setSaleQty(formatQtyInput(e.target.value))}
-                placeholder={selectedMaterial?.unit === 'unidade' ? '0' : '0,00'} />
+                placeholder={selectedSaleMaterial?.unit === 'unidade' ? '0' : '0,00'} />
             </div>
             <div>
-              <Label>Preço (R$/{selectedMaterial?.unit === 'unidade' ? 'un' : 'kg'}) *</Label>
+              <Label>Preço (R$/{selectedSaleMaterial?.unit === 'unidade' ? 'un' : 'kg'}) *</Label>
               <Input value={salePrice} onChange={e => setSalePrice(formatPriceInput(e.target.value))} placeholder="0,00" />
             </div>
             <div>
@@ -756,7 +1059,6 @@ export default function ResidueSales() {
             </div>
           </div>
 
-          {/* Total preview */}
           {saleMaterialId && parseBR(saleQty) > 0 && parseBR(salePrice) > 0 && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mt-2">
               <div className="flex items-center justify-between">
@@ -780,7 +1082,7 @@ export default function ResidueSales() {
         open={!!deleteMatConfirmId}
         onOpenChange={(v) => { if (!v) setDeleteMatConfirmId(null); }}
         title="Remover material"
-        description="Tem certeza que deseja remover este material? Esta ação não pode ser desfeita."
+        description="Tem certeza que deseja remover este material? Isso removerá também os preços vinculados a clientes."
         onConfirm={() => { if (deleteMatConfirmId) deleteMat.mutate(deleteMatConfirmId); setDeleteMatConfirmId(null); }}
       />
       <DeleteConfirmDialog
@@ -789,6 +1091,20 @@ export default function ResidueSales() {
         title="Remover registro de venda"
         description="Tem certeza que deseja remover este registro de venda? Esta ação não pode ser desfeita."
         onConfirm={() => { if (deleteSaleConfirmId) deleteSale.mutate(deleteSaleConfirmId); setDeleteSaleConfirmId(null); }}
+      />
+      <DeleteConfirmDialog
+        open={!!deleteClientConfirmId}
+        onOpenChange={(v) => { if (!v) setDeleteClientConfirmId(null); }}
+        title="Remover cliente"
+        description="Tem certeza que deseja remover este cliente? Os preços vinculados serão removidos também."
+        onConfirm={() => { if (deleteClientConfirmId) deleteClient.mutate(deleteClientConfirmId); setDeleteClientConfirmId(null); }}
+      />
+      <DeleteConfirmDialog
+        open={!!deletePriceConfirmId}
+        onOpenChange={(v) => { if (!v) setDeletePriceConfirmId(null); }}
+        title="Remover material do cliente"
+        description="Tem certeza que deseja remover este material e seu preço deste cliente?"
+        onConfirm={() => { if (deletePriceConfirmId) deletePrice.mutate(deletePriceConfirmId); setDeletePriceConfirmId(null); }}
       />
     </div>
   );

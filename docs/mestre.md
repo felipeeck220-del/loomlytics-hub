@@ -241,8 +241,10 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 | `invoices` | company_id, type (entrada/saida/venda_fio), invoice_number, client_id, issue_date, total_weight_kg, total_value, status | Notas Fiscais |
 | `invoice_items` | invoice_id, company_id, yarn_type_id, article_id, weight_kg, quantity_rolls, value_per_kg, subtotal | Itens das NFs |
 | `outsource_yarn_stock` | company_id, outsource_company_id, yarn_type_id, quantity_kg, reference_month | Estoque de fio em terceiros |
-| `residue_materials` | company_id, name, unit (kg/unidade), default_price | Materiais residuais |
-| `residue_sales` | company_id, material_id, client_name, date, quantity, unit_price, total, romaneio | Vendas de resíduos |
+| `residue_materials` | company_id, name, unit (kg/unidade), default_price | Catálogo de materiais residuais |
+| `residue_clients` | company_id, name | Compradores de resíduos |
+| `residue_client_prices` | company_id, client_id, material_id, unit_price | Preço por material por cliente (UNIQUE client+material) |
+| `residue_sales` | company_id, client_id, material_id, client_name, date, quantity, unit_price, total, romaneio | Vendas de resíduos |
 | `accounts_payable` | company_id, supplier_name, description, category, amount, due_date, whatsapp_number, status, short_id, paid_amount, receipt_url | Contas a pagar |
 | `tv_panels` | company_id, code, name, panel_type, enabled_machines, is_connected | Painéis TV |
 | `iot_devices` | company_id, machine_id, token, name, active, firmware_version, last_seen_at | Dispositivos IoT |
@@ -1408,6 +1410,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **09/04/2026 00:26 (Brasília)** — **DOCUMENTAÇÃO — Pente fino em todos os docs/*.md:** Corrigidos status e inconsistências em 6 arquivos de documentação: (1) **nfv2.md** — status atualizado de "PLANEJADO" para "❌ REVERTIDO"; (2) **nftrama.md** — status atualizado de "ESPECIFICAÇÃO" para "❌ REVERTIDO"; (3) **nf.md** — adicionadas colunas `buyer_name` e `destination_name` na tabela `invoices` (existem no banco mas não usadas na UI), status atualizado para "✅ ATIVO"; (4) **saldofios.md** — status atualizado para "✅ IMPLEMENTADO"; (5) **saldofiosglobal.md** — status atualizado para "✅ IMPLEMENTADO"; (6) **estoquemalhas.md** — ordem das abas corrigida (faltavam "Saldo Global" e "Fio Terceiros"), status atualizado para "✅ IMPLEMENTADO". Nenhum bug de código ou banco encontrado.
 
+- **09/04/2026 02:00 (Brasília)** — **VENDAS DE RESÍDUOS — Reestruturação cliente-cêntrica (Opção A):** Modelo alterado de material-cêntrico para **cliente-cêntrico**: (1) **Nova tabela `residue_clients`** — cadastro de compradores de resíduos; (2) **Nova tabela `residue_client_prices`** — preço por material por cliente (UNIQUE client_id+material_id); (3) **Nova coluna `client_id`** em `residue_sales` (FK para residue_clients, nullable); (4) **3 abas** no módulo: "Registros de Venda" (default), "Clientes" (novo), "Materiais" (catálogo simples sem preço); (5) **Aba Clientes** com expansão accordion — cada cliente mostra materiais vinculados com preços; (6) **Fluxo de venda**: seleciona Cliente → filtra materiais do cliente → preço auto-preenche; (7) **SearchableSelect** nos campos Cliente e Material do modal de venda; (8) Tabela de materiais simplificada (removido preço padrão da UI); (9) RLS em todas as novas tabelas com `company_id = get_user_company_id()`. Documentação atualizada em `docs/Recycle.md`.
+
 ---
 
-*Última atualização: 09/04/2026 00:26 (Brasília)*
+*Última atualização: 09/04/2026 02:00 (Brasília)*
