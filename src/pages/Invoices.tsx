@@ -1687,12 +1687,14 @@ export default function Invoices() {
                           triggerClassName="h-8 text-xs"
                         />
                       ) : (
-                        <Select value={item.yarn_type_id || ''} onValueChange={v => updateItem(idx, 'yarn_type_id', v)}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            {yarnTypes.map(y => <SelectItem key={y.id} value={y.id}>{y.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          value={item.yarn_type_id || ''}
+                          onValueChange={v => updateItem(idx, 'yarn_type_id', v)}
+                          options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
+                          placeholder="Selecione..."
+                          searchPlaceholder="Buscar fio..."
+                          triggerClassName="h-8 text-xs"
+                        />
                       )}
                     </div>
                     <div className="col-span-2">
