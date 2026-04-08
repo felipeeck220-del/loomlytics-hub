@@ -887,9 +887,14 @@ export default function Invoices() {
                     <Plus className="h-4 w-4" /> Nova NF {tab === 'entrada' ? 'Entrada' : 'Saída'}
                   </Button>
                   {tab === 'saida' && (
-                    <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
-                      <Plus className="h-4 w-4" /> Venda de Fio
-                    </Button>
+                    <>
+                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
+                        <Plus className="h-4 w-4" /> Venda de Fio
+                      </Button>
+                      <Button onClick={() => openNewInvoice('saida_malha')} size="sm" variant="outline" className="gap-1.5">
+                        <Plus className="h-4 w-4" /> Saída Malha (Tinturaria)
+                      </Button>
+                    </>
                   )}
                   <div className="flex-1" />
 
