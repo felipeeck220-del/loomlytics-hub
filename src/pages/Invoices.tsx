@@ -48,7 +48,7 @@ async function fetchAllPaginated<T>(table: string, companyId: string, orderCol: 
   return all;
 }
 
-type InvoiceType = 'entrada' | 'saida' | 'venda_fio';
+type InvoiceType = 'entrada' | 'saida' | 'venda_fio' | 'saida_malha';
 type InvoiceStatus = 'pendente' | 'conferida' | 'cancelada';
 
 interface YarnType {
@@ -77,6 +77,8 @@ interface Invoice {
   created_by_name: string | null;
   created_by_code: string | null;
   created_at: string;
+  buyer_name: string | null;
+  destination_name: string | null;
 }
 
 interface InvoiceItem {
@@ -100,6 +102,7 @@ const TYPE_LABELS: Record<InvoiceType, string> = {
   entrada: 'Entrada (Fio)',
   saida: 'Saída (Malha)',
   venda_fio: 'Venda de Fio',
+  saida_malha: 'Saída Malha (Tinturaria)',
 };
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
