@@ -1658,14 +1658,13 @@ export default function Invoices() {
                     <div className={(formType === 'saida' || formType === 'saida_malha') ? 'col-span-3' : 'col-span-4'}>
                       <Label className="text-[10px]">{(formType === 'saida' || formType === 'saida_malha') ? 'Artigo' : 'Tipo de Fio'}</Label>
                       {(formType === 'saida' || formType === 'saida_malha') ? (
-                        <Select value={item.article_id || ''} onValueChange={v => updateItem(idx, 'article_id', v)}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            {(formClientId ? clientArticles : articles).map(a => (
-                              <SelectItem key={a.id} value={a.id}>{a.name}{a.client_name ? ` (${a.client_name})` : ''}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          value={item.article_id || ''}
+                          onValueChange={v => updateItem(idx, 'article_id', v)}
+                          options={(formClientId ? clientArticles : articles).map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
+                          placeholder="Selecione..."
+                          triggerClassName="h-8 text-xs"
+                        />
                       ) : (
                         <Select value={item.yarn_type_id || ''} onValueChange={v => updateItem(idx, 'yarn_type_id', v)}>
                           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>

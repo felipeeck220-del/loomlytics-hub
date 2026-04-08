@@ -1390,6 +1390,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **08/04/2026 14:00 (Brasília)** — **NOTAS FISCAIS v2 (NFv2) — Implementação completa:** (1) **Nova coluna `buyer_name`** (text, nullable) na tabela `invoices` — comprador da venda de fio; (2) **Nova coluna `destination_name`** (text, nullable) — tinturaria destino para saída de malha; (3) **Novo tipo de NF `saida_malha`** (Saída Malha Tinturaria) — permite registrar malha enviada diretamente para tinturaria; (4) **Campo "Comprador"** obrigatório no formulário de Venda de Fio; (5) **Campo "Tinturaria"** obrigatório no formulário de Saída Malha; (6) **Botão "Saída Malha (Tinturaria)"** na aba Saída; (7) **Coluna "Comprador/Destino"** na listagem da aba Saída; (8) **Estoque de Malha** atualizado: deduz tanto `saida` quanto `saida_malha`; (9) **View Dialog** exibe Comprador/Tinturaria conforme o tipo; (10) Documentação base em `docs/nf.md` (rollback) e plano em `docs/nfv2.md`.
 
+- **08/04/2026 14:30 (Brasília)** — **NOTAS FISCAIS — Lupa (SearchableSelect) no campo Artigo:** Substituído `<Select>` padrão por `SearchableSelect` (com lupa de pesquisa) no campo "Artigo" dos itens de NF para tipos `saida` e `saida_malha` (Saída Malha Tinturaria). Padroniza UX com o restante do sistema.
+
 ---
 
-*Última atualização: 08/04/2026 14:00 (Brasília)*
+*Última atualização: 08/04/2026 14:30 (Brasília)*
