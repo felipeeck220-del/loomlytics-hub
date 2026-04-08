@@ -864,8 +864,8 @@ export default function Invoices() {
           <TabsTrigger value="fios" className="text-xs">Tipos de Fio</TabsTrigger>
         </TabsList>
 
-        {/* ===== ENTRADA & SAIDA TABS ===== */}
-        {['entrada', 'saida'].map(tab => {
+        {/* ===== ENTRADA, SAIDA & VENDA_FIO TABS ===== */}
+        {['entrada', 'saida', ...(isTrama ? ['venda_fio'] : [])].map(tab => {
           const tabLabel = tab === 'entrada' ? 'Entrada (Fio)' : 'Saída (Malha)';
           const invoiceType = tab as InvoiceType;
           return (
