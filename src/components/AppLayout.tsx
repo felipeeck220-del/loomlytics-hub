@@ -53,6 +53,8 @@ function formatDate(date: Date): string {
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  const { refreshData } = useSharedCompanyData();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Persist last company slug for PWA redirect
   useEffect(() => {
