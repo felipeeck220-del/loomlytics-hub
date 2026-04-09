@@ -143,15 +143,20 @@ export default function AppLayout() {
               {/* Network Status */}
               <NetworkStatusIcon />
 
-              {/* Refresh */}
+              {/* Refresh Data */}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => window.location.reload()}
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  await refreshData();
+                  setIsRefreshing(false);
+                }}
+                disabled={isRefreshing}
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                title="Atualizar página"
+                title="Atualizar dados"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
 
               {/* Theme Toggle */}
