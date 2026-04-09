@@ -1385,6 +1385,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **09/04/2026 20:00 (Brasília)** — **HEADER — Indicador de conexão + botão refresh inteligente:** (1) **Indicador de rede:** Ícone de barras de sinal no header fixo mostra qualidade da conexão em tempo real — verde (4 barras, boa), amarelo/laranja (2 barras, média), vermelho (1 barra, fraca), X vermelho (sem conexão). Usa `navigator.connection` (Network Information API) com fallback para `navigator.onLine` em Safari/iOS. Tooltip mostra descrição textual. Hook `useNetworkStatus` com polling a cada 10s como fallback; (2) **Botão refresh inteligente:** Ícone de refresh (RefreshCw) no header recarrega apenas os dados do banco (via `refreshData` / `loadAllData` do `useCompanyData`) sem recarregar toda a página — animação de spin durante o carregamento, botão desabilitado durante refresh; (3) **Refatoração `useCompanyData`:** Lógica de carregamento extraída para `loadAllData` (useCallback), mappers movidos para antes da definição, `refreshData` exposto no retorno do hook; (4) **Novos arquivos:** `src/hooks/useNetworkStatus.ts`, `src/components/NetworkStatusIcon.tsx`.
 
+- **09/04/2026 21:00 (Brasília)** — **PENTE FINO — Botão refresh + documentação:** (1) **BUG CRÍTICO — Loading infinito:** `loadAllData` não tinha `try/catch` — se qualquer query falhasse, `setLoading(false)` nunca era chamado, travando a UI em loading permanente. Corrigido com `try/catch/finally`; (2) **Toast de feedback:** Botão refresh agora exibe toast verde "Dados atualizados" ao concluir com sucesso ou toast vermelho "Erro ao atualizar" em caso de falha; (3) **Documentação:** Criado `docs/botaorefresh.md` com documentação 100% detalhada — arquitetura, APIs utilizadas, tabelas recarregadas, tratamento de erros, limitações conhecidas, posição no header e dependências entre arquivos.
+
 ---
 
-*Última atualização: 09/04/2026 20:00 (Brasília)*
+*Última atualização: 09/04/2026 21:00 (Brasília)*
