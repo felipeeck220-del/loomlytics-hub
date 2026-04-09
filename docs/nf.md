@@ -374,7 +374,7 @@ Para cada client_id + article_id:
 1. **Cliente*** — Select com todos os clientes
 2. **Nº da NF*** — Input text
 3. **Data Emissão*** — Input type="date" com min/maxDate
-4. ~~**Chave de Acesso SEFAZ**~~ — **Temporariamente oculto** (comentado no código, v2 SEFAZ)
+4. **Chave de Acesso SEFAZ** — Input font-mono, 44 dígitos numéricos, opcional. Exibe contador (`N/44 dígitos`) e indicador `✓ Chave válida`. **Scanner automático:** listener global `keydown` (capture) detecta digitação rápida (<80ms) e preenche o campo automaticamente sem necessidade de foco — compatível com leitores USB HID (Zebra, Honeywell).
 5. **Status** — Select (pendente/conferida)
 6. **Observações** — Textarea
 
@@ -400,7 +400,7 @@ Para cada client_id + article_id:
 - Nº NF obrigatório
 - Data dentro dos limites (±5 anos)
 - Ao menos 1 item válido (com fio/artigo + peso > 0)
-- ~~Chave de acesso: 44 dígitos numéricos (desabilitado)~~
+- Chave de acesso: 44 dígitos numéricos (opcional, validado se preenchido)
 
 ---
 
