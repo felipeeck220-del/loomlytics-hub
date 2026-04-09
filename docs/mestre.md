@@ -1381,6 +1381,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **09/04/2026 16:00 (Brasília)** — **DASHBOARD — Bug fix `troca_agulhas` + limpeza mestre.md:** (1) **Dashboard:** Status `troca_agulhas` adicionado aos mapas `statusLabels`, `statusIcons` e `statusColors` na seção "Máquinas Paradas" — antes, máquinas com esse status apareciam sem label, ícone ou cor; (2) **mestre.md:** Entradas do histórico reordenadas cronologicamente e duplicação de "Última atualização" removida.
 
+- **09/04/2026 19:00 (Brasília)** — **NOTAS FISCAIS — Chave de Acesso SEFAZ reativada + Scanner automático:** (1) **Campo reativado:** Campo "Chave de Acesso SEFAZ" descomentado no formulário de Nova NF e no modal de visualização — exibe contador de dígitos e indicador "✓ Chave válida" ao atingir 44 dígitos; (2) **Validação reativada:** Validação de 44 dígitos numéricos no `handleSaveInvoice` reativada (antes comentada); (3) **Scanner automático (HID):** Listener global `keydown` ativo quando o modal está aberto detecta digitação rápida (<80ms entre teclas) de 44 dígitos — preenche o campo automaticamente sem necessidade de foco no input, compatível com leitores USB Zebra/Honeywell em modo HID; (4) **Toast de confirmação:** Feedback visual ao detectar leitura bem-sucedida do scanner.
+
 ---
 
-*Última atualização: 09/04/2026 16:00 (Brasília)*
+*Última atualização: 09/04/2026 19:00 (Brasília)*
