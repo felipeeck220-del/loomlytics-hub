@@ -137,6 +137,20 @@ export default function AppLayout() {
 
               <div className="h-5 w-px bg-border hidden sm:block" />
 
+              {/* Network Status */}
+              <NetworkStatusIcon />
+
+              {/* Refresh */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => window.location.reload()}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title="Atualizar página"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+
               {/* Theme Toggle */}
               <Button
                 variant="ghost"
