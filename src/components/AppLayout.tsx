@@ -9,6 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown, XCircle, RefreshCw } from 'lucide-react';
 import NetworkStatusIcon from '@/components/NetworkStatusIcon';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/components/ThemeProvider';
 import {
