@@ -46,48 +46,6 @@ export function useCompanyData() {
     return allData;
   };
 
-  // Load all data once we have the company ID from the authenticated user
-  useEffect(() => {
-    if (!companyId) {
-      setLoading(false);
-      return;
-    }
-    (async () => {
-      setLoading(true);
-      const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drData] = await Promise.all([
-        fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
-        fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
-        fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
-        fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
-        fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
-        fetchAll('machine_logs', null, 'started_at', false),
-        fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
-        sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
-        fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false),
-      ]);
-
-      setMachines(mData.map(mapMachine));
-      setMachineLogs(mlRes.map(mapMachineLog));
-      setClients(cData.map(mapClient));
-      setArticles(aData.map(mapArticle));
-      setWeavers(wData.map(mapWeaver));
-      setProductions(pData.map(mapProduction));
-      setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
-      setDefectRecords(drData.map(mapDefectRecord));
-      if (csRes.data) {
-        setShiftSettings({
-          shift_manha_start: csRes.data.shift_manha_start || DEFAULT_SHIFT_SETTINGS.shift_manha_start,
-          shift_manha_end: csRes.data.shift_manha_end || DEFAULT_SHIFT_SETTINGS.shift_manha_end,
-          shift_tarde_start: csRes.data.shift_tarde_start || DEFAULT_SHIFT_SETTINGS.shift_tarde_start,
-          shift_tarde_end: csRes.data.shift_tarde_end || DEFAULT_SHIFT_SETTINGS.shift_tarde_end,
-          shift_noite_start: csRes.data.shift_noite_start || DEFAULT_SHIFT_SETTINGS.shift_noite_start,
-          shift_noite_end: csRes.data.shift_noite_end || DEFAULT_SHIFT_SETTINGS.shift_noite_end,
-        });
-      }
-      setLoading(false);
-    })();
-  }, [companyId]);
-
   // Mappers from DB rows to app types
   const mapMachine = (r: any): Machine => ({
     id: r.id, company_id: r.company_id, number: r.number, name: r.name,
@@ -129,7 +87,6 @@ export function useCompanyData() {
     if (lower.startsWith('noite')) return 'noite';
     return 'manha';
   };
-
   const mapProduction = (r: any): Production => ({
     id: r.id, company_id: r.company_id, date: r.date,
     shift: normalizeShift(r.shift),
@@ -156,6 +113,51 @@ export function useCompanyData() {
     weaver_name: r.weaver_name || undefined, observations: r.observations || undefined,
     created_at: r.created_at,
   });
+
+  // Reusable data loader
+  const loadAllData = useCallback(async () => {
+    if (!companyId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drData] = await Promise.all([
+      fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
+      fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
+      fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
+      fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
+      fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
+      fetchAll('machine_logs', null, 'started_at', false),
+      fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
+      sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
+      fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false),
+    ]);
+
+    setMachines(mData.map(mapMachine));
+    setMachineLogs(mlRes.map(mapMachineLog));
+    setClients(cData.map(mapClient));
+    setArticles(aData.map(mapArticle));
+    setWeavers(wData.map(mapWeaver));
+    setProductions(pData.map(mapProduction));
+    setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
+    setDefectRecords(drData.map(mapDefectRecord));
+    if (csRes.data) {
+      setShiftSettings({
+        shift_manha_start: csRes.data.shift_manha_start || DEFAULT_SHIFT_SETTINGS.shift_manha_start,
+        shift_manha_end: csRes.data.shift_manha_end || DEFAULT_SHIFT_SETTINGS.shift_manha_end,
+        shift_tarde_start: csRes.data.shift_tarde_start || DEFAULT_SHIFT_SETTINGS.shift_tarde_start,
+        shift_tarde_end: csRes.data.shift_tarde_end || DEFAULT_SHIFT_SETTINGS.shift_tarde_end,
+        shift_noite_start: csRes.data.shift_noite_start || DEFAULT_SHIFT_SETTINGS.shift_noite_start,
+        shift_noite_end: csRes.data.shift_noite_end || DEFAULT_SHIFT_SETTINGS.shift_noite_end,
+      });
+    }
+    setLoading(false);
+  }, [companyId]);
+
+  // Load all data once we have the company ID from the authenticated user
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
 
   // Getters (return current state)
   const getMachines = useCallback(() => machines, [machines]);
@@ -396,6 +398,7 @@ export function useCompanyData() {
 
   return {
     loading,
+    refreshData: loadAllData,
     dbCompanyId: companyId,
     shiftSettings,
     getMachines, saveMachines,

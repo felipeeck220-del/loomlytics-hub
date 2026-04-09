@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { AppSidebar } from '@/components/AppSidebar';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
@@ -52,6 +53,8 @@ function formatDate(date: Date): string {
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  const { refreshData } = useSharedCompanyData();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Persist last company slug for PWA redirect
   useEffect(() => {
@@ -140,15 +143,20 @@ export default function AppLayout() {
               {/* Network Status */}
               <NetworkStatusIcon />
 
-              {/* Refresh */}
+              {/* Refresh Data */}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => window.location.reload()}
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  await refreshData();
+                  setIsRefreshing(false);
+                }}
+                disabled={isRefreshing}
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                title="Atualizar página"
+                title="Atualizar dados"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
 
               {/* Theme Toggle */}
