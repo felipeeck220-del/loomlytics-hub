@@ -215,11 +215,11 @@ Seguir o padrão estabelecido no projeto:
 | Role       | Acesso ao Saldo de Fios |
 |------------|------------------------|
 | `admin`    | Visualização completa (com valores financeiros se houver) |
-| `lider`    | Visualização completa |
+| `lider`    | Sem acesso (key `invoices` não está no `ROLE_ALLOWED_KEYS.lider`) |
 | `mecanico` | Sem acesso |
 | `revisador`| Sem acesso |
 
-Herda as mesmas permissões da página de Notas Fiscais (key `invoices` no `enabled_nav_items`).
+Herda as mesmas permissões da página de Notas Fiscais (key `invoices` no `enabled_nav_items`). Apenas `admin` tem acesso por padrão, mas pode ser concedido a outros roles via `permission_overrides`.
 
 ---
 

@@ -196,6 +196,7 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 /register                 → Registro de empresa (PublicRoute)
 /:slug/login              → Login por empresa (CompanyLogin)
 /:slug                    → Dashboard (CompanyRoute + ProtectedRoute)
+/:slug/faturamento-total  → Faturamento Total (admin only)
 /:slug/machines           → Máquinas
 /:slug/clients-articles   → Clientes & Artigos
 /:slug/production         → Produção
@@ -204,6 +205,10 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 /:slug/outsource          → Terceirizado
 /:slug/weavers            → Tecelões
 /:slug/reports            → Relatórios
+/:slug/contas-pagar       → Contas a Pagar (admin only)
+/:slug/residuos           → Resíduos (admin only)
+/:slug/invoices           → Notas Fiscais (admin only)
+/:slug/fechamento         → Fechamento Mensal (admin only)
 /:slug/settings           → Configurações
 /admin                    → Painel Admin da Plataforma
 /vendas                   → Página de Vendas

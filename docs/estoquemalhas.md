@@ -335,11 +335,11 @@ Seguir o padrão já estabelecido na aba **Saldo de Fios**:
 | Role       | Acesso ao Estoque de Malha |
 |------------|---------------------------|
 | `admin`    | Visualização completa     |
-| `lider`    | Visualização completa     |
+| `lider`    | Sem acesso (key `invoices` não está no `ROLE_ALLOWED_KEYS.lider`) |
 | `mecanico` | Sem acesso                |
 | `revisador`| Sem acesso                |
 
-Herda as mesmas permissões da página de Notas Fiscais (key `invoices` no `enabled_nav_items`).
+Herda as mesmas permissões da página de Notas Fiscais (key `invoices` no `enabled_nav_items`). Apenas `admin` tem acesso por padrão.
 
 ---
 

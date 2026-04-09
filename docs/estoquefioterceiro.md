@@ -3,7 +3,7 @@
 > **⚠️ INSTRUÇÕES:**
 > Este arquivo documenta a implementação do módulo de **Estoque de Fio por Facção (Terceiros)**.
 > Este módulo rastreia quanto fio da empresa principal está fisicamente em cada malharia terceirizada.
-> **Requer migration** — nova tabela `outsource_yarn_stock` será criada.
+> **Migration já executada** — tabela `outsource_yarn_stock` já existe no banco de dados.
 
 ---
 

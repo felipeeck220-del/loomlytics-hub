@@ -362,11 +362,11 @@ function lastDayOfMonth(yearMonth: string): string {
 | Role       | Acesso                                   |
 |------------|------------------------------------------|
 | `admin`    | Visualização completa                    |
-| `lider`    | Visualização completa                    |
+| `lider`    | Sem acesso (key `invoices` não está no `ROLE_ALLOWED_KEYS.lider`) |
 | `mecanico` | Sem acesso                               |
 | `revisador`| Sem acesso                               |
 
-Herda as mesmas permissões da página de Notas Fiscais.
+Herda as mesmas permissões da página de Notas Fiscais. Apenas `admin` tem acesso por padrão.
 
 ---
 
