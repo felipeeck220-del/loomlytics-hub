@@ -9,6 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown, XCircle, RefreshCw } from 'lucide-react';
 import NetworkStatusIcon from '@/components/NetworkStatusIcon';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/components/ThemeProvider';
 import {
@@ -55,6 +56,7 @@ export default function AppLayout() {
   const { user, logout } = useAuth();
   const { refreshData } = useSharedCompanyData();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { toast } = useToast();
 
   // Persist last company slug for PWA redirect
   useEffect(() => {
@@ -149,8 +151,14 @@ export default function AppLayout() {
                 size="icon"
                 onClick={async () => {
                   setIsRefreshing(true);
-                  await refreshData();
-                  setIsRefreshing(false);
+                  try {
+                    await refreshData();
+                    toast({ title: 'Dados atualizados', description: 'Todos os dados foram recarregados com sucesso.' });
+                  } catch {
+                    toast({ title: 'Erro ao atualizar', description: 'Não foi possível recarregar os dados. Verifique sua conexão.', variant: 'destructive' });
+                  } finally {
+                    setIsRefreshing(false);
+                  }
                 }}
                 disabled={isRefreshing}
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
