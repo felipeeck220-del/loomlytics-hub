@@ -151,8 +151,14 @@ export default function AppLayout() {
                 size="icon"
                 onClick={async () => {
                   setIsRefreshing(true);
-                  await refreshData();
-                  setIsRefreshing(false);
+                  try {
+                    await refreshData();
+                    toast({ title: 'Dados atualizados', description: 'Todos os dados foram recarregados com sucesso.' });
+                  } catch {
+                    toast({ title: 'Erro ao atualizar', description: 'Não foi possível recarregar os dados. Verifique sua conexão.', variant: 'destructive' });
+                  } finally {
+                    setIsRefreshing(false);
+                  }
                 }}
                 disabled={isRefreshing}
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
