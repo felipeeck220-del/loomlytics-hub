@@ -53,7 +53,7 @@ ESTOQUE DE FINAL DE FIO - GTI MALHAS
 
 ## 🗄️ Modelo de Dados
 
-### Nova tabela: `outsource_yarn_stock`
+### Tabela `outsource_yarn_stock` (já existente)
 
 | Campo              | Tipo         | Nullable | Default           | Descrição                                                   |
 |--------------------|--------------|----------|-------------------|-------------------------------------------------------------|

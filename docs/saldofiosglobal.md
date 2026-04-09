@@ -339,20 +339,20 @@ function lastDayOfMonth(yearMonth: string): string {
 ## 📋 Checklist de Implementação
 
 ### No PDF de Fechamento Mensal:
-- [ ] Seção "Saldo de Fios por Tipo" como uma página do PDF
-- [ ] Tabela com colunas: Tipo de Fio, Compra (mês), Estoque (acumulado), Vendas (mês)
-- [ ] Linha de TOTAL no final
-- [ ] Formato pt-BR para números (1.234,56 kg)
-- [ ] Fios sem movimentação mas com estoque devem aparecer
-- [ ] Fios zerados em tudo não aparecem
+- [x] Seção "Saldo de Fios por Tipo" como uma página do PDF
+- [x] Tabela com colunas: Tipo de Fio, Compra (mês), Estoque (acumulado), Vendas (mês)
+- [x] Linha de TOTAL no final
+- [x] Formato pt-BR para números (1.234,56 kg)
+- [x] Fios sem movimentação mas com estoque devem aparecer
+- [x] Fios zerados em tudo não aparecem
 
 ### No Fechamento KG (primeira página do PDF):
-- [ ] Linha "COMPRA DE FIO [MÊS/ANO]" = Σ de todas as compras do mês (total da coluna Compra)
-- [ ] Linha "(-) ESTOQUE FINAL" = Σ de todos os estoques (total da coluna Estoque)
-- [ ] Linha "VENDAS DE FIO" = Σ de todas as vendas de fio (total da coluna Vendas)
+- [x] Linha "COMPRA DE FIO [MÊS/ANO]" = Σ de todas as compras do mês (total da coluna Compra)
+- [x] Linha "(-) ESTOQUE FINAL" = Σ de todos os estoques (total da coluna Estoque)
+- [x] Linha "VENDAS DE FIO" = Σ de todas as vendas de fio (total da coluna Vendas)
 
 ### Aba na UI (futuro / opcional):
-- [ ] Toggle "Por Cliente / Por Tipo de Fio" na aba Saldo Fios
+- [x] Toggle "Por Cliente / Por Tipo de Fio" na aba Saldo Fios
 - [ ] Ou nova aba dedicada "Saldo Global"
 
 ---
