@@ -46,6 +46,74 @@ export function useCompanyData() {
     return allData;
   };
 
+  // Mappers from DB rows to app types
+  const mapMachine = (r: any): Machine => ({
+    id: r.id, company_id: r.company_id, number: r.number, name: r.name,
+    rpm: r.rpm, status: r.status, article_id: r.article_id || undefined,
+    observations: r.observations || undefined, production_mode: r.production_mode || 'rolos',
+    created_at: r.created_at,
+  });
+  const mapMachineLog = (r: any): MachineLog => ({
+    id: r.id, machine_id: r.machine_id, status: r.status,
+    started_at: r.started_at, ended_at: r.ended_at || undefined,
+    started_by_name: r.started_by_name || undefined,
+    started_by_code: r.started_by_code || undefined,
+    ended_by_name: r.ended_by_name || undefined,
+    ended_by_code: r.ended_by_code || undefined,
+  });
+  const mapClient = (r: any): Client => ({
+    id: r.id, company_id: r.company_id, name: r.name,
+    contact: r.contact || undefined, observations: r.observations || undefined, created_at: r.created_at,
+  });
+  const mapArticle = (r: any): Article => ({
+    id: r.id, company_id: r.company_id, name: r.name, client_id: r.client_id,
+    client_name: r.client_name || undefined, yarn_type_id: r.yarn_type_id || undefined,
+    weight_per_roll: Number(r.weight_per_roll),
+    value_per_kg: Number(r.value_per_kg), turns_per_roll: Number(r.turns_per_roll),
+    target_efficiency: Number(r.target_efficiency) || 80,
+    observations: r.observations || undefined, created_at: r.created_at,
+  });
+  const mapWeaver = (r: any): Weaver => ({
+    id: r.id, company_id: r.company_id, code: r.code, name: r.name,
+    phone: r.phone || undefined, shift_type: r.shift_type,
+    fixed_shift: r.fixed_shift || undefined, start_time: r.start_time || undefined,
+    end_time: r.end_time || undefined, created_at: r.created_at,
+  });
+  const normalizeShift = (shift: string): ShiftType => {
+    if (!shift) return 'manha';
+    const lower = shift.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (lower.startsWith('manha')) return 'manha';
+    if (lower.startsWith('tarde')) return 'tarde';
+    if (lower.startsWith('noite')) return 'noite';
+    return 'manha';
+  };
+  const mapProduction = (r: any): Production => ({
+    id: r.id, company_id: r.company_id, date: r.date,
+    shift: normalizeShift(r.shift),
+    machine_id: r.machine_id || '', machine_name: r.machine_name || '',
+    weaver_id: r.weaver_id || '', weaver_name: r.weaver_name || '',
+    article_id: r.article_id || '', article_name: r.article_name || '',
+    rpm: Number(r.rpm), rolls_produced: Number(r.rolls_produced),
+    weight_kg: Number(r.weight_kg), revenue: Number(r.revenue),
+    efficiency: Number(r.efficiency), created_at: r.created_at,
+    created_by_name: r.created_by_name || undefined,
+    created_by_code: r.created_by_code || undefined,
+  });
+  const mapArticleMachineTurns = (r: any): ArticleMachineTurns => ({
+    id: r.id, article_id: r.article_id, machine_id: r.machine_id,
+    company_id: r.company_id, turns_per_roll: Number(r.turns_per_roll),
+    observations: r.observations || undefined, created_at: r.created_at,
+  });
+  const mapDefectRecord = (r: any): DefectRecord => ({
+    id: r.id, company_id: r.company_id, machine_id: r.machine_id || '',
+    article_id: r.article_id || '', weaver_id: r.weaver_id || '',
+    date: r.date, shift: normalizeShift(r.shift),
+    measure_type: r.measure_type || 'kg', measure_value: Number(r.measure_value),
+    machine_name: r.machine_name || undefined, article_name: r.article_name || undefined,
+    weaver_name: r.weaver_name || undefined, observations: r.observations || undefined,
+    created_at: r.created_at,
+  });
+
   // Reusable data loader
   const loadAllData = useCallback(async () => {
     if (!companyId) {
@@ -90,75 +158,6 @@ export function useCompanyData() {
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
-
-  // Mappers from DB rows to app types
-  const mapMachine = (r: any): Machine => ({
-    id: r.id, company_id: r.company_id, number: r.number, name: r.name,
-    rpm: r.rpm, status: r.status, article_id: r.article_id || undefined,
-    observations: r.observations || undefined, production_mode: r.production_mode || 'rolos',
-    created_at: r.created_at,
-  });
-  const mapMachineLog = (r: any): MachineLog => ({
-    id: r.id, machine_id: r.machine_id, status: r.status,
-    started_at: r.started_at, ended_at: r.ended_at || undefined,
-    started_by_name: r.started_by_name || undefined,
-    started_by_code: r.started_by_code || undefined,
-    ended_by_name: r.ended_by_name || undefined,
-    ended_by_code: r.ended_by_code || undefined,
-  });
-  const mapClient = (r: any): Client => ({
-    id: r.id, company_id: r.company_id, name: r.name,
-    contact: r.contact || undefined, observations: r.observations || undefined, created_at: r.created_at,
-  });
-  const mapArticle = (r: any): Article => ({
-    id: r.id, company_id: r.company_id, name: r.name, client_id: r.client_id,
-    client_name: r.client_name || undefined, yarn_type_id: r.yarn_type_id || undefined,
-    weight_per_roll: Number(r.weight_per_roll),
-    value_per_kg: Number(r.value_per_kg), turns_per_roll: Number(r.turns_per_roll),
-    target_efficiency: Number(r.target_efficiency) || 80,
-    observations: r.observations || undefined, created_at: r.created_at,
-  });
-  const mapWeaver = (r: any): Weaver => ({
-    id: r.id, company_id: r.company_id, code: r.code, name: r.name,
-    phone: r.phone || undefined, shift_type: r.shift_type,
-    fixed_shift: r.fixed_shift || undefined, start_time: r.start_time || undefined,
-    end_time: r.end_time || undefined, created_at: r.created_at,
-  });
-  const normalizeShift = (shift: string): ShiftType => {
-    if (!shift) return 'manha';
-    const lower = shift.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    if (lower.startsWith('manha')) return 'manha';
-    if (lower.startsWith('tarde')) return 'tarde';
-    if (lower.startsWith('noite')) return 'noite';
-    return 'manha';
-  };
-
-  const mapProduction = (r: any): Production => ({
-    id: r.id, company_id: r.company_id, date: r.date,
-    shift: normalizeShift(r.shift),
-    machine_id: r.machine_id || '', machine_name: r.machine_name || '',
-    weaver_id: r.weaver_id || '', weaver_name: r.weaver_name || '',
-    article_id: r.article_id || '', article_name: r.article_name || '',
-    rpm: Number(r.rpm), rolls_produced: Number(r.rolls_produced),
-    weight_kg: Number(r.weight_kg), revenue: Number(r.revenue),
-    efficiency: Number(r.efficiency), created_at: r.created_at,
-    created_by_name: r.created_by_name || undefined,
-    created_by_code: r.created_by_code || undefined,
-  });
-  const mapArticleMachineTurns = (r: any): ArticleMachineTurns => ({
-    id: r.id, article_id: r.article_id, machine_id: r.machine_id,
-    company_id: r.company_id, turns_per_roll: Number(r.turns_per_roll),
-    observations: r.observations || undefined, created_at: r.created_at,
-  });
-  const mapDefectRecord = (r: any): DefectRecord => ({
-    id: r.id, company_id: r.company_id, machine_id: r.machine_id || '',
-    article_id: r.article_id || '', weaver_id: r.weaver_id || '',
-    date: r.date, shift: normalizeShift(r.shift),
-    measure_type: r.measure_type || 'kg', measure_value: Number(r.measure_value),
-    machine_name: r.machine_name || undefined, article_name: r.article_name || undefined,
-    weaver_name: r.weaver_name || undefined, observations: r.observations || undefined,
-    created_at: r.created_at,
-  });
 
   // Getters (return current state)
   const getMachines = useCallback(() => machines, [machines]);
