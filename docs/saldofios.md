@@ -174,28 +174,28 @@ invoices (type='venda_fio', status≠'cancelada')
 ## 📋 Checklist de Implementação
 
 ### Fase 1: Vínculo Artigo ↔ Fio
-- [ ] Ler a página Clientes & Artigos atual
-- [ ] Adicionar campo "Tipo de Fio" no formulário de artigo (Select com yarn_types)
-- [ ] Salvar `yarn_type_id` no INSERT/UPDATE de artigos
-- [ ] Exibir nome do fio na listagem de artigos (coluna ou info extra)
-- [ ] Permitir limpar o vínculo (artigo sem fio = não contabiliza consumo)
+- [x] Ler a página Clientes & Artigos atual
+- [x] Adicionar campo "Tipo de Fio" no formulário de artigo (Select com yarn_types)
+- [x] Salvar `yarn_type_id` no INSERT/UPDATE de artigos
+- [x] Exibir nome do fio na listagem de artigos (coluna ou info extra)
+- [x] Permitir limpar o vínculo (artigo sem fio = não contabiliza consumo)
 
 ### Fase 2: Aba Saldo de Fios
-- [ ] Criar aba "Saldo de Fios" na página Invoices
-- [ ] Query 1: buscar fio recebido (NFs entrada)
-- [ ] Query 2: buscar fio consumido (productions × articles.yarn_type_id)
-- [ ] Query 3: buscar fio vendido (NFs venda_fio)
-- [ ] Juntar dados e calcular saldo por client_id + yarn_type_id
-- [ ] Renderizar KPIs no topo
-- [ ] Renderizar tabela agrupada por cliente (Collapsible)
-- [ ] Filtros: período, cliente, tipo de fio
-- [ ] Indicadores visuais de saldo (positivo/negativo/zero)
+- [x] Criar aba "Saldo de Fios" na página Invoices
+- [x] Query 1: buscar fio recebido (NFs entrada)
+- [x] Query 2: buscar fio consumido (productions × articles.yarn_type_id)
+- [x] Query 3: buscar fio vendido (NFs venda_fio)
+- [x] Juntar dados e calcular saldo por client_id + yarn_type_id
+- [x] Renderizar KPIs no topo
+- [x] Renderizar tabela agrupada por cliente (Collapsible)
+- [x] Filtros: período, cliente, tipo de fio
+- [x] Indicadores visuais de saldo (positivo/negativo/zero)
 
 ### Fase 3: Validação
-- [ ] Testar com artigo SEM yarn_type_id → não deve aparecer no consumo
-- [ ] Testar com NF cancelada → não deve contar no saldo
-- [ ] Testar saldo negativo → deve exibir alerta visual
-- [ ] Testar com múltiplos clientes e fios → agrupamento correto
+- [x] Testar com artigo SEM yarn_type_id → não deve aparecer no consumo
+- [x] Testar com NF cancelada → não deve contar no saldo
+- [x] Testar saldo negativo → deve exibir alerta visual
+- [x] Testar com múltiplos clientes e fios → agrupamento correto
 
 ---
 
@@ -215,11 +215,11 @@ Seguir o padrão estabelecido no projeto:
 | Role       | Acesso ao Saldo de Fios |
 |------------|------------------------|
 | `admin`    | Visualização completa (com valores financeiros se houver) |
-| `lider`    | Visualização completa |
+| `lider`    | Sem acesso (key `invoices` não está no `ROLE_ALLOWED_KEYS.lider`) |
 | `mecanico` | Sem acesso |
 | `revisador`| Sem acesso |
 
-Herda as mesmas permissões da página de Notas Fiscais (key `invoices` no `enabled_nav_items`).
+Herda as mesmas permissões da página de Notas Fiscais (key `invoices` no `enabled_nav_items`). Apenas `admin` tem acesso por padrão, mas pode ser concedido a outros roles via `permission_overrides`.
 
 ---
 

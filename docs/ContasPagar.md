@@ -141,7 +141,7 @@ Se não foi, pague para evitar juros.
 | `ULTRAMSG_TOKEN` | Token de autenticação da instância | ✅ Configurado |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role para consultas sem RLS | ✅ Já configurado |
 
-> **Nota:** O secret `REPORTANA_WEBHOOK_URL` ainda existe como legado/fallback, mas não é mais utilizado pelo notify-accounts-due.
+> **Nota:** A integração foi migrada de Reportana para UltraMsg (API REST direta). O secret `REPORTANA_WEBHOOK_URL` ainda existe como legado mas não é mais utilizado.
 
 ---
 
@@ -233,7 +233,7 @@ SELECT cron.schedule(
 
 - Adicionado ao menu lateral (sidebar) com ícone `Receipt` ou `CreditCard`
 - Key no `enabled_nav_items`: `contas-pagar`
-- Acessível para roles: `admin` e `gerente`
+- Acessível para roles: `admin`
 
 ---
 
@@ -267,11 +267,10 @@ SELECT cron.schedule(
 
 - [x] Criar tabela `accounts_payable` com migração
 - [x] Criar página e componentes do módulo
-- [x] Configurar integração Reportana (webhook + secret)
+- [x] Configurar integração UltraMsg (API REST direta)
 - [x] Criar Edge Function `notify-accounts-due`
 - [x] Configurar cron job com pg_cron + pg_net
 - [x] Adicionar ao menu lateral e `enabled_nav_items`
-- [ ] Mapear variáveis no editor da automação Reportana
 - [ ] Testes end-to-end
 - [ ] Opção de recorrência mensal (auto-gerar próxima conta após pagamento)
 - [ ] Relatório de despesas por período/categoria

@@ -335,28 +335,28 @@ Seguir o padrão já estabelecido na aba **Saldo de Fios**:
 | Role       | Acesso ao Estoque de Malha |
 |------------|---------------------------|
 | `admin`    | Visualização completa     |
-| `lider`    | Visualização completa     |
+| `lider`    | Sem acesso (key `invoices` não está no `ROLE_ALLOWED_KEYS.lider`) |
 | `mecanico` | Sem acesso                |
 | `revisador`| Sem acesso                |
 
-Herda as mesmas permissões da página de Notas Fiscais (key `invoices` no `enabled_nav_items`).
+Herda as mesmas permissões da página de Notas Fiscais (key `invoices` no `enabled_nav_items`). Apenas `admin` tem acesso por padrão.
 
 ---
 
 ## 📋 Checklist de Implementação
 
-- [ ] Adicionar aba "Estoque Malha" na página Invoices (após "Saldo Fios")
-- [ ] Criar estados de filtro (`estoqueClient`, `estoqueArticle`, `estoqueMonth`)
-- [ ] Implementar `useMemo` para calcular `malhaEstoque` (produzido − entregue)
-- [ ] Implementar `useMemo` para KPIs globais (`estoqueKpis`)
-- [ ] Renderizar 4 KPIs no topo (Produzido, Entregue, Em Estoque kg, Em Estoque rolos)
-- [ ] Renderizar filtros (período, cliente, artigo) com botão limpar
-- [ ] Renderizar tabela agrupada por cliente usando `Collapsible`
-- [ ] Linha de TOTAL por cliente (negrito)
-- [ ] Indicadores visuais: positivo (normal), negativo (destructive), zero (muted)
-- [ ] Estado vazio: mensagem orientando registrar produção e NFs de saída
-- [ ] Testar com dados reais
-- [ ] Validar responsividade em mobile
+- [x] Adicionar aba "Estoque Malha" na página Invoices (após "Saldo Fios")
+- [x] Criar estados de filtro (`estoqueClient`, `estoqueArticle`, `estoqueMonth`)
+- [x] Implementar `useMemo` para calcular `malhaEstoque` (produzido − entregue)
+- [x] Implementar `useMemo` para KPIs globais (`estoqueKpis`)
+- [x] Renderizar 4 KPIs no topo (Produzido, Entregue, Em Estoque kg, Em Estoque rolos)
+- [x] Renderizar filtros (período, cliente, artigo) com botão limpar
+- [x] Renderizar tabela agrupada por cliente usando `Collapsible`
+- [x] Linha de TOTAL por cliente (negrito)
+- [x] Indicadores visuais: positivo (normal), negativo (destructive), zero (muted)
+- [x] Estado vazio: mensagem orientando registrar produção e NFs de saída
+- [x] Testar com dados reais
+- [x] Validar responsividade em mobile
 
 ---
 

@@ -373,16 +373,16 @@ SELECT cron.schedule(
 
 ## 11. Checklist de Implementação
 
-- [ ] Configurar secret `ULTRAMSG_INSTANCE_ID` com valor `instance168759`
-- [ ] Configurar secret `ULTRAMSG_TOKEN` com token da instância
-- [ ] Atualizar Edge Function `notify-accounts-due` (trocar Reportana → UltraMsg)
-- [ ] Atualizar Edge Function `test-webhook` (trocar Reportana → UltraMsg)
-- [ ] Deploy das Edge Functions
-- [ ] Testar via botão "Enviar Teste" na UI
-- [ ] Verificar recebimento da mensagem no WhatsApp
-- [ ] Testar cron job manualmente (invocar Edge Function)
-- [ ] Validar formatação da mensagem (negrito, emojis, quebras de linha)
-- [ ] Manter secrets da Reportana como fallback (não remover)
+- [x] Configurar secret `ULTRAMSG_INSTANCE_ID` com valor `instance168759`
+- [x] Configurar secret `ULTRAMSG_TOKEN` com token da instância
+- [x] Atualizar Edge Function `notify-accounts-due` (trocar Reportana → UltraMsg)
+- [x] Atualizar Edge Function `test-webhook` (trocar Reportana → UltraMsg)
+- [x] Deploy das Edge Functions
+- [x] Testar via botão "Enviar Teste" na UI
+- [x] Verificar recebimento da mensagem no WhatsApp
+- [x] Testar cron job manualmente (invocar Edge Function)
+- [x] Validar formatação da mensagem (negrito, emojis, quebras de linha)
+- [x] Manter secrets da Reportana como fallback (não remover)
 
 ---
 
