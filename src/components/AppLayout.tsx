@@ -56,6 +56,7 @@ export default function AppLayout() {
   const { user, logout } = useAuth();
   const { refreshData } = useSharedCompanyData();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { toast } = useToast();
 
   // Persist last company slug for PWA redirect
   useEffect(() => {
