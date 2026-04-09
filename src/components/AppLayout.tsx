@@ -5,7 +5,8 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown, XCircle } from 'lucide-react';
+import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown, XCircle, RefreshCw } from 'lucide-react';
+import NetworkStatusIcon from '@/components/NetworkStatusIcon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/components/ThemeProvider';
@@ -135,6 +136,20 @@ export default function AppLayout() {
               )}
 
               <div className="h-5 w-px bg-border hidden sm:block" />
+
+              {/* Network Status */}
+              <NetworkStatusIcon />
+
+              {/* Refresh */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => window.location.reload()}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title="Atualizar página"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
 
               {/* Theme Toggle */}
               <Button
