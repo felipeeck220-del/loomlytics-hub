@@ -440,7 +440,7 @@ Para cada client_id + article_id:
 
 ## ⚠️ Notas Importantes
 
-1. **Chave de Acesso SEFAZ** está **comentada no código** (linhas 1587-1591). Input e validação existem mas estão ocultos.
+1. **Chave de Acesso SEFAZ** está **ativa** no formulário com campo visível, validação de 44 dígitos e detecção automática de leitura por scanner USB (HID). Listener global `keydown` detecta digitação rápida (<80ms entre teclas) e preenche o campo automaticamente.
 2. **Venda de Fio NÃO tem campo "Cliente comprador"** — registra apenas o cliente dono do fio que está sendo vendido.
 3. **Saída de Malha** (tipo `saida`) registra malha entregue ao cliente, sem distinção de destino (tinturaria, etc.).
 4. **Estoque de Malha** calcula: Produção - NFs Saída = Estoque, sem campo de destino.
