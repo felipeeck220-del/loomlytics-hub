@@ -398,6 +398,7 @@ export function useCompanyData() {
 
   return {
     loading,
+    refreshData: loadAllData,
     dbCompanyId: companyId,
     shiftSettings,
     getMachines, saveMachines,
