@@ -237,6 +237,47 @@ export default function Invoices() {
     setDialogOpen(true);
   };
 
+  // ===== Barcode Scanner — Global keydown listener =====
+  useEffect(() => {
+    if (!dialogOpen) return;
+    let buffer = '';
+    let lastKeyTime = 0;
+    const SCANNER_THRESHOLD_MS = 80; // scanners type faster than humans
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const now = Date.now();
+      // Only capture digit keys
+      if (/^\d$/.test(e.key)) {
+        if (now - lastKeyTime > SCANNER_THRESHOLD_MS && buffer.length > 0) {
+          // Too slow — reset buffer (likely manual typing)
+          buffer = '';
+        }
+        buffer += e.key;
+        lastKeyTime = now;
+
+        // When 44 digits accumulated rapidly, fill the access key
+        if (buffer.length === 44) {
+          e.preventDefault();
+          setFormAccessKey(buffer);
+          buffer = '';
+          toast({ title: 'Chave de Acesso lida com sucesso!', description: 'Código de barras de 44 dígitos detectado automaticamente.' });
+        }
+      } else if (e.key === 'Enter' && buffer.length === 44) {
+        // Some scanners send Enter at the end
+        e.preventDefault();
+        setFormAccessKey(buffer);
+        buffer = '';
+        toast({ title: 'Chave de Acesso lida com sucesso!', description: 'Código de barras de 44 dígitos detectado automaticamente.' });
+      } else if (e.key !== 'Shift') {
+        // Non-digit, non-shift key — reset buffer
+        buffer = '';
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [dialogOpen]);
+
   // ===== Available months =====
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
