@@ -977,13 +977,26 @@ export default function ProductionPage() {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Artigo</Label>
-                <SearchableSelect
-                  value={form.article_id}
-                  onValueChange={v => setForm(p => ({ ...p, article_id: v }))}
-                  placeholder="Artigo"
-                  searchPlaceholder="Buscar artigo..."
-                  options={articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
-                />
+                <div className="flex items-end gap-1">
+                  <div className="flex-1">
+                    <SearchableSelect
+                      value={form.article_id}
+                      onValueChange={v => setForm(p => ({ ...p, article_id: v }))}
+                      placeholder="Artigo"
+                      searchPlaceholder="Buscar artigo..."
+                      options={articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
+                    />
+                  </div>
+                  {extraArticles.length > 0 && (
+                    <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => {
+                      const [first, ...rest] = extraArticles;
+                      setForm(p => ({ ...p, article_id: first.article_id, rolls: first.rolls }));
+                      setExtraArticles(rest);
+                    }}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
               {machineMode === 'voltas' ? (
                 <>
