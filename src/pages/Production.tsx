@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -750,7 +751,7 @@ export default function ProductionPage() {
                       <div className="border-t border-border p-5 space-y-4 bg-muted/20">
                         {/* Articles List */}
                         <div>
-                          <p className="text-sm font-semibold text-foreground mb-2">{isMultiArticle ? 'Artigos:' : 'Artigo:'}</p>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{isMultiArticle ? 'Artigos' : 'Artigo'}</p>
                           {group.items.map((p, idx) => {
                             const article = articles.find(a => a.id === p.article_id);
                             return (
@@ -761,93 +762,123 @@ export default function ProductionPage() {
                           })}
                         </div>
 
-                        {/* Main metrics (combined) */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
-                            <p className="text-xs text-blue-600 font-medium">Rolos</p>
-                            <p className="text-xl font-display font-bold text-blue-800">{group.totalRolls}</p>
-                          </div>
-                          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
-                            <p className="text-xs text-blue-600 font-medium">Peso</p>
-                            <p className="text-xl font-display font-bold text-blue-800">{formatNumber(group.totalWeightKg, 2)} kg</p>
-                          </div>
-                          {canSeeFinancial && <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
-                            <p className="text-xs text-blue-600 font-medium">Faturamento</p>
-                            <p className="text-xl font-display font-bold text-blue-800">{formatCurrency(group.totalRevenue)}</p>
-                          </div>}
-                          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-center">
-                            <p className="text-xs text-blue-600 font-medium">Meta</p>
-                            <p className="text-xl font-display font-bold text-blue-800">{formatNumber(meta.metaRolls, 2)} rolos</p>
-                          </div>
+                        {/* Main metrics - FaturamentoTotal card style */}
+                        <div className={cn("grid gap-3", canSeeFinancial ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1 sm:grid-cols-3")}>
+                          <Card className="border-l-4 border-l-primary">
+                            <CardContent className="p-4">
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Rolos</p>
+                              <p className="text-2xl font-bold text-foreground">{group.totalRolls}</p>
+                            </CardContent>
+                          </Card>
+                          <Card className="border-l-4 border-l-primary">
+                            <CardContent className="p-4">
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Peso</p>
+                              <p className="text-2xl font-bold text-foreground">{formatNumber(group.totalWeightKg, 2)} kg</p>
+                            </CardContent>
+                          </Card>
+                          {canSeeFinancial && (
+                            <Card className="border-l-4 border-l-success">
+                              <CardContent className="p-4">
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Faturamento</p>
+                                <p className="text-2xl font-bold text-foreground">{formatCurrency(group.totalRevenue)}</p>
+                              </CardContent>
+                            </Card>
+                          )}
+                          <Card className="border-l-4 border-l-warning">
+                            <CardContent className="p-4">
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Meta ({formatNumber(meta.targetEfficiency, 0)}%)</p>
+                              <p className="text-2xl font-bold text-foreground">{formatNumber(meta.metaTarget, 2)} rolos</p>
+                            </CardContent>
+                          </Card>
                         </div>
 
-                        {/* Meta status + efficiency */}
+                        {/* Meta status + efficiency - FaturamentoTotal card style */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div className={cn("rounded-lg border p-3", metaTargetReached ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
-                            <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", metaTargetReached ? 'text-emerald-600' : 'text-yellow-700')}>Meta {formatNumber(meta.targetEfficiency, 0)}%</p>
-                              <Target className={cn("h-4 w-4", metaTargetReached ? 'text-emerald-500' : 'text-yellow-500')} />
-                            </div>
-                            <p className={cn("text-lg font-bold", metaTargetReached ? 'text-emerald-700' : 'text-yellow-800')}>{formatNumber(meta.metaTarget, 2)} rolos</p>
-                            <p className={cn("text-xs", metaTargetReached ? 'text-emerald-600' : 'text-yellow-600')}>
-                              {metaTargetReached ? '✓ Atingida' : '✗ Não atingida'}
-                            </p>
-                          </div>
-                          <div className={cn("rounded-lg border p-3", group.totalRolls >= meta.meta100 ? 'border-emerald-200 bg-emerald-50' : 'border-yellow-200 bg-yellow-50')}>
-                            <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", group.totalRolls >= meta.meta100 ? 'text-emerald-600' : 'text-yellow-700')}>Meta 100%</p>
-                              <Target className={cn("h-4 w-4", group.totalRolls >= meta.meta100 ? 'text-emerald-500' : 'text-yellow-500')} />
-                            </div>
-                            <p className={cn("text-lg font-bold", group.totalRolls >= meta.meta100 ? 'text-emerald-700' : 'text-yellow-800')}>{formatNumber(meta.meta100, 2)} rolos</p>
-                            <p className={cn("text-xs", group.totalRolls >= meta.meta100 ? 'text-emerald-600' : 'text-yellow-600')}>
-                              {group.totalRolls >= meta.meta100 ? '✓ Atingida' : '✗ Não atingida'}
-                            </p>
-                          </div>
-                          <div className={cn("rounded-lg border p-3", effBg(group.efficiency, meta.targetEfficiency), group.efficiency >= meta.targetEfficiency ? 'border-emerald-200' : group.efficiency >= meta.targetEfficiency * 0.9 ? 'border-yellow-200' : 'border-red-200')}>
-                            <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", effColor(group.efficiency, meta.targetEfficiency))}>% Produção</p>
-                              <TrendingUp className={cn("h-4 w-4", effColor(group.efficiency, meta.targetEfficiency))} />
-                            </div>
-                            <p className={cn("text-lg font-bold", effColor(group.efficiency, meta.targetEfficiency))}>{formatNumber(group.efficiency, 2)}%</p>
-                            <p className={cn("text-xs flex items-center gap-1", effColor(group.efficiency, meta.targetEfficiency))}>
-                              {group.efficiency >= meta.targetEfficiency ? '✓ Dentro da meta' : (
-                                <><AlertTriangle className="h-3 w-3" /> Abaixo da meta</>
-                              )}
-                            </p>
-                          </div>
+                          <Card className={cn("border-l-4", metaTargetReached ? 'border-l-success' : 'border-l-warning')}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Meta {formatNumber(meta.targetEfficiency, 0)}%</p>
+                                  <p className={cn("text-2xl font-bold", metaTargetReached ? 'text-success' : 'text-warning')}>{formatNumber(meta.metaTarget, 2)} rolos</p>
+                                  <p className={cn("text-xs mt-1", metaTargetReached ? 'text-success' : 'text-warning')}>
+                                    {metaTargetReached ? '✓ Atingida' : '✗ Não atingida'}
+                                  </p>
+                                </div>
+                                <Target className={cn("h-5 w-5", metaTargetReached ? 'text-success' : 'text-warning')} />
+                              </div>
+                            </CardContent>
+                          </Card>
+                          <Card className={cn("border-l-4", group.totalRolls >= meta.meta100 ? 'border-l-success' : 'border-l-warning')}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Meta 100%</p>
+                                  <p className={cn("text-2xl font-bold", group.totalRolls >= meta.meta100 ? 'text-success' : 'text-warning')}>{formatNumber(meta.meta100, 2)} rolos</p>
+                                  <p className={cn("text-xs mt-1", group.totalRolls >= meta.meta100 ? 'text-success' : 'text-warning')}>
+                                    {group.totalRolls >= meta.meta100 ? '✓ Atingida' : '✗ Não atingida'}
+                                  </p>
+                                </div>
+                                <Target className={cn("h-5 w-5", group.totalRolls >= meta.meta100 ? 'text-success' : 'text-warning')} />
+                              </div>
+                            </CardContent>
+                          </Card>
+                          <Card className={cn("border-l-4", group.efficiency >= meta.targetEfficiency ? 'border-l-success' : group.efficiency >= meta.targetEfficiency * 0.9 ? 'border-l-warning' : 'border-l-destructive')}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">% Produção</p>
+                                  <p className={cn("text-2xl font-bold", effColor(group.efficiency, meta.targetEfficiency))}>{formatNumber(group.efficiency, 2)}%</p>
+                                  <p className={cn("text-xs flex items-center gap-1 mt-1", effColor(group.efficiency, meta.targetEfficiency))}>
+                                    {group.efficiency >= meta.targetEfficiency ? '✓ Dentro da meta' : (
+                                      <><AlertTriangle className="h-3 w-3" /> Abaixo da meta</>
+                                    )}
+                                  </p>
+                                </div>
+                                <TrendingUp className={cn("h-5 w-5", effColor(group.efficiency, meta.targetEfficiency))} />
+                              </div>
+                            </CardContent>
+                          </Card>
                         </div>
 
-                        {/* Registration info + downtime */}
+                        {/* Registration info + downtime - FaturamentoTotal card style */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="rounded-lg border border-border bg-background p-3">
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs font-medium text-muted-foreground">Registro</p>
-                              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                             <p className="text-sm font-semibold text-foreground mt-1">{format(new Date(group.date), 'dd/MM/yyyy')}</p>
-                             <p className="text-xs text-muted-foreground mt-0.5">Cadastrado em: {registrationTime || '—'}</p>
-                          </div>
-                          <div className={cn("rounded-lg border p-3", group.efficiency < meta.targetEfficiency ? 'border-red-200 bg-red-50' : 'border-border bg-background')}>
-                            <div className="flex items-center justify-between">
-                              <p className={cn("text-xs font-medium", group.efficiency < meta.targetEfficiency ? 'text-red-600' : 'text-muted-foreground')}>Tempo Parada</p>
-                              <Clock className={cn("h-4 w-4", group.efficiency < meta.targetEfficiency ? 'text-red-500' : 'text-muted-foreground')} />
-                            </div>
-                            {(() => {
-                              const shiftMin = companyShiftMinutes[group.shift as ShiftType] || 510;
-                              const usedMin = shiftMin * (group.efficiency / 100);
-                              const downMin = shiftMin - usedMin;
-                              const hours = Math.floor(downMin / 60);
-                              const mins = Math.round(downMin % 60);
-                              return (
-                                <>
-                                  <p className={cn("text-lg font-bold mt-1", group.efficiency < meta.targetEfficiency ? 'text-red-700' : 'text-foreground')}>
-                                    {hours}h{mins > 0 ? `${mins}min` : ''}
-                                  </p>
-                                  <p className={cn("text-xs", group.efficiency < meta.targetEfficiency ? 'text-red-600' : 'text-muted-foreground')}>Tempo inativo</p>
-                                </>
-                              );
-                            })()}
-                          </div>
+                          <Card className="border-l-4 border-l-primary">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Registro</p>
+                                  <p className="text-lg font-bold text-foreground">{format(new Date(group.date), 'dd/MM/yyyy')}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">Cadastrado em: {registrationTime || '—'}</p>
+                                </div>
+                                <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            </CardContent>
+                          </Card>
+                          <Card className={cn("border-l-4", group.efficiency < meta.targetEfficiency ? 'border-l-destructive' : 'border-l-primary')}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className={cn("text-xs font-medium uppercase tracking-wider mb-1", group.efficiency < meta.targetEfficiency ? 'text-destructive' : 'text-muted-foreground')}>Tempo Parada</p>
+                                  {(() => {
+                                    const shiftMin = companyShiftMinutes[group.shift as ShiftType] || 510;
+                                    const usedMin = shiftMin * (group.efficiency / 100);
+                                    const downMin = shiftMin - usedMin;
+                                    const hours = Math.floor(downMin / 60);
+                                    const mins = Math.round(downMin % 60);
+                                    return (
+                                      <>
+                                        <p className={cn("text-2xl font-bold", group.efficiency < meta.targetEfficiency ? 'text-destructive' : 'text-foreground')}>
+                                          {hours}h{mins > 0 ? `${mins}min` : ''}
+                                        </p>
+                                        <p className={cn("text-xs mt-1", group.efficiency < meta.targetEfficiency ? 'text-destructive' : 'text-muted-foreground')}>Tempo inativo</p>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                                <Clock className={cn("h-5 w-5", group.efficiency < meta.targetEfficiency ? 'text-destructive' : 'text-muted-foreground')} />
+                              </div>
+                            </CardContent>
+                          </Card>
                         </div>
                       </div>
                     )}
