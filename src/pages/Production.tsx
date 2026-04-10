@@ -199,7 +199,7 @@ export default function ProductionPage() {
     if (nextShiftIdx < SHIFTS.length) {
       // Same machine, next shift
       setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
-      setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
+      setArticleSearch(''); setWeaverSearch('');
       toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
     } else {
       // All shifts done for this machine, go to next machine
@@ -207,7 +207,7 @@ export default function ProductionPage() {
       if (nextMachineIdx < sortedMachines.length) {
         const nextMachine = sortedMachines[nextMachineIdx];
         setForm(p => ({ ...p, shift: SHIFTS[0], machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
-        setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
+        setArticleSearch(''); setWeaverSearch('');
         toast.info(`Avançou para ${nextMachine.name} — ${companyShiftLabels[SHIFTS[0]].split(' (')[0]}`);
       } else {
         toast.success('Todos os turnos registrados!');
@@ -324,7 +324,7 @@ export default function ProductionPage() {
         toast.error('Erro ao atualizar produção');
       }
       setSaving(false);
-      setExtraArticles([]);
+      setExtraArticles(prev => prev.map(ea => ({ ...ea, rolls: '' })));
       setShowModal(false);
       return;
     }
@@ -332,7 +332,7 @@ export default function ProductionPage() {
     // For new records: save in background, advance immediately
     const queueId = crypto.randomUUID();
     setSaveQueue(prev => [...prev, { id: queueId, machineName, status: 'saving' }]);
-    setExtraArticles([]);
+    setExtraArticles(prev => prev.map(ea => ({ ...ea, rolls: '' })));
     advanceToNext();
 
     logAction('production_create', { machine: machineName, date: form.date, shift: form.shift });
