@@ -1391,6 +1391,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **10/04/2026 14:00 (Brasília)** — **TECELÕES + PRODUÇÃO — UX melhorias:** (1) **Tecelões — Exclusão simplificada:** Modal de exclusão agora usa botões Excluir/Cancelar em vez de exigir digitação de "EXCLUIR"; (2) **Produção — Artigo principal removível:** Quando há artigos extras adicionados, o artigo principal agora exibe botão X para remoção — ao remover, o primeiro artigo extra é promovido a principal; (3) **Produção — Artigos persistentes:** Após registrar produção e avançar para próxima máquina/turno, os artigos adicionados permanecem na tela (apenas rolos são limpos), evitando retrabalho de seleção.
 
+- **10/04/2026 15:00 (Brasília)** — **PRODUÇÃO — Redesign detalhes expandidos:** (1) **Estilo FaturamentoTotal aplicado:** Cards de detalhes expandidos da produção registrada agora usam o padrão visual do Faturamento Total — `border-l-4` com cores semânticas, tipografia `uppercase tracking-wider` nos labels, layout `flex items-start justify-between` com ícone à direita; (2) **Meta do artigo na primeira linha:** Card "Meta" na grade principal agora exibe a meta calculada com `target_efficiency` do artigo (ex: "Meta (80%)") em vez de mostrar meta 100% fixa; (3) **Cores preservadas:** Cores de status (success/warning/destructive) mantidas conforme regras de eficiência existentes; (4) **Import Card/CardContent adicionado** ao Production.tsx.
+
 ---
 
-*Última atualização: 10/04/2026 14:00 (Brasília)*
+*Última atualização: 10/04/2026 15:00 (Brasília)*
