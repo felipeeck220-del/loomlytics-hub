@@ -199,7 +199,7 @@ export default function ProductionPage() {
     if (nextShiftIdx < SHIFTS.length) {
       // Same machine, next shift
       setForm(p => ({ ...p, shift: SHIFTS[nextShiftIdx], rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
-      setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
+      setArticleSearch(''); setWeaverSearch('');
       toast.info(`Avançou para ${companyShiftLabels[SHIFTS[nextShiftIdx]].split(' (')[0]}`);
     } else {
       // All shifts done for this machine, go to next machine
@@ -207,7 +207,7 @@ export default function ProductionPage() {
       if (nextMachineIdx < sortedMachines.length) {
         const nextMachine = sortedMachines[nextMachineIdx];
         setForm(p => ({ ...p, shift: SHIFTS[0], machine_id: nextMachine.id, rpm: String(nextMachine.rpm), rolls: '', weaver_id: 'sem_tecelao', voltas_inicio: '', voltas_fim: '' }));
-        setArticleSearch(''); setWeaverSearch(''); setExtraArticles([]);
+        setArticleSearch(''); setWeaverSearch('');
         toast.info(`Avançou para ${nextMachine.name} — ${companyShiftLabels[SHIFTS[0]].split(' (')[0]}`);
       } else {
         toast.success('Todos os turnos registrados!');
@@ -324,7 +324,7 @@ export default function ProductionPage() {
         toast.error('Erro ao atualizar produção');
       }
       setSaving(false);
-      setExtraArticles([]);
+      setExtraArticles(prev => prev.map(ea => ({ ...ea, rolls: '' })));
       setShowModal(false);
       return;
     }
@@ -332,7 +332,7 @@ export default function ProductionPage() {
     // For new records: save in background, advance immediately
     const queueId = crypto.randomUUID();
     setSaveQueue(prev => [...prev, { id: queueId, machineName, status: 'saving' }]);
-    setExtraArticles([]);
+    setExtraArticles(prev => prev.map(ea => ({ ...ea, rolls: '' })));
     advanceToNext();
 
     logAction('production_create', { machine: machineName, date: form.date, shift: form.shift });
@@ -977,13 +977,26 @@ export default function ProductionPage() {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Artigo</Label>
-                <SearchableSelect
-                  value={form.article_id}
-                  onValueChange={v => setForm(p => ({ ...p, article_id: v }))}
-                  placeholder="Artigo"
-                  searchPlaceholder="Buscar artigo..."
-                  options={articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
-                />
+                <div className="flex items-end gap-1">
+                  <div className="flex-1">
+                    <SearchableSelect
+                      value={form.article_id}
+                      onValueChange={v => setForm(p => ({ ...p, article_id: v }))}
+                      placeholder="Artigo"
+                      searchPlaceholder="Buscar artigo..."
+                      options={articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
+                    />
+                  </div>
+                  {extraArticles.length > 0 && (
+                    <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => {
+                      const [first, ...rest] = extraArticles;
+                      setForm(p => ({ ...p, article_id: first.article_id, rolls: first.rolls }));
+                      setExtraArticles(rest);
+                    }}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
               {machineMode === 'voltas' ? (
                 <>

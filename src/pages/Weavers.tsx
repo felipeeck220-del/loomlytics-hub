@@ -38,7 +38,6 @@ export default function Weavers() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Weaver | null>(null);
   const [showDelete, setShowDelete] = useState<Weaver | null>(null);
-  const [deleteWord, setDeleteWord] = useState('');
 
   const [form, setForm] = useState({
     name: '', phone: '', shift_type: 'fixo' as 'fixo' | 'especifico',
@@ -98,11 +97,10 @@ export default function Weavers() {
   };
 
   const handleDelete = async () => {
-    if (deleteWord !== 'EXCLUIR') { toast.error('Digite EXCLUIR para confirmar'); return; }
     const deleted = showDelete!;
     await saveWeavers(weavers.filter(w => w.id !== deleted.id));
     logAction('weaver_delete', { name: deleted.name, code: deleted.code });
-    setShowDelete(null); setDeleteWord(''); toast.success('Tecelão excluído');
+    setShowDelete(null); toast.success('Tecelão excluído');
   };
 
   const renderWeaverCard = (w: Weaver) => (
@@ -122,7 +120,7 @@ export default function Weavers() {
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(w)}>
             <Pencil className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { setShowDelete(w); setDeleteWord(''); }}>
+          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setShowDelete(w)}>
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -276,11 +274,10 @@ export default function Weavers() {
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Excluir {showDelete?.name}?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Digite <strong>EXCLUIR</strong> para confirmar.</p>
-          <Input value={deleteWord} onChange={e => setDeleteWord(e.target.value)} placeholder="EXCLUIR" />
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este tecelão? Esta ação não pode ser desfeita.</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDelete(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDelete}>Confirmar</Button>
+            <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
