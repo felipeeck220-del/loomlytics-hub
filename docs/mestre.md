@@ -1389,6 +1389,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **10/04/2026 10:00 (Brasília)** — **COMPARATIVO DE PERÍODOS — Correção filtro por dia:** (1) **Dashboard + Faturamento Total:** Comparativo ao filtrar por dia específico agora usa o **dia anterior (D-1)** em vez do mesmo dia da semana anterior (D-7). Ex: dia 25/03 agora compara com 24/03, não com 18/03. Corrigido `subDays(customDate, 7)` → `subDays(customDate, 1)` nos dois arquivos; (2) **Documentação:** `faturamentototal.md` atualizado para refletir nova regra.
 
+- **10/04/2026 14:00 (Brasília)** — **TECELÕES + PRODUÇÃO — UX melhorias:** (1) **Tecelões — Exclusão simplificada:** Modal de exclusão agora usa botões Excluir/Cancelar em vez de exigir digitação de "EXCLUIR"; (2) **Produção — Artigo principal removível:** Quando há artigos extras adicionados, o artigo principal agora exibe botão X para remoção — ao remover, o primeiro artigo extra é promovido a principal; (3) **Produção — Artigos persistentes:** Após registrar produção e avançar para próxima máquina/turno, os artigos adicionados permanecem na tela (apenas rolos são limpos), evitando retrabalho de seleção.
+
 ---
 
-*Última atualização: 10/04/2026 10:00 (Brasília)*
+*Última atualização: 10/04/2026 14:00 (Brasília)*
