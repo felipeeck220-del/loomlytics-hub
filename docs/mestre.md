@@ -1387,6 +1387,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **09/04/2026 21:00 (Brasília)** — **PENTE FINO — Botão refresh + documentação:** (1) **BUG CRÍTICO — Loading infinito:** `loadAllData` não tinha `try/catch` — se qualquer query falhasse, `setLoading(false)` nunca era chamado, travando a UI em loading permanente. Corrigido com `try/catch/finally`; (2) **Toast de feedback:** Botão refresh agora exibe toast verde "Dados atualizados" ao concluir com sucesso ou toast vermelho "Erro ao atualizar" em caso de falha; (3) **Documentação:** Criado `docs/botaorefresh.md` com documentação 100% detalhada — arquitetura, APIs utilizadas, tabelas recarregadas, tratamento de erros, limitações conhecidas, posição no header e dependências entre arquivos.
 
+- **10/04/2026 10:00 (Brasília)** — **COMPARATIVO DE PERÍODOS — Correção filtro por dia:** (1) **Dashboard + Faturamento Total:** Comparativo ao filtrar por dia específico agora usa o **dia anterior (D-1)** em vez do mesmo dia da semana anterior (D-7). Ex: dia 25/03 agora compara com 24/03, não com 18/03. Corrigido `subDays(customDate, 7)` → `subDays(customDate, 1)` nos dois arquivos; (2) **Documentação:** `faturamentototal.md` atualizado para refletir nova regra.
+
 ---
 
-*Última atualização: 09/04/2026 21:00 (Brasília)*
+*Última atualização: 10/04/2026 10:00 (Brasília)*

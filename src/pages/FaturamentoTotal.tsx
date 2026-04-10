@@ -168,8 +168,7 @@ export default function FaturamentoTotal() {
     }
 
     if (customDate) {
-      const previousWeekDate = subDays(customDate, 7);
-      const previousDate = format(previousWeekDate, 'yyyy-MM-dd');
+      const previousDate = format(subDays(customDate, 1), 'yyyy-MM-dd');
       return { start: previousDate, end: previousDate };
     }
 

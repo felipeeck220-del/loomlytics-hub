@@ -165,7 +165,7 @@ Desktop (lg):   4 colunas → grid-cols-4
 | **15 dias** | últimos 15 dias (hoje - 14 a hoje) | 15 dias antes (hoje - 29 a hoje - 15) |
 | **30 dias** | últimos 30 dias (hoje - 29 a hoje) | 30 dias antes (hoje - 59 a hoje - 30) |
 | **Mês (ex: março)** | 01/03 a 31/03 | Mês anterior: 01/02 a 28/02 |
-| **Dia específico** | dia X | Mesmo dia da semana anterior (X - 7) |
+| **Dia específico** | dia X | Dia anterior (X - 1) |
 | **Intervalo De/Até** | dateFrom a dateTo | Mesmo intervalo deslocado para trás pelo mesmo nº de dias |
 | **Todo período** | todos os dados | **Sem comparativo** (esconde badge e valor anterior) |
 

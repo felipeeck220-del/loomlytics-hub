@@ -174,7 +174,7 @@ export default function Dashboard() {
       return { start: format(startOfMonth(previousMonthDate), 'yyyy-MM-dd'), end: format(endOfMonth(previousMonthDate), 'yyyy-MM-dd') };
     }
     if (customDate) {
-      const prev = format(subDays(customDate, 7), 'yyyy-MM-dd');
+      const prev = format(subDays(customDate, 1), 'yyyy-MM-dd');
       return { start: prev, end: prev };
     }
     const startDate = new Date(currentPeriod.start + 'T12:00:00');
