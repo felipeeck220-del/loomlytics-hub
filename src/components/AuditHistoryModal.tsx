@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Search, ChevronDown, ChevronUp, Filter, X, Plus, Pencil, Trash2, RefreshCw, LogIn, Monitor, Smartphone, Tablet, Globe, MapPin } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -264,7 +264,7 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
           </div>
 
           {/* ─── ACTIONS TAB ─── */}
-          <TabsContent value="actions" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden">
+          {activeTab === 'actions' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {/* Filters */}
             <div className="px-6 py-3 border-b border-border space-y-3 shrink-0">
               <div className="flex flex-wrap gap-2">
@@ -389,10 +389,10 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
             <div className="text-xs text-muted-foreground text-right px-6 py-2 border-t border-border shrink-0">
               {logs.length} registro{logs.length !== 1 ? 's' : ''}
             </div>
-          </TabsContent>
+          </div>}
 
           {/* ─── LOGINS TAB ─── */}
-          <TabsContent value="logins" className="flex-1 flex flex-col min-h-0 mt-0">
+          {activeTab === 'logins' && <div className="flex-1 flex flex-col min-h-0">
             <div className="px-6 py-3 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
                 <Select value={loginFilterUser} onValueChange={v => { setLoginFilterUser(v); setLoginPage(0); fetchLogins(0, false, v); }}>
@@ -480,7 +480,7 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
             <div className="text-xs text-muted-foreground text-right px-6 py-2 border-t border-border shrink-0">
               {loginLogs.length} login{loginLogs.length !== 1 ? 's' : ''}
             </div>
-          </TabsContent>
+          </div>}
         </Tabs>
       </DialogContent>
     </Dialog>
