@@ -59,10 +59,13 @@ export default function RevisionPage() {
   const articleSearchRef = useRef<HTMLInputElement>(null);
   const weaverSearchRef = useRef<HTMLInputElement>(null);
 
+  const getArticleLabel = (a: { name: string; client_name?: string }) =>
+    a.client_name ? `${a.name} (${a.client_name})` : a.name;
+
   const filteredArticlesModal = useMemo(() => {
     if (!articleSearch) return articles;
     const s = articleSearch.toLowerCase();
-    return articles.filter(a => a.name.toLowerCase().includes(s));
+    return articles.filter(a => a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s));
   }, [articles, articleSearch]);
 
   const filteredWeaversModal = useMemo(() => {
@@ -400,7 +403,7 @@ export default function RevisionPage() {
                     <div className="px-2 pb-2">
                       <Input ref={articleSearchRef} placeholder="Buscar artigo..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="h-8" autoFocus />
                     </div>
-                    {filteredArticlesModal.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                    {filteredArticlesModal.map(a => <SelectItem key={a.id} value={a.id}>{getArticleLabel(a)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
