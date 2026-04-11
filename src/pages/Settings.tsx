@@ -101,7 +101,8 @@ export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { shiftSettings, saveShiftSettings, getMachines, saveMachines } = useSharedCompanyData();
   const { logAction } = useAuditLog();
-  const [tab, setTab] = useState('profile');
+  const { sidebarLocked } = useSubscription();
+  const [tab, setTab] = useState(sidebarLocked ? 'plans' : 'profile');
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
