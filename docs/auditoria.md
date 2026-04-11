@@ -9,6 +9,10 @@
 
 O sistema de auditoria registra **todas as ações** realizadas por qualquer usuário no sistema, permitindo rastreabilidade completa. O histórico é acessível **apenas pelo administrador principal (#1)** via modal na aba Usuários das Configurações.
 
+O modal de histórico possui **duas abas:**
+1. **Ações** — Registro de todas as operações CRUD do sistema
+2. **Logins** — Histórico de acessos com IP, dispositivo, navegador e localização
+
 ---
 
 ## 🏗️ Arquitetura
@@ -31,12 +35,37 @@ CREATE TABLE public.audit_logs (
 
 **RLS:** Insert e Select por `company_id = get_user_company_id()`. Sem UPDATE ou DELETE (logs são imutáveis).
 
+### Tabela `login_history`
+
+```sql
+CREATE TABLE public.login_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES public.companies(id),
+  user_id UUID NOT NULL,
+  user_name TEXT,
+  user_code TEXT,
+  user_role TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  device_type TEXT,         -- Desktop, Mobile, Tablet
+  browser TEXT,             -- Chrome, Firefox, Safari, Edge, Opera
+  os TEXT,                  -- Windows, macOS, Linux, Android, iOS
+  location_country TEXT,    -- País (via ipapi.co)
+  location_city TEXT,       -- Cidade (via ipapi.co)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+**RLS:** Insert e Select por `company_id = get_user_company_id()`. Sem UPDATE ou DELETE (logs são imutáveis).
+
 ### Arquivos do Sistema
 
 | Arquivo | Função |
 |---------|--------|
 | `src/hooks/useAuditLog.ts` | Hook React — fornece `logAction()`, `userName`, `userCode`, `userTrackingInfo` |
 | `src/lib/auditLog.ts` | Função standalone `logAudit()` para uso fora de componentes React |
+| `src/lib/loginTracker.ts` | Função `trackLogin()` — captura IP, dispositivo, navegador, OS e localização |
+| `src/components/AuditHistoryModal.tsx` | Modal com abas Ações + Logins |
 
 ### Hook `useAuditLog()`
 
@@ -62,6 +91,76 @@ const record = {
 | `userCode` | string \| null | Código (#1, #2, #165, etc.) |
 | `userTrackingInfo` | object | `{ created_by_name, created_by_code }` para insert em tabelas |
 
+### Função `trackLogin()`
+
+```typescript
+import { trackLogin } from '@/lib/loginTracker';
+
+trackLogin({
+  companyId: user.company_id,
+  userId: user.id,
+  userName: user.name,
+  userCode: user.code,
+  userRole: user.role,
+});
+```
+
+**Chamada automaticamente** no `AuthContext.tsx` após `SIGNED_IN` (apenas uma vez por sessão via `loginTrackedRef`).
+
+**Dados capturados:**
+| Dado | Origem |
+|------|--------|
+| IP público | `api.ipify.org` |
+| Geolocalização (país, cidade) | `ipapi.co/{ip}/json/` |
+| Dispositivo (Desktop/Mobile/Tablet) | `navigator.userAgent` (regex) |
+| Navegador (Chrome/Firefox/Safari/Edge) | `navigator.userAgent` (regex) |
+| Sistema operacional (Windows/macOS/Linux/Android/iOS) | `navigator.userAgent` (regex) |
+
+**Nota:** As chamadas de IP e geolocalização são best-effort (timeout 3s). Se falharem, os campos ficam vazios sem impactar o login.
+
+---
+
+## 🖥️ Modal de Histórico (AuditHistoryModal)
+
+### Acesso
+- **Localização:** Aba Usuários em Configurações
+- **Visibilidade:** Apenas admin #1 (código === '1')
+- **Botão:** "Histórico" ao lado de "Novo Usuário"
+
+### Aba Ações
+
+**Melhorias visuais implementadas:**
+1. **Ícones por tipo de ação** — Cada ação tem ícone e cor distintos:
+   - 🟢 Criação (`_create`, `_add`) → ícone `+` verde
+   - 🔵 Edição (`_update`, `_change`, `_confirm`) → ícone lápis azul
+   - 🔴 Exclusão (`_delete`, `_cancel`) → ícone lixeira vermelho
+   - 🟡 Desativação (`_deactivate`) → ícone `X` amarelo
+2. **Badge do módulo** — Cada registro exibe um badge colorido do módulo (Máquinas, Produção, Revisão, etc.)
+3. **Agrupamento por dia** — Registros agrupados com separadores visuais ("Hoje", "Ontem", "09 de abril de 2026")
+4. **Filtro por módulo** — Select com todos os módulos do sistema
+5. **Detalhes expandíveis** — Clique na seta para ver `details` formatados
+
+**Filtros:**
+- Por usuário (Select)
+- Por módulo (Select: Máquinas, Produção, Revisão, Usuários, Artigos, Tecelões, NF, Contas, Resíduos, Terceirizados, Configurações)
+- Por tipo de ação (Select com ações disponíveis)
+- Por período (De/Até com inputs date)
+- Busca textual (por nome, ação ou detalhes)
+
+### Aba Logins
+
+**Funcionalidades:**
+- Lista de logins agrupados por dia
+- Filtro por usuário
+- Cada registro exibe:
+  - Nome + código + role do usuário
+  - Horário do login
+  - Ícone de dispositivo (Desktop/Mobile/Tablet)
+  - Navegador + sistema operacional
+  - Endereço IP
+  - Localização (cidade, país) com ícone de pin
+- Paginação: blocos de 50 registros
+
 ---
 
 ## 📊 Cobertura Atual de Auditoria por Módulo
@@ -72,7 +171,7 @@ const record = {
 |--------|---------|-----------------|
 | **Máquinas** | `Machines.tsx` | `machine_create`, `machine_update`, `machine_status_change`, `machine_delete` |
 | **Produção** | `Production.tsx` | `production_create`, `production_update` |
-| **Revisão** | `Revision.tsx` | `defect_create`, `defect_delete` |
+| **Revisão** | `Revision.tsx` | `defect_create`, `defect_delete`, `defect_update` |
 | **Mecânica** | `Mecanica.tsx` | `maintenance_manual_add` |
 | **Clientes & Artigos** | `ClientsArticles.tsx` | `client_create`, `client_update`, `client_delete`, `article_create`, `article_update`, `article_delete` |
 | **Tecelões** | `Weavers.tsx` | `weaver_create`, `weaver_update`, `weaver_delete` |
@@ -110,7 +209,9 @@ production_create       → Produção registrada
 production_update       → Produção editada
 production_delete       → Produção excluída
 defect_create           → Falha registrada
+defect_update           → Falha editada
 defect_delete           → Falha excluída
+maintenance_manual_add  → Manutenção adicionada
 user_create             → Usuário criado
 user_update             → Usuário editado (nome, role)
 user_delete             → Usuário excluído
@@ -170,83 +271,6 @@ O campo `details` deve conter informações relevantes para entender O QUE foi f
 
 ---
 
-## 🔐 Modal de Histórico (a implementar)
-
-### Acesso
-- **Localização:** Aba Usuários em Configurações
-- **Visibilidade:** Apenas admin #1 (código === '1')
-- **Botão:** "Histórico" ao lado de "Novo Usuário"
-
-### Funcionalidades do Modal
-1. **Listagem** de `audit_logs` ordenada por `created_at DESC`
-2. **Filtros:**
-   - Por usuário (Select com todos os usuários da empresa)
-   - Por período (De/Até com calendário)
-   - Por tipo de ação (Select com ações disponíveis)
-   - Busca textual (por detalhes)
-3. **Cada linha exibe:**
-   - Data/hora (formato `dd/MM/yyyy HH:mm`)
-   - Quem fez: `Nome #código` (ex: "Felipe #1")
-   - Role do usuário (badge colorido)
-   - Ação (traduzida para português)
-   - Detalhes (expandível)
-4. **Paginação:** Carregar em blocos de 50 registros
-
-### Tradução de Ações para Exibição
-
-```typescript
-const ACTION_LABELS: Record<string, string> = {
-  machine_create: 'Máquina criada',
-  machine_update: 'Máquina editada',
-  machine_status_change: 'Status da máquina alterado',
-  machine_delete: 'Máquina excluída',
-  production_create: 'Produção registrada',
-  production_update: 'Produção editada',
-  production_delete: 'Produção excluída',
-  defect_create: 'Falha registrada',
-  defect_delete: 'Falha excluída',
-  maintenance_manual_add: 'Manutenção adicionada',
-  user_create: 'Usuário criado',
-  user_update: 'Usuário editado',
-  user_delete: 'Usuário excluído',
-  user_deactivate: 'Usuário desativado',
-  user_reactivate: 'Usuário reativado',
-  user_password_change: 'Senha alterada',
-  user_permissions_update: 'Permissões alteradas',
-  client_create: 'Cliente criado',
-  client_update: 'Cliente editado',
-  client_delete: 'Cliente excluído',
-  article_create: 'Artigo criado',
-  article_update: 'Artigo editado',
-  article_delete: 'Artigo excluído',
-  weaver_create: 'Tecelão criado',
-  weaver_update: 'Tecelão editado',
-  weaver_delete: 'Tecelão excluído',
-  invoice_create: 'NF criada',
-  invoice_confirm: 'NF conferida',
-  invoice_cancel: 'NF cancelada',
-  account_create: 'Conta criada',
-  account_pay: 'Conta paga',
-  account_delete: 'Conta excluída',
-  residue_material_create: 'Material criado',
-  residue_material_delete: 'Material excluído',
-  residue_sale_create: 'Venda de resíduo registrada',
-  residue_sale_delete: 'Venda de resíduo excluída',
-  outsource_company_create: 'Malharia terceirizada criada',
-  outsource_company_delete: 'Malharia terceirizada excluída',
-  outsource_production_create: 'Produção terceirizada registrada',
-  outsource_production_delete: 'Produção terceirizada excluída',
-  yarn_type_create: 'Tipo de fio criado',
-  yarn_type_update: 'Tipo de fio editado',
-  yarn_type_delete: 'Tipo de fio excluído',
-  shift_settings_update: 'Turnos alterados',
-  company_logo_update: 'Logo atualizada',
-  production_mode_change: 'Modo de produção alterado',
-};
-```
-
----
-
 ## ⚠️ REGRA OBRIGATÓRIA PARA NOVAS FUNCIONALIDADES
 
 > **TODA nova funcionalidade implementada no MalhaGest DEVE incluir:**
@@ -294,4 +318,4 @@ Além do `audit_logs`, algumas tabelas possuem colunas de autoria direta:
 
 ---
 
-*Última atualização: 04/04/2026 04:30 (Brasília)*
+*Última atualização: 11/04/2026 19:00 (Brasília)*
