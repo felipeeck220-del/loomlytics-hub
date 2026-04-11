@@ -139,10 +139,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // For SIGNED_IN, TOKEN_REFRESHED, etc.
         if (session?.user) {
+          const isNewLogin = event === 'SIGNED_IN';
           // Use setTimeout to avoid Supabase deadlock on token refresh
           setTimeout(async () => {
             if (!mounted) return;
-            await loadUserData(session.user);
+            await loadUserData(session.user, isNewLogin);
           }, 0);
         }
       }
