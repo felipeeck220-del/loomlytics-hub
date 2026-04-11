@@ -1413,6 +1413,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **11/04/2026 16:00 (Brasília)** — **REVISÃO — Modal Registrar Falha ajustado:** Largura do modal alterada de `max-w-lg` para `max-w-2xl`, um aumento sutil para melhor acomodar os campos.
 
+- **11/04/2026 17:00 (Brasília)** — **TECELÕES > FALHAS — Redesign completo da aba:** (1) **Filtro por mês:** Select com meses disponíveis (padrão: mês atual) + opção "Todo período"; (2) **4 KPI Cards:** Total Falhas, Total Kg, Total Metros, Tecelões com Falhas; (3) **Ranking:** Lista ordenada por quantidade de falhas com badges coloridos (verde ≤3, amarelo 4-7, vermelho ≥8); (4) **Modal de detalhes individual:** Ao clicar no ranking, abre modal com KPIs individuais + agrupamentos por Artigo (com padrão `Nome (Cliente)`), Máquina e Defeito + tabela detalhada; (5) **Exportação PDF geral:** Ranking completo com métricas; (6) **Exportação PDF individual:** Relatório completo do tecelão selecionado; (7) **Documentação:** Criado `docs/falhas.md` com documentação completa da aba.
+
 ---
 
-*Última atualização: 11/04/2026 16:00 (Brasília)*
+*Última atualização: 11/04/2026 17:00 (Brasília)*
