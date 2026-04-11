@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-type SubStatus = 'active' | 'cancelling' | 'trial' | 'grace' | 'blocked' | 'free' | 'overdue' | 'cancelled' | 'unknown';
+type SubStatus = 'active' | 'cancelling' | 'trial' | 'grace' | 'blocked' | 'free' | 'overdue' | 'cancelled' | 'suspended' | 'unknown';
 
 interface SubscriptionState {
   status: SubStatus;
@@ -99,7 +99,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('subscription-updated', handler);
   }, [refresh]);
 
-  const isExpired = status === 'blocked' || status === 'cancelled' || status === 'overdue';
+  const isExpired = status === 'blocked' || status === 'cancelled' || status === 'overdue' || status === 'suspended';
   const isAdmin = user?.role === 'admin';
   const sidebarLocked = isExpired && isAdmin;
   const fullyBlocked = isExpired && !isAdmin;
