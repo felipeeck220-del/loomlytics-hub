@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as AppUser } from '@/types';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -63,7 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [companies, setCompanies] = useState<UserCompany[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadUserData = useCallback(async (supabaseUser: SupabaseUser) => {
+  // Track if login was already tracked this session to avoid duplicates
+  const loginTrackedRef = useRef(false);
+
+  const loadUserData = useCallback(async (supabaseUser: SupabaseUser, isNewLogin = false) => {
     const [appUser, userCompanies] = await Promise.all([
       fetchProfile(supabaseUser),
       fetchUserCompanies(),
@@ -71,6 +74,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(appUser);
     setCompanies(userCompanies);
     setLoading(false);
+
+    // Track login (only once per session, only on actual login events)
+    if (isNewLogin && appUser && !loginTrackedRef.current) {
+      loginTrackedRef.current = true;
+      import('@/lib/loginTracker').then(({ trackLogin }) => {
+        trackLogin({
+          companyId: appUser.company_id,
+          userId: appUser.id,
+          userName: appUser.name,
+          userCode: (appUser as any).code || undefined,
+          userRole: appUser.role,
+        });
+      });
+    }
   }, []);
 
   // Realtime subscription for profile status changes
