@@ -321,7 +321,7 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
                         <div className="flex-1 h-px bg-border" />
                         <Badge variant="secondary" className="text-[10px]">{group.items.length}</Badge>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         {group.items.map(log => {
                           const details = formatDetails(log.details);
                           const isExpanded = expandedId === log.id;
