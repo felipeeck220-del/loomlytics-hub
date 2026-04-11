@@ -116,6 +116,14 @@ supabase/
 │   └── restore-backup/         # Restauração de backup
 ```
 
+## 🎨 Padrões de UI (obrigatórios para novos módulos)
+
+### Seletor de Artigo em Modais
+- **Formato de exibição:** `NomeArtigo (NomeCliente)` — quando o artigo possui `client_name`
+- **Busca:** Filtra por nome do artigo **e** por nome do cliente
+- **Implementação:** Criar helper `getArticleLabel(a)` que retorna `a.client_name ? \`${a.name} (${a.client_name})\` : a.name`
+- **Aplicar em:** Todo modal que contenha seletor de artigo (Produção, Revisão, Terceirizado, NFs, etc.)
+
 ---
 
 ## 🔐 Autenticação e Autorização
@@ -1399,6 +1407,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **11/04/2026 14:00 (Brasília)** — **REVISÃO — 5 melhorias de UX:** (1) **Filtro padrão "Todas as datas":** Ao abrir a página, nenhum filtro de data é aplicado — mostra todos os registros; (2) **Filtro por mês:** Adicionado select de mês com meses disponíveis baseados nos registros existentes; (3) **Edição de falhas:** Botão de editar (lápis) em cada linha — abre modal preenchido com dados da falha, permite alterar qualquer campo; `updateDefectRecords` adicionado ao `useCompanyData.ts`; (4) **Seletores abrem para baixo:** Tecelão e Artigo agora usam `side="bottom"` e `avoidCollisions={false}` para sempre abrir para baixo; (5) **Auto-foco na busca:** Ao abrir seletores de Artigo e Tecelão, o campo de pesquisa recebe foco automático via `autoFocus`.
 
+- **11/04/2026 15:00 (Brasília)** — **PADRÃO — Artigo com nome do cliente em seletores:** Estabelecido padrão global: todo seletor de artigo em modais deve exibir `Artigo (Cliente)` — ex: "Meia Malha (Têxtil ABC)". Implementado no modal Registrar/Editar Falha (Revisão). Busca também filtra por nome do cliente. Documentado em `docs/mestre.md` (seção Padrões de UI) e `docs/revisao.md`.
+
 ---
 
-*Última atualização: 11/04/2026 14:00 (Brasília)*
+*Última atualização: 11/04/2026 15:00 (Brasília)*

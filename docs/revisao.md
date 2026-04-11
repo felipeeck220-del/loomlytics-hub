@@ -76,18 +76,28 @@ O módulo **Revisão** registra falhas de qualidade encontradas na revisão de m
 |-------|------|-------------|
 | Data | Calendar | ✅ |
 | Turno | Select (3 opções) | ✅ |
-| Máquina | SearchableSelect | ✅ |
-| Tecelão | SearchableSelect | ✅ |
-| Artigo | SearchableSelect | ✅ |
+| Máquina | Select (side=bottom) | ✅ |
+| Tecelão | Select (side=bottom, autoFocus busca) | ✅ |
+| Artigo | Select (side=bottom, autoFocus busca, exibe `nome (cliente)`) | ✅ |
 | Defeito | Input text | ✅ |
 | Tipo de Medida | Select (kg/metro) | ✅ |
 | Valor | Input number | ✅ |
-| Observações | Textarea | ❌ |
+| Observações | Input text | ❌ |
+
+### Padrão de exibição de artigo
+- Seletor de artigo exibe: `NomeArtigo (NomeCliente)` quando o artigo possui cliente associado
+- Busca filtra por nome do artigo **e** nome do cliente
+- **Este padrão deve ser aplicado em todo modal do sistema que tenha seletor de artigo**
 
 ### Salvamento
 - `observations` = `[defect_name] observações` (prefixo com nome do defeito)
 - Campos de autoria: `created_by_name`, `created_by_code`
 - `addDefectRecords([record])` — insert incremental
+
+### Edição
+- Botão lápis em cada linha da tabela
+- Abre modal preenchido com dados existentes
+- `updateDefectRecords(record)` — update por id
 
 ### Exclusão
 - Confirmação: digitação de "EXCLUIR"
@@ -100,6 +110,7 @@ O módulo **Revisão** registra falhas de qualidade encontradas na revisão de m
 | Ação | Dados |
 |------|-------|
 | `defect_create` | machine, article, date, shift |
+| `defect_update` | machine, article, date, shift |
 | `defect_delete` | machine, date |
 
 ---
@@ -108,9 +119,9 @@ O módulo **Revisão** registra falhas de qualidade encontradas na revisão de m
 
 | Hook | Uso |
 |------|-----|
-| `useSharedCompanyData()` | machines, weavers, articles, defectRecords, addDefectRecords, deleteDefectRecords |
+| `useSharedCompanyData()` | machines, weavers, articles, defectRecords, addDefectRecords, updateDefectRecords, deleteDefectRecords |
 | `useAuditLog()` | logAction, userName, userCode |
 
 ---
 
-*Última atualização: 09/04/2026*
+*Última atualização: 11/04/2026*
