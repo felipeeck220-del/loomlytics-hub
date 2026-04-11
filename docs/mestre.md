@@ -1411,6 +1411,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **11/04/2026 15:30 (Brasília)** — **REVISÃO — Tecelão com código na tabela:** Coluna Tecelão na listagem de falhas agora exibe `Nome #Código` (ex: "João #12"), buscando o código do tecelão pelo `weaver_id`.
 
+- **11/04/2026 16:00 (Brasília)** — **REVISÃO — Modal Registrar Falha ampliado:** Largura do modal alterada de `w-[95vw] max-w-lg` para `w-[90vw] max-w-[90vw]`, ampliando o espaço de preenchimento.
+
 ---
 
-*Última atualização: 11/04/2026 15:30 (Brasília)*
+*Última atualização: 11/04/2026 16:00 (Brasília)*
