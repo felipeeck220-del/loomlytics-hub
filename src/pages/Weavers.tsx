@@ -1,25 +1,29 @@
 import { useState, useMemo } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, Pencil, Trash2, Loader2, Clock, Users, FileBarChart, CalendarIcon, Package, TrendingUp, Scale, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Clock, Users, FileBarChart, CalendarIcon, Package, TrendingUp, Scale, AlertTriangle, Ruler, Download, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { formatNumber, formatWeight, formatCurrency } from '@/lib/formatters';
-import type { Weaver, ShiftType, Production, DefectRecord } from '@/types';
+import type { Weaver, ShiftType, Production, DefectRecord, Article } from '@/types';
 import { SHIFT_LABELS } from '@/types';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { sanitizePdfText } from '@/lib/pdfUtils';
 
 const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
   manha: '05:00 às 13:30',
