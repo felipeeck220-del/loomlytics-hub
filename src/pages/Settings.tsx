@@ -668,11 +668,22 @@ export default function SettingsPage() {
         </AlertDialog>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={sidebarLocked ? 'plans' : tab} onValueChange={(v) => { if (!sidebarLocked) setTab(v); }}>
         <TabsList className={`w-full flex flex-wrap gap-1 h-auto p-1 ${isAdmin ? '' : ''}`}>
-          <TabsTrigger value="profile" className="flex-1 min-w-[80px] text-xs sm:text-sm">Perfil</TabsTrigger>
-          {isAdmin && <TabsTrigger value="users" className="flex-1 min-w-[80px] text-xs sm:text-sm">Usuários</TabsTrigger>}
-          <TabsTrigger value="company" className="flex-1 min-w-[80px] text-xs sm:text-sm">Empresa</TabsTrigger>
+          <TabsTrigger value="profile" disabled={sidebarLocked} className={`flex-1 min-w-[80px] text-xs sm:text-sm ${sidebarLocked ? 'opacity-40 cursor-not-allowed' : ''}`}>
+            {sidebarLocked && <Lock className="h-3 w-3 mr-1" />}
+            Perfil
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="users" disabled={sidebarLocked} className={`flex-1 min-w-[80px] text-xs sm:text-sm ${sidebarLocked ? 'opacity-40 cursor-not-allowed' : ''}`}>
+              {sidebarLocked && <Lock className="h-3 w-3 mr-1" />}
+              Usuários
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="company" disabled={sidebarLocked} className={`flex-1 min-w-[80px] text-xs sm:text-sm ${sidebarLocked ? 'opacity-40 cursor-not-allowed' : ''}`}>
+            {sidebarLocked && <Lock className="h-3 w-3 mr-1" />}
+            Empresa
+          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="telas" disabled className="relative opacity-50 cursor-not-allowed flex-1 min-w-[80px] text-xs sm:text-sm">
               Telas
