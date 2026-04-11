@@ -226,6 +226,13 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
     doFetch(0, false, { user: 'all', action: 'all', module: 'all', search: '', dateFrom: '', dateTo: '' });
   };
   const loadMore = () => { const next = page + 1; setPage(next); doFetch(next, true, currentFilters); };
+
+  // Auto-filter on select/date change
+  useEffect(() => {
+    if (!initialLoadDone.current) return;
+    setPage(0);
+    doFetch(0, false, { user: filterUser, action: filterAction, module: filterModule, search, dateFrom, dateTo });
+  }, [filterUser, filterAction, filterModule, dateFrom, dateTo]);
   const loadMoreLogins = () => { const next = loginPage + 1; setLoginPage(next); fetchLogins(next, true, loginFilterUser); };
 
   const formatDetails = (details: Record<string, any> | null) => {
