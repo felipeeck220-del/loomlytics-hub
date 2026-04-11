@@ -396,6 +396,20 @@ export function useCompanyData() {
     setDefectRecords(prev => [...newRecords.map(r => ({ ...r, company_id: companyId })), ...prev]);
   }, [companyId]);
 
+  const updateDefectRecords = useCallback(async (record: DefectRecord) => {
+    if (!companyId) return;
+    const row = {
+      machine_id: record.machine_id || null, article_id: record.article_id || null,
+      weaver_id: record.weaver_id || null, date: record.date, shift: record.shift,
+      measure_type: record.measure_type, measure_value: record.measure_value,
+      machine_name: record.machine_name || null, article_name: record.article_name || null,
+      weaver_name: record.weaver_name || null, observations: record.observations || null,
+    };
+    const { error } = await sb('defect_records').update(row).eq('id', record.id);
+    if (error) throw error;
+    setDefectRecords(prev => prev.map(d => d.id === record.id ? { ...d, ...record } : d));
+  }, [companyId]);
+
   const deleteDefectRecords = useCallback(async (ids: string[]) => {
     if (!companyId || ids.length === 0) return;
     await sb('defect_records').delete().in('id', ids);
@@ -414,7 +428,7 @@ export function useCompanyData() {
     getWeavers, saveWeavers,
     getProductions, saveProductions, addProductions, updateProductions, deleteProductions,
     getArticleMachineTurns, saveArticleMachineTurns,
-    getDefectRecords, addDefectRecords, deleteDefectRecords,
+    getDefectRecords, addDefectRecords, updateDefectRecords, deleteDefectRecords,
     saveShiftSettings,
   };
 }
