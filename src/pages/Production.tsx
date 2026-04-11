@@ -762,29 +762,29 @@ export default function ProductionPage() {
                           })}
                         </div>
 
-                        {/* Main metrics - FaturamentoTotal card style */}
+                        {/* Main metrics - cards with subtle background tints */}
                         <div className={cn("grid gap-3", canSeeFinancial ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1 sm:grid-cols-3")}>
-                          <Card className="border-l-4 border-l-primary">
+                          <Card className="border-l-4 border-l-emerald-500 bg-emerald-500/5">
                             <CardContent className="p-4">
                               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Rolos</p>
                               <p className="text-2xl font-bold text-foreground">{group.totalRolls}</p>
                             </CardContent>
                           </Card>
-                          <Card className="border-l-4 border-l-primary">
+                          <Card className="border-l-4 border-l-blue-500 bg-blue-500/5">
                             <CardContent className="p-4">
                               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Peso</p>
                               <p className="text-2xl font-bold text-foreground">{formatNumber(group.totalWeightKg, 2)} kg</p>
                             </CardContent>
                           </Card>
                           {canSeeFinancial && (
-                            <Card className="border-l-4 border-l-success">
+                            <Card className="border-l-4 border-l-teal-500 bg-teal-500/5">
                               <CardContent className="p-4">
                                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Faturamento</p>
                                 <p className="text-2xl font-bold text-foreground">{formatCurrency(group.totalRevenue)}</p>
                               </CardContent>
                             </Card>
                           )}
-                          <Card className="border-l-4 border-l-warning">
+                          <Card className="border-l-4 border-l-amber-500 bg-amber-500/5">
                             <CardContent className="p-4">
                               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Meta ({formatNumber(meta.targetEfficiency, 0)}%)</p>
                               <p className="text-2xl font-bold text-foreground">{formatNumber(meta.metaTarget, 2)} rolos</p>
@@ -792,37 +792,37 @@ export default function ProductionPage() {
                           </Card>
                         </div>
 
-                        {/* Meta status + efficiency - FaturamentoTotal card style */}
+                        {/* Meta status + efficiency */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <Card className={cn("border-l-4", metaTargetReached ? 'border-l-success' : 'border-l-warning')}>
+                          <Card className={cn("border-l-4", metaTargetReached ? 'border-l-emerald-500 bg-emerald-500/5' : 'border-l-amber-500 bg-amber-500/5')}>
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Meta {formatNumber(meta.targetEfficiency, 0)}%</p>
-                                  <p className={cn("text-2xl font-bold", metaTargetReached ? 'text-success' : 'text-warning')}>{formatNumber(meta.metaTarget, 2)} rolos</p>
-                                  <p className={cn("text-xs mt-1", metaTargetReached ? 'text-success' : 'text-warning')}>
+                                  <p className={cn("text-2xl font-bold", metaTargetReached ? 'text-emerald-500' : 'text-amber-500')}>{formatNumber(meta.metaTarget, 2)} rolos</p>
+                                  <p className={cn("text-xs mt-1", metaTargetReached ? 'text-emerald-500' : 'text-amber-500')}>
                                     {metaTargetReached ? '✓ Atingida' : '✗ Não atingida'}
                                   </p>
                                 </div>
-                                <Target className={cn("h-5 w-5", metaTargetReached ? 'text-success' : 'text-warning')} />
+                                <Target className={cn("h-5 w-5", metaTargetReached ? 'text-emerald-500' : 'text-amber-500')} />
                               </div>
                             </CardContent>
                           </Card>
-                          <Card className={cn("border-l-4", group.totalRolls >= meta.meta100 ? 'border-l-success' : 'border-l-warning')}>
+                          <Card className={cn("border-l-4", group.totalRolls >= meta.meta100 ? 'border-l-emerald-500 bg-emerald-500/5' : 'border-l-amber-500 bg-amber-500/5')}>
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Meta 100%</p>
-                                  <p className={cn("text-2xl font-bold", group.totalRolls >= meta.meta100 ? 'text-success' : 'text-warning')}>{formatNumber(meta.meta100, 2)} rolos</p>
-                                  <p className={cn("text-xs mt-1", group.totalRolls >= meta.meta100 ? 'text-success' : 'text-warning')}>
+                                  <p className={cn("text-2xl font-bold", group.totalRolls >= meta.meta100 ? 'text-emerald-500' : 'text-amber-500')}>{formatNumber(meta.meta100, 2)} rolos</p>
+                                  <p className={cn("text-xs mt-1", group.totalRolls >= meta.meta100 ? 'text-emerald-500' : 'text-amber-500')}>
                                     {group.totalRolls >= meta.meta100 ? '✓ Atingida' : '✗ Não atingida'}
                                   </p>
                                 </div>
-                                <Target className={cn("h-5 w-5", group.totalRolls >= meta.meta100 ? 'text-success' : 'text-warning')} />
+                                <Target className={cn("h-5 w-5", group.totalRolls >= meta.meta100 ? 'text-emerald-500' : 'text-amber-500')} />
                               </div>
                             </CardContent>
                           </Card>
-                          <Card className={cn("border-l-4", group.efficiency >= meta.targetEfficiency ? 'border-l-success' : group.efficiency >= meta.targetEfficiency * 0.9 ? 'border-l-warning' : 'border-l-destructive')}>
+                          <Card className={cn("border-l-4", group.efficiency >= meta.targetEfficiency ? 'border-l-emerald-500 bg-emerald-500/5' : group.efficiency >= meta.targetEfficiency * 0.9 ? 'border-l-amber-500 bg-amber-500/5' : 'border-l-red-500 bg-red-500/5')}>
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div>
@@ -840,9 +840,9 @@ export default function ProductionPage() {
                           </Card>
                         </div>
 
-                        {/* Registration info + downtime - FaturamentoTotal card style */}
+                        {/* Registration info + downtime */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Card className="border-l-4 border-l-primary">
+                          <Card className="border-l-4 border-l-violet-500 bg-violet-500/5">
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div>
@@ -850,15 +850,15 @@ export default function ProductionPage() {
                                   <p className="text-lg font-bold text-foreground">{format(new Date(group.date), 'dd/MM/yyyy')}</p>
                                   <p className="text-xs text-muted-foreground mt-1">Cadastrado em: {registrationTime || '—'}</p>
                                 </div>
-                                <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+                                <CalendarIcon className="h-5 w-5 text-violet-500" />
                               </div>
                             </CardContent>
                           </Card>
-                          <Card className={cn("border-l-4", group.efficiency < meta.targetEfficiency ? 'border-l-destructive' : 'border-l-primary')}>
+                          <Card className={cn("border-l-4", group.efficiency < meta.targetEfficiency ? 'border-l-red-500 bg-red-500/5' : 'border-l-blue-500 bg-blue-500/5')}>
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div>
-                                  <p className={cn("text-xs font-medium uppercase tracking-wider mb-1", group.efficiency < meta.targetEfficiency ? 'text-destructive' : 'text-muted-foreground')}>Tempo Parada</p>
+                                  <p className={cn("text-xs font-medium uppercase tracking-wider mb-1", group.efficiency < meta.targetEfficiency ? 'text-red-500' : 'text-muted-foreground')}>Tempo Parada</p>
                                   {(() => {
                                     const shiftMin = companyShiftMinutes[group.shift as ShiftType] || 510;
                                     const usedMin = shiftMin * (group.efficiency / 100);
@@ -867,15 +867,15 @@ export default function ProductionPage() {
                                     const mins = Math.round(downMin % 60);
                                     return (
                                       <>
-                                        <p className={cn("text-2xl font-bold", group.efficiency < meta.targetEfficiency ? 'text-destructive' : 'text-foreground')}>
+                                        <p className={cn("text-2xl font-bold", group.efficiency < meta.targetEfficiency ? 'text-red-500' : 'text-foreground')}>
                                           {hours}h{mins > 0 ? `${mins}min` : ''}
                                         </p>
-                                        <p className={cn("text-xs mt-1", group.efficiency < meta.targetEfficiency ? 'text-destructive' : 'text-muted-foreground')}>Tempo inativo</p>
+                                        <p className={cn("text-xs mt-1", group.efficiency < meta.targetEfficiency ? 'text-red-500' : 'text-muted-foreground')}>Tempo inativo</p>
                                       </>
                                     );
                                   })()}
                                 </div>
-                                <Clock className={cn("h-5 w-5", group.efficiency < meta.targetEfficiency ? 'text-destructive' : 'text-muted-foreground')} />
+                                <Clock className={cn("h-5 w-5", group.efficiency < meta.targetEfficiency ? 'text-red-500' : 'text-muted-foreground')} />
                               </div>
                             </CardContent>
                           </Card>
