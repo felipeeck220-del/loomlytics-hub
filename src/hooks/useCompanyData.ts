@@ -111,6 +111,7 @@ export function useCompanyData() {
     measure_type: r.measure_type || 'kg', measure_value: Number(r.measure_value),
     machine_name: r.machine_name || undefined, article_name: r.article_name || undefined,
     weaver_name: r.weaver_name || undefined, observations: r.observations || undefined,
+    created_by_name: r.created_by_name || undefined, created_by_code: r.created_by_code || undefined,
     created_at: r.created_at,
   });
 
