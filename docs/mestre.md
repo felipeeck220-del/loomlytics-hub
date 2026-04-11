@@ -1409,6 +1409,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **11/04/2026 15:00 (Brasília)** — **PADRÃO — Artigo com nome do cliente em seletores:** Estabelecido padrão global: todo seletor de artigo em modais deve exibir `Artigo (Cliente)` — ex: "Meia Malha (Têxtil ABC)". Implementado no modal Registrar/Editar Falha (Revisão). Busca também filtra por nome do cliente. Documentado em `docs/mestre.md` (seção Padrões de UI) e `docs/revisao.md`.
 
+- **11/04/2026 15:30 (Brasília)** — **REVISÃO — Tecelão com código na tabela:** Coluna Tecelão na listagem de falhas agora exibe `Nome #Código` (ex: "João #12"), buscando o código do tecelão pelo `weaver_id`.
+
 ---
 
-*Última atualização: 11/04/2026 15:00 (Brasília)*
+*Última atualização: 11/04/2026 15:30 (Brasília)*
