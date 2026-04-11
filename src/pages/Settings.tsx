@@ -55,6 +55,7 @@ import { Badge } from '@/components/ui/badge';
 import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor, Lock, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions, OVERRIDE_PERMISSIONS } from '@/hooks/usePermissions';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import ProductionModeModal from '@/components/ProductionModeModal';
 import IotDevicesManager from '@/components/IotDevicesManager';
