@@ -1393,6 +1393,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **10/04/2026 15:00 (Brasília)** — **PRODUÇÃO — Redesign detalhes expandidos:** (1) **Estilo FaturamentoTotal aplicado:** Cards de detalhes expandidos da produção registrada agora usam o padrão visual do Faturamento Total — `border-l-4` com cores semânticas, tipografia `uppercase tracking-wider` nos labels, layout `flex items-start justify-between` com ícone à direita; (2) **Meta do artigo na primeira linha:** Card "Meta" na grade principal agora exibe a meta calculada com `target_efficiency` do artigo (ex: "Meta (80%)") em vez de mostrar meta 100% fixa; (3) **Cores preservadas:** Cores de status (success/warning/destructive) mantidas conforme regras de eficiência existentes; (4) **Import Card/CardContent adicionado** ao Production.tsx.
 
+- **11/04/2026 10:00 (Brasília)** — **REVISÃO — Fix "Registrado por" não exibido:** `mapDefectRecord` em `useCompanyData.ts` não mapeava `created_by_name` e `created_by_code` do banco — campos adicionados ao mapper. A coluna "Registrado por" na tabela já existia mas mostrava "—" por falta dos dados no objeto mapeado.
+
 ---
 
-*Última atualização: 10/04/2026 15:00 (Brasília)*
+*Última atualização: 11/04/2026 10:00 (Brasília)*
