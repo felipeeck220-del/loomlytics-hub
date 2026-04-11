@@ -58,6 +58,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } else if (subStatus === 'cancelled') {
       setStatus('cancelled');
       setTrialDaysLeft(null);
+    } else if (subStatus === 'suspended') {
+      setStatus('suspended');
+      setTrialDaysLeft(null);
     } else if (subStatus === 'blocked') {
       // Determine if blocked due to overdue or cancellation
       setStatus('blocked');

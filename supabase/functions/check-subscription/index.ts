@@ -120,7 +120,7 @@ serve(async (req) => {
       });
     }
 
-    if (settings.subscription_status === "blocked" || settings.subscription_status === "cancelled") {
+    if (settings.subscription_status === "blocked" || settings.subscription_status === "cancelled" || settings.subscription_status === "suspended") {
       return jsonResponse({
         status: settings.subscription_status,
         blocked: true,
