@@ -927,6 +927,65 @@ export type Database = {
           },
         ]
       }
+      login_history: {
+        Row: {
+          browser: string | null
+          company_id: string
+          created_at: string
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          location_city: string | null
+          location_country: string | null
+          os: string | null
+          user_agent: string | null
+          user_code: string | null
+          user_id: string
+          user_name: string | null
+          user_role: string | null
+        }
+        Insert: {
+          browser?: string | null
+          company_id: string
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          os?: string | null
+          user_agent?: string | null
+          user_code?: string | null
+          user_id: string
+          user_name?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          browser?: string | null
+          company_id?: string
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          os?: string | null
+          user_agent?: string | null
+          user_code?: string | null
+          user_id?: string
+          user_name?: string | null
+          user_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "login_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machine_logs: {
         Row: {
           ended_at: string | null
