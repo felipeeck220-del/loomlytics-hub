@@ -1,25 +1,29 @@
 import { useState, useMemo } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Plus, Pencil, Trash2, Loader2, Clock, Users, FileBarChart, CalendarIcon, Package, TrendingUp, Scale, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Clock, Users, FileBarChart, CalendarIcon, Package, TrendingUp, Scale, AlertTriangle, Ruler, Download, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { formatNumber, formatWeight, formatCurrency } from '@/lib/formatters';
-import type { Weaver, ShiftType, Production, DefectRecord } from '@/types';
+import type { Weaver, ShiftType, Production, DefectRecord, Article } from '@/types';
 import { SHIFT_LABELS } from '@/types';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { sanitizePdfText } from '@/lib/pdfUtils';
 
 const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
   manha: '05:00 às 13:30',
@@ -28,12 +32,14 @@ const SHIFT_TIME_LABELS: Record<ShiftType, string> = {
 };
 
 export default function Weavers() {
-  const { getWeavers, saveWeavers, getProductions, getDefectRecords, loading } = useSharedCompanyData();
+  const { getWeavers, saveWeavers, getProductions, getDefectRecords, getArticles, getMachines, loading } = useSharedCompanyData();
   const { canSeeFinancial } = usePermissions();
   const { logAction } = useAuditLog();
   const weavers = getWeavers();
   const productions = getProductions();
   const defectRecords = getDefectRecords();
+  const articles = getArticles();
+  const machines = getMachines();
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Weaver | null>(null);
@@ -222,7 +228,7 @@ export default function Weavers() {
         </TabsContent>
 
         <TabsContent value="defects">
-          <WeaverDefectsTab weavers={weavers} defectRecords={defectRecords} />
+          <WeaverDefectsTab weavers={weavers} defectRecords={defectRecords} articles={articles} machines={machines} />
         </TabsContent>
 
         <TabsContent value="reports">
@@ -464,139 +470,446 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
 }
 
 // ─── Weaver Defects Tab ──────────────────────────────────────
-function WeaverDefectsTab({ weavers, defectRecords }: { weavers: Weaver[]; defectRecords: DefectRecord[] }) {
-  const [selectedWeaverId, setSelectedWeaverId] = useState('');
-  const [weaverSearch, setWeaverSearch] = useState('');
+function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weavers: Weaver[]; defectRecords: DefectRecord[]; articles: Article[]; machines: any[] }) {
+  const { user } = useAuth();
+  const currentMonth = format(new Date(), 'yyyy-MM');
+  const [filterMonth, setFilterMonth] = useState(currentMonth);
+  const [selectedWeaverId, setSelectedWeaverId] = useState<string | null>(null);
 
-  const weaverDefects = useMemo(() => {
-    if (!selectedWeaverId) return [];
-    return defectRecords.filter(d => d.weaver_id === selectedWeaverId).sort((a, b) => b.date.localeCompare(a.date));
-  }, [defectRecords, selectedWeaverId]);
+  // Available months from defect records
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    months.add(currentMonth);
+    defectRecords.forEach(d => months.add(d.date.substring(0, 7)));
+    return Array.from(months).sort().reverse();
+  }, [defectRecords, currentMonth]);
 
-  const totals = useMemo(() => ({
-    count: weaverDefects.length,
-    totalKg: weaverDefects.filter(d => d.measure_type === 'kg').reduce((s, d) => s + d.measure_value, 0),
-    totalMetros: weaverDefects.filter(d => d.measure_type === 'metro').reduce((s, d) => s + d.measure_value, 0),
-  }), [weaverDefects]);
+  // Filtered records by month
+  const filtered = useMemo(() => {
+    if (filterMonth === 'all') return defectRecords;
+    return defectRecords.filter(d => d.date.startsWith(filterMonth));
+  }, [defectRecords, filterMonth]);
 
-  // Summary per weaver
-  const weaverSummary = useMemo(() => {
+  // Global KPIs
+  const kpis = useMemo(() => ({
+    count: filtered.length,
+    totalKg: filtered.filter(d => d.measure_type === 'kg').reduce((s, d) => s + d.measure_value, 0),
+    totalMetros: filtered.filter(d => d.measure_type === 'metro').reduce((s, d) => s + d.measure_value, 0),
+    weaverCount: new Set(filtered.map(d => d.weaver_id)).size,
+  }), [filtered]);
+
+  // Ranking per weaver
+  const weaverRanking = useMemo(() => {
     const map: Record<string, { name: string; code: string; count: number; kg: number; metros: number }> = {};
-    defectRecords.forEach(d => {
+    filtered.forEach(d => {
+      if (!d.weaver_id) return;
       if (!map[d.weaver_id]) map[d.weaver_id] = { name: d.weaver_name || '', code: '', count: 0, kg: 0, metros: 0 };
       map[d.weaver_id].count++;
       if (d.measure_type === 'kg') map[d.weaver_id].kg += d.measure_value;
       else map[d.weaver_id].metros += d.measure_value;
     });
-    weavers.forEach(w => { if (map[w.id]) map[w.id].code = w.code; });
+    weavers.forEach(w => { if (map[w.id]) { map[w.id].code = w.code; map[w.id].name = w.name; } });
     return Object.entries(map).sort((a, b) => b[1].count - a[1].count);
-  }, [defectRecords, weavers]);
+  }, [filtered, weavers]);
+
+  const getBadgeColor = (count: number) => {
+    if (count >= 8) return 'bg-destructive/10 text-destructive border-destructive/20';
+    if (count >= 4) return 'bg-warning/10 text-warning border-warning/20';
+    return 'bg-success/10 text-success border-success/20';
+  };
+
+  // Detail data for selected weaver
+  const selectedWeaver = weavers.find(w => w.id === selectedWeaverId);
+  const weaverDefects = useMemo(() => {
+    if (!selectedWeaverId) return [];
+    return filtered.filter(d => d.weaver_id === selectedWeaverId).sort((a, b) => b.date.localeCompare(a.date));
+  }, [filtered, selectedWeaverId]);
+
+  const weaverKpis = useMemo(() => ({
+    count: weaverDefects.length,
+    kg: weaverDefects.filter(d => d.measure_type === 'kg').reduce((s, d) => s + d.measure_value, 0),
+    metros: weaverDefects.filter(d => d.measure_type === 'metro').reduce((s, d) => s + d.measure_value, 0),
+  }), [weaverDefects]);
+
+  // Groupings for modal
+  const byArticle = useMemo(() => {
+    const map: Record<string, { name: string; count: number; kg: number; metros: number }> = {};
+    weaverDefects.forEach(d => {
+      const key = d.article_id || 'unknown';
+      const art = articles.find(a => a.id === d.article_id);
+      const label = art ? (art.client_name ? `${art.name} (${art.client_name})` : art.name) : (d.article_name || 'Sem artigo');
+      if (!map[key]) map[key] = { name: label, count: 0, kg: 0, metros: 0 };
+      map[key].count++;
+      if (d.measure_type === 'kg') map[key].kg += d.measure_value;
+      else map[key].metros += d.measure_value;
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count);
+  }, [weaverDefects, articles]);
+
+  const byMachine = useMemo(() => {
+    const map: Record<string, { name: string; count: number; kg: number; metros: number }> = {};
+    weaverDefects.forEach(d => {
+      const key = d.machine_id || 'unknown';
+      if (!map[key]) map[key] = { name: d.machine_name || 'Sem máquina', count: 0, kg: 0, metros: 0 };
+      map[key].count++;
+      if (d.measure_type === 'kg') map[key].kg += d.measure_value;
+      else map[key].metros += d.measure_value;
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count);
+  }, [weaverDefects]);
+
+  const byDefect = useMemo(() => {
+    const map: Record<string, { name: string; count: number; kg: number; metros: number }> = {};
+    weaverDefects.forEach(d => {
+      const match = d.observations?.match(/^\[(.+?)\]/);
+      const defectName = match ? match[1] : (d.observations?.split(' ')[0] || 'Sem defeito');
+      if (!map[defectName]) map[defectName] = { name: defectName, count: 0, kg: 0, metros: 0 };
+      map[defectName].count++;
+      if (d.measure_type === 'kg') map[defectName].kg += d.measure_value;
+      else map[defectName].metros += d.measure_value;
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count);
+  }, [weaverDefects]);
+
+  // Export general PDF
+  const handleExportPdf = async () => {
+    const jsPDF = (await import('jspdf')).default;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+
+    // Header
+    let y = 15;
+    doc.setFillColor(220, 38, 38);
+    doc.rect(0, 0, pageW, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.text(sanitizePdfText('Relatorio de Falhas por Tecelao'), pageW / 2, 12, { align: 'center' });
+    doc.setFontSize(10);
+    const periodLabel = filterMonth === 'all' ? 'Todo periodo' : format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
+    doc.text(sanitizePdfText(`Periodo: ${periodLabel}`), pageW / 2, 20, { align: 'center' });
+    y = 36;
+
+    // KPIs
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text(`Total de Falhas: ${kpis.count}  |  Kg: ${formatNumber(kpis.totalKg)}  |  Metros: ${formatNumber(kpis.totalMetros)}  |  Teceloes: ${kpis.weaverCount}`, 14, y);
+    y += 10;
+
+    // Ranking table
+    doc.setFontSize(12);
+    doc.text('Ranking de Falhas', 14, y);
+    y += 6;
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Tecelao', 14, y);
+    doc.text('Falhas', 100, y);
+    doc.text('Kg', 125, y);
+    doc.text('Metros', 155, y);
+    y += 4;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, y, pageW - 14, y);
+    y += 4;
+    doc.setTextColor(0, 0, 0);
+
+    weaverRanking.forEach(([, s]) => {
+      if (y > 270) { doc.addPage(); y = 15; }
+      doc.text(sanitizePdfText(`${s.code} - ${s.name}`), 14, y);
+      doc.text(String(s.count), 100, y);
+      doc.text(formatNumber(s.kg), 125, y);
+      doc.text(formatNumber(s.metros), 155, y);
+      y += 5;
+    });
+
+    doc.save(`falhas_teceloes_${filterMonth === 'all' ? 'total' : filterMonth}.pdf`);
+    toast.success('PDF exportado com sucesso');
+  };
+
+  // Export individual PDF
+  const handleExportIndividualPdf = async () => {
+    if (!selectedWeaver) return;
+    const jsPDF = (await import('jspdf')).default;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+
+    let y = 15;
+    doc.setFillColor(220, 38, 38);
+    doc.rect(0, 0, pageW, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.text(sanitizePdfText(`Falhas - ${selectedWeaver.name} ${selectedWeaver.code}`), pageW / 2, 12, { align: 'center' });
+    doc.setFontSize(10);
+    const periodLabel = filterMonth === 'all' ? 'Todo periodo' : format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
+    doc.text(sanitizePdfText(`Periodo: ${periodLabel}`), pageW / 2, 20, { align: 'center' });
+    y = 36;
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text(`Falhas: ${weaverKpis.count}  |  Kg: ${formatNumber(weaverKpis.kg)}  |  Metros: ${formatNumber(weaverKpis.metros)}`, 14, y);
+    y += 10;
+
+    // By Article
+    if (byArticle.length > 0) {
+      doc.setFontSize(12);
+      doc.text('Por Artigo', 14, y);
+      y += 6;
+      doc.setFontSize(9);
+      byArticle.forEach(a => {
+        if (y > 270) { doc.addPage(); y = 15; }
+        doc.text(sanitizePdfText(`${a.name}: ${a.count} falha(s), ${formatNumber(a.kg)} kg, ${formatNumber(a.metros)} m`), 18, y);
+        y += 5;
+      });
+      y += 4;
+    }
+
+    // By Machine
+    if (byMachine.length > 0) {
+      doc.setFontSize(12);
+      doc.text('Por Maquina', 14, y);
+      y += 6;
+      doc.setFontSize(9);
+      byMachine.forEach(m => {
+        if (y > 270) { doc.addPage(); y = 15; }
+        doc.text(sanitizePdfText(`${m.name}: ${m.count} falha(s), ${formatNumber(m.kg)} kg, ${formatNumber(m.metros)} m`), 18, y);
+        y += 5;
+      });
+      y += 4;
+    }
+
+    // Detail table
+    doc.setFontSize(12);
+    if (y > 250) { doc.addPage(); y = 15; }
+    doc.text('Detalhamento', 14, y);
+    y += 6;
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Data', 14, y);
+    doc.text('Turno', 40, y);
+    doc.text('Maquina', 60, y);
+    doc.text('Artigo', 95, y);
+    doc.text('Medida', 145, y);
+    doc.text('Obs', 170, y);
+    y += 3;
+    doc.line(14, y, pageW - 14, y);
+    y += 4;
+    doc.setTextColor(0, 0, 0);
+
+    weaverDefects.forEach(d => {
+      if (y > 280) { doc.addPage(); y = 15; }
+      doc.text(format(new Date(d.date + 'T12:00:00'), 'dd/MM/yy'), 14, y);
+      doc.text(d.shift === 'manha' ? 'Manha' : d.shift === 'tarde' ? 'Tarde' : 'Noite', 40, y);
+      doc.text(sanitizePdfText(d.machine_name || '-').substring(0, 18), 60, y);
+      doc.text(sanitizePdfText(d.article_name || '-').substring(0, 25), 95, y);
+      doc.text(`${formatNumber(d.measure_value)} ${d.measure_type === 'kg' ? 'kg' : 'm'}`, 145, y);
+      doc.text(sanitizePdfText((d.observations || '-')).substring(0, 15), 170, y);
+      y += 5;
+    });
+
+    doc.save(sanitizePdfText(`falhas_${selectedWeaver.name}_${filterMonth === 'all' ? 'total' : filterMonth}.pdf`));
+    toast.success('PDF individual exportado');
+  };
+
+  const renderGroupSection = (title: string, data: { name: string; count: number; kg: number; metros: number }[]) => {
+    if (data.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>
+        <div className="space-y-1">
+          {data.map((item, i) => (
+            <div key={i} className="flex items-center justify-between text-sm py-1.5 px-3 rounded-md bg-muted/30">
+              <span className="font-medium truncate max-w-[200px]">{item.name}</span>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+                <span>{item.count} falha{item.count !== 1 ? 's' : ''}</span>
+                {item.kg > 0 && <span>{formatNumber(item.kg)} kg</span>}
+                {item.metros > 0 && <span>{formatNumber(item.metros)} m</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Falhas por Tecelão</CardTitle>
-        <CardDescription>Resumo de falhas registradas na Revisão, atribuídas a cada tecelão</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Ranking */}
-        {weaverSummary.length > 0 && (
-          <div className="rounded-lg border p-3 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Ranking de Falhas</p>
-            <div className="space-y-1">
-              {weaverSummary.map(([id, s]) => (
-                <div key={id} className="flex items-center justify-between text-sm py-1 px-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => setSelectedWeaverId(id)}>
-                  <span className="font-medium">{s.code} — {s.name}</span>
-                  <div className="flex items-center gap-3 text-muted-foreground text-xs">
-                    <span>{s.count} falha{s.count !== 1 ? 's' : ''}</span>
-                    {s.kg > 0 && <span>{formatNumber(s.kg)} kg</span>}
-                    {s.metros > 0 && <span>{formatNumber(s.metros)} m</span>}
-                  </div>
-                </div>
-              ))}
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Falhas por Tecelão</CardTitle>
+              <CardDescription>Análise de defeitos registrados na Revisão</CardDescription>
             </div>
-          </div>
-        )}
-
-        {/* Detail selector */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Detalhes do Tecelão</Label>
-          <Select value={selectedWeaverId} onValueChange={v => { setSelectedWeaverId(v); setWeaverSearch(''); }}>
-            <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione um tecelão" /></SelectTrigger>
-            <SelectContent side="bottom" avoidCollisions={false}>
-              <div className="px-2 pb-2">
-                <Input placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => setWeaverSearch(e.target.value)} className="h-8" />
-              </div>
-              {weavers
-                .filter(w => {
-                  if (!weaverSearch) return true;
-                  const s = weaverSearch.toLowerCase();
-                  return w.name.toLowerCase().includes(s) || w.code.toLowerCase().includes(s);
-                })
-                .map(w => {
-                  const shiftLabel = w.shift_type === 'fixo'
-                    ? w.fixed_shift === 'manha' ? '1º Turno' : w.fixed_shift === 'tarde' ? '2º Turno' : w.fixed_shift === 'noite' ? '3º Turno' : ''
-                    : 'Horário Específico';
-                  return <SelectItem key={w.id} value={w.id}>{w.code} — {w.name} — {shiftLabel}</SelectItem>;
-                })}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {!selectedWeaverId ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <AlertTriangle className="h-10 w-10 text-muted-foreground/40 mb-2" />
-            <p className="text-muted-foreground">Selecione um tecelão para ver as falhas</p>
-          </div>
-        ) : weaverDefects.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">Nenhuma falha registrada para este tecelão.</p>
-        ) : (
-          <>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-lg border p-3">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total</p>
-                <p className="text-lg font-bold text-destructive">{totals.count}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Kg</p>
-                <p className="text-lg font-bold text-foreground">{formatNumber(totals.totalKg)}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Metros</p>
-                <p className="text-lg font-bold text-foreground">{formatNumber(totals.totalMetros)}</p>
-              </div>
-            </div>
-            <div className="overflow-auto max-h-[400px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Turno</TableHead>
-                    <TableHead>Máquina</TableHead>
-                    <TableHead>Artigo</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Obs</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {weaverDefects.map(d => (
-                    <TableRow key={d.id}>
-                      <TableCell className="whitespace-nowrap">{format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell><Badge variant="secondary" className="text-xs">{d.shift === 'manha' ? 'Manhã' : d.shift === 'tarde' ? 'Tarde' : 'Noite'}</Badge></TableCell>
-                      <TableCell>{d.machine_name || '—'}</TableCell>
-                      <TableCell>{d.article_name || '—'}</TableCell>
-                      <TableCell><Badge variant="outline">{d.measure_type === 'kg' ? 'Kg' : 'Metro'}</Badge></TableCell>
-                      <TableCell className="text-right font-mono">{formatNumber(d.measure_value)} {d.measure_type === 'kg' ? 'kg' : 'm'}</TableCell>
-                      <TableCell className="max-w-[100px] truncate text-xs text-muted-foreground">{d.observations || '—'}</TableCell>
-                    </TableRow>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger className="h-9 text-sm w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todo período</SelectItem>
+                  {availableMonths.map(m => (
+                    <SelectItem key={m} value={m}>
+                      {format(new Date(m + '-01'), 'MMMM yyyy', { locale: ptBR })}
+                    </SelectItem>
                   ))}
-                </TableBody>
-              </Table>
+                </SelectContent>
+              </Select>
+              {weaverRanking.length > 0 && (
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportPdf}>
+                  <Download className="h-3.5 w-3.5" /> PDF
+                </Button>
+              )}
             </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[80px]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">Total Falhas</span>
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </div>
+              <span className="text-2xl font-display font-bold text-destructive">{kpis.count}</span>
+            </div>
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[80px]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">Total Kg</span>
+                <Scale className="h-4 w-4 text-warning" />
+              </div>
+              <span className="text-2xl font-display font-bold text-foreground">{formatNumber(kpis.totalKg)}</span>
+            </div>
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[80px]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">Total Metros</span>
+                <Ruler className="h-4 w-4 text-info" />
+              </div>
+              <span className="text-2xl font-display font-bold text-foreground">{formatNumber(kpis.totalMetros)}</span>
+            </div>
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[80px]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">Tecelões</span>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <span className="text-2xl font-display font-bold text-foreground">{kpis.weaverCount}</span>
+            </div>
+          </div>
+
+          {/* Ranking */}
+          {weaverRanking.length > 0 ? (
+            <div className="rounded-lg border p-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Ranking de Falhas — clique para ver detalhes</p>
+              <div className="space-y-1">
+                {weaverRanking.map(([id, s], i) => (
+                  <div
+                    key={id}
+                    className="flex items-center justify-between text-sm py-2 px-3 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                    onClick={() => setSelectedWeaverId(id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-muted-foreground w-5">{i + 1}.</span>
+                      <span className="font-medium">{s.name}</span>
+                      <Badge variant="outline" className="font-mono text-[10px] font-bold text-primary">{s.code}</Badge>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className={cn('text-[10px] font-bold', getBadgeColor(s.count))}>
+                        {s.count} falha{s.count !== 1 ? 's' : ''}
+                      </Badge>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {s.kg > 0 && <span>{formatNumber(s.kg)} kg</span>}
+                        {s.metros > 0 && <span>{formatNumber(s.metros)} m</span>}
+                      </div>
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertTriangle className="h-10 w-10 text-muted-foreground/40 mb-2" />
+              <p className="text-muted-foreground">Nenhuma falha registrada no período selecionado</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Detail Modal */}
+      <Dialog open={!!selectedWeaverId} onOpenChange={(open) => { if (!open) setSelectedWeaverId(null); }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Falhas — {selectedWeaver?.name} <Badge variant="outline" className="font-mono text-xs">{selectedWeaver?.code}</Badge>
+            </DialogTitle>
+            <DialogDescription>
+              {filterMonth === 'all' ? 'Todo período' : format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR })}
+            </DialogDescription>
+          </DialogHeader>
+
+          {weaverDefects.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">Nenhuma falha registrada para este tecelão no período.</p>
+          ) : (
+            <div className="space-y-5">
+              {/* Individual KPIs */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-lg border p-3">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Falhas</p>
+                  <p className="text-lg font-bold text-destructive">{weaverKpis.count}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Kg</p>
+                  <p className="text-lg font-bold text-foreground">{formatNumber(weaverKpis.kg)}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Metros</p>
+                  <p className="text-lg font-bold text-foreground">{formatNumber(weaverKpis.metros)}</p>
+                </div>
+              </div>
+
+              {/* Groupings */}
+              {renderGroupSection('Por Artigo', byArticle)}
+              {renderGroupSection('Por Máquina', byMachine)}
+              {renderGroupSection('Por Defeito', byDefect)}
+
+              {/* Detail table */}
+              <div className="overflow-auto max-h-[300px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Turno</TableHead>
+                      <TableHead>Máquina</TableHead>
+                      <TableHead>Artigo</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Obs</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {weaverDefects.map(d => (
+                      <TableRow key={d.id}>
+                        <TableCell className="whitespace-nowrap">{format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell><Badge variant="secondary" className="text-xs">{d.shift === 'manha' ? 'Manhã' : d.shift === 'tarde' ? 'Tarde' : 'Noite'}</Badge></TableCell>
+                        <TableCell>{d.machine_name || '—'}</TableCell>
+                        <TableCell>{d.article_name || '—'}</TableCell>
+                        <TableCell><Badge variant="outline">{d.measure_type === 'kg' ? 'Kg' : 'Metro'}</Badge></TableCell>
+                        <TableCell className="text-right font-mono">{formatNumber(d.measure_value)} {d.measure_type === 'kg' ? 'kg' : 'm'}</TableCell>
+                        <TableCell className="max-w-[120px] truncate text-xs text-muted-foreground">{d.observations || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {weaverDefects.length > 0 && (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExportIndividualPdf}>
+                <Download className="h-3.5 w-3.5" /> Exportar PDF
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setSelectedWeaverId(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
