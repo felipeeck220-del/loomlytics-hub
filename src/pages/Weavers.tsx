@@ -228,7 +228,7 @@ export default function Weavers() {
         </TabsContent>
 
         <TabsContent value="defects">
-          <WeaverDefectsTab weavers={weavers} defectRecords={defectRecords} />
+          <WeaverDefectsTab weavers={weavers} defectRecords={defectRecords} articles={articles} machines={machines} />
         </TabsContent>
 
         <TabsContent value="reports">
