@@ -1418,6 +1418,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 - **11/04/2026 18:00 (Brasília)** — **TECELÕES > Summary Cards:** Removido card "Turno Fixo" e adicionados cards "Tarde" e "Noite". Grid agora exibe 5 cards: Total, Carga Horária, Manhã, Tarde, Noite.
 - **11/04/2026 19:00 (Brasília)** — **AUDITORIA — Melhorias visuais + Histórico de Login:** (1) **Ícones por tipo de ação:** Criação (verde), edição (azul), exclusão (vermelho), desativação (amarelo); (2) **Badge de módulo:** Cada registro exibe badge colorido do módulo (Máquinas, Produção, Revisão, etc.); (3) **Agrupamento por dia:** Registros separados por "Hoje", "Ontem" e datas formatadas; (4) **Filtro por módulo:** Novo select com todos os módulos do sistema; (5) **Aba Logins:** Nova tabela `login_history` com captura automática de IP (ipify), geolocalização (ipapi.co), dispositivo, navegador e OS via `trackLogin()` no AuthContext; (6) **Documentação:** Atualizado `docs/auditoria.md` com toda a nova arquitetura.
 
+- **11/04/2026 20:00 (Brasília)** — **AUDITORIA — Fix altura do modal Histórico:** `TabsContent` do Radix não propagava `flex-1` corretamente, causando listagem ocupando apenas metade do modal. Substituído por renderização condicional (`{activeTab === 'actions' && <div>}`) com `flex-1 min-h-0` — listagem agora ocupa 100% da altura disponível nas abas Ações e Logins.
+
 ---
 
-*Última atualização: 11/04/2026 19:00 (Brasília)*
+*Última atualização: 11/04/2026 20:00 (Brasília)*
