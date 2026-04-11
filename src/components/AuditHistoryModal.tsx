@@ -264,7 +264,7 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
           </div>
 
           {/* ─── ACTIONS TAB ─── */}
-          <TabsContent value="actions" className="flex-1 flex flex-col min-h-0 mt-0">
+          <TabsContent value="actions" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden">
             {/* Filters */}
             <div className="px-6 py-3 border-b border-border space-y-3 shrink-0">
               <div className="flex flex-wrap gap-2">
