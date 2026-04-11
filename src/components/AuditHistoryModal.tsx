@@ -329,24 +329,24 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
                           const moduleMeta = getModuleBadge(log.action);
                           const ActionIcon = actionMeta.icon;
                           return (
-                            <div key={log.id} className="rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors">
+                            <div key={log.id} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                                  <div className={`rounded-full p-1.5 shrink-0 mt-0.5 ${actionMeta.color}`}>
-                                    <ActionIcon className="h-3.5 w-3.5" />
+                                  <div className={`rounded-full p-2 shrink-0 mt-0.5 ${actionMeta.color}`}>
+                                    <ActionIcon className="h-4 w-4" />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-sm font-medium text-foreground">
+                                      <span className="text-sm font-semibold text-foreground">
                                         {log.user_name || 'Sistema'}
                                         {log.user_code && <span className="text-muted-foreground font-mono"> #{log.user_code}</span>}
                                       </span>
-                                      <Badge className={`text-[10px] px-1.5 py-0 ${ROLE_COLORS[log.user_role || ''] || 'bg-muted text-muted-foreground'}`}>
+                                      <Badge className={`text-[11px] px-2 py-0.5 ${ROLE_COLORS[log.user_role || ''] || 'bg-muted text-muted-foreground'}`}>
                                         {ROLE_LABELS[log.user_role || ''] || log.user_role}
                                       </Badge>
-                                      <Badge className={`text-[10px] px-1.5 py-0 ${moduleMeta.color}`}>{moduleMeta.label}</Badge>
+                                      <Badge className={`text-[11px] px-2 py-0.5 ${moduleMeta.color}`}>{moduleMeta.label}</Badge>
                                     </div>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                    <div className="flex items-center gap-2 mt-1">
                                       <span className="text-sm text-foreground">{ACTION_LABELS[log.action] || log.action}</span>
                                       <span className="text-xs text-muted-foreground font-mono ml-auto shrink-0">
                                         {format(new Date(log.created_at), 'HH:mm', { locale: ptBR })}
@@ -355,15 +355,15 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
                                   </div>
                                 </div>
                                 {details && details.length > 0 && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setExpandedId(isExpanded ? null : log.id)}>
-                                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setExpandedId(isExpanded ? null : log.id)}>
+                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                   </Button>
                                 )}
                               </div>
                               {isExpanded && details && (
-                                <div className="mt-2 ml-10 pl-3 border-l-2 border-primary/20 space-y-0.5">
+                                <div className="mt-3 ml-11 pl-3 border-l-2 border-primary/20 space-y-1">
                                   {details.map((d, i) => (
-                                    <div key={i} className="text-xs">
+                                    <div key={i} className="text-sm">
                                       <span className="text-muted-foreground">{d.label}:</span>{' '}
                                       <span className="text-foreground">{d.value}</span>
                                     </div>
