@@ -1395,6 +1395,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **11/04/2026 10:00 (Brasília)** — **REVISÃO — Fix "Registrado por" não exibido:** `mapDefectRecord` em `useCompanyData.ts` não mapeava `created_by_name` e `created_by_code` do banco — campos adicionados ao mapper. A coluna "Registrado por" na tabela já existia mas mostrava "—" por falta dos dados no objeto mapeado.
 
+- **11/04/2026 11:00 (Brasília)** — **PRODUÇÃO — Cards expandidos com fundo colorido sutil:** Cards dos detalhes expandidos da produção agora possuem fundo com tint sutil da cor do acento (`bg-emerald-500/5`, `bg-blue-500/5`, `bg-amber-500/5`, `bg-teal-500/5`, `bg-violet-500/5`, `bg-red-500/5`) para melhor distinção visual e legibilidade. Cada card tem cor única: Rolos (verde), Peso (azul), Faturamento (teal), Meta (âmbar), Registro (violeta), Tempo Parada (vermelho/azul). Todos os campos existentes foram mantidos.
+
 ---
 
-*Última atualização: 11/04/2026 10:00 (Brasília)*
+*Última atualização: 11/04/2026 11:00 (Brasília)*
