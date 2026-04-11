@@ -189,20 +189,13 @@ export default function Weavers() {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Total</span>
                 <Users className="h-5 w-5 text-muted-foreground" />
               </div>
               <span className="text-3xl font-display font-bold text-foreground">{counts.total}</span>
-            </div>
-            <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Turno Fixo</span>
-                <Clock className="h-5 w-5 text-info" />
-              </div>
-              <span className="text-3xl font-display font-bold text-info">{counts.fixo}</span>
             </div>
             <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
               <div className="flex items-center justify-between">
@@ -217,6 +210,20 @@ export default function Weavers() {
                 <Clock className="h-5 w-5 text-warning" />
               </div>
               <span className="text-3xl font-display font-bold text-warning">{counts.manha.length}</span>
+            </div>
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Tarde</span>
+                <Clock className="h-5 w-5 text-info" />
+              </div>
+              <span className="text-3xl font-display font-bold text-info">{counts.tarde.length}</span>
+            </div>
+            <div className="card-glass p-4 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Noite</span>
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+              <span className="text-3xl font-display font-bold text-primary">{counts.noite.length}</span>
             </div>
           </div>
 
