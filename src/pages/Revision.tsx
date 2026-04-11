@@ -324,7 +324,7 @@ export default function RevisionPage() {
                 <TableCell><Badge variant="outline">{companyShiftLabels[d.shift] || d.shift}</Badge></TableCell>
                 <TableCell className="font-medium">{d.machine_name}</TableCell>
                 <TableCell>{d.article_name}</TableCell>
-                <TableCell>{d.weaver_name}</TableCell>
+                <TableCell>{d.weaver_name}{(() => { const w = weavers.find(w => w.id === d.weaver_id); return w ? ` #${w.code}` : ''; })()}</TableCell>
                 <TableCell><Badge variant={d.measure_type === 'kg' ? 'secondary' : 'outline'}>{d.measure_type === 'kg' ? 'Kg' : 'Metro'}</Badge></TableCell>
                 <TableCell className="text-right font-mono">{formatNumber(d.measure_value)} {d.measure_type === 'kg' ? 'kg' : 'm'}</TableCell>
                 <TableCell className="max-w-[120px] truncate text-muted-foreground text-xs">{d.observations || '—'}</TableCell>
