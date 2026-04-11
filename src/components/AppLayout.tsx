@@ -121,10 +121,10 @@ export default function AppLayout() {
                   <span className="hidden sm:inline">Assinatura Cancelada</span>
                 </Badge>
               )}
-              {(subStatus === 'cancelled' || subStatus === 'blocked') && (
+              {(subStatus === 'cancelled' || subStatus === 'blocked' || subStatus === 'suspended') && (
                 <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 font-medium text-xs px-2.5 py-0.5 gap-1">
                   <XCircle className="h-3 w-3" />
-                  <span className="hidden sm:inline">Assinatura Cancelada</span>
+                  <span className="hidden sm:inline">{subStatus === 'suspended' ? 'Conta Suspensa' : 'Assinatura Cancelada'}</span>
                 </Badge>
               )}
               {(subStatus === 'overdue' || subStatus === 'grace') && (
