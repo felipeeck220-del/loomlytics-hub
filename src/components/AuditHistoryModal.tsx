@@ -250,7 +250,7 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[85vw] max-w-5xl h-[85vh] flex flex-col overflow-hidden p-0">
+      <DialogContent className="w-[85vw] max-w-5xl h-[85vh] min-h-0 !flex !flex-col !overflow-hidden p-0">
         <DialogHeader className="px-6 pt-6 pb-0 shrink-0">
           <DialogTitle className="font-display text-lg">Histórico</DialogTitle>
         </DialogHeader>
