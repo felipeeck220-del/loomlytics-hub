@@ -225,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear all app state first
     setUser(null);
     setCompanies([]);
+    loginTrackedRef.current = false;
 
     // Sign out from Supabase (clears auth tokens)
     await supabase.auth.signOut({ scope: 'local' });
