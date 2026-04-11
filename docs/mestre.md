@@ -116,6 +116,14 @@ supabase/
 │   └── restore-backup/         # Restauração de backup
 ```
 
+## 🎨 Padrões de UI (obrigatórios para novos módulos)
+
+### Seletor de Artigo em Modais
+- **Formato de exibição:** `NomeArtigo (NomeCliente)` — quando o artigo possui `client_name`
+- **Busca:** Filtra por nome do artigo **e** por nome do cliente
+- **Implementação:** Criar helper `getArticleLabel(a)` que retorna `a.client_name ? \`${a.name} (${a.client_name})\` : a.name`
+- **Aplicar em:** Todo modal que contenha seletor de artigo (Produção, Revisão, Terceirizado, NFs, etc.)
+
 ---
 
 ## 🔐 Autenticação e Autorização
