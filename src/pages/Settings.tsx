@@ -145,6 +145,11 @@ export default function SettingsPage() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
+  // Force tab to 'plans' when subscription becomes locked
+  useEffect(() => {
+    if (sidebarLocked) setTab('plans');
+  }, [sidebarLocked]);
+
   // Subscription state
   const [subStatus, setSubStatus] = useState<any>(null);
   const [loadingSub, setLoadingSub] = useState(true);
