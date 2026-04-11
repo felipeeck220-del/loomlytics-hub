@@ -55,6 +55,7 @@ import { Badge } from '@/components/ui/badge';
 import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor, Lock, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions, OVERRIDE_PERMISSIONS } from '@/hooks/usePermissions';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import ProductionModeModal from '@/components/ProductionModeModal';
 import IotDevicesManager from '@/components/IotDevicesManager';
@@ -101,7 +102,8 @@ export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { shiftSettings, saveShiftSettings, getMachines, saveMachines } = useSharedCompanyData();
   const { logAction } = useAuditLog();
-  const [tab, setTab] = useState('profile');
+  const { sidebarLocked } = useSubscription();
+  const [tab, setTab] = useState(sidebarLocked ? 'plans' : 'profile');
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
@@ -666,11 +668,22 @@ export default function SettingsPage() {
         </AlertDialog>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={sidebarLocked ? 'plans' : tab} onValueChange={(v) => { if (!sidebarLocked) setTab(v); }}>
         <TabsList className={`w-full flex flex-wrap gap-1 h-auto p-1 ${isAdmin ? '' : ''}`}>
-          <TabsTrigger value="profile" className="flex-1 min-w-[80px] text-xs sm:text-sm">Perfil</TabsTrigger>
-          {isAdmin && <TabsTrigger value="users" className="flex-1 min-w-[80px] text-xs sm:text-sm">Usuários</TabsTrigger>}
-          <TabsTrigger value="company" className="flex-1 min-w-[80px] text-xs sm:text-sm">Empresa</TabsTrigger>
+          <TabsTrigger value="profile" disabled={sidebarLocked} className={`flex-1 min-w-[80px] text-xs sm:text-sm ${sidebarLocked ? 'opacity-40 cursor-not-allowed' : ''}`}>
+            {sidebarLocked && <Lock className="h-3 w-3 mr-1" />}
+            Perfil
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="users" disabled={sidebarLocked} className={`flex-1 min-w-[80px] text-xs sm:text-sm ${sidebarLocked ? 'opacity-40 cursor-not-allowed' : ''}`}>
+              {sidebarLocked && <Lock className="h-3 w-3 mr-1" />}
+              Usuários
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="company" disabled={sidebarLocked} className={`flex-1 min-w-[80px] text-xs sm:text-sm ${sidebarLocked ? 'opacity-40 cursor-not-allowed' : ''}`}>
+            {sidebarLocked && <Lock className="h-3 w-3 mr-1" />}
+            Empresa
+          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="telas" disabled className="relative opacity-50 cursor-not-allowed flex-1 min-w-[80px] text-xs sm:text-sm">
               Telas

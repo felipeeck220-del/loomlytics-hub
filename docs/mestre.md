@@ -1420,6 +1420,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **11/04/2026 20:00 (Brasília)** — **AUDITORIA — Fix altura do modal Histórico:** `TabsContent` do Radix não propagava `flex-1` corretamente, causando listagem ocupando apenas metade do modal. Substituído por renderização condicional (`{activeTab === 'actions' && <div>}`) com `flex-1 min-h-0` — listagem agora ocupa 100% da altura disponível nas abas Ações e Logins.
 
+- **11/04/2026 21:00 (Brasília)** — **ASSINATURA — Bloqueio total para contas suspensas/expiradas:** (1) **Status "suspended" adicionado:** `SubscriptionContext` agora reconhece o status `suspended` (definido pela edge function `notify-subscription-status`) como estado expirado, ativando `sidebarLocked` (admin) e `fullyBlocked` (não-admin); (2) **Sidebar trancada:** Todos os itens do menu ficam com cadeado exceto "Configurações"; (3) **Settings — abas bloqueadas:** Quando assinatura expirada, apenas a aba "Planos" fica acessível — Perfil, Usuários e Empresa ficam desabilitadas com ícone de cadeado; (4) **Redirecionamento automático:** `AppLayout` redireciona admin para `/settings` se tentar acessar outra rota; (5) **Edge function check-subscription:** Adicionado `suspended` à lista de status bloqueados; (6) **Badge no header:** Status "suspended" exibe badge "Conta Suspensa" em vermelho.
+
 ---
 
-*Última atualização: 11/04/2026 20:00 (Brasília)*
+*Última atualização: 11/04/2026 21:00 (Brasília)*
