@@ -419,43 +419,43 @@ export default function AuditHistoryModal({ open, onOpenChange, companyId }: Pro
                         <div className="flex-1 h-px bg-border" />
                         <Badge variant="secondary" className="text-[10px]">{group.items.length}</Badge>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         {group.items.map(log => (
-                          <div key={log.id} className="rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors">
+                          <div key={log.id} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors">
                             <div className="flex items-start gap-3">
-                              <div className="rounded-full p-1.5 shrink-0 mt-0.5 text-success bg-success/10">
-                                <LogIn className="h-3.5 w-3.5" />
+                              <div className="rounded-full p-2 shrink-0 mt-0.5 text-success bg-success/10">
+                                <LogIn className="h-4 w-4" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-medium text-foreground">
+                                  <span className="text-sm font-semibold text-foreground">
                                     {log.user_name || 'Usuário'}
                                     {log.user_code && <span className="text-muted-foreground font-mono"> #{log.user_code}</span>}
                                   </span>
-                                  <Badge className={`text-[10px] px-1.5 py-0 ${ROLE_COLORS[log.user_role || ''] || 'bg-muted text-muted-foreground'}`}>
+                                  <Badge className={`text-[11px] px-2 py-0.5 ${ROLE_COLORS[log.user_role || ''] || 'bg-muted text-muted-foreground'}`}>
                                     {ROLE_LABELS[log.user_role || ''] || log.user_role}
                                   </Badge>
                                   <span className="text-xs text-muted-foreground font-mono ml-auto shrink-0">
                                     {format(new Date(log.created_at), 'HH:mm', { locale: ptBR })}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs text-muted-foreground">
-                                  <span className="flex items-center gap-1">
+                                <div className="flex items-center gap-4 mt-2 flex-wrap text-sm text-muted-foreground">
+                                  <span className="flex items-center gap-1.5">
                                     <DeviceIcon type={log.device_type} />
                                     {log.device_type || 'Desktop'}
                                   </span>
                                   {log.browser && (
-                                    <span className="flex items-center gap-1">
-                                      <Globe className="h-3 w-3" />
+                                    <span className="flex items-center gap-1.5">
+                                      <Globe className="h-3.5 w-3.5" />
                                       {log.browser}{log.os ? ` / ${log.os}` : ''}
                                     </span>
                                   )}
                                   {log.ip_address && (
-                                    <span className="font-mono">{log.ip_address}</span>
+                                    <span className="font-mono text-xs">{log.ip_address}</span>
                                   )}
                                   {(log.location_city || log.location_country) && (
-                                    <span className="flex items-center gap-1">
-                                      <MapPin className="h-3 w-3" />
+                                    <span className="flex items-center gap-1.5">
+                                      <MapPin className="h-3.5 w-3.5" />
                                       {[log.location_city, log.location_country].filter(Boolean).join(', ')}
                                     </span>
                                   )}
