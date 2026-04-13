@@ -309,6 +309,7 @@ export default function ResidueSales() {
 
   // ===== Sale CRUD =====
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<ResidueSale | null>(null);
   const [saleClientId, setSaleClientId] = useState('');
   const [saleMaterialId, setSaleMaterialId] = useState('');
   const [saleQty, setSaleQty] = useState('');
@@ -332,8 +333,24 @@ export default function ResidueSales() {
   const selectedSaleMaterial = saleClientMaterials.find(m => m.id === saleMaterialId);
 
   const openNewSale = () => {
+    setEditingSale(null);
     setSaleClientId(''); setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
     setSaleRomaneio(''); setSaleObs(''); setSaleDate(format(new Date(), 'yyyy-MM-dd'));
+    setSaleDialogOpen(true);
+  };
+
+  const openEditSale = (s: ResidueSale) => {
+    setEditingSale(s);
+    setSaleClientId(s.client_id || '');
+    setSaleDate(s.date);
+    setSaleRomaneio(s.romaneio || '');
+    setSaleObs(s.observations || '');
+    // Delay setting material/price so the client effect doesn't clear them
+    setTimeout(() => {
+      setSaleMaterialId(s.material_id);
+      setSaleQty(formatNumber(s.quantity, 2).replace('.', ''));
+      setSalePrice(s.unit_price.toFixed(2).replace('.', ','));
+    }, 50);
     setSaleDialogOpen(true);
   };
 
