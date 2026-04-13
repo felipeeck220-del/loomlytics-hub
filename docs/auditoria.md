@@ -178,7 +178,7 @@ trackLogin({
 | **Contas a Pagar** | `AccountsPayable.tsx` | `account_create`, `account_update`, `account_delete`, `account_pay` |
 | **Configurações** | `Settings.tsx` | `user_create`, `user_update`, `user_delete`, `user_deactivate`, `user_reactivate`, `user_password_change`, `user_permissions_update` |
 | **Terceirizados** | `Outsource.tsx` | `outsource_company_create`, `outsource_company_update`, `outsource_company_delete`, `outsource_production_create`, `outsource_production_delete` |
-| **Resíduos** | `ResidueSales.tsx` | `residue_material_create`, `residue_material_update`, `residue_material_delete`, `residue_sale_create`, `residue_sale_delete` |
+| **Resíduos** | `ResidueSales.tsx` | `residue_material_create`, `residue_material_update`, `residue_material_delete`, `residue_sale_create`, `residue_sale_update`, `residue_sale_delete` |
 | **Notas Fiscais** | `Invoices.tsx` | `invoice_create`, `invoice_confirm`, `invoice_cancel`, `yarn_type_create`, `yarn_type_update`, `yarn_type_delete`, `outsource_yarn_stock_create`, `outsource_yarn_stock_update`, `outsource_yarn_stock_delete` |
 
 ### ❌ Módulos SEM auditoria (pendente)

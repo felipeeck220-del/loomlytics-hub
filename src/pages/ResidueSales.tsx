@@ -309,6 +309,7 @@ export default function ResidueSales() {
 
   // ===== Sale CRUD =====
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<ResidueSale | null>(null);
   const [saleClientId, setSaleClientId] = useState('');
   const [saleMaterialId, setSaleMaterialId] = useState('');
   const [saleQty, setSaleQty] = useState('');
@@ -332,8 +333,24 @@ export default function ResidueSales() {
   const selectedSaleMaterial = saleClientMaterials.find(m => m.id === saleMaterialId);
 
   const openNewSale = () => {
+    setEditingSale(null);
     setSaleClientId(''); setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
     setSaleRomaneio(''); setSaleObs(''); setSaleDate(format(new Date(), 'yyyy-MM-dd'));
+    setSaleDialogOpen(true);
+  };
+
+  const openEditSale = (s: ResidueSale) => {
+    setEditingSale(s);
+    setSaleClientId(s.client_id || '');
+    setSaleDate(s.date);
+    setSaleRomaneio(s.romaneio || '');
+    setSaleObs(s.observations || '');
+    // Delay setting material/price so the client effect doesn't clear them
+    setTimeout(() => {
+      setSaleMaterialId(s.material_id);
+      setSaleQty(formatNumber(s.quantity, 2).replace('.', ''));
+      setSalePrice(s.unit_price.toFixed(2).replace('.', ','));
+    }, 50);
     setSaleDialogOpen(true);
   };
 
@@ -370,34 +387,57 @@ export default function ResidueSales() {
 
       const mat = materials.find(m => m.id === saleMaterialId)!;
       const client = residueClients.find(c => c.id === saleClientId)!;
-      const { error } = await sb('residue_sales').insert({
-        company_id: companyId,
-        client_id: saleClientId,
-        material_id: saleMaterialId,
-        material_name: mat.name,
-        client_name: client.name,
-        date: saleDate,
-        quantity: qty,
-        unit: mat.unit,
-        unit_price: price,
-        total: qty * price,
-        romaneio: saleRomaneio.trim() || null,
-        observations: saleObs.trim() || null,
-        created_by_name: userName || null,
-        created_by_code: userCode || null,
-      });
-      if (error) throw error;
+
+      if (editingSale) {
+        const { error } = await sb('residue_sales').update({
+          client_id: saleClientId,
+          material_id: saleMaterialId,
+          material_name: mat.name,
+          client_name: client.name,
+          date: saleDate,
+          quantity: qty,
+          unit: mat.unit,
+          unit_price: price,
+          total: qty * price,
+          romaneio: saleRomaneio.trim() || null,
+          observations: saleObs.trim() || null,
+        }).eq('id', editingSale.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb('residue_sales').insert({
+          company_id: companyId,
+          client_id: saleClientId,
+          material_id: saleMaterialId,
+          material_name: mat.name,
+          client_name: client.name,
+          date: saleDate,
+          quantity: qty,
+          unit: mat.unit,
+          unit_price: price,
+          total: qty * price,
+          romaneio: saleRomaneio.trim() || null,
+          observations: saleObs.trim() || null,
+          created_by_name: userName || null,
+          created_by_code: userCode || null,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residue_sales'] });
-      logAction('residue_sale_create', {
+      const actionName = editingSale ? 'residue_sale_update' : 'residue_sale_create';
+      logAction(actionName, {
         material: materials.find(m => m.id === saleMaterialId)?.name,
         client: residueClients.find(c => c.id === saleClientId)?.name,
         date: saleDate,
       });
-      setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
-      setSaleRomaneio(''); setSaleObs('');
-      toast({ title: 'Venda registrada' });
+      if (!editingSale) {
+        setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
+        setSaleRomaneio(''); setSaleObs('');
+      } else {
+        setSaleDialogOpen(false);
+      }
+      toast({ title: editingSale ? 'Venda atualizada' : 'Venda registrada' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
@@ -882,7 +922,7 @@ export default function ResidueSales() {
                         <TableHead className="text-right">Preço Unit.</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead>Romaneio</TableHead>
-                        <TableHead className="w-[60px]"></TableHead>
+                        <TableHead className="w-[90px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -912,9 +952,14 @@ export default function ResidueSales() {
                           <TableCell className="text-right font-medium">{formatCurrency(s.total)}</TableCell>
                           <TableCell>{s.romaneio || '-'}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="icon" onClick={() => setDeleteSaleConfirmId(s.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => openEditSale(s)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => setDeleteSaleConfirmId(s.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1018,7 +1063,7 @@ export default function ResidueSales() {
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
         <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>Registrar Venda de Resíduo</DialogTitle>
+            <DialogTitle>{editingSale ? 'Editar Venda de Resíduo' : 'Registrar Venda de Resíduo'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>

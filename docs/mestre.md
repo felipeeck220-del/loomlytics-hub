@@ -1433,6 +1433,9 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **13/04/2026 18:00 (Brasília)** — **RESÍDUOS — Autoria nos registros de venda:** Na listagem de vendas de resíduos (`ResidueSales.tsx`), abaixo da data/hora de cada registro agora é exibido o nome e código (`Nome #ID`) do usuário que registrou a venda, usando os campos `created_by_name` e `created_by_code` já existentes na tabela `residue_sales`.
 
+
+- **13/04/2026 19:00 (Brasília)** — **RESÍDUOS — Botão editar nos registros de venda:** Adicionado botão de edição (ícone lápis) em cada registro da listagem de vendas de resíduos. Ao clicar, abre o dialog preenchido com os dados da venda (cliente, material, quantidade, preço, romaneio, observações) para edição. Atualiza no banco via `UPDATE` em `residue_sales`. Auditoria registrada com ação `residue_sale_update`.
+
 ---
 
-*Última atualização: 13/04/2026 18:00 (Brasília)*
+*Última atualização: 13/04/2026 19:00 (Brasília)*
