@@ -952,9 +952,14 @@ export default function ResidueSales() {
                           <TableCell className="text-right font-medium">{formatCurrency(s.total)}</TableCell>
                           <TableCell>{s.romaneio || '-'}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="icon" onClick={() => setDeleteSaleConfirmId(s.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => openEditSale(s)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => setDeleteSaleConfirmId(s.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
