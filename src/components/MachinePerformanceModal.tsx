@@ -109,17 +109,18 @@ export default function MachinePerformanceModal({ open, onOpenChange, machines, 
         const rolls = mp.reduce((s, p) => s + p.rolls_produced, 0);
         const kg = mp.reduce((s, p) => s + p.weight_kg, 0);
         const revenue = mp.reduce((s, p) => s + p.revenue, 0);
-        const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
+        const mpNonZero = mp.filter(p => p.rolls_produced > 0);
+        const eff = mpNonZero.length ? mpNonZero.reduce((s, p) => s + p.efficiency, 0) / mpNonZero.length : 0;
         const totalHours = mp.reduce((s, p) => s + ((companyShiftMinutes[p.shift as ShiftType] || 480) / 60), 0);
         const revenuePerHour = totalHours > 0 ? revenue / totalHours : 0;
         const kgPerHour = totalHours > 0 ? kg / totalHours : 0;
 
         // Weighted average target efficiency from articles produced
-        const avgTargetEff = mp.length > 0
-          ? mp.reduce((s, p) => {
+        const avgTargetEff = mpNonZero.length > 0
+          ? mpNonZero.reduce((s, p) => {
               const art = articles.find(a => a.id === p.article_id);
               return s + (art?.target_efficiency || 80);
-            }, 0) / mp.length
+            }, 0) / mpNonZero.length
           : 80;
 
         const currentArticle = m.article_id ? articles.find(a => a.id === m.article_id) : null;

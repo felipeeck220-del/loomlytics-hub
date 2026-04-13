@@ -153,7 +153,8 @@ export default function Reports() {
   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
   const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
-  const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
+  const nonZeroFiltered = filtered.filter(p => p.rolls_produced > 0);
+  const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
   const uniqueDays = new Set(filtered.map(p => p.date)).size || 1;
 
   // Calculate weighted average target efficiency
