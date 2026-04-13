@@ -40,6 +40,7 @@ export default function ProductionPage() {
   const machines = getMachines();
   const weavers = getWeavers();
   const articles = getArticles();
+  const clients = getClients();
   const articleMachineTurns = getArticleMachineTurns();
   const machineLogs = getMachineLogs();
   const { logAction, userName, userCode } = useAuditLog();
