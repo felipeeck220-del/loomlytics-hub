@@ -1422,6 +1422,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **11/04/2026 21:00 (Brasília)** — **ASSINATURA — Bloqueio total para contas suspensas/expiradas:** (1) **Status "suspended" adicionado:** `SubscriptionContext` agora reconhece o status `suspended` (definido pela edge function `notify-subscription-status`) como estado expirado, ativando `sidebarLocked` (admin) e `fullyBlocked` (não-admin); (2) **Sidebar trancada:** Todos os itens do menu ficam com cadeado exceto "Configurações"; (3) **Settings — abas bloqueadas:** Quando assinatura expirada, apenas a aba "Planos" fica acessível — Perfil, Usuários e Empresa ficam desabilitadas com ícone de cadeado; (4) **Redirecionamento automático:** `AppLayout` redireciona admin para `/settings` se tentar acessar outra rota; (5) **Edge function check-subscription:** Adicionado `suspended` à lista de status bloqueados; (6) **Badge no header:** Status "suspended" exibe badge "Conta Suspensa" em vermelho; (7) **Fix useEffect tab sync:** Adicionado `useEffect` em `Settings.tsx` para forçar tab "Planos" quando `sidebarLocked` muda de false→true (corrige bug onde `useState` initial value não atualizava após mount).
 
+- **13/04/2026 12:00 (Brasília)** — **SIDEBAR — Vendas de Resíduos removido de "Em teste":** Módulo `residuos` retirado do conjunto `TESTING_KEYS` no `AppSidebar.tsx`. O badge "Em teste" não aparece mais ao lado do item no menu lateral. Módulo agora exibido como funcionalidade estável.
+
 ---
 
-*Última atualização: 11/04/2026 21:30 (Brasília)*
+*Última atualização: 13/04/2026 12:00 (Brasília)*
