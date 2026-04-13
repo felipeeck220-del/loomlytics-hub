@@ -996,20 +996,27 @@ export default function ProductionPage() {
             <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2", machineMode === 'voltas' ? 'md:grid-cols-5' : 'md:grid-cols-3')}>
               <div className="space-y-1">
                 <Label className="text-xs">Tecelão</Label>
-                <SearchableSelect
-                  value={form.weaver_id}
-                  onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}
-                  placeholder="Tecelão"
-                  searchPlaceholder="Buscar tecelão..."
-                  options={[
-                    { value: 'sem_tecelao', label: 'Sem Tecelão' },
-                    ...weavers.map(w => ({ value: w.id, label: `${w.code} - ${w.name}` }))
-                  ]}
-                  filterFn={(opt, s) => {
-                    if (!s.trim()) return true;
-                    return opt.label.toLowerCase().includes(s.toLowerCase().trim());
-                  }}
-                />
+                <div className="flex items-end gap-1">
+                  <div className="flex-1">
+                    <SearchableSelect
+                      value={form.weaver_id}
+                      onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}
+                      placeholder="Tecelão"
+                      searchPlaceholder="Buscar tecelão..."
+                      options={[
+                        { value: 'sem_tecelao', label: 'Sem Tecelão' },
+                        ...weavers.map(w => ({ value: w.id, label: `${w.code} - ${w.name}` }))
+                      ]}
+                      filterFn={(opt, s) => {
+                        if (!s.trim()) return true;
+                        return opt.label.toLowerCase().includes(s.toLowerCase().trim());
+                      }}
+                    />
+                  </div>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setShowQuickAddWeaver(true)} title="Cadastrar tecelão">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Artigo</Label>
