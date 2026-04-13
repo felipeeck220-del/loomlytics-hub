@@ -1429,6 +1429,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **13/04/2026 16:00 (Brasília)** — **GLOBAL — Eficiência média exclui 0 rolos em todo o projeto:** Regra aplicada em todos os módulos que calculam eficiência média: `Dashboard.tsx` (KPIs principais, comparação período anterior, performance por máquina, gráfico tendência diária), `Reports.tsx` (KPIs, por máquina, gráfico por data), `Weavers.tsx` (eficiência média do tecelão), `MachinePerformanceModal.tsx` (eficiência por máquina), `Production.tsx` (KPIs do turno). Produções com `rolls_produced === 0` são filtradas antes do cálculo de média, evitando distorção.
 
+- **13/04/2026 17:00 (Brasília)** — **PENTE FINO — Bug corrigido no TvMachineGrid:** Eficiência média no painel TV (`TvMachineGrid.tsx`) não excluía produções com 0 rolos do cálculo, contrariando a regra global. Corrigido: agora filtra `prods.filter(p => p.rolls_produced > 0)` antes de calcular a média, igual aos demais módulos. Nenhum outro bug encontrado na auditoria completa (Dashboard, Reports, Weavers, Production, MachinePerformanceModal, FaturamentoTotal, Fechamento — todos OK).
+
 ---
 
-*Última atualização: 13/04/2026 16:00 (Brasília)*
+*Última atualização: 13/04/2026 17:00 (Brasília)*
