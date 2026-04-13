@@ -484,7 +484,9 @@ export default function ProductionPage() {
     const totalRolls = allProds.reduce((s, p) => s + p.rolls_produced, 0);
     const totalWeight = allProds.reduce((s, p) => s + Number(p.weight_kg), 0);
     const totalRevenue = allProds.reduce((s, p) => s + Number(p.revenue), 0);
-    const avgEfficiency = shiftProductionGroups.length > 0 ? shiftProductionGroups.reduce((s, g) => s + g.efficiency, 0) / shiftProductionGroups.length : 0;
+    // Exclude 0-roll productions from average efficiency
+    const nonZeroGroups = shiftProductionGroups.filter(g => g.totalRolls > 0);
+    const avgEfficiency = nonZeroGroups.length > 0 ? nonZeroGroups.reduce((s, g) => s + g.efficiency, 0) / nonZeroGroups.length : 0;
     return { totalRolls, totalWeight, totalRevenue, avgEfficiency, count: shiftProductionGroups.length };
   }, [shiftProductionGroups]);
 
