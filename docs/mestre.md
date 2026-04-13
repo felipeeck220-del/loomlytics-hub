@@ -1424,6 +1424,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **13/04/2026 12:00 (Brasília)** — **SIDEBAR — Vendas de Resíduos removido de "Em teste":** Módulo `residuos` retirado do conjunto `TESTING_KEYS` no `AppSidebar.tsx`. O badge "Em teste" não aparece mais ao lado do item no menu lateral. Módulo agora exibido como funcionalidade estável.
 
+- **13/04/2026 15:00 (Brasília)** — **PRODUÇÃO — Cadastro rápido inline + eficiência sem 0 rolos:** (1) **Cadastro rápido de Tecelão:** Botão `+` ao lado do seletor de tecelão no modal de registro de produção — abre modal de cadastro rápido sem fechar o registro; após salvar, o novo tecelão é automaticamente selecionado no formulário; componente `QuickAddWeaver.tsx`; (2) **Cadastro rápido de Artigo:** Botão `+` ao lado do seletor de artigo — abre modal com campos nome, cliente, peso/rolo, valor/kg, voltas/rolo, meta eficiência; após salvar, o novo artigo é automaticamente selecionado; componente `QuickAddArticle.tsx`; (3) **Eficiência média sem 0 rolos:** Produções com 0 rolos não são mais consideradas no cálculo da eficiência média do turno (`shiftKPIs.avgEfficiency`), evitando distorção da métrica.
+
 ---
 
-*Última atualização: 13/04/2026 12:00 (Brasília)*
+*Última atualização: 13/04/2026 15:00 (Brasília)*
