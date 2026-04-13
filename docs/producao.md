@@ -120,10 +120,18 @@ eficiência = total_voltas / (RPM × minutos_do_turno) × 100
 1. Selecionar **data** (Calendar, default = última produção)
 2. Selecionar **turno** (tabs: Manhã/Tarde/Noite)
 3. Selecionar **máquina** → auto-preenche artigo vinculado + RPM
-4. Selecionar **tecelão** (filtrado por turno)
-5. Informar **rolos** OU **voltas início/fim** (conforme `production_mode`)
-6. Sistema calcula e exibe preview (peso, faturamento, eficiência)
-7. Salvar → `addProductions()` (insert incremental)
+4. Selecionar **tecelão** (filtrado por turno) — botão `+` permite cadastro rápido sem fechar o modal
+5. Selecionar **artigo** — botão `+` permite cadastro rápido sem fechar o modal
+6. Informar **rolos** OU **voltas início/fim** (conforme `production_mode`)
+7. Sistema calcula e exibe preview (peso, faturamento, eficiência)
+8. Salvar → `addProductions()` (insert incremental)
+
+### Cadastro Rápido Inline
+
+Os seletores de **Tecelão** e **Artigo** possuem botão `+` ao lado que abre um modal de cadastro rápido:
+- **Tecelão** (`QuickAddWeaver.tsx`): Nome, telefone, tipo de turno, turno fixo. Código gerado automaticamente.
+- **Artigo** (`QuickAddArticle.tsx`): Nome, cliente, peso/rolo, valor/kg, voltas/rolo, meta eficiência.
+- Após salvar, o novo registro é automaticamente selecionado no formulário sem fechar ou recarregar o modal de produção.
 
 ### Avanço Automático
 
@@ -137,6 +145,10 @@ Salvamentos são enfileirados e processados sequencialmente. Status visual:
 - `saving` → Loader animado
 - `done` → Check verde
 - `error` → Alerta vermelho
+
+### Eficiência Média
+
+- Produções com **0 rolos** não são consideradas no cálculo da eficiência média do turno (`shiftKPIs.avgEfficiency`), evitando distorção da métrica.
 
 ---
 
@@ -206,4 +218,4 @@ Salvamentos são enfileirados e processados sequencialmente. Status visual:
 
 ---
 
-*Última atualização: 09/04/2026*
+*Última atualização: 13/04/2026*

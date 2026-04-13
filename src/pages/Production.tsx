@@ -20,6 +20,8 @@ import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production, getCompan
 import { formatNumber, formatCurrency, getDateLimits, isDateValid } from '@/lib/formatters';
 import { usePermissions } from '@/hooks/usePermissions';
 import { calculateShiftDowntime, formatDowntimeMinutes, type ShiftDowntimeInfo } from '@/lib/downtimeUtils';
+import { QuickAddWeaver } from '@/components/QuickAddWeaver';
+import { QuickAddArticle } from '@/components/QuickAddArticle';
 
 type SaveQueueItem = {
   id: string;
@@ -30,7 +32,7 @@ type SaveQueueItem = {
 const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
 export default function ProductionPage() {
-  const { getProductions, addProductions, updateProductions, deleteProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, getMachineLogs, shiftSettings, loading } = useSharedCompanyData();
+  const { getProductions, addProductions, updateProductions, deleteProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, getMachineLogs, getClients, shiftSettings, loading, saveWeavers, saveArticles } = useSharedCompanyData();
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
@@ -38,6 +40,7 @@ export default function ProductionPage() {
   const machines = getMachines();
   const weavers = getWeavers();
   const articles = getArticles();
+  const clients = getClients();
   const articleMachineTurns = getArticleMachineTurns();
   const machineLogs = getMachineLogs();
   const { logAction, userName, userCode } = useAuditLog();
@@ -82,6 +85,8 @@ export default function ProductionPage() {
   const [editingGroupItems, setEditingGroupItems] = useState<Production[]>([]);
   const [saveQueue, setSaveQueue] = useState<SaveQueueItem[]>([]);
   const hasPendingSaves = saveQueue.some(q => q.status === 'saving');
+  const [showQuickAddWeaver, setShowQuickAddWeaver] = useState(false);
+  const [showQuickAddArticle, setShowQuickAddArticle] = useState(false);
 
   const [form, setForm] = useState({
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
@@ -479,7 +484,9 @@ export default function ProductionPage() {
     const totalRolls = allProds.reduce((s, p) => s + p.rolls_produced, 0);
     const totalWeight = allProds.reduce((s, p) => s + Number(p.weight_kg), 0);
     const totalRevenue = allProds.reduce((s, p) => s + Number(p.revenue), 0);
-    const avgEfficiency = shiftProductionGroups.length > 0 ? shiftProductionGroups.reduce((s, g) => s + g.efficiency, 0) / shiftProductionGroups.length : 0;
+    // Exclude 0-roll productions from average efficiency
+    const nonZeroGroups = shiftProductionGroups.filter(g => g.totalRolls > 0);
+    const avgEfficiency = nonZeroGroups.length > 0 ? nonZeroGroups.reduce((s, g) => s + g.efficiency, 0) / nonZeroGroups.length : 0;
     return { totalRolls, totalWeight, totalRevenue, avgEfficiency, count: shiftProductionGroups.length };
   }, [shiftProductionGroups]);
 
@@ -991,20 +998,27 @@ export default function ProductionPage() {
             <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2", machineMode === 'voltas' ? 'md:grid-cols-5' : 'md:grid-cols-3')}>
               <div className="space-y-1">
                 <Label className="text-xs">Tecelão</Label>
-                <SearchableSelect
-                  value={form.weaver_id}
-                  onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}
-                  placeholder="Tecelão"
-                  searchPlaceholder="Buscar tecelão..."
-                  options={[
-                    { value: 'sem_tecelao', label: 'Sem Tecelão' },
-                    ...weavers.map(w => ({ value: w.id, label: `${w.code} - ${w.name}` }))
-                  ]}
-                  filterFn={(opt, s) => {
-                    if (!s.trim()) return true;
-                    return opt.label.toLowerCase().includes(s.toLowerCase().trim());
-                  }}
-                />
+                <div className="flex items-end gap-1">
+                  <div className="flex-1">
+                    <SearchableSelect
+                      value={form.weaver_id}
+                      onValueChange={v => setForm(p => ({ ...p, weaver_id: v }))}
+                      placeholder="Tecelão"
+                      searchPlaceholder="Buscar tecelão..."
+                      options={[
+                        { value: 'sem_tecelao', label: 'Sem Tecelão' },
+                        ...weavers.map(w => ({ value: w.id, label: `${w.code} - ${w.name}` }))
+                      ]}
+                      filterFn={(opt, s) => {
+                        if (!s.trim()) return true;
+                        return opt.label.toLowerCase().includes(s.toLowerCase().trim());
+                      }}
+                    />
+                  </div>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setShowQuickAddWeaver(true)} title="Cadastrar tecelão">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Artigo</Label>
@@ -1018,6 +1032,9 @@ export default function ProductionPage() {
                       options={articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
                     />
                   </div>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setShowQuickAddArticle(true)} title="Cadastrar artigo">
+                    <Plus className="h-4 w-4" />
+                  </Button>
                   {extraArticles.length > 0 && (
                     <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => {
                       const [first, ...rest] = extraArticles;
@@ -1183,6 +1200,23 @@ export default function ProductionPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Quick Add Modals */}
+      <QuickAddWeaver
+        open={showQuickAddWeaver}
+        onOpenChange={setShowQuickAddWeaver}
+        weavers={weavers}
+        saveWeavers={saveWeavers}
+        onCreated={(w) => setForm(p => ({ ...p, weaver_id: w.id }))}
+      />
+      <QuickAddArticle
+        open={showQuickAddArticle}
+        onOpenChange={setShowQuickAddArticle}
+        articles={articles}
+        clients={clients}
+        saveArticles={saveArticles}
+        onCreated={(a) => setForm(p => ({ ...p, article_id: a.id }))}
+      />
 
       {/* Delete Modal */}
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
