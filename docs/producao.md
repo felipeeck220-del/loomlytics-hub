@@ -218,4 +218,4 @@ Salvamentos são enfileirados e processados sequencialmente. Status visual:
 
 ---
 
-*Última atualização: 09/04/2026*
+*Última atualização: 13/04/2026*
