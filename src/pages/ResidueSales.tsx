@@ -387,34 +387,57 @@ export default function ResidueSales() {
 
       const mat = materials.find(m => m.id === saleMaterialId)!;
       const client = residueClients.find(c => c.id === saleClientId)!;
-      const { error } = await sb('residue_sales').insert({
-        company_id: companyId,
-        client_id: saleClientId,
-        material_id: saleMaterialId,
-        material_name: mat.name,
-        client_name: client.name,
-        date: saleDate,
-        quantity: qty,
-        unit: mat.unit,
-        unit_price: price,
-        total: qty * price,
-        romaneio: saleRomaneio.trim() || null,
-        observations: saleObs.trim() || null,
-        created_by_name: userName || null,
-        created_by_code: userCode || null,
-      });
-      if (error) throw error;
+
+      if (editingSale) {
+        const { error } = await sb('residue_sales').update({
+          client_id: saleClientId,
+          material_id: saleMaterialId,
+          material_name: mat.name,
+          client_name: client.name,
+          date: saleDate,
+          quantity: qty,
+          unit: mat.unit,
+          unit_price: price,
+          total: qty * price,
+          romaneio: saleRomaneio.trim() || null,
+          observations: saleObs.trim() || null,
+        }).eq('id', editingSale.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb('residue_sales').insert({
+          company_id: companyId,
+          client_id: saleClientId,
+          material_id: saleMaterialId,
+          material_name: mat.name,
+          client_name: client.name,
+          date: saleDate,
+          quantity: qty,
+          unit: mat.unit,
+          unit_price: price,
+          total: qty * price,
+          romaneio: saleRomaneio.trim() || null,
+          observations: saleObs.trim() || null,
+          created_by_name: userName || null,
+          created_by_code: userCode || null,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residue_sales'] });
-      logAction('residue_sale_create', {
+      const actionName = editingSale ? 'residue_sale_update' : 'residue_sale_create';
+      logAction(actionName, {
         material: materials.find(m => m.id === saleMaterialId)?.name,
         client: residueClients.find(c => c.id === saleClientId)?.name,
         date: saleDate,
       });
-      setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
-      setSaleRomaneio(''); setSaleObs('');
-      toast({ title: 'Venda registrada' });
+      if (!editingSale) {
+        setSaleMaterialId(''); setSaleQty(''); setSalePrice('');
+        setSaleRomaneio(''); setSaleObs('');
+      } else {
+        setSaleDialogOpen(false);
+      }
+      toast({ title: editingSale ? 'Venda atualizada' : 'Venda registrada' });
     },
     onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
   });
