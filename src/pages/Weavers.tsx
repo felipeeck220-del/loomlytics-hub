@@ -328,7 +328,7 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
     rolls: filtered.reduce((s, p) => s + p.rolls_produced, 0),
     weight: filtered.reduce((s, p) => s + p.weight_kg, 0),
     revenue: filtered.reduce((s, p) => s + p.revenue, 0),
-    avgEfficiency: filtered.length > 0 ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0,
+    avgEfficiency: (() => { const nz = filtered.filter(p => p.rolls_produced > 0); return nz.length > 0 ? nz.reduce((s, p) => s + p.efficiency, 0) / nz.length : 0; })(),
   }), [filtered]);
 
   return (

@@ -153,7 +153,8 @@ export default function Reports() {
   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
   const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
-  const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
+  const nonZeroFiltered = filtered.filter(p => p.rolls_produced > 0);
+  const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
   const uniqueDays = new Set(filtered.map(p => p.date)).size || 1;
 
   // Calculate weighted average target efficiency
@@ -183,9 +184,10 @@ export default function Reports() {
   // By machine
   const byMachine = machines.map(m => {
     const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
-    const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
-    const avgTargetEff = mp.length > 0
-      ? mp.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mp.length
+    const mpNonZero = mp.filter(p => p.rolls_produced > 0);
+    const eff = mpNonZero.length ? mpNonZero.reduce((s, p) => s + p.efficiency, 0) / mpNonZero.length : 0;
+    const avgTargetEff = mpNonZero.length > 0
+      ? mpNonZero.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mpNonZero.length
       : 80;
     return {
       name: m.name,
@@ -254,8 +256,10 @@ export default function Reports() {
       acc[p.date].rolos += p.rolls_produced;
       acc[p.date].kg += p.weight_kg;
       acc[p.date].faturamento += p.revenue;
-      acc[p.date].effSum += p.efficiency;
-      acc[p.date].effCount += 1;
+      if (p.rolls_produced > 0) {
+        acc[p.date].effSum += p.efficiency;
+        acc[p.date].effCount += 1;
+      }
     });
     return Object.entries(acc)
       .sort(([a], [b]) => a.localeCompare(b))

@@ -203,13 +203,15 @@ export default function Dashboard() {
   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
   const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
-  const avgEfficiency = filtered.length ? filtered.reduce((s, p) => s + p.efficiency, 0) / filtered.length : 0;
+  const nonZeroFiltered = filtered.filter(p => p.rolls_produced > 0);
+  const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
 
   // Previous period KPIs
   const prevTotalRolls = prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
   const prevTotalWeight = prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
   const prevTotalRevenue = prevFiltered.reduce((s, p) => s + p.revenue, 0);
-  const prevAvgEfficiency = prevFiltered.length ? prevFiltered.reduce((s, p) => s + p.efficiency, 0) / prevFiltered.length : 0;
+  const nonZeroPrev = prevFiltered.filter(p => p.rolls_produced > 0);
+  const prevAvgEfficiency = nonZeroPrev.length ? nonZeroPrev.reduce((s, p) => s + p.efficiency, 0) / nonZeroPrev.length : 0;
 
   // Calculate weighted average target efficiency from articles used in filtered productions
   const avgTargetEfficiency = useMemo(() => {
@@ -277,9 +279,10 @@ export default function Dashboard() {
 
   const machinePerf = machines.map(m => {
     const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
-    const eff = mp.length ? mp.reduce((s, p) => s + p.efficiency, 0) / mp.length : 0;
-    const avgTargetEff = mp.length > 0
-      ? mp.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mp.length
+    const mpNonZero = mp.filter(p => p.rolls_produced > 0);
+    const eff = mpNonZero.length ? mpNonZero.reduce((s, p) => s + p.efficiency, 0) / mpNonZero.length : 0;
+    const avgTargetEff = mpNonZero.length > 0
+      ? mpNonZero.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mpNonZero.length
       : 80;
     return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length, targetEfficiency: avgTargetEff };
   }).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
@@ -291,8 +294,10 @@ export default function Dashboard() {
       byDate[p.date].rolos += p.rolls_produced;
       byDate[p.date].kg += p.weight_kg;
       byDate[p.date].faturamento += p.revenue;
-      byDate[p.date].effSum += p.efficiency;
-      byDate[p.date].effCount += 1;
+      if (p.rolls_produced > 0) {
+        byDate[p.date].effSum += p.efficiency;
+        byDate[p.date].effCount += 1;
+      }
     });
     return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
       date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),

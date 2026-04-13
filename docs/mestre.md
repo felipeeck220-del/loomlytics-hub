@@ -1426,6 +1426,9 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **13/04/2026 15:00 (Brasília)** — **PRODUÇÃO — Cadastro rápido inline + eficiência sem 0 rolos:** (1) **Cadastro rápido de Tecelão:** Botão `+` ao lado do seletor de tecelão no modal de registro de produção — abre modal de cadastro rápido sem fechar o registro; após salvar, o novo tecelão é automaticamente selecionado no formulário; componente `QuickAddWeaver.tsx`; (2) **Cadastro rápido de Artigo:** Botão `+` ao lado do seletor de artigo — abre modal com campos nome, cliente, peso/rolo, valor/kg, voltas/rolo, meta eficiência; após salvar, o novo artigo é automaticamente selecionado; componente `QuickAddArticle.tsx`; (3) **Eficiência média sem 0 rolos:** Produções com 0 rolos não são mais consideradas no cálculo da eficiência média do turno (`shiftKPIs.avgEfficiency`), evitando distorção da métrica.
 
+
+- **13/04/2026 16:00 (Brasília)** — **GLOBAL — Eficiência média exclui 0 rolos em todo o projeto:** Regra aplicada em todos os módulos que calculam eficiência média: `Dashboard.tsx` (KPIs principais, comparação período anterior, performance por máquina, gráfico tendência diária), `Reports.tsx` (KPIs, por máquina, gráfico por data), `Weavers.tsx` (eficiência média do tecelão), `MachinePerformanceModal.tsx` (eficiência por máquina), `Production.tsx` (KPIs do turno). Produções com `rolls_produced === 0` são filtradas antes do cálculo de média, evitando distorção.
+
 ---
 
-*Última atualização: 13/04/2026 15:00 (Brasília)*
+*Última atualização: 13/04/2026 16:00 (Brasília)*
