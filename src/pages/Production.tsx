@@ -1199,6 +1199,23 @@ export default function ProductionPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Quick Add Modals */}
+      <QuickAddWeaver
+        open={showQuickAddWeaver}
+        onOpenChange={setShowQuickAddWeaver}
+        weavers={weavers}
+        saveWeavers={saveWeavers}
+        onCreated={(w) => setForm(p => ({ ...p, weaver_id: w.id }))}
+      />
+      <QuickAddArticle
+        open={showQuickAddArticle}
+        onOpenChange={setShowQuickAddArticle}
+        articles={articles}
+        clients={clients}
+        saveArticles={saveArticles}
+        onCreated={(a) => setForm(p => ({ ...p, article_id: a.id }))}
+      />
+
       {/* Delete Modal */}
       <Dialog open={!!showDelete} onOpenChange={() => setShowDelete(null)}>
         <DialogContent className="max-w-md">
