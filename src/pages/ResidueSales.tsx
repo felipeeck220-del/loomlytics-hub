@@ -894,6 +894,14 @@ export default function ResidueSales() {
                             <span className="text-muted-foreground">
                               {s.created_at ? format(new Date(s.created_at), 'HH:mm') : ''}
                             </span>
+                            {s.created_by_name && (
+                              <>
+                                <br />
+                                <span className="text-muted-foreground">
+                                  {s.created_by_name}{s.created_by_code ? ` #${s.created_by_code}` : ''}
+                                </span>
+                              </>
+                            )}
                           </TableCell>
                           <TableCell className="font-medium">{s.material_name || '-'}</TableCell>
                           <TableCell>{s.client_name}</TableCell>
