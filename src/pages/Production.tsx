@@ -32,7 +32,7 @@ type SaveQueueItem = {
 const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
 export default function ProductionPage() {
-  const { getProductions, addProductions, updateProductions, deleteProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, getMachineLogs, shiftSettings, loading } = useSharedCompanyData();
+  const { getProductions, addProductions, updateProductions, deleteProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, getMachineLogs, getClients, shiftSettings, loading, saveWeavers, saveArticles } = useSharedCompanyData();
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
