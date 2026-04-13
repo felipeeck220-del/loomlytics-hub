@@ -85,6 +85,8 @@ export default function ProductionPage() {
   const [editingGroupItems, setEditingGroupItems] = useState<Production[]>([]);
   const [saveQueue, setSaveQueue] = useState<SaveQueueItem[]>([]);
   const hasPendingSaves = saveQueue.some(q => q.status === 'saving');
+  const [showQuickAddWeaver, setShowQuickAddWeaver] = useState(false);
+  const [showQuickAddArticle, setShowQuickAddArticle] = useState(false);
 
   const [form, setForm] = useState({
     date: new Date(), shift: '' as ShiftType | '', machine_id: '', weaver_id: '', article_id: '', rpm: '', rolls: '',
