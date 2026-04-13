@@ -20,6 +20,8 @@ import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, type Production, getCompan
 import { formatNumber, formatCurrency, getDateLimits, isDateValid } from '@/lib/formatters';
 import { usePermissions } from '@/hooks/usePermissions';
 import { calculateShiftDowntime, formatDowntimeMinutes, type ShiftDowntimeInfo } from '@/lib/downtimeUtils';
+import { QuickAddWeaver } from '@/components/QuickAddWeaver';
+import { QuickAddArticle } from '@/components/QuickAddArticle';
 
 type SaveQueueItem = {
   id: string;
