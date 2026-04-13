@@ -106,7 +106,8 @@ export default function TvMachineGrid({ companyId, enabledMachines, shiftSetting
     byMachine.forEach((prods, machineId) => {
       const totalRolls = prods.reduce((s, p) => s + p.rolls_produced, 0);
       const totalWeight = prods.reduce((s, p) => s + (p.weight_kg || 0), 0);
-      const avgEff = prods.reduce((s, p) => s + p.efficiency, 0) / prods.length;
+      const nonZero = prods.filter(p => p.rolls_produced > 0);
+      const avgEff = nonZero.length > 0 ? nonZero.reduce((s, p) => s + p.efficiency, 0) / nonZero.length : 0;
       const lastWeaver = prods[prods.length - 1]?.weaver_name || '—';
       map.set(machineId, { efficiency: avgEff, rolls: totalRolls, weightKg: totalWeight, weaverName: lastWeaver });
     });
