@@ -922,7 +922,7 @@ export default function ResidueSales() {
                         <TableHead className="text-right">Preço Unit.</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead>Romaneio</TableHead>
-                        <TableHead className="w-[60px]"></TableHead>
+                        <TableHead className="w-[90px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1063,7 +1063,7 @@ export default function ResidueSales() {
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
         <DialogContent className="w-[95vw] sm:w-[80vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>Registrar Venda de Resíduo</DialogTitle>
+            <DialogTitle>{editingSale ? 'Editar Venda de Resíduo' : 'Registrar Venda de Resíduo'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
