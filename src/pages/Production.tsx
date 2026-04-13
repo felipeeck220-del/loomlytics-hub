@@ -1030,6 +1030,9 @@ export default function ProductionPage() {
                       options={articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
                     />
                   </div>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setShowQuickAddArticle(true)} title="Cadastrar artigo">
+                    <Plus className="h-4 w-4" />
+                  </Button>
                   {extraArticles.length > 0 && (
                     <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:text-destructive" onClick={() => {
                       const [first, ...rest] = extraArticles;
