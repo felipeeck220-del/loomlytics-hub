@@ -1431,6 +1431,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **13/04/2026 17:00 (Brasília)** — **PENTE FINO — Bug corrigido no TvMachineGrid:** Eficiência média no painel TV (`TvMachineGrid.tsx`) não excluía produções com 0 rolos do cálculo, contrariando a regra global. Corrigido: agora filtra `prods.filter(p => p.rolls_produced > 0)` antes de calcular a média, igual aos demais módulos. Nenhum outro bug encontrado na auditoria completa (Dashboard, Reports, Weavers, Production, MachinePerformanceModal, FaturamentoTotal, Fechamento — todos OK).
 
+- **13/04/2026 18:00 (Brasília)** — **RESÍDUOS — Autoria nos registros de venda:** Na listagem de vendas de resíduos (`ResidueSales.tsx`), abaixo da data/hora de cada registro agora é exibido o nome e código (`Nome #ID`) do usuário que registrou a venda, usando os campos `created_by_name` e `created_by_code` já existentes na tabela `residue_sales`.
+
 ---
 
-*Última atualização: 13/04/2026 17:00 (Brasília)*
+*Última atualização: 13/04/2026 18:00 (Brasília)*
