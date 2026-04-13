@@ -25,7 +25,7 @@ import {
 const COMING_SOON_KEYS = new Set<string>([]);
 
 /** Keys of features in testing phase — shown with "Em teste" badge but accessible */
-const TESTING_KEYS = new Set(['contas-pagar', 'residuos', 'invoices', 'fechamento']);
+const TESTING_KEYS = new Set(['contas-pagar', 'invoices', 'fechamento']);
 
 const allItems = [
   { title: 'Dashboard', path: '', icon: LayoutDashboard, key: 'dashboard' },
