@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { supabase } from '@/integrations/supabase/client';
@@ -1776,7 +1777,7 @@ export default function Invoices() {
                     )}
                     <div className="col-span-2">
                       <Label className="text-[10px]">Peso (kg)</Label>
-                      <Input className="h-8 text-xs" inputMode="decimal" type="number" step="0.1" min="0" value={item.weight_kg} onChange={e => updateItem(idx, 'weight_kg', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); }} />
+                      <BrazilianWeightInput value={item.weight_kg} onChange={v => updateItem(idx, 'weight_kg', v)} />
                     </div>
                     {(formType === 'entrada' || formType === 'venda_fio') && (
                       <div className="col-span-2">
