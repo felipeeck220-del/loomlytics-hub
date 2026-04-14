@@ -1459,6 +1459,9 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 21:30 (Brasília)** — **NOTAS FISCAIS — Coluna Artigo na listagem Saída Malha:** Adicionada coluna "Artigo" na tabela da aba Saída Malha, exibindo o(s) nome(s) dos artigos dos itens da NF (extraídos de `invoice_items.article_name`).
 
+
+- **14/04/2026 22:00 (Brasília)** — **AUDITORIA — Atualização docs/auditoria.md para Notas Fiscais:** (1) Detalhamento das 3 sub-ações de `invoice_create` (entrada, venda_fio, saida); (2) Exemplos de `details` JSONB para todas as ações do módulo NF (invoice_create/cancel/confirm, yarn_type_*, outsource_yarn_stock_*); (3) Listagem de cobertura atualizada com descrição expandida; (4) Filtro de módulos atualizado.
+
 ---
 
-*Última atualização: 14/04/2026 21:30 (Brasília)*
+*Última atualização: 14/04/2026 22:00 (Brasília)*
