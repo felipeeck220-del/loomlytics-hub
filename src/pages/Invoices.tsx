@@ -1050,7 +1050,7 @@ export default function Invoices() {
                         {filteredInvoices.map(inv => (
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
-                            <TableCell className="text-xs">{inv.client_name || '—'}</TableCell>
+                            <TableCell className="text-xs">{inv.buyer_name || inv.client_name || '—'}</TableCell>
                             {tab === 'saida' && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
