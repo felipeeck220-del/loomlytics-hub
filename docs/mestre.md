@@ -1453,6 +1453,10 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 - **14/04/2026 19:00 (Brasília)** — **NOTAS FISCAIS — Abas independentes + Modal Saída Malha simplificado:** (1) **Abas separadas:** "Entrada de Fio", "Venda de Fio" e "Saída Malha" agora são 3 abas independentes (antes Venda de Fio e Saída Malha compartilhavam a mesma aba); (2) **Modal Saída Malha simplificado:** Tinturaria é campo obrigatório (input texto), abaixo há seletor opcional "Terceiros" que ao selecionar preenche automaticamente o campo Tinturaria — sem mais botões toggle Manual/Terceiros; (3) **Removidos Rolos e R$/kg** do modal e visualização de Saída Malha — apenas Artigo (texto livre) e Peso (kg) nos itens; (4) **Subtotal/valor** exibido apenas para Venda de Fio, não mais para Saída Malha.
 - **14/04/2026 19:30 (Brasília)** — **NOTAS FISCAIS — Tinturaria e Terceiros independentes no modal Saída Malha:** Tinturaria (input texto obrigatório) e Terceiros (seletor opcional de malharias terceirizadas) agora são campos separados e independentes — sem vínculo entre eles. Tinturaria salva em `destination_name`, Terceiros salva em `buyer_name`. Tabela da aba Saída Malha exibe ambas as colunas. View dialog também mostra ambos os campos.
 
+- **14/04/2026 20:00 (Brasília)** — **NOTAS FISCAIS — Terceiros com opção "Nenhum":** Adicionada opção padrão "Nenhum" no seletor de Terceiros do modal Saída Malha — ao selecionar, o campo é limpo e nada é salvo no registro.
+
+- **14/04/2026 21:00 (Brasília)** — **PENTE FINO — 4 bugs críticos corrigidos nas últimas atualizações:** (1) **Saldo de Fios quebrado:** `yarnBalance` usava `inv.client_id` que agora é sempre null — aba ficava vazia. Reescrito para agrupar por **Marca do Fio** (Entradas - Vendas por marca), conforme modelo de revenda. UI simplificada de collapsible/cliente para tabela flat por marca; (2) **Estoque de Malha — entregas não contadas:** `malhaEstoque` usava `inv.client_id` de NFs saída (sempre null). Corrigido para derivar `client_id` a partir do `article_id` do item; (3) **Código morto removido:** `filterClient` (state + lógica sem UI), `clientObj` (variável sempre null); (4) **Build limpo:** 0 erros TypeScript após todas as correções.
+
 ---
 
-*Última atualização: 14/04/2026 19:30 (Brasília)*
+*Última atualização: 14/04/2026 21:00 (Brasília)*

@@ -187,7 +187,6 @@ export default function Invoices() {
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterClient, setFilterClient] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
   const [saving, setSaving] = useState(false);
 
@@ -316,9 +315,6 @@ export default function Invoices() {
     // Status
     if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
 
-    // Client
-    if (filterClient !== 'all') filtered = filtered.filter(i => i.client_id === filterClient);
-
     // Month
     if (filterMonth !== 'all') filtered = filtered.filter(i => i.issue_date.startsWith(filterMonth));
 
@@ -335,7 +331,7 @@ export default function Invoices() {
     }
 
     return filtered;
-  }, [invoices, activeTab, filterStatus, filterClient, filterMonth, searchTerm]);
+  }, [invoices, activeTab, filterStatus, filterMonth, searchTerm]);
 
   // ===== KPIs =====
   const kpis = useMemo(() => {
@@ -401,7 +397,7 @@ export default function Invoices() {
         return s + w * v;
       }, 0);
 
-      const clientObj = formType === 'saida' ? null : null;
+      
 
       // For entrada: buyer_name stores supplier; for venda_fio: buyer_name stores buyer; for saida: destination_name stores tinturaria
       const buyerNameValue = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : formType === 'saida' ? (formTerceirosName.trim() || null) : null;
@@ -533,7 +529,6 @@ export default function Invoices() {
   };
 
   // ===== Saldo Filters =====
-  const [saldoClient, setSaldoClient] = useState('all');
   const [saldoYarn, setSaldoYarn] = useState('all');
   const [saldoMonth, setSaldoMonth] = useState('all');
   const [yarnSearchTerm, setYarnSearchTerm] = useState('');
@@ -554,86 +549,59 @@ export default function Invoices() {
   const [eftFormQty, setEftFormQty] = useState('');
   const [eftFormObs, setEftFormObs] = useState('');
 
-  // ===== Saldo de Fios =====
+  // ===== Saldo de Fios (por Marca) =====
   const yarnBalance = useMemo(() => {
-    const map = new Map<string, Map<string, { received: number; sold: number; consumed: number }>>();
-
-    // Helper to filter by month
+    const map = new Map<string, { received: number; sold: number }>();
     const matchMonth = (date: string) => saldoMonth === 'all' || date.startsWith(saldoMonth);
 
-    // Entries (received) from non-cancelled invoices
+    // Entradas (recebido) por marca
     invoices.filter(i => i.type === 'entrada' && i.status !== 'cancelada' && matchMonth(i.issue_date)).forEach(inv => {
-      const items = invoiceItems.filter(it => it.invoice_id === inv.id);
-      items.forEach(it => {
-        if (!it.yarn_type_id || !inv.client_id) return;
-        const clientKey = inv.client_id;
-        if (!map.has(clientKey)) map.set(clientKey, new Map());
-        const yarnMap = map.get(clientKey)!;
-        if (!yarnMap.has(it.yarn_type_id)) yarnMap.set(it.yarn_type_id, { received: 0, sold: 0, consumed: 0 });
-        yarnMap.get(it.yarn_type_id)!.received += Number(it.weight_kg);
+      invoiceItems.filter(it => it.invoice_id === inv.id).forEach(it => {
+        const brand = it.brand || 'Sem marca';
+        if (!map.has(brand)) map.set(brand, { received: 0, sold: 0 });
+        map.get(brand)!.received += Number(it.weight_kg);
       });
     });
 
-    // Yarn sales (sold) from non-cancelled invoices
+    // Vendas de fio por marca
     invoices.filter(i => i.type === 'venda_fio' && i.status !== 'cancelada' && matchMonth(i.issue_date)).forEach(inv => {
-      const items = invoiceItems.filter(it => it.invoice_id === inv.id);
-      items.forEach(it => {
-        if (!it.yarn_type_id || !inv.client_id) return;
-        const clientKey = inv.client_id;
-        if (!map.has(clientKey)) map.set(clientKey, new Map());
-        const yarnMap = map.get(clientKey)!;
-        if (!yarnMap.has(it.yarn_type_id)) yarnMap.set(it.yarn_type_id, { received: 0, sold: 0, consumed: 0 });
-        yarnMap.get(it.yarn_type_id)!.sold += Number(it.weight_kg);
+      invoiceItems.filter(it => it.invoice_id === inv.id).forEach(it => {
+        const brand = it.brand || 'Sem marca';
+        if (!map.has(brand)) map.set(brand, { received: 0, sold: 0 });
+        map.get(brand)!.sold += Number(it.weight_kg);
       });
     });
 
-    // Consumed from productions (via articles with yarn_type_id)
-    productions.filter(p => matchMonth(p.date)).forEach(prod => {
-      const article = articles.find(a => a.id === prod.article_id);
-      if (!article?.yarn_type_id || !article.client_id) return;
-      const clientKey = article.client_id;
-      if (!map.has(clientKey)) map.set(clientKey, new Map());
-      const yarnMap = map.get(clientKey)!;
-      if (!yarnMap.has(article.yarn_type_id)) yarnMap.set(article.yarn_type_id, { received: 0, sold: 0, consumed: 0 });
-      yarnMap.get(article.yarn_type_id)!.consumed += Number(prod.weight_kg);
+    let result = Array.from(map.entries()).map(([brand, vals]) => ({
+      brand,
+      received: vals.received,
+      sold: vals.sold,
+      balance: vals.received - vals.sold,
+    }));
+
+    if (saldoYarn !== 'all') {
+      result = result.filter(r => r.brand === saldoYarn);
+    }
+
+    return result.sort((a, b) => a.brand.localeCompare(b.brand));
+  }, [invoices, invoiceItems, saldoYarn, saldoMonth]);
+
+  // Available brands for saldo filter
+  const saldoBrandOptions = useMemo(() => {
+    const brands = new Set<string>();
+    invoices.filter(i => (i.type === 'entrada' || i.type === 'venda_fio') && i.status !== 'cancelada').forEach(inv => {
+      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => brands.add(it.brand!));
     });
-
-    // Build result
-    const result: Array<{
-      clientId: string;
-      clientName: string;
-      yarns: Array<{ yarnId: string; yarnName: string; received: number; sold: number; consumed: number; balance: number }>;
-      totalReceived: number; totalSold: number; totalConsumed: number; totalBalance: number;
-    }> = [];
-
-    map.forEach((yarnMap, clientId) => {
-      if (saldoClient !== 'all' && clientId !== saldoClient) return;
-      const client = clients.find(c => c.id === clientId);
-      const yarns: any[] = [];
-      let totalReceived = 0, totalSold = 0, totalConsumed = 0, totalBalance = 0;
-      yarnMap.forEach((vals, yarnId) => {
-        if (saldoYarn !== 'all' && yarnId !== saldoYarn) return;
-        const yarn = yarnTypes.find(y => y.id === yarnId);
-        const balance = vals.received - vals.sold - vals.consumed;
-        yarns.push({ yarnId, yarnName: yarn?.name || 'Desconhecido', received: vals.received, sold: vals.sold, consumed: vals.consumed, balance });
-        totalReceived += vals.received; totalSold += vals.sold; totalConsumed += vals.consumed; totalBalance += balance;
-      });
-      if (yarns.length > 0) {
-        result.push({ clientId, clientName: client?.name || 'Desconhecido', yarns, totalReceived, totalSold, totalConsumed, totalBalance });
-      }
-    });
-
-    return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
-  }, [invoices, invoiceItems, clients, yarnTypes, productions, articles, saldoClient, saldoYarn, saldoMonth]);
+    return Array.from(brands).sort();
+  }, [invoices, invoiceItems]);
 
   // Global KPIs for saldo
   const saldoKpis = useMemo(() => {
     return yarnBalance.reduce((acc, g) => ({
-      received: acc.received + g.totalReceived,
-      sold: acc.sold + g.totalSold,
-      consumed: acc.consumed + g.totalConsumed,
-      balance: acc.balance + g.totalBalance,
-    }), { received: 0, sold: 0, consumed: 0, balance: 0 });
+      received: acc.received + g.received,
+      sold: acc.sold + g.sold,
+      balance: acc.balance + g.balance,
+    }), { received: 0, sold: 0, balance: 0 });
   }, [yarnBalance]);
 
   // ===== Saldo Global de Fios (por tipo de fio, todos clientes) =====
@@ -859,9 +827,12 @@ export default function Invoices() {
     for (const inv of saidaInvs) {
       const items = invoiceItems.filter(it => it.invoice_id === inv.id);
       for (const item of items) {
-        if (!item.article_id || !inv.client_id) continue;
-        if (!map.has(inv.client_id)) map.set(inv.client_id, new Map());
-        const artMap = map.get(inv.client_id)!;
+        if (!item.article_id) continue;
+        const artForDelivery = articles.find(a => a.id === item.article_id);
+        const clientIdForItem = artForDelivery?.client_id;
+        if (!clientIdForItem) continue;
+        if (!map.has(clientIdForItem)) map.set(clientIdForItem, new Map());
+        const artMap = map.get(clientIdForItem)!;
         if (!artMap.has(item.article_id)) artMap.set(item.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
         const entry = artMap.get(item.article_id)!;
         entry.deliveredKg += Number(item.weight_kg);
@@ -905,11 +876,10 @@ export default function Invoices() {
   const clearFilters = () => {
     setSearchTerm('');
     setFilterStatus('all');
-    setFilterClient('all');
     setFilterMonth('all');
   };
 
-  const hasFilters = filterStatus !== 'all' || filterClient !== 'all' || filterMonth !== 'all' || searchTerm.trim() !== '';
+  const hasFilters = filterStatus !== 'all' || filterMonth !== 'all' || searchTerm.trim() !== '';
 
   return (
     <div className="space-y-6">
@@ -1094,14 +1064,10 @@ export default function Invoices() {
         {/* ===== SALDO DE FIOS TAB ===== */}
         <TabsContent value="saldo" className="space-y-4">
           {/* KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Recebido</div>
               <p className="text-xl font-bold text-foreground">{formatWeight(saldoKpis.received)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Scale className="h-3.5 w-3.5" />Consumido</div>
-              <p className="text-xl font-bold text-foreground">{formatWeight(saldoKpis.consumed)}</p>
             </CardContent></Card>
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><DollarSign className="h-3.5 w-3.5" />Vendido</div>
@@ -1129,90 +1095,59 @@ export default function Invoices() {
                   </SelectContent>
                 </Select>
                 <SearchableSelect
-                  value={saldoClient === 'all' ? '' : saldoClient}
-                  onValueChange={v => setSaldoClient(v || 'all')}
-                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                  placeholder="Todos clientes"
-                  searchPlaceholder="Buscar cliente..."
-                  triggerClassName="w-[220px] h-8 text-xs"
-                />
-                <SearchableSelect
                   value={saldoYarn === 'all' ? '' : saldoYarn}
                   onValueChange={v => setSaldoYarn(v || 'all')}
-                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
-                  placeholder="Todos os fios"
-                  searchPlaceholder="Buscar fio..."
+                  options={[{ value: 'all', label: 'Todas as marcas' }, ...saldoBrandOptions.map(b => ({ value: b, label: b }))]}
+                  placeholder="Todas as marcas"
+                  searchPlaceholder="Buscar marca..."
                   triggerClassName="w-[220px] h-8 text-xs"
                 />
-                {(saldoClient !== 'all' || saldoYarn !== 'all' || saldoMonth !== 'all') && (
-                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setSaldoClient('all'); setSaldoYarn('all'); setSaldoMonth('all'); }}>Limpar</Button>
+                {(saldoYarn !== 'all' || saldoMonth !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setSaldoYarn('all'); setSaldoMonth('all'); }}>Limpar</Button>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Grouped by client */}
+          {/* Table by brand */}
           {yarnBalance.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
-              Nenhum dado de fio encontrado. Registre NFs de entrada e vincule tipos de fio aos artigos para ver o saldo.
+              Nenhum dado de fio encontrado. Registre NFs de entrada para ver o saldo por marca.
             </CardContent></Card>
           ) : (
-            <div className="space-y-3">
-              {yarnBalance.map(group => (
-                <Collapsible key={group.clientId} defaultOpen>
-                  <Card>
-                    <CollapsibleTrigger className="w-full">
-                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
-                          <CardTitle className="text-sm font-semibold">{group.clientName}</CardTitle>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>Recebido: <span className="font-semibold text-foreground">{formatWeight(group.totalReceived)}</span></span>
-                          <span>Saldo: <span className={cn('font-semibold', group.totalBalance < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalBalance)}</span></span>
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent className="p-0">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="text-xs">Tipo de Fio</TableHead>
-                              <TableHead className="text-xs text-right">Recebido</TableHead>
-                              <TableHead className="text-xs text-right">Consumido</TableHead>
-                              <TableHead className="text-xs text-right">Vendido</TableHead>
-                              <TableHead className="text-xs text-right font-bold">Saldo</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {group.yarns.map(y => (
-                              <TableRow key={y.yarnId}>
-                                <TableCell className="text-xs">{y.yarnName}</TableCell>
-                                <TableCell className="text-xs text-right">{formatWeight(y.received)}</TableCell>
-                                <TableCell className="text-xs text-right">{formatWeight(y.consumed)}</TableCell>
-                                <TableCell className="text-xs text-right">{formatWeight(y.sold)}</TableCell>
-                                <TableCell className={cn('text-xs text-right font-bold', y.balance < 0 ? 'text-destructive' : y.balance === 0 ? 'text-muted-foreground' : 'text-success')}>
-                                  {formatWeight(y.balance)}
-                                  {y.balance < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                            <TableRow className="bg-muted/30 font-semibold">
-                              <TableCell className="text-xs">TOTAL</TableCell>
-                              <TableCell className="text-xs text-right">{formatWeight(group.totalReceived)}</TableCell>
-                              <TableCell className="text-xs text-right">{formatWeight(group.totalConsumed)}</TableCell>
-                              <TableCell className="text-xs text-right">{formatWeight(group.totalSold)}</TableCell>
-                              <TableCell className={cn('text-xs text-right', group.totalBalance < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalBalance)}</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              ))}
-            </div>
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Marca do Fio</TableHead>
+                      <TableHead className="text-xs text-right">Recebido</TableHead>
+                      <TableHead className="text-xs text-right">Vendido</TableHead>
+                      <TableHead className="text-xs text-right font-bold">Saldo</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {yarnBalance.map(row => (
+                      <TableRow key={row.brand}>
+                        <TableCell className="text-xs font-medium">{row.brand}</TableCell>
+                        <TableCell className="text-xs text-right">{formatWeight(row.received)}</TableCell>
+                        <TableCell className="text-xs text-right">{formatWeight(row.sold)}</TableCell>
+                        <TableCell className={cn('text-xs text-right font-bold', row.balance < 0 ? 'text-destructive' : row.balance === 0 ? 'text-muted-foreground' : 'text-success')}>
+                          {formatWeight(row.balance)}
+                          {row.balance < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-muted/30 font-semibold">
+                      <TableCell className="text-xs">TOTAL</TableCell>
+                      <TableCell className="text-xs text-right">{formatWeight(saldoKpis.received)}</TableCell>
+                      <TableCell className="text-xs text-right">{formatWeight(saldoKpis.sold)}</TableCell>
+                      <TableCell className={cn('text-xs text-right', saldoKpis.balance < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(saldoKpis.balance)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
