@@ -1008,6 +1008,7 @@ export default function Invoices() {
                          <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
                           <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : tab === 'saida_malha' ? 'Tinturaria' : 'Cliente'}</TableHead>
+                          {tab === 'saida_malha' && <TableHead className="text-xs">Artigo</TableHead>}
                           {tab === 'saida_malha' && <TableHead className="text-xs">Terceiros</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
@@ -1023,6 +1024,7 @@ export default function Invoices() {
                             <TableCell className="text-xs">
                               {tab === 'saida_malha' ? (inv.destination_name || '—') : (inv.destination_name || inv.buyer_name || inv.client_name || '—')}
                             </TableCell>
+                            {tab === 'saida_malha' && <TableCell className="text-xs">{(allItems || []).filter(it => it.invoice_id === inv.id).map(it => it.article_name).filter(Boolean).join(', ') || '—'}</TableCell>}
                             {tab === 'saida_malha' && <TableCell className="text-xs">{inv.buyer_name || '—'}</TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
