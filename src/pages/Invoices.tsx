@@ -1665,17 +1665,6 @@ export default function Invoices() {
                   <>
                     <Label className="text-xs">Tinturaria *</Label>
                     <Input className="h-9 text-xs" value={formTinturariaName} onChange={e => setFormTinturariaName(e.target.value)} placeholder="Nome da tinturaria" />
-                    <div className="mt-2">
-                      <Label className="text-xs text-muted-foreground">Terceiros (opcional)</Label>
-                      <SearchableSelect
-                        value=""
-                        onValueChange={v => { if (v) setFormTinturariaName(v); }}
-                        options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
-                        placeholder="Selecionar de terceiros..."
-                        searchPlaceholder="Buscar malharia..."
-                        triggerClassName="h-8 text-xs"
-                      />
-                    </div>
                   </>
                 ) : formType === 'entrada' ? (
                   <>
@@ -1689,6 +1678,19 @@ export default function Invoices() {
                   </>
                 )}
               </div>
+              {formType === 'saida' && (
+                <div>
+                  <Label className="text-xs">Terceiros (opcional)</Label>
+                  <SearchableSelect
+                    value={formTerceirosName}
+                    onValueChange={v => setFormTerceirosName(v)}
+                    options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
+                    placeholder="Selecionar malharia..."
+                    searchPlaceholder="Buscar malharia..."
+                    triggerClassName="h-9 text-xs"
+                  />
+                </div>
+              )}
               <div>
                 <Label className="text-xs">Nº da NF{formType !== 'venda_fio' ? ' *' : ''}</Label>
                 <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder={formType === 'venda_fio' ? 'Opcional' : 'Ex: 12345'} />
