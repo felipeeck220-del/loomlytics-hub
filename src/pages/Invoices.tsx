@@ -1753,6 +1753,27 @@ export default function Invoices() {
                         />
                       )}
                     </div>
+                    {/* Brand field for entrada (free text) and venda_fio (dropdown of available) */}
+                    {(formType === 'entrada' || formType === 'venda_fio') && (
+                      <div className="col-span-2">
+                        <Label className="text-[10px]">Marca do Fio</Label>
+                        {formType === 'entrada' ? (
+                          <Input className="h-8 text-xs" value={item.brand} onChange={e => updateItem(idx, 'brand', e.target.value)} placeholder="Ex: Têxtil ABC" />
+                        ) : (
+                          <Select value={item.brand || ''} onValueChange={v => updateItem(idx, 'brand', v)}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              {availableBrands.map(b => (
+                                <SelectItem key={b} value={b}>{b}</SelectItem>
+                              ))}
+                              {availableBrands.length === 0 && (
+                                <SelectItem value="" disabled>Nenhuma marca disponível</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    )}
                     <div className="col-span-2">
                       <Label className="text-[10px]">Peso (kg)</Label>
                       <Input className="h-8 text-xs" inputMode="decimal" type="number" step="0.1" min="0" value={item.weight_kg} onChange={e => updateItem(idx, 'weight_kg', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); }} />
