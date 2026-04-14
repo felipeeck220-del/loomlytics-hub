@@ -372,8 +372,7 @@ export default function Invoices() {
     if (formType === 'saida' && !formTinturariaName.trim()) { toast({ title: 'Informe a tinturaria', variant: 'destructive' }); return; }
     if (formType === 'entrada' && !formSupplierName.trim()) { toast({ title: 'Informe o fornecedor', variant: 'destructive' }); return; }
     if (formType === 'venda_fio' && !formBuyerName.trim()) { toast({ title: 'Informe o cliente', variant: 'destructive' }); return; }
-    if (formType !== 'venda_fio' && !formInvoiceNumber.trim()) { toast({ title: 'Informe o nº da NF', variant: 'destructive' }); return; }
-    if (formType === 'venda_fio' && formInvoiceNumber.trim() === '') { /* NF number is optional for venda_fio */ }
+    if (formType === 'saida' && !formInvoiceNumber.trim()) { toast({ title: 'Informe o nº da NF', variant: 'destructive' }); return; }
     if (!isDateValid(formIssueDate)) { toast({ title: 'Data inválida (limite ±5 anos)', variant: 'destructive' }); return; }
     if (formAccessKey && (formAccessKey.length !== 44 || !/^\d+$/.test(formAccessKey))) {
       toast({ title: 'Chave de acesso deve ter 44 dígitos numéricos', variant: 'destructive' }); return;
@@ -407,7 +406,7 @@ export default function Invoices() {
       const { data: invData, error: invError } = await sb('invoices').insert({
         company_id: companyId,
         type: formType,
-        invoice_number: formInvoiceNumber.trim() || (formType === 'venda_fio' ? 'S/N' : ''),
+        invoice_number: formInvoiceNumber.trim() || 'S/N',
         access_key: formAccessKey.trim() || null,
         client_id: null,
         client_name: null,
@@ -1638,8 +1637,8 @@ export default function Invoices() {
                 </div>
               )}
               <div>
-                <Label className="text-xs">Nº da NF{formType !== 'venda_fio' ? ' *' : ''}</Label>
-                <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder={formType === 'venda_fio' ? 'Opcional' : 'Ex: 12345'} />
+                <Label className="text-xs">Nº da NF{formType === 'saida' ? ' *' : ''}</Label>
+                <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder={formType === 'saida' ? 'Ex: 12345' : 'Opcional'} />
               </div>
               <div>
                 <Label className="text-xs">Data Emissão *</Label>
