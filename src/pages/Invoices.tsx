@@ -404,7 +404,7 @@ export default function Invoices() {
       const clientObj = formType === 'saida' ? null : null;
 
       // For entrada: buyer_name stores supplier; for venda_fio: buyer_name stores buyer; for saida: destination_name stores tinturaria
-      const buyerNameValue = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : null;
+      const buyerNameValue = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : formType === 'saida' ? (formTerceirosName.trim() || null) : null;
 
       const observationsToSave = formObservations.trim() || null;
 
