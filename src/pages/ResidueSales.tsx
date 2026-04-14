@@ -310,6 +310,7 @@ export default function ResidueSales() {
   // ===== Sale CRUD =====
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<ResidueSale | null>(null);
+  const skipPriceAutoUpdate = useRef(false);
   const [saleClientId, setSaleClientId] = useState('');
   const [saleMaterialId, setSaleMaterialId] = useState('');
   const [saleQty, setSaleQty] = useState('');
