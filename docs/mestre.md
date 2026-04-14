@@ -1466,6 +1466,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 23:00 (Brasília)** — **NOTAS FISCAIS — Nº NF opcional em Entrada de Fio:** Campo "Nº da NF" agora é opcional no modal de Entrada de Fio (mesmo comportamento de Venda de Fio). Quando vazio, salva como "S/N". Apenas Saída Malha mantém o campo obrigatório.
 
+- **14/04/2026 23:30 (Brasília)** — **NOTAS FISCAIS + ARTIGOS — Fio com nome completo nos selects:** Todos os seletores de tipo de fio agora exibem `Nome — Cor (Composição)` ao invés de só o nome. Aplicado em: modal NF (Entrada/Venda), filtros Saldo Global, filtros Fio Terceiros, modal Fio Terceiros e seletor de fio em Clientes & Artigos.
+
 ---
 
-*Última atualização: 14/04/2026 23:00 (Brasília)*
+*Última atualização: 14/04/2026 23:30 (Brasília)*
