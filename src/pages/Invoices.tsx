@@ -199,7 +199,7 @@ export default function Invoices() {
   const [formSupplierName, setFormSupplierName] = useState('');
   const [formBuyerName, setFormBuyerName] = useState('');
   const [formTinturariaName, setFormTinturariaName] = useState('');
-  // formTinturariaSource removed — using single input with optional terceiros picker
+  const [formTerceirosName, setFormTerceirosName] = useState('');
   const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
   const [formObservations, setFormObservations] = useState('');
@@ -236,7 +236,7 @@ export default function Invoices() {
     setFormSupplierName('');
     setFormBuyerName('');
     setFormTinturariaName('');
-    
+    setFormTerceirosName('');
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
@@ -404,7 +404,7 @@ export default function Invoices() {
       const clientObj = formType === 'saida' ? null : null;
 
       // For entrada: buyer_name stores supplier; for venda_fio: buyer_name stores buyer; for saida: destination_name stores tinturaria
-      const buyerNameValue = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : null;
+      const buyerNameValue = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : formType === 'saida' ? (formTerceirosName.trim() || null) : null;
 
       const observationsToSave = formObservations.trim() || null;
 
@@ -1038,6 +1038,7 @@ export default function Invoices() {
                          <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
                           <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : tab === 'saida_malha' ? 'Tinturaria' : 'Cliente'}</TableHead>
+                          {tab === 'saida_malha' && <TableHead className="text-xs">Terceiros</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
@@ -1049,7 +1050,10 @@ export default function Invoices() {
                         {filteredInvoices.map(inv => (
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
-                            <TableCell className="text-xs">{inv.destination_name || inv.buyer_name || inv.client_name || '—'}</TableCell>
+                            <TableCell className="text-xs">
+                              {tab === 'saida_malha' ? (inv.destination_name || '—') : (inv.destination_name || inv.buyer_name || inv.client_name || '—')}
+                            </TableCell>
+                            {tab === 'saida_malha' && <TableCell className="text-xs">{inv.buyer_name || '—'}</TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
                             </TableCell>
@@ -1665,17 +1669,6 @@ export default function Invoices() {
                   <>
                     <Label className="text-xs">Tinturaria *</Label>
                     <Input className="h-9 text-xs" value={formTinturariaName} onChange={e => setFormTinturariaName(e.target.value)} placeholder="Nome da tinturaria" />
-                    <div className="mt-2">
-                      <Label className="text-xs text-muted-foreground">Terceiros (opcional)</Label>
-                      <SearchableSelect
-                        value=""
-                        onValueChange={v => { if (v) setFormTinturariaName(v); }}
-                        options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
-                        placeholder="Selecionar de terceiros..."
-                        searchPlaceholder="Buscar malharia..."
-                        triggerClassName="h-8 text-xs"
-                      />
-                    </div>
                   </>
                 ) : formType === 'entrada' ? (
                   <>
@@ -1689,6 +1682,19 @@ export default function Invoices() {
                   </>
                 )}
               </div>
+              {formType === 'saida' && (
+                <div>
+                  <Label className="text-xs">Terceiros (opcional)</Label>
+                  <SearchableSelect
+                    value={formTerceirosName}
+                    onValueChange={v => setFormTerceirosName(v)}
+                    options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
+                    placeholder="Selecionar malharia..."
+                    searchPlaceholder="Buscar malharia..."
+                    triggerClassName="h-9 text-xs"
+                  />
+                </div>
+              )}
               <div>
                 <Label className="text-xs">Nº da NF{formType !== 'venda_fio' ? ' *' : ''}</Label>
                 <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder={formType === 'venda_fio' ? 'Opcional' : 'Ex: 12345'} />
@@ -1852,12 +1858,12 @@ export default function Invoices() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div><span className="text-muted-foreground text-xs">Tipo:</span><br /><Badge variant="outline">{TYPE_LABELS[viewingInvoice.type]}</Badge></div>
-                <div><span className="text-muted-foreground text-xs">{viewingInvoice.type === 'entrada' ? 'Fornecedor:' : viewingInvoice.type === 'saida' ? 'Tinturaria:' : 'Cliente:'}</span><br />{viewingInvoice.destination_name || viewingInvoice.buyer_name || viewingInvoice.client_name || '—'}</div>
+                <div><span className="text-muted-foreground text-xs">{viewingInvoice.type === 'entrada' ? 'Fornecedor:' : viewingInvoice.type === 'saida' ? 'Tinturaria:' : 'Cliente:'}</span><br />{viewingInvoice.type === 'saida' ? (viewingInvoice.destination_name || '—') : (viewingInvoice.destination_name || viewingInvoice.buyer_name || viewingInvoice.client_name || '—')}</div>
+                {viewingInvoice.type === 'saida' && <div><span className="text-muted-foreground text-xs">Terceiros:</span><br />{viewingInvoice.buyer_name || '—'}</div>}
                 <div><span className="text-muted-foreground text-xs">Data:</span><br />{viewingInvoice.issue_date ? format(parse(viewingInvoice.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}</div>
                 <div><span className="text-muted-foreground text-xs">Status:</span><br /><Badge className={cn('text-[10px]', STATUS_COLORS[viewingInvoice.status])}>{STATUS_LABELS[viewingInvoice.status]}</Badge></div>
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
                 {canSeeFinancial && <div><span className="text-muted-foreground text-xs">Valor Total:</span><br />{formatCurrency(Number(viewingInvoice.total_value || 0))}</div>}
-                
               </div>
               {viewingInvoice.access_key && (
                 <div className="text-xs"><span className="text-muted-foreground">Chave de Acesso:</span> <span className="font-mono">{viewingInvoice.access_key}</span></div>
