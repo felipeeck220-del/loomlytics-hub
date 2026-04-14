@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -310,6 +310,7 @@ export default function ResidueSales() {
   // ===== Sale CRUD =====
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<ResidueSale | null>(null);
+  const skipPriceAutoUpdate = useRef(false);
   const [saleClientId, setSaleClientId] = useState('');
   const [saleMaterialId, setSaleMaterialId] = useState('');
   const [saleQty, setSaleQty] = useState('');
@@ -341,6 +342,7 @@ export default function ResidueSales() {
 
   const openEditSale = (s: ResidueSale) => {
     setEditingSale(s);
+    skipPriceAutoUpdate.current = true;
     setSaleClientId(s.client_id || '');
     setSaleDate(s.date);
     setSaleRomaneio(s.romaneio || '');
@@ -350,12 +352,15 @@ export default function ResidueSales() {
       setSaleMaterialId(s.material_id);
       setSaleQty(formatNumber(s.quantity, 2).replace('.', ''));
       setSalePrice(s.unit_price.toFixed(2).replace('.', ','));
+      // Allow auto-update again after values are settled
+      setTimeout(() => { skipPriceAutoUpdate.current = false; }, 100);
     }, 50);
     setSaleDialogOpen(true);
   };
 
   // When material changes in sale, update price from client price
   useEffect(() => {
+    if (skipPriceAutoUpdate.current) return;
     const cp = saleClientPrices.find(p => p.material_id === saleMaterialId);
     if (cp) {
       setSalePrice(cp.unit_price.toFixed(2).replace('.', ','));
@@ -364,6 +369,7 @@ export default function ResidueSales() {
 
   // When client changes, reset material
   useEffect(() => {
+    if (skipPriceAutoUpdate.current) return;
     setSaleMaterialId('');
     setSalePrice('');
   }, [saleClientId]);
