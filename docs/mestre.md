@@ -1440,6 +1440,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 10:30 (Brasília)** — **FATURAMENTO TOTAL — Cor do Terceirizado no gráfico:** Cor da área "Terceirizado (Lucro)" no AreaChart alterada de `--accent` (muito clara no dark mode) para laranja vibrante (`hsl(25, 95%, 53%)`) para melhor visibilidade.
 
+- **14/04/2026 11:00 (Brasília)** — **PENTE FINO — Auditoria pré-lançamento:** (1) **Build:** TypeScript 0 erros; (2) **Eficiência sem 0 rolos:** Confirmado em 6 arquivos (Dashboard, Reports, Weavers, Production, MachinePerformanceModal, TvMachineGrid); (3) **QuickAdd components:** `company_id: ''` é seguro — `saveWeavers`/`saveArticles` substituem pelo `companyId` correto no upsert; (4) **Fechamento:** Não calcula eficiência — sem impacto; (5) **BUG CORRIGIDO — ResidueSales edição sobrescreve preço:** Ao editar uma venda, os `useEffect` de auto-preenchimento de preço (por material/cliente) disparavam e substituíam o preço original da venda pelo preço padrão do cliente. Corrigido com `skipPriceAutoUpdate` ref que bloqueia os useEffects durante a carga dos dados de edição.
+
 ---
 
-*Última atualização: 14/04/2026 10:30 (Brasília)*
+*Última atualização: 14/04/2026 11:00 (Brasília)*
