@@ -1038,6 +1038,7 @@ export default function Invoices() {
                          <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
                           <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : tab === 'saida_malha' ? 'Tinturaria' : 'Cliente'}</TableHead>
+                          {tab === 'saida_malha' && <TableHead className="text-xs">Terceiros</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
