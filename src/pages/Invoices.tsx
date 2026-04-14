@@ -438,7 +438,7 @@ export default function Invoices() {
           yarn_type_id: it.yarn_type_id || null,
           yarn_type_name: yarnObj?.name || null,
           article_id: it.article_id || null,
-          article_name: artObj?.name || null,
+          article_name: formType === 'saida' ? (it.article_name_free?.trim() || artObj?.name || null) : (artObj?.name || null),
           weight_kg: w,
           quantity_rolls: parseFloat(it.quantity_rolls || '0'),
           quantity_boxes: parseFloat(it.quantity_boxes || '0'),
@@ -453,8 +453,8 @@ export default function Invoices() {
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
-      const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : clientObj?.name;
-      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim(), type: formType, client: logName, total_weight_kg: totalWeight });
+      const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : formTinturariaName.trim();
+      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim() || 'S/N', type: formType, client: logName, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
       resetForm();
       setDialogOpen(false);
