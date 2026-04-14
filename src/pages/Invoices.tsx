@@ -1785,13 +1785,7 @@ export default function Invoices() {
                         <Input className="h-8 text-xs" inputMode="numeric" type="number" min="0" value={item.quantity_boxes} onChange={e => updateItem(idx, 'quantity_boxes', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-', '.', ','].includes(e.key)) e.preventDefault(); }} />
                       </div>
                     )}
-                    {formType === 'saida' && (
-                      <div className="col-span-2">
-                        <Label className="text-[10px]">Rolos</Label>
-                        <Input className="h-8 text-xs" inputMode="numeric" type="number" min="0" value={item.quantity_rolls} onChange={e => updateItem(idx, 'quantity_rolls', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-', '.', ','].includes(e.key)) e.preventDefault(); }} />
-                      </div>
-                    )}
-                    {(formType === 'saida' || formType === 'venda_fio') && canSeeFinancial && (
+                    {formType === 'venda_fio' && canSeeFinancial && (
                       <div className="col-span-2">
                         <Label className="text-[10px]">R$/kg</Label>
                         <Input className="h-8 text-xs" inputMode="decimal" type="number" step="0.01" min="0" value={item.value_per_kg}
