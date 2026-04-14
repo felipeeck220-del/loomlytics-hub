@@ -1447,6 +1447,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 16:30 (Brasília)** — **NOTAS FISCAIS — Formatação brasileira no campo Peso (kg):** Input de peso nos modais Entrada de Fio e Venda de Fio agora aceita e exibe valores no formato brasileiro (1.234,56). Separadores de milhar (ponto) são adicionados automaticamente ao digitar, vírgula usada como separador decimal. Componente reutilizável `BrazilianWeightInput` criado em `src/components/`.
 
+- **14/04/2026 17:00 (Brasília)** — **NOTAS FISCAIS — Peso com 2 casas decimais:** `formatWeight` e todas as exibições de peso em Notas Fiscais agora mostram 2 casas decimais após a vírgula (ex: 7.027,70 em vez de 7.027,7).
+
 ---
 
-*Última atualização: 14/04/2026 16:30 (Brasília)*
+*Última atualização: 14/04/2026 17:00 (Brasília)*
