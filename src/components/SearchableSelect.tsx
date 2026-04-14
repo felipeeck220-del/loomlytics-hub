@@ -84,7 +84,7 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className={cn('min-w-[280px] w-[--radix-popover-trigger-width] p-0', className)}
+        className={cn('w-auto min-w-[--radix-popover-trigger-width] p-0', className)}
         align="start"
         side="bottom"
         sideOffset={4}
@@ -125,7 +125,7 @@ export function SearchableSelect({
                 {value === option.value && (
                   <Check className="absolute left-2 h-3.5 w-3.5" />
                 )}
-                <span className="whitespace-normal break-words">{option.label}</span>
+                <span className="whitespace-nowrap">{option.label}</span>
               </button>
             ))}
           </div>
