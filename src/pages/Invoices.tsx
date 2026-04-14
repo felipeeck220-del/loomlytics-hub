@@ -96,6 +96,7 @@ interface InvoiceItem {
   value_per_kg: number;
   subtotal: number;
   observations: string | null;
+  brand: string | null;
   created_at: string;
 }
 
