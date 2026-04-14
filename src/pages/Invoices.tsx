@@ -529,7 +529,6 @@ export default function Invoices() {
   };
 
   // ===== Saldo Filters =====
-  const [saldoClient, setSaldoClient] = useState('all');
   const [saldoYarn, setSaldoYarn] = useState('all');
   const [saldoMonth, setSaldoMonth] = useState('all');
   const [yarnSearchTerm, setYarnSearchTerm] = useState('');
