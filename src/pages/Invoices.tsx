@@ -928,7 +928,7 @@ export default function Invoices() {
 
         {/* ===== ENTRADA, SAIDA & VENDA_FIO TABS ===== */}
         {['entrada', 'saida'].map(tab => {
-          const tabLabel = tab === 'entrada' ? 'Entrada (Fio)' : 'Saída (Malha)';
+          const tabLabel = tab === 'entrada' ? 'Entrada de Fio' : 'Venda de Fio';
           const invoiceType = tab as InvoiceType;
           return (
           <TabsContent key={tab} value={tab} className="space-y-4">
