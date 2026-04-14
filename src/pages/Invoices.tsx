@@ -1660,18 +1660,32 @@ export default function Invoices() {
           </DialogHeader>
           <div className="space-y-4">
 
-            {/* Client + NF Number + Date */}
+            {/* Entity + NF Number + Date */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs">Cliente *</Label>
-                <SearchableSelect
-                  value={formClientId}
-                  onValueChange={setFormClientId}
-                  options={clients.map(c => ({ value: c.id, label: c.name }))}
-                  placeholder="Selecione..."
-                  searchPlaceholder="Buscar..."
-                  triggerClassName="h-9 text-xs"
-                />
+                {formType === 'saida' ? (
+                  <>
+                    <Label className="text-xs">Cliente *</Label>
+                    <SearchableSelect
+                      value={formClientId}
+                      onValueChange={setFormClientId}
+                      options={clients.map(c => ({ value: c.id, label: c.name }))}
+                      placeholder="Selecione..."
+                      searchPlaceholder="Buscar..."
+                      triggerClassName="h-9 text-xs"
+                    />
+                  </>
+                ) : formType === 'entrada' ? (
+                  <>
+                    <Label className="text-xs">Fornecedor *</Label>
+                    <Input className="h-9 text-xs" value={formSupplierName} onChange={e => setFormSupplierName(e.target.value)} placeholder="Nome do fornecedor" />
+                  </>
+                ) : (
+                  <>
+                    <Label className="text-xs">Cliente *</Label>
+                    <Input className="h-9 text-xs" value={formBuyerName} onChange={e => setFormBuyerName(e.target.value)} placeholder="Nome do cliente" />
+                  </>
+                )}
               </div>
               <div>
                 <Label className="text-xs">Nº da NF *</Label>
