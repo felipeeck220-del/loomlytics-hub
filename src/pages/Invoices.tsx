@@ -399,9 +399,9 @@ export default function Invoices() {
         return s + w * v;
       }, 0);
 
-      const clientObj = formType === 'saida' ? clients.find(c => c.id === formClientId) : null;
+      const clientObj = formType === 'saida' ? null : null;
 
-      // For entrada: buyer_name stores supplier; for venda_fio: buyer_name stores buyer
+      // For entrada: buyer_name stores supplier; for venda_fio: buyer_name stores buyer; for saida: destination_name stores tinturaria
       const buyerNameValue = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : null;
 
       const observationsToSave = formObservations.trim() || null;
@@ -409,11 +409,12 @@ export default function Invoices() {
       const { data: invData, error: invError } = await sb('invoices').insert({
         company_id: companyId,
         type: formType,
-        invoice_number: formInvoiceNumber.trim(),
+        invoice_number: formInvoiceNumber.trim() || (formType === 'venda_fio' ? 'S/N' : ''),
         access_key: formAccessKey.trim() || null,
-        client_id: formType === 'saida' ? formClientId : null,
-        client_name: formType === 'saida' ? (clientObj?.name || null) : null,
+        client_id: null,
+        client_name: null,
         buyer_name: buyerNameValue,
+        destination_name: formType === 'saida' ? formTinturariaName.trim() : null,
         issue_date: formIssueDate,
         total_weight_kg: totalWeight,
         total_value: totalValue,
