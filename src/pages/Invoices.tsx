@@ -624,7 +624,7 @@ export default function Invoices() {
 
     // Initialize all yarn types
     for (const yt of yarnTypes) {
-      map.set(yt.id, { yarnTypeId: yt.id, yarnTypeName: yt.name, purchaseMonth: 0, consumedMonth: 0, salesMonth: 0, stockAccumulated: 0 });
+      map.set(yt.id, { yarnTypeId: yt.id, yarnTypeName: formatYarnLabel(yt), purchaseMonth: 0, consumedMonth: 0, salesMonth: 0, stockAccumulated: 0 });
     }
 
     const endDate = selectedMonth === 'all' ? '9999-12-31' : lastDayOfMonth(selectedMonth);
@@ -706,7 +706,7 @@ export default function Invoices() {
       group.items.push({
         id: record.id,
         yarnTypeId: record.yarn_type_id,
-        yarnTypeName: yarn?.name || 'Fio removido',
+        yarnTypeName: yarn ? formatYarnLabel(yarn) : 'Fio removido',
         quantityKg: Number(record.quantity_kg),
         referenceMonth: record.reference_month,
         observations: record.observations || '',

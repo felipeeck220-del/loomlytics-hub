@@ -1468,6 +1468,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 23:30 (Brasília)** — **NOTAS FISCAIS + ARTIGOS — Fio com nome completo nos selects:** Todos os seletores de tipo de fio agora exibem `Nome — Cor (Composição)` ao invés de só o nome. Aplicado em: modal NF (Entrada/Venda), filtros Saldo Global, filtros Fio Terceiros, modal Fio Terceiros e seletor de fio em Clientes & Artigos.
 
+- **15/04/2026 00:00 (Brasília)** — **PENTE FINO — Revisão das últimas atualizações:** (1) **Saldo Global — nome do fio incompleto:** Tabela do Saldo Global exibia apenas `yt.name` sem cor/composição. Corrigido para usar `formatYarnLabel(yt)` com formato completo; (2) **Fio Terceiros — nome do fio incompleto:** Tabela de Fio Terceiros exibia apenas `yarn.name`. Corrigido para usar `formatYarnLabel`; (3) **Cálculos verificados OK:** yarnBalance (por marca), yarnGlobalBalance (acumulado), malhaEstoque (produção - entregas) — lógica consistente com o modelo de dados atual; (4) **Estoque de Malha:** NFs saída com artigo livre (texto) são corretamente ignoradas no cálculo (sem article_id, sem vínculo); (5) **Build limpo:** 0 erros TypeScript.
+
 ---
 
-*Última atualização: 14/04/2026 23:30 (Brasília)*
+*Última atualização: 15/04/2026 00:00 (Brasília)*
