@@ -965,7 +965,7 @@ export default function Invoices() {
                   ) : (
                     <div className="flex gap-1.5">
                       <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Nova Saída
+                        <Plus className="h-4 w-4" /> Nova Saída (Malha)
                       </Button>
                       <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
                         <Plus className="h-4 w-4" /> Venda de Fio
@@ -996,14 +996,16 @@ export default function Invoices() {
                     </SelectContent>
                   </Select>
 
-                  <SearchableSelect
-                    value={filterClient === 'all' ? '' : filterClient}
-                    onValueChange={v => setFilterClient(v || 'all')}
-                    options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                    placeholder="Todos clientes"
-                    searchPlaceholder="Buscar cliente..."
-                    triggerClassName="w-[180px] h-8 text-xs"
-                  />
+                  {tab === 'saida' && (
+                    <SearchableSelect
+                      value={filterClient === 'all' ? '' : filterClient}
+                      onValueChange={v => setFilterClient(v || 'all')}
+                      options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                      placeholder="Todos clientes"
+                      searchPlaceholder="Buscar cliente..."
+                      triggerClassName="w-[180px] h-8 text-xs"
+                    />
+                  )}
 
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
