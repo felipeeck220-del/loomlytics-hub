@@ -328,6 +328,7 @@ export default function Invoices() {
         i.invoice_number.toLowerCase().includes(q) ||
         (i.client_name || '').toLowerCase().includes(q) ||
         (i.buyer_name || '').toLowerCase().includes(q) ||
+        (i.destination_name || '').toLowerCase().includes(q) ||
         (i.access_key || '').includes(q)
       );
     }
