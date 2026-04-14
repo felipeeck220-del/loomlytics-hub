@@ -1445,6 +1445,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 15:00 (Brasília)** — **NOTAS FISCAIS — Reestruturação Entrada/Venda de Fio:** (1) **Aba "Entrada" → "Entrada de Fio"** e **"Saída" → "Venda de Fio"**; (2) **Modal Entrada de Fio:** Cliente removido, adicionado "Fornecedor" (texto livre) e "Marca do Fio" (texto livre) por item; (3) **Modal Venda de Fio:** Cliente removido, adicionado "Cliente" (texto livre) e "Marca do Fio" (dropdown com marcas disponíveis em saldo); (4) **Coluna `brand`** adicionada em `invoice_items`; (5) **Busca** inclui fornecedor/comprador; (6) **View dialog** exibe Fornecedor e Marca.
 
+- **14/04/2026 16:30 (Brasília)** — **NOTAS FISCAIS — Formatação brasileira no campo Peso (kg):** Input de peso nos modais Entrada de Fio e Venda de Fio agora aceita e exibe valores no formato brasileiro (1.234,56). Separadores de milhar (ponto) são adicionados automaticamente ao digitar, vírgula usada como separador decimal. Componente reutilizável `BrazilianWeightInput` criado em `src/components/`.
+
 ---
 
-*Última atualização: 14/04/2026 15:00 (Brasília)*
+*Última atualização: 14/04/2026 16:30 (Brasília)*
