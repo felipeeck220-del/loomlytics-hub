@@ -937,10 +937,9 @@ export default function Invoices() {
           <TabsTrigger value="fios" className="text-xs">Tipos de Fio</TabsTrigger>
         </TabsList>
 
-        {/* ===== ENTRADA, SAIDA & VENDA_FIO TABS ===== */}
-        {['entrada', 'saida'].map(tab => {
-          const tabLabel = tab === 'entrada' ? 'Entrada de Fio' : 'Venda de Fio';
-          const invoiceType = tab as InvoiceType;
+        {/* ===== ENTRADA TAB ===== */}
+        {['entrada', 'venda_fio', 'saida_malha'].map(tab => {
+          const tabLabel = tab === 'entrada' ? 'Entrada de Fio' : tab === 'venda_fio' ? 'Venda de Fio' : 'Saída Malha';
           return (
           <TabsContent key={tab} value={tab} className="space-y-4">
             {/* KPIs */}
@@ -969,19 +968,20 @@ export default function Invoices() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  {tab === 'entrada' ? (
+                  {tab === 'entrada' && (
                     <Button onClick={() => openNewInvoice('entrada')} size="sm" className="gap-1.5">
                       <Plus className="h-4 w-4" /> Nova Entrada
                     </Button>
-                  ) : (
-                    <div className="flex gap-1.5">
-                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Venda de Fio
-                      </Button>
-                      <Button onClick={() => openNewInvoice('saida')} size="sm" variant="outline" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Saída Malha
-                      </Button>
-                    </div>
+                  )}
+                  {tab === 'venda_fio' && (
+                    <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
+                      <Plus className="h-4 w-4" /> Venda de Fio
+                    </Button>
+                  )}
+                  {tab === 'saida_malha' && (
+                    <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
+                      <Plus className="h-4 w-4" /> Saída Malha
+                    </Button>
                   )}
                   <div className="flex-1" />
 
@@ -1006,17 +1006,6 @@ export default function Invoices() {
                       <SelectItem value="cancelada">Cancelada</SelectItem>
                     </SelectContent>
                   </Select>
-
-                  {tab === 'saida' && (
-                    <SearchableSelect
-                      value={filterClient === 'all' ? '' : filterClient}
-                      onValueChange={v => setFilterClient(v || 'all')}
-                      options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                      placeholder="Todos clientes"
-                      searchPlaceholder="Buscar cliente..."
-                      triggerClassName="w-[180px] h-8 text-xs"
-                    />
-                  )}
 
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -1048,8 +1037,7 @@ export default function Invoices() {
                       <TableHeader>
                          <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
-                          <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : 'Cliente / Tinturaria'}</TableHead>
-                          {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
+                          <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : tab === 'saida_malha' ? 'Tinturaria' : 'Cliente'}</TableHead>
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
@@ -1062,7 +1050,6 @@ export default function Invoices() {
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                             <TableCell className="text-xs">{inv.destination_name || inv.buyer_name || inv.client_name || '—'}</TableCell>
-                            {tab === 'saida' && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
                             </TableCell>
