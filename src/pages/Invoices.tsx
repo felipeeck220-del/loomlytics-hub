@@ -236,7 +236,7 @@ export default function Invoices() {
     setFormSupplierName('');
     setFormBuyerName('');
     setFormTinturariaName('');
-    
+    setFormTerceirosName('');
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
