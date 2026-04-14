@@ -142,7 +142,7 @@ trackLogin({
 
 **Filtros:**
 - Por usuário (Select)
-- Por módulo (Select: Máquinas, Produção, Revisão, Usuários, Artigos, Tecelões, NF, Contas, Resíduos, Terceirizados, Configurações)
+- Por módulo (Select: Máquinas, Produção, Revisão, Usuários, Artigos, Tecelões, NF (Entrada/Venda/Saída Malha/Tipos de Fio/Fio Terceiros), Contas, Resíduos, Terceirizados, Configurações)
 - Por tipo de ação (Select com ações disponíveis)
 - Por período (De/Até com inputs date)
 - Busca textual (por nome, ação ou detalhes)
@@ -179,7 +179,7 @@ trackLogin({
 | **Configurações** | `Settings.tsx` | `user_create`, `user_update`, `user_delete`, `user_deactivate`, `user_reactivate`, `user_password_change`, `user_permissions_update` |
 | **Terceirizados** | `Outsource.tsx` | `outsource_company_create`, `outsource_company_update`, `outsource_company_delete`, `outsource_production_create`, `outsource_production_delete` |
 | **Resíduos** | `ResidueSales.tsx` | `residue_material_create`, `residue_material_update`, `residue_material_delete`, `residue_sale_create`, `residue_sale_update`, `residue_sale_delete` |
-| **Notas Fiscais** | `Invoices.tsx` | `invoice_create`, `invoice_confirm`, `invoice_cancel`, `yarn_type_create`, `yarn_type_update`, `yarn_type_delete`, `outsource_yarn_stock_create`, `outsource_yarn_stock_update`, `outsource_yarn_stock_delete` |
+| **Notas Fiscais** | `Invoices.tsx` | `invoice_create` (Entrada de Fio, Venda de Fio, Saída Malha), `invoice_confirm`, `invoice_cancel`, `yarn_type_create`, `yarn_type_update`, `yarn_type_delete`, `outsource_yarn_stock_create`, `outsource_yarn_stock_update`, `outsource_yarn_stock_delete` |
 
 ### ❌ Módulos SEM auditoria (pendente)
 
@@ -265,8 +265,32 @@ O campo `details` deve conter informações relevantes para entender O QUE foi f
 // article_update
 { "article": "PIQUET 30/1", "changes": { "weight_per_roll": { "old": 18, "new": 20 } } }
 
-// invoice_create
-{ "invoice_number": "NF-001", "type": "entrada", "client": "Cliente XYZ", "weight_kg": 500 }
+// invoice_create (entrada)
+{ "invoice_number": "NF-001", "type": "entrada", "client": "Fornecedor XYZ", "total_weight_kg": 500 }
+
+// invoice_create (venda_fio)
+{ "invoice_number": "NF-002", "type": "venda_fio", "client": "Cliente ABC", "total_weight_kg": 200 }
+
+// invoice_create (saida / saída malha)
+{ "invoice_number": "NF-003", "type": "saida", "client": "Tinturaria ABC", "total_weight_kg": 300 }
+
+// invoice_cancel
+{ "invoice_number": "NF-001", "client": "Fornecedor XYZ" }
+
+// invoice_confirm
+{ "invoice_number": "NF-001", "client": "Fornecedor XYZ" }
+
+// yarn_type_create / yarn_type_update
+{ "name": "Algodão 30/1" }
+
+// yarn_type_delete
+{ "name": "Algodão 30/1" }
+
+// outsource_yarn_stock_create / outsource_yarn_stock_update
+{ "company": "Malharia ABC", "yarn": "Algodão 30/1", "month": "2026-04", "qty": 500 }
+
+// outsource_yarn_stock_delete
+{ "company": "Malharia ABC", "month": "2026-04" }
 ```
 
 ---
@@ -318,4 +342,4 @@ Além do `audit_logs`, algumas tabelas possuem colunas de autoria direta:
 
 ---
 
-*Última atualização: 11/04/2026 19:00 (Brasília)*
+*Última atualização: 14/04/2026 22:00 (Brasília)*
