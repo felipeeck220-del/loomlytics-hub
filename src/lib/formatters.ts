@@ -17,7 +17,7 @@ export function formatCurrency(value: number): string {
 }
 
 export function formatWeight(value: number): string {
-  return `${formatNumber(value, 1)} kg`;
+  return `${formatNumber(value, 2)} kg`;
 }
 
 export function formatPercent(value: number): string {
