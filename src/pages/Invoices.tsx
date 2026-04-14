@@ -384,7 +384,7 @@ export default function Invoices() {
 
     const validItems = formItems.filter(it => {
       if (formType === 'entrada' || formType === 'venda_fio') return it.yarn_type_id && parseFloat(it.weight_kg) > 0;
-      if (formType === 'saida') return it.article_id && parseFloat(it.weight_kg) > 0;
+      if (formType === 'saida') return (it.article_id || it.article_name_free?.trim()) && parseFloat(it.weight_kg) > 0;
       return false;
     });
 
