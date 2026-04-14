@@ -827,10 +827,12 @@ export default function Invoices() {
     const saidaInvs = invoices.filter(i => i.type === 'saida' && i.status !== 'cancelada' && matchMonth(i.issue_date));
     for (const inv of saidaInvs) {
       const items = invoiceItems.filter(it => it.invoice_id === inv.id);
-      for (const item of items) {
-        if (!item.article_id || !inv.client_id) continue;
-        if (!map.has(inv.client_id)) map.set(inv.client_id, new Map());
-        const artMap = map.get(inv.client_id)!;
+      if (!item.article_id) continue;
+      const artForDelivery = articles.find(a => a.id === item.article_id);
+      const clientIdForItem = artForDelivery?.client_id;
+      if (!clientIdForItem) continue;
+      if (!map.has(clientIdForItem)) map.set(clientIdForItem, new Map());
+      const artMap = map.get(clientIdForItem)!;
         if (!artMap.has(item.article_id)) artMap.set(item.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
         const entry = artMap.get(item.article_id)!;
         entry.deliveredKg += Number(item.weight_kg);
@@ -874,11 +876,10 @@ export default function Invoices() {
   const clearFilters = () => {
     setSearchTerm('');
     setFilterStatus('all');
-    setFilterClient('all');
     setFilterMonth('all');
   };
 
-  const hasFilters = filterStatus !== 'all' || filterClient !== 'all' || filterMonth !== 'all' || searchTerm.trim() !== '';
+  const hasFilters = filterStatus !== 'all' || filterMonth !== 'all' || searchTerm.trim() !== '';
 
   return (
     <div className="space-y-6">
