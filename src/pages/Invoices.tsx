@@ -1056,7 +1056,7 @@ export default function Invoices() {
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
                             </TableCell>
-                            <TableCell className="text-xs text-right">{formatNumber(Number(inv.total_weight_kg), 1)}</TableCell>
+                            <TableCell className="text-xs text-right">{formatNumber(Number(inv.total_weight_kg), 2)}</TableCell>
                             {canSeeFinancial && <TableCell className="text-xs text-right">{formatCurrency(Number(inv.total_value || 0))}</TableCell>}
                             <TableCell>
                               <Badge className={cn('text-[10px]', STATUS_COLORS[inv.status])}>{STATUS_LABELS[inv.status]}</Badge>
@@ -1892,7 +1892,7 @@ export default function Invoices() {
                       <TableRow key={it.id}>
                         <TableCell className="text-xs">{it.article_name || it.yarn_type_name || '—'}</TableCell>
                         {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableCell className="text-xs">{it.brand || '—'}</TableCell>}
-                        <TableCell className="text-xs text-right">{formatNumber(Number(it.weight_kg), 1)}</TableCell>
+                        <TableCell className="text-xs text-right">{formatNumber(Number(it.weight_kg), 2)}</TableCell>
                         {viewingInvoice.type === 'saida' && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_rolls))}</TableCell>}
                         {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_boxes))}</TableCell>}
                         {canSeeFinancial && <TableCell className="text-xs text-right">{formatCurrency(Number(it.value_per_kg))}</TableCell>}
