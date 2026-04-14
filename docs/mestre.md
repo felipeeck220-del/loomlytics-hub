@@ -1462,6 +1462,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 22:00 (Brasília)** — **AUDITORIA — Atualização docs/auditoria.md para Notas Fiscais:** (1) Detalhamento das 3 sub-ações de `invoice_create` (entrada, venda_fio, saida); (2) Exemplos de `details` JSONB para todas as ações do módulo NF (invoice_create/cancel/confirm, yarn_type_*, outsource_yarn_stock_*); (3) Listagem de cobertura atualizada com descrição expandida; (4) Filtro de módulos atualizado.
 
+- **14/04/2026 22:30 (Brasília)** — **AUDITORIA — Regra de exibição obrigatória + NF listagem com autoria:** (1) Adicionada coluna "Registrado por" na listagem de NFs (todas as abas) exibindo `Nome #ID` + data/hora compacta; (2) Nova regra obrigatória em `auditoria.md`: toda listagem com `created_by` DEVE exibir autoria + data/hora; (3) Tabela de conformidade por módulo adicionada (todos ✅).
+
 ---
 
-*Última atualização: 14/04/2026 22:00 (Brasília)*
+*Última atualização: 14/04/2026 22:30 (Brasília)*
