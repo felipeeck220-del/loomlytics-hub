@@ -972,11 +972,11 @@ export default function Invoices() {
                     </Button>
                   ) : (
                     <div className="flex gap-1.5">
-                      <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Nova Saída (Malha)
-                      </Button>
-                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
+                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
                         <Plus className="h-4 w-4" /> Venda de Fio
+                      </Button>
+                      <Button onClick={() => openNewInvoice('saida')} size="sm" variant="outline" className="gap-1.5">
+                        <Plus className="h-4 w-4" /> Saída Malha
                       </Button>
                     </div>
                   )}
