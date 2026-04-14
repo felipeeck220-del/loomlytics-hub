@@ -1438,6 +1438,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 10:00 (Brasília)** — **FATURAMENTO TOTAL — Terceirizado agora exibe Lucro:** Card "Terceirizado" renomeado para "Terceirizado (Lucro)" e campo de dados alterado de `total_revenue` (receita) para `total_profit` (lucro). Alteração aplicada nos KPI cards, gráfico de tendência (AreaChart) e tabela de resumo. Documentação `faturamentototal.md` atualizada.
 
+- **14/04/2026 10:30 (Brasília)** — **FATURAMENTO TOTAL — Cor do Terceirizado no gráfico:** Cor da área "Terceirizado (Lucro)" no AreaChart alterada de `--accent` (muito clara no dark mode) para laranja vibrante (`hsl(25, 95%, 53%)`) para melhor visibilidade.
+
 ---
 
-*Última atualização: 14/04/2026 10:00 (Brasília)*
+*Última atualização: 14/04/2026 10:30 (Brasília)*

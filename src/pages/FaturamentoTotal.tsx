@@ -379,7 +379,7 @@ export default function FaturamentoTotal() {
                 <Tooltip formatter={(v: number) => formatCurrency(v)} />
                 <Legend />
                 <Area type="monotone" dataKey="malhas" name={malhasLabel} stackId="1" fill="hsl(var(--primary) / 0.3)" stroke="hsl(var(--primary))" />
-                <Area type="monotone" dataKey="terceirizado" name="Terceirizado (Lucro)" stackId="1" fill="hsl(var(--accent) / 0.3)" stroke="hsl(var(--accent))" />
+                <Area type="monotone" dataKey="terceirizado" name="Terceirizado (Lucro)" stackId="1" fill="hsl(25, 95%, 53%, 0.35)" stroke="hsl(25, 95%, 53%)" />
                 <Area type="monotone" dataKey="residuos" name="Resíduos" stackId="1" fill="hsl(var(--warning) / 0.3)" stroke="hsl(var(--warning))" />
               </AreaChart>
             </ResponsiveContainer>
