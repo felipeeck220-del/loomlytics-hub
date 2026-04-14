@@ -236,7 +236,7 @@ export default function Invoices() {
     setFormSupplierName('');
     setFormBuyerName('');
     setFormTinturariaName('');
-    setFormTinturariaSource('manual');
+    
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
