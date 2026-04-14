@@ -1457,6 +1457,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 21:00 (Brasília)** — **PENTE FINO — 4 bugs críticos corrigidos nas últimas atualizações:** (1) **Saldo de Fios quebrado:** `yarnBalance` usava `inv.client_id` que agora é sempre null — aba ficava vazia. Reescrito para agrupar por **Marca do Fio** (Entradas - Vendas por marca), conforme modelo de revenda. UI simplificada de collapsible/cliente para tabela flat por marca; (2) **Estoque de Malha — entregas não contadas:** `malhaEstoque` usava `inv.client_id` de NFs saída (sempre null). Corrigido para derivar `client_id` a partir do `article_id` do item; (3) **Código morto removido:** `filterClient` (state + lógica sem UI), `clientObj` (variável sempre null); (4) **Build limpo:** 0 erros TypeScript após todas as correções.
 
+- **14/04/2026 21:30 (Brasília)** — **NOTAS FISCAIS — Coluna Artigo na listagem Saída Malha:** Adicionada coluna "Artigo" na tabela da aba Saída Malha, exibindo o(s) nome(s) dos artigos dos itens da NF (extraídos de `invoice_items.article_name`).
+
 ---
 
-*Última atualização: 14/04/2026 21:00 (Brasília)*
+*Última atualização: 14/04/2026 21:30 (Brasília)*
