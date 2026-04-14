@@ -406,7 +406,7 @@ export default function Invoices() {
       const { data: invData, error: invError } = await sb('invoices').insert({
         company_id: companyId,
         type: formType,
-        invoice_number: formInvoiceNumber.trim() || (formType === 'venda_fio' ? 'S/N' : ''),
+        invoice_number: formInvoiceNumber.trim() || 'S/N',
         access_key: formAccessKey.trim() || null,
         client_id: null,
         client_name: null,
