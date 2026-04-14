@@ -195,6 +195,8 @@ export default function Invoices() {
   const [formInvoiceNumber, setFormInvoiceNumber] = useState('');
   const [formAccessKey, setFormAccessKey] = useState('');
   const [formClientId, setFormClientId] = useState('');
+  const [formSupplierName, setFormSupplierName] = useState('');
+  const [formBuyerName, setFormBuyerName] = useState('');
   const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
   const [formObservations, setFormObservations] = useState('');
@@ -205,7 +207,8 @@ export default function Invoices() {
     quantity_rolls: string;
     quantity_boxes: string;
     value_per_kg: string;
-  }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
+    brand: string;
+  }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '' }]);
 
 
   // Yarn Type form state
