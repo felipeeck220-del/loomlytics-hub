@@ -315,12 +315,13 @@ export default function Invoices() {
     // Month
     if (filterMonth !== 'all') filtered = filtered.filter(i => i.issue_date.startsWith(filterMonth));
 
-    // Search
+    // Search — includes buyer_name (supplier/buyer)
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
       filtered = filtered.filter(i =>
         i.invoice_number.toLowerCase().includes(q) ||
         (i.client_name || '').toLowerCase().includes(q) ||
+        (i.buyer_name || '').toLowerCase().includes(q) ||
         (i.access_key || '').includes(q)
       );
     }
