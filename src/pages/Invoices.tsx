@@ -1013,6 +1013,7 @@ export default function Invoices() {
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
+                          <TableHead className="text-xs">Status</TableHead>
                           <TableHead className="text-xs">Registrado por</TableHead>
                           <TableHead className="text-xs text-right">Ações</TableHead>
                         </TableRow>
