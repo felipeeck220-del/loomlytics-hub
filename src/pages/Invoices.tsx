@@ -1013,7 +1013,7 @@ export default function Invoices() {
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
-                          <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs">Registrado por</TableHead>
                           <TableHead className="text-xs text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1033,6 +1033,10 @@ export default function Invoices() {
                             {canSeeFinancial && <TableCell className="text-xs text-right">{formatCurrency(Number(inv.total_value || 0))}</TableCell>}
                             <TableCell>
                               <Badge className={cn('text-[10px]', STATUS_COLORS[inv.status])}>{STATUS_LABELS[inv.status]}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {inv.created_by_name ? `${inv.created_by_name}${inv.created_by_code ? ` #${inv.created_by_code}` : ''}` : '—'}
+                              {inv.created_at && <div className="text-[10px]">{format(new Date(inv.created_at), 'dd/MM HH:mm')}</div>}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
