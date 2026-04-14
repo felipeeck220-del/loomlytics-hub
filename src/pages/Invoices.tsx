@@ -1769,12 +1769,11 @@ export default function Invoices() {
                     <div className={formType === 'saida' ? 'col-span-3' : 'col-span-3'}>
                       <Label className="text-[10px]">{formType === 'saida' ? 'Artigo' : 'Tipo de Fio'}</Label>
                       {formType === 'saida' ? (
-                        <SearchableSelect
-                          value={item.article_id || ''}
-                          onValueChange={v => updateItem(idx, 'article_id', v)}
-                          options={(formClientId ? clientArticles : articles).map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
-                          placeholder="Selecione..."
-                          triggerClassName="h-8 text-xs"
+                        <Input
+                          className="h-8 text-xs"
+                          value={item.article_name_free || ''}
+                          onChange={e => updateItem(idx, 'article_name_free', e.target.value)}
+                          placeholder="Nome do artigo"
                         />
                       ) : (
                         <SearchableSelect
