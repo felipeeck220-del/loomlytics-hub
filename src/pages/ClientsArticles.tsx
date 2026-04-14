@@ -336,7 +336,7 @@ export default function ClientsArticles() {
                 <SelectTrigger><SelectValue placeholder="Nenhum (opcional)" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Nenhum</SelectItem>
-                  {yarnTypes.map(y => <SelectItem key={y.id} value={y.id}>{y.name}</SelectItem>)}
+                  {yarnTypes.map(y => <SelectItem key={y.id} value={y.id}>{y.name}{y.color ? ` — ${y.color}` : ''}{y.composition ? ` (${y.composition})` : ''}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
