@@ -1858,12 +1858,12 @@ export default function Invoices() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div><span className="text-muted-foreground text-xs">Tipo:</span><br /><Badge variant="outline">{TYPE_LABELS[viewingInvoice.type]}</Badge></div>
-                <div><span className="text-muted-foreground text-xs">{viewingInvoice.type === 'entrada' ? 'Fornecedor:' : viewingInvoice.type === 'saida' ? 'Tinturaria:' : 'Cliente:'}</span><br />{viewingInvoice.destination_name || viewingInvoice.buyer_name || viewingInvoice.client_name || '—'}</div>
+                <div><span className="text-muted-foreground text-xs">{viewingInvoice.type === 'entrada' ? 'Fornecedor:' : viewingInvoice.type === 'saida' ? 'Tinturaria:' : 'Cliente:'}</span><br />{viewingInvoice.type === 'saida' ? (viewingInvoice.destination_name || '—') : (viewingInvoice.destination_name || viewingInvoice.buyer_name || viewingInvoice.client_name || '—')}</div>
+                {viewingInvoice.type === 'saida' && <div><span className="text-muted-foreground text-xs">Terceiros:</span><br />{viewingInvoice.buyer_name || '—'}</div>}
                 <div><span className="text-muted-foreground text-xs">Data:</span><br />{viewingInvoice.issue_date ? format(parse(viewingInvoice.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}</div>
                 <div><span className="text-muted-foreground text-xs">Status:</span><br /><Badge className={cn('text-[10px]', STATUS_COLORS[viewingInvoice.status])}>{STATUS_LABELS[viewingInvoice.status]}</Badge></div>
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
                 {canSeeFinancial && <div><span className="text-muted-foreground text-xs">Valor Total:</span><br />{formatCurrency(Number(viewingInvoice.total_value || 0))}</div>}
-                
               </div>
               {viewingInvoice.access_key && (
                 <div className="text-xs"><span className="text-muted-foreground">Chave de Acesso:</span> <span className="font-mono">{viewingInvoice.access_key}</span></div>
