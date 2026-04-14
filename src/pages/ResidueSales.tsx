@@ -360,6 +360,7 @@ export default function ResidueSales() {
 
   // When material changes in sale, update price from client price
   useEffect(() => {
+    if (skipPriceAutoUpdate.current) return;
     const cp = saleClientPrices.find(p => p.material_id === saleMaterialId);
     if (cp) {
       setSalePrice(cp.unit_price.toFixed(2).replace('.', ','));
