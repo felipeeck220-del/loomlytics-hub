@@ -45,7 +45,7 @@ export default function ClientsArticles() {
     queryFn: async () => {
       const { data, error } = await sb('yarn_types').select('*').eq('company_id', companyId).order('name');
       if (error) throw error;
-      return (data || []) as Array<{ id: string; name: string }>;
+      return (data || []) as Array<{ id: string; name: string; color: string | null; composition: string | null }>;
     },
     enabled: !!companyId,
   });
