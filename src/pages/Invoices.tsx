@@ -103,7 +103,7 @@ interface InvoiceItem {
 
 const TYPE_LABELS: Record<InvoiceType, string> = {
   entrada: 'Entrada de Fio',
-  saida: 'Saída (Malha)',
+  saida: 'Saída Malha',
   venda_fio: 'Venda de Fio',
 };
 
@@ -524,7 +524,7 @@ export default function Invoices() {
   };
 
   // ===== Form Item Management =====
-  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '' }]);
+  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '', article_name_free: '' }]);
   const removeItem = (idx: number) => setFormItems(prev => prev.filter((_, i) => i !== idx));
   const updateItem = (idx: number, field: string, value: string) => {
     setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
