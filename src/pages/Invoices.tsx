@@ -1687,9 +1687,9 @@ export default function Invoices() {
                   <Label className="text-xs">Terceiros (opcional)</Label>
                   <SearchableSelect
                     value={formTerceirosName}
-                    onValueChange={v => setFormTerceirosName(v)}
-                    options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
-                    placeholder="Selecionar malharia..."
+                    onValueChange={v => setFormTerceirosName(v === '__nenhum__' ? '' : v)}
+                    options={[{ value: '__nenhum__', label: 'Nenhum' }, ...outsourceCompanies.map(c => ({ value: c.name, label: c.name }))]}
+                    placeholder="Nenhum"
                     searchPlaceholder="Buscar malharia..."
                     triggerClassName="h-9 text-xs"
                   />
