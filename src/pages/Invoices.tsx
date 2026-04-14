@@ -1823,7 +1823,7 @@ export default function Invoices() {
               <span className="font-medium">Total:</span>
               <div className="text-right">
                 <div className="font-bold">{formatWeight(formItems.reduce((s, it) => s + parseFloat(it.weight_kg || '0'), 0))}</div>
-                {canSeeFinancial && (formType === 'saida' || formType === 'venda_fio') && (
+                {canSeeFinancial && formType === 'venda_fio' && (
                   <div className="text-xs text-muted-foreground">
                     {formatCurrency(formItems.reduce((s, it) => s + parseFloat(it.weight_kg || '0') * parseFloat(it.value_per_kg || '0'), 0))}
                   </div>
