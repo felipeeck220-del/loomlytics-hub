@@ -1442,6 +1442,9 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 11:00 (Brasília)** — **PENTE FINO — Auditoria pré-lançamento:** (1) **Build:** TypeScript 0 erros; (2) **Eficiência sem 0 rolos:** Confirmado em 6 arquivos (Dashboard, Reports, Weavers, Production, MachinePerformanceModal, TvMachineGrid); (3) **QuickAdd components:** `company_id: ''` é seguro — `saveWeavers`/`saveArticles` substituem pelo `companyId` correto no upsert; (4) **Fechamento:** Não calcula eficiência — sem impacto; (5) **BUG CORRIGIDO — ResidueSales edição sobrescreve preço:** Ao editar uma venda, os `useEffect` de auto-preenchimento de preço (por material/cliente) disparavam e substituíam o preço original da venda pelo preço padrão do cliente. Corrigido com `skipPriceAutoUpdate` ref que bloqueia os useEffects durante a carga dos dados de edição.
 
+
+- **14/04/2026 15:00 (Brasília)** — **NOTAS FISCAIS — Reestruturação Entrada/Venda de Fio:** (1) **Aba "Entrada" → "Entrada de Fio"** e **"Saída" → "Venda de Fio"**; (2) **Modal Entrada de Fio:** Cliente removido, adicionado "Fornecedor" (texto livre) e "Marca do Fio" (texto livre) por item; (3) **Modal Venda de Fio:** Cliente removido, adicionado "Cliente" (texto livre) e "Marca do Fio" (dropdown com marcas disponíveis em saldo); (4) **Coluna `brand`** adicionada em `invoice_items`; (5) **Busca** inclui fornecedor/comprador; (6) **View dialog** exibe Fornecedor e Marca.
+
 ---
 
-*Última atualização: 14/04/2026 11:00 (Brasília)*
+*Última atualização: 14/04/2026 15:00 (Brasília)*

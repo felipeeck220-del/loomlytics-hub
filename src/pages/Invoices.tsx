@@ -96,11 +96,12 @@ interface InvoiceItem {
   value_per_kg: number;
   subtotal: number;
   observations: string | null;
+  brand: string | null;
   created_at: string;
 }
 
 const TYPE_LABELS: Record<InvoiceType, string> = {
-  entrada: 'Entrada (Fio)',
+  entrada: 'Entrada de Fio',
   saida: 'Saída (Malha)',
   venda_fio: 'Venda de Fio',
 };
@@ -194,6 +195,8 @@ export default function Invoices() {
   const [formInvoiceNumber, setFormInvoiceNumber] = useState('');
   const [formAccessKey, setFormAccessKey] = useState('');
   const [formClientId, setFormClientId] = useState('');
+  const [formSupplierName, setFormSupplierName] = useState('');
+  const [formBuyerName, setFormBuyerName] = useState('');
   const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
   const [formObservations, setFormObservations] = useState('');
@@ -204,7 +207,8 @@ export default function Invoices() {
     quantity_rolls: string;
     quantity_boxes: string;
     value_per_kg: string;
-  }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
+    brand: string;
+  }>>([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '' }]);
 
 
   // Yarn Type form state
@@ -225,10 +229,12 @@ export default function Invoices() {
     setFormInvoiceNumber('');
     setFormAccessKey('');
     setFormClientId('');
+    setFormSupplierName('');
+    setFormBuyerName('');
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
-    setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
+    setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '' }]);
   };
 
   const openNewInvoice = (type: InvoiceType) => {
@@ -309,12 +315,13 @@ export default function Invoices() {
     // Month
     if (filterMonth !== 'all') filtered = filtered.filter(i => i.issue_date.startsWith(filterMonth));
 
-    // Search
+    // Search — includes buyer_name (supplier/buyer)
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
       filtered = filtered.filter(i =>
         i.invoice_number.toLowerCase().includes(q) ||
         (i.client_name || '').toLowerCase().includes(q) ||
+        (i.buyer_name || '').toLowerCase().includes(q) ||
         (i.access_key || '').includes(q)
       );
     }
@@ -333,9 +340,34 @@ export default function Invoices() {
     };
   }, [filteredInvoices]);
 
+  // ===== Available brands from items with positive stock =====
+  const availableBrands = useMemo(() => {
+    const brandMap = new Map<string, number>();
+    // Sum entries
+    invoices.filter(i => i.type === 'entrada' && i.status !== 'cancelada').forEach(inv => {
+      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => {
+        brandMap.set(it.brand!, (brandMap.get(it.brand!) || 0) + Number(it.weight_kg));
+      });
+    });
+    // Subtract sales
+    invoices.filter(i => i.type === 'venda_fio' && i.status !== 'cancelada').forEach(inv => {
+      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => {
+        brandMap.set(it.brand!, (brandMap.get(it.brand!) || 0) - Number(it.weight_kg));
+      });
+    });
+    // Only return brands with positive stock
+    return Array.from(brandMap.entries())
+      .filter(([, qty]) => qty > 0)
+      .map(([brand]) => brand)
+      .sort();
+  }, [invoices, invoiceItems]);
+
   // ===== Save Invoice =====
   const handleSaveInvoice = async () => {
-    if (!formClientId) { toast({ title: 'Selecione um cliente', variant: 'destructive' }); return; }
+    // Validation per type
+    if (formType === 'saida' && !formClientId) { toast({ title: 'Selecione um cliente', variant: 'destructive' }); return; }
+    if (formType === 'entrada' && !formSupplierName.trim()) { toast({ title: 'Informe o fornecedor', variant: 'destructive' }); return; }
+    if (formType === 'venda_fio' && !formBuyerName.trim()) { toast({ title: 'Informe o cliente', variant: 'destructive' }); return; }
     if (!formInvoiceNumber.trim()) { toast({ title: 'Informe o nº da NF', variant: 'destructive' }); return; }
     if (!isDateValid(formIssueDate)) { toast({ title: 'Data inválida (limite ±5 anos)', variant: 'destructive' }); return; }
     if (formAccessKey && (formAccessKey.length !== 44 || !/^\d+$/.test(formAccessKey))) {
@@ -360,7 +392,10 @@ export default function Invoices() {
         return s + w * v;
       }, 0);
 
-      const clientObj = clients.find(c => c.id === formClientId);
+      const clientObj = formType === 'saida' ? clients.find(c => c.id === formClientId) : null;
+
+      // For entrada: buyer_name stores supplier; for venda_fio: buyer_name stores buyer
+      const buyerNameValue = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : null;
 
       const observationsToSave = formObservations.trim() || null;
 
@@ -369,8 +404,9 @@ export default function Invoices() {
         type: formType,
         invoice_number: formInvoiceNumber.trim(),
         access_key: formAccessKey.trim() || null,
-        client_id: formClientId,
-        client_name: clientObj?.name || null,
+        client_id: formType === 'saida' ? formClientId : null,
+        client_name: formType === 'saida' ? (clientObj?.name || null) : null,
+        buyer_name: buyerNameValue,
         issue_date: formIssueDate,
         total_weight_kg: totalWeight,
         total_value: totalValue,
@@ -400,6 +436,7 @@ export default function Invoices() {
           quantity_boxes: parseFloat(it.quantity_boxes || '0'),
           value_per_kg: v,
           subtotal: w * v,
+          brand: it.brand?.trim() || null,
         };
       });
 
@@ -408,8 +445,8 @@ export default function Invoices() {
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
-      const clientObj2 = clients.find(c => c.id === formClientId);
-      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim(), type: formType, client: clientObj2?.name, total_weight_kg: totalWeight });
+      const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : clientObj?.name;
+      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim(), type: formType, client: logName, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
       resetForm();
       setDialogOpen(false);
@@ -479,7 +516,7 @@ export default function Invoices() {
   };
 
   // ===== Form Item Management =====
-  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
+  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '' }]);
   const removeItem = (idx: number) => setFormItems(prev => prev.filter((_, i) => i !== idx));
   const updateItem = (idx: number, field: string, value: string) => {
     setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
@@ -880,8 +917,8 @@ export default function Invoices() {
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
-          <TabsTrigger value="entrada" className="text-xs">Entrada</TabsTrigger>
-          <TabsTrigger value="saida" className="text-xs">Saída</TabsTrigger>
+          <TabsTrigger value="entrada" className="text-xs">Entrada de Fio</TabsTrigger>
+          <TabsTrigger value="saida" className="text-xs">Venda de Fio</TabsTrigger>
           <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
           <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
           <TabsTrigger value="estoque" className="text-xs">Estoque Malha</TabsTrigger>
@@ -891,7 +928,7 @@ export default function Invoices() {
 
         {/* ===== ENTRADA, SAIDA & VENDA_FIO TABS ===== */}
         {['entrada', 'saida'].map(tab => {
-          const tabLabel = tab === 'entrada' ? 'Entrada (Fio)' : 'Saída (Malha)';
+          const tabLabel = tab === 'entrada' ? 'Entrada de Fio' : 'Venda de Fio';
           const invoiceType = tab as InvoiceType;
           return (
           <TabsContent key={tab} value={tab} className="space-y-4">
@@ -928,7 +965,7 @@ export default function Invoices() {
                   ) : (
                     <div className="flex gap-1.5">
                       <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Nova Saída
+                        <Plus className="h-4 w-4" /> Nova Saída (Malha)
                       </Button>
                       <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
                         <Plus className="h-4 w-4" /> Venda de Fio
@@ -959,14 +996,16 @@ export default function Invoices() {
                     </SelectContent>
                   </Select>
 
-                  <SearchableSelect
-                    value={filterClient === 'all' ? '' : filterClient}
-                    onValueChange={v => setFilterClient(v || 'all')}
-                    options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                    placeholder="Todos clientes"
-                    searchPlaceholder="Buscar cliente..."
-                    triggerClassName="w-[180px] h-8 text-xs"
-                  />
+                  {tab === 'saida' && (
+                    <SearchableSelect
+                      value={filterClient === 'all' ? '' : filterClient}
+                      onValueChange={v => setFilterClient(v || 'all')}
+                      options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                      placeholder="Todos clientes"
+                      searchPlaceholder="Buscar cliente..."
+                      triggerClassName="w-[180px] h-8 text-xs"
+                    />
+                  )}
 
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -998,7 +1037,7 @@ export default function Invoices() {
                       <TableHeader>
                          <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
-                          <TableHead className="text-xs">Cliente</TableHead>
+                          <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : 'Cliente'}</TableHead>
                           {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
@@ -1011,7 +1050,7 @@ export default function Invoices() {
                         {filteredInvoices.map(inv => (
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
-                            <TableCell className="text-xs">{inv.client_name || '—'}</TableCell>
+                            <TableCell className="text-xs">{inv.buyer_name || inv.client_name || '—'}</TableCell>
                             {tab === 'saida' && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
@@ -1621,18 +1660,32 @@ export default function Invoices() {
           </DialogHeader>
           <div className="space-y-4">
 
-            {/* Client + NF Number + Date */}
+            {/* Entity + NF Number + Date */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs">Cliente *</Label>
-                <SearchableSelect
-                  value={formClientId}
-                  onValueChange={setFormClientId}
-                  options={clients.map(c => ({ value: c.id, label: c.name }))}
-                  placeholder="Selecione..."
-                  searchPlaceholder="Buscar..."
-                  triggerClassName="h-9 text-xs"
-                />
+                {formType === 'saida' ? (
+                  <>
+                    <Label className="text-xs">Cliente *</Label>
+                    <SearchableSelect
+                      value={formClientId}
+                      onValueChange={setFormClientId}
+                      options={clients.map(c => ({ value: c.id, label: c.name }))}
+                      placeholder="Selecione..."
+                      searchPlaceholder="Buscar..."
+                      triggerClassName="h-9 text-xs"
+                    />
+                  </>
+                ) : formType === 'entrada' ? (
+                  <>
+                    <Label className="text-xs">Fornecedor *</Label>
+                    <Input className="h-9 text-xs" value={formSupplierName} onChange={e => setFormSupplierName(e.target.value)} placeholder="Nome do fornecedor" />
+                  </>
+                ) : (
+                  <>
+                    <Label className="text-xs">Cliente *</Label>
+                    <Input className="h-9 text-xs" value={formBuyerName} onChange={e => setFormBuyerName(e.target.value)} placeholder="Nome do cliente" />
+                  </>
+                )}
               </div>
               <div>
                 <Label className="text-xs">Nº da NF *</Label>
@@ -1679,7 +1732,7 @@ export default function Invoices() {
                 {formItems.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-2">
                     {/* Yarn or Article selection */}
-                    <div className={formType === 'saida' ? 'col-span-3' : 'col-span-4'}>
+                    <div className={formType === 'saida' ? 'col-span-3' : 'col-span-3'}>
                       <Label className="text-[10px]">{formType === 'saida' ? 'Artigo' : 'Tipo de Fio'}</Label>
                       {formType === 'saida' ? (
                         <SearchableSelect
@@ -1700,6 +1753,27 @@ export default function Invoices() {
                         />
                       )}
                     </div>
+                    {/* Brand field for entrada (free text) and venda_fio (dropdown of available) */}
+                    {(formType === 'entrada' || formType === 'venda_fio') && (
+                      <div className="col-span-2">
+                        <Label className="text-[10px]">Marca do Fio</Label>
+                        {formType === 'entrada' ? (
+                          <Input className="h-8 text-xs" value={item.brand} onChange={e => updateItem(idx, 'brand', e.target.value)} placeholder="Ex: Têxtil ABC" />
+                        ) : (
+                          <Select value={item.brand || ''} onValueChange={v => updateItem(idx, 'brand', v)}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              {availableBrands.map(b => (
+                                <SelectItem key={b} value={b}>{b}</SelectItem>
+                              ))}
+                              {availableBrands.length === 0 && (
+                                <SelectItem value="" disabled>Nenhuma marca disponível</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    )}
                     <div className="col-span-2">
                       <Label className="text-[10px]">Peso (kg)</Label>
                       <Input className="h-8 text-xs" inputMode="decimal" type="number" step="0.1" min="0" value={item.weight_kg} onChange={e => updateItem(idx, 'weight_kg', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); }} />
@@ -1783,7 +1857,7 @@ export default function Invoices() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div><span className="text-muted-foreground text-xs">Tipo:</span><br /><Badge variant="outline">{TYPE_LABELS[viewingInvoice.type]}</Badge></div>
-                <div><span className="text-muted-foreground text-xs">Cliente:</span><br />{viewingInvoice.client_name || '—'}</div>
+                <div><span className="text-muted-foreground text-xs">{viewingInvoice.type === 'entrada' ? 'Fornecedor:' : 'Cliente:'}</span><br />{viewingInvoice.buyer_name || viewingInvoice.client_name || '—'}</div>
                 <div><span className="text-muted-foreground text-xs">Data:</span><br />{viewingInvoice.issue_date ? format(parse(viewingInvoice.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}</div>
                 <div><span className="text-muted-foreground text-xs">Status:</span><br /><Badge className={cn('text-[10px]', STATUS_COLORS[viewingInvoice.status])}>{STATUS_LABELS[viewingInvoice.status]}</Badge></div>
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
@@ -1804,6 +1878,7 @@ export default function Invoices() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-xs">{viewingInvoice.type === 'saida' ? 'Artigo' : 'Fio'}</TableHead>
+                      {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableHead className="text-xs">Marca</TableHead>}
                       <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                       {viewingInvoice.type === 'saida' && <TableHead className="text-xs text-right">Rolos</TableHead>}
                       {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableHead className="text-xs text-right">Caixas</TableHead>}
@@ -1815,6 +1890,7 @@ export default function Invoices() {
                     {viewItems.map(it => (
                       <TableRow key={it.id}>
                         <TableCell className="text-xs">{it.article_name || it.yarn_type_name || '—'}</TableCell>
+                        {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableCell className="text-xs">{it.brand || '—'}</TableCell>}
                         <TableCell className="text-xs text-right">{formatNumber(Number(it.weight_kg), 1)}</TableCell>
                         {viewingInvoice.type === 'saida' && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_rolls))}</TableCell>}
                         {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_boxes))}</TableCell>}
