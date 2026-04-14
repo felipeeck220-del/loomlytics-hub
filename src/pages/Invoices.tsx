@@ -103,7 +103,7 @@ interface InvoiceItem {
 
 const TYPE_LABELS: Record<InvoiceType, string> = {
   entrada: 'Entrada de Fio',
-  saida: 'Saída (Malha)',
+  saida: 'Saída Malha',
   venda_fio: 'Venda de Fio',
 };
 
@@ -198,12 +198,15 @@ export default function Invoices() {
   const [formClientId, setFormClientId] = useState('');
   const [formSupplierName, setFormSupplierName] = useState('');
   const [formBuyerName, setFormBuyerName] = useState('');
+  const [formTinturariaName, setFormTinturariaName] = useState('');
+  const [formTinturariaSource, setFormTinturariaSource] = useState<'manual' | 'terceiro'>('manual');
   const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
   const [formObservations, setFormObservations] = useState('');
   const [formItems, setFormItems] = useState<Array<{
     yarn_type_id?: string;
     article_id?: string;
+    article_name_free?: string;
     weight_kg: string;
     quantity_rolls: string;
     quantity_boxes: string;
@@ -232,6 +235,8 @@ export default function Invoices() {
     setFormClientId('');
     setFormSupplierName('');
     setFormBuyerName('');
+    setFormTinturariaName('');
+    setFormTinturariaSource('manual');
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
@@ -323,6 +328,7 @@ export default function Invoices() {
         i.invoice_number.toLowerCase().includes(q) ||
         (i.client_name || '').toLowerCase().includes(q) ||
         (i.buyer_name || '').toLowerCase().includes(q) ||
+        (i.destination_name || '').toLowerCase().includes(q) ||
         (i.access_key || '').includes(q)
       );
     }
@@ -366,10 +372,11 @@ export default function Invoices() {
   // ===== Save Invoice =====
   const handleSaveInvoice = async () => {
     // Validation per type
-    if (formType === 'saida' && !formClientId) { toast({ title: 'Selecione um cliente', variant: 'destructive' }); return; }
+    if (formType === 'saida' && !formTinturariaName.trim()) { toast({ title: 'Informe a tinturaria', variant: 'destructive' }); return; }
     if (formType === 'entrada' && !formSupplierName.trim()) { toast({ title: 'Informe o fornecedor', variant: 'destructive' }); return; }
     if (formType === 'venda_fio' && !formBuyerName.trim()) { toast({ title: 'Informe o cliente', variant: 'destructive' }); return; }
-    if (!formInvoiceNumber.trim()) { toast({ title: 'Informe o nº da NF', variant: 'destructive' }); return; }
+    if (formType !== 'venda_fio' && !formInvoiceNumber.trim()) { toast({ title: 'Informe o nº da NF', variant: 'destructive' }); return; }
+    if (formType === 'venda_fio' && formInvoiceNumber.trim() === '') { /* NF number is optional for venda_fio */ }
     if (!isDateValid(formIssueDate)) { toast({ title: 'Data inválida (limite ±5 anos)', variant: 'destructive' }); return; }
     if (formAccessKey && (formAccessKey.length !== 44 || !/^\d+$/.test(formAccessKey))) {
       toast({ title: 'Chave de acesso deve ter 44 dígitos numéricos', variant: 'destructive' }); return;
@@ -378,7 +385,7 @@ export default function Invoices() {
 
     const validItems = formItems.filter(it => {
       if (formType === 'entrada' || formType === 'venda_fio') return it.yarn_type_id && parseFloat(it.weight_kg) > 0;
-      if (formType === 'saida') return it.article_id && parseFloat(it.weight_kg) > 0;
+      if (formType === 'saida') return (it.article_id || it.article_name_free?.trim()) && parseFloat(it.weight_kg) > 0;
       return false;
     });
 
@@ -393,9 +400,9 @@ export default function Invoices() {
         return s + w * v;
       }, 0);
 
-      const clientObj = formType === 'saida' ? clients.find(c => c.id === formClientId) : null;
+      const clientObj = formType === 'saida' ? null : null;
 
-      // For entrada: buyer_name stores supplier; for venda_fio: buyer_name stores buyer
+      // For entrada: buyer_name stores supplier; for venda_fio: buyer_name stores buyer; for saida: destination_name stores tinturaria
       const buyerNameValue = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : null;
 
       const observationsToSave = formObservations.trim() || null;
@@ -403,11 +410,12 @@ export default function Invoices() {
       const { data: invData, error: invError } = await sb('invoices').insert({
         company_id: companyId,
         type: formType,
-        invoice_number: formInvoiceNumber.trim(),
+        invoice_number: formInvoiceNumber.trim() || (formType === 'venda_fio' ? 'S/N' : ''),
         access_key: formAccessKey.trim() || null,
-        client_id: formType === 'saida' ? formClientId : null,
-        client_name: formType === 'saida' ? (clientObj?.name || null) : null,
+        client_id: null,
+        client_name: null,
         buyer_name: buyerNameValue,
+        destination_name: formType === 'saida' ? formTinturariaName.trim() : null,
         issue_date: formIssueDate,
         total_weight_kg: totalWeight,
         total_value: totalValue,
@@ -431,7 +439,7 @@ export default function Invoices() {
           yarn_type_id: it.yarn_type_id || null,
           yarn_type_name: yarnObj?.name || null,
           article_id: it.article_id || null,
-          article_name: artObj?.name || null,
+          article_name: formType === 'saida' ? (it.article_name_free?.trim() || artObj?.name || null) : (artObj?.name || null),
           weight_kg: w,
           quantity_rolls: parseFloat(it.quantity_rolls || '0'),
           quantity_boxes: parseFloat(it.quantity_boxes || '0'),
@@ -446,8 +454,8 @@ export default function Invoices() {
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
-      const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : clientObj?.name;
-      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim(), type: formType, client: logName, total_weight_kg: totalWeight });
+      const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : formTinturariaName.trim();
+      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim() || 'S/N', type: formType, client: logName, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
       resetForm();
       setDialogOpen(false);
@@ -517,7 +525,7 @@ export default function Invoices() {
   };
 
   // ===== Form Item Management =====
-  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '' }]);
+  const addItem = () => setFormItems(prev => [...prev, { weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '', article_name_free: '' }]);
   const removeItem = (idx: number) => setFormItems(prev => prev.filter((_, i) => i !== idx));
   const updateItem = (idx: number, field: string, value: string) => {
     setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
@@ -965,11 +973,11 @@ export default function Invoices() {
                     </Button>
                   ) : (
                     <div className="flex gap-1.5">
-                      <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Nova Saída (Malha)
-                      </Button>
-                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" variant="outline" className="gap-1.5">
+                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
                         <Plus className="h-4 w-4" /> Venda de Fio
+                      </Button>
+                      <Button onClick={() => openNewInvoice('saida')} size="sm" variant="outline" className="gap-1.5">
+                        <Plus className="h-4 w-4" /> Saída Malha
                       </Button>
                     </div>
                   )}
@@ -1038,7 +1046,7 @@ export default function Invoices() {
                       <TableHeader>
                          <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
-                          <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : 'Cliente'}</TableHead>
+                          <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : 'Cliente / Tinturaria'}</TableHead>
                           {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
@@ -1051,7 +1059,7 @@ export default function Invoices() {
                         {filteredInvoices.map(inv => (
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
-                            <TableCell className="text-xs">{inv.buyer_name || inv.client_name || '—'}</TableCell>
+                            <TableCell className="text-xs">{inv.destination_name || inv.buyer_name || inv.client_name || '—'}</TableCell>
                             {tab === 'saida' && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
@@ -1666,15 +1674,41 @@ export default function Invoices() {
               <div>
                 {formType === 'saida' ? (
                   <>
-                    <Label className="text-xs">Cliente *</Label>
-                    <SearchableSelect
-                      value={formClientId}
-                      onValueChange={setFormClientId}
-                      options={clients.map(c => ({ value: c.id, label: c.name }))}
-                      placeholder="Selecione..."
-                      searchPlaceholder="Buscar..."
-                      triggerClassName="h-9 text-xs"
-                    />
+                    <Label className="text-xs">Tinturaria *</Label>
+                    <div className="space-y-1">
+                      <div className="flex gap-1.5">
+                        <Button
+                          type="button"
+                          variant={formTinturariaSource === 'manual' ? 'default' : 'outline'}
+                          size="sm"
+                          className="text-[10px] h-6 px-2"
+                          onClick={() => { setFormTinturariaSource('manual'); setFormTinturariaName(''); }}
+                        >
+                          Manual
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={formTinturariaSource === 'terceiro' ? 'default' : 'outline'}
+                          size="sm"
+                          className="text-[10px] h-6 px-2"
+                          onClick={() => { setFormTinturariaSource('terceiro'); setFormTinturariaName(''); }}
+                        >
+                          Terceiros
+                        </Button>
+                      </div>
+                      {formTinturariaSource === 'manual' ? (
+                        <Input className="h-9 text-xs" value={formTinturariaName} onChange={e => setFormTinturariaName(e.target.value)} placeholder="Nome da tinturaria" />
+                      ) : (
+                        <SearchableSelect
+                          value={formTinturariaName}
+                          onValueChange={v => setFormTinturariaName(v)}
+                          options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
+                          placeholder="Selecione..."
+                          searchPlaceholder="Buscar malharia..."
+                          triggerClassName="h-9 text-xs"
+                        />
+                      )}
+                    </div>
                   </>
                 ) : formType === 'entrada' ? (
                   <>
@@ -1689,8 +1723,8 @@ export default function Invoices() {
                 )}
               </div>
               <div>
-                <Label className="text-xs">Nº da NF *</Label>
-                <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder="Ex: 12345" />
+                <Label className="text-xs">Nº da NF{formType !== 'venda_fio' ? ' *' : ''}</Label>
+                <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder={formType === 'venda_fio' ? 'Opcional' : 'Ex: 12345'} />
               </div>
               <div>
                 <Label className="text-xs">Data Emissão *</Label>
@@ -1736,12 +1770,11 @@ export default function Invoices() {
                     <div className={formType === 'saida' ? 'col-span-3' : 'col-span-3'}>
                       <Label className="text-[10px]">{formType === 'saida' ? 'Artigo' : 'Tipo de Fio'}</Label>
                       {formType === 'saida' ? (
-                        <SearchableSelect
-                          value={item.article_id || ''}
-                          onValueChange={v => updateItem(idx, 'article_id', v)}
-                          options={(formClientId ? clientArticles : articles).map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }))}
-                          placeholder="Selecione..."
-                          triggerClassName="h-8 text-xs"
+                        <Input
+                          className="h-8 text-xs"
+                          value={item.article_name_free || ''}
+                          onChange={e => updateItem(idx, 'article_name_free', e.target.value)}
+                          placeholder="Nome do artigo"
                         />
                       ) : (
                         <SearchableSelect
@@ -1858,7 +1891,7 @@ export default function Invoices() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div><span className="text-muted-foreground text-xs">Tipo:</span><br /><Badge variant="outline">{TYPE_LABELS[viewingInvoice.type]}</Badge></div>
-                <div><span className="text-muted-foreground text-xs">{viewingInvoice.type === 'entrada' ? 'Fornecedor:' : 'Cliente:'}</span><br />{viewingInvoice.buyer_name || viewingInvoice.client_name || '—'}</div>
+                <div><span className="text-muted-foreground text-xs">{viewingInvoice.type === 'entrada' ? 'Fornecedor:' : viewingInvoice.type === 'saida' ? 'Tinturaria:' : 'Cliente:'}</span><br />{viewingInvoice.destination_name || viewingInvoice.buyer_name || viewingInvoice.client_name || '—'}</div>
                 <div><span className="text-muted-foreground text-xs">Data:</span><br />{viewingInvoice.issue_date ? format(parse(viewingInvoice.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}</div>
                 <div><span className="text-muted-foreground text-xs">Status:</span><br /><Badge className={cn('text-[10px]', STATUS_COLORS[viewingInvoice.status])}>{STATUS_LABELS[viewingInvoice.status]}</Badge></div>
                 <div><span className="text-muted-foreground text-xs">Peso Total:</span><br />{formatWeight(Number(viewingInvoice.total_weight_kg))}</div>
