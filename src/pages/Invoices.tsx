@@ -1767,7 +1767,7 @@ export default function Invoices() {
                                 <SelectItem key={b} value={b}>{b}</SelectItem>
                               ))}
                               {availableBrands.length === 0 && (
-                                <SelectItem value="" disabled>Nenhuma marca disponível</SelectItem>
+                                <SelectItem value="__none__" disabled>Nenhuma marca disponível</SelectItem>
                               )}
                             </SelectContent>
                           </Select>
