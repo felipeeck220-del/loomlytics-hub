@@ -1449,6 +1449,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 17:00 (Brasília)** — **NOTAS FISCAIS — Peso com 2 casas decimais:** `formatWeight` e todas as exibições de peso em Notas Fiscais agora mostram 2 casas decimais após a vírgula (ex: 7.027,70 em vez de 7.027,7).
 
+- **14/04/2026 18:00 (Brasília)** — **NOTAS FISCAIS — Reestruturação Saída Malha + Venda de Fio:** (1) **Nº NF opcional em Venda de Fio:** Campo "Nº da NF" não é mais obrigatório no modal de Venda de Fio — se vazio, salva como "S/N"; (2) **Botão "Nova Saída (Malha)" removido:** Substituído por dois botões na aba "Venda de Fio": "Venda de Fio" (principal) e "Saída Malha" (outline); (3) **Modal Saída Malha — Tinturaria:** Campo "Cliente" substituído por "Tinturaria" com opção Manual (texto livre) ou Terceiros (lista de malharias terceirizadas do módulo Terceirizado); salvo em `destination_name`; (4) **Modal Saída Malha — Artigo livre:** Campo de artigo agora é input de texto livre (sem seletor), permitindo registrar qualquer artigo sem necessidade de cadastro prévio; (5) **Listagem:** Coluna "Cliente/Tinturaria" exibe `destination_name` para NFs de saída; (6) **Busca:** Inclui `destination_name` na busca textual.
+
 ---
 
-*Última atualização: 14/04/2026 17:00 (Brasília)*
+*Última atualização: 14/04/2026 18:00 (Brasília)*
