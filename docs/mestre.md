@@ -1464,6 +1464,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **14/04/2026 22:30 (Brasília)** — **AUDITORIA — Regra de exibição obrigatória + NF listagem com autoria:** (1) Adicionada coluna "Registrado por" na listagem de NFs (todas as abas) exibindo `Nome #ID` + data/hora compacta; (2) Nova regra obrigatória em `auditoria.md`: toda listagem com `created_by` DEVE exibir autoria + data/hora; (3) Tabela de conformidade por módulo adicionada (todos ✅).
 
+- **14/04/2026 23:00 (Brasília)** — **NOTAS FISCAIS — Nº NF opcional em Entrada de Fio:** Campo "Nº da NF" agora é opcional no modal de Entrada de Fio (mesmo comportamento de Venda de Fio). Quando vazio, salva como "S/N". Apenas Saída Malha mantém o campo obrigatório.
+
 ---
 
-*Última atualização: 14/04/2026 22:30 (Brasília)*
+*Última atualização: 14/04/2026 23:00 (Brasília)*
