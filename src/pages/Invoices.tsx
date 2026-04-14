@@ -199,7 +199,7 @@ export default function Invoices() {
   const [formSupplierName, setFormSupplierName] = useState('');
   const [formBuyerName, setFormBuyerName] = useState('');
   const [formTinturariaName, setFormTinturariaName] = useState('');
-  const [formTinturariaSource, setFormTinturariaSource] = useState<'manual' | 'terceiro'>('manual');
+  // formTinturariaSource removed — using single input with optional terceiros picker
   const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
   const [formObservations, setFormObservations] = useState('');
@@ -236,7 +236,7 @@ export default function Invoices() {
     setFormSupplierName('');
     setFormBuyerName('');
     setFormTinturariaName('');
-    setFormTinturariaSource('manual');
+    
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
@@ -310,7 +310,8 @@ export default function Invoices() {
 
     // Tab filter
     if (activeTab === 'entrada') filtered = filtered.filter(i => i.type === 'entrada');
-    else if (activeTab === 'saida') filtered = filtered.filter(i => i.type === 'saida' || i.type === 'venda_fio');
+    else if (activeTab === 'venda_fio') filtered = filtered.filter(i => i.type === 'venda_fio');
+    else if (activeTab === 'saida_malha') filtered = filtered.filter(i => i.type === 'saida');
 
     // Status
     if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
@@ -927,7 +928,8 @@ export default function Invoices() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
           <TabsTrigger value="entrada" className="text-xs">Entrada de Fio</TabsTrigger>
-          <TabsTrigger value="saida" className="text-xs">Venda de Fio</TabsTrigger>
+          <TabsTrigger value="venda_fio" className="text-xs">Venda de Fio</TabsTrigger>
+          <TabsTrigger value="saida_malha" className="text-xs">Saída Malha</TabsTrigger>
           <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
           <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
           <TabsTrigger value="estoque" className="text-xs">Estoque Malha</TabsTrigger>
@@ -935,10 +937,9 @@ export default function Invoices() {
           <TabsTrigger value="fios" className="text-xs">Tipos de Fio</TabsTrigger>
         </TabsList>
 
-        {/* ===== ENTRADA, SAIDA & VENDA_FIO TABS ===== */}
-        {['entrada', 'saida'].map(tab => {
-          const tabLabel = tab === 'entrada' ? 'Entrada de Fio' : 'Venda de Fio';
-          const invoiceType = tab as InvoiceType;
+        {/* ===== ENTRADA TAB ===== */}
+        {['entrada', 'venda_fio', 'saida_malha'].map(tab => {
+          const tabLabel = tab === 'entrada' ? 'Entrada de Fio' : tab === 'venda_fio' ? 'Venda de Fio' : 'Saída Malha';
           return (
           <TabsContent key={tab} value={tab} className="space-y-4">
             {/* KPIs */}
@@ -967,19 +968,20 @@ export default function Invoices() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  {tab === 'entrada' ? (
+                  {tab === 'entrada' && (
                     <Button onClick={() => openNewInvoice('entrada')} size="sm" className="gap-1.5">
                       <Plus className="h-4 w-4" /> Nova Entrada
                     </Button>
-                  ) : (
-                    <div className="flex gap-1.5">
-                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Venda de Fio
-                      </Button>
-                      <Button onClick={() => openNewInvoice('saida')} size="sm" variant="outline" className="gap-1.5">
-                        <Plus className="h-4 w-4" /> Saída Malha
-                      </Button>
-                    </div>
+                  )}
+                  {tab === 'venda_fio' && (
+                    <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
+                      <Plus className="h-4 w-4" /> Venda de Fio
+                    </Button>
+                  )}
+                  {tab === 'saida_malha' && (
+                    <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
+                      <Plus className="h-4 w-4" /> Saída Malha
+                    </Button>
                   )}
                   <div className="flex-1" />
 
@@ -1004,17 +1006,6 @@ export default function Invoices() {
                       <SelectItem value="cancelada">Cancelada</SelectItem>
                     </SelectContent>
                   </Select>
-
-                  {tab === 'saida' && (
-                    <SearchableSelect
-                      value={filterClient === 'all' ? '' : filterClient}
-                      onValueChange={v => setFilterClient(v || 'all')}
-                      options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                      placeholder="Todos clientes"
-                      searchPlaceholder="Buscar cliente..."
-                      triggerClassName="w-[180px] h-8 text-xs"
-                    />
-                  )}
 
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -1046,8 +1037,7 @@ export default function Invoices() {
                       <TableHeader>
                          <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
-                          <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : 'Cliente / Tinturaria'}</TableHead>
-                          {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
+                          <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : tab === 'saida_malha' ? 'Tinturaria' : 'Cliente'}</TableHead>
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
                           {canSeeFinancial && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
@@ -1060,7 +1050,6 @@ export default function Invoices() {
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                             <TableCell className="text-xs">{inv.destination_name || inv.buyer_name || inv.client_name || '—'}</TableCell>
-                            {tab === 'saida' && <TableCell className="text-xs"><Badge variant="outline" className="text-[10px]">{TYPE_LABELS[inv.type as InvoiceType] || inv.type}</Badge></TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
                             </TableCell>
@@ -1675,39 +1664,17 @@ export default function Invoices() {
                 {formType === 'saida' ? (
                   <>
                     <Label className="text-xs">Tinturaria *</Label>
-                    <div className="space-y-1">
-                      <div className="flex gap-1.5">
-                        <Button
-                          type="button"
-                          variant={formTinturariaSource === 'manual' ? 'default' : 'outline'}
-                          size="sm"
-                          className="text-[10px] h-6 px-2"
-                          onClick={() => { setFormTinturariaSource('manual'); setFormTinturariaName(''); }}
-                        >
-                          Manual
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={formTinturariaSource === 'terceiro' ? 'default' : 'outline'}
-                          size="sm"
-                          className="text-[10px] h-6 px-2"
-                          onClick={() => { setFormTinturariaSource('terceiro'); setFormTinturariaName(''); }}
-                        >
-                          Terceiros
-                        </Button>
-                      </div>
-                      {formTinturariaSource === 'manual' ? (
-                        <Input className="h-9 text-xs" value={formTinturariaName} onChange={e => setFormTinturariaName(e.target.value)} placeholder="Nome da tinturaria" />
-                      ) : (
-                        <SearchableSelect
-                          value={formTinturariaName}
-                          onValueChange={v => setFormTinturariaName(v)}
-                          options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
-                          placeholder="Selecione..."
-                          searchPlaceholder="Buscar malharia..."
-                          triggerClassName="h-9 text-xs"
-                        />
-                      )}
+                    <Input className="h-9 text-xs" value={formTinturariaName} onChange={e => setFormTinturariaName(e.target.value)} placeholder="Nome da tinturaria" />
+                    <div className="mt-2">
+                      <Label className="text-xs text-muted-foreground">Terceiros (opcional)</Label>
+                      <SearchableSelect
+                        value=""
+                        onValueChange={v => { if (v) setFormTinturariaName(v); }}
+                        options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
+                        placeholder="Selecionar de terceiros..."
+                        searchPlaceholder="Buscar malharia..."
+                        triggerClassName="h-8 text-xs"
+                      />
                     </div>
                   </>
                 ) : formType === 'entrada' ? (
@@ -1818,13 +1785,7 @@ export default function Invoices() {
                         <Input className="h-8 text-xs" inputMode="numeric" type="number" min="0" value={item.quantity_boxes} onChange={e => updateItem(idx, 'quantity_boxes', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-', '.', ','].includes(e.key)) e.preventDefault(); }} />
                       </div>
                     )}
-                    {formType === 'saida' && (
-                      <div className="col-span-2">
-                        <Label className="text-[10px]">Rolos</Label>
-                        <Input className="h-8 text-xs" inputMode="numeric" type="number" min="0" value={item.quantity_rolls} onChange={e => updateItem(idx, 'quantity_rolls', e.target.value)} onKeyDown={e => { if (['e', 'E', '+', '-', '.', ','].includes(e.key)) e.preventDefault(); }} />
-                      </div>
-                    )}
-                    {(formType === 'saida' || formType === 'venda_fio') && canSeeFinancial && (
+                    {formType === 'venda_fio' && canSeeFinancial && (
                       <div className="col-span-2">
                         <Label className="text-[10px]">R$/kg</Label>
                         <Input className="h-8 text-xs" inputMode="decimal" type="number" step="0.01" min="0" value={item.value_per_kg}
@@ -1841,7 +1802,7 @@ export default function Invoices() {
                       )}
                     </div>
                     {/* Subtotal preview */}
-                    {canSeeFinancial && (formType === 'saida' || formType === 'venda_fio') && (
+                    {canSeeFinancial && formType === 'venda_fio' && (
                       <div className="col-span-12 text-right text-[10px] text-muted-foreground">
                         Subtotal: {formatCurrency((parseFloat(item.weight_kg || '0')) * (parseFloat(item.value_per_kg || '0')))}
                       </div>
@@ -1862,7 +1823,7 @@ export default function Invoices() {
               <span className="font-medium">Total:</span>
               <div className="text-right">
                 <div className="font-bold">{formatWeight(formItems.reduce((s, it) => s + parseFloat(it.weight_kg || '0'), 0))}</div>
-                {canSeeFinancial && (formType === 'saida' || formType === 'venda_fio') && (
+                {canSeeFinancial && formType === 'venda_fio' && (
                   <div className="text-xs text-muted-foreground">
                     {formatCurrency(formItems.reduce((s, it) => s + parseFloat(it.weight_kg || '0') * parseFloat(it.value_per_kg || '0'), 0))}
                   </div>
@@ -1914,10 +1875,9 @@ export default function Invoices() {
                       <TableHead className="text-xs">{viewingInvoice.type === 'saida' ? 'Artigo' : 'Fio'}</TableHead>
                       {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableHead className="text-xs">Marca</TableHead>}
                       <TableHead className="text-xs text-right">Peso (kg)</TableHead>
-                      {viewingInvoice.type === 'saida' && <TableHead className="text-xs text-right">Rolos</TableHead>}
                       {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableHead className="text-xs text-right">Caixas</TableHead>}
-                      {canSeeFinancial && <TableHead className="text-xs text-right">R$/kg</TableHead>}
-                      {canSeeFinancial && <TableHead className="text-xs text-right">Subtotal</TableHead>}
+                      {canSeeFinancial && viewingInvoice.type !== 'saida' && <TableHead className="text-xs text-right">R$/kg</TableHead>}
+                      {canSeeFinancial && viewingInvoice.type !== 'saida' && <TableHead className="text-xs text-right">Subtotal</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1926,10 +1886,9 @@ export default function Invoices() {
                         <TableCell className="text-xs">{it.article_name || it.yarn_type_name || '—'}</TableCell>
                         {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableCell className="text-xs">{it.brand || '—'}</TableCell>}
                         <TableCell className="text-xs text-right">{formatNumber(Number(it.weight_kg), 2)}</TableCell>
-                        {viewingInvoice.type === 'saida' && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_rolls))}</TableCell>}
                         {(viewingInvoice.type === 'entrada' || viewingInvoice.type === 'venda_fio') && <TableCell className="text-xs text-right">{formatNumber(Number(it.quantity_boxes))}</TableCell>}
-                        {canSeeFinancial && <TableCell className="text-xs text-right">{formatCurrency(Number(it.value_per_kg))}</TableCell>}
-                        {canSeeFinancial && <TableCell className="text-xs text-right">{formatCurrency(Number(it.subtotal))}</TableCell>}
+                        {canSeeFinancial && viewingInvoice.type !== 'saida' && <TableCell className="text-xs text-right">{formatCurrency(Number(it.value_per_kg))}</TableCell>}
+                        {canSeeFinancial && viewingInvoice.type !== 'saida' && <TableCell className="text-xs text-right">{formatCurrency(Number(it.subtotal))}</TableCell>}
                       </TableRow>
                     ))}
                   </TableBody>
