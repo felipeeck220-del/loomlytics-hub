@@ -371,10 +371,11 @@ export default function Invoices() {
   // ===== Save Invoice =====
   const handleSaveInvoice = async () => {
     // Validation per type
-    if (formType === 'saida' && !formClientId) { toast({ title: 'Selecione um cliente', variant: 'destructive' }); return; }
+    if (formType === 'saida' && !formTinturariaName.trim()) { toast({ title: 'Informe a tinturaria', variant: 'destructive' }); return; }
     if (formType === 'entrada' && !formSupplierName.trim()) { toast({ title: 'Informe o fornecedor', variant: 'destructive' }); return; }
     if (formType === 'venda_fio' && !formBuyerName.trim()) { toast({ title: 'Informe o cliente', variant: 'destructive' }); return; }
-    if (!formInvoiceNumber.trim()) { toast({ title: 'Informe o nº da NF', variant: 'destructive' }); return; }
+    if (formType !== 'venda_fio' && !formInvoiceNumber.trim()) { toast({ title: 'Informe o nº da NF', variant: 'destructive' }); return; }
+    if (formType === 'venda_fio' && formInvoiceNumber.trim() === '') { /* NF number is optional for venda_fio */ }
     if (!isDateValid(formIssueDate)) { toast({ title: 'Data inválida (limite ±5 anos)', variant: 'destructive' }); return; }
     if (formAccessKey && (formAccessKey.length !== 44 || !/^\d+$/.test(formAccessKey))) {
       toast({ title: 'Chave de acesso deve ter 44 dígitos numéricos', variant: 'destructive' }); return;
