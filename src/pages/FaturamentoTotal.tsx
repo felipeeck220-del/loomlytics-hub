@@ -38,7 +38,7 @@ async function fetchAllPaginated<T>(table: string, companyId: string, orderCol: 
 }
 
 interface ProductionRow { id: string; date: string; revenue: number; company_id: string; }
-interface OutsourceRow { id: string; date: string; total_revenue: number; company_id: string; }
+interface OutsourceRow { id: string; date: string; total_profit: number; company_id: string; }
 interface ResidueRow { id: string; date: string; total: number; company_id: string; }
 
 function RevenueKpiCard({ label, value, previousValue, icon, borderColor, showComparison }: {
@@ -194,12 +194,12 @@ export default function FaturamentoTotal() {
   const prevRes = useMemo(() => filterByPeriod(residues, previousPeriod), [residues, previousPeriod]);
 
   const malhasCurrent = filteredProd.reduce((s, p) => s + p.revenue, 0);
-  const tercCurrent = filteredOut.reduce((s, p) => s + p.total_revenue, 0);
+  const tercCurrent = filteredOut.reduce((s, p) => s + p.total_profit, 0);
   const resCurrent = filteredRes.reduce((s, p) => s + p.total, 0);
   const totalCurrent = malhasCurrent + tercCurrent + resCurrent;
 
   const malhasPrev = prevProd.reduce((s, p) => s + p.revenue, 0);
-  const tercPrev = prevOut.reduce((s, p) => s + p.total_revenue, 0);
+  const tercPrev = prevOut.reduce((s, p) => s + p.total_profit, 0);
   const resPrev = prevRes.reduce((s, p) => s + p.total, 0);
   const totalPrev = malhasPrev + tercPrev + resPrev;
 
@@ -232,7 +232,7 @@ export default function FaturamentoTotal() {
     });
     filteredOut.forEach(p => {
       if (!dateMap[p.date]) dateMap[p.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
-      dateMap[p.date].terceirizado += p.total_revenue;
+      dateMap[p.date].terceirizado += p.total_profit;
     });
     filteredRes.forEach(s => {
       if (!dateMap[s.date]) dateMap[s.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
@@ -253,7 +253,7 @@ export default function FaturamentoTotal() {
   const tableData = useMemo(() => {
     const rows = [
       { fonte: malhasLabel, current: malhasCurrent, prev: malhasPrev },
-      { fonte: 'Terceirizado', current: tercCurrent, prev: tercPrev },
+      { fonte: 'Terceirizado (Lucro)', current: tercCurrent, prev: tercPrev },
       { fonte: 'Resíduos', current: resCurrent, prev: resPrev },
     ];
     return rows.map(r => ({
@@ -359,7 +359,7 @@ export default function FaturamentoTotal() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <RevenueKpiCard label={malhasLabel} value={malhasCurrent} previousValue={malhasPrev} borderColor="border-l-primary" icon={<Package className="h-5 w-5" />} showComparison={showComparison} />
-        <RevenueKpiCard label="Terceirizado" value={tercCurrent} previousValue={tercPrev} borderColor="border-l-accent" icon={<Factory className="h-5 w-5" />} showComparison={showComparison} />
+        <RevenueKpiCard label="Terceirizado (Lucro)" value={tercCurrent} previousValue={tercPrev} borderColor="border-l-accent" icon={<Factory className="h-5 w-5" />} showComparison={showComparison} />
         <RevenueKpiCard label="Resíduos" value={resCurrent} previousValue={resPrev} borderColor="border-l-warning" icon={<Recycle className="h-5 w-5" />} showComparison={showComparison} />
         <RevenueKpiCard label="Total Geral" value={totalCurrent} previousValue={totalPrev} borderColor="border-l-success" icon={<DollarSign className="h-5 w-5" />} showComparison={showComparison} />
       </div>
@@ -379,7 +379,7 @@ export default function FaturamentoTotal() {
                 <Tooltip formatter={(v: number) => formatCurrency(v)} />
                 <Legend />
                 <Area type="monotone" dataKey="malhas" name={malhasLabel} stackId="1" fill="hsl(var(--primary) / 0.3)" stroke="hsl(var(--primary))" />
-                <Area type="monotone" dataKey="terceirizado" name="Terceirizado" stackId="1" fill="hsl(var(--accent) / 0.3)" stroke="hsl(var(--accent))" />
+                <Area type="monotone" dataKey="terceirizado" name="Terceirizado (Lucro)" stackId="1" fill="hsl(var(--accent) / 0.3)" stroke="hsl(var(--accent))" />
                 <Area type="monotone" dataKey="residuos" name="Resíduos" stackId="1" fill="hsl(var(--warning) / 0.3)" stroke="hsl(var(--warning))" />
               </AreaChart>
             </ResponsiveContainer>

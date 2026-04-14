@@ -1436,6 +1436,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **13/04/2026 19:00 (Brasília)** — **RESÍDUOS — Botão editar nos registros de venda:** Adicionado botão de edição (ícone lápis) em cada registro da listagem de vendas de resíduos. Ao clicar, abre o dialog preenchido com os dados da venda (cliente, material, quantidade, preço, romaneio, observações) para edição. Atualiza no banco via `UPDATE` em `residue_sales`. Auditoria registrada com ação `residue_sale_update`.
 
+- **14/04/2026 10:00 (Brasília)** — **FATURAMENTO TOTAL — Terceirizado agora exibe Lucro:** Card "Terceirizado" renomeado para "Terceirizado (Lucro)" e campo de dados alterado de `total_revenue` (receita) para `total_profit` (lucro). Alteração aplicada nos KPI cards, gráfico de tendência (AreaChart) e tabela de resumo. Documentação `faturamentototal.md` atualizada.
+
 ---
 
-*Última atualização: 13/04/2026 19:00 (Brasília)*
+*Última atualização: 14/04/2026 10:00 (Brasília)*
