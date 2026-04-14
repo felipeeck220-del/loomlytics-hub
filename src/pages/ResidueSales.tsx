@@ -369,6 +369,7 @@ export default function ResidueSales() {
 
   // When client changes, reset material
   useEffect(() => {
+    if (skipPriceAutoUpdate.current) return;
     setSaleMaterialId('');
     setSalePrice('');
   }, [saleClientId]);
