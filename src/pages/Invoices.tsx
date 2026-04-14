@@ -229,10 +229,12 @@ export default function Invoices() {
     setFormInvoiceNumber('');
     setFormAccessKey('');
     setFormClientId('');
+    setFormSupplierName('');
+    setFormBuyerName('');
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
-    setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '' }]);
+    setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '' }]);
   };
 
   const openNewInvoice = (type: InvoiceType) => {
