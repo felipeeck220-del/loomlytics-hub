@@ -1732,7 +1732,7 @@ export default function Invoices() {
                 {formItems.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-2">
                     {/* Yarn or Article selection */}
-                    <div className={formType === 'saida' ? 'col-span-3' : 'col-span-4'}>
+                    <div className={formType === 'saida' ? 'col-span-3' : 'col-span-3'}>
                       <Label className="text-[10px]">{formType === 'saida' ? 'Artigo' : 'Tipo de Fio'}</Label>
                       {formType === 'saida' ? (
                         <SearchableSelect
