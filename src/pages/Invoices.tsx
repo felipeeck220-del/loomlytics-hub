@@ -101,7 +101,7 @@ interface InvoiceItem {
 }
 
 const TYPE_LABELS: Record<InvoiceType, string> = {
-  entrada: 'Entrada (Fio)',
+  entrada: 'Entrada de Fio',
   saida: 'Saída (Malha)',
   venda_fio: 'Venda de Fio',
 };
