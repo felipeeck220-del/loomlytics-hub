@@ -119,6 +119,13 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
   cancelada: 'bg-destructive/10 text-destructive',
 };
 
+const formatYarnLabel = (y: { name: string; color?: string | null; composition?: string | null }) => {
+  const parts = [y.name];
+  if (y.color) parts.push(y.color);
+  if (y.composition) parts.push(`(${y.composition})`);
+  return parts.join(' — ');
+};
+
 export default function Invoices() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
@@ -1197,7 +1204,7 @@ export default function Invoices() {
                 <SearchableSelect
                   value={saldoGlobalYarn === 'all' ? '' : saldoGlobalYarn}
                   onValueChange={v => setSaldoGlobalYarn(v || 'all')}
-                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
+                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: formatYarnLabel(y) }))]}
                   placeholder="Todos os fios"
                   searchPlaceholder="Buscar fio..."
                   triggerClassName="w-[220px] h-8 text-xs"
@@ -1437,7 +1444,7 @@ export default function Invoices() {
                 <SearchableSelect
                   value={eftYarn === 'all' ? '' : eftYarn}
                   onValueChange={v => setEftYarn(v || 'all')}
-                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
+                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: formatYarnLabel(y) }))]}
                   placeholder="Todos os fios"
                   searchPlaceholder="Buscar fio..."
                   triggerClassName="w-[220px] h-8 text-xs"
@@ -1694,7 +1701,7 @@ export default function Invoices() {
                         <SearchableSelect
                           value={item.yarn_type_id || ''}
                           onValueChange={v => updateItem(idx, 'yarn_type_id', v)}
-                          options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
+                          options={yarnTypes.map(y => ({ value: y.id, label: formatYarnLabel(y) }))}
                           placeholder="Selecione..."
                           searchPlaceholder="Buscar fio..."
                           triggerClassName="h-8 text-xs"
@@ -1914,7 +1921,7 @@ export default function Invoices() {
                 <SearchableSelect
                   value={eftFormYarn}
                   onValueChange={v => setEftFormYarn(v)}
-                  options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
+                  options={yarnTypes.map(y => ({ value: y.id, label: formatYarnLabel(y) }))}
                   placeholder="Selecione o fio..."
                   searchPlaceholder="Buscar fio..."
                   triggerClassName="h-9 text-xs"
