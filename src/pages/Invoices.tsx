@@ -198,12 +198,15 @@ export default function Invoices() {
   const [formClientId, setFormClientId] = useState('');
   const [formSupplierName, setFormSupplierName] = useState('');
   const [formBuyerName, setFormBuyerName] = useState('');
+  const [formTinturariaName, setFormTinturariaName] = useState('');
+  const [formTinturariaSource, setFormTinturariaSource] = useState<'manual' | 'terceiro'>('manual');
   const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
   const [formObservations, setFormObservations] = useState('');
   const [formItems, setFormItems] = useState<Array<{
     yarn_type_id?: string;
     article_id?: string;
+    article_name_free?: string;
     weight_kg: string;
     quantity_rolls: string;
     quantity_boxes: string;
@@ -232,6 +235,8 @@ export default function Invoices() {
     setFormClientId('');
     setFormSupplierName('');
     setFormBuyerName('');
+    setFormTinturariaName('');
+    setFormTinturariaSource('manual');
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
     setFormStatus('pendente');
     setFormObservations('');
