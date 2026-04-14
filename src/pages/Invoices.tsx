@@ -1802,7 +1802,7 @@ export default function Invoices() {
                       )}
                     </div>
                     {/* Subtotal preview */}
-                    {canSeeFinancial && (formType === 'saida' || formType === 'venda_fio') && (
+                    {canSeeFinancial && formType === 'venda_fio' && (
                       <div className="col-span-12 text-right text-[10px] text-muted-foreground">
                         Subtotal: {formatCurrency((parseFloat(item.weight_kg || '0')) * (parseFloat(item.value_per_kg || '0')))}
                       </div>
