@@ -342,6 +342,7 @@ export default function ResidueSales() {
 
   const openEditSale = (s: ResidueSale) => {
     setEditingSale(s);
+    skipPriceAutoUpdate.current = true;
     setSaleClientId(s.client_id || '');
     setSaleDate(s.date);
     setSaleRomaneio(s.romaneio || '');
@@ -351,6 +352,8 @@ export default function ResidueSales() {
       setSaleMaterialId(s.material_id);
       setSaleQty(formatNumber(s.quantity, 2).replace('.', ''));
       setSalePrice(s.unit_price.toFixed(2).replace('.', ','));
+      // Allow auto-update again after values are settled
+      setTimeout(() => { skipPriceAutoUpdate.current = false; }, 100);
     }, 50);
     setSaleDialogOpen(true);
   };
