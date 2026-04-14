@@ -199,7 +199,7 @@ export default function Invoices() {
   const [formSupplierName, setFormSupplierName] = useState('');
   const [formBuyerName, setFormBuyerName] = useState('');
   const [formTinturariaName, setFormTinturariaName] = useState('');
-  const [formTinturariaSource, setFormTinturariaSource] = useState<'manual' | 'terceiro'>('manual');
+  // formTinturariaSource removed — using single input with optional terceiros picker
   const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
   const [formObservations, setFormObservations] = useState('');
