@@ -1673,15 +1673,41 @@ export default function Invoices() {
               <div>
                 {formType === 'saida' ? (
                   <>
-                    <Label className="text-xs">Cliente *</Label>
-                    <SearchableSelect
-                      value={formClientId}
-                      onValueChange={setFormClientId}
-                      options={clients.map(c => ({ value: c.id, label: c.name }))}
-                      placeholder="Selecione..."
-                      searchPlaceholder="Buscar..."
-                      triggerClassName="h-9 text-xs"
-                    />
+                    <Label className="text-xs">Tinturaria *</Label>
+                    <div className="space-y-1">
+                      <div className="flex gap-1.5">
+                        <Button
+                          type="button"
+                          variant={formTinturariaSource === 'manual' ? 'default' : 'outline'}
+                          size="sm"
+                          className="text-[10px] h-6 px-2"
+                          onClick={() => { setFormTinturariaSource('manual'); setFormTinturariaName(''); }}
+                        >
+                          Manual
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={formTinturariaSource === 'terceiro' ? 'default' : 'outline'}
+                          size="sm"
+                          className="text-[10px] h-6 px-2"
+                          onClick={() => { setFormTinturariaSource('terceiro'); setFormTinturariaName(''); }}
+                        >
+                          Terceiros
+                        </Button>
+                      </div>
+                      {formTinturariaSource === 'manual' ? (
+                        <Input className="h-9 text-xs" value={formTinturariaName} onChange={e => setFormTinturariaName(e.target.value)} placeholder="Nome da tinturaria" />
+                      ) : (
+                        <SearchableSelect
+                          value={formTinturariaName}
+                          onValueChange={v => setFormTinturariaName(v)}
+                          options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
+                          placeholder="Selecione..."
+                          searchPlaceholder="Buscar malharia..."
+                          triggerClassName="h-9 text-xs"
+                        />
+                      )}
+                    </div>
                   </>
                 ) : formType === 'entrada' ? (
                   <>
@@ -1696,8 +1722,8 @@ export default function Invoices() {
                 )}
               </div>
               <div>
-                <Label className="text-xs">Nº da NF *</Label>
-                <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder="Ex: 12345" />
+                <Label className="text-xs">Nº da NF{formType !== 'venda_fio' ? ' *' : ''}</Label>
+                <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder={formType === 'venda_fio' ? 'Opcional' : 'Ex: 12345'} />
               </div>
               <div>
                 <Label className="text-xs">Data Emissão *</Label>
