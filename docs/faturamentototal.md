@@ -19,7 +19,7 @@ Página consolidada que reúne o **faturamento de todas as fontes de receita** d
 | # | Fonte | Tabela Supabase | Campo de Valor | Campo de Data | Ícone | Cor do Card |
 |---|-------|-----------------|----------------|---------------|-------|-------------|
 | 1 | **Malhas (Produção)** | `productions` | `revenue` | `date` (text yyyy-MM-dd) | `Package` | `border-l-primary` |
-| 2 | **Terceirizado** | `outsource_productions` | `total_revenue` | `date` (text yyyy-MM-dd) | `Factory` | `border-l-accent` |
+| 2 | **Terceirizado (Lucro)** | `outsource_productions` | `total_profit` | `date` (text yyyy-MM-dd) | `Factory` | `border-l-accent` |
 | 3 | **Resíduos** | `residue_sales` | `total` | `date` (text yyyy-MM-dd) | `Recycle` | `border-l-warning` |
 | 4 | **Total Geral** | — (soma dos 3) | — | — | `DollarSign` | `border-l-success` |
 
@@ -93,11 +93,11 @@ A mesma lógica é aplicada **simultaneamente** às 3 tabelas usando o campo `da
 
 ```
 ┌─────────────────┬─────────────────┬─────────────────┬─────────────────┐
-│  🧵 Malhas      │  🏭 Terceirizado│  ♻️ Resíduos    │  💰 Total Geral │
-│  R$ 45.230,00   │  R$ 12.800,00   │  R$ 3.450,00    │  R$ 61.480,00   │
+│  🧵 Malhas      │  🏭 Terc.(Lucro)│  ♻️ Resíduos    │  💰 Total Geral │
+│  R$ 45.230,00   │  R$ 5.200,00    │  R$ 3.450,00    │  R$ 53.880,00   │
 │  ▲ +12.5%       │  ▼ -5.2%        │  ▲ +8.1%        │  ▲ +7.3%        │
 │  Anterior:      │  Anterior:      │  Anterior:      │  Anterior:      │
-│  R$ 40.200,00   │  R$ 13.500,00   │  R$ 3.190,00    │  R$ 57.290,00   │
+│  R$ 40.200,00   │  R$ 5.490,00    │  R$ 3.190,00    │  R$ 48.880,00   │
 └─────────────────┴─────────────────┴─────────────────┴─────────────────┘
 ```
 
@@ -355,4 +355,4 @@ Exibido abaixo do título: `Faturamento Total · {periodLabel}`
 ---
 
 *Documentação criada em: 09/04/2026*
-*Última atualização: 09/04/2026*
+*Última atualização: 14/04/2026*
