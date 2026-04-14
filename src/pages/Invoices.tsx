@@ -1664,39 +1664,17 @@ export default function Invoices() {
                 {formType === 'saida' ? (
                   <>
                     <Label className="text-xs">Tinturaria *</Label>
-                    <div className="space-y-1">
-                      <div className="flex gap-1.5">
-                        <Button
-                          type="button"
-                          variant={formTinturariaSource === 'manual' ? 'default' : 'outline'}
-                          size="sm"
-                          className="text-[10px] h-6 px-2"
-                          onClick={() => { setFormTinturariaSource('manual'); setFormTinturariaName(''); }}
-                        >
-                          Manual
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={formTinturariaSource === 'terceiro' ? 'default' : 'outline'}
-                          size="sm"
-                          className="text-[10px] h-6 px-2"
-                          onClick={() => { setFormTinturariaSource('terceiro'); setFormTinturariaName(''); }}
-                        >
-                          Terceiros
-                        </Button>
-                      </div>
-                      {formTinturariaSource === 'manual' ? (
-                        <Input className="h-9 text-xs" value={formTinturariaName} onChange={e => setFormTinturariaName(e.target.value)} placeholder="Nome da tinturaria" />
-                      ) : (
-                        <SearchableSelect
-                          value={formTinturariaName}
-                          onValueChange={v => setFormTinturariaName(v)}
-                          options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
-                          placeholder="Selecione..."
-                          searchPlaceholder="Buscar malharia..."
-                          triggerClassName="h-9 text-xs"
-                        />
-                      )}
+                    <Input className="h-9 text-xs" value={formTinturariaName} onChange={e => setFormTinturariaName(e.target.value)} placeholder="Nome da tinturaria" />
+                    <div className="mt-2">
+                      <Label className="text-xs text-muted-foreground">Terceiros (opcional)</Label>
+                      <SearchableSelect
+                        value=""
+                        onValueChange={v => { if (v) setFormTinturariaName(v); }}
+                        options={outsourceCompanies.map(c => ({ value: c.name, label: c.name }))}
+                        placeholder="Selecionar de terceiros..."
+                        searchPlaceholder="Buscar malharia..."
+                        triggerClassName="h-8 text-xs"
+                      />
                     </div>
                   </>
                 ) : formType === 'entrada' ? (
