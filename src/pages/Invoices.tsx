@@ -339,9 +339,34 @@ export default function Invoices() {
     };
   }, [filteredInvoices]);
 
+  // ===== Available brands from items with positive stock =====
+  const availableBrands = useMemo(() => {
+    const brandMap = new Map<string, number>();
+    // Sum entries
+    invoices.filter(i => i.type === 'entrada' && i.status !== 'cancelada').forEach(inv => {
+      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => {
+        brandMap.set(it.brand!, (brandMap.get(it.brand!) || 0) + Number(it.weight_kg));
+      });
+    });
+    // Subtract sales
+    invoices.filter(i => i.type === 'venda_fio' && i.status !== 'cancelada').forEach(inv => {
+      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => {
+        brandMap.set(it.brand!, (brandMap.get(it.brand!) || 0) - Number(it.weight_kg));
+      });
+    });
+    // Only return brands with positive stock
+    return Array.from(brandMap.entries())
+      .filter(([, qty]) => qty > 0)
+      .map(([brand]) => brand)
+      .sort();
+  }, [invoices, invoiceItems]);
+
   // ===== Save Invoice =====
   const handleSaveInvoice = async () => {
-    if (!formClientId) { toast({ title: 'Selecione um cliente', variant: 'destructive' }); return; }
+    // Validation per type
+    if (formType === 'saida' && !formClientId) { toast({ title: 'Selecione um cliente', variant: 'destructive' }); return; }
+    if (formType === 'entrada' && !formSupplierName.trim()) { toast({ title: 'Informe o fornecedor', variant: 'destructive' }); return; }
+    if (formType === 'venda_fio' && !formBuyerName.trim()) { toast({ title: 'Informe o cliente', variant: 'destructive' }); return; }
     if (!formInvoiceNumber.trim()) { toast({ title: 'Informe o nº da NF', variant: 'destructive' }); return; }
     if (!isDateValid(formIssueDate)) { toast({ title: 'Data inválida (limite ±5 anos)', variant: 'destructive' }); return; }
     if (formAccessKey && (formAccessKey.length !== 44 || !/^\d+$/.test(formAccessKey))) {
@@ -366,7 +391,10 @@ export default function Invoices() {
         return s + w * v;
       }, 0);
 
-      const clientObj = clients.find(c => c.id === formClientId);
+      const clientObj = formType === 'saida' ? clients.find(c => c.id === formClientId) : null;
+
+      // For entrada: buyer_name stores supplier; for venda_fio: buyer_name stores buyer
+      const buyerNameValue = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : null;
 
       const observationsToSave = formObservations.trim() || null;
 
@@ -375,8 +403,9 @@ export default function Invoices() {
         type: formType,
         invoice_number: formInvoiceNumber.trim(),
         access_key: formAccessKey.trim() || null,
-        client_id: formClientId,
-        client_name: clientObj?.name || null,
+        client_id: formType === 'saida' ? formClientId : null,
+        client_name: formType === 'saida' ? (clientObj?.name || null) : null,
+        buyer_name: buyerNameValue,
         issue_date: formIssueDate,
         total_weight_kg: totalWeight,
         total_value: totalValue,
@@ -406,6 +435,7 @@ export default function Invoices() {
           quantity_boxes: parseFloat(it.quantity_boxes || '0'),
           value_per_kg: v,
           subtotal: w * v,
+          brand: it.brand?.trim() || null,
         };
       });
 
@@ -414,8 +444,8 @@ export default function Invoices() {
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
-      const clientObj2 = clients.find(c => c.id === formClientId);
-      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim(), type: formType, client: clientObj2?.name, total_weight_kg: totalWeight });
+      const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : clientObj?.name;
+      logAction('invoice_create', { invoice_number: formInvoiceNumber.trim(), type: formType, client: logName, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
       resetForm();
       setDialogOpen(false);
