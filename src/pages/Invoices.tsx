@@ -1037,7 +1037,7 @@ export default function Invoices() {
                       <TableHeader>
                          <TableRow>
                           <TableHead className="text-xs">Nº NF</TableHead>
-                          <TableHead className="text-xs">Cliente</TableHead>
+                          <TableHead className="text-xs">{tab === 'entrada' ? 'Fornecedor' : 'Cliente'}</TableHead>
                           {tab === 'saida' && <TableHead className="text-xs">Tipo</TableHead>}
                           <TableHead className="text-xs">Data</TableHead>
                           <TableHead className="text-xs text-right">Peso (kg)</TableHead>
