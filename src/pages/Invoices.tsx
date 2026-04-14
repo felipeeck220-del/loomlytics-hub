@@ -1065,14 +1065,10 @@ export default function Invoices() {
         {/* ===== SALDO DE FIOS TAB ===== */}
         <TabsContent value="saldo" className="space-y-4">
           {/* KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Recebido</div>
               <p className="text-xl font-bold text-foreground">{formatWeight(saldoKpis.received)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Scale className="h-3.5 w-3.5" />Consumido</div>
-              <p className="text-xl font-bold text-foreground">{formatWeight(saldoKpis.consumed)}</p>
             </CardContent></Card>
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><DollarSign className="h-3.5 w-3.5" />Vendido</div>
@@ -1100,90 +1096,59 @@ export default function Invoices() {
                   </SelectContent>
                 </Select>
                 <SearchableSelect
-                  value={saldoClient === 'all' ? '' : saldoClient}
-                  onValueChange={v => setSaldoClient(v || 'all')}
-                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                  placeholder="Todos clientes"
-                  searchPlaceholder="Buscar cliente..."
-                  triggerClassName="w-[220px] h-8 text-xs"
-                />
-                <SearchableSelect
                   value={saldoYarn === 'all' ? '' : saldoYarn}
                   onValueChange={v => setSaldoYarn(v || 'all')}
-                  options={[{ value: 'all', label: 'Todos os fios' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
-                  placeholder="Todos os fios"
-                  searchPlaceholder="Buscar fio..."
+                  options={[{ value: 'all', label: 'Todas as marcas' }, ...saldoBrandOptions.map(b => ({ value: b, label: b }))]}
+                  placeholder="Todas as marcas"
+                  searchPlaceholder="Buscar marca..."
                   triggerClassName="w-[220px] h-8 text-xs"
                 />
-                {(saldoClient !== 'all' || saldoYarn !== 'all' || saldoMonth !== 'all') && (
-                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setSaldoClient('all'); setSaldoYarn('all'); setSaldoMonth('all'); }}>Limpar</Button>
+                {(saldoYarn !== 'all' || saldoMonth !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setSaldoYarn('all'); setSaldoMonth('all'); }}>Limpar</Button>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Grouped by client */}
+          {/* Table by brand */}
           {yarnBalance.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
-              Nenhum dado de fio encontrado. Registre NFs de entrada e vincule tipos de fio aos artigos para ver o saldo.
+              Nenhum dado de fio encontrado. Registre NFs de entrada para ver o saldo por marca.
             </CardContent></Card>
           ) : (
-            <div className="space-y-3">
-              {yarnBalance.map(group => (
-                <Collapsible key={group.clientId} defaultOpen>
-                  <Card>
-                    <CollapsibleTrigger className="w-full">
-                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
-                          <CardTitle className="text-sm font-semibold">{group.clientName}</CardTitle>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>Recebido: <span className="font-semibold text-foreground">{formatWeight(group.totalReceived)}</span></span>
-                          <span>Saldo: <span className={cn('font-semibold', group.totalBalance < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalBalance)}</span></span>
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent className="p-0">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="text-xs">Tipo de Fio</TableHead>
-                              <TableHead className="text-xs text-right">Recebido</TableHead>
-                              <TableHead className="text-xs text-right">Consumido</TableHead>
-                              <TableHead className="text-xs text-right">Vendido</TableHead>
-                              <TableHead className="text-xs text-right font-bold">Saldo</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {group.yarns.map(y => (
-                              <TableRow key={y.yarnId}>
-                                <TableCell className="text-xs">{y.yarnName}</TableCell>
-                                <TableCell className="text-xs text-right">{formatWeight(y.received)}</TableCell>
-                                <TableCell className="text-xs text-right">{formatWeight(y.consumed)}</TableCell>
-                                <TableCell className="text-xs text-right">{formatWeight(y.sold)}</TableCell>
-                                <TableCell className={cn('text-xs text-right font-bold', y.balance < 0 ? 'text-destructive' : y.balance === 0 ? 'text-muted-foreground' : 'text-success')}>
-                                  {formatWeight(y.balance)}
-                                  {y.balance < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                            <TableRow className="bg-muted/30 font-semibold">
-                              <TableCell className="text-xs">TOTAL</TableCell>
-                              <TableCell className="text-xs text-right">{formatWeight(group.totalReceived)}</TableCell>
-                              <TableCell className="text-xs text-right">{formatWeight(group.totalConsumed)}</TableCell>
-                              <TableCell className="text-xs text-right">{formatWeight(group.totalSold)}</TableCell>
-                              <TableCell className={cn('text-xs text-right', group.totalBalance < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalBalance)}</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              ))}
-            </div>
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Marca do Fio</TableHead>
+                      <TableHead className="text-xs text-right">Recebido</TableHead>
+                      <TableHead className="text-xs text-right">Vendido</TableHead>
+                      <TableHead className="text-xs text-right font-bold">Saldo</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {yarnBalance.map(row => (
+                      <TableRow key={row.brand}>
+                        <TableCell className="text-xs font-medium">{row.brand}</TableCell>
+                        <TableCell className="text-xs text-right">{formatWeight(row.received)}</TableCell>
+                        <TableCell className="text-xs text-right">{formatWeight(row.sold)}</TableCell>
+                        <TableCell className={cn('text-xs text-right font-bold', row.balance < 0 ? 'text-destructive' : row.balance === 0 ? 'text-muted-foreground' : 'text-success')}>
+                          {formatWeight(row.balance)}
+                          {row.balance < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="bg-muted/30 font-semibold">
+                      <TableCell className="text-xs">TOTAL</TableCell>
+                      <TableCell className="text-xs text-right">{formatWeight(saldoKpis.received)}</TableCell>
+                      <TableCell className="text-xs text-right">{formatWeight(saldoKpis.sold)}</TableCell>
+                      <TableCell className={cn('text-xs text-right', saldoKpis.balance < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(saldoKpis.balance)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
