@@ -1072,6 +1072,7 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 | Data & Hora (Brasília) | Alteração |
 |------------------------|-----------|
+| 17/04/2026 22:00 | Fechamento Mensal: Estoque de Malha agora mostra apenas cliente "Sul Brasil" (comparação normalizada — minúsculas, sem acentos). Receitas Próprias agrupadas por (cliente+artigo) com colunas Peso, R$/kg, Faturamento. Receitas/Prejuízos de Terceiros agrupados por (cliente+artigo+malharia). Resíduos agrupado por (cliente+material) com Peso/Qtd, Valor unitário e Lucro. PDF e UI atualizados. |
 | 28/03/2026 21:00 | Criação deste arquivo mestre.md |
 | 28/03/2026 21:15 | Correção do filtro de mês no Dashboard/Reports (dayRange===0 bloqueava filtro) |
 | 28/03/2026 21:30 | Correção do filtro por máquina nos Relatórios (fallback por machine_name) |
