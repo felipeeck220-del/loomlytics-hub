@@ -1471,6 +1471,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **15/04/2026 00:00 (Brasília)** — **PENTE FINO — Revisão das últimas atualizações:** (1) **Saldo Global — nome do fio incompleto:** Tabela do Saldo Global exibia apenas `yt.name` sem cor/composição. Corrigido para usar `formatYarnLabel(yt)` com formato completo; (2) **Fio Terceiros — nome do fio incompleto:** Tabela de Fio Terceiros exibia apenas `yarn.name`. Corrigido para usar `formatYarnLabel`; (3) **Cálculos verificados OK:** yarnBalance (por marca), yarnGlobalBalance (acumulado), malhaEstoque (produção - entregas) — lógica consistente com o modelo de dados atual; (4) **Estoque de Malha:** NFs saída com artigo livre (texto) são corretamente ignoradas no cálculo (sem article_id, sem vínculo); (5) **Build limpo:** 0 erros TypeScript.
 
+- **17/04/2026 22:00 (Brasília)** — **FECHAMENTO MENSAL — Reorganização das seções por (cliente+artigo):** (1) **Estoque de Malha:** filtro exclusivo para o cliente "Sul Brasil" (comparação normalizada com `normalizeStr` — minúsculas, sem acentos, espaços colapsados); (2) **Receitas Próprias:** agora agrupado por (cliente + artigo) com colunas `Cliente | Artigo | Peso (kg) | R$/kg | Faturamento`. R$/kg = revenue/kg (médio do mês); (3) **Receitas de Terceiros:** agrupado por (cliente + artigo + malharia) somente lançamentos com `total_profit ≥ 0`. Colunas: `Cliente | Artigo | Malharia | Peso | R$/kg | Faturamento`; (4) **Prejuízos de Terceiros:** mesma estrutura, somente lançamentos com `total_profit < 0`, exibindo prejuízo em vermelho; (5) **Resíduos:** agrupado por (cliente + material) com colunas `Cliente | Material | Peso/Qtd | Valor unitário | Lucro` (lucro = total da venda); (6) **PDF e UI** atualizados com `whitespace-nowrap` para evitar quebra de linha; (7) **Faturamento Total** mantém os mesmos cálculos consolidados.
+
 ---
 
-*Última atualização: 15/04/2026 00:00 (Brasília)*
+*Última atualização: 17/04/2026 22:00 (Brasília)*
