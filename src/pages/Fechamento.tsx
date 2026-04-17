@@ -19,9 +19,14 @@ type InvoiceRow = { id: string; type: string; status: string; issue_date: string
 type InvoiceItemRow = { invoice_id: string; weight_kg: number; quantity_rolls: number|null; value_per_kg: number|null; subtotal: number|null; yarn_type_id: string|null; yarn_type_name: string|null; article_id: string|null; article_name: string|null; };
 type ProductionRow = { date: string; weight_kg: number; rolls_produced: number; revenue: number; article_id: string|null; article_name: string|null; };
 type ArticleRow = { id: string; name: string; client_id: string|null; client_name: string|null; yarn_type_id: string|null; value_per_kg: number; };
-type OutsourceProdRow = { date: string; outsource_company_id: string; outsource_company_name: string|null; article_id: string; article_name: string|null; client_name: string|null; weight_kg: number; rolls: number; total_revenue: number; total_cost: number; total_profit: number; };
+type OutsourceProdRow = { date: string; outsource_company_id: string; outsource_company_name: string|null; article_id: string; article_name: string|null; client_name: string|null; weight_kg: number; rolls: number; client_value_per_kg: number; outsource_value_per_kg: number; total_revenue: number; total_cost: number; total_profit: number; };
 type YarnStockRow = { outsource_company_id: string; yarn_type_id: string; quantity_kg: number; reference_month: string; };
-type ResidueSaleRow = { date: string; material_name: string|null; quantity: number; unit: string; total: number; };
+type ResidueSaleRow = { date: string; client_name: string; material_name: string|null; quantity: number; unit: string; unit_price: number; total: number; };
+
+// Normaliza string: minúsculas, sem espaços extras, sem acentos — para comparação confiável
+const normalizeStr = (s: string | null | undefined) =>
+  (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+const isSulBrasil = (s: string | null | undefined) => normalizeStr(s) === 'sul brasil';
 type YarnTypeRow = { id: string; name: string; };
 type OutsourceCompanyRow = { id: string; name: string; };
 
