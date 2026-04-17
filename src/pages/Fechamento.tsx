@@ -19,9 +19,14 @@ type InvoiceRow = { id: string; type: string; status: string; issue_date: string
 type InvoiceItemRow = { invoice_id: string; weight_kg: number; quantity_rolls: number|null; value_per_kg: number|null; subtotal: number|null; yarn_type_id: string|null; yarn_type_name: string|null; article_id: string|null; article_name: string|null; };
 type ProductionRow = { date: string; weight_kg: number; rolls_produced: number; revenue: number; article_id: string|null; article_name: string|null; };
 type ArticleRow = { id: string; name: string; client_id: string|null; client_name: string|null; yarn_type_id: string|null; value_per_kg: number; };
-type OutsourceProdRow = { date: string; outsource_company_id: string; outsource_company_name: string|null; article_id: string; article_name: string|null; client_name: string|null; weight_kg: number; rolls: number; total_revenue: number; total_cost: number; total_profit: number; };
+type OutsourceProdRow = { date: string; outsource_company_id: string; outsource_company_name: string|null; article_id: string; article_name: string|null; client_name: string|null; weight_kg: number; rolls: number; client_value_per_kg: number; outsource_value_per_kg: number; total_revenue: number; total_cost: number; total_profit: number; };
 type YarnStockRow = { outsource_company_id: string; yarn_type_id: string; quantity_kg: number; reference_month: string; };
-type ResidueSaleRow = { date: string; material_name: string|null; quantity: number; unit: string; total: number; };
+type ResidueSaleRow = { date: string; client_name: string; material_name: string|null; quantity: number; unit: string; unit_price: number; total: number; };
+
+// Normaliza string: minúsculas, sem espaços extras, sem acentos — para comparação confiável
+const normalizeStr = (s: string | null | undefined) =>
+  (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+const isSulBrasil = (s: string | null | undefined) => normalizeStr(s) === 'sul brasil';
 type YarnTypeRow = { id: string; name: string; };
 type OutsourceCompanyRow = { id: string; name: string; };
 
@@ -227,14 +232,16 @@ export default function Fechamento() {
     return rows;
   }, [loaded, selectedMonth, yarnTypes, invoiceItems, invoiceMap, productions, articleMap]);
 
-  // ===== SECTION 3: ESTOQUE DE MALHA =====
+  // ===== SECTION 3: ESTOQUE DE MALHA — somente cliente "Sul Brasil" =====
   const section3 = useMemo(() => {
     if (!loaded) return [];
-    // Group by client → articles: produced - delivered
+    // Group by client → articles: produced - delivered (apenas Sul Brasil)
     const prodMap = new Map<string, { kg: number; rolls: number }>();
     productions.forEach(p => {
       if (!isUpToMonth(p.date, selectedMonth)) return;
       if (!p.article_id) return;
+      const art = articleMap.get(p.article_id);
+      if (!isSulBrasil(art?.client_name || null)) return;
       const key = p.article_id;
       const cur = prodMap.get(key) || { kg: 0, rolls: 0 };
       cur.kg += Number(p.weight_kg) || 0;
@@ -247,6 +254,8 @@ export default function Fechamento() {
       if (!inv || inv.type !== 'saida') return;
       if (!isUpToMonth(inv.issue_date, selectedMonth)) return;
       if (!item.article_id) return;
+      const art = articleMap.get(item.article_id);
+      if (!isSulBrasil(art?.client_name || inv.client_name)) return;
       const key = item.article_id;
       const cur = delivMap.get(key) || { kg: 0, rolls: 0 };
       cur.kg += Number(item.weight_kg) || 0;
@@ -257,8 +266,8 @@ export default function Fechamento() {
     const allArticleIds = new Set([...Array.from(prodMap.keys()), ...Array.from(delivMap.keys())]);
     allArticleIds.forEach(artId => {
       const art = articleMap.get(artId);
-      const clientName = art?.client_name || 'Sem cliente';
-      const clientId = art?.client_id || 'none';
+      const clientName = art?.client_name || 'Sul Brasil';
+      const clientId = art?.client_id || 'sul-brasil';
       if (!clientGroups.has(clientId)) clientGroups.set(clientId, { clientName, items: [] });
       const prod = prodMap.get(artId) || { kg: 0, rolls: 0 };
       const deliv = delivMap.get(artId) || { kg: 0, rolls: 0 };
@@ -271,59 +280,73 @@ export default function Fechamento() {
     return Array.from(clientGroups.values()).filter(g => g.items.some(i => i.stockKg !== 0));
   }, [loaded, selectedMonth, productions, invoiceItems, invoiceMap, articleMap]);
 
-  // ===== SECTION 4: RECEITAS PRÓPRIAS =====
+  // ===== SECTION 4: RECEITAS PRÓPRIAS — agrupado por (cliente + artigo) =====
   const section4 = useMemo(() => {
     if (!loaded) return [];
-    const groups = new Map<string, { clientName: string; kg: number; rolls: number; revenue: number }>();
+    const groups = new Map<string, { clientName: string; articleName: string; kg: number; valuePerKg: number; revenue: number }>();
     productions.forEach(p => {
       if (!isInMonth(p.date, selectedMonth)) return;
       const art = p.article_id ? articleMap.get(p.article_id) : null;
-      const clientName = art?.client_name || p.article_name || 'Sem cliente';
-      const key = art?.client_id || clientName;
-      const cur = groups.get(key) || { clientName, kg: 0, rolls: 0, revenue: 0 };
+      const clientName = art?.client_name || 'Sem cliente';
+      const articleName = art?.name || p.article_name || 'Sem artigo';
+      const key = `${art?.client_id || clientName}::${p.article_id || articleName}`;
+      const cur = groups.get(key) || { clientName, articleName, kg: 0, valuePerKg: Number(art?.value_per_kg) || 0, revenue: 0 };
       cur.kg += Number(p.weight_kg) || 0;
-      cur.rolls += Number(p.rolls_produced) || 0;
       cur.revenue += Number(p.revenue) || 0;
       groups.set(key, cur);
     });
-    return Array.from(groups.values()).sort((a, b) => b.revenue - a.revenue);
+    // Recalcula valor/kg médio (revenue/kg) para refletir o praticado
+    return Array.from(groups.values())
+      .map(r => ({ ...r, valuePerKg: r.kg > 0 ? r.revenue / r.kg : r.valuePerKg }))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName) || a.articleName.localeCompare(b.articleName));
   }, [loaded, selectedMonth, productions, articleMap]);
 
-  // ===== SECTION 5 & 6: TERCEIROS (lucro/prejuízo) =====
+  // ===== SECTION 5 & 6: TERCEIROS — agrupado por (cliente + artigo + malharia) =====
   const { section5, section6 } = useMemo(() => {
-    if (!loaded) return { section5: [], section6: [] };
+    if (!loaded) return { section5: [] as any[], section6: [] as any[] };
     const monthProds = outsourceProductions.filter(p => isInMonth(p.date, selectedMonth));
-    const groups = new Map<string, { name: string; kg: number; rolls: number; revenue: number; cost: number; profit: number }>();
+    type Row = { clientName: string; articleName: string; outsourceName: string; kg: number; valuePerKg: number; revenue: number; profit: number };
+    const profitGroups = new Map<string, Row>();
+    const lossGroups = new Map<string, Row>();
     monthProds.forEach(p => {
-      const name = p.outsource_company_name || outsourceCompanyMap.get(p.outsource_company_id) || 'Desconhecido';
-      const cur = groups.get(p.outsource_company_id) || { name, kg: 0, rolls: 0, revenue: 0, cost: 0, profit: 0 };
+      const outsourceName = p.outsource_company_name || outsourceCompanyMap.get(p.outsource_company_id) || 'Desconhecido';
+      const art = articleMap.get(p.article_id);
+      const clientName = p.client_name || art?.client_name || 'Sem cliente';
+      const articleName = p.article_name || art?.name || 'Sem artigo';
+      const key = `${clientName}::${articleName}::${outsourceName}`;
+      // Determina destino com base no lucro do lançamento individual
+      const profit = Number(p.total_profit) || 0;
+      const target = profit < 0 ? lossGroups : profitGroups;
+      const cur = target.get(key) || { clientName, articleName, outsourceName, kg: 0, valuePerKg: Number(p.client_value_per_kg) || 0, revenue: 0, profit: 0 };
       cur.kg += Number(p.weight_kg) || 0;
-      cur.rolls += Number(p.rolls) || 0;
       cur.revenue += Number(p.total_revenue) || 0;
-      cur.cost += Number(p.total_cost) || 0;
-      cur.profit += Number(p.total_profit) || 0;
-      groups.set(p.outsource_company_id, cur);
+      cur.profit += profit;
+      target.set(key, cur);
     });
-    const all = Array.from(groups.values());
-    return {
-      section5: all.filter(g => g.profit >= 0),
-      section6: all.filter(g => g.profit < 0),
-    };
-  }, [loaded, selectedMonth, outsourceProductions, outsourceCompanyMap]);
+    const finalize = (m: Map<string, Row>) => Array.from(m.values())
+      .map(r => ({ ...r, valuePerKg: r.kg > 0 ? r.revenue / r.kg : r.valuePerKg }))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName) || a.articleName.localeCompare(b.articleName) || a.outsourceName.localeCompare(b.outsourceName));
+    return { section5: finalize(profitGroups), section6: finalize(lossGroups) };
+  }, [loaded, selectedMonth, outsourceProductions, outsourceCompanyMap, articleMap]);
 
-  // ===== SECTION 7: RESÍDUOS =====
+  // ===== SECTION 7: RESÍDUOS — agrupado por (cliente + material) =====
   const section7 = useMemo(() => {
     if (!loaded) return [];
-    const groups = new Map<string, { name: string; qty: number; unit: string; total: number }>();
+    const groups = new Map<string, { clientName: string; materialName: string; qty: number; unit: string; unitPrice: number; total: number }>();
     residueSales.forEach(r => {
       if (!isInMonth(r.date, selectedMonth)) return;
-      const name = r.material_name || 'Outros';
-      const cur = groups.get(name) || { name, qty: 0, unit: r.unit, total: 0 };
+      const clientName = r.client_name || 'Sem cliente';
+      const materialName = r.material_name || 'Outros';
+      const key = `${clientName}::${materialName}`;
+      const cur = groups.get(key) || { clientName, materialName, qty: 0, unit: r.unit, unitPrice: Number(r.unit_price) || 0, total: 0 };
       cur.qty += Number(r.quantity) || 0;
       cur.total += Number(r.total) || 0;
-      groups.set(name, cur);
+      groups.set(key, cur);
     });
-    return Array.from(groups.values());
+    // unitPrice médio = total/qty
+    return Array.from(groups.values())
+      .map(r => ({ ...r, unitPrice: r.qty > 0 ? r.total / r.qty : r.unitPrice }))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName) || a.materialName.localeCompare(b.materialName));
   }, [loaded, selectedMonth, residueSales]);
 
   // ===== SECTION 8: VENDA DE FIO =====
@@ -524,15 +547,15 @@ export default function Fechamento() {
         ...tableOpts,
       });
 
-      // Page 4: RECEITAS PRÓPRIAS
+      // Page 4: RECEITAS PRÓPRIAS — (cliente + artigo) — Peso, Valor/kg, Faturamento
       pdf.addPage();
       y = addHeader(`RECEITAS PRÓPRIAS — ${monthLabel.toUpperCase()}`, margin);
-      const s4Body = section4.map(r => [r.clientName, formatWeight(r.kg), formatNumber(r.rolls), formatCurrency(r.revenue)]);
-      const s4Tot = section4.reduce((a, r) => ({ k: a.k + r.kg, ro: a.ro + r.rolls, re: a.re + r.revenue }), { k: 0, ro: 0, re: 0 });
-      s4Body.push(['TOTAL', formatWeight(s4Tot.k), formatNumber(s4Tot.ro), formatCurrency(s4Tot.re)]);
+      const s4Body = section4.map(r => [r.clientName, r.articleName, formatWeight(r.kg), formatCurrency(r.valuePerKg), formatCurrency(r.revenue)]);
+      const s4Tot = section4.reduce((a, r) => ({ k: a.k + r.kg, re: a.re + r.revenue }), { k: 0, re: 0 });
+      s4Body.push(['TOTAL', '', formatWeight(s4Tot.k), '', formatCurrency(s4Tot.re)]);
       autoTable(pdf, {
         startY: y,
-        head: [['Cliente', 'Kg', 'Rolos', 'Receita (R$)']],
+        head: [['Cliente', 'Artigo', 'Peso (kg)', 'R$/kg', 'Faturamento (R$)']],
         body: s4Body,
         ...tableOpts,
         didParseCell: (data: any) => {
@@ -540,19 +563,19 @@ export default function Fechamento() {
         },
       });
 
-      // Page 5: RECEITAS TERCEIROS
+      // Page 5: RECEITAS TERCEIROS — (cliente + artigo + malharia)
       pdf.addPage();
       y = addHeader(`RECEITAS DE TERCEIROS — ${monthLabel.toUpperCase()}`, margin);
       if (section5.length === 0) {
         pdf.setFontSize(10); pdf.setTextColor(...colors.textMid);
         pdf.text('Nenhuma receita de terceiros neste mês', margin, y + 5);
       } else {
-        const s5Body = section5.map(r => [r.name, formatWeight(r.kg), formatNumber(r.rolls), formatCurrency(r.revenue), formatCurrency(r.cost), formatCurrency(r.profit)]);
-        const s5Tot = section5.reduce((a, r) => ({ k: a.k + r.kg, ro: a.ro + r.rolls, re: a.re + r.revenue, co: a.co + r.cost, pr: a.pr + r.profit }), { k: 0, ro: 0, re: 0, co: 0, pr: 0 });
-        s5Body.push(['TOTAL', formatWeight(s5Tot.k), formatNumber(s5Tot.ro), formatCurrency(s5Tot.re), formatCurrency(s5Tot.co), formatCurrency(s5Tot.pr)]);
+        const s5Body = section5.map(r => [r.clientName, r.articleName, r.outsourceName, formatWeight(r.kg), formatCurrency(r.valuePerKg), formatCurrency(r.revenue)]);
+        const s5Tot = section5.reduce((a, r) => ({ k: a.k + r.kg, re: a.re + r.revenue }), { k: 0, re: 0 });
+        s5Body.push(['TOTAL', '', '', formatWeight(s5Tot.k), '', formatCurrency(s5Tot.re)]);
         autoTable(pdf, {
           startY: y,
-          head: [['Malharia', 'Kg', 'Rolos', 'Receita', 'Custo', 'Lucro']],
+          head: [['Cliente', 'Artigo', 'Malharia', 'Peso (kg)', 'R$/kg', 'Faturamento (R$)']],
           body: s5Body,
           ...tableOpts,
           didParseCell: (data: any) => {
@@ -561,19 +584,19 @@ export default function Fechamento() {
         });
       }
 
-      // Page 6: PREJUÍZOS TERCEIROS
+      // Page 6: PREJUÍZOS TERCEIROS — (cliente + artigo + malharia)
       pdf.addPage();
       y = addHeader(`PREJUÍZOS DE TERCEIROS — ${monthLabel.toUpperCase()}`, margin);
       if (section6.length === 0) {
         pdf.setFontSize(10); pdf.setTextColor(...colors.textMid);
         pdf.text('Nenhum prejuízo neste mês', margin, y + 5);
       } else {
-        const s6Body = section6.map(r => [r.name, formatWeight(r.kg), formatNumber(r.rolls), formatCurrency(r.revenue), formatCurrency(r.cost), formatCurrency(r.profit)]);
-        const s6Tot = section6.reduce((a, r) => ({ k: a.k + r.kg, ro: a.ro + r.rolls, re: a.re + r.revenue, co: a.co + r.cost, pr: a.pr + r.profit }), { k: 0, ro: 0, re: 0, co: 0, pr: 0 });
-        s6Body.push(['TOTAL', formatWeight(s6Tot.k), formatNumber(s6Tot.ro), formatCurrency(s6Tot.re), formatCurrency(s6Tot.co), formatCurrency(s6Tot.pr)]);
+        const s6Body = section6.map(r => [r.clientName, r.articleName, r.outsourceName, formatWeight(r.kg), formatCurrency(r.valuePerKg), formatCurrency(r.profit)]);
+        const s6Tot = section6.reduce((a, r) => ({ k: a.k + r.kg, pr: a.pr + r.profit }), { k: 0, pr: 0 });
+        s6Body.push(['TOTAL', '', '', formatWeight(s6Tot.k), '', formatCurrency(s6Tot.pr)]);
         autoTable(pdf, {
           startY: y,
-          head: [['Malharia', 'Kg', 'Rolos', 'Receita', 'Custo', 'Prejuízo']],
+          head: [['Cliente', 'Artigo', 'Malharia', 'Peso (kg)', 'R$/kg', 'Prejuízo (R$)']],
           body: s6Body,
           ...tableOpts,
           didParseCell: (data: any) => {
@@ -582,19 +605,19 @@ export default function Fechamento() {
         });
       }
 
-      // Page 7: RESÍDUOS
+      // Page 7: RESÍDUOS — (cliente + material)
       pdf.addPage();
       y = addHeader(`RECEITAS DIVERSAS (RESÍDUOS) — ${monthLabel.toUpperCase()}`, margin);
       if (section7.length === 0) {
         pdf.setFontSize(10); pdf.setTextColor(...colors.textMid);
         pdf.text('Nenhum registro de resíduos neste mês', margin, y + 5);
       } else {
-        const s7Body = section7.map(r => [r.name, formatNumber(r.qty, 2), r.unit, formatCurrency(r.total)]);
+        const s7Body = section7.map(r => [r.clientName, r.materialName, `${formatNumber(r.qty, 2)} ${r.unit}`, `${formatCurrency(r.unitPrice)}/${r.unit}`, formatCurrency(r.total)]);
         const s7Tot = section7.reduce((a, r) => a + r.total, 0);
-        s7Body.push(['TOTAL', '', '', formatCurrency(s7Tot)]);
+        s7Body.push(['TOTAL', '', '', '', formatCurrency(s7Tot)]);
         autoTable(pdf, {
           startY: y,
-          head: [['Material', 'Qtd', 'Und.', 'Total (R$)']],
+          head: [['Cliente', 'Material', 'Peso/Qtd', 'Valor unitário', 'Lucro (R$)']],
           body: s7Body,
           ...tableOpts,
           didParseCell: (data: any) => {
@@ -798,81 +821,118 @@ export default function Fechamento() {
             )}
           </SectionCard>
 
-          {/* Section 4: RECEITAS PRÓPRIAS */}
+          {/* Section 4: RECEITAS PRÓPRIAS — (cliente + artigo) */}
           <SectionCard title={`RECEITAS PRÓPRIAS — ${monthLabel}`}>
             {section4.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma produção neste mês</p> : (
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Cliente</TableHead><TableHead className="text-right">Kg</TableHead><TableHead className="text-right">Rolos</TableHead><TableHead className="text-right">Receita (R$)</TableHead>
+                  <TableHead>Cliente</TableHead><TableHead>Artigo</TableHead><TableHead className="text-right">Peso (kg)</TableHead><TableHead className="text-right">R$/kg</TableHead><TableHead className="text-right">Faturamento</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {section4.map((r, i) => (
-                    <TableRow key={i}><TableCell>{r.clientName}</TableCell><TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell><TableCell className="text-right font-mono">{formatNumber(r.rolls)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.revenue)}</TableCell></TableRow>
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap">{r.clientName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.articleName}</TableCell>
+                      <TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(r.valuePerKg)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(r.revenue)}</TableCell>
+                    </TableRow>
                   ))}
                   <TableRow className="font-bold border-t-2">
-                    <TableCell>TOTAL</TableCell><TableCell className="text-right font-mono">{formatWeight(section4.reduce((s, r) => s + r.kg, 0))}</TableCell><TableCell className="text-right font-mono">{formatNumber(section4.reduce((s, r) => s + r.rolls, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section4.reduce((s, r) => s + r.revenue, 0))}</TableCell>
+                    <TableCell>TOTAL</TableCell><TableCell></TableCell>
+                    <TableCell className="text-right font-mono">{formatWeight(section4.reduce((s, r) => s + r.kg, 0))}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(section4.reduce((s, r) => s + r.revenue, 0))}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             )}
           </SectionCard>
 
-          {/* Section 5: RECEITAS TERCEIROS */}
+          {/* Section 5: RECEITAS TERCEIROS — (cliente + artigo + malharia) */}
           <SectionCard title={`RECEITAS DE TERCEIROS — ${monthLabel}`}>
             {section5.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma receita de terceiros neste mês</p> : (
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Malharia</TableHead><TableHead className="text-right">Kg</TableHead><TableHead className="text-right">Rolos</TableHead><TableHead className="text-right">Receita</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Lucro</TableHead>
+                  <TableHead>Cliente</TableHead><TableHead>Artigo</TableHead><TableHead>Malharia</TableHead><TableHead className="text-right">Peso (kg)</TableHead><TableHead className="text-right">R$/kg</TableHead><TableHead className="text-right">Faturamento</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {section5.map((r, i) => (
-                    <TableRow key={i}><TableCell>{r.name}</TableCell><TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell><TableCell className="text-right font-mono">{formatNumber(r.rolls)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.revenue)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.cost)}</TableCell><TableCell className="text-right font-mono text-success">{formatCurrency(r.profit)}</TableCell></TableRow>
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap">{r.clientName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.articleName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.outsourceName}</TableCell>
+                      <TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(r.valuePerKg)}</TableCell>
+                      <TableCell className="text-right font-mono text-success">{formatCurrency(r.revenue)}</TableCell>
+                    </TableRow>
                   ))}
                   <TableRow className="font-bold border-t-2">
-                    <TableCell>TOTAL</TableCell><TableCell className="text-right font-mono">{formatWeight(section5.reduce((s, r) => s + r.kg, 0))}</TableCell><TableCell className="text-right font-mono">{formatNumber(section5.reduce((s, r) => s + r.rolls, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section5.reduce((s, r) => s + r.revenue, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section5.reduce((s, r) => s + r.cost, 0))}</TableCell><TableCell className="text-right font-mono text-success">{formatCurrency(section5.reduce((s, r) => s + r.profit, 0))}</TableCell>
+                    <TableCell>TOTAL</TableCell><TableCell></TableCell><TableCell></TableCell>
+                    <TableCell className="text-right font-mono">{formatWeight(section5.reduce((s, r) => s + r.kg, 0))}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-right font-mono text-success">{formatCurrency(section5.reduce((s, r) => s + r.revenue, 0))}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             )}
           </SectionCard>
 
-          {/* Section 6: PREJUÍZOS TERCEIROS */}
+          {/* Section 6: PREJUÍZOS TERCEIROS — (cliente + artigo + malharia) */}
           <SectionCard title={`PREJUÍZOS DE TERCEIROS — ${monthLabel}`}>
             {section6.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum prejuízo neste mês</p> : (
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Malharia</TableHead><TableHead className="text-right">Kg</TableHead><TableHead className="text-right">Rolos</TableHead><TableHead className="text-right">Receita</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Prejuízo</TableHead>
+                  <TableHead>Cliente</TableHead><TableHead>Artigo</TableHead><TableHead>Malharia</TableHead><TableHead className="text-right">Peso (kg)</TableHead><TableHead className="text-right">R$/kg</TableHead><TableHead className="text-right">Prejuízo</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {section6.map((r, i) => (
-                    <TableRow key={i}><TableCell>{r.name}</TableCell><TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell><TableCell className="text-right font-mono">{formatNumber(r.rolls)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.revenue)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.cost)}</TableCell><TableCell className="text-right font-mono text-destructive">{formatCurrency(r.profit)}</TableCell></TableRow>
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap">{r.clientName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.articleName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.outsourceName}</TableCell>
+                      <TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(r.valuePerKg)}</TableCell>
+                      <TableCell className="text-right font-mono text-destructive">{formatCurrency(r.profit)}</TableCell>
+                    </TableRow>
                   ))}
                   <TableRow className="font-bold border-t-2">
-                    <TableCell>TOTAL</TableCell><TableCell className="text-right font-mono">{formatWeight(section6.reduce((s, r) => s + r.kg, 0))}</TableCell><TableCell className="text-right font-mono">{formatNumber(section6.reduce((s, r) => s + r.rolls, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section6.reduce((s, r) => s + r.revenue, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section6.reduce((s, r) => s + r.cost, 0))}</TableCell><TableCell className="text-right font-mono text-destructive">{formatCurrency(section6.reduce((s, r) => s + r.profit, 0))}</TableCell>
+                    <TableCell>TOTAL</TableCell><TableCell></TableCell><TableCell></TableCell>
+                    <TableCell className="text-right font-mono">{formatWeight(section6.reduce((s, r) => s + r.kg, 0))}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-right font-mono text-destructive">{formatCurrency(section6.reduce((s, r) => s + r.profit, 0))}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             )}
           </SectionCard>
 
-          {/* Section 7: RESÍDUOS */}
+          {/* Section 7: RESÍDUOS — (cliente + material) */}
           <SectionCard title={`RECEITAS DIVERSAS (RESÍDUOS) — ${monthLabel}`}>
             {section7.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum registro de resíduos neste mês</p> : (
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Material</TableHead><TableHead className="text-right">Qtd</TableHead><TableHead>Und.</TableHead><TableHead className="text-right">Total (R$)</TableHead>
+                  <TableHead>Cliente</TableHead><TableHead>Material</TableHead><TableHead className="text-right">Peso/Qtd</TableHead><TableHead className="text-right">Valor unitário</TableHead><TableHead className="text-right">Lucro (R$)</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {section7.map((r, i) => (
-                    <TableRow key={i}><TableCell>{r.name}</TableCell><TableCell className="text-right font-mono">{formatNumber(r.qty, 2)}</TableCell><TableCell>{r.unit}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.total)}</TableCell></TableRow>
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap">{r.clientName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.materialName}</TableCell>
+                      <TableCell className="text-right font-mono whitespace-nowrap">{formatNumber(r.qty, 2)} {r.unit}</TableCell>
+                      <TableCell className="text-right font-mono whitespace-nowrap">{formatCurrency(r.unitPrice)}/{r.unit}</TableCell>
+                      <TableCell className="text-right font-mono text-success">{formatCurrency(r.total)}</TableCell>
+                    </TableRow>
                   ))}
                   <TableRow className="font-bold border-t-2">
-                    <TableCell>TOTAL</TableCell><TableCell></TableCell><TableCell></TableCell><TableCell className="text-right font-mono">{formatCurrency(section7.reduce((s, r) => s + r.total, 0))}</TableCell>
+                    <TableCell>TOTAL</TableCell><TableCell></TableCell><TableCell></TableCell><TableCell></TableCell>
+                    <TableCell className="text-right font-mono text-success">{formatCurrency(section7.reduce((s, r) => s + r.total, 0))}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             )}
           </SectionCard>
+
 
           {/* Section 8: VENDA DE FIO */}
           <SectionCard title={`VENDA DE FIO — ${monthLabel}`}>
