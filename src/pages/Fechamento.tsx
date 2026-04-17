@@ -547,15 +547,15 @@ export default function Fechamento() {
         ...tableOpts,
       });
 
-      // Page 4: RECEITAS PRÓPRIAS
+      // Page 4: RECEITAS PRÓPRIAS — (cliente + artigo) — Peso, Valor/kg, Faturamento
       pdf.addPage();
       y = addHeader(`RECEITAS PRÓPRIAS — ${monthLabel.toUpperCase()}`, margin);
-      const s4Body = section4.map(r => [r.clientName, formatWeight(r.kg), formatNumber(r.rolls), formatCurrency(r.revenue)]);
-      const s4Tot = section4.reduce((a, r) => ({ k: a.k + r.kg, ro: a.ro + r.rolls, re: a.re + r.revenue }), { k: 0, ro: 0, re: 0 });
-      s4Body.push(['TOTAL', formatWeight(s4Tot.k), formatNumber(s4Tot.ro), formatCurrency(s4Tot.re)]);
+      const s4Body = section4.map(r => [r.clientName, r.articleName, formatWeight(r.kg), formatCurrency(r.valuePerKg), formatCurrency(r.revenue)]);
+      const s4Tot = section4.reduce((a, r) => ({ k: a.k + r.kg, re: a.re + r.revenue }), { k: 0, re: 0 });
+      s4Body.push(['TOTAL', '', formatWeight(s4Tot.k), '', formatCurrency(s4Tot.re)]);
       autoTable(pdf, {
         startY: y,
-        head: [['Cliente', 'Kg', 'Rolos', 'Receita (R$)']],
+        head: [['Cliente', 'Artigo', 'Peso (kg)', 'R$/kg', 'Faturamento (R$)']],
         body: s4Body,
         ...tableOpts,
         didParseCell: (data: any) => {
@@ -563,19 +563,19 @@ export default function Fechamento() {
         },
       });
 
-      // Page 5: RECEITAS TERCEIROS
+      // Page 5: RECEITAS TERCEIROS — (cliente + artigo + malharia)
       pdf.addPage();
       y = addHeader(`RECEITAS DE TERCEIROS — ${monthLabel.toUpperCase()}`, margin);
       if (section5.length === 0) {
         pdf.setFontSize(10); pdf.setTextColor(...colors.textMid);
         pdf.text('Nenhuma receita de terceiros neste mês', margin, y + 5);
       } else {
-        const s5Body = section5.map(r => [r.name, formatWeight(r.kg), formatNumber(r.rolls), formatCurrency(r.revenue), formatCurrency(r.cost), formatCurrency(r.profit)]);
-        const s5Tot = section5.reduce((a, r) => ({ k: a.k + r.kg, ro: a.ro + r.rolls, re: a.re + r.revenue, co: a.co + r.cost, pr: a.pr + r.profit }), { k: 0, ro: 0, re: 0, co: 0, pr: 0 });
-        s5Body.push(['TOTAL', formatWeight(s5Tot.k), formatNumber(s5Tot.ro), formatCurrency(s5Tot.re), formatCurrency(s5Tot.co), formatCurrency(s5Tot.pr)]);
+        const s5Body = section5.map(r => [r.clientName, r.articleName, r.outsourceName, formatWeight(r.kg), formatCurrency(r.valuePerKg), formatCurrency(r.revenue)]);
+        const s5Tot = section5.reduce((a, r) => ({ k: a.k + r.kg, re: a.re + r.revenue }), { k: 0, re: 0 });
+        s5Body.push(['TOTAL', '', '', formatWeight(s5Tot.k), '', formatCurrency(s5Tot.re)]);
         autoTable(pdf, {
           startY: y,
-          head: [['Malharia', 'Kg', 'Rolos', 'Receita', 'Custo', 'Lucro']],
+          head: [['Cliente', 'Artigo', 'Malharia', 'Peso (kg)', 'R$/kg', 'Faturamento (R$)']],
           body: s5Body,
           ...tableOpts,
           didParseCell: (data: any) => {
@@ -584,19 +584,19 @@ export default function Fechamento() {
         });
       }
 
-      // Page 6: PREJUÍZOS TERCEIROS
+      // Page 6: PREJUÍZOS TERCEIROS — (cliente + artigo + malharia)
       pdf.addPage();
       y = addHeader(`PREJUÍZOS DE TERCEIROS — ${monthLabel.toUpperCase()}`, margin);
       if (section6.length === 0) {
         pdf.setFontSize(10); pdf.setTextColor(...colors.textMid);
         pdf.text('Nenhum prejuízo neste mês', margin, y + 5);
       } else {
-        const s6Body = section6.map(r => [r.name, formatWeight(r.kg), formatNumber(r.rolls), formatCurrency(r.revenue), formatCurrency(r.cost), formatCurrency(r.profit)]);
-        const s6Tot = section6.reduce((a, r) => ({ k: a.k + r.kg, ro: a.ro + r.rolls, re: a.re + r.revenue, co: a.co + r.cost, pr: a.pr + r.profit }), { k: 0, ro: 0, re: 0, co: 0, pr: 0 });
-        s6Body.push(['TOTAL', formatWeight(s6Tot.k), formatNumber(s6Tot.ro), formatCurrency(s6Tot.re), formatCurrency(s6Tot.co), formatCurrency(s6Tot.pr)]);
+        const s6Body = section6.map(r => [r.clientName, r.articleName, r.outsourceName, formatWeight(r.kg), formatCurrency(r.valuePerKg), formatCurrency(r.profit)]);
+        const s6Tot = section6.reduce((a, r) => ({ k: a.k + r.kg, pr: a.pr + r.profit }), { k: 0, pr: 0 });
+        s6Body.push(['TOTAL', '', '', formatWeight(s6Tot.k), '', formatCurrency(s6Tot.pr)]);
         autoTable(pdf, {
           startY: y,
-          head: [['Malharia', 'Kg', 'Rolos', 'Receita', 'Custo', 'Prejuízo']],
+          head: [['Cliente', 'Artigo', 'Malharia', 'Peso (kg)', 'R$/kg', 'Prejuízo (R$)']],
           body: s6Body,
           ...tableOpts,
           didParseCell: (data: any) => {
@@ -605,19 +605,19 @@ export default function Fechamento() {
         });
       }
 
-      // Page 7: RESÍDUOS
+      // Page 7: RESÍDUOS — (cliente + material)
       pdf.addPage();
       y = addHeader(`RECEITAS DIVERSAS (RESÍDUOS) — ${monthLabel.toUpperCase()}`, margin);
       if (section7.length === 0) {
         pdf.setFontSize(10); pdf.setTextColor(...colors.textMid);
         pdf.text('Nenhum registro de resíduos neste mês', margin, y + 5);
       } else {
-        const s7Body = section7.map(r => [r.name, formatNumber(r.qty, 2), r.unit, formatCurrency(r.total)]);
+        const s7Body = section7.map(r => [r.clientName, r.materialName, `${formatNumber(r.qty, 2)} ${r.unit}`, `${formatCurrency(r.unitPrice)}/${r.unit}`, formatCurrency(r.total)]);
         const s7Tot = section7.reduce((a, r) => a + r.total, 0);
-        s7Body.push(['TOTAL', '', '', formatCurrency(s7Tot)]);
+        s7Body.push(['TOTAL', '', '', '', formatCurrency(s7Tot)]);
         autoTable(pdf, {
           startY: y,
-          head: [['Material', 'Qtd', 'Und.', 'Total (R$)']],
+          head: [['Cliente', 'Material', 'Peso/Qtd', 'Valor unitário', 'Lucro (R$)']],
           body: s7Body,
           ...tableOpts,
           didParseCell: (data: any) => {
