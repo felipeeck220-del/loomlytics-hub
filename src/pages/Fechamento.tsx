@@ -232,14 +232,16 @@ export default function Fechamento() {
     return rows;
   }, [loaded, selectedMonth, yarnTypes, invoiceItems, invoiceMap, productions, articleMap]);
 
-  // ===== SECTION 3: ESTOQUE DE MALHA =====
+  // ===== SECTION 3: ESTOQUE DE MALHA — somente cliente "Sul Brasil" =====
   const section3 = useMemo(() => {
     if (!loaded) return [];
-    // Group by client → articles: produced - delivered
+    // Group by client → articles: produced - delivered (apenas Sul Brasil)
     const prodMap = new Map<string, { kg: number; rolls: number }>();
     productions.forEach(p => {
       if (!isUpToMonth(p.date, selectedMonth)) return;
       if (!p.article_id) return;
+      const art = articleMap.get(p.article_id);
+      if (!isSulBrasil(art?.client_name || null)) return;
       const key = p.article_id;
       const cur = prodMap.get(key) || { kg: 0, rolls: 0 };
       cur.kg += Number(p.weight_kg) || 0;
@@ -252,6 +254,8 @@ export default function Fechamento() {
       if (!inv || inv.type !== 'saida') return;
       if (!isUpToMonth(inv.issue_date, selectedMonth)) return;
       if (!item.article_id) return;
+      const art = articleMap.get(item.article_id);
+      if (!isSulBrasil(art?.client_name || inv.client_name)) return;
       const key = item.article_id;
       const cur = delivMap.get(key) || { kg: 0, rolls: 0 };
       cur.kg += Number(item.weight_kg) || 0;
@@ -262,8 +266,8 @@ export default function Fechamento() {
     const allArticleIds = new Set([...Array.from(prodMap.keys()), ...Array.from(delivMap.keys())]);
     allArticleIds.forEach(artId => {
       const art = articleMap.get(artId);
-      const clientName = art?.client_name || 'Sem cliente';
-      const clientId = art?.client_id || 'none';
+      const clientName = art?.client_name || 'Sul Brasil';
+      const clientId = art?.client_id || 'sul-brasil';
       if (!clientGroups.has(clientId)) clientGroups.set(clientId, { clientName, items: [] });
       const prod = prodMap.get(artId) || { kg: 0, rolls: 0 };
       const deliv = delivMap.get(artId) || { kg: 0, rolls: 0 };
@@ -276,59 +280,73 @@ export default function Fechamento() {
     return Array.from(clientGroups.values()).filter(g => g.items.some(i => i.stockKg !== 0));
   }, [loaded, selectedMonth, productions, invoiceItems, invoiceMap, articleMap]);
 
-  // ===== SECTION 4: RECEITAS PRÓPRIAS =====
+  // ===== SECTION 4: RECEITAS PRÓPRIAS — agrupado por (cliente + artigo) =====
   const section4 = useMemo(() => {
     if (!loaded) return [];
-    const groups = new Map<string, { clientName: string; kg: number; rolls: number; revenue: number }>();
+    const groups = new Map<string, { clientName: string; articleName: string; kg: number; valuePerKg: number; revenue: number }>();
     productions.forEach(p => {
       if (!isInMonth(p.date, selectedMonth)) return;
       const art = p.article_id ? articleMap.get(p.article_id) : null;
-      const clientName = art?.client_name || p.article_name || 'Sem cliente';
-      const key = art?.client_id || clientName;
-      const cur = groups.get(key) || { clientName, kg: 0, rolls: 0, revenue: 0 };
+      const clientName = art?.client_name || 'Sem cliente';
+      const articleName = art?.name || p.article_name || 'Sem artigo';
+      const key = `${art?.client_id || clientName}::${p.article_id || articleName}`;
+      const cur = groups.get(key) || { clientName, articleName, kg: 0, valuePerKg: Number(art?.value_per_kg) || 0, revenue: 0 };
       cur.kg += Number(p.weight_kg) || 0;
-      cur.rolls += Number(p.rolls_produced) || 0;
       cur.revenue += Number(p.revenue) || 0;
       groups.set(key, cur);
     });
-    return Array.from(groups.values()).sort((a, b) => b.revenue - a.revenue);
+    // Recalcula valor/kg médio (revenue/kg) para refletir o praticado
+    return Array.from(groups.values())
+      .map(r => ({ ...r, valuePerKg: r.kg > 0 ? r.revenue / r.kg : r.valuePerKg }))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName) || a.articleName.localeCompare(b.articleName));
   }, [loaded, selectedMonth, productions, articleMap]);
 
-  // ===== SECTION 5 & 6: TERCEIROS (lucro/prejuízo) =====
+  // ===== SECTION 5 & 6: TERCEIROS — agrupado por (cliente + artigo + malharia) =====
   const { section5, section6 } = useMemo(() => {
-    if (!loaded) return { section5: [], section6: [] };
+    if (!loaded) return { section5: [] as any[], section6: [] as any[] };
     const monthProds = outsourceProductions.filter(p => isInMonth(p.date, selectedMonth));
-    const groups = new Map<string, { name: string; kg: number; rolls: number; revenue: number; cost: number; profit: number }>();
+    type Row = { clientName: string; articleName: string; outsourceName: string; kg: number; valuePerKg: number; revenue: number; profit: number };
+    const profitGroups = new Map<string, Row>();
+    const lossGroups = new Map<string, Row>();
     monthProds.forEach(p => {
-      const name = p.outsource_company_name || outsourceCompanyMap.get(p.outsource_company_id) || 'Desconhecido';
-      const cur = groups.get(p.outsource_company_id) || { name, kg: 0, rolls: 0, revenue: 0, cost: 0, profit: 0 };
+      const outsourceName = p.outsource_company_name || outsourceCompanyMap.get(p.outsource_company_id) || 'Desconhecido';
+      const art = articleMap.get(p.article_id);
+      const clientName = p.client_name || art?.client_name || 'Sem cliente';
+      const articleName = p.article_name || art?.name || 'Sem artigo';
+      const key = `${clientName}::${articleName}::${outsourceName}`;
+      // Determina destino com base no lucro do lançamento individual
+      const profit = Number(p.total_profit) || 0;
+      const target = profit < 0 ? lossGroups : profitGroups;
+      const cur = target.get(key) || { clientName, articleName, outsourceName, kg: 0, valuePerKg: Number(p.client_value_per_kg) || 0, revenue: 0, profit: 0 };
       cur.kg += Number(p.weight_kg) || 0;
-      cur.rolls += Number(p.rolls) || 0;
       cur.revenue += Number(p.total_revenue) || 0;
-      cur.cost += Number(p.total_cost) || 0;
-      cur.profit += Number(p.total_profit) || 0;
-      groups.set(p.outsource_company_id, cur);
+      cur.profit += profit;
+      target.set(key, cur);
     });
-    const all = Array.from(groups.values());
-    return {
-      section5: all.filter(g => g.profit >= 0),
-      section6: all.filter(g => g.profit < 0),
-    };
-  }, [loaded, selectedMonth, outsourceProductions, outsourceCompanyMap]);
+    const finalize = (m: Map<string, Row>) => Array.from(m.values())
+      .map(r => ({ ...r, valuePerKg: r.kg > 0 ? r.revenue / r.kg : r.valuePerKg }))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName) || a.articleName.localeCompare(b.articleName) || a.outsourceName.localeCompare(b.outsourceName));
+    return { section5: finalize(profitGroups), section6: finalize(lossGroups) };
+  }, [loaded, selectedMonth, outsourceProductions, outsourceCompanyMap, articleMap]);
 
-  // ===== SECTION 7: RESÍDUOS =====
+  // ===== SECTION 7: RESÍDUOS — agrupado por (cliente + material) =====
   const section7 = useMemo(() => {
     if (!loaded) return [];
-    const groups = new Map<string, { name: string; qty: number; unit: string; total: number }>();
+    const groups = new Map<string, { clientName: string; materialName: string; qty: number; unit: string; unitPrice: number; total: number }>();
     residueSales.forEach(r => {
       if (!isInMonth(r.date, selectedMonth)) return;
-      const name = r.material_name || 'Outros';
-      const cur = groups.get(name) || { name, qty: 0, unit: r.unit, total: 0 };
+      const clientName = r.client_name || 'Sem cliente';
+      const materialName = r.material_name || 'Outros';
+      const key = `${clientName}::${materialName}`;
+      const cur = groups.get(key) || { clientName, materialName, qty: 0, unit: r.unit, unitPrice: Number(r.unit_price) || 0, total: 0 };
       cur.qty += Number(r.quantity) || 0;
       cur.total += Number(r.total) || 0;
-      groups.set(name, cur);
+      groups.set(key, cur);
     });
-    return Array.from(groups.values());
+    // unitPrice médio = total/qty
+    return Array.from(groups.values())
+      .map(r => ({ ...r, unitPrice: r.qty > 0 ? r.total / r.qty : r.unitPrice }))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName) || a.materialName.localeCompare(b.materialName));
   }, [loaded, selectedMonth, residueSales]);
 
   // ===== SECTION 8: VENDA DE FIO =====
