@@ -821,81 +821,118 @@ export default function Fechamento() {
             )}
           </SectionCard>
 
-          {/* Section 4: RECEITAS PRÓPRIAS */}
+          {/* Section 4: RECEITAS PRÓPRIAS — (cliente + artigo) */}
           <SectionCard title={`RECEITAS PRÓPRIAS — ${monthLabel}`}>
             {section4.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma produção neste mês</p> : (
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Cliente</TableHead><TableHead className="text-right">Kg</TableHead><TableHead className="text-right">Rolos</TableHead><TableHead className="text-right">Receita (R$)</TableHead>
+                  <TableHead>Cliente</TableHead><TableHead>Artigo</TableHead><TableHead className="text-right">Peso (kg)</TableHead><TableHead className="text-right">R$/kg</TableHead><TableHead className="text-right">Faturamento</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {section4.map((r, i) => (
-                    <TableRow key={i}><TableCell>{r.clientName}</TableCell><TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell><TableCell className="text-right font-mono">{formatNumber(r.rolls)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.revenue)}</TableCell></TableRow>
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap">{r.clientName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.articleName}</TableCell>
+                      <TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(r.valuePerKg)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(r.revenue)}</TableCell>
+                    </TableRow>
                   ))}
                   <TableRow className="font-bold border-t-2">
-                    <TableCell>TOTAL</TableCell><TableCell className="text-right font-mono">{formatWeight(section4.reduce((s, r) => s + r.kg, 0))}</TableCell><TableCell className="text-right font-mono">{formatNumber(section4.reduce((s, r) => s + r.rolls, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section4.reduce((s, r) => s + r.revenue, 0))}</TableCell>
+                    <TableCell>TOTAL</TableCell><TableCell></TableCell>
+                    <TableCell className="text-right font-mono">{formatWeight(section4.reduce((s, r) => s + r.kg, 0))}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(section4.reduce((s, r) => s + r.revenue, 0))}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             )}
           </SectionCard>
 
-          {/* Section 5: RECEITAS TERCEIROS */}
+          {/* Section 5: RECEITAS TERCEIROS — (cliente + artigo + malharia) */}
           <SectionCard title={`RECEITAS DE TERCEIROS — ${monthLabel}`}>
             {section5.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma receita de terceiros neste mês</p> : (
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Malharia</TableHead><TableHead className="text-right">Kg</TableHead><TableHead className="text-right">Rolos</TableHead><TableHead className="text-right">Receita</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Lucro</TableHead>
+                  <TableHead>Cliente</TableHead><TableHead>Artigo</TableHead><TableHead>Malharia</TableHead><TableHead className="text-right">Peso (kg)</TableHead><TableHead className="text-right">R$/kg</TableHead><TableHead className="text-right">Faturamento</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {section5.map((r, i) => (
-                    <TableRow key={i}><TableCell>{r.name}</TableCell><TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell><TableCell className="text-right font-mono">{formatNumber(r.rolls)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.revenue)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.cost)}</TableCell><TableCell className="text-right font-mono text-success">{formatCurrency(r.profit)}</TableCell></TableRow>
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap">{r.clientName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.articleName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.outsourceName}</TableCell>
+                      <TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(r.valuePerKg)}</TableCell>
+                      <TableCell className="text-right font-mono text-success">{formatCurrency(r.revenue)}</TableCell>
+                    </TableRow>
                   ))}
                   <TableRow className="font-bold border-t-2">
-                    <TableCell>TOTAL</TableCell><TableCell className="text-right font-mono">{formatWeight(section5.reduce((s, r) => s + r.kg, 0))}</TableCell><TableCell className="text-right font-mono">{formatNumber(section5.reduce((s, r) => s + r.rolls, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section5.reduce((s, r) => s + r.revenue, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section5.reduce((s, r) => s + r.cost, 0))}</TableCell><TableCell className="text-right font-mono text-success">{formatCurrency(section5.reduce((s, r) => s + r.profit, 0))}</TableCell>
+                    <TableCell>TOTAL</TableCell><TableCell></TableCell><TableCell></TableCell>
+                    <TableCell className="text-right font-mono">{formatWeight(section5.reduce((s, r) => s + r.kg, 0))}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-right font-mono text-success">{formatCurrency(section5.reduce((s, r) => s + r.revenue, 0))}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             )}
           </SectionCard>
 
-          {/* Section 6: PREJUÍZOS TERCEIROS */}
+          {/* Section 6: PREJUÍZOS TERCEIROS — (cliente + artigo + malharia) */}
           <SectionCard title={`PREJUÍZOS DE TERCEIROS — ${monthLabel}`}>
             {section6.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum prejuízo neste mês</p> : (
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Malharia</TableHead><TableHead className="text-right">Kg</TableHead><TableHead className="text-right">Rolos</TableHead><TableHead className="text-right">Receita</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Prejuízo</TableHead>
+                  <TableHead>Cliente</TableHead><TableHead>Artigo</TableHead><TableHead>Malharia</TableHead><TableHead className="text-right">Peso (kg)</TableHead><TableHead className="text-right">R$/kg</TableHead><TableHead className="text-right">Prejuízo</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {section6.map((r, i) => (
-                    <TableRow key={i}><TableCell>{r.name}</TableCell><TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell><TableCell className="text-right font-mono">{formatNumber(r.rolls)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.revenue)}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.cost)}</TableCell><TableCell className="text-right font-mono text-destructive">{formatCurrency(r.profit)}</TableCell></TableRow>
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap">{r.clientName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.articleName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.outsourceName}</TableCell>
+                      <TableCell className="text-right font-mono">{formatWeight(r.kg)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(r.valuePerKg)}</TableCell>
+                      <TableCell className="text-right font-mono text-destructive">{formatCurrency(r.profit)}</TableCell>
+                    </TableRow>
                   ))}
                   <TableRow className="font-bold border-t-2">
-                    <TableCell>TOTAL</TableCell><TableCell className="text-right font-mono">{formatWeight(section6.reduce((s, r) => s + r.kg, 0))}</TableCell><TableCell className="text-right font-mono">{formatNumber(section6.reduce((s, r) => s + r.rolls, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section6.reduce((s, r) => s + r.revenue, 0))}</TableCell><TableCell className="text-right font-mono">{formatCurrency(section6.reduce((s, r) => s + r.cost, 0))}</TableCell><TableCell className="text-right font-mono text-destructive">{formatCurrency(section6.reduce((s, r) => s + r.profit, 0))}</TableCell>
+                    <TableCell>TOTAL</TableCell><TableCell></TableCell><TableCell></TableCell>
+                    <TableCell className="text-right font-mono">{formatWeight(section6.reduce((s, r) => s + r.kg, 0))}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-right font-mono text-destructive">{formatCurrency(section6.reduce((s, r) => s + r.profit, 0))}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             )}
           </SectionCard>
 
-          {/* Section 7: RESÍDUOS */}
+          {/* Section 7: RESÍDUOS — (cliente + material) */}
           <SectionCard title={`RECEITAS DIVERSAS (RESÍDUOS) — ${monthLabel}`}>
             {section7.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum registro de resíduos neste mês</p> : (
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Material</TableHead><TableHead className="text-right">Qtd</TableHead><TableHead>Und.</TableHead><TableHead className="text-right">Total (R$)</TableHead>
+                  <TableHead>Cliente</TableHead><TableHead>Material</TableHead><TableHead className="text-right">Peso/Qtd</TableHead><TableHead className="text-right">Valor unitário</TableHead><TableHead className="text-right">Lucro (R$)</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {section7.map((r, i) => (
-                    <TableRow key={i}><TableCell>{r.name}</TableCell><TableCell className="text-right font-mono">{formatNumber(r.qty, 2)}</TableCell><TableCell>{r.unit}</TableCell><TableCell className="text-right font-mono">{formatCurrency(r.total)}</TableCell></TableRow>
+                    <TableRow key={i}>
+                      <TableCell className="whitespace-nowrap">{r.clientName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{r.materialName}</TableCell>
+                      <TableCell className="text-right font-mono whitespace-nowrap">{formatNumber(r.qty, 2)} {r.unit}</TableCell>
+                      <TableCell className="text-right font-mono whitespace-nowrap">{formatCurrency(r.unitPrice)}/{r.unit}</TableCell>
+                      <TableCell className="text-right font-mono text-success">{formatCurrency(r.total)}</TableCell>
+                    </TableRow>
                   ))}
                   <TableRow className="font-bold border-t-2">
-                    <TableCell>TOTAL</TableCell><TableCell></TableCell><TableCell></TableCell><TableCell className="text-right font-mono">{formatCurrency(section7.reduce((s, r) => s + r.total, 0))}</TableCell>
+                    <TableCell>TOTAL</TableCell><TableCell></TableCell><TableCell></TableCell><TableCell></TableCell>
+                    <TableCell className="text-right font-mono text-success">{formatCurrency(section7.reduce((s, r) => s + r.total, 0))}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             )}
           </SectionCard>
+
 
           {/* Section 8: VENDA DE FIO */}
           <SectionCard title={`VENDA DE FIO — ${monthLabel}`}>
