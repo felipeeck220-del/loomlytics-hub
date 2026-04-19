@@ -1099,6 +1099,10 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ## 📅 Histórico de Alterações
 
+> Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
+
+- **19/04/2026 (Brasília)** — **LIMPEZA DA PASTA /docs:** (1) `DOCUMENTACAO.md` removido (estava desatualizado, conteúdo absorvido por `mestre.md`); (2) `nuvemfiscal.md` movido para `docs/roadmap/` (integração ainda não implementada); (3) Histórico de Alterações consolidado em uma única seção (eliminada duplicação que existia entre as linhas 1071 e 1143); (4) Criado `docs/README.md` como índice de toda a documentação com selo de status (✅ Produção / 🔒 Em breve / 🚧 Em teste / 📋 Planejado) por módulo; (5) Adicionado selo de status no topo de cada arquivo `.md` da pasta `docs/`; (6) Criados docs faltantes: `dashboard.md` (expandido), `reports.md`, `settings.md`, `weavers.md`.
+
 - **31/03/2026 04:00** — Exportação PDF agora faz download direto do arquivo (com nome `relatorio_<tipo>_<data>.pdf`) em vez de abrir nova aba com diálogo de impressão.
 - **31/03/2026 04:15** — Corrigido PDF em branco: elemento off-screen não era capturado pelo html2canvas.
 - **31/03/2026 04:30** — Corrigido PDF em branco (2ª tentativa): iframe oculto com HTML completo.
@@ -1430,6 +1434,33 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **17/04/2026 22:00 (Brasília)** — **FECHAMENTO MENSAL — Reorganização das seções por (cliente+artigo):** (1) **Estoque de Malha:** filtro exclusivo para o cliente "Sul Brasil" (comparação normalizada com `normalizeStr` — minúsculas, sem acentos, espaços colapsados); (2) **Receitas Próprias:** agora agrupado por (cliente + artigo) com colunas `Cliente | Artigo | Peso (kg) | R$/kg | Faturamento`. R$/kg = revenue/kg (médio do mês); (3) **Receitas de Terceiros:** agrupado por (cliente + artigo + malharia) somente lançamentos com `total_profit ≥ 0`. Colunas: `Cliente | Artigo | Malharia | Peso | R$/kg | Faturamento`; (4) **Prejuízos de Terceiros:** mesma estrutura, somente lançamentos com `total_profit < 0`, exibindo prejuízo em vermelho; (5) **Resíduos:** agrupado por (cliente + material) com colunas `Cliente | Material | Peso/Qtd | Valor unitário | Lucro` (lucro = total da venda); (6) **PDF e UI** atualizados com `whitespace-nowrap` para evitar quebra de linha; (7) **Faturamento Total** mantém os mesmos cálculos consolidados.
 
+### Entradas históricas (28/03/2026 — pré-formato bullet)
+
+- **31/03/2026 03:30** — PDF: removido título da aba (`<title>`) na janela de impressão para evitar cabeçalho duplicado do navegador.
+- **31/03/2026 03:00** — Redesign PDF: cabeçalho com barra teal/verde, logo, nome da empresa e data; tabelas com bordas leves e linha TOTAL em bold.
+- **31/03/2026 02:30** — Renomeação "Troca de Agulhas" → "Troca de Agulheiro" em todo o sistema.
+- **31/03/2026 02:15** — Correção: nome de máquinas 1-9 agora usa `padStart(2, '0')` no save. Corrigido "TEAR 1" → "TEAR 01" no banco.
+- **31/03/2026 02:00** — UI Mobile: modal "Registrar Falha" (Revisão) com campos empilhando em coluna única no mobile e dropdown forçado a abrir para baixo.
+- **31/03/2026 01:30** — Formatação: eficiência exibida com 2 casas decimais (ex: 76,90%) em todo o sistema.
+- **31/03/2026 01:00** — Correção dados: dia 25/03 — faltavam 2 rolos do TEAR 22 turno tarde (COTTON LEVE PENTEADO). Total agora bate com Firebase (898 rolos).
+- **31/03/2026 00:30** — Importação Firebase: 261 registros de produção dos dias 27, 28 e 29/03 importados para o Supabase (empresa Trama Certa).
+- **30/03/2026 16:00** — Auditoria assinatura: cancelamento agora seta `grace_period_end`. `check-subscription` corrigido para tratar `blocked`/`cancelled` antes do trial check.
+- **30/03/2026 03:00** — Correções: `machine_logs` com paginação; `troca_agulhas` adicionado a DOWNTIME_STATUSES; `saveClients/Articles/Weavers` usam UPSERT + DELETE seletivo.
+- **30/03/2026 02:00** — Auditoria pré-lançamento: bug crítico — `saveArticles()` não incluía `target_efficiency` no insert (resetava para 80%). `addDefectRecords()` não incluía `created_by_name/code`. Corrigidos.
+- **30/03/2026 01:00** — Login de platform_admin redireciona para /admin via `window.location.href`. RootRedirect verifica platform_admins.
+- **30/03/2026 00:30** — Regras do mestre.md reforçadas: fuso Brasília obrigatório, histórico obrigatório após cada alteração.
+- **30/03/2026 00:15** — Botão "Instalar App" no sidebar com detecção de plataforma (Android/iOS/Desktop).
+- **30/03/2026 00:00** — PWA: criado `public/sw.js` (service worker mínimo) e registro condicional em `main.tsx` para habilitar instalação no Android/Chrome.
+- **29/03/2026 23:00** — Removida "Configurações" do sidebar/bottom nav para usuários não-admin; adicionado botão "Sair" no sidebar footer.
+- **29/03/2026 22:00** — Corrigida exclusão de usuários (admin-api DELETE) — agora remove perfil e usuário auth corretamente. Loading spinner no botão.
+- **29/03/2026 02:00** — Facebook Pixel integrado (ID 952929367422534) — PageView, CompleteRegistration, InitiateCheckout, Purchase.
+- **29/03/2026 01:00** — Reescrita completa do mestre.md com detalhamento exaustivo de todos os módulos.
+- **29/03/2026 00:00** — Backup: removida UNIQUE constraint para múltiplos/dia, alterado para INSERT, configurado pg_cron diário às 00:00 UTC, ordenação por created_at DESC.
+- **28/03/2026 23:00** — Criação dos artigos MALHA 1,12-115 MISTO e MALHA 1,35-115 MISTO + vinculação de 777 produções órfãs (0 restantes).
+- **28/03/2026 22:00** — Renomeação TEAR 3→TEAR 03, TEAR 4→TEAR 04 + vinculação de 19.531 produções ao machine_id correto. Removidos prefixos "Todos os" nos filtros.
+- **28/03/2026 21:15** — Correção do filtro de mês no Dashboard/Reports (dayRange===0 bloqueava filtro). Correção do filtro por máquina (fallback por machine_name).
+- **28/03/2026 21:00** — Criação deste arquivo mestre.md.
+
 ---
 
-*Última atualização: 17/04/2026 22:00 (Brasília)*
+*Última atualização: 19/04/2026 (Brasília) — Limpeza completa da pasta /docs*
