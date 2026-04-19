@@ -1,5 +1,8 @@
 # Integração UltraMsg – WhatsApp API
 
+> **Status:** ✅ **Em Produção** — engine de notificações WhatsApp via UltraMsg
+
+
 > Documentação técnica completa da integração UltraMsg para envio de mensagens WhatsApp no módulo Contas a Pagar.
 
 ---

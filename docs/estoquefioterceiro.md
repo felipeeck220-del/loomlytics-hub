@@ -1,5 +1,8 @@
 # 🧶 ESTOQUEFIOTERCEIRO.MD — Estoque de Fio em Facções Terceirizadas
 
+> **Status:** ✅ **Em Produção** — estoque de fio em malharias terceirizadas
+
+
 > **⚠️ INSTRUÇÕES:**
 > Este arquivo documenta a implementação do módulo de **Estoque de Fio por Facção (Terceiros)**.
 > Este módulo rastreia quanto fio da empresa principal está fisicamente em cada malharia terceirizada.

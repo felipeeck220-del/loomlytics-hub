@@ -1,5 +1,8 @@
 # 📡📺 IoT + Modo TV — Integração de Dados em Tempo Real
 
+> **Status:** 📋 **Planejado** — integração IoT × Modo TV
+
+
 > Documentação completa para integração do módulo IoT (sensores ESP32) com o Modo Tela (TV Mode),
 > permitindo exibição de dados **em tempo real** no chão de fábrica.
 >

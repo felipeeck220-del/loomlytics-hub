@@ -1,5 +1,8 @@
 # 📋 Terceirizado — Documentação Completa
 
+> **Status:** ✅ **Em Produção** — gestão de malharias terceirizadas
+
+
 > Módulo de gestão de produção terceirizada (`src/pages/Outsource.tsx`)
 
 ---

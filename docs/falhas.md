@@ -1,5 +1,8 @@
 # ⚠️ Falhas (Tecelões > Aba Falhas) — Documentação Completa
 
+> **Status:** ✅ **Em Produção** — aba "Falhas" no módulo Tecelões
+
+
 > Aba de análise de falhas/defeitos por tecelão (`src/pages/Weavers.tsx` — componente `WeaverDefectsTab`)
 
 ---

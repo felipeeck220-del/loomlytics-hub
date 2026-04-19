@@ -1,5 +1,8 @@
 # 📄 NFTRAMA.MD — Especificação Personalizada do Módulo de Notas Fiscais (Trama Têxtil)
 
+> **Status:** 📐 **Referência** — especificações específicas da empresa Trama Certa
+
+
 > **👤 CLIENTE:** `admin@felipe.com`
 > **📅 Criado em:** 08/04/2026
 > **📌 Base:** nf.md (v1) com customizações específicas

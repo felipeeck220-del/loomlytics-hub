@@ -1,5 +1,8 @@
 # 🎨 DESIGN SYSTEM — Guia Visual para Dashboards
 
+> **Status:** 📐 **Referência** — padrões visuais e tokens CSS
+
+
 > **Objetivo:** Documento de referência visual para replicar o estilo deste projeto em novos dashboards de qualquer nicho.
 > **Stack:** React 18 + Tailwind CSS v3 + shadcn/ui + Recharts
 > **Fontes:** Inter (display/body) + JetBrains Mono (dados numéricos)

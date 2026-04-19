@@ -1,5 +1,8 @@
 # 📈 Relatórios — Documentação Completa
 
+> **Status:** ✅ **Em Produção** — relatórios analíticos e exportação PDF
+
+
 > Módulo de relatórios analíticos (`src/pages/Reports.tsx` — ~1603 linhas)
 
 ---

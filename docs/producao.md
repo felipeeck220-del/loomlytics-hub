@@ -1,5 +1,8 @@
 # 🧵 Produção — Documentação Completa
 
+> **Status:** ✅ **Em Produção** — registro de produção por turno com modal sequencial
+
+
 > Módulo de registro de produção diária (`src/pages/Production.tsx` — ~1156 linhas)
 
 ---

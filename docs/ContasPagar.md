@@ -1,5 +1,8 @@
 # Módulo Contas a Pagar
 
+> **Status:** 🔒 **Em Breve** — funcionalidade implementada mas exibida com cadeado no sidebar
+
+
 > Documentação técnica e funcional do módulo de Contas a Pagar com notificações via WhatsApp.
 
 ---

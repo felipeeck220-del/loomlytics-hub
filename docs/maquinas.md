@@ -1,5 +1,8 @@
 # Máquinas — Snapshot Técnico Completo (08/04/2026)
 
+> **Status:** ✅ **Em Produção** — CRUD de teares com status, modos e logs
+
+
 > Arquivo de referência para restauração. Contém layout, lógica, cálculos, estilos, modais e componentes auxiliares da página **Máquinas** (`src/pages/Machines.tsx`).
 
 ---

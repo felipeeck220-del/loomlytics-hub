@@ -1,5 +1,8 @@
 # 🔧 Edge Functions — Documentação Completa
 
+> **Status:** 📐 **Referência** — visão geral das Edge Functions Deno (Supabase)
+
+
 > Todas as Edge Functions do projeto MalhaGest (Deno, deploy automático)
 
 ---

@@ -1,5 +1,8 @@
 # ⚙️ Configurações — Documentação Completa
 
+> **Status:** ✅ **Em Produção** — configurações de perfil, usuários, empresa e planos
+
+
 > Módulo de configurações da empresa (`src/pages/Settings.tsx` — ~1772 linhas)
 
 ---

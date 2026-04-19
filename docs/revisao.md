@@ -1,5 +1,8 @@
 # 🔍 Revisão — Documentação Completa
 
+> **Status:** ✅ **Em Produção** — registro e edição de defeitos
+
+
 > Módulo de registro de defeitos/falhas de produção (`src/pages/Revision.tsx` — ~378 linhas)
 
 ---
