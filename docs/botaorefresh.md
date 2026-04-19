@@ -1,5 +1,8 @@
 # 🔄 Botão Refresh + 📶 Indicador de Conexão — Documentação Completa
 
+> **Status:** ✅ **Em Produção** — botão refresh e indicador de conectividade no header
+
+
 > **Data de implementação:** 09/04/2026  
 > **Arquivos criados:** `src/hooks/useNetworkStatus.ts`, `src/components/NetworkStatusIcon.tsx`  
 > **Arquivos modificados:** `src/hooks/useCompanyData.ts`, `src/components/AppLayout.tsx`, `src/contexts/CompanyDataContext.tsx`

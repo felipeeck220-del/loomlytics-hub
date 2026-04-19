@@ -1,5 +1,8 @@
 # 📋 AUDITORIA.MD — Sistema de Auditoria e Histórico de Ações do MalhaGest
 
+> **Status:** ✅ **Em Produção** — sistema de auditoria ativo em todos os módulos com CRUD
+
+
 > **⚠️ REGRA OBRIGATÓRIA PARA A IA (LOVABLE):**
 > Toda nova funcionalidade implementada no sistema **DEVE** incluir chamadas de auditoria (`logAction`) para **TODAS** as operações de criação, edição e exclusão. **NÃO é opcional.** Esta regra está documentada também no `mestre.md`.
 

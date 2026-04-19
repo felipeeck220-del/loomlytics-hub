@@ -1,5 +1,8 @@
 # 📄 NF.MD — Snapshot do Módulo de Notas Fiscais (Estado Atual v1)
 
+> **Status:** ✅ **Em Produção** — Notas Fiscais (Entrada de Fio, Venda de Fio, Saída Malha)
+
+
 > **⚠️ DOCUMENTO DE REVERSÃO:**
 > Este arquivo documenta o estado 100% implementado do módulo de Notas Fiscais em 08/04/2026.
 > Se a v2 (nfv2.md) der errado, reverter para este estado exato.

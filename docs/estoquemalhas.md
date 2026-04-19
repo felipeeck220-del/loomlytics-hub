@@ -1,5 +1,8 @@
 # 🧵 ESTOQUEMALHAS.MD — Controle de Estoque de Malha
 
+> **Status:** ✅ **Em Produção** — estoque de malha (Produzido − Entregue)
+
+
 > **⚠️ INSTRUÇÕES:**
 > Este arquivo documenta a implementação da Tela de Estoque de Malha.
 > Nenhuma migration é necessária — todos os dados já existem nas tabelas `productions`, `invoices` e `invoice_items`.

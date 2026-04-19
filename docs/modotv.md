@@ -1,5 +1,8 @@
 # 📺 MODO TELA (TV MODE) — Documentação Completa para Implementação
 
+> **Status:** ✅ **Em Produção** — Modo TV (`/tela`) com pareamento por código
+
+
 > **⚠️ INSTRUÇÕES PARA A IA (LOVABLE):**
 >
 > 1. Leia este arquivo **INTEIRO** antes de implementar qualquer parte do Modo Tela.

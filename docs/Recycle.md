@@ -1,5 +1,8 @@
 # 📦 Vendas de Resíduos — Documentação do Módulo
 
+> **Status:** ✅ **Em Produção** — vendas de resíduos centradas no cliente
+
+
 > **Módulo para registro e controle de vendas de materiais residuais** (papelão, plástico, óleo sujo, etc.)
 > **Modelo cliente-cêntrico:** o preço é definido por cliente, não por material.
 

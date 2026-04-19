@@ -1068,49 +1068,6 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 ---
 
-## 📅 Histórico de Alterações
-
-| Data & Hora (Brasília) | Alteração |
-|------------------------|-----------|
-| 17/04/2026 22:00 | Fechamento Mensal: Estoque de Malha agora mostra apenas cliente "Sul Brasil" (comparação normalizada — minúsculas, sem acentos). Receitas Próprias agrupadas por (cliente+artigo) com colunas Peso, R$/kg, Faturamento. Receitas/Prejuízos de Terceiros agrupados por (cliente+artigo+malharia). Resíduos agrupado por (cliente+material) com Peso/Qtd, Valor unitário e Lucro. PDF e UI atualizados. |
-| 28/03/2026 21:00 | Criação deste arquivo mestre.md |
-| 28/03/2026 21:15 | Correção do filtro de mês no Dashboard/Reports (dayRange===0 bloqueava filtro) |
-| 28/03/2026 21:30 | Correção do filtro por máquina nos Relatórios (fallback por machine_name) |
-| 28/03/2026 22:00 | Renomeação TEAR 3→TEAR 03, TEAR 4→TEAR 04 |
-| 28/03/2026 22:15 | Vinculação de 19.531 produções ao machine_id correto via migração |
-| 28/03/2026 22:30 | Remoção de prefixos "Todos os" nos filtros de Relatórios |
-| 28/03/2026 23:00 | Criação dos artigos MALHA 1,12-115 MISTO e MALHA 1,35-115 MISTO |
-| 28/03/2026 23:15 | Vinculação de 777 produções órfãs aos novos artigos (0 órfãs restantes) |
-| 29/03/2026 00:00 | Backup: removida constraint UNIQUE(company_id,backup_date) para múltiplos/dia |
-| 29/03/2026 00:05 | Backup: alterado de UPSERT para INSERT no daily-backup |
-| 29/03/2026 00:06 | Backup: configurado pg_cron para executar daily-backup todo dia às 00:00 UTC |
-| 29/03/2026 00:10 | Backup: list_backups agora ordena por created_at DESC (mostra hora correta) |
-| 29/03/2026 01:00 | Reescrita completa do mestre.md com detalhamento exaustivo de todos os módulos |
-| 29/03/2026 02:00 | Facebook Pixel integrado (ID 952929367422534) — PageView, CompleteRegistration, InitiateCheckout, Purchase |
-| 29/03/2026 22:00 | Corrigida exclusão de usuários (admin-api DELETE) — agora remove perfil e usuário auth corretamente |
-| 29/03/2026 22:15 | Adicionado loading spinner no botão de exclusão de usuário (estado "Excluindo...") |
-| 29/03/2026 23:00 | Removida opção "Configurações" do sidebar/bottom nav para usuários não-admin; adicionado botão "Sair" no sidebar footer |
-| 30/03/2026 00:00 | PWA: criado `public/sw.js` (service worker mínimo) e registro condicional em `main.tsx` para habilitar instalação no Android/Chrome |
-| 30/03/2026 00:15 | Botão "Instalar App" no sidebar — detecta plataforma (Android/iOS/Desktop), exibe instruções iOS, usa `beforeinstallprompt` no Android |
-| 30/03/2026 00:30 | Regras do mestre.md reforçadas: fuso Brasília obrigatório, histórico obrigatório após cada alteração, instrução de leitura prévia |
-| 30/03/2026 01:00 | Login de platform_admin redireciona para /admin via window.location.href (evita race condition com PublicRoute); RootRedirect também verifica platform_admins para redirecionar admins da plataforma |
-| 30/03/2026 02:00 | **AUDITORIA PRÉ-LANÇAMENTO:** BUG CRÍTICO corrigido — `saveArticles()` em `useCompanyData.ts` NÃO incluía `target_efficiency` no mapeamento de rows para insert, causando reset para 80% (default do DB) toda vez que artigos eram salvos. Campo adicionado: `target_efficiency: a.target_efficiency ?? 80` |
-| 30/03/2026 02:00 | **AUDITORIA PRÉ-LANÇAMENTO:** BUG corrigido — `addDefectRecords()` em `useCompanyData.ts` NÃO incluía `created_by_name` e `created_by_code` no mapeamento, impedindo rastreabilidade de quem registrou o defeito. Campos adicionados ao insert |
-| 30/03/2026 03:00 | **CORREÇÃO:** `machine_logs` agora usa `fetchAll` com paginação (sem limite de 1000 registros) |
-| 30/03/2026 03:00 | **CORREÇÃO:** `troca_agulhas` adicionado à lista de DOWNTIME_STATUSES — desconta tempo parado do cálculo de eficiência |
-| 30/03/2026 03:00 | **CORREÇÃO:** `saveClients/saveArticles/saveWeavers` agora usam UPSERT + DELETE seletivo em vez de DELETE ALL + INSERT |
-| 30/03/2026 16:00 | **AUDITORIA ASSINATURA:** BUG corrigido — cancelamento de assinatura agora seta `grace_period_end` (antes ficava eternamente em `cancelling`). `check-subscription` Edge Function agora: (1) verifica `grace_period_end` no status `cancelling` e transiciona para `cancelled` quando expirado, (2) trata `blocked`/`cancelled` antes do trial check, (3) Stripe check encapsulado em try-catch para não falhar quando sistema usa Pix |
-| 31/03/2026 00:30 | **IMPORTAÇÃO FIREBASE:** Importados 261 registros de produção dos dias 27, 28 e 29/03 do Firebase para o Supabase (empresa Trama Certa, usuário felipeeck182@gmail.com) |
-| 31/03/2026 01:00 | **CORREÇÃO DADOS:** Corrigido dia 25/03 — faltavam 2 rolos do TEAR 22 turno tarde (COTTON LEVE PENTEADO, múltiplos artigos). Registro inserido, total agora bate com Firebase (898 rolos) |
-| 31/03/2026 01:30 | **FORMATAÇÃO:** Eficiência agora exibida com 2 casas decimais (ex: 76,90%) em todo o sistema — `formatPercent` em `formatters.ts` alterado de `toFixed(1)` para `toFixed(2)`, e corrigidos `toFixed(1)` manuais em `Production.tsx` e `Weavers.tsx` |
-| 31/03/2026 02:00 | **UI MOBILE:** Modal "Registrar Falha" (Revisão) melhorado para mobile — campos agora empilham em coluna única (`grid-cols-1 sm:grid-cols-2`) e dropdown de Máquina forçado a abrir para baixo (`position="popper" side="bottom"`) |
-| 31/03/2026 02:15 | **CORREÇÃO:** Nome de máquinas 1-9 agora usa `padStart(2, '0')` no save (era `TEAR ${number}` sem padding). Corrigido "TEAR 1" → "TEAR 01" no banco. 4 ocorrências corrigidas em `Machines.tsx` |
-| 31/03/2026 02:30 | **RENOMEAÇÃO:** "Troca de Agulhas" → "Troca de Agulheiro" em todo o sistema (`types/index.ts`, `Machines.tsx`, `Mecanica.tsx`) |
-| 31/03/2026 03:00 | **REDESIGN PDF:** Exportação de relatórios PDF redesenhada para igualar o sistema antigo — header com barra teal/verde-claro com logo, nome da empresa e data; tabela limpa com bordas leves, cabeçalho cinza, linha TOTAL em bold. Adicionado `companyName` ao export |
-| 31/03/2026 03:30 | **PDF — Remoção do cabeçalho do navegador:** Removido o título da aba (`<title>`) na janela de impressão para que o browser não exiba "31/03/2026, 00:24 RELATÓRIO PRODUÇÃO - MÁQUINAS" no topo do PDF impresso, pois já existe título e data no próprio relatório |
-
----
-
 ## 📊 Facebook Pixel (Rastreamento de Conversão)
 
 **Pixel ID:** `952929367426534`
@@ -1141,6 +1098,10 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 ---
 
 ## 📅 Histórico de Alterações
+
+> Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
+
+- **19/04/2026 (Brasília)** — **LIMPEZA DA PASTA /docs:** (1) `DOCUMENTACAO.md` removido (estava desatualizado, conteúdo absorvido por `mestre.md`); (2) `nuvemfiscal.md` movido para `docs/roadmap/` (integração ainda não implementada); (3) Histórico de Alterações consolidado em uma única seção (eliminada duplicação que existia entre as linhas 1071 e 1143); (4) Criado `docs/README.md` como índice de toda a documentação com selo de status (✅ Produção / 🔒 Em breve / 🚧 Em teste / 📋 Planejado) por módulo; (5) Adicionado selo de status no topo de cada arquivo `.md` da pasta `docs/`; (6) Criados docs faltantes: `dashboard.md` (expandido), `reports.md`, `settings.md`, `weavers.md`.
 
 - **31/03/2026 04:00** — Exportação PDF agora faz download direto do arquivo (com nome `relatorio_<tipo>_<data>.pdf`) em vez de abrir nova aba com diálogo de impressão.
 - **31/03/2026 04:15** — Corrigido PDF em branco: elemento off-screen não era capturado pelo html2canvas.
@@ -1473,6 +1434,33 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 - **17/04/2026 22:00 (Brasília)** — **FECHAMENTO MENSAL — Reorganização das seções por (cliente+artigo):** (1) **Estoque de Malha:** filtro exclusivo para o cliente "Sul Brasil" (comparação normalizada com `normalizeStr` — minúsculas, sem acentos, espaços colapsados); (2) **Receitas Próprias:** agora agrupado por (cliente + artigo) com colunas `Cliente | Artigo | Peso (kg) | R$/kg | Faturamento`. R$/kg = revenue/kg (médio do mês); (3) **Receitas de Terceiros:** agrupado por (cliente + artigo + malharia) somente lançamentos com `total_profit ≥ 0`. Colunas: `Cliente | Artigo | Malharia | Peso | R$/kg | Faturamento`; (4) **Prejuízos de Terceiros:** mesma estrutura, somente lançamentos com `total_profit < 0`, exibindo prejuízo em vermelho; (5) **Resíduos:** agrupado por (cliente + material) com colunas `Cliente | Material | Peso/Qtd | Valor unitário | Lucro` (lucro = total da venda); (6) **PDF e UI** atualizados com `whitespace-nowrap` para evitar quebra de linha; (7) **Faturamento Total** mantém os mesmos cálculos consolidados.
 
+### Entradas históricas (28/03/2026 — pré-formato bullet)
+
+- **31/03/2026 03:30** — PDF: removido título da aba (`<title>`) na janela de impressão para evitar cabeçalho duplicado do navegador.
+- **31/03/2026 03:00** — Redesign PDF: cabeçalho com barra teal/verde, logo, nome da empresa e data; tabelas com bordas leves e linha TOTAL em bold.
+- **31/03/2026 02:30** — Renomeação "Troca de Agulhas" → "Troca de Agulheiro" em todo o sistema.
+- **31/03/2026 02:15** — Correção: nome de máquinas 1-9 agora usa `padStart(2, '0')` no save. Corrigido "TEAR 1" → "TEAR 01" no banco.
+- **31/03/2026 02:00** — UI Mobile: modal "Registrar Falha" (Revisão) com campos empilhando em coluna única no mobile e dropdown forçado a abrir para baixo.
+- **31/03/2026 01:30** — Formatação: eficiência exibida com 2 casas decimais (ex: 76,90%) em todo o sistema.
+- **31/03/2026 01:00** — Correção dados: dia 25/03 — faltavam 2 rolos do TEAR 22 turno tarde (COTTON LEVE PENTEADO). Total agora bate com Firebase (898 rolos).
+- **31/03/2026 00:30** — Importação Firebase: 261 registros de produção dos dias 27, 28 e 29/03 importados para o Supabase (empresa Trama Certa).
+- **30/03/2026 16:00** — Auditoria assinatura: cancelamento agora seta `grace_period_end`. `check-subscription` corrigido para tratar `blocked`/`cancelled` antes do trial check.
+- **30/03/2026 03:00** — Correções: `machine_logs` com paginação; `troca_agulhas` adicionado a DOWNTIME_STATUSES; `saveClients/Articles/Weavers` usam UPSERT + DELETE seletivo.
+- **30/03/2026 02:00** — Auditoria pré-lançamento: bug crítico — `saveArticles()` não incluía `target_efficiency` no insert (resetava para 80%). `addDefectRecords()` não incluía `created_by_name/code`. Corrigidos.
+- **30/03/2026 01:00** — Login de platform_admin redireciona para /admin via `window.location.href`. RootRedirect verifica platform_admins.
+- **30/03/2026 00:30** — Regras do mestre.md reforçadas: fuso Brasília obrigatório, histórico obrigatório após cada alteração.
+- **30/03/2026 00:15** — Botão "Instalar App" no sidebar com detecção de plataforma (Android/iOS/Desktop).
+- **30/03/2026 00:00** — PWA: criado `public/sw.js` (service worker mínimo) e registro condicional em `main.tsx` para habilitar instalação no Android/Chrome.
+- **29/03/2026 23:00** — Removida "Configurações" do sidebar/bottom nav para usuários não-admin; adicionado botão "Sair" no sidebar footer.
+- **29/03/2026 22:00** — Corrigida exclusão de usuários (admin-api DELETE) — agora remove perfil e usuário auth corretamente. Loading spinner no botão.
+- **29/03/2026 02:00** — Facebook Pixel integrado (ID 952929367422534) — PageView, CompleteRegistration, InitiateCheckout, Purchase.
+- **29/03/2026 01:00** — Reescrita completa do mestre.md com detalhamento exaustivo de todos os módulos.
+- **29/03/2026 00:00** — Backup: removida UNIQUE constraint para múltiplos/dia, alterado para INSERT, configurado pg_cron diário às 00:00 UTC, ordenação por created_at DESC.
+- **28/03/2026 23:00** — Criação dos artigos MALHA 1,12-115 MISTO e MALHA 1,35-115 MISTO + vinculação de 777 produções órfãs (0 restantes).
+- **28/03/2026 22:00** — Renomeação TEAR 3→TEAR 03, TEAR 4→TEAR 04 + vinculação de 19.531 produções ao machine_id correto. Removidos prefixos "Todos os" nos filtros.
+- **28/03/2026 21:15** — Correção do filtro de mês no Dashboard/Reports (dayRange===0 bloqueava filtro). Correção do filtro por máquina (fallback por machine_name).
+- **28/03/2026 21:00** — Criação deste arquivo mestre.md.
+
 ---
 
-*Última atualização: 17/04/2026 22:00 (Brasília)*
+*Última atualização: 19/04/2026 (Brasília) — Limpeza completa da pasta /docs*

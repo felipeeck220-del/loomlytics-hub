@@ -1,5 +1,8 @@
 # 📊 FECHAMENTOMENSAL.MD — Fechamento Mensal Consolidado
 
+> **Status:** 🚧 **Em Teste** — relatório de fechamento mensal em PDF (badge âmbar no sidebar)
+
+
 > **⚠️ INSTRUÇÕES:**
 > Este arquivo documenta a implementação completa do **Fechamento Mensal** do MalhaGest.
 > O Fechamento Mensal é o relatório consolidado que reúne TODOS os dados financeiros e operacionais de um mês.

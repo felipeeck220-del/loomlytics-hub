@@ -1,5 +1,8 @@
 # 📡 IoT — Monitoramento Automático de Produção via ESP32
 
+> **Status:** 🔒 **Em Breve** — hardware ESP32 implementado mas exibido com cadeado no sidebar
+
+
 > Documentação completa para integração de sensores IoT com o sistema Loomlytics,
 > permitindo monitoramento em tempo real de RPM, produção automática de peças,
 > troca automática de turno e crédito proporcional por tecelão.

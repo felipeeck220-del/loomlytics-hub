@@ -1,5 +1,8 @@
 # Dashboard — Documentação Completa (Snapshot 08/04/2026)
 
+> **Status:** ✅ **Em Produção** — KPIs, gráficos e monitoramento de paradas
+
+
 > **Objetivo**: registrar 100% do estado atual do Dashboard para possibilitar reversão caso futuras alterações não sejam satisfatórias.
 
 ---

@@ -1,5 +1,8 @@
 # 🧶 SALDOFIOSGLOBAL.MD — Saldo Global de Fios por Tipo (Compra / Estoque / Vendas)
 
+> **Status:** ✅ **Em Produção** — saldo global de fios consolidado
+
+
 > **⚠️ INSTRUÇÕES:**
 > Este arquivo documenta a visão **global de fios por tipo** — diferente do `saldofios.md` que é por **cliente + tipo de fio**.
 > Esta visão consolida TODOS os clientes e mostra por tipo de fio: quanto foi comprado, quanto está em estoque e quanto foi vendido.

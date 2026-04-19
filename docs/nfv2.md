@@ -1,5 +1,8 @@
 # 📄 NFv2.MD — Evolução do Módulo de Notas Fiscais (Opção A)
 
+> **Status:** 📋 **Planejado** — próxima versão do módulo NF (refatoração)
+
+
 > **⚠️ INSTRUÇÕES:**
 > Este documento descreve as mudanças planejadas sobre o estado atual documentado em `nf.md`.
 > Se esta v2 falhar, reverter ao estado descrito em `nf.md` (snapshot de 08/04/2026).

@@ -1,5 +1,8 @@
 # 🔧 Mecânica — Documentação Completa
 
+> **Status:** ✅ **Em Produção** — manutenções preventivas e troca de agulheiro
+
+
 > Módulo de acompanhamento de manutenções (`src/pages/Mecanica.tsx` — ~621 linhas)
 
 ---

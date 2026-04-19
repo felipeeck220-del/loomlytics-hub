@@ -1,5 +1,8 @@
 # Clientes & Artigos — Snapshot Técnico Completo (08/04/2026)
 
+> **Status:** ✅ **Em Produção** — CRUD de clientes e artigos com vínculo a fios
+
+
 > Arquivo de referência para restauração. Contém layout, lógica, cálculos, estilos, modais e tipos da página **Clientes & Artigos** (`src/pages/ClientsArticles.tsx`).
 
 ---

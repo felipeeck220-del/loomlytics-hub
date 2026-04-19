@@ -1,5 +1,8 @@
 # 🚀 Setup de Novo Cliente — Checklist de Replicação
 
+> **Status:** 📐 **Referência** — passo a passo de onboarding de uma nova empresa-tenant
+
+
 > Guia passo a passo para criar um novo projeto Lovable a partir deste template para um novo cliente.
 
 ---

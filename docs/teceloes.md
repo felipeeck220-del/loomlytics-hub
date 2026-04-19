@@ -1,5 +1,8 @@
 # 👷 Tecelões — Documentação Completa
 
+> **Status:** ✅ **Em Produção** — cadastro e ranking de tecelões
+
+
 > Módulo de gestão de tecelões (`src/pages/Weavers.tsx` — ~605 linhas)
 
 ---

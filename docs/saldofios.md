@@ -1,5 +1,8 @@
 # 🧶 SALDOFIOS.MD — Saldo de Fios + Vínculo Artigo ↔ Tipo de Fio
 
+> **Status:** ✅ **Em Produção** — saldo de fios por cliente
+
+
 > **⚠️ INSTRUÇÕES:**
 > Este arquivo documenta a implementação conjunta do vínculo Artigo ↔ Tipo de Fio e da Tela de Saldo de Fios.
 > Ambos devem ser implementados juntos pois o saldo depende do vínculo para calcular o consumo.
