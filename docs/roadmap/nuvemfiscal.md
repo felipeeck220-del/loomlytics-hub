@@ -1,5 +1,8 @@
 # 📄 NUVEMFISCAL.MD — Integração Nuvem Fiscal para Consulta de NF-e
 
+> **Status:** 📋 **Planejado** — integração Nuvem Fiscal para consulta automática de NF-e (sem código no projeto ainda)
+
+
 > **Objetivo:** Usar a API da Nuvem Fiscal para consultar dados de NF-e pela Chave de Acesso (44 dígitos) e preencher automaticamente o formulário "Nova NF — Entrada (Fio)" no módulo de Notas Fiscais.
 
 ---
