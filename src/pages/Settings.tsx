@@ -1790,6 +1790,48 @@ export default function SettingsPage() {
         onOpenChange={setShowAuditHistory}
         companyId={user?.company_id || ''}
       />
+
+      {/* Admin Change User Password Dialog */}
+      <Dialog open={!!changePasswordUser} onOpenChange={(open) => { if (!open) setChangePasswordUser(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5 text-amber-600" />
+              Alterar Senha do Usuário
+            </DialogTitle>
+          </DialogHeader>
+          {changePasswordUser && (
+            <div className="space-y-4 pt-2">
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  Você está alterando a senha de <strong>{changePasswordUser.name}</strong>.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Nova Senha</Label>
+                <div className="relative">
+                  <Input
+                    type={showAdminNewPw ? 'text' : 'password'}
+                    value={adminNewPassword}
+                    onChange={e => setAdminNewPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    autoFocus
+                  />
+                  <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowAdminNewPw(!showAdminNewPw)}>
+                    {showAdminNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="pt-4">
+            <Button variant="outline" onClick={() => setChangePasswordUser(null)}>Cancelar</Button>
+            <Button className="btn-gradient" disabled={savingAdminPw} onClick={handleAdminChangePassword}>
+              {savingAdminPw && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Alterar Senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
