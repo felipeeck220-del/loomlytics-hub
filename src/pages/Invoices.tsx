@@ -207,7 +207,7 @@ export default function Invoices() {
   const [formTinturariaName, setFormTinturariaName] = useState('');
   const [formTerceirosName, setFormTerceirosName] = useState('');
   const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
+  const [formStatus, setFormStatus] = useState<InvoiceStatus>('conferida');
   const [formObservations, setFormObservations] = useState('');
   const [formItems, setFormItems] = useState<Array<{
     yarn_type_id?: string;
@@ -1963,10 +1963,12 @@ export default function Invoices() {
       <DeleteConfirmDialog
         open={!!cancelConfirmInvoice}
         onOpenChange={(v) => { if (!v) setCancelConfirmInvoice(null); }}
-        title="Cancelar Nota Fiscal"
-        description={`Tem certeza que deseja cancelar a NF ${cancelConfirmInvoice?.invoice_number}?`}
+        title={cancelConfirmInvoice?.type === 'entrada' ? "Excluir Nota Fiscal" : "Cancelar Nota Fiscal"}
+        description={cancelConfirmInvoice?.type === 'entrada' 
+          ? `Tem certeza que deseja EXCLUIR permanentemente a NF de entrada ${cancelConfirmInvoice?.invoice_number}? Esta ação não pode ser desfeita.`
+          : `Tem certeza que deseja cancelar a NF ${cancelConfirmInvoice?.invoice_number}?`}
         onConfirm={() => { if (cancelConfirmInvoice) handleCancelInvoice(cancelConfirmInvoice); setCancelConfirmInvoice(null); }}
-        confirmLabel="Cancelar NF"
+        confirmLabel={cancelConfirmInvoice?.type === 'entrada' ? "Excluir NF" : "Cancelar NF"}
       />
       <DeleteConfirmDialog
         open={!!deleteYarnConfirm}
