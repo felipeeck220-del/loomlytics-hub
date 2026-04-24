@@ -1463,4 +1463,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
 ---
 
-*Última atualização: 19/04/2026 (Brasília) — Limpeza completa da pasta /docs*
+ - **24/04/2026 13:25 (Brasília)** — **CONTROLE DE AGULHAS — Infraestrutura e Documentação:** (1) Criada documentação detalhada `docs/controledeagulha.md`; (2) Implementadas tabelas `needle_inventory` e `needle_transactions`; (3) Expandida tabela `machines` com campos técnicos (modelo, diâmetro, finura, etc.); (4) Implementado trigger `tr_handle_needle_transaction` para automação de estoque e auditoria; (5) Corrigidos avisos de segurança de `search_path` nas funções do banco.
+ 
+ *Última atualização: 24/04/2026 13:25 (Brasília)*
