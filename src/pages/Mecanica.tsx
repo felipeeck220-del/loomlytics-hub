@@ -144,10 +144,14 @@ export default function MecanicaPage() {
         : '2000-01-01';
       const prevPeriod = calcPeriod(machine.id, prevFromDate, today);
 
-      // From end of last needle change to today
-      const needleFromDate = lastNeedle
-        ? format(new Date(lastNeedle.ended_at || lastNeedle.started_at), 'yyyy-MM-dd')
-        : '2000-01-01';
+      // From last needle change (date from machine field or last log) to today
+      const machineLastNeedle = machine.last_needle_change_at 
+        ? format(new Date(machine.last_needle_change_at), 'yyyy-MM-dd')
+        : lastNeedle 
+          ? format(new Date(lastNeedle.ended_at || lastNeedle.started_at), 'yyyy-MM-dd')
+          : '2000-01-01';
+          
+      const needleFromDate = machineLastNeedle;
       const needlePeriod = calcPeriod(machine.id, needleFromDate, today);
 
       return {
@@ -650,9 +654,11 @@ export default function MecanicaPage() {
                           Desde última Troca de Agulheiro
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {lastNeedle
-                            ? format(new Date(lastNeedle.started_at), "dd/MM/yyyy", { locale: ptBR })
-                            : 'Sem registro'}
+                          {machine.last_needle_change_at 
+                            ? format(new Date(machine.last_needle_change_at), "dd/MM/yyyy", { locale: ptBR })
+                            : lastNeedle
+                              ? format(new Date(lastNeedle.started_at), "dd/MM/yyyy", { locale: ptBR })
+                              : 'Sem registro'}
                         </p>
                         <div className="flex items-center gap-4">
                           {canSeeFinancial && (
