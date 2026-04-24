@@ -277,6 +277,18 @@ export default function Machines() {
                 <span className="text-muted-foreground">RPM:</span>
                 <span className="font-semibold text-foreground">{m.rpm}</span>
               </div>
+              {m.model && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Modelo:</span>
+                  <span className="font-semibold text-foreground">{m.model}</span>
+                </div>
+              )}
+              {m.diameter && m.fineness && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Diâmetro/Finura:</span>
+                  <span className="font-semibold text-foreground">{m.diameter}" / {m.fineness}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Cadastrada:</span>
                 <span className="font-semibold text-foreground">{format(new Date(m.created_at), 'dd/MM/yyyy')}</span>
