@@ -35,9 +35,44 @@ export interface Machine {
   status: MachineStatus;
   article_id?: string;
   observations?: string;
-  production_mode: ProductionMode;
-  created_at: string;
-}
+   production_mode: ProductionMode;
+   created_at: string;
+   model?: string;
+   diameter?: string;
+   fineness?: string;
+   needle_quantity?: number;
+   feeder_quantity?: number;
+   serial_number?: string;
+   last_needle_change_at?: string;
+ }
+ 
+ export interface NeedleInventory {
+   id: string;
+   company_id: string;
+   provider: string;
+   brand: string;
+   reference_code: string;
+   current_quantity: number;
+   created_at: string;
+   updated_at: string;
+ }
+ 
+ export type NeedleTransactionType = 'entry' | 'exit';
+ export type NeedleExitMode = 'troca_agulheiro' | 'reposicao';
+ 
+ export interface NeedleTransaction {
+   id: string;
+   company_id: string;
+   needle_id: string;
+   type: NeedleTransactionType;
+   exit_mode?: NeedleExitMode;
+   quantity: number;
+   date: string;
+   machine_id?: string;
+   created_at: string;
+   created_by_id?: string;
+   created_by_name?: string;
+ }
 
 export interface MachineLog {
   id: string;
