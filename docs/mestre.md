@@ -1469,4 +1469,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
  - **24/04/2026 14:40 (Brasília)** — **CONTROLE DE AGULHAS — Ajuste de UX:** Lupas de pesquisa movidas para dentro do componente Select nos modais de Entrada e Baixa de agulhas.
  
- *Última atualização: 24/04/2026 14:40 (Brasília)*
+ - **24/04/2026 15:00 (Brasília)** — **CONTROLE DE AGULHAS — Automação e Sincronização:** (1) Implementado trigger no banco para criar automaticamente logs de manutenção ('troca_agulhas') ao realizar baixa de agulheiro; (2) Corrigida lógica de exibição em Detalhes para priorizar o campo `last_needle_change_at` da máquina; (3) Garantida atualização em tempo real do faturamento e peso produzidos desde a última troca.
+ 
+ *Última atualização: 24/04/2026 15:00 (Brasília)*
