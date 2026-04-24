@@ -290,12 +290,11 @@ export default function MecanicaPage() {
        toast.error('Preencha todos os campos.');
        return;
      }
-     const needle = needles.find(n => n.id === exitForm.needle_id);
-     if (needle && needle.current_quantity < Number(exitForm.quantity)) {
+      const targetNeedle = needles.find(n => n.id === exitForm.needle_id);
+      if (targetNeedle && targetNeedle.current_quantity < Number(exitForm.quantity)) {
        toast.error('Saldo insuficiente em estoque.');
        return;
      }
-      const needle = needles.find(n => n.id === exitForm.needle_id);
       const machine = machines.find(m => m.id === exitForm.machine_id);
       try {
         await addNeedleTransaction({
@@ -311,8 +310,8 @@ export default function MecanicaPage() {
          created_by_name: userName || undefined
        });
         logAction('needle_exit', { 
-          brand: needle?.brand, 
-          code: needle?.reference_code, 
+          brand: targetNeedle?.brand, 
+          code: targetNeedle?.reference_code, 
           quantity: exitForm.quantity, 
           machine: machine?.name,
           mode: exitForm.mode 
