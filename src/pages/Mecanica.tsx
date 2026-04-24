@@ -42,6 +42,8 @@ export default function MecanicaPage() {
    const [needleForm, setNeedleForm] = useState({ provider: '', brand: '', reference_code: '' });
    const [entryForm, setEntryForm] = useState({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
    const [exitForm, setExitForm] = useState({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_agulheiro', date: format(new Date(), 'yyyy-MM-dd') });
+   const [needleEntrySearch, setNeedleEntrySearch] = useState('');
+   const [needleExitSearch, setNeedleExitSearch] = useState('');
  
   const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
@@ -433,7 +435,8 @@ export default function MecanicaPage() {
                        </tr>
                      </thead>
                      <tbody>
-                       {needles
+                       {[...needles]
+                         .sort((a, b) => a.brand.localeCompare(b.brand))
                          .filter(n => 
                            n.brand.toLowerCase().includes(needleSearch.toLowerCase()) || 
                            n.provider.toLowerCase().includes(needleSearch.toLowerCase()) || 
@@ -876,15 +879,30 @@ export default function MecanicaPage() {
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Entrada</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
-           <div className="space-y-1">
-             <Label>Agulha</Label>
-             <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({...entryForm, needle_id: v})}>
-               <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
-               <SelectContent>
-                 {needles.map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>)}
-               </SelectContent>
-             </Select>
-           </div>
+            <div className="space-y-2">
+              <Label>Pesquisar Agulha</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Filtrar por marca ou código..." 
+                  value={needleEntrySearch} 
+                  onChange={e => setNeedleEntrySearch(e.target.value)} 
+                  className="pl-9"
+                />
+              </div>
+              <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({...entryForm, needle_id: v})}>
+                <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+                <SelectContent>
+                  {needles
+                    .filter(n => 
+                      n.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
+                      n.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase())
+                    )
+                    .map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>)
+                  }
+                </SelectContent>
+              </Select>
+            </div>
            <div className="space-y-1">
              <Label>Quantidade</Label>
              <Input type="number" value={entryForm.quantity} onChange={e => setEntryForm({...entryForm, quantity: e.target.value})} placeholder="0" />
@@ -925,15 +943,30 @@ export default function MecanicaPage() {
                </SelectContent>
              </Select>
            </div>
-           <div className="space-y-1">
-             <Label>Agulha</Label>
-             <Select value={exitForm.needle_id} onValueChange={v => setExitForm({...exitForm, needle_id: v})}>
-               <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
-               <SelectContent>
-                 {needles.map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code}) - Saldo: {n.current_quantity}</SelectItem>)}
-               </SelectContent>
-             </Select>
-           </div>
+            <div className="space-y-2">
+              <Label>Pesquisar Agulha</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Filtrar por marca ou código..." 
+                  value={needleExitSearch} 
+                  onChange={e => setNeedleExitSearch(e.target.value)} 
+                  className="pl-9"
+                />
+              </div>
+              <Select value={exitForm.needle_id} onValueChange={v => setExitForm({...exitForm, needle_id: v})}>
+                <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+                <SelectContent>
+                  {needles
+                    .filter(n => 
+                      n.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
+                      n.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase())
+                    )
+                    .map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code}) - Saldo: {n.current_quantity}</SelectItem>)
+                  }
+                </SelectContent>
+              </Select>
+            </div>
            <div className="space-y-1">
              <Label>Quantidade</Label>
              <Input type="number" value={exitForm.quantity} onChange={e => setExitForm({...exitForm, quantity: e.target.value})} placeholder="0" />

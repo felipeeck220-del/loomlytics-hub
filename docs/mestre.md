@@ -1465,4 +1465,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
  - **24/04/2026 13:25 (Brasília)** — **CONTROLE DE AGULHAS — Infraestrutura e Documentação:** (1) Criada documentação detalhada `docs/controledeagulha.md`; (2) Implementadas tabelas `needle_inventory` e `needle_transactions`; (3) Expandida tabela `machines` com campos técnicos (modelo, diâmetro, finura, etc.); (4) Implementado trigger `tr_handle_needle_transaction` para automação de estoque e auditoria; (5) Corrigidos avisos de segurança de `search_path` nas funções do banco.
  
- *Última atualização: 24/04/2026 13:25 (Brasília)*
+ - **24/04/2026 14:15 (Brasília)** — **CONTROLE DE AGULHAS — Implementação de UI e Melhorias:** (1) Implementada aba "Agulhas" em Mecânica com visualização de estoque e histórico; (2) Implementados modais de Cadastro, Entrada e Baixa (Saída) de agulhas; (3) **BUSCA MELHORADA:** Adicionados campos de busca de agulha dentro dos modais de entrada/baixa para facilitar a seleção em grandes estoques; (4) **ORDENAÇÃO:** Listagem de agulhas agora aparece em ordem alfabética por marca; (5) **CÁLCULOS:** Lógica de "Desde última troca" na aba Detalhes validada — utiliza `last_needle_change_at` atualizado automaticamente pelo trigger; (6) **PENTE FINO:** Validada integração de auditoria e multi-tenancy.
+ 
+ *Última atualização: 24/04/2026 14:15 (Brasília)*
