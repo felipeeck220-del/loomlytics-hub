@@ -961,6 +961,11 @@ export default function SettingsPage() {
                         </Button>
                       )}
                       {canEditTarget && isCurrentUserMainAdmin && (
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { setChangePasswordUser(p); setAdminNewPassword(''); }} title="Alterar Senha">
+                          <Key className="h-3.5 w-3.5 text-amber-600" />
+                        </Button>
+                      )}
+                      {canEditTarget && isCurrentUserMainAdmin && (
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditUser(p)} title="Editar">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
