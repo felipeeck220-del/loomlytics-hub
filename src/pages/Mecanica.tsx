@@ -843,8 +843,112 @@ export default function MecanicaPage() {
               {saving ? 'Salvando...' : 'Adicionar'}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+       </DialogContent>
+     </Dialog>
+ 
+     {/* Cadastro de Agulha */}
+     <Dialog open={showNeedleModal} onOpenChange={setShowNeedleModal}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>Cadastrar Tipo de Agulha</DialogTitle></DialogHeader>
+         <div className="space-y-4 pt-2">
+           <div className="space-y-1">
+             <Label>Fornecedor</Label>
+             <Input value={needleForm.provider} onChange={e => setNeedleForm({...needleForm, provider: e.target.value})} placeholder="Ex: Groz-Beckert" />
+           </div>
+           <div className="space-y-1">
+             <Label>Marca</Label>
+             <Input value={needleForm.brand} onChange={e => setNeedleForm({...needleForm, brand: e.target.value})} placeholder="Ex: Vo-Spec" />
+           </div>
+           <div className="space-y-1">
+             <Label>Código de Referência</Label>
+             <Input value={needleForm.reference_code} onChange={e => setNeedleForm({...needleForm, reference_code: e.target.value})} placeholder="Ex: VO 71.52 G003" />
+           </div>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowNeedleModal(false)}>Cancelar</Button>
+           <Button onClick={handleSaveNeedle}>Cadastrar</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+ 
+     {/* Entrada de Agulha */}
+     <Dialog open={showEntryModal} onOpenChange={setShowEntryModal}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>Registrar Entrada</DialogTitle></DialogHeader>
+         <div className="space-y-4 pt-2">
+           <div className="space-y-1">
+             <Label>Agulha</Label>
+             <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({...entryForm, needle_id: v})}>
+               <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+               <SelectContent>
+                 {needles.map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Quantidade</Label>
+             <Input type="number" value={entryForm.quantity} onChange={e => setEntryForm({...entryForm, quantity: e.target.value})} placeholder="0" />
+           </div>
+           <div className="space-y-1">
+             <Label>Data</Label>
+             <Input type="date" value={entryForm.date} onChange={e => setEntryForm({...entryForm, date: e.target.value})} />
+           </div>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowEntryModal(false)}>Cancelar</Button>
+           <Button onClick={handleEntry}>Registrar</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+ 
+     {/* Baixa de Agulha */}
+     <Dialog open={showExitModal} onOpenChange={setShowExitModal}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>Registrar Saída (Baixa)</DialogTitle></DialogHeader>
+         <div className="space-y-4 pt-2">
+           <div className="space-y-1">
+             <Label>Modo de Saída</Label>
+             <Select value={exitForm.mode} onValueChange={v => setExitForm({...exitForm, mode: v as any})}>
+               <SelectTrigger><SelectValue /></SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="reposicao">Reposição (Quebra)</SelectItem>
+                 <SelectItem value="troca_agulheiro">Troca de Agulheiro (Geral)</SelectItem>
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Máquina</Label>
+             <Select value={exitForm.machine_id} onValueChange={v => setExitForm({...exitForm, machine_id: v})}>
+               <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+               <SelectContent>
+                 {activeMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Agulha</Label>
+             <Select value={exitForm.needle_id} onValueChange={v => setExitForm({...exitForm, needle_id: v})}>
+               <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+               <SelectContent>
+                 {needles.map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code}) - Saldo: {n.current_quantity}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Quantidade</Label>
+             <Input type="number" value={exitForm.quantity} onChange={e => setExitForm({...exitForm, quantity: e.target.value})} placeholder="0" />
+           </div>
+           <div className="space-y-1">
+             <Label>Data</Label>
+             <Input type="date" value={exitForm.date} onChange={e => setExitForm({...exitForm, date: e.target.value})} />
+           </div>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowExitModal(false)}>Cancelar</Button>
+           <Button onClick={handleExit}>Registrar Baixa</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+   </div>
+ );
 }
