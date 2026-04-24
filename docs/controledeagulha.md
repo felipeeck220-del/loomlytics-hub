@@ -33,13 +33,13 @@
  
  ### 2.2 Modais de Operação
  - **Modal: Cadastrar Nova Agulha**: Formulário simples para inserir novos tipos no catálogo.
- - **Modal: Entrada de Agulha**: 
-   - Seleção da agulha (com busca).
-   - Campo de quantidade e data.
- - **Modal: Baixa de Agulha**:
-   - Seleção de Modo: Troca de Agulheiro (Geralmente 50% ou 100% da máquina) ou Reposição (Quebra).
-   - Seleção da Máquina: Lista de máquinas cadastradas.
-   - Seleção da Agulha: Filtra apenas agulhas com saldo disponível.
+  - **Modal: Entrada de Agulha**: 
+    - Seleção da agulha com busca integrada dentro do componente.
+    - Campo de quantidade e data.
+  - **Modal: Baixa de Agulha**:
+    - Seleção de Modo: Troca de Agulheiro (Geralmente 50% ou 100% da máquina) ou Reposição (Quebra).
+    - Seleção da Máquina: Lista de máquinas cadastradas.
+    - Seleção da Agulha com busca integrada dentro do componente.
  
  ### 2.3 Auditoria e Histórico
  - **Histórico Detalhado**: Lista cronológica de todas as ações.
@@ -52,5 +52,5 @@
    - Produção total (kg) realizada desde essa data (cruzamento com a tabela `productions`).
  - **Formatação**: Toda comparação de strings (ex: busca por nome) será feita em `toLowerCase()` para evitar erros de case-sensitivity.
  
- ---
- *Última atualização: 2026-04-24 13:20 (Brasília)*
+  ---
+  *Última atualização: 2026-04-24 14:40 (Brasília)*
