@@ -207,7 +207,7 @@ export default function Invoices() {
   const [formTinturariaName, setFormTinturariaName] = useState('');
   const [formTerceirosName, setFormTerceirosName] = useState('');
   const [formIssueDate, setFormIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [formStatus, setFormStatus] = useState<InvoiceStatus>('pendente');
+  const [formStatus, setFormStatus] = useState<InvoiceStatus>('conferida');
   const [formObservations, setFormObservations] = useState('');
   const [formItems, setFormItems] = useState<Array<{
     yarn_type_id?: string;
@@ -244,7 +244,7 @@ export default function Invoices() {
     setFormTinturariaName('');
     setFormTerceirosName('');
     setFormIssueDate(format(new Date(), 'yyyy-MM-dd'));
-    setFormStatus('pendente');
+    setFormStatus('conferida');
     setFormObservations('');
     setFormItems([{ weight_kg: '', quantity_rolls: '', quantity_boxes: '', value_per_kg: '', brand: '' }]);
   };
@@ -471,11 +471,19 @@ export default function Invoices() {
 
   // ===== Cancel Invoice =====
   const handleCancelInvoice = async (inv: Invoice) => {
-    const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
-    if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
-    logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
-    queryClient.invalidateQueries({ queryKey: ['invoices'] });
-    toast({ title: 'NF cancelada' });
+    if (inv.type === 'entrada') {
+      const { error } = await sb('invoices').delete().eq('id', inv.id);
+      if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
+      logAction('invoice_delete', { invoice_number: inv.invoice_number, type: 'entrada' });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast({ title: 'NF de entrada excluída com sucesso' });
+    } else {
+      const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
+      if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
+      logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast({ title: 'NF cancelada' });
+    }
   };
 
   // ===== Confirm Invoice =====
@@ -1645,7 +1653,7 @@ export default function Invoices() {
               )}
               <div>
                 <Label className="text-xs">Nº da NF{formType === 'saida' ? ' *' : ''}</Label>
-                <Input className="h-9 text-xs" inputMode="numeric" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/\D/g, ''))} placeholder={formType === 'saida' ? 'Ex: 12345' : 'Opcional'} />
+                <Input className="h-9 text-xs" value={formInvoiceNumber} onChange={e => setFormInvoiceNumber(e.target.value.replace(/[^0-9.]/g, ''))} placeholder={formType === 'saida' ? 'Ex: 12345' : 'Opcional'} />
               </div>
               <div>
                 <Label className="text-xs">Data Emissão *</Label>
@@ -1955,10 +1963,12 @@ export default function Invoices() {
       <DeleteConfirmDialog
         open={!!cancelConfirmInvoice}
         onOpenChange={(v) => { if (!v) setCancelConfirmInvoice(null); }}
-        title="Cancelar Nota Fiscal"
-        description={`Tem certeza que deseja cancelar a NF ${cancelConfirmInvoice?.invoice_number}?`}
+        title={cancelConfirmInvoice?.type === 'entrada' ? "Excluir Nota Fiscal" : "Cancelar Nota Fiscal"}
+        description={cancelConfirmInvoice?.type === 'entrada' 
+          ? `Tem certeza que deseja EXCLUIR permanentemente a NF de entrada ${cancelConfirmInvoice?.invoice_number}? Esta ação não pode ser desfeita.`
+          : `Tem certeza que deseja cancelar a NF ${cancelConfirmInvoice?.invoice_number}?`}
         onConfirm={() => { if (cancelConfirmInvoice) handleCancelInvoice(cancelConfirmInvoice); setCancelConfirmInvoice(null); }}
-        confirmLabel="Cancelar NF"
+        confirmLabel={cancelConfirmInvoice?.type === 'entrada' ? "Excluir NF" : "Cancelar NF"}
       />
       <DeleteConfirmDialog
         open={!!deleteYarnConfirm}

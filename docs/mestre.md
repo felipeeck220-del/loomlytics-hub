@@ -1473,4 +1473,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
  - **24/04/2026 15:30 (Brasília)** — **CONTROLE DE AGULHAS — Pente Fino e UX:** (1) Adicionada visualização de dados técnicos (Modelo, Diâmetro/Finura) diretamente nos cards da página de Máquinas; (2) Validado trigger de estoque e logs automáticos; (3) Verificada integridade da documentação `controledeagulha.md`.
  
- *Última atualização: 24/04/2026 15:30 (Brasília)*
+
+ - **24/04/2026 16:15 (Brasília)** — **NOTAS FISCAIS — Melhorias de Fluxo e UX:** (1) **Cancelamento Entrada:** NFs do tipo "entrada" agora são excluídas permanentemente do banco ao serem canceladas (em vez de apenas mudar status); (2) **Status Padrão:** Modais de "Nova Entrada de Fio" e "Venda de Fio" agora iniciam com status "Conferida" por padrão; (3) **Formatação Nº NF:** Campo de número da nota fiscal agora permite a inclusão de pontos (ex: 000.546.65) removendo a restrição de apenas números; (4) **Confirmação Dinâmica:** Modal de confirmação de cancelamento agora exibe "Excluir NF" para entradas, alertando sobre a remoção permanente.
+
+ *Última atualização: 24/04/2026 16:15 (Brasília)*
