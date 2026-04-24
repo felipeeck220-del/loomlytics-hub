@@ -67,17 +67,30 @@ export default function Machines() {
   const [searchTerm, setSearchTerm] = useState('');
   const [maintenanceViewMachine, setMaintenanceViewMachine] = useState<Machine | null>(null);
   const isMobile = useIsMobile();
-  const [form, setForm] = useState({ number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: '', observations: '' });
+   const [form, setForm] = useState({ 
+     number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: '', observations: '',
+     model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: ''
+   });
 
   const openNew = () => {
     setEditing(null);
-    setForm({ number: '', rpm: '', status: 'ativa', article_id: '', observations: '' });
+     setForm({ 
+       number: '', rpm: '', status: 'ativa', article_id: '', observations: '',
+       model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: ''
+     });
     setShowModal(true);
   };
 
   const openEdit = (m: Machine) => {
     setEditing(m);
-    setForm({ number: String(m.number), rpm: String(m.rpm), status: m.status, article_id: m.article_id || '', observations: m.observations || '' });
+     setForm({ 
+       number: String(m.number), rpm: String(m.rpm), status: m.status, article_id: m.article_id || '', 
+       observations: m.observations || '',
+       model: m.model || '', diameter: m.diameter || '', fineness: m.fineness || '',
+       needle_quantity: m.needle_quantity ? String(m.needle_quantity) : '',
+       feeder_quantity: m.feeder_quantity ? String(m.feeder_quantity) : '',
+       serial_number: m.serial_number || ''
+     });
     setShowModal(true);
   };
 
@@ -88,7 +101,15 @@ export default function Machines() {
     if (editing) {
       const idx = all.findIndex(m => m.id === editing.id);
       const oldStatus = all[idx].status;
-      all[idx] = { ...all[idx], number: Number(form.number), name: `TEAR ${form.number.padStart(2, '0')}`, rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined, observations: form.observations || undefined };
+       all[idx] = { 
+         ...all[idx], number: Number(form.number), name: `TEAR ${form.number.padStart(2, '0')}`, 
+         rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined, 
+         observations: form.observations || undefined,
+         model: form.model || undefined, diameter: form.diameter || undefined, 
+         fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
+         feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
+         serial_number: form.serial_number || undefined
+       };
 
       if (oldStatus !== form.status) {
         const allLogs = [...logs];
@@ -114,10 +135,15 @@ export default function Machines() {
       toast.success('Máquina atualizada');
     } else {
       const newMachine: Machine = {
-        id: crypto.randomUUID(), company_id: '', number: Number(form.number), name: `TEAR ${form.number.padStart(2, '0')}`,
-        rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined,
-        observations: form.observations || undefined, production_mode: 'rolos', created_at: new Date().toISOString(),
-      };
+       const newMachine: Machine = {
+         id: crypto.randomUUID(), company_id: '', number: Number(form.number), name: `TEAR ${form.number.padStart(2, '0')}`,
+         rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined,
+         observations: form.observations || undefined, production_mode: 'rolos', created_at: new Date().toISOString(),
+         model: form.model || undefined, diameter: form.diameter || undefined, 
+         fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
+         feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
+         serial_number: form.serial_number || undefined
+       };
       all.push(newMachine);
       await saveMachines(all);
 
@@ -345,7 +371,42 @@ export default function Machines() {
               </div>
             </div>
 
-            {/* Selected Article Details */}
+             {/* Dados Técnicos Expandidos */}
+             <div className="space-y-4">
+               <div className="flex items-center gap-2">
+                 <Badge variant="outline" className="h-6">Dados Técnicos</Badge>
+                 <div className="h-px flex-1 bg-border" />
+               </div>
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Modelo</Label>
+                   <Input value={form.model} onChange={e => setForm(p => ({ ...p, model: e.target.value }))} placeholder="Ex: Mayer & Cie" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Diâmetro</Label>
+                   <Input value={form.diameter} onChange={e => setForm(p => ({ ...p, diameter: e.target.value }))} placeholder="Ex: 30\" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Finura</Label>
+                   <Input value={form.fineness} onChange={e => setForm(p => ({ ...p, fineness: e.target.value }))} placeholder="Ex: 24G" />
+                 </div>
+               </div>
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Qtd. Agulhas</Label>
+                   <Input type="number" value={form.needle_quantity} onChange={e => setForm(p => ({ ...p, needle_quantity: e.target.value }))} placeholder="Ex: 2268" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Qtd. Alimentadores</Label>
+                   <Input type="number" value={form.feeder_quantity} onChange={e => setForm(p => ({ ...p, feeder_quantity: e.target.value }))} placeholder="Ex: 96" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Nº de Série</Label>
+                   <Input value={form.serial_number} onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))} placeholder="Opcional" />
+                 </div>
+               </div>
+             </div>
+ 
             {(() => {
               const selectedArticle = articles.find(a => a.id === form.article_id);
               if (!selectedArticle) return null;
