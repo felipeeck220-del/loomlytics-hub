@@ -447,10 +447,55 @@ export function useCompanyData() {
   const deleteDefectRecords = useCallback(async (ids: string[]) => {
     if (!companyId || ids.length === 0) return;
     await sb('defect_records').delete().in('id', ids);
-    setDefectRecords(prev => prev.filter(d => !ids.includes(d.id)));
-  }, [companyId]);
-
-  return {
+     setDefectRecords(prev => prev.filter(d => !ids.includes(d.id)));
+   }, [companyId]);
+ 
+   const saveNeedles = useCallback(async (data: NeedleInventory[]) => {
+     if (!companyId) return;
+     const currentIds = needles.map(n => n.id);
+     const newIds = data.map(n => n.id);
+     const idsToDelete = currentIds.filter(id => !newIds.includes(id));
+     if (idsToDelete.length > 0) {
+       await sb('needle_inventory').delete().in('id', idsToDelete);
+     }
+     if (data.length > 0) {
+       const rows = data.map(n => ({
+         id: n.id, company_id: companyId, provider: n.provider,
+         brand: n.brand, reference_code: n.reference_code,
+         current_quantity: n.current_quantity,
+       }));
+       const { error } = await sb('needle_inventory').upsert(rows);
+       if (error) throw error;
+     }
+     setNeedles(data);
+   }, [companyId, needles]);
+ 
+   const addNeedleTransaction = useCallback(async (newRecord: NeedleTransaction) => {
+     if (!companyId) return;
+     const row = {
+       id: newRecord.id, company_id: companyId, needle_id: newRecord.needle_id,
+       type: newRecord.type, exit_mode: newRecord.exit_mode || null,
+       quantity: newRecord.quantity, date: newRecord.date,
+       machine_id: newRecord.machine_id || null,
+       created_by_id: user?.id || null,
+       created_by_name: newRecord.created_by_name || null,
+     };
+     const { error } = await sb('needle_transactions').insert(row);
+     if (error) throw error;
+     setNeedleTransactions(prev => [newRecord, ...prev]);
+ 
+     // Refresh inventory because the trigger updated it
+     const nData = await fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code');
+     setNeedles(nData.map(mapNeedle));
+ 
+     // If it was a needle change, refresh machines too
+     if (newRecord.exit_mode === 'troca_agulheiro') {
+       const mData = await fetchAll('machines', { column: 'company_id', value: companyId }, 'number');
+       setMachines(mData.map(mapMachine));
+     }
+   }, [companyId, user?.id]);
+ 
+   return {
     loading,
     refreshData: loadAllData,
     dbCompanyId: companyId,
