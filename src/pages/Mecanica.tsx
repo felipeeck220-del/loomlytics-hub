@@ -217,9 +217,20 @@ export default function MecanicaPage() {
       const updatedLogs = [...machineLogs, newLog];
       await saveMachineLogs(updatedLogs);
       const machineName = machines.find(m => m.id === addMachineId)?.name;
-     logAction('maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
-     toast.success('Registro adicionado com sucesso!');
-     setShowAddModal(false);
+       logAction('maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
+       toast.success('Registro adicionado com sucesso!');
+       setShowAddModal(false);
+       setAddMachineId('');
+       setAddStatus('manutencao_preventiva');
+       setAddStartDate('');
+       setAddStartTime('08:00');
+       setAddEndDate('');
+       setAddEndTime('');
+     } catch (e) {
+       toast.error('Erro ao salvar registro.');
+     } finally {
+       setSaving(false);
+     }
    };
  
    const handleSaveNeedle = async () => {
@@ -292,18 +303,7 @@ export default function MecanicaPage() {
        setShowExitModal(false);
        setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
      } catch (e) { toast.error('Erro ao registrar baixa.'); }
-      setAddMachineId('');
-      setAddStatus('manutencao_preventiva');
-      setAddStartDate('');
-      setAddStartTime('08:00');
-      setAddEndDate('');
-      setAddEndTime('');
-    } catch (e) {
-      toast.error('Erro ao salvar registro.');
-    } finally {
-      setSaving(false);
-    }
-  };
+   };
 
   return (
     <div className="space-y-6">
