@@ -880,26 +880,39 @@ export default function MecanicaPage() {
          <DialogHeader><DialogTitle>Registrar Entrada</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>Pesquisar Agulha</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Filtrar por marca ou código..." 
-                  value={needleEntrySearch} 
-                  onChange={e => setNeedleEntrySearch(e.target.value)} 
-                  className="pl-9"
-                />
-              </div>
+              <Label>Selecionar Agulha</Label>
               <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({...entryForm, needle_id: v})}>
                 <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
                 <SelectContent>
-                  {needles
-                    .filter(n => 
+                  <div className="px-2 py-2 border-b sticky top-0 bg-popover z-10">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input 
+                        placeholder="Filtrar..." 
+                        value={needleEntrySearch} 
+                        onChange={e => setNeedleEntrySearch(e.target.value)} 
+                        className="pl-8 h-8 text-xs"
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto">
+                    {needles
+                      .filter(n => 
+                        n.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
+                        n.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
+                        n.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
+                      )
+                      .map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>)
+                    }
+                    {needles.filter(n => 
                       n.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
-                      n.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase())
-                    )
-                    .map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>)
-                  }
+                      n.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
+                      n.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
+                    ).length === 0 && (
+                      <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma agulha encontrada</div>
+                    )}
+                  </div>
                 </SelectContent>
               </Select>
             </div>
@@ -944,26 +957,43 @@ export default function MecanicaPage() {
              </Select>
            </div>
             <div className="space-y-2">
-              <Label>Pesquisar Agulha</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Filtrar por marca ou código..." 
-                  value={needleExitSearch} 
-                  onChange={e => setNeedleExitSearch(e.target.value)} 
-                  className="pl-9"
-                />
-              </div>
+              <Label>Selecionar Agulha</Label>
               <Select value={exitForm.needle_id} onValueChange={v => setExitForm({...exitForm, needle_id: v})}>
                 <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
                 <SelectContent>
-                  {needles
-                    .filter(n => 
+                  <div className="px-2 py-2 border-b sticky top-0 bg-popover z-10">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input 
+                        placeholder="Filtrar..." 
+                        value={needleExitSearch} 
+                        onChange={e => setNeedleExitSearch(e.target.value)} 
+                        className="pl-8 h-8 text-xs"
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-[200px] overflow-y-auto">
+                    {needles
+                      .filter(n => 
+                        n.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
+                        n.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
+                        n.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
+                      )
+                      .map(n => (
+                        <SelectItem key={n.id} value={n.id}>
+                          {n.brand} ({n.reference_code}) - Saldo: {n.current_quantity}
+                        </SelectItem>
+                      ))
+                    }
+                    {needles.filter(n => 
                       n.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
-                      n.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase())
-                    )
-                    .map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code}) - Saldo: {n.current_quantity}</SelectItem>)
-                  }
+                      n.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
+                      n.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
+                    ).length === 0 && (
+                      <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma agulha encontrada</div>
+                    )}
+                  </div>
                 </SelectContent>
               </Select>
             </div>

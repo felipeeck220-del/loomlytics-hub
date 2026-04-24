@@ -1467,4 +1467,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
  - **24/04/2026 14:15 (Brasília)** — **CONTROLE DE AGULHAS — Implementação de UI e Melhorias:** (1) Implementada aba "Agulhas" em Mecânica com visualização de estoque e histórico; (2) Implementados modais de Cadastro, Entrada e Baixa (Saída) de agulhas; (3) **BUSCA MELHORADA:** Adicionados campos de busca de agulha dentro dos modais de entrada/baixa para facilitar a seleção em grandes estoques; (4) **ORDENAÇÃO:** Listagem de agulhas agora aparece em ordem alfabética por marca; (5) **CÁLCULOS:** Lógica de "Desde última troca" na aba Detalhes validada — utiliza `last_needle_change_at` atualizado automaticamente pelo trigger; (6) **PENTE FINO:** Validada integração de auditoria e multi-tenancy.
  
- *Última atualização: 24/04/2026 14:15 (Brasília)*
+ - **24/04/2026 14:40 (Brasília)** — **CONTROLE DE AGULHAS — Ajuste de UX:** Lupas de pesquisa movidas para dentro do componente Select nos modais de Entrada e Baixa de agulhas.
+ 
+ *Última atualização: 24/04/2026 14:40 (Brasília)*
