@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     // 3. Check machine status
     const { data: machine } = await supabase
       .from("machines")
-      .select("status, article_id, rpm as target_rpm, production_mode")
+      .select("status, article_id, target_rpm:rpm, production_mode")
       .eq("id", machine_id)
       .single();
 
@@ -176,9 +176,9 @@ Deno.serve(async (req) => {
     await checkShiftChange(supabase, device, settings, currentShift);
 
     return jsonResponse({ ok: true, delta: deltaRotations, shift: currentShift });
-  } catch (err) {
+  } catch (err: any) {
     console.error("machine-webhook error:", err);
-    return jsonResponse({ error: "Internal error" }, 500);
+    return jsonResponse({ error: err.message || "Internal error" }, 500);
   }
 });
 

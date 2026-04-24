@@ -238,7 +238,7 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 | `profiles` | user_id, company_id, name, email, role, status, code | Perfis de usuários |
 | `user_active_company` | user_id (PK), company_id | Empresa ativa do usuário |
 | `company_settings` | company_id (unique), turnos (6 campos), subscription_status, trial_end_date, grace_period_end, platform_active, enabled_nav_items, monthly_plan_value, stripe_customer_id | Configurações da empresa |
-| `machines` | company_id, number, name, rpm, status (enum), article_id, production_mode | Teares |
+| `machines` | company_id, number, name, rpm, status (enum), article_id, production_mode, model, diameter, fineness, needle_quantity, feeder_quantity, last_needle_change_at | Teares |
 | `machine_logs` | machine_id, status, started_at, ended_at, started_by_name/code, ended_by_name/code | Histórico de status |
 | `machine_maintenance_observations` | machine_id, machine_log_id, company_id, observation | Observações de manutenção |
 | `clients` | company_id, name, contact, observations | Clientes |
@@ -270,6 +270,8 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
 | `iot_shift_state` | company_id, machine_id, current_shift, total_turns, partial_turns, completed_rolls, rpm_sum, rpm_count | Estado do turno IoT |
 | `iot_downtime_events` | company_id, machine_id, shift, started_at, ended_at, duration_seconds | Paradas detectadas IoT |
 | `iot_machine_assignments` | company_id, machine_id, weaver_id, shift, active | Associação tecelão-máquina IoT |
+| `needle_inventory` | company_id, provider, brand, reference_code, current_quantity | Catálogo de agulhas |
+| `needle_transactions` | company_id, needle_id, type (entry/exit), exit_mode, quantity, date, machine_id | Movimentação de agulhas |
 
 ### Status de Máquina (Enum `machine_status`)
 

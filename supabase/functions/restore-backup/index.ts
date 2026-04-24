@@ -7,6 +7,8 @@ const corsHeaders = {
 
 // Order matters: delete children first, restore parents first
 const DELETE_ORDER = [
+  'needle_transactions',
+  'needle_inventory',
   'iot_downtime_events',
   'iot_machine_assignments',
   'iot_shift_state',
@@ -41,6 +43,8 @@ const DELETE_ORDER = [
 const INSERT_ORDER = [
   'profiles',
   'company_settings',
+  'needle_inventory',
+  'needle_transactions',
   'clients',
   'machines',
   'weavers',

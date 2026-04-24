@@ -253,7 +253,8 @@ export default function MecanicaPage() {
          created_at: new Date().toISOString(),
          updated_at: new Date().toISOString()
        };
-       await saveNeedles([...needles, newNeedle]);
+        await saveNeedles([...needles, { ...newNeedle, company_id: '' }]);
+        logAction('needle_create', { brand: newNeedle.brand, code: newNeedle.reference_code });
        toast.success('Agulha cadastrada!');
        setShowNeedleModal(false);
        setNeedleForm({ provider: '', brand: '', reference_code: '' });
@@ -266,7 +267,8 @@ export default function MecanicaPage() {
        return;
      }
      try {
-       await addNeedleTransaction({
+        const needle = needles.find(n => n.id === entryForm.needle_id);
+        await addNeedleTransaction({
          id: crypto.randomUUID(),
          company_id: '',
          needle_id: entryForm.needle_id,
@@ -276,7 +278,8 @@ export default function MecanicaPage() {
          created_at: new Date().toISOString(),
          created_by_name: userName || undefined
        });
-       toast.success('Entrada registrada!');
+        logAction('needle_entry', { brand: needle?.brand, code: needle?.reference_code, quantity: entryForm.quantity });
+        toast.success('Entrada registrada!');
        setShowEntryModal(false);
        setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
      } catch (e) { toast.error('Erro ao registrar entrada.'); }
@@ -287,13 +290,14 @@ export default function MecanicaPage() {
        toast.error('Preencha todos os campos.');
        return;
      }
-     const needle = needles.find(n => n.id === exitForm.needle_id);
-     if (needle && needle.current_quantity < Number(exitForm.quantity)) {
+      const targetNeedle = needles.find(n => n.id === exitForm.needle_id);
+      if (targetNeedle && targetNeedle.current_quantity < Number(exitForm.quantity)) {
        toast.error('Saldo insuficiente em estoque.');
        return;
      }
-     try {
-       await addNeedleTransaction({
+      const machine = machines.find(m => m.id === exitForm.machine_id);
+      try {
+        await addNeedleTransaction({
          id: crypto.randomUUID(),
          company_id: '',
          needle_id: exitForm.needle_id,
@@ -305,7 +309,14 @@ export default function MecanicaPage() {
          created_at: new Date().toISOString(),
          created_by_name: userName || undefined
        });
-       toast.success('Baixa registrada!');
+        logAction('needle_exit', { 
+          brand: targetNeedle?.brand, 
+          code: targetNeedle?.reference_code, 
+          quantity: exitForm.quantity, 
+          machine: machine?.name,
+          mode: exitForm.mode 
+        });
+        toast.success('Baixa registrada!');
        setShowExitModal(false);
        setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
      } catch (e) { toast.error('Erro ao registrar baixa.'); }

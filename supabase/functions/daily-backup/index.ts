@@ -35,6 +35,8 @@ const TABLES_TO_BACKUP = [
   'iot_machine_assignments',
   'iot_shift_state',
   'machine_readings',
+  'needle_inventory',
+  'needle_transactions',
 ];
 
 const MAX_BACKUPS = 30;
