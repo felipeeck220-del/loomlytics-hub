@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { Machine, Client, Article, Weaver, Production, MachineLog, ArticleMachineTurns, CompanyShiftSettings, ShiftType, DefectRecord } from '@/types';
+ import type { 
+   Machine, Client, Article, Weaver, Production, MachineLog, 
+   ArticleMachineTurns, CompanyShiftSettings, ShiftType, DefectRecord,
+   NeedleInventory, NeedleTransaction
+ } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
 const sb = (table: string) => (supabase.from as any)(table);
@@ -17,7 +21,9 @@ export function useCompanyData() {
   const [weavers, setWeavers] = useState<Weaver[]>([]);
   const [productions, setProductions] = useState<Production[]>([]);
   const [articleMachineTurns, setArticleMachineTurns] = useState<ArticleMachineTurns[]>([]);
-  const [defectRecords, setDefectRecords] = useState<DefectRecord[]>([]);
+   const [defectRecords, setDefectRecords] = useState<DefectRecord[]>([]);
+   const [needles, setNeedles] = useState<NeedleInventory[]>([]);
+   const [needleTransactions, setNeedleTransactions] = useState<NeedleTransaction[]>([]);
   const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
   const [loading, setLoading] = useState(true);
 
@@ -50,9 +56,28 @@ export function useCompanyData() {
   const mapMachine = (r: any): Machine => ({
     id: r.id, company_id: r.company_id, number: r.number, name: r.name,
     rpm: r.rpm, status: r.status, article_id: r.article_id || undefined,
-    observations: r.observations || undefined, production_mode: r.production_mode || 'rolos',
-    created_at: r.created_at,
-  });
+     observations: r.observations || undefined, production_mode: r.production_mode || 'rolos',
+     created_at: r.created_at,
+     model: r.model || undefined, diameter: r.diameter || undefined, fineness: r.fineness || undefined,
+     needle_quantity: r.needle_quantity ? Number(r.needle_quantity) : undefined,
+     feeder_quantity: r.feeder_quantity ? Number(r.feeder_quantity) : undefined,
+     serial_number: r.serial_number || undefined,
+     last_needle_change_at: r.last_needle_change_at || undefined,
+   });
+   const mapNeedle = (r: any): NeedleInventory => ({
+     id: r.id, company_id: r.company_id, provider: r.provider,
+     brand: r.brand, reference_code: r.reference_code,
+     current_quantity: Number(r.current_quantity),
+     created_at: r.created_at, updated_at: r.updated_at,
+   });
+   const mapNeedleTransaction = (r: any): NeedleTransaction => ({
+     id: r.id, company_id: r.company_id, needle_id: r.needle_id,
+     type: r.type, exit_mode: r.exit_mode || undefined,
+     quantity: Number(r.quantity), date: r.date,
+     machine_id: r.machine_id || undefined,
+     created_at: r.created_at, created_by_id: r.created_by_id || undefined,
+     created_by_name: r.created_by_name || undefined,
+   });
   const mapMachineLog = (r: any): MachineLog => ({
     id: r.id, machine_id: r.machine_id, status: r.status,
     started_at: r.started_at, ended_at: r.ended_at || undefined,
@@ -122,8 +147,8 @@ export function useCompanyData() {
       return;
     }
     setLoading(true);
-    try {
-      const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drData] = await Promise.all([
+     try {
+       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drData, nData, ntData] = await Promise.all([
         fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
         fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
@@ -132,7 +157,9 @@ export function useCompanyData() {
         fetchAll('machine_logs', null, 'started_at', false),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
         sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
-        fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false),
+         fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false),
+         fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code'),
+         fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false),
       ]);
 
       setMachines(mData.map(mapMachine));
@@ -142,7 +169,9 @@ export function useCompanyData() {
       setWeavers(wData.map(mapWeaver));
       setProductions(pData.map(mapProduction));
       setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
-      setDefectRecords(drData.map(mapDefectRecord));
+       setDefectRecords(drData.map(mapDefectRecord));
+       setNeedles(nData.map(mapNeedle));
+       setNeedleTransactions(ntData.map(mapNeedleTransaction));
       if (csRes.data) {
         setShiftSettings({
           shift_manha_start: csRes.data.shift_manha_start || DEFAULT_SHIFT_SETTINGS.shift_manha_start,
@@ -173,7 +202,9 @@ export function useCompanyData() {
   const getWeavers = useCallback(() => weavers, [weavers]);
   const getProductions = useCallback(() => productions, [productions]);
   const getArticleMachineTurns = useCallback(() => articleMachineTurns, [articleMachineTurns]);
-  const getDefectRecords = useCallback(() => defectRecords, [defectRecords]);
+   const getDefectRecords = useCallback(() => defectRecords, [defectRecords]);
+   const getNeedles = useCallback(() => needles, [needles]);
+   const getNeedleTransactions = useCallback(() => needleTransactions, [needleTransactions]);
 
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {
@@ -189,9 +220,12 @@ export function useCompanyData() {
       const rows = data.map(m => ({
         id: m.id, company_id: companyId, number: m.number, name: m.name,
         rpm: m.rpm, status: m.status, article_id: m.article_id || null,
-        observations: m.observations || null, production_mode: m.production_mode || 'rolos',
-        created_at: m.created_at,
-      }));
+         observations: m.observations || null, production_mode: m.production_mode || 'rolos',
+         created_at: m.created_at,
+         model: m.model || null, diameter: m.diameter || null, fineness: m.fineness || null,
+         needle_quantity: m.needle_quantity || null, feeder_quantity: m.feeder_quantity || null,
+         serial_number: m.serial_number || null, last_needle_change_at: m.last_needle_change_at || null,
+       }));
       const { error } = await sb('machines').upsert(rows);
       if (error) { console.error('Error saving machines:', error); throw error; }
     }
@@ -413,10 +447,55 @@ export function useCompanyData() {
   const deleteDefectRecords = useCallback(async (ids: string[]) => {
     if (!companyId || ids.length === 0) return;
     await sb('defect_records').delete().in('id', ids);
-    setDefectRecords(prev => prev.filter(d => !ids.includes(d.id)));
-  }, [companyId]);
-
-  return {
+     setDefectRecords(prev => prev.filter(d => !ids.includes(d.id)));
+   }, [companyId]);
+ 
+   const saveNeedles = useCallback(async (data: NeedleInventory[]) => {
+     if (!companyId) return;
+     const currentIds = needles.map(n => n.id);
+     const newIds = data.map(n => n.id);
+     const idsToDelete = currentIds.filter(id => !newIds.includes(id));
+     if (idsToDelete.length > 0) {
+       await sb('needle_inventory').delete().in('id', idsToDelete);
+     }
+     if (data.length > 0) {
+       const rows = data.map(n => ({
+         id: n.id, company_id: companyId, provider: n.provider,
+         brand: n.brand, reference_code: n.reference_code,
+         current_quantity: n.current_quantity,
+       }));
+       const { error } = await sb('needle_inventory').upsert(rows);
+       if (error) throw error;
+     }
+     setNeedles(data);
+   }, [companyId, needles]);
+ 
+   const addNeedleTransaction = useCallback(async (newRecord: NeedleTransaction) => {
+     if (!companyId) return;
+     const row = {
+       id: newRecord.id, company_id: companyId, needle_id: newRecord.needle_id,
+       type: newRecord.type, exit_mode: newRecord.exit_mode || null,
+       quantity: newRecord.quantity, date: newRecord.date,
+       machine_id: newRecord.machine_id || null,
+       created_by_id: user?.id || null,
+       created_by_name: newRecord.created_by_name || null,
+     };
+     const { error } = await sb('needle_transactions').insert(row);
+     if (error) throw error;
+     setNeedleTransactions(prev => [newRecord, ...prev]);
+ 
+     // Refresh inventory because the trigger updated it
+     const nData = await fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code');
+     setNeedles(nData.map(mapNeedle));
+ 
+     // If it was a needle change, refresh machines too
+     if (newRecord.exit_mode === 'troca_agulheiro') {
+       const mData = await fetchAll('machines', { column: 'company_id', value: companyId }, 'number');
+       setMachines(mData.map(mapMachine));
+     }
+   }, [companyId, user?.id]);
+ 
+   return {
     loading,
     refreshData: loadAllData,
     dbCompanyId: companyId,
@@ -428,7 +507,8 @@ export function useCompanyData() {
     getWeavers, saveWeavers,
     getProductions, saveProductions, addProductions, updateProductions, deleteProductions,
     getArticleMachineTurns, saveArticleMachineTurns,
-    getDefectRecords, addDefectRecords, updateDefectRecords, deleteDefectRecords,
-    saveShiftSettings,
+     getDefectRecords, addDefectRecords, updateDefectRecords, deleteDefectRecords,
+     getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
+     saveShiftSettings,
   };
 }

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2 } from 'lucide-react';
+ import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -27,7 +27,22 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 ];
 
 export default function MecanicaPage() {
-  const { getMachines, getMachineLogs, getProductions, saveMachineLogs, loading } = useSharedCompanyData();
+   const { 
+     getMachines, getMachineLogs, getProductions, saveMachineLogs, 
+     getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
+     loading 
+   } = useSharedCompanyData();
+   const needles = getNeedles();
+   const needleTransactions = getNeedleTransactions();
+   // Needle Management State
+   const [needleSearch, setNeedleSearch] = useState('');
+   const [showNeedleModal, setShowNeedleModal] = useState(false);
+   const [showEntryModal, setShowEntryModal] = useState(false);
+   const [showExitModal, setShowExitModal] = useState(false);
+   const [needleForm, setNeedleForm] = useState({ provider: '', brand: '', reference_code: '' });
+   const [entryForm, setEntryForm] = useState({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+   const [exitForm, setExitForm] = useState({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_agulheiro', date: format(new Date(), 'yyyy-MM-dd') });
+ 
   const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
   const machineLogs = getMachineLogs();
@@ -202,21 +217,93 @@ export default function MecanicaPage() {
       const updatedLogs = [...machineLogs, newLog];
       await saveMachineLogs(updatedLogs);
       const machineName = machines.find(m => m.id === addMachineId)?.name;
-      logAction('maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
-      toast.success('Registro adicionado com sucesso!');
-      setShowAddModal(false);
-      setAddMachineId('');
-      setAddStatus('manutencao_preventiva');
-      setAddStartDate('');
-      setAddStartTime('08:00');
-      setAddEndDate('');
-      setAddEndTime('');
-    } catch (e) {
-      toast.error('Erro ao salvar registro.');
-    } finally {
-      setSaving(false);
-    }
-  };
+       logAction('maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
+       toast.success('Registro adicionado com sucesso!');
+       setShowAddModal(false);
+       setAddMachineId('');
+       setAddStatus('manutencao_preventiva');
+       setAddStartDate('');
+       setAddStartTime('08:00');
+       setAddEndDate('');
+       setAddEndTime('');
+     } catch (e) {
+       toast.error('Erro ao salvar registro.');
+     } finally {
+       setSaving(false);
+     }
+   };
+ 
+   const handleSaveNeedle = async () => {
+     if (!needleForm.provider || !needleForm.brand || !needleForm.reference_code) {
+       toast.error('Preencha todos os campos.');
+       return;
+     }
+     try {
+       const newNeedle = {
+         id: crypto.randomUUID(),
+         company_id: '',
+         ...needleForm,
+         current_quantity: 0,
+         created_at: new Date().toISOString(),
+         updated_at: new Date().toISOString()
+       };
+       await saveNeedles([...needles, newNeedle]);
+       toast.success('Agulha cadastrada!');
+       setShowNeedleModal(false);
+       setNeedleForm({ provider: '', brand: '', reference_code: '' });
+     } catch (e) { toast.error('Erro ao cadastrar.'); }
+   };
+ 
+   const handleEntry = async () => {
+     if (!entryForm.needle_id || !entryForm.quantity || !entryForm.date) {
+       toast.error('Preencha todos os campos.');
+       return;
+     }
+     try {
+       await addNeedleTransaction({
+         id: crypto.randomUUID(),
+         company_id: '',
+         needle_id: entryForm.needle_id,
+         type: 'entry',
+         quantity: Number(entryForm.quantity),
+         date: entryForm.date,
+         created_at: new Date().toISOString(),
+         created_by_name: userName || undefined
+       });
+       toast.success('Entrada registrada!');
+       setShowEntryModal(false);
+       setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+     } catch (e) { toast.error('Erro ao registrar entrada.'); }
+   };
+ 
+   const handleExit = async () => {
+     if (!exitForm.needle_id || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
+       toast.error('Preencha todos os campos.');
+       return;
+     }
+     const needle = needles.find(n => n.id === exitForm.needle_id);
+     if (needle && needle.current_quantity < Number(exitForm.quantity)) {
+       toast.error('Saldo insuficiente em estoque.');
+       return;
+     }
+     try {
+       await addNeedleTransaction({
+         id: crypto.randomUUID(),
+         company_id: '',
+         needle_id: exitForm.needle_id,
+         machine_id: exitForm.machine_id,
+         type: 'exit',
+         exit_mode: exitForm.mode,
+         quantity: Number(exitForm.quantity),
+         date: exitForm.date,
+         created_at: new Date().toISOString(),
+         created_by_name: userName || undefined
+       });
+       toast.success('Baixa registrada!');
+       setShowExitModal(false);
+       setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
+     } catch (e) { toast.error('Erro ao registrar baixa.'); }
+   };
 
   return (
     <div className="space-y-6">
@@ -275,10 +362,152 @@ export default function MecanicaPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="calendario" className="w-full">
-        <TabsList>
-          <TabsTrigger value="calendario">Calendário</TabsTrigger>
-          <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-        </TabsList>
+         <TabsList>
+           <TabsTrigger value="calendario">Calendário</TabsTrigger>
+           <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+           <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
+         </TabsList>
+         {/* Agulhas Tab */}
+         <TabsContent value="agulhas">
+           <div className="space-y-6">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <Card>
+                 <CardHeader className="pb-2">
+                   <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Tipos de Agulha</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <div className="text-2xl font-bold">{needles.length}</div>
+                 </CardContent>
+               </Card>
+               <Card>
+                 <CardHeader className="pb-2">
+                   <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Total em Estoque</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <div className="text-2xl font-bold">{needles.reduce((sum, n) => sum + n.current_quantity, 0)}</div>
+                 </CardContent>
+               </Card>
+               <Card>
+                 <CardHeader className="pb-2">
+                   <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Movimentações (Mês)</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <div className="text-2xl font-bold">{needleTransactions.filter(t => t.date.startsWith(format(new Date(), 'yyyy-MM'))).length}</div>
+                 </CardContent>
+               </Card>
+             </div>
+ 
+             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+               <div className="relative w-full sm:w-72">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                 <Input 
+                   placeholder="Pesquisar agulha..." 
+                   value={needleSearch} 
+                   onChange={e => setNeedleSearch(e.target.value)} 
+                   className="pl-9" 
+                 />
+               </div>
+               <div className="flex gap-2 w-full sm:w-auto">
+                 <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                   <Plus className="h-4 w-4 mr-2" /> Cadastrar
+                 </Button>
+                 <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                   <Plus className="h-4 w-4 mr-2" /> Entrada
+                 </Button>
+                 <Button onClick={() => setShowExitModal(true)} variant="default" className="flex-1 sm:flex-none">
+                   <Wrench className="h-4 w-4 mr-2" /> Baixa
+                 </Button>
+               </div>
+             </div>
+ 
+             <Card>
+               <CardContent className="p-0">
+                 <div className="overflow-x-auto">
+                   <table className="w-full text-sm">
+                     <thead>
+                       <tr className="border-b bg-muted/50">
+                         <th className="text-left p-4 font-medium">Fornecedor</th>
+                         <th className="text-left p-4 font-medium">Marca</th>
+                         <th className="text-left p-4 font-medium">Ref. Código</th>
+                         <th className="text-right p-4 font-medium">Estoque</th>
+                       </tr>
+                     </thead>
+                     <tbody>
+                       {needles
+                         .filter(n => 
+                           n.brand.toLowerCase().includes(needleSearch.toLowerCase()) || 
+                           n.provider.toLowerCase().includes(needleSearch.toLowerCase()) || 
+                           n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
+                         )
+                         .map(n => (
+                         <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
+                           <td className="p-4">{n.provider}</td>
+                           <td className="p-4">{n.brand}</td>
+                           <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
+                           <td className="p-4 text-right font-bold">{n.current_quantity}</td>
+                         </tr>
+                       ))}
+                       {needles.length === 0 && (
+                         <tr>
+                           <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
+                         </tr>
+                       )}
+                     </tbody>
+                   </table>
+                 </div>
+               </CardContent>
+             </Card>
+ 
+             <div className="space-y-4">
+               <div className="flex items-center gap-2">
+                 <History className="h-5 w-5 text-primary" />
+                 <h3 className="font-semibold">Histórico de Movimentações</h3>
+               </div>
+               <Card>
+                 <CardContent className="p-0">
+                   <div className="overflow-x-auto">
+                     <table className="w-full text-sm">
+                       <thead>
+                         <tr className="border-b bg-muted/50 text-muted-foreground">
+                           <th className="text-left p-4 font-medium">Data</th>
+                           <th className="text-left p-4 font-medium">Tipo</th>
+                           <th className="text-left p-4 font-medium">Agulha</th>
+                           <th className="text-left p-4 font-medium">Destino</th>
+                           <th className="text-right p-4 font-medium">Quantidade</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {needleTransactions.map(t => {
+                           const needle = needles.find(n => n.id === t.needle_id);
+                           const machine = machines.find(m => m.id === t.machine_id);
+                           return (
+                             <tr key={t.id} className="border-b">
+                               <td className="p-4">{format(new Date(t.date), 'dd/MM/yyyy')}</td>
+                               <td className="p-4">
+                                 <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">
+                                   {t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_agulheiro' ? 'Troca' : 'Reposição'}
+                                 </Badge>
+                               </td>
+                               <td className="p-4">{needle?.brand} ({needle?.reference_code})</td>
+                               <td className="p-4">{machine?.name || '—'}</td>
+                               <td className="p-4 text-right font-medium">{t.quantity}</td>
+                             </tr>
+                           );
+                         })}
+                         {needleTransactions.length === 0 && (
+                           <tr>
+                             <td colSpan={5} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
+                           </tr>
+                         )}
+                       </tbody>
+                     </table>
+                   </div>
+                 </CardContent>
+               </Card>
+             </div>
+           </div>
+         </TabsContent>
+ 
 
         {/* Calendário Tab */}
         <TabsContent value="calendario">
@@ -614,8 +843,112 @@ export default function MecanicaPage() {
               {saving ? 'Salvando...' : 'Adicionar'}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+       </DialogContent>
+     </Dialog>
+ 
+     {/* Cadastro de Agulha */}
+     <Dialog open={showNeedleModal} onOpenChange={setShowNeedleModal}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>Cadastrar Tipo de Agulha</DialogTitle></DialogHeader>
+         <div className="space-y-4 pt-2">
+           <div className="space-y-1">
+             <Label>Fornecedor</Label>
+             <Input value={needleForm.provider} onChange={e => setNeedleForm({...needleForm, provider: e.target.value})} placeholder="Ex: Groz-Beckert" />
+           </div>
+           <div className="space-y-1">
+             <Label>Marca</Label>
+             <Input value={needleForm.brand} onChange={e => setNeedleForm({...needleForm, brand: e.target.value})} placeholder="Ex: Vo-Spec" />
+           </div>
+           <div className="space-y-1">
+             <Label>Código de Referência</Label>
+             <Input value={needleForm.reference_code} onChange={e => setNeedleForm({...needleForm, reference_code: e.target.value})} placeholder="Ex: VO 71.52 G003" />
+           </div>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowNeedleModal(false)}>Cancelar</Button>
+           <Button onClick={handleSaveNeedle}>Cadastrar</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+ 
+     {/* Entrada de Agulha */}
+     <Dialog open={showEntryModal} onOpenChange={setShowEntryModal}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>Registrar Entrada</DialogTitle></DialogHeader>
+         <div className="space-y-4 pt-2">
+           <div className="space-y-1">
+             <Label>Agulha</Label>
+             <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({...entryForm, needle_id: v})}>
+               <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+               <SelectContent>
+                 {needles.map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Quantidade</Label>
+             <Input type="number" value={entryForm.quantity} onChange={e => setEntryForm({...entryForm, quantity: e.target.value})} placeholder="0" />
+           </div>
+           <div className="space-y-1">
+             <Label>Data</Label>
+             <Input type="date" value={entryForm.date} onChange={e => setEntryForm({...entryForm, date: e.target.value})} />
+           </div>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowEntryModal(false)}>Cancelar</Button>
+           <Button onClick={handleEntry}>Registrar</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+ 
+     {/* Baixa de Agulha */}
+     <Dialog open={showExitModal} onOpenChange={setShowExitModal}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>Registrar Saída (Baixa)</DialogTitle></DialogHeader>
+         <div className="space-y-4 pt-2">
+           <div className="space-y-1">
+             <Label>Modo de Saída</Label>
+             <Select value={exitForm.mode} onValueChange={v => setExitForm({...exitForm, mode: v as any})}>
+               <SelectTrigger><SelectValue /></SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="reposicao">Reposição (Quebra)</SelectItem>
+                 <SelectItem value="troca_agulheiro">Troca de Agulheiro (Geral)</SelectItem>
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Máquina</Label>
+             <Select value={exitForm.machine_id} onValueChange={v => setExitForm({...exitForm, machine_id: v})}>
+               <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+               <SelectContent>
+                 {activeMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Agulha</Label>
+             <Select value={exitForm.needle_id} onValueChange={v => setExitForm({...exitForm, needle_id: v})}>
+               <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+               <SelectContent>
+                 {needles.map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code}) - Saldo: {n.current_quantity}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Quantidade</Label>
+             <Input type="number" value={exitForm.quantity} onChange={e => setExitForm({...exitForm, quantity: e.target.value})} placeholder="0" />
+           </div>
+           <div className="space-y-1">
+             <Label>Data</Label>
+             <Input type="date" value={exitForm.date} onChange={e => setExitForm({...exitForm, date: e.target.value})} />
+           </div>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowExitModal(false)}>Cancelar</Button>
+           <Button onClick={handleExit}>Registrar Baixa</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+   </div>
+ );
 }
