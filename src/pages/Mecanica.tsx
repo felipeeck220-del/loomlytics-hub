@@ -217,9 +217,81 @@ export default function MecanicaPage() {
       const updatedLogs = [...machineLogs, newLog];
       await saveMachineLogs(updatedLogs);
       const machineName = machines.find(m => m.id === addMachineId)?.name;
-      logAction('maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
-      toast.success('Registro adicionado com sucesso!');
-      setShowAddModal(false);
+     logAction('maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
+     toast.success('Registro adicionado com sucesso!');
+     setShowAddModal(false);
+   };
+ 
+   const handleSaveNeedle = async () => {
+     if (!needleForm.provider || !needleForm.brand || !needleForm.reference_code) {
+       toast.error('Preencha todos os campos.');
+       return;
+     }
+     try {
+       const newNeedle = {
+         id: crypto.randomUUID(),
+         company_id: '',
+         ...needleForm,
+         current_quantity: 0,
+         created_at: new Date().toISOString(),
+         updated_at: new Date().toISOString()
+       };
+       await saveNeedles([...needles, newNeedle]);
+       toast.success('Agulha cadastrada!');
+       setShowNeedleModal(false);
+       setNeedleForm({ provider: '', brand: '', reference_code: '' });
+     } catch (e) { toast.error('Erro ao cadastrar.'); }
+   };
+ 
+   const handleEntry = async () => {
+     if (!entryForm.needle_id || !entryForm.quantity || !entryForm.date) {
+       toast.error('Preencha todos os campos.');
+       return;
+     }
+     try {
+       await addNeedleTransaction({
+         id: crypto.randomUUID(),
+         company_id: '',
+         needle_id: entryForm.needle_id,
+         type: 'entry',
+         quantity: Number(entryForm.quantity),
+         date: entryForm.date,
+         created_at: new Date().toISOString(),
+         created_by_name: userName || undefined
+       });
+       toast.success('Entrada registrada!');
+       setShowEntryModal(false);
+       setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+     } catch (e) { toast.error('Erro ao registrar entrada.'); }
+   };
+ 
+   const handleExit = async () => {
+     if (!exitForm.needle_id || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
+       toast.error('Preencha todos os campos.');
+       return;
+     }
+     const needle = needles.find(n => n.id === exitForm.needle_id);
+     if (needle && needle.current_quantity < Number(exitForm.quantity)) {
+       toast.error('Saldo insuficiente em estoque.');
+       return;
+     }
+     try {
+       await addNeedleTransaction({
+         id: crypto.randomUUID(),
+         company_id: '',
+         needle_id: exitForm.needle_id,
+         machine_id: exitForm.machine_id,
+         type: 'exit',
+         exit_mode: exitForm.mode,
+         quantity: Number(exitForm.quantity),
+         date: exitForm.date,
+         created_at: new Date().toISOString(),
+         created_by_name: userName || undefined
+       });
+       toast.success('Baixa registrada!');
+       setShowExitModal(false);
+       setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
+     } catch (e) { toast.error('Erro ao registrar baixa.'); }
       setAddMachineId('');
       setAddStatus('manutencao_preventiva');
       setAddStartDate('');
