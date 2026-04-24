@@ -467,7 +467,7 @@ export function useCompanyData() {
        const { error } = await sb('needle_inventory').upsert(rows);
        if (error) throw error;
      }
-     setNeedles(data);
+      setNeedles(data.map(n => ({ ...n, company_id: companyId })));
    }, [companyId, needles]);
  
    const addNeedleTransaction = useCallback(async (newRecord: NeedleTransaction) => {
@@ -482,7 +482,7 @@ export function useCompanyData() {
      };
      const { error } = await sb('needle_transactions').insert(row);
      if (error) throw error;
-     setNeedleTransactions(prev => [newRecord, ...prev]);
+      setNeedleTransactions(prev => [{ ...newRecord, company_id: companyId }, ...prev]);
  
      // Refresh inventory because the trigger updated it
      const nData = await fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code');
