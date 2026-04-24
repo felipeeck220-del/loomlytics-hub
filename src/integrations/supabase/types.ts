@@ -1116,36 +1116,57 @@ export type Database = {
           article_id: string | null
           company_id: string
           created_at: string
+          diameter: string | null
+          feeder_quantity: number | null
+          fineness: string | null
           id: string
+          last_needle_change_at: string | null
+          model: string | null
           name: string
+          needle_quantity: number | null
           number: number
           observations: string | null
           production_mode: string
           rpm: number
+          serial_number: string | null
           status: Database["public"]["Enums"]["machine_status"]
         }
         Insert: {
           article_id?: string | null
           company_id: string
           created_at?: string
+          diameter?: string | null
+          feeder_quantity?: number | null
+          fineness?: string | null
           id?: string
+          last_needle_change_at?: string | null
+          model?: string | null
           name: string
+          needle_quantity?: number | null
           number: number
           observations?: string | null
           production_mode?: string
           rpm?: number
+          serial_number?: string | null
           status?: Database["public"]["Enums"]["machine_status"]
         }
         Update: {
           article_id?: string | null
           company_id?: string
           created_at?: string
+          diameter?: string | null
+          feeder_quantity?: number | null
+          fineness?: string | null
           id?: string
+          last_needle_change_at?: string | null
+          model?: string | null
           name?: string
+          needle_quantity?: number | null
           number?: number
           observations?: string | null
           production_mode?: string
           rpm?: number
+          serial_number?: string | null
           status?: Database["public"]["Enums"]["machine_status"]
         }
         Relationships: [
@@ -1161,6 +1182,111 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      needle_inventory: {
+        Row: {
+          brand: string
+          company_id: string
+          created_at: string
+          current_quantity: number
+          id: string
+          provider: string
+          reference_code: string
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          company_id: string
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          provider: string
+          reference_code: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          company_id?: string
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          provider?: string
+          reference_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "needle_inventory_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      needle_transactions: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by_id: string | null
+          created_by_name: string | null
+          date: string
+          exit_mode: Database["public"]["Enums"]["needle_exit_mode"] | null
+          id: string
+          machine_id: string | null
+          needle_id: string
+          quantity: number
+          type: Database["public"]["Enums"]["needle_transaction_type"]
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by_id?: string | null
+          created_by_name?: string | null
+          date?: string
+          exit_mode?: Database["public"]["Enums"]["needle_exit_mode"] | null
+          id?: string
+          machine_id?: string | null
+          needle_id: string
+          quantity: number
+          type: Database["public"]["Enums"]["needle_transaction_type"]
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by_id?: string | null
+          created_by_name?: string | null
+          date?: string
+          exit_mode?: Database["public"]["Enums"]["needle_exit_mode"] | null
+          id?: string
+          machine_id?: string | null
+          needle_id?: string
+          quantity?: number
+          type?: Database["public"]["Enums"]["needle_transaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "needle_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "needle_transactions_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "needle_transactions_needle_id_fkey"
+            columns: ["needle_id"]
+            isOneToOne: false
+            referencedRelation: "needle_inventory"
             referencedColumns: ["id"]
           },
         ]
@@ -1950,6 +2076,8 @@ export type Database = {
         | "troca_artigo"
         | "inativa"
         | "troca_agulhas"
+      needle_exit_mode: "troca_agulheiro" | "reposicao"
+      needle_transaction_type: "entry" | "exit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2085,6 +2213,8 @@ export const Constants = {
         "inativa",
         "troca_agulhas",
       ],
+      needle_exit_mode: ["troca_agulheiro", "reposicao"],
+      needle_transaction_type: ["entry", "exit"],
     },
   },
 } as const
