@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2 } from 'lucide-react';
+ import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -27,7 +27,22 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 ];
 
 export default function MecanicaPage() {
-  const { getMachines, getMachineLogs, getProductions, saveMachineLogs, loading } = useSharedCompanyData();
+   const { 
+     getMachines, getMachineLogs, getProductions, saveMachineLogs, 
+     getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
+     loading 
+   } = useSharedCompanyData();
+   const needles = getNeedles();
+   const needleTransactions = getNeedleTransactions();
+   // Needle Management State
+   const [needleSearch, setNeedleSearch] = useState('');
+   const [showNeedleModal, setShowNeedleModal] = useState(false);
+   const [showEntryModal, setShowEntryModal] = useState(false);
+   const [showExitModal, setShowExitModal] = useState(false);
+   const [needleForm, setNeedleForm] = useState({ provider: '', brand: '', reference_code: '' });
+   const [entryForm, setEntryForm] = useState({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+   const [exitForm, setExitForm] = useState({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_agulheiro', date: format(new Date(), 'yyyy-MM-dd') });
+ 
   const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
   const machineLogs = getMachineLogs();
@@ -275,10 +290,152 @@ export default function MecanicaPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="calendario" className="w-full">
-        <TabsList>
-          <TabsTrigger value="calendario">Calendário</TabsTrigger>
-          <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-        </TabsList>
+         <TabsList>
+           <TabsTrigger value="calendario">Calendário</TabsTrigger>
+           <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+           <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
+         </TabsList>
+         {/* Agulhas Tab */}
+         <TabsContent value="agulhas">
+           <div className="space-y-6">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <Card>
+                 <CardHeader className="pb-2">
+                   <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Tipos de Agulha</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <div className="text-2xl font-bold">{needles.length}</div>
+                 </CardContent>
+               </Card>
+               <Card>
+                 <CardHeader className="pb-2">
+                   <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Total em Estoque</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <div className="text-2xl font-bold">{needles.reduce((sum, n) => sum + n.current_quantity, 0)}</div>
+                 </CardContent>
+               </Card>
+               <Card>
+                 <CardHeader className="pb-2">
+                   <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Movimentações (Mês)</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <div className="text-2xl font-bold">{needleTransactions.filter(t => t.date.startsWith(format(new Date(), 'yyyy-MM'))).length}</div>
+                 </CardContent>
+               </Card>
+             </div>
+ 
+             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+               <div className="relative w-full sm:w-72">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                 <Input 
+                   placeholder="Pesquisar agulha..." 
+                   value={needleSearch} 
+                   onChange={e => setNeedleSearch(e.target.value)} 
+                   className="pl-9" 
+                 />
+               </div>
+               <div className="flex gap-2 w-full sm:w-auto">
+                 <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                   <Plus className="h-4 w-4 mr-2" /> Cadastrar
+                 </Button>
+                 <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                   <Plus className="h-4 w-4 mr-2" /> Entrada
+                 </Button>
+                 <Button onClick={() => setShowExitModal(true)} variant="default" className="flex-1 sm:flex-none">
+                   <Wrench className="h-4 w-4 mr-2" /> Baixa
+                 </Button>
+               </div>
+             </div>
+ 
+             <Card>
+               <CardContent className="p-0">
+                 <div className="overflow-x-auto">
+                   <table className="w-full text-sm">
+                     <thead>
+                       <tr className="border-b bg-muted/50">
+                         <th className="text-left p-4 font-medium">Fornecedor</th>
+                         <th className="text-left p-4 font-medium">Marca</th>
+                         <th className="text-left p-4 font-medium">Ref. Código</th>
+                         <th className="text-right p-4 font-medium">Estoque</th>
+                       </tr>
+                     </thead>
+                     <tbody>
+                       {needles
+                         .filter(n => 
+                           n.brand.toLowerCase().includes(needleSearch.toLowerCase()) || 
+                           n.provider.toLowerCase().includes(needleSearch.toLowerCase()) || 
+                           n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
+                         )
+                         .map(n => (
+                         <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
+                           <td className="p-4">{n.provider}</td>
+                           <td className="p-4">{n.brand}</td>
+                           <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
+                           <td className="p-4 text-right font-bold">{n.current_quantity}</td>
+                         </tr>
+                       ))}
+                       {needles.length === 0 && (
+                         <tr>
+                           <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
+                         </tr>
+                       )}
+                     </tbody>
+                   </table>
+                 </div>
+               </CardContent>
+             </Card>
+ 
+             <div className="space-y-4">
+               <div className="flex items-center gap-2">
+                 <History className="h-5 w-5 text-primary" />
+                 <h3 className="font-semibold">Histórico de Movimentações</h3>
+               </div>
+               <Card>
+                 <CardContent className="p-0">
+                   <div className="overflow-x-auto">
+                     <table className="w-full text-sm">
+                       <thead>
+                         <tr className="border-b bg-muted/50 text-muted-foreground">
+                           <th className="text-left p-4 font-medium">Data</th>
+                           <th className="text-left p-4 font-medium">Tipo</th>
+                           <th className="text-left p-4 font-medium">Agulha</th>
+                           <th className="text-left p-4 font-medium">Destino</th>
+                           <th className="text-right p-4 font-medium">Quantidade</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {needleTransactions.map(t => {
+                           const needle = needles.find(n => n.id === t.needle_id);
+                           const machine = machines.find(m => m.id === t.machine_id);
+                           return (
+                             <tr key={t.id} className="border-b">
+                               <td className="p-4">{format(new Date(t.date), 'dd/MM/yyyy')}</td>
+                               <td className="p-4">
+                                 <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">
+                                   {t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_agulheiro' ? 'Troca' : 'Reposição'}
+                                 </Badge>
+                               </td>
+                               <td className="p-4">{needle?.brand} ({needle?.reference_code})</td>
+                               <td className="p-4">{machine?.name || '—'}</td>
+                               <td className="p-4 text-right font-medium">{t.quantity}</td>
+                             </tr>
+                           );
+                         })}
+                         {needleTransactions.length === 0 && (
+                           <tr>
+                             <td colSpan={5} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
+                           </tr>
+                         )}
+                       </tbody>
+                     </table>
+                   </div>
+                 </CardContent>
+               </Card>
+             </div>
+           </div>
+         </TabsContent>
+ 
 
         {/* Calendário Tab */}
         <TabsContent value="calendario">
