@@ -459,10 +459,13 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
    const repasseRef = useRef<HTMLInputElement>(null);
    const freightRef = useRef<HTMLInputElement>(null);
    const obsRef = useRef<HTMLTextAreaElement>(null);
-  const [form, setForm] = useState({
-    outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
-    weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '', nf_rom: '', observations: '',
-  });
+   const [form, setForm] = useState({
+     outsource_company_id: '',
+     date: format(new Date(), 'yyyy-MM-dd'),
+     nf_rom: '',
+     observations: '',
+     items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+   });
 
   const filteredArticles = useMemo(() => {
     if (!articleSearch.trim()) return articles;
@@ -473,16 +476,18 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     );
   }, [articles, articleSearch]);
 
-  const resetForm = (keepCompany = false) => {
-    setForm(f => ({
-      outsource_company_id: keepCompany ? f.outsource_company_id : '',
-      article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
-      weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '', nf_rom: '', observations: '',
-    }));
-    setEditId(null);
-    setArticleSearch('');
-    setArticleDropdownOpen(false);
-  };
+   const resetForm = (keepCompany = false) => {
+     setForm(f => ({
+       outsource_company_id: keepCompany ? f.outsource_company_id : '',
+       date: format(new Date(), 'yyyy-MM-dd'),
+       nf_rom: '',
+       observations: '',
+       items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+     }));
+     setEditId(null);
+     setArticleSearch('');
+     setArticleDropdownOpen(false);
+   };
 
   // Brazilian number formatting helpers
   const parseBrNumber = (str: string): number => {
@@ -516,16 +521,39 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     return `${intPart},${decPart}`;
   };
 
-  const selectedArticle = articles.find(a => a.id === form.article_id);
-  const clientValuePerKg = selectedArticle ? Number(selectedArticle.value_per_kg) : 0;
-  const outsourceValuePerKg = parseBrNumber(form.outsource_value_per_kg);
-  const freightPerKg = parseBrNumber(form.freight_per_kg);
-  const weightKg = parseBrNumber(form.weight_kg);
-  const profitPerKg = clientValuePerKg - outsourceValuePerKg - freightPerKg;
-  const totalRevenue = weightKg * clientValuePerKg;
-  const totalCost = weightKg * outsourceValuePerKg;
-  const totalFreightCalc = weightKg * freightPerKg;
-  const totalProfit = weightKg * profitPerKg;
+   // Multiple items calculations
+   const itemsCalculations = useMemo(() => {
+     return form.items.map(item => {
+       const art = articles.find(a => a.id === item.article_id);
+       const cv = art ? Number(art.value_per_kg) : 0;
+       const ov = parseBrNumber(item.outsource_value_per_kg);
+       const fv = parseBrNumber(item.freight_per_kg);
+       const w = parseBrNumber(item.weight_kg);
+       const pKg = cv - ov - fv;
+       return {
+         article: art,
+         clientValuePerKg: cv,
+         outsourceValuePerKg: ov,
+         freightPerKg: fv,
+         weightKg: w,
+         profitPerKg: pKg,
+         totalRevenue: w * cv,
+         totalCost: w * ov,
+         totalFreightCalc: w * fv,
+         totalProfit: w * pKg,
+       };
+     });
+   }, [form.items, articles]);
+
+   const formTotals = useMemo(() => {
+     return itemsCalculations.reduce((acc, curr) => ({
+       weightKg: acc.weightKg + curr.weightKg,
+       totalRevenue: acc.totalRevenue + curr.totalRevenue,
+       totalCost: acc.totalCost + curr.totalCost,
+       totalFreightCalc: acc.totalFreightCalc + curr.totalFreightCalc,
+       totalProfit: acc.totalProfit + curr.totalProfit,
+     }), { weightKg: 0, totalRevenue: 0, totalCost: 0, totalFreightCalc: 0, totalProfit: 0 });
+   }, [itemsCalculations]);
 
   // Helper: adjust outsource yarn stock (deduct on production, add back on delete)
   const adjustOutsourceYarnStock = async (
@@ -559,64 +587,60 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     // If no stock record exists, we can't deduct (no stock was registered)
   };
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const selectedCompany = companies.find(c => c.id === form.outsource_company_id);
-      const row = {
-        company_id: companyId,
-        outsource_company_id: form.outsource_company_id,
-        article_id: form.article_id,
-        article_name: selectedArticle?.name || '',
-        outsource_company_name: selectedCompany?.name || '',
-        client_name: selectedArticle?.client_name || '',
-        date: form.date,
-        weight_kg: weightKg,
-        rolls: Number(form.rolls) || 0,
-        client_value_per_kg: clientValuePerKg,
-        outsource_value_per_kg: outsourceValuePerKg,
-        freight_per_kg: freightPerKg,
-        profit_per_kg: profitPerKg,
-        total_revenue: totalRevenue,
-        total_cost: totalCost,
-        total_profit: totalProfit,
-        observations: form.observations || null,
-        nf_rom: form.nf_rom || null,
-        created_by_name: userNameRef.current || null,
-        created_by_code: userCodeRef.current || null,
-      };
-      if (editId) {
-        // Get old record to calculate delta
-        const oldRecord = productions.find(p => p.id === editId);
-        const oldWeight = oldRecord?.weight_kg || 0;
-        const oldOutsourceCompanyId = oldRecord?.outsource_company_id || form.outsource_company_id;
-        const oldArticleId = oldRecord?.article_id || form.article_id;
-        const oldDate = oldRecord?.date || form.date;
+   const saveMutation = useMutation({
+     mutationFn: async () => {
+       const selectedCompany = companies.find(c => c.id === form.outsource_company_id);
+       const rows = itemsCalculations.map(calc => ({
+         company_id: companyId,
+         outsource_company_id: form.outsource_company_id,
+         article_id: calc.article?.id || '',
+         article_name: calc.article?.name || '',
+         outsource_company_name: selectedCompany?.name || '',
+         client_name: calc.article?.client_name || '',
+         date: form.date,
+         weight_kg: calc.weightKg,
+         rolls: Number(form.items.find(i => i.article_id === calc.article?.id)?.rolls) || 0,
+         client_value_per_kg: calc.clientValuePerKg,
+         outsource_value_per_kg: calc.outsourceValuePerKg,
+         freight_per_kg: calc.freightPerKg,
+         profit_per_kg: calc.profitPerKg,
+         total_revenue: calc.totalRevenue,
+         total_cost: calc.totalCost,
+         total_profit: calc.totalProfit,
+         observations: form.observations || null,
+         nf_rom: form.nf_rom || null,
+         created_by_name: userNameRef.current || null,
+         created_by_code: userCodeRef.current || null,
+       }));
 
-        const { error } = await sb('outsource_productions').update(row).eq('id', editId);
-        if (error) throw error;
+       if (editId) {
+         const row = rows[0];
+         const oldRecord = productions.find(p => p.id === editId);
+         const { error } = await sb('outsource_productions').update(row).eq('id', editId);
+         if (error) throw error;
 
-        // Reverse old deduction, apply new deduction
-        if (oldWeight > 0) {
-          await adjustOutsourceYarnStock(oldOutsourceCompanyId, oldArticleId, oldDate, -oldWeight);
-        }
-        if (weightKg > 0) {
-          await adjustOutsourceYarnStock(form.outsource_company_id, form.article_id, form.date, weightKg);
-        }
-      } else {
-        const { error } = await sb('outsource_productions').insert(row);
-        if (error) throw error;
+         if (oldRecord && oldRecord.weight_kg > 0) {
+           await adjustOutsourceYarnStock(oldRecord.outsource_company_id, oldRecord.article_id, oldRecord.date, -oldRecord.weight_kg);
+         }
+         if (row.weight_kg > 0) {
+           await adjustOutsourceYarnStock(row.outsource_company_id, row.article_id, row.date, row.weight_kg);
+         }
+       } else {
+         const { error } = await sb('outsource_productions').insert(rows);
+         if (error) throw error;
 
-        // Deduct yarn from outsource stock
-        if (weightKg > 0) {
-          await adjustOutsourceYarnStock(form.outsource_company_id, form.article_id, form.date, weightKg);
-        }
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
-      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
-      logAction(editId ? 'outsource_production_update' : 'outsource_production_create', { date: form.date, article: form.article_id });
-      toast({ title: editId ? 'Registro atualizado!' : 'Produção registrada!' });
+         for (const row of rows) {
+           if (row.weight_kg > 0) {
+             await adjustOutsourceYarnStock(row.outsource_company_id, row.article_id, row.date, row.weight_kg);
+           }
+         }
+       }
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
+       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+       logAction(editId ? 'outsource_production_update' : 'outsource_production_create', { date: form.date });
+       toast({ title: editId ? 'Registro atualizado!' : 'Produção registrada!' });
       if (editId) {
         setOpen(false);
         resetForm();
@@ -664,24 +688,28 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     return num.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   };
 
-  const openEdit = (p: OutsourceProduction) => {
-    setEditId(p.id);
-    setForm({
-      outsource_company_id: p.outsource_company_id,
-      article_id: p.article_id,
-      date: p.date,
-      weight_kg: formatNumberToBr(p.weight_kg, 2),
-      rolls: String(p.rolls),
-      outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
-      freight_per_kg: p.freight_per_kg > 0 ? formatRepasseInput(String(Math.round(p.freight_per_kg * 100))) : '',
-      nf_rom: p.nf_rom || '',
-      observations: p.observations || '',
-    });
-    setOpen(true);
-  };
+   const openEdit = (p: OutsourceProduction) => {
+     setEditId(p.id);
+     setForm({
+       outsource_company_id: p.outsource_company_id,
+       date: p.date,
+       nf_rom: p.nf_rom || '',
+       observations: p.observations || '',
+       items: [{
+         id: crypto.randomUUID(),
+         article_id: p.article_id,
+         weight_kg: formatNumberToBr(p.weight_kg, 2),
+         rolls: String(p.rolls),
+         outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
+         freight_per_kg: p.freight_per_kg > 0 ? formatRepasseInput(String(Math.round(p.freight_per_kg * 100))) : '',
+       }]
+     });
+     setOpen(true);
+   };
 
    const handleSaveWithValidation = async () => {
-     if (!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg) return;
+     const isValid = form.items.every(item => item.article_id && item.weight_kg && item.outsource_value_per_kg);
+     if (!form.outsource_company_id || !isValid) return;
      if (saveMutation.isPending) return;
      if (!isDateValid(form.date)) {
        toast({ title: 'Data inválida', description: 'O ano deve estar entre os últimos 5 e próximos 5 anos.', variant: 'destructive' });
@@ -781,171 +809,21 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
             <DialogHeader>
               <DialogTitle>{editId ? 'Editar Produção' : 'Registrar Produção Terceirizada'}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2" onKeyDown={e => {
-              if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
-              // Enter to save (only when dropdown is closed)
-               if (e.key === 'Enter' && !articleDropdownOpen) {
-                 e.preventDefault();
-                 handleSaveWithValidation();
-                 return;
-               }
-              // Don't hijack arrows when article dropdown is open
-              if (articleDropdownOpen) return;
-              if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
-              // Don't hijack arrows in text inputs for cursor movement (left/right)
-              const active = document.activeElement as HTMLInputElement;
-              if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && active?.tagName === 'INPUT' && active?.type !== 'date') return;
-              if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && active?.tagName === 'TEXTAREA') return;
-              const fields: (HTMLElement | null)[] = [
-                companySelectRef.current,
-                dateRef.current,
-                articleSearchRef.current,
-                weightRef.current,
-                rollsRef.current,
-                repasseRef.current,
-                freightRef.current,
-                nfRomRef.current,
-                obsRef.current,
-              ];
-              const idx = fields.findIndex(f => f === active || f?.contains(active));
-              if (idx === -1) return;
-              e.preventDefault();
-              const dir = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
-              const next = Math.max(0, Math.min(idx + dir, fields.length - 1));
-              fields[next]?.focus();
-            }}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Malharia *</Label>
-                  <Select value={form.outsource_company_id} onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}>
-                    <SelectTrigger ref={companySelectRef}><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                   <Label>Data *</Label>
-                   <Input ref={dateRef} type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                     onFocus={() => { dateTabCount.current = 0; }}
-                     onKeyDown={e => {
-                       if (e.key === 'Tab' && !e.shiftKey) {
-                         dateTabCount.current++;
-                         // Date input has 3 segments (day/month/year), after 3rd tab go to article
-                         if (dateTabCount.current >= 3) {
-                           e.preventDefault();
-                           dateTabCount.current = 0;
-                           articleSearchRef.current?.focus();
-                         }
-                       }
-                     }}
-                   />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Artigo *</Label>
-                <div className="relative">
-                  <Input
-                    ref={articleSearchRef}
-                    placeholder="Pesquisar artigo..."
-                    value={articleDropdownOpen ? articleSearch : (articles.find(a => a.id === form.article_id)?.name ? `${articles.find(a => a.id === form.article_id)?.name} — ${articles.find(a => a.id === form.article_id)?.client_name || 'Sem cliente'}` : '')}
-                    onChange={e => { setArticleSearch(e.target.value); setArticleDropdownOpen(true); setArticleHighlight(0); }}
-                    onFocus={() => { setArticleDropdownOpen(true); setArticleSearch(''); setArticleHighlight(0); }}
-                    onBlur={(e) => {
-                      // Delay to allow click on dropdown items
-                      setTimeout(() => setArticleDropdownOpen(false), 200);
-                    }}
-                    onKeyDown={e => {
-                      if (!articleDropdownOpen) return;
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        setArticleHighlight(h => {
-                          const next = Math.min(h + 1, filteredArticles.length - 1);
-                          document.querySelector(`[data-article-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
-                          return next;
-                        });
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        setArticleHighlight(h => {
-                          const next = Math.max(h - 1, 0);
-                          document.querySelector(`[data-article-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
-                          return next;
-                        });
-                      } else if (e.key === 'Enter' && articleHighlight >= 0 && filteredArticles[articleHighlight]) {
-                        e.preventDefault();
-                        const a = filteredArticles[articleHighlight];
-                        setForm(f => ({ ...f, article_id: a.id }));
-                        setArticleDropdownOpen(false);
-                        setArticleSearch('');
-                        setArticleHighlight(-1);
-                        // Focus next field (weight)
-                        setTimeout(() => weightRef.current?.focus(), 50);
-                      } else if (e.key === 'Tab') {
-                        // If dropdown is open and item highlighted, select it
-                        if (articleHighlight >= 0 && filteredArticles[articleHighlight]) {
-                          const a = filteredArticles[articleHighlight];
-                          setForm(f => ({ ...f, article_id: a.id }));
-                        }
-                        setArticleDropdownOpen(false);
-                        setArticleSearch('');
-                        setArticleHighlight(-1);
-                      } else if (e.key === 'Escape') {
-                        setArticleDropdownOpen(false);
-                        setArticleSearch('');
-                      }
-                    }}
-                    className="w-full"
-                  />
-                  {articleDropdownOpen && (
-                    <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                      {filteredArticles.length === 0 ? (
-                        <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum artigo encontrado</p>
-                      ) : (
-                        filteredArticles.map((a, idx) => (
-                          <button
-                            key={a.id}
-                            type="button"
-                            tabIndex={-1}
-                            data-article-idx={idx}
-                            className={cn(
-                              'w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground',
-                              (idx === articleHighlight || form.article_id === a.id) && 'bg-accent text-accent-foreground'
-                            )}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setForm(f => ({ ...f, article_id: a.id }));
-                              setArticleDropdownOpen(false);
-                              setArticleSearch('');
-                              setTimeout(() => weightRef.current?.focus(), 50);
-                            }}
-                          >
-                            {a.name} — {a.client_name || 'Sem cliente'} ({formatCurrency(Number(a.value_per_kg))}/kg)
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                <div className="space-y-2">
-                  <Label>Peso (kg) *</Label>
-                  <Input ref={weightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: formatBrInput(e.target.value, 2) }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Rolos</Label>
-                  <Input ref={rollsRef} type="number" value={form.rolls} onChange={e => setForm(f => ({ ...f, rolls: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="whitespace-nowrap">Repasse (R$/kg) *</Label>
-                  <Input ref={repasseRef} type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatRepasseInput(e.target.value) }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Frete (R$/kg)</Label>
-                  <Input ref={freightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.freight_per_kg} onChange={e => setForm(f => ({ ...f, freight_per_kg: formatRepasseInput(e.target.value) }))} />
-                </div>
+             <div className="space-y-4 py-2">
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <div className="space-y-2">
+                   <Label>Malharia *</Label>
+                   <Select value={form.outsource_company_id} onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}>
+                     <SelectTrigger ref={companySelectRef}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                     <SelectContent>
+                       {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                     </SelectContent>
+                   </Select>
+                 </div>
+                 <div className="space-y-2">
+                    <Label>Data *</Label>
+                    <Input ref={dateRef} type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                 </div>
                  <div className="space-y-2">
                    <Label>NF/ROM</Label>
                    <Input
@@ -955,60 +833,129 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                       onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))}
                     />
                  </div>
-              </div>
+               </div>
 
-              {/* Preview calculations */}
-              {form.article_id && form.weight_kg && form.outsource_value_per_kg && (
-                <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prévia do Cálculo</p>
-                  <Separator />
-                  <div className={`grid ${freightPerKg > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm`}>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Valor Cliente (o que ele paga)</p>
-                      <p className="font-semibold text-foreground">{formatCurrency(clientValuePerKg)}/kg</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Valor Repasse (o que você paga)</p>
-                      <p className="font-semibold text-foreground">{formatCurrency(outsourceValuePerKg)}/kg</p>
-                    </div>
-                    {freightPerKg > 0 && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Frete</p>
-                        <p className="font-semibold text-blue-600">{formatCurrency(freightPerKg)}/kg</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-muted-foreground text-xs">Lucro/kg</p>
-                      <p className={`font-semibold ${profitPerKg >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
-                        {formatCurrency(profitPerKg)}/kg
-                      </p>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className={`grid ${freightPerKg > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm`}>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Receita (Cliente)</p>
-                      <p className="font-bold text-foreground">{formatCurrency(totalRevenue)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Custo (Repasse)</p>
-                      <p className="font-bold text-foreground">{formatCurrency(totalCost)}</p>
-                    </div>
-                    {freightPerKg > 0 && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Frete Total</p>
-                        <p className="font-bold text-blue-600">{formatCurrency(totalFreightCalc)}</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-muted-foreground text-xs">Lucro Total</p>
-                      <p className={`font-bold ${totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
-                        {formatCurrency(totalProfit)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+               <div className="space-y-4">
+                 <div className="flex items-center justify-between">
+                   <Label className="text-base font-semibold">Artigos</Label>
+                   {!editId && (
+                     <Button type="button" variant="outline" size="sm" onClick={() => setForm(f => ({
+                       ...f,
+                       items: [...f.items, { id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+                     }))}>
+                       <Plus className="h-4 w-4 mr-1" /> Adicionar Artigo
+                     </Button>
+                   )}
+                 </div>
+
+                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
+                   {form.items.map((item, index) => (
+                     <div key={item.id} className="relative p-4 rounded-lg border bg-muted/20 space-y-4">
+                       {form.items.length > 1 && (
+                         <Button
+                           type="button"
+                           variant="ghost"
+                           size="icon"
+                           className="absolute top-2 right-2 text-destructive"
+                           onClick={() => setForm(f => ({ ...f, items: f.items.filter(i => i.id !== item.id) }))}
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                       )}
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                           <Label>Artigo *</Label>
+                           <div className="relative">
+                             <Input
+                               placeholder="Pesquisar artigo..."
+                               value={articleDropdownOpen && articleHighlight === index ? articleSearch : (articles.find(a => a.id === item.article_id)?.name ? `${articles.find(a => a.id === item.article_id)?.name} — ${articles.find(a => a.id === item.article_id)?.client_name || 'Sem cliente'}` : '')}
+                               onChange={e => { setArticleSearch(e.target.value); setArticleDropdownOpen(true); setArticleHighlight(index); }}
+                               onFocus={() => { setArticleDropdownOpen(true); setArticleSearch(''); setArticleHighlight(index); }}
+                               onBlur={() => setTimeout(() => { setArticleDropdownOpen(false); setArticleHighlight(-1); }, 200)}
+                               className="w-full"
+                             />
+                             {articleDropdownOpen && articleHighlight === index && (
+                               <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md scrollbar-hide">
+                                 {filteredArticles.length === 0 ? (
+                                   <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum artigo encontrado</p>
+                                 ) : (
+                                   filteredArticles.map((a) => (
+                                     <button
+                                       key={a.id}
+                                       type="button"
+                                       className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                                       onMouseDown={(e) => {
+                                         e.preventDefault();
+                                         setForm(f => ({
+                                           ...f,
+                                           items: f.items.map(i => i.id === item.id ? { ...i, article_id: a.id } : i)
+                                         }));
+                                         setArticleDropdownOpen(false);
+                                         setArticleHighlight(-1);
+                                       }}
+                                     >
+                                       {a.name} — {a.client_name || 'Sem cliente'} ({formatCurrency(Number(a.value_per_kg))}/kg)
+                                     </button>
+                                   ))
+                                 )}
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                           <div className="space-y-2">
+                             <Label>Peso (kg) *</Label>
+                             <Input type="text" inputMode="decimal" placeholder="0,00" value={item.weight_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, weight_kg: formatBrInput(e.target.value, 2) } : i) }))} />
+                           </div>
+                           <div className="space-y-2">
+                             <Label>Rolos</Label>
+                             <Input type="number" value={item.rolls} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, rolls: e.target.value } : i) }))} />
+                           </div>
+                           <div className="space-y-2">
+                             <Label>Repasse *</Label>
+                             <Input type="text" inputMode="decimal" placeholder="0,00" value={item.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, outsource_value_per_kg: formatRepasseInput(e.target.value) } : i) }))} />
+                           </div>
+                           <div className="space-y-2">
+                             <Label>Frete</Label>
+                             <Input type="text" inputMode="decimal" placeholder="0,00" value={item.freight_per_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, freight_per_kg: formatRepasseInput(e.target.value) } : i) }))} />
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+
+               {/* Summary calculations for all items */}
+               {formTotals.weightKg > 0 && (
+                 <div className="rounded-lg bg-muted/50 p-4 space-y-2 border">
+                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex justify-between">
+                     <span>Resumo Total ({form.items.length} artigo{form.items.length > 1 ? 's' : ''})</span>
+                     <span>Peso Total: {formatWeight(formTotals.weightKg)}</span>
+                   </p>
+                   <Separator />
+                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                     <div>
+                       <p className="text-muted-foreground text-xs">Receita Total</p>
+                       <p className="font-bold text-foreground">{formatCurrency(formTotals.totalRevenue)}</p>
+                     </div>
+                     <div>
+                       <p className="text-muted-foreground text-xs">Custo Total</p>
+                       <p className="font-bold text-foreground">{formatCurrency(formTotals.totalCost)}</p>
+                     </div>
+                     <div>
+                       <p className="text-muted-foreground text-xs">Frete Total</p>
+                       <p className="font-bold text-blue-600">{formatCurrency(formTotals.totalFreightCalc)}</p>
+                     </div>
+                     <div>
+                       <p className="text-muted-foreground text-xs">Lucro Total</p>
+                       <p className={`font-bold ${formTotals.totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                         {formatCurrency(formTotals.totalProfit)}
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               )}
 
               <div className="space-y-2">
                 <Label>Observações</Label>
@@ -1017,10 +964,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
             </div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-               <Button
-                 onClick={() => handleSaveWithValidation()}
-                 disabled={!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg || saveMutation.isPending}
-               >
+                <Button
+                  onClick={() => handleSaveWithValidation()}
+                  disabled={!form.outsource_company_id || form.items.some(i => !i.article_id || !i.weight_kg || !i.outsource_value_per_kg) || saveMutation.isPending}
+                >
                 {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                 {editId ? 'Salvar' : 'Registrar'}
               </Button>
