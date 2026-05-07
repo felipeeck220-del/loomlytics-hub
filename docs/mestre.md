@@ -1488,4 +1488,5 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
    - **Paginação de Listagens:** Implementada paginação de 20 em 20 registros nos módulos de Revisão e Produções Terceirizadas para melhorar performance e usabilidade.
  
-   *Última atualização: 07/05/2026 13:15 (Brasília)*
+   *Última atualização: 07/05/2026 13:40 (Brasília)*
+ - **Notas Fiscais:** Busca na listagem ampliada para incluir tipo de fio, fornecedor (já existente via buyer_name), comprador e artigos.
