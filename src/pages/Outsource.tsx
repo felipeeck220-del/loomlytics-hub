@@ -464,16 +464,16 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
      items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
    });
 
-    const resetForm = (keepCompany = false) => {
-      setForm(f => ({
-        outsource_company_id: keepCompany ? f.outsource_company_id : '',
-        date: format(new Date(), 'yyyy-MM-dd'),
-        nf_rom: '',
-        observations: '',
-        items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
-      }));
-      setEditId(null);
-    };
+  const resetForm = useCallback((keepCompany = false) => {
+    setForm(f => ({
+      outsource_company_id: keepCompany ? f.outsource_company_id : '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      nf_rom: '',
+      observations: '',
+      items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+    }));
+    setEditId(null);
+  }, []);
 
   // Brazilian number formatting helpers
   const parseBrNumber = (str: string): number => {
@@ -674,24 +674,24 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     return num.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   };
 
-   const openEdit = (p: OutsourceProduction) => {
-     setEditId(p.id);
-     setForm({
-       outsource_company_id: p.outsource_company_id,
-       date: p.date,
-       nf_rom: p.nf_rom || '',
-       observations: p.observations || '',
-       items: [{
-         id: crypto.randomUUID(),
-         article_id: p.article_id,
-         weight_kg: formatNumberToBr(p.weight_kg, 2),
-         rolls: String(p.rolls),
-         outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
-         freight_per_kg: p.freight_per_kg > 0 ? formatRepasseInput(String(Math.round(p.freight_per_kg * 100))) : '',
-       }]
-     });
-     setOpen(true);
-   };
+  const openEdit = useCallback((p: OutsourceProduction) => {
+    setEditId(p.id);
+    setForm({
+      outsource_company_id: p.outsource_company_id,
+      date: p.date,
+      nf_rom: p.nf_rom || '',
+      observations: p.observations || '',
+      items: [{
+        id: crypto.randomUUID(),
+        article_id: p.article_id,
+        weight_kg: formatNumberToBr(p.weight_kg, 2),
+        rolls: String(p.rolls),
+        outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
+        freight_per_kg: p.freight_per_kg > 0 ? formatRepasseInput(String(Math.round(p.freight_per_kg * 100))) : '',
+      }]
+    });
+    setOpen(true);
+  }, [formatNumberToBr, formatRepasseInput]);
 
    const handleSaveWithValidation = async () => {
      const isValid = form.items.every(item => item.article_id && item.weight_kg && item.outsource_value_per_kg);
@@ -1018,13 +1018,13 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProductions.map(p => {
-                  const dateParts = p.date.split('-');
-                  const dateStr = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
-                  const createdAt = new Date(p.created_at);
-                  const timeStr = !isNaN(createdAt.getTime()) ? format(createdAt, 'HH:mm') : '';
-                  return (
-                  <TableRow key={p.id}>
+                     {filteredProductions.map((p, idx) => {
+                   const dateParts = p.date.split('-');
+                   const dateStr = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
+                   const createdAt = new Date(p.created_at);
+                   const timeStr = !isNaN(createdAt.getTime()) ? format(createdAt, 'HH:mm') : '';
+                   return (
+                   <TableRow key={p.id || idx}>
                     <TableCell className="whitespace-nowrap">
                       <div>{dateStr}</div>
                       {timeStr && <div className="text-xs text-muted-foreground">{timeStr}</div>}
