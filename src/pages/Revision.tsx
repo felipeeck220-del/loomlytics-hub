@@ -452,18 +452,27 @@ export default function RevisionPage() {
 
             {/* Row 3: Weaver + Defect Name */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Tecelão *</Label>
-                <Select value={form.weaver_id} onValueChange={v => { setForm(f => ({ ...f, weaver_id: v })); setWeaverSearch(''); }}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o tecelão" /></SelectTrigger>
-                  <SelectContent position="popper" side="bottom" align="start" sideOffset={4} avoidCollisions={false}>
-                    <div className="px-2 pb-2">
-                      <Input ref={weaverSearchRef} placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => setWeaverSearch(e.target.value)} className="h-8" autoFocus />
-                    </div>
-                    {filteredWeaversModal.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+               <div className="space-y-1.5">
+                 <Label>Tecelão *</Label>
+                 <Select value={form.weaver_id} onValueChange={v => { setForm(f => ({ ...f, weaver_id: v })); setWeaverSearch(''); }}>
+                   <SelectTrigger><SelectValue placeholder="Selecione o tecelão" /></SelectTrigger>
+                   <SelectContent position="popper" side="bottom" align="start" sideOffset={4} avoidCollisions={false}>
+                     <div className="px-2 pb-2 relative">
+                       <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                         ref={weaverSearchRef} 
+                         placeholder="Buscar tecelão..." 
+                         value={weaverSearch} 
+                         onChange={e => setWeaverSearch(e.target.value)} 
+                         className="h-8 pl-8" 
+                         onKeyDown={(e) => e.stopPropagation()}
+                         autoFocus 
+                       />
+                     </div>
+                     {filteredWeaversModal.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
+                   </SelectContent>
+                 </Select>
+               </div>
               <div className="space-y-1.5">
                 <Label>Falha (Nome) *</Label>
                 <Input placeholder="Ex: Furo, Mancha, Barramento..." value={form.defect_name} onChange={e => setForm(f => ({ ...f, defect_name: e.target.value }))} />
