@@ -54,13 +54,21 @@ export default function RevisionPage() {
     observations: '',
   });
 
-  const [articleSearch, setArticleSearch] = useState('');
-  const [weaverSearch, setWeaverSearch] = useState('');
-  const articleSearchRef = useRef<HTMLInputElement>(null);
-  const weaverSearchRef = useRef<HTMLInputElement>(null);
+   const [machineSearch, setMachineSearch] = useState('');
+   const [articleSearch, setArticleSearch] = useState('');
+   const [weaverSearch, setWeaverSearch] = useState('');
+   const machineSearchRef = useRef<HTMLInputElement>(null);
+   const articleSearchRef = useRef<HTMLInputElement>(null);
+   const weaverSearchRef = useRef<HTMLInputElement>(null);
 
   const getArticleLabel = (a: { name: string; client_name?: string }) =>
     a.client_name ? `${a.name} (${a.client_name})` : a.name;
+
+   const filteredMachinesModal = useMemo(() => {
+     if (!machineSearch) return sortedMachines;
+     const s = machineSearch.toLowerCase();
+     return sortedMachines.filter(m => m.name.toLowerCase().includes(s) || String(m.number).includes(s));
+   }, [sortedMachines, machineSearch]);
 
   const filteredArticlesModal = useMemo(() => {
     if (!articleSearch) return articles;
@@ -107,8 +115,9 @@ export default function RevisionPage() {
   const openNew = () => {
     setEditingRecord(null);
     setForm({ date: new Date(), shift: '', machine_id: '', weaver_id: '', article_id: '', defect_name: '', measure_type: 'kg', measure_value: '', observations: '' });
-    setArticleSearch('');
-    setWeaverSearch('');
+     setMachineSearch('');
+     setArticleSearch('');
+     setWeaverSearch('');
     setShowModal(true);
   };
 
@@ -137,8 +146,9 @@ export default function RevisionPage() {
       measure_value: String(record.measure_value),
       observations: obs,
     });
-    setArticleSearch('');
-    setWeaverSearch('');
+     setMachineSearch('');
+     setArticleSearch('');
+     setWeaverSearch('');
     setShowModal(true);
   };
 
@@ -192,10 +202,20 @@ export default function RevisionPage() {
           created_at: new Date().toISOString(),
         };
         await addDefectRecords([record]);
-        logAction('defect_create', { machine: machine?.name, article: article?.name, date: form.date, shift: form.shift });
-        toast.success('Falha registrada com sucesso!');
-      }
-      setShowModal(false);
+       logAction('defect_create', { machine: machine?.name, article: article?.name, date: form.date, shift: form.shift });
+       toast.success('Falha registrada com sucesso!');
+       // Reset only defect specific fields to allow registering multiple flaws for the same setup
+       setForm(f => ({
+         ...f,
+         defect_name: '',
+         measure_value: '',
+         observations: '',
+       }));
+     }
+     // Don't close modal automatically as requested
+     if (editingRecord) {
+       setShowModal(false);
+     }
     } catch (e) {
       toast.error(editingRecord ? 'Erro ao atualizar falha' : 'Erro ao registrar falha');
     } finally {
@@ -386,23 +406,44 @@ export default function RevisionPage() {
 
             {/* Row 2: Machine + Article */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Máquina *</Label>
-                <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
-                  <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
-                    {sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+               <div className="space-y-1.5">
+                 <Label>Máquina *</Label>
+                 <Select value={form.machine_id} onValueChange={v => { setForm(f => ({ ...f, machine_id: v })); setMachineSearch(''); }}>
+                   <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+                   <SelectContent position="popper" side="bottom" align="start" sideOffset={4} avoidCollisions={false}>
+                     <div className="px-2 pb-2 relative">
+                       <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                         ref={machineSearchRef} 
+                         placeholder="Buscar máquina..." 
+                         value={machineSearch} 
+                         onChange={e => setMachineSearch(e.target.value)} 
+                         className="h-8 pl-8" 
+                         onKeyDown={(e) => e.stopPropagation()}
+                         autoFocus 
+                       />
+                     </div>
+                     {filteredMachinesModal.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                   </SelectContent>
+                 </Select>
+               </div>
               <div className="space-y-1.5">
                 <Label>Artigo *</Label>
                 <Select value={form.article_id} onValueChange={v => { setForm(f => ({ ...f, article_id: v })); setArticleSearch(''); }}>
                   <SelectTrigger><SelectValue placeholder="Selecione o artigo" /></SelectTrigger>
                   <SelectContent position="popper" side="bottom" align="start" sideOffset={4} avoidCollisions={false}>
-                    <div className="px-2 pb-2">
-                      <Input ref={articleSearchRef} placeholder="Buscar artigo..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="h-8" autoFocus />
-                    </div>
+                     <div className="px-2 pb-2 relative">
+                       <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                         ref={articleSearchRef} 
+                         placeholder="Buscar artigo..." 
+                         value={articleSearch} 
+                         onChange={e => setArticleSearch(e.target.value)} 
+                         className="h-8 pl-8" 
+                         onKeyDown={(e) => e.stopPropagation()}
+                         autoFocus 
+                       />
+                     </div>
                     {filteredArticlesModal.map(a => <SelectItem key={a.id} value={a.id}>{getArticleLabel(a)}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -411,18 +452,27 @@ export default function RevisionPage() {
 
             {/* Row 3: Weaver + Defect Name */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Tecelão *</Label>
-                <Select value={form.weaver_id} onValueChange={v => { setForm(f => ({ ...f, weaver_id: v })); setWeaverSearch(''); }}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o tecelão" /></SelectTrigger>
-                  <SelectContent position="popper" side="bottom" align="start" sideOffset={4} avoidCollisions={false}>
-                    <div className="px-2 pb-2">
-                      <Input ref={weaverSearchRef} placeholder="Buscar tecelão..." value={weaverSearch} onChange={e => setWeaverSearch(e.target.value)} className="h-8" autoFocus />
-                    </div>
-                    {filteredWeaversModal.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+               <div className="space-y-1.5">
+                 <Label>Tecelão *</Label>
+                 <Select value={form.weaver_id} onValueChange={v => { setForm(f => ({ ...f, weaver_id: v })); setWeaverSearch(''); }}>
+                   <SelectTrigger><SelectValue placeholder="Selecione o tecelão" /></SelectTrigger>
+                   <SelectContent position="popper" side="bottom" align="start" sideOffset={4} avoidCollisions={false}>
+                     <div className="px-2 pb-2 relative">
+                       <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                         ref={weaverSearchRef} 
+                         placeholder="Buscar tecelão..." 
+                         value={weaverSearch} 
+                         onChange={e => setWeaverSearch(e.target.value)} 
+                         className="h-8 pl-8" 
+                         onKeyDown={(e) => e.stopPropagation()}
+                         autoFocus 
+                       />
+                     </div>
+                     {filteredWeaversModal.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
+                   </SelectContent>
+                 </Select>
+               </div>
               <div className="space-y-1.5">
                 <Label>Falha (Nome) *</Label>
                 <Input placeholder="Ex: Furo, Mancha, Barramento..." value={form.defect_name} onChange={e => setForm(f => ({ ...f, defect_name: e.target.value }))} />
