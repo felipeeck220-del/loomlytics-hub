@@ -964,10 +964,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
             </div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-               <Button
-                 onClick={() => handleSaveWithValidation()}
-                 disabled={!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg || saveMutation.isPending}
-               >
+                <Button
+                  onClick={() => handleSaveWithValidation()}
+                  disabled={!form.outsource_company_id || form.items.some(i => !i.article_id || !i.weight_kg || !i.outsource_value_per_kg) || saveMutation.isPending}
+                >
                 {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                 {editId ? 'Salvar' : 'Registrar'}
               </Button>
