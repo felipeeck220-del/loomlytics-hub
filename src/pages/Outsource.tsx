@@ -810,138 +810,20 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
               <DialogTitle>{editId ? 'Editar Produção' : 'Registrar Produção Terceirizada'}</DialogTitle>
             </DialogHeader>
              <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Malharia *</Label>
-                  <Select value={form.outsource_company_id} onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}>
-                    <SelectTrigger ref={companySelectRef}><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                   <Label>Data *</Label>
-                   <Input ref={dateRef} type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                     onFocus={() => { dateTabCount.current = 0; }}
-                     onKeyDown={e => {
-                       if (e.key === 'Tab' && !e.shiftKey) {
-                         dateTabCount.current++;
-                         // Date input has 3 segments (day/month/year), after 3rd tab go to article
-                         if (dateTabCount.current >= 3) {
-                           e.preventDefault();
-                           dateTabCount.current = 0;
-                           articleSearchRef.current?.focus();
-                         }
-                       }
-                     }}
-                   />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Artigo *</Label>
-                <div className="relative">
-                  <Input
-                    ref={articleSearchRef}
-                    placeholder="Pesquisar artigo..."
-                    value={articleDropdownOpen ? articleSearch : (articles.find(a => a.id === form.article_id)?.name ? `${articles.find(a => a.id === form.article_id)?.name} — ${articles.find(a => a.id === form.article_id)?.client_name || 'Sem cliente'}` : '')}
-                    onChange={e => { setArticleSearch(e.target.value); setArticleDropdownOpen(true); setArticleHighlight(0); }}
-                    onFocus={() => { setArticleDropdownOpen(true); setArticleSearch(''); setArticleHighlight(0); }}
-                    onBlur={(e) => {
-                      // Delay to allow click on dropdown items
-                      setTimeout(() => setArticleDropdownOpen(false), 200);
-                    }}
-                    onKeyDown={e => {
-                      if (!articleDropdownOpen) return;
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        setArticleHighlight(h => {
-                          const next = Math.min(h + 1, filteredArticles.length - 1);
-                          document.querySelector(`[data-article-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
-                          return next;
-                        });
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        setArticleHighlight(h => {
-                          const next = Math.max(h - 1, 0);
-                          document.querySelector(`[data-article-idx="${next}"]`)?.scrollIntoView({ block: 'nearest' });
-                          return next;
-                        });
-                      } else if (e.key === 'Enter' && articleHighlight >= 0 && filteredArticles[articleHighlight]) {
-                        e.preventDefault();
-                        const a = filteredArticles[articleHighlight];
-                        setForm(f => ({ ...f, article_id: a.id }));
-                        setArticleDropdownOpen(false);
-                        setArticleSearch('');
-                        setArticleHighlight(-1);
-                        // Focus next field (weight)
-                        setTimeout(() => weightRef.current?.focus(), 50);
-                      } else if (e.key === 'Tab') {
-                        // If dropdown is open and item highlighted, select it
-                        if (articleHighlight >= 0 && filteredArticles[articleHighlight]) {
-                          const a = filteredArticles[articleHighlight];
-                          setForm(f => ({ ...f, article_id: a.id }));
-                        }
-                        setArticleDropdownOpen(false);
-                        setArticleSearch('');
-                        setArticleHighlight(-1);
-                      } else if (e.key === 'Escape') {
-                        setArticleDropdownOpen(false);
-                        setArticleSearch('');
-                      }
-                    }}
-                    className="w-full"
-                  />
-                  {articleDropdownOpen && (
-                    <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                      {filteredArticles.length === 0 ? (
-                        <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum artigo encontrado</p>
-                      ) : (
-                        filteredArticles.map((a, idx) => (
-                          <button
-                            key={a.id}
-                            type="button"
-                            tabIndex={-1}
-                            data-article-idx={idx}
-                            className={cn(
-                              'w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground',
-                              (idx === articleHighlight || form.article_id === a.id) && 'bg-accent text-accent-foreground'
-                            )}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setForm(f => ({ ...f, article_id: a.id }));
-                              setArticleDropdownOpen(false);
-                              setArticleSearch('');
-                              setTimeout(() => weightRef.current?.focus(), 50);
-                            }}
-                          >
-                            {a.name} — {a.client_name || 'Sem cliente'} ({formatCurrency(Number(a.value_per_kg))}/kg)
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                <div className="space-y-2">
-                  <Label>Peso (kg) *</Label>
-                  <Input ref={weightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: formatBrInput(e.target.value, 2) }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Rolos</Label>
-                  <Input ref={rollsRef} type="number" value={form.rolls} onChange={e => setForm(f => ({ ...f, rolls: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="whitespace-nowrap">Repasse (R$/kg) *</Label>
-                  <Input ref={repasseRef} type="text" inputMode="decimal" placeholder="0,00" value={form.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, outsource_value_per_kg: formatRepasseInput(e.target.value) }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Frete (R$/kg)</Label>
-                  <Input ref={freightRef} type="text" inputMode="decimal" placeholder="0,00" value={form.freight_per_kg} onChange={e => setForm(f => ({ ...f, freight_per_kg: formatRepasseInput(e.target.value) }))} />
-                </div>
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <div className="space-y-2">
+                   <Label>Malharia *</Label>
+                   <Select value={form.outsource_company_id} onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}>
+                     <SelectTrigger ref={companySelectRef}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                     <SelectContent>
+                       {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                     </SelectContent>
+                   </Select>
+                 </div>
+                 <div className="space-y-2">
+                    <Label>Data *</Label>
+                    <Input ref={dateRef} type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                 </div>
                  <div className="space-y-2">
                    <Label>NF/ROM</Label>
                    <Input
@@ -951,60 +833,129 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                       onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))}
                     />
                  </div>
-              </div>
+               </div>
 
-              {/* Preview calculations */}
-              {form.article_id && form.weight_kg && form.outsource_value_per_kg && (
-                <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prévia do Cálculo</p>
-                  <Separator />
-                  <div className={`grid ${freightPerKg > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm`}>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Valor Cliente (o que ele paga)</p>
-                      <p className="font-semibold text-foreground">{formatCurrency(clientValuePerKg)}/kg</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Valor Repasse (o que você paga)</p>
-                      <p className="font-semibold text-foreground">{formatCurrency(outsourceValuePerKg)}/kg</p>
-                    </div>
-                    {freightPerKg > 0 && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Frete</p>
-                        <p className="font-semibold text-blue-600">{formatCurrency(freightPerKg)}/kg</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-muted-foreground text-xs">Lucro/kg</p>
-                      <p className={`font-semibold ${profitPerKg >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
-                        {formatCurrency(profitPerKg)}/kg
-                      </p>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className={`grid ${freightPerKg > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm`}>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Receita (Cliente)</p>
-                      <p className="font-bold text-foreground">{formatCurrency(totalRevenue)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Custo (Repasse)</p>
-                      <p className="font-bold text-foreground">{formatCurrency(totalCost)}</p>
-                    </div>
-                    {freightPerKg > 0 && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Frete Total</p>
-                        <p className="font-bold text-blue-600">{formatCurrency(totalFreightCalc)}</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-muted-foreground text-xs">Lucro Total</p>
-                      <p className={`font-bold ${totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
-                        {formatCurrency(totalProfit)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+               <div className="space-y-4">
+                 <div className="flex items-center justify-between">
+                   <Label className="text-base font-semibold">Artigos</Label>
+                   {!editId && (
+                     <Button type="button" variant="outline" size="sm" onClick={() => setForm(f => ({
+                       ...f,
+                       items: [...f.items, { id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+                     }))}>
+                       <Plus className="h-4 w-4 mr-1" /> Adicionar Artigo
+                     </Button>
+                   )}
+                 </div>
+
+                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
+                   {form.items.map((item, index) => (
+                     <div key={item.id} className="relative p-4 rounded-lg border bg-muted/20 space-y-4">
+                       {form.items.length > 1 && (
+                         <Button
+                           type="button"
+                           variant="ghost"
+                           size="icon"
+                           className="absolute top-2 right-2 text-destructive"
+                           onClick={() => setForm(f => ({ ...f, items: f.items.filter(i => i.id !== item.id) }))}
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                       )}
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                           <Label>Artigo *</Label>
+                           <div className="relative">
+                             <Input
+                               placeholder="Pesquisar artigo..."
+                               value={articleDropdownOpen && articleHighlight === index ? articleSearch : (articles.find(a => a.id === item.article_id)?.name ? `${articles.find(a => a.id === item.article_id)?.name} — ${articles.find(a => a.id === item.article_id)?.client_name || 'Sem cliente'}` : '')}
+                               onChange={e => { setArticleSearch(e.target.value); setArticleDropdownOpen(true); setArticleHighlight(index); }}
+                               onFocus={() => { setArticleDropdownOpen(true); setArticleSearch(''); setArticleHighlight(index); }}
+                               onBlur={() => setTimeout(() => { setArticleDropdownOpen(false); setArticleHighlight(-1); }, 200)}
+                               className="w-full"
+                             />
+                             {articleDropdownOpen && articleHighlight === index && (
+                               <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md scrollbar-hide">
+                                 {filteredArticles.length === 0 ? (
+                                   <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum artigo encontrado</p>
+                                 ) : (
+                                   filteredArticles.map((a) => (
+                                     <button
+                                       key={a.id}
+                                       type="button"
+                                       className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                                       onMouseDown={(e) => {
+                                         e.preventDefault();
+                                         setForm(f => ({
+                                           ...f,
+                                           items: f.items.map(i => i.id === item.id ? { ...i, article_id: a.id } : i)
+                                         }));
+                                         setArticleDropdownOpen(false);
+                                         setArticleHighlight(-1);
+                                       }}
+                                     >
+                                       {a.name} — {a.client_name || 'Sem cliente'} ({formatCurrency(Number(a.value_per_kg))}/kg)
+                                     </button>
+                                   ))
+                                 )}
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                           <div className="space-y-2">
+                             <Label>Peso (kg) *</Label>
+                             <Input type="text" inputMode="decimal" placeholder="0,00" value={item.weight_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, weight_kg: formatBrInput(e.target.value, 2) } : i) }))} />
+                           </div>
+                           <div className="space-y-2">
+                             <Label>Rolos</Label>
+                             <Input type="number" value={item.rolls} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, rolls: e.target.value } : i) }))} />
+                           </div>
+                           <div className="space-y-2">
+                             <Label>Repasse *</Label>
+                             <Input type="text" inputMode="decimal" placeholder="0,00" value={item.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, outsource_value_per_kg: formatRepasseInput(e.target.value) } : i) }))} />
+                           </div>
+                           <div className="space-y-2">
+                             <Label>Frete</Label>
+                             <Input type="text" inputMode="decimal" placeholder="0,00" value={item.freight_per_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, freight_per_kg: formatRepasseInput(e.target.value) } : i) }))} />
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+
+               {/* Summary calculations for all items */}
+               {formTotals.weightKg > 0 && (
+                 <div className="rounded-lg bg-muted/50 p-4 space-y-2 border">
+                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex justify-between">
+                     <span>Resumo Total ({form.items.length} artigo{form.items.length > 1 ? 's' : ''})</span>
+                     <span>Peso Total: {formatWeight(formTotals.weightKg)}</span>
+                   </p>
+                   <Separator />
+                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                     <div>
+                       <p className="text-muted-foreground text-xs">Receita Total</p>
+                       <p className="font-bold text-foreground">{formatCurrency(formTotals.totalRevenue)}</p>
+                     </div>
+                     <div>
+                       <p className="text-muted-foreground text-xs">Custo Total</p>
+                       <p className="font-bold text-foreground">{formatCurrency(formTotals.totalCost)}</p>
+                     </div>
+                     <div>
+                       <p className="text-muted-foreground text-xs">Frete Total</p>
+                       <p className="font-bold text-blue-600">{formatCurrency(formTotals.totalFreightCalc)}</p>
+                     </div>
+                     <div>
+                       <p className="text-muted-foreground text-xs">Lucro Total</p>
+                       <p className={`font-bold ${formTotals.totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                         {formatCurrency(formTotals.totalProfit)}
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               )}
 
               <div className="space-y-2">
                 <Label>Observações</Label>
