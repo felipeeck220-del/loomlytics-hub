@@ -688,24 +688,28 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     return num.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   };
 
-  const openEdit = (p: OutsourceProduction) => {
-    setEditId(p.id);
-    setForm({
-      outsource_company_id: p.outsource_company_id,
-      article_id: p.article_id,
-      date: p.date,
-      weight_kg: formatNumberToBr(p.weight_kg, 2),
-      rolls: String(p.rolls),
-      outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
-      freight_per_kg: p.freight_per_kg > 0 ? formatRepasseInput(String(Math.round(p.freight_per_kg * 100))) : '',
-      nf_rom: p.nf_rom || '',
-      observations: p.observations || '',
-    });
-    setOpen(true);
-  };
+   const openEdit = (p: OutsourceProduction) => {
+     setEditId(p.id);
+     setForm({
+       outsource_company_id: p.outsource_company_id,
+       date: p.date,
+       nf_rom: p.nf_rom || '',
+       observations: p.observations || '',
+       items: [{
+         id: crypto.randomUUID(),
+         article_id: p.article_id,
+         weight_kg: formatNumberToBr(p.weight_kg, 2),
+         rolls: String(p.rolls),
+         outsource_value_per_kg: formatRepasseInput(String(Math.round(p.outsource_value_per_kg * 100))),
+         freight_per_kg: p.freight_per_kg > 0 ? formatRepasseInput(String(Math.round(p.freight_per_kg * 100))) : '',
+       }]
+     });
+     setOpen(true);
+   };
 
    const handleSaveWithValidation = async () => {
-     if (!form.outsource_company_id || !form.article_id || !form.weight_kg || !form.outsource_value_per_kg) return;
+     const isValid = form.items.every(item => item.article_id && item.weight_kg && item.outsource_value_per_kg);
+     if (!form.outsource_company_id || !isValid) return;
      if (saveMutation.isPending) return;
      if (!isDateValid(form.date)) {
        toast({ title: 'Data inválida', description: 'O ano deve estar entre os últimos 5 e próximos 5 anos.', variant: 'destructive' });
@@ -805,39 +809,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
             <DialogHeader>
               <DialogTitle>{editId ? 'Editar Produção' : 'Registrar Produção Terceirizada'}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2" onKeyDown={e => {
-              if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
-              // Enter to save (only when dropdown is closed)
-               if (e.key === 'Enter' && !articleDropdownOpen) {
-                 e.preventDefault();
-                 handleSaveWithValidation();
-                 return;
-               }
-              // Don't hijack arrows when article dropdown is open
-              if (articleDropdownOpen) return;
-              if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
-              // Don't hijack arrows in text inputs for cursor movement (left/right)
-              const active = document.activeElement as HTMLInputElement;
-              if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && active?.tagName === 'INPUT' && active?.type !== 'date') return;
-              if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && active?.tagName === 'TEXTAREA') return;
-              const fields: (HTMLElement | null)[] = [
-                companySelectRef.current,
-                dateRef.current,
-                articleSearchRef.current,
-                weightRef.current,
-                rollsRef.current,
-                repasseRef.current,
-                freightRef.current,
-                nfRomRef.current,
-                obsRef.current,
-              ];
-              const idx = fields.findIndex(f => f === active || f?.contains(active));
-              if (idx === -1) return;
-              e.preventDefault();
-              const dir = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
-              const next = Math.max(0, Math.min(idx + dir, fields.length - 1));
-              fields[next]?.focus();
-            }}>
+             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Malharia *</Label>
