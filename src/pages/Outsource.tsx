@@ -26,7 +26,8 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
-import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+ import { SearchableSelect } from '@/components/SearchableSelect';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
@@ -463,27 +464,16 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
      items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
    });
 
-  const filteredArticles = useMemo(() => {
-    if (!articleSearch.trim()) return articles;
-    const search = articleSearch.toLowerCase();
-    return articles.filter(a =>
-      a.name?.toLowerCase().includes(search) ||
-      a.client_name?.toLowerCase().includes(search)
-    );
-  }, [articles, articleSearch]);
-
-   const resetForm = (keepCompany = false) => {
-     setForm(f => ({
-       outsource_company_id: keepCompany ? f.outsource_company_id : '',
-       date: format(new Date(), 'yyyy-MM-dd'),
-       nf_rom: '',
-       observations: '',
-       items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
-     }));
-     setEditId(null);
-     setArticleSearch('');
-     setArticleDropdownOpen(false);
-   };
+    const resetForm = (keepCompany = false) => {
+      setForm(f => ({
+        outsource_company_id: keepCompany ? f.outsource_company_id : '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        nf_rom: '',
+        observations: '',
+        items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+      }));
+      setEditId(null);
+    };
 
   // Brazilian number formatting helpers
   const parseBrNumber = (str: string): number => {
