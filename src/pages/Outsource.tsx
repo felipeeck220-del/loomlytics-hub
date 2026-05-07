@@ -26,7 +26,8 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
-import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+ import { SearchableSelect } from '@/components/SearchableSelect';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
@@ -445,11 +446,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [articleSearch, setArticleSearch] = useState('');
-  const [prodDeleteConfirmId, setProdDeleteConfirmId] = useState<string | null>(null);
-  const [articleDropdownOpen, setArticleDropdownOpen] = useState(false);
-   const articleSearchRef = useRef<HTMLInputElement>(null);
-   const [articleHighlight, setArticleHighlight] = useState(-1);
+   const [prodDeleteConfirmId, setProdDeleteConfirmId] = useState<string | null>(null);
    const weightRef = useRef<HTMLInputElement>(null);
    const nfRomRef = useRef<HTMLInputElement>(null);
    const dateTabCount = useRef(0);
@@ -467,27 +464,16 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
      items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
    });
 
-  const filteredArticles = useMemo(() => {
-    if (!articleSearch.trim()) return articles;
-    const search = articleSearch.toLowerCase();
-    return articles.filter(a =>
-      a.name?.toLowerCase().includes(search) ||
-      a.client_name?.toLowerCase().includes(search)
-    );
-  }, [articles, articleSearch]);
-
-   const resetForm = (keepCompany = false) => {
-     setForm(f => ({
-       outsource_company_id: keepCompany ? f.outsource_company_id : '',
-       date: format(new Date(), 'yyyy-MM-dd'),
-       nf_rom: '',
-       observations: '',
-       items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
-     }));
-     setEditId(null);
-     setArticleSearch('');
-     setArticleDropdownOpen(false);
-   };
+    const resetForm = (keepCompany = false) => {
+      setForm(f => ({
+        outsource_company_id: keepCompany ? f.outsource_company_id : '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        nf_rom: '',
+        observations: '',
+        items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+      }));
+      setEditId(null);
+    };
 
   // Brazilian number formatting helpers
   const parseBrNumber = (str: string): number => {
@@ -863,45 +849,19 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                          </Button>
                        )}
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                           <Label>Artigo *</Label>
-                           <div className="relative">
-                             <Input
-                               placeholder="Pesquisar artigo..."
-                               value={articleDropdownOpen && articleHighlight === index ? articleSearch : (articles.find(a => a.id === item.article_id)?.name ? `${articles.find(a => a.id === item.article_id)?.name} — ${articles.find(a => a.id === item.article_id)?.client_name || 'Sem cliente'}` : '')}
-                               onChange={e => { setArticleSearch(e.target.value); setArticleDropdownOpen(true); setArticleHighlight(index); }}
-                               onFocus={() => { setArticleDropdownOpen(true); setArticleSearch(''); setArticleHighlight(index); }}
-                               onBlur={() => setTimeout(() => { setArticleDropdownOpen(false); setArticleHighlight(-1); }, 200)}
-                               className="w-full"
-                             />
-                             {articleDropdownOpen && articleHighlight === index && (
-                               <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md scrollbar-hide">
-                                 {filteredArticles.length === 0 ? (
-                                   <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum artigo encontrado</p>
-                                 ) : (
-                                   filteredArticles.map((a) => (
-                                     <button
-                                       key={a.id}
-                                       type="button"
-                                       className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                                       onMouseDown={(e) => {
-                                         e.preventDefault();
-                                         setForm(f => ({
-                                           ...f,
-                                           items: f.items.map(i => i.id === item.id ? { ...i, article_id: a.id } : i)
-                                         }));
-                                         setArticleDropdownOpen(false);
-                                         setArticleHighlight(-1);
-                                       }}
-                                     >
-                                       {a.name} — {a.client_name || 'Sem cliente'} ({formatCurrency(Number(a.value_per_kg))}/kg)
-                                     </button>
-                                   ))
-                                 )}
-                               </div>
-                             )}
-                           </div>
-                         </div>
+                          <div className="space-y-2">
+                            <Label>Artigo *</Label>
+                            <SearchableSelect
+                              value={item.article_id}
+                              onValueChange={v => setForm(f => ({
+                                ...f,
+                                items: f.items.map(i => i.id === item.id ? { ...i, article_id: v } : i)
+                              }))}
+                              placeholder="Pesquisar artigo..."
+                              searchPlaceholder="Buscar artigo..."
+                              options={articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''} (${formatCurrency(Number(a.value_per_kg))}/kg)` }))}
+                            />
+                          </div>
                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                            <div className="space-y-2">
                              <Label>Peso (kg) *</Label>
