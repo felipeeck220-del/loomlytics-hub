@@ -54,13 +54,21 @@ export default function RevisionPage() {
     observations: '',
   });
 
-  const [articleSearch, setArticleSearch] = useState('');
-  const [weaverSearch, setWeaverSearch] = useState('');
-  const articleSearchRef = useRef<HTMLInputElement>(null);
-  const weaverSearchRef = useRef<HTMLInputElement>(null);
+   const [machineSearch, setMachineSearch] = useState('');
+   const [articleSearch, setArticleSearch] = useState('');
+   const [weaverSearch, setWeaverSearch] = useState('');
+   const machineSearchRef = useRef<HTMLInputElement>(null);
+   const articleSearchRef = useRef<HTMLInputElement>(null);
+   const weaverSearchRef = useRef<HTMLInputElement>(null);
 
   const getArticleLabel = (a: { name: string; client_name?: string }) =>
     a.client_name ? `${a.name} (${a.client_name})` : a.name;
+
+   const filteredMachinesModal = useMemo(() => {
+     if (!machineSearch) return sortedMachines;
+     const s = machineSearch.toLowerCase();
+     return sortedMachines.filter(m => m.name.toLowerCase().includes(s) || String(m.number).includes(s));
+   }, [sortedMachines, machineSearch]);
 
   const filteredArticlesModal = useMemo(() => {
     if (!articleSearch) return articles;
@@ -107,8 +115,9 @@ export default function RevisionPage() {
   const openNew = () => {
     setEditingRecord(null);
     setForm({ date: new Date(), shift: '', machine_id: '', weaver_id: '', article_id: '', defect_name: '', measure_type: 'kg', measure_value: '', observations: '' });
-    setArticleSearch('');
-    setWeaverSearch('');
+     setMachineSearch('');
+     setArticleSearch('');
+     setWeaverSearch('');
     setShowModal(true);
   };
 
@@ -137,8 +146,9 @@ export default function RevisionPage() {
       measure_value: String(record.measure_value),
       observations: obs,
     });
-    setArticleSearch('');
-    setWeaverSearch('');
+     setMachineSearch('');
+     setArticleSearch('');
+     setWeaverSearch('');
     setShowModal(true);
   };
 
@@ -192,10 +202,20 @@ export default function RevisionPage() {
           created_at: new Date().toISOString(),
         };
         await addDefectRecords([record]);
-        logAction('defect_create', { machine: machine?.name, article: article?.name, date: form.date, shift: form.shift });
-        toast.success('Falha registrada com sucesso!');
-      }
-      setShowModal(false);
+       logAction('defect_create', { machine: machine?.name, article: article?.name, date: form.date, shift: form.shift });
+       toast.success('Falha registrada com sucesso!');
+       // Reset only defect specific fields to allow registering multiple flaws for the same setup
+       setForm(f => ({
+         ...f,
+         defect_name: '',
+         measure_value: '',
+         observations: '',
+       }));
+     }
+     // Don't close modal automatically as requested
+     if (editingRecord) {
+       setShowModal(false);
+     }
     } catch (e) {
       toast.error(editingRecord ? 'Erro ao atualizar falha' : 'Erro ao registrar falha');
     } finally {
