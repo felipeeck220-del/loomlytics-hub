@@ -459,10 +459,13 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
    const repasseRef = useRef<HTMLInputElement>(null);
    const freightRef = useRef<HTMLInputElement>(null);
    const obsRef = useRef<HTMLTextAreaElement>(null);
-  const [form, setForm] = useState({
-    outsource_company_id: '', article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
-    weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '', nf_rom: '', observations: '',
-  });
+   const [form, setForm] = useState({
+     outsource_company_id: '',
+     date: format(new Date(), 'yyyy-MM-dd'),
+     nf_rom: '',
+     observations: '',
+     items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+   });
 
   const filteredArticles = useMemo(() => {
     if (!articleSearch.trim()) return articles;
@@ -473,16 +476,18 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     );
   }, [articles, articleSearch]);
 
-  const resetForm = (keepCompany = false) => {
-    setForm(f => ({
-      outsource_company_id: keepCompany ? f.outsource_company_id : '',
-      article_id: '', date: format(new Date(), 'yyyy-MM-dd'),
-      weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '', nf_rom: '', observations: '',
-    }));
-    setEditId(null);
-    setArticleSearch('');
-    setArticleDropdownOpen(false);
-  };
+   const resetForm = (keepCompany = false) => {
+     setForm(f => ({
+       outsource_company_id: keepCompany ? f.outsource_company_id : '',
+       date: format(new Date(), 'yyyy-MM-dd'),
+       nf_rom: '',
+       observations: '',
+       items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+     }));
+     setEditId(null);
+     setArticleSearch('');
+     setArticleDropdownOpen(false);
+   };
 
   // Brazilian number formatting helpers
   const parseBrNumber = (str: string): number => {
@@ -516,16 +521,39 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     return `${intPart},${decPart}`;
   };
 
-  const selectedArticle = articles.find(a => a.id === form.article_id);
-  const clientValuePerKg = selectedArticle ? Number(selectedArticle.value_per_kg) : 0;
-  const outsourceValuePerKg = parseBrNumber(form.outsource_value_per_kg);
-  const freightPerKg = parseBrNumber(form.freight_per_kg);
-  const weightKg = parseBrNumber(form.weight_kg);
-  const profitPerKg = clientValuePerKg - outsourceValuePerKg - freightPerKg;
-  const totalRevenue = weightKg * clientValuePerKg;
-  const totalCost = weightKg * outsourceValuePerKg;
-  const totalFreightCalc = weightKg * freightPerKg;
-  const totalProfit = weightKg * profitPerKg;
+   // Multiple items calculations
+   const itemsCalculations = useMemo(() => {
+     return form.items.map(item => {
+       const art = articles.find(a => a.id === item.article_id);
+       const cv = art ? Number(art.value_per_kg) : 0;
+       const ov = parseBrNumber(item.outsource_value_per_kg);
+       const fv = parseBrNumber(item.freight_per_kg);
+       const w = parseBrNumber(item.weight_kg);
+       const pKg = cv - ov - fv;
+       return {
+         article: art,
+         clientValuePerKg: cv,
+         outsourceValuePerKg: ov,
+         freightPerKg: fv,
+         weightKg: w,
+         profitPerKg: pKg,
+         totalRevenue: w * cv,
+         totalCost: w * ov,
+         totalFreightCalc: w * fv,
+         totalProfit: w * pKg,
+       };
+     });
+   }, [form.items, articles]);
+
+   const formTotals = useMemo(() => {
+     return itemsCalculations.reduce((acc, curr) => ({
+       weightKg: acc.weightKg + curr.weightKg,
+       totalRevenue: acc.totalRevenue + curr.totalRevenue,
+       totalCost: acc.totalCost + curr.totalCost,
+       totalFreightCalc: acc.totalFreightCalc + curr.totalFreightCalc,
+       totalProfit: acc.totalProfit + curr.totalProfit,
+     }), { weightKg: 0, totalRevenue: 0, totalCost: 0, totalFreightCalc: 0, totalProfit: 0 });
+   }, [itemsCalculations]);
 
   // Helper: adjust outsource yarn stock (deduct on production, add back on delete)
   const adjustOutsourceYarnStock = async (
