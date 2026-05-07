@@ -587,64 +587,60 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
     // If no stock record exists, we can't deduct (no stock was registered)
   };
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const selectedCompany = companies.find(c => c.id === form.outsource_company_id);
-      const row = {
-        company_id: companyId,
-        outsource_company_id: form.outsource_company_id,
-        article_id: form.article_id,
-        article_name: selectedArticle?.name || '',
-        outsource_company_name: selectedCompany?.name || '',
-        client_name: selectedArticle?.client_name || '',
-        date: form.date,
-        weight_kg: weightKg,
-        rolls: Number(form.rolls) || 0,
-        client_value_per_kg: clientValuePerKg,
-        outsource_value_per_kg: outsourceValuePerKg,
-        freight_per_kg: freightPerKg,
-        profit_per_kg: profitPerKg,
-        total_revenue: totalRevenue,
-        total_cost: totalCost,
-        total_profit: totalProfit,
-        observations: form.observations || null,
-        nf_rom: form.nf_rom || null,
-        created_by_name: userNameRef.current || null,
-        created_by_code: userCodeRef.current || null,
-      };
-      if (editId) {
-        // Get old record to calculate delta
-        const oldRecord = productions.find(p => p.id === editId);
-        const oldWeight = oldRecord?.weight_kg || 0;
-        const oldOutsourceCompanyId = oldRecord?.outsource_company_id || form.outsource_company_id;
-        const oldArticleId = oldRecord?.article_id || form.article_id;
-        const oldDate = oldRecord?.date || form.date;
+   const saveMutation = useMutation({
+     mutationFn: async () => {
+       const selectedCompany = companies.find(c => c.id === form.outsource_company_id);
+       const rows = itemsCalculations.map(calc => ({
+         company_id: companyId,
+         outsource_company_id: form.outsource_company_id,
+         article_id: calc.article?.id || '',
+         article_name: calc.article?.name || '',
+         outsource_company_name: selectedCompany?.name || '',
+         client_name: calc.article?.client_name || '',
+         date: form.date,
+         weight_kg: calc.weightKg,
+         rolls: Number(form.items.find(i => i.article_id === calc.article?.id)?.rolls) || 0,
+         client_value_per_kg: calc.clientValuePerKg,
+         outsource_value_per_kg: calc.outsourceValuePerKg,
+         freight_per_kg: calc.freightPerKg,
+         profit_per_kg: calc.profitPerKg,
+         total_revenue: calc.totalRevenue,
+         total_cost: calc.totalCost,
+         total_profit: calc.totalProfit,
+         observations: form.observations || null,
+         nf_rom: form.nf_rom || null,
+         created_by_name: userNameRef.current || null,
+         created_by_code: userCodeRef.current || null,
+       }));
 
-        const { error } = await sb('outsource_productions').update(row).eq('id', editId);
-        if (error) throw error;
+       if (editId) {
+         const row = rows[0];
+         const oldRecord = productions.find(p => p.id === editId);
+         const { error } = await sb('outsource_productions').update(row).eq('id', editId);
+         if (error) throw error;
 
-        // Reverse old deduction, apply new deduction
-        if (oldWeight > 0) {
-          await adjustOutsourceYarnStock(oldOutsourceCompanyId, oldArticleId, oldDate, -oldWeight);
-        }
-        if (weightKg > 0) {
-          await adjustOutsourceYarnStock(form.outsource_company_id, form.article_id, form.date, weightKg);
-        }
-      } else {
-        const { error } = await sb('outsource_productions').insert(row);
-        if (error) throw error;
+         if (oldRecord && oldRecord.weight_kg > 0) {
+           await adjustOutsourceYarnStock(oldRecord.outsource_company_id, oldRecord.article_id, oldRecord.date, -oldRecord.weight_kg);
+         }
+         if (row.weight_kg > 0) {
+           await adjustOutsourceYarnStock(row.outsource_company_id, row.article_id, row.date, row.weight_kg);
+         }
+       } else {
+         const { error } = await sb('outsource_productions').insert(rows);
+         if (error) throw error;
 
-        // Deduct yarn from outsource stock
-        if (weightKg > 0) {
-          await adjustOutsourceYarnStock(form.outsource_company_id, form.article_id, form.date, weightKg);
-        }
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
-      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
-      logAction(editId ? 'outsource_production_update' : 'outsource_production_create', { date: form.date, article: form.article_id });
-      toast({ title: editId ? 'Registro atualizado!' : 'Produção registrada!' });
+         for (const row of rows) {
+           if (row.weight_kg > 0) {
+             await adjustOutsourceYarnStock(row.outsource_company_id, row.article_id, row.date, row.weight_kg);
+           }
+         }
+       }
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
+       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+       logAction(editId ? 'outsource_production_update' : 'outsource_production_create', { date: form.date });
+       toast({ title: editId ? 'Registro atualizado!' : 'Produção registrada!' });
       if (editId) {
         setOpen(false);
         resetForm();
