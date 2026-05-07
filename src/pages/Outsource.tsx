@@ -848,7 +848,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                    )}
                  </div>
 
-                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
+                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 overflow-x-visible">
                    {form.items.map((item, index) => (
                      <div key={item.id} className="relative p-4 rounded-lg border bg-muted/20 space-y-4">
                        {form.items.length > 1 && (
