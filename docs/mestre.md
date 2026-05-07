@@ -1484,4 +1484,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
     - **07/05/2026 12:15 (Brasília)** — **PENTE FINO — Estabilização e Otimização:** (1) **Terceirizado:** Aplicado `useCallback` em funções críticas (`resetForm`, `openEdit`) para evitar re-renderizações desnecessárias e avisos de dependência do React; (2) **Terceirizado:** Adicionado fallback de índice no atributo `key` da listagem de produções para evitar avisos de chave duplicada/vazia; (3) **Revisão:** Confirmado que o modal de falhas agora segue o padrão de não fechar automaticamente após o registro; (4) **Verificação:** Validada integridade de todos os cálculos de lucro e frete no novo modelo de múltiplos itens.
 
-   *Última atualização: 07/05/2026 12:15 (Brasília)*
+    - **07/05/2026 12:45 (Brasília)** — **NOTAS FISCAIS — Tipo de Fio nas listagens:** Adicionada a coluna "Tipo de Fio" nas tabelas de "Entrada de Fio" e "Venda de Fio", exibindo os nomes dos fios associados aos itens de cada nota fiscal (agrupados por valores únicos).
+
+   *Última atualização: 07/05/2026 12:45 (Brasília)*
