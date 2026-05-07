@@ -444,8 +444,10 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   const [open, setOpen] = useState(false);
   const [prodSearch, setProdSearch] = useState('');
   const [fromOpen, setFromOpen] = useState(false);
-  const [toOpen, setToOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
+   const [toOpen, setToOpen] = useState(false);
+   const [editId, setEditId] = useState<string | null>(null);
+   const [currentPage, setCurrentPage] = useState(1);
+   const pageSize = 20;
    const [prodDeleteConfirmId, setProdDeleteConfirmId] = useState<string | null>(null);
    const weightRef = useRef<HTMLInputElement>(null);
    const nfRomRef = useRef<HTMLInputElement>(null);
@@ -762,8 +764,18 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
          p.nf_rom?.toLowerCase().includes(q)
        );
      }
-     return result;
-   }, [productions, prodSearch, filterMonth, filterFrom, filterTo]);
+      return result;
+    }, [productions, prodSearch, filterMonth, filterFrom, filterTo]);
+ 
+    const totalPages = Math.ceil(filteredProductions.length / pageSize);
+    const paginatedProductions = useMemo(() => {
+      const start = (currentPage - 1) * pageSize;
+      return filteredProductions.slice(start, start + pageSize);
+    }, [filteredProductions, currentPage]);
+ 
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [prodSearch, filterMonth, filterFrom, filterTo]);
 
    const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo;
 
@@ -1018,7 +1030,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                     {filteredProductions.map((p, idx) => {
+                      {paginatedProductions.map((p, idx) => {
                    const dateParts = p.date.split('-');
                    const dateStr = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
                    const createdAt = new Date(p.created_at);
@@ -1066,6 +1078,41 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                 })}
               </TableBody>
             </Table>
+          </div>
+        )}
+ 
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+              disabled={currentPage === 1}
+            >
+              Anterior
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  className="w-8 h-8 p-0"
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+              disabled={currentPage === totalPages}
+            >
+              Próximo
+            </Button>
           </div>
         )}
       </CardContent>

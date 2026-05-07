@@ -1486,4 +1486,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
     - **07/05/2026 12:45 (Brasília)** — **NOTAS FISCAIS — Tipo de Fio nas listagens:** Adicionada a coluna "Tipo de Fio" nas tabelas de "Entrada de Fio" e "Venda de Fio", exibindo os nomes dos fios associados aos itens de cada nota fiscal (agrupados por valores únicos).
 
-   *Última atualização: 07/05/2026 12:45 (Brasília)*
+   - **Paginação de Listagens:** Implementada paginação de 20 em 20 registros nos módulos de Revisão e Produções Terceirizadas para melhorar performance e usabilidade.
+ 
+   *Última atualização: 07/05/2026 13:15 (Brasília)*

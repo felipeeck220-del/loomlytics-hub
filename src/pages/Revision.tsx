@@ -36,9 +36,11 @@ export default function RevisionPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DefectRecord | null>(null);
   const [saving, setSaving] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterDate, setFilterDate] = useState('');
-  const [filterMonth, setFilterMonth] = useState('');
+   const [searchTerm, setSearchTerm] = useState('');
+   const [filterDate, setFilterDate] = useState('');
+   const [filterMonth, setFilterMonth] = useState('');
+   const [currentPage, setCurrentPage] = useState(1);
+   const pageSize = 20;
   const [showDelete, setShowDelete] = useState<DefectRecord | null>(null);
   const [deleteWord, setDeleteWord] = useState('');
 
@@ -91,20 +93,30 @@ export default function RevisionPage() {
     return Array.from(monthSet).sort().reverse();
   }, [defectRecords]);
 
-  const filtered = useMemo(() => {
-    let data = defectRecords;
-    if (filterDate) data = data.filter(d => d.date === filterDate);
-    if (filterMonth && !filterDate) data = data.filter(d => d.date?.startsWith(filterMonth));
-    if (searchTerm) {
-      const s = searchTerm.toLowerCase();
-      data = data.filter(d =>
-        (d.machine_name || '').toLowerCase().includes(s) ||
-        (d.article_name || '').toLowerCase().includes(s) ||
-        (d.weaver_name || '').toLowerCase().includes(s)
-      );
-    }
-    return data;
-  }, [defectRecords, filterDate, filterMonth, searchTerm]);
+   const filtered = useMemo(() => {
+     let data = defectRecords;
+     if (filterDate) data = data.filter(d => d.date === filterDate);
+     if (filterMonth && !filterDate) data = data.filter(d => d.date?.startsWith(filterMonth));
+     if (searchTerm) {
+       const s = searchTerm.toLowerCase();
+       data = data.filter(d =>
+         (d.machine_name || '').toLowerCase().includes(s) ||
+         (d.article_name || '').toLowerCase().includes(s) ||
+         (d.weaver_name || '').toLowerCase().includes(s)
+       );
+     }
+     return data;
+   }, [defectRecords, filterDate, filterMonth, searchTerm]);
+ 
+   const totalPages = Math.ceil(filtered.length / pageSize);
+   const paginatedData = useMemo(() => {
+     const start = (currentPage - 1) * pageSize;
+     return filtered.slice(start, start + pageSize);
+   }, [filtered, currentPage]);
+ 
+   useEffect(() => {
+     setCurrentPage(1);
+   }, [searchTerm, filterDate, filterMonth]);
 
   const stats = useMemo(() => {
     const totalKg = filtered.filter(d => d.measure_type === 'kg').reduce((s, d) => s + d.measure_value, 0);
@@ -332,13 +344,13 @@ export default function RevisionPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                  Nenhuma falha registrada{filterDate ? ' nesta data' : filterMonth ? ' neste mês' : ''}
-                </TableCell>
-              </TableRow>
-            ) : filtered.map(d => (
+             {paginatedData.length === 0 ? (
+               <TableRow>
+                 <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                   Nenhuma falha registrada{filterDate ? ' nesta data' : filterMonth ? ' neste mês' : ''}
+                 </TableCell>
+               </TableRow>
+             ) : paginatedData.map(d => (
               <TableRow key={d.id}>
                 <TableCell>{format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
                 <TableCell><Badge variant="outline">{companyShiftLabels[d.shift] || d.shift}</Badge></TableCell>
@@ -365,9 +377,44 @@ export default function RevisionPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
-
-      {/* Register/Edit Modal */}
+       </div>
+ 
+       {/* Pagination */}
+       {totalPages > 1 && (
+         <div className="flex items-center justify-center gap-2 py-4">
+           <Button 
+             variant="outline" 
+             size="sm" 
+             onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+             disabled={currentPage === 1}
+           >
+             Anterior
+           </Button>
+           <div className="flex items-center gap-1">
+             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+               <Button
+                 key={page}
+                 variant={currentPage === page ? "default" : "outline"}
+                 size="sm"
+                 className="w-8 h-8 p-0"
+                 onClick={() => setCurrentPage(page)}
+               >
+                 {page}
+               </Button>
+             ))}
+           </div>
+           <Button 
+             variant="outline" 
+             size="sm" 
+             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+             disabled={currentPage === totalPages}
+           >
+             Próximo
+           </Button>
+         </div>
+       )}
+ 
+       {/* Register/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto" onEscapeKeyDown={e => e.preventDefault()} onPointerDownOutside={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
