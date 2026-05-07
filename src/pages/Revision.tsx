@@ -406,23 +406,44 @@ export default function RevisionPage() {
 
             {/* Row 2: Machine + Article */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Máquina *</Label>
-                <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
-                  <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
-                    {sortedMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+               <div className="space-y-1.5">
+                 <Label>Máquina *</Label>
+                 <Select value={form.machine_id} onValueChange={v => { setForm(f => ({ ...f, machine_id: v })); setMachineSearch(''); }}>
+                   <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+                   <SelectContent position="popper" side="bottom" align="start" sideOffset={4} avoidCollisions={false}>
+                     <div className="px-2 pb-2 relative">
+                       <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                         ref={machineSearchRef} 
+                         placeholder="Buscar máquina..." 
+                         value={machineSearch} 
+                         onChange={e => setMachineSearch(e.target.value)} 
+                         className="h-8 pl-8" 
+                         onKeyDown={(e) => e.stopPropagation()}
+                         autoFocus 
+                       />
+                     </div>
+                     {filteredMachinesModal.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                   </SelectContent>
+                 </Select>
+               </div>
               <div className="space-y-1.5">
                 <Label>Artigo *</Label>
                 <Select value={form.article_id} onValueChange={v => { setForm(f => ({ ...f, article_id: v })); setArticleSearch(''); }}>
                   <SelectTrigger><SelectValue placeholder="Selecione o artigo" /></SelectTrigger>
                   <SelectContent position="popper" side="bottom" align="start" sideOffset={4} avoidCollisions={false}>
-                    <div className="px-2 pb-2">
-                      <Input ref={articleSearchRef} placeholder="Buscar artigo..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="h-8" autoFocus />
-                    </div>
+                     <div className="px-2 pb-2 relative">
+                       <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                         ref={articleSearchRef} 
+                         placeholder="Buscar artigo..." 
+                         value={articleSearch} 
+                         onChange={e => setArticleSearch(e.target.value)} 
+                         className="h-8 pl-8" 
+                         onKeyDown={(e) => e.stopPropagation()}
+                         autoFocus 
+                       />
+                     </div>
                     {filteredArticlesModal.map(a => <SelectItem key={a.id} value={a.id}>{getArticleLabel(a)}</SelectItem>)}
                   </SelectContent>
                 </Select>
