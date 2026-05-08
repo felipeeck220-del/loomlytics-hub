@@ -324,85 +324,43 @@ export default function Dashboard() {
   const revenuePerHour = calendarHours > 0 ? totalRevenue / calendarHours : 0;
   const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
 
-   const shiftData = useMemo(() => {
-     if (serverShiftData.length > 0) {
-       return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
-         const s = serverShiftData.find(d => d.shift === shift);
-         return {
-           shift,
-           label: companyShiftLabels[shift].split(' (')[0],
-           rolls: s ? Number(s.total_rolls) : 0,
-           kg: s ? Number(s.total_weight) : 0,
-           revenue: s ? Number(s.total_revenue) : 0,
-         };
-       });
-     }
-     return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
-       const sp = filtered.filter(p => p.shift === shift);
-       return {
-         shift,
-         label: companyShiftLabels[shift].split(' (')[0],
-         rolls: sp.reduce((s, p) => s + p.rolls_produced, 0),
-         kg: sp.reduce((s, p) => s + p.weight_kg, 0),
-         revenue: sp.reduce((s, p) => s + p.revenue, 0),
-       };
-     });
-   }, [serverShiftData, filtered, companyShiftLabels]);
+    const shiftData = useMemo(() => {
+      return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
+        const s = serverShiftData.find(d => d.shift === shift);
+        return {
+          shift,
+          label: companyShiftLabels[shift].split(' (')[0],
+          rolls: s ? Number(s.total_rolls) : 0,
+          kg: s ? Number(s.total_weight) : 0,
+          revenue: s ? Number(s.total_revenue) : 0,
+        };
+      });
+    }, [serverShiftData, companyShiftLabels]);
  
-   const machinePerf = useMemo(() => {
-     if (serverMachinePerf.length > 0) {
-       return serverMachinePerf.map(m => {
-         const machine = machines.find(mach => mach.id === m.machine_id);
-         return {
-           name: m.machine_name || machine?.name || 'M-?',
-           rolls: Number(m.total_rolls),
-           kg: Number(m.total_weight),
-           efficiency: Number(m.avg_efficiency),
-           records: Number(m.record_count),
-           targetEfficiency: 80 // Simplified for server stats
-         };
-       });
-     }
-     return machines.map(m => {
-       const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
-       const mpNonZero = mp.filter(p => p.rolls_produced > 0);
-       const eff = mpNonZero.length ? mpNonZero.reduce((s, p) => s + p.efficiency, 0) / mpNonZero.length : 0;
-       const avgTargetEff = mpNonZero.length > 0
-         ? mpNonZero.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mpNonZero.length
-         : 80;
-       return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length, targetEfficiency: avgTargetEff };
-     }).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
-   }, [serverMachinePerf, filtered, machines, articles]);
+    const machinePerf = useMemo(() => {
+      if (serverMachinePerf.length === 0) return [];
+      return serverMachinePerf.map(m => {
+        const machine = machines.find(mach => mach.id === m.machine_id);
+        return {
+          name: m.machine_name || machine?.name || 'M-?',
+          rolls: Number(m.total_rolls),
+          kg: Number(m.total_weight),
+          efficiency: Number(m.avg_efficiency),
+          records: Number(m.record_count),
+          targetEfficiency: 80 // Simplified for server stats
+        };
+      });
+    }, [serverMachinePerf, machines]);
 
-   const trendData = useMemo(() => {
-     if (serverTrendData.length > 0) {
-       return serverTrendData.map(d => ({
-         date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-         rolos: Number(d.total_rolls),
-         kg: Math.round(Number(d.total_weight) * 100) / 100,
-         faturamento: Math.round(Number(d.total_revenue) * 100) / 100,
-         eficiencia: Math.round(Number(d.avg_efficiency) * 10) / 10,
-       }));
-     }
-     const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
-     filtered.forEach(p => {
-       if (!byDate[p.date]) byDate[p.date] = { rolos: 0, kg: 0, faturamento: 0, effSum: 0, effCount: 0 };
-       byDate[p.date].rolos += p.rolls_produced;
-       byDate[p.date].kg += p.weight_kg;
-       byDate[p.date].faturamento += p.revenue;
-       if (p.rolls_produced > 0) {
-         byDate[p.date].effSum += p.efficiency;
-         byDate[p.date].effCount += 1;
-       }
-     });
-     return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
-       date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-       rolos: d.rolos,
-       kg: Math.round(d.kg * 100) / 100,
-       faturamento: Math.round(d.faturamento * 100) / 100,
-       eficiencia: d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0,
-     }));
-   }, [serverTrendData, filtered]);
+    const trendData = useMemo(() => {
+      return serverTrendData.map(d => ({
+        date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+        rolos: Number(d.total_rolls),
+        kg: Math.round(Number(d.total_weight) * 100) / 100,
+        faturamento: Math.round(Number(d.total_revenue) * 100) / 100,
+        eficiencia: Math.round(Number(d.avg_efficiency) * 10) / 10,
+      }));
+    }, [serverTrendData]);
 
   const periodSummary = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
