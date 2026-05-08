@@ -59,7 +59,8 @@ export default function RevisionPage() {
   });
 
    const [machineSearch, setMachineSearch] = useState('');
-   const [articleSearch, setArticleSearch] = useState('');
+    const [articleSearch, setArticleSearch] = useState('');
+    const [articleFilterSearch, setArticleFilterSearch] = useState('');
    const [weaverSearch, setWeaverSearch] = useState('');
    const machineSearchRef = useRef<HTMLInputElement>(null);
    const articleSearchRef = useRef<HTMLInputElement>(null);
@@ -74,11 +75,18 @@ export default function RevisionPage() {
      return sortedMachines.filter(m => m.name.toLowerCase().includes(s) || String(m.number).includes(s));
    }, [sortedMachines, machineSearch]);
 
-  const filteredArticlesModal = useMemo(() => {
-    if (!articleSearch) return articles;
-    const s = articleSearch.toLowerCase();
-    return articles.filter(a => a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s));
-  }, [articles, articleSearch]);
+   const filteredArticlesModal = useMemo(() => {
+     if (!articleSearch) return articles;
+     const s = articleSearch.toLowerCase();
+     return articles.filter(a => a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s));
+   }, [articles, articleSearch]);
+ 
+   const filteredArticlesFilter = useMemo(() => {
+     const sorted = [...articles].sort((a, b) => a.name.localeCompare(b.name));
+     if (!articleFilterSearch) return sorted;
+     const s = articleFilterSearch.toLowerCase();
+     return sorted.filter(a => a.name.toLowerCase().includes(s) || (a.client_name || '').toLowerCase().includes(s));
+   }, [articles, articleFilterSearch]);
 
   const filteredWeaversModal = useMemo(() => {
     if (!weaverSearch) return weavers;
@@ -440,13 +448,23 @@ export default function RevisionPage() {
           </SelectContent>
         </Select>
 
-        <Select value={filterArticle} onValueChange={setFilterArticle}>
+        <Select value={filterArticle} onValueChange={v => { setFilterArticle(v); setArticleFilterSearch(''); }}>
           <SelectTrigger className="min-w-[180px] w-auto">
             <SelectValue placeholder="Filtrar por Artigo" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" side="bottom" align="start" sideOffset={4} avoidCollisions={false}>
+            <div className="px-2 pb-2 relative">
+              <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar artigo..." 
+                value={articleFilterSearch} 
+                onChange={e => setArticleFilterSearch(e.target.value)} 
+                className="h-8 pl-8" 
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
             <SelectItem value="all">Todos os artigos</SelectItem>
-            {articles.sort((a, b) => a.name.localeCompare(b.name)).map(a => (
+            {filteredArticlesFilter.map(a => (
               <SelectItem key={a.id} value={a.id}>{getArticleLabel(a)}</SelectItem>
             ))}
           </SelectContent>
