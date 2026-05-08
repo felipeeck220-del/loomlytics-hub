@@ -1488,7 +1488,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
    - **Paginação de Listagens:** Implementada paginação de 20 em 20 registros nos módulos de Revisão e Produções Terceirizadas para melhorar performance e usabilidade.
  
-   - **08/05/2026 10:45 (Brasília)** — **GERAL — Padronização do "Registrado por":** (1) Padronizada a exibição de autoria de registros em todo o sistema (Produção, Revisão, Terceirizado, NFs, Resíduos); (2) Novo padrão obrigatório: `Registrado por: [Nome] Em: [Data] [Hora]`; (3) Corrigida a ausência de data/hora em diversas listagens; (4) Documentação em `auditoria.md` atualizada para reforçar este padrão.
+   - **08/05/2026 11:00 (Brasília)** — **GERAL — Refinamento da Padronização de Autoria:** (1) Removidos os prefixos textuais, mantendo apenas Nome #ID (em verde) e Data/Hora (em cinza); (2) Padronização minimalista aplicada em Produção, Revisão, Terceirizado, NFs e Resíduos; (3) Documentação técnica em `auditoria.md` atualizada.
 
-   *Última atualização: 08/05/2026 10:45 (Brasília)*
+   *Última atualização: 08/05/2026 11:00 (Brasília)*
  - **Notas Fiscais:** Busca na listagem ampliada para incluir tipo de fio, fornecedor, comprador e artigos; simplificação do placeholder de busca para "Buscar...".
