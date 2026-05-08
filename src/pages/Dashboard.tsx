@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { getProductionStats } from '@/lib/queries/productionsQueries';
 import { useNavigate } from 'react-router-dom';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
@@ -34,11 +35,40 @@ function getCurrentShift(): ShiftType {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { getProductions, getMachines, getMachineLogs, getClients, getArticles, getWeavers, shiftSettings, loading } = useSharedCompanyData();
+  const { getProductions, getMachines, getMachineLogs, getClients, getArticles, getWeavers, shiftSettings, loading, dbCompanyId } = useSharedCompanyData();
   const { canSeeFinancial } = usePermissions();
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
-  const productions = getProductions();
+  const [productions, setProductions] = useState(getProductions());
+  const [serverStats, setServerStats] = useState<{
+    total_weight: number;
+    total_revenue: number;
+    total_rolls: number;
+    avg_efficiency: number;
+    record_count: number;
+  } | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  const fetchDashboardStats = useCallback(async () => {
+    if (!dbCompanyId || !currentPeriod) return;
+    setLoadingStats(true);
+    try {
+      const stats = await getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
+        shift: filterShift === 'all' ? undefined : filterShift,
+        articleId: filterArticle === 'all' ? undefined : filterArticle,
+      });
+      setServerStats(stats);
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [dbCompanyId, currentPeriod, filterShift, filterArticle]);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [fetchDashboardStats]);
+
   const machines = getMachines();
   const clients = getClients();
   const articles = getArticles();
@@ -200,11 +230,10 @@ export default function Dashboard() {
 
   const showComparison = currentPeriod !== null;
 
-  const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
-  const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
-  const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
-  const nonZeroFiltered = filtered.filter(p => p.rolls_produced > 0);
-  const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
+  const totalRolls = serverStats ? Number(serverStats.total_rolls) : filtered.reduce((s, p) => s + p.rolls_produced, 0);
+  const totalWeight = serverStats ? Number(serverStats.total_weight) : filtered.reduce((s, p) => s + p.weight_kg, 0);
+  const totalRevenue = serverStats ? Number(serverStats.total_revenue) : filtered.reduce((s, p) => s + p.revenue, 0);
+  const avgEfficiency = serverStats ? Number(serverStats.avg_efficiency) : (nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0);
 
   // Previous period KPIs
   const prevTotalRolls = prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
