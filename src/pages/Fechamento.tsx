@@ -76,7 +76,25 @@ export default function Fechamento() {
       const [inv, items, prods, arts, yt, op, oc, ys, rs] = await Promise.all([
         fetchAll('invoices', companyId, 'issue_date'),
         fetchAll('invoice_items', companyId, 'created_at'),
-        sb('productions').select('*').eq('company_id', companyId).gte('date', `${selectedMonth}-01`).lte('date', `${selectedMonth}-31`).then((r: any) => r.data || []),
+        (async () => {
+          const PAGE = 1000;
+          let all: any[] = [];
+          let from = 0;
+          while (true) {
+            const { data } = await sb('productions').select('*')
+              .eq('company_id', companyId)
+              .gte('date', `${selectedMonth}-01`)
+              .lte('date', `${selectedMonth}-31`)
+              .order('date', { ascending: true })
+              .order('id', { ascending: true })
+              .range(from, from + PAGE - 1);
+            if (!data || data.length === 0) break;
+            all = all.concat(data);
+            if (data.length < PAGE) break;
+            from += PAGE;
+          }
+          return all;
+        })(),
         fetchAll('articles', companyId, 'name'),
         fetchAll('yarn_types', companyId, 'name'),
         fetchAll('outsource_productions', companyId, 'date'),
