@@ -88,7 +88,7 @@ export default function Dashboard() {
   }, [stoppedMachines.length]);
 
   const clearFilters = () => {
-    setDayRange(15);
+     setDayRange(15); setFilterMonth('all');
     setCustomDate(undefined);
     setDateFrom(undefined);
     setDateTo(undefined);
@@ -429,8 +429,8 @@ export default function Dashboard() {
               <Button
                 key={d}
                 size="sm"
-                variant={dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
-                onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
+               variant={dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
+               onClick={() => { setDayRange(d); setFilterMonth('all'); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}
                 className={cn("min-w-[60px] rounded-lg", dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo && 'btn-gradient')}
               >
                 {d} dia{d > 1 ? 's' : ''}
