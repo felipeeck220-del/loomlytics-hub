@@ -49,7 +49,10 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
   const machines = getMachines();
   const weavers = getWeavers();
   const articles = getArticles();
-  const defectRecords = getDefectRecords();
+   const [defectRecords, setDefectRecords] = useState<DefectRecord[]>(getDefectRecords());
+   const [totalRecords, setTotalCount] = useState(0);
+   const [isSyncing, setIsSyncing] = useState(false);
+   const dbCompanyId = user?.company_id || '';
 
   const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
 
