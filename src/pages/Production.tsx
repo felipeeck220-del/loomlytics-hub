@@ -863,11 +863,12 @@ export default function ProductionPage() {
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Registro</p>
                                   <p className="text-lg font-bold text-foreground">{format(new Date(group.date), 'dd/MM/yyyy')}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {group.items[0].created_by_name ? `Registrado por: ${group.items[0].created_by_name}${group.items[0].created_by_code ? ` #${group.items[0].created_by_code}` : ''}` : '—'}
-                                    <br />
-                                    Em: {registrationTime || '—'}
-                                  </p>
+                                  <div className="text-xs font-medium text-emerald-600 mt-1">
+                                    {group.items[0].created_by_name ? `${group.items[0].created_by_name}${group.items[0].created_by_code ? ` #${group.items[0].created_by_code}` : ''}` : '—'}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground/70">
+                                    {registrationTime || '—'}
+                                  </div>
                                 </div>
                                 <CalendarIcon className="h-5 w-5 text-violet-500" />
                               </div>

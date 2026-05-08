@@ -1876,8 +1876,13 @@ export default function Invoices() {
                 </Table>
               </div>
 
-              <div className="text-xs text-muted-foreground">
-                Registrado por: {viewingInvoice.created_by_name || '—'}{viewingInvoice.created_by_code ? ` #${viewingInvoice.created_by_code}` : ''} Em: {viewingInvoice.created_at ? format(new Date(viewingInvoice.created_at), 'dd/MM/yyyy HH:mm') : '—'}
+              <div className="text-[10px] whitespace-nowrap mt-4">
+                <div className="font-medium text-xs text-emerald-600">
+                  {viewingInvoice.created_by_name ? `${viewingInvoice.created_by_name}${viewingInvoice.created_by_code ? ` #${viewingInvoice.created_by_code}` : ''}` : '—'}
+                </div>
+                {viewingInvoice.created_at && (
+                  <div className="text-muted-foreground/70">{format(new Date(viewingInvoice.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                )}
               </div>
             </div>
           )}
