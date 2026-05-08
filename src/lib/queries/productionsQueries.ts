@@ -177,6 +177,26 @@ export async function getProductionStats(
      console.error('Error fetching shift stats:', error);
      return [];
    }
+    return data || [];
+  }
+ 
+ export async function getProductionTrendStats(
+   companyId: string,
+   startDate: string,
+   endDate: string,
+   filter?: { shift?: string; articleId?: string }
+ ) {
+   const { data, error } = await supabase.rpc('get_production_trend_stats', {
+     p_company_id: companyId,
+     p_start_date: startDate,
+     p_end_date: endDate,
+     p_shift: filter?.shift ?? 'all',
+     p_article_id: filter?.articleId || null
+   });
+   if (error) {
+     console.error('Error fetching trend stats:', error);
+     return [];
+   }
    return data || [];
  }
  

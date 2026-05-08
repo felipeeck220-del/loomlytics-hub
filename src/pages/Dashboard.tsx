@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
- import { getProductionStats, getProductionShiftStats, getProductionMachineStats } from '@/lib/queries/productionsQueries';
+ import { getProductionStats, getProductionShiftStats, getProductionMachineStats, getProductionTrendStats } from '@/lib/queries/productionsQueries';
 import { useNavigate } from 'react-router-dom';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
@@ -211,13 +211,14 @@ export default function Dashboard() {
     const [prevServerStats, setPrevServerStats] = useState<DashboardStats | null>(null);
     const [serverShiftData, setServerShiftData] = useState<any[]>([]);
     const [serverMachinePerf, setServerMachinePerf] = useState<any[]>([]);
+    const [serverTrendData, setServerTrendData] = useState<any[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
  
      const fetchServerStats = useCallback(async () => {
        if (!dbCompanyId || !currentPeriod) return;
        setLoadingStats(true);
        try {
-         const [stats, pStats, sShiftData, sMachineData] = await Promise.all([
+         const [stats, pStats, sShiftData, sMachineData, sTrendData] = await Promise.all([
            getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
              shift: filterShift === 'all' ? undefined : filterShift,
              articleId: filterArticle === 'all' ? undefined : filterArticle,
@@ -228,16 +229,20 @@ export default function Dashboard() {
                  articleId: filterArticle === 'all' ? undefined : filterArticle,
                })
              : Promise.resolve(null),
-           // Shift and Machine stats only if no specific shift filter (or always, for visualization)
            getProductionShiftStats(dbCompanyId, currentPeriod.start, currentPeriod.end, 
              filterArticle === 'all' ? undefined : filterArticle),
            getProductionMachineStats(dbCompanyId, currentPeriod.start, currentPeriod.end,
-             filterArticle === 'all' ? undefined : filterArticle, 5)
+             filterArticle === 'all' ? undefined : filterArticle, 5),
+           getProductionTrendStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
+             shift: filterShift === 'all' ? 'all' : filterShift,
+             articleId: filterArticle === 'all' ? undefined : filterArticle
+           })
          ]);
          setServerStats(stats);
          setPrevServerStats(pStats);
          setServerShiftData(sShiftData);
          setServerMachinePerf(sMachineData);
+         setServerTrendData(sTrendData);
        } catch (err) {
          console.error('Error fetching dashboard stats:', err);
        } finally {
@@ -368,26 +373,35 @@ export default function Dashboard() {
      }).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
    }, [serverMachinePerf, filtered, machines, articles]);
 
-  const trendData = useMemo(() => {
-    const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
-    filtered.forEach(p => {
-      if (!byDate[p.date]) byDate[p.date] = { rolos: 0, kg: 0, faturamento: 0, effSum: 0, effCount: 0 };
-      byDate[p.date].rolos += p.rolls_produced;
-      byDate[p.date].kg += p.weight_kg;
-      byDate[p.date].faturamento += p.revenue;
-      if (p.rolls_produced > 0) {
-        byDate[p.date].effSum += p.efficiency;
-        byDate[p.date].effCount += 1;
-      }
-    });
-    return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
-      date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-      rolos: d.rolos,
-      kg: Math.round(d.kg * 100) / 100,
-      faturamento: Math.round(d.faturamento * 100) / 100,
-      eficiencia: d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0,
-    }));
-  }, [filtered]);
+   const trendData = useMemo(() => {
+     if (serverTrendData.length > 0) {
+       return serverTrendData.map(d => ({
+         date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+         rolos: Number(d.total_rolls),
+         kg: Math.round(Number(d.total_weight) * 100) / 100,
+         faturamento: Math.round(Number(d.total_revenue) * 100) / 100,
+         eficiencia: Math.round(Number(d.avg_efficiency) * 10) / 10,
+       }));
+     }
+     const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
+     filtered.forEach(p => {
+       if (!byDate[p.date]) byDate[p.date] = { rolos: 0, kg: 0, faturamento: 0, effSum: 0, effCount: 0 };
+       byDate[p.date].rolos += p.rolls_produced;
+       byDate[p.date].kg += p.weight_kg;
+       byDate[p.date].faturamento += p.revenue;
+       if (p.rolls_produced > 0) {
+         byDate[p.date].effSum += p.efficiency;
+         byDate[p.date].effCount += 1;
+       }
+     });
+     return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
+       date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+       rolos: d.rolos,
+       kg: Math.round(d.kg * 100) / 100,
+       faturamento: Math.round(d.faturamento * 100) / 100,
+       eficiencia: d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0,
+     }));
+   }, [serverTrendData, filtered]);
 
   const periodSummary = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
