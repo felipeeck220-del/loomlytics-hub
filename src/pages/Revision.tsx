@@ -49,7 +49,6 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
   const machines = getMachines();
   const weavers = getWeavers();
   const articles = getArticles();
-    const { getDefectRecords } = useSharedCompanyData();
     const defectRecords = getDefectRecords();
    const [totalRecords, setTotalCount] = useState(0);
    const [isSyncing, setIsSyncing] = useState(false);
@@ -130,8 +129,11 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
    const filtered = defectRecords;
  
-   const totalPages = Math.ceil(totalRecords / pageSize);
-   const paginatedData = defectRecords;
+   const totalPages = Math.ceil(filtered.length / pageSize);
+   const paginatedData = useMemo(() => {
+     const start = (currentPage - 1) * pageSize;
+     return filtered.slice(start, start + pageSize);
+   }, [filtered, currentPage, pageSize]);
  
   const fetchDefectData = useCallback(async () => {
     // All data loaded via context
