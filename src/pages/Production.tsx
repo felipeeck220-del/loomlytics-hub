@@ -37,11 +37,8 @@ export default function ProductionPage() {
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
-  const [localProductions, setLocalProductions] = useState(getProductions());
   const [serverProductions, setServerProductions] = useState<Production[]>([]);
-  const [totalServerCount, setTotalServerCount] = useState(0);
   const [isPending, startTransition] = useTransition();
-  const [page, setPage] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const fetchProductionData = useCallback(async () => {
@@ -54,11 +51,10 @@ export default function ProductionPage() {
         machineId: filterMachine && filterMachine !== 'all' ? filterMachine : undefined,
         articleId: filterArticle && filterArticle !== 'all' ? filterArticle : undefined,
         page: 0,
-        pageSize: 200, // Load enough for most days
+        pageSize: 200,
       });
       startTransition(() => {
         setServerProductions(result.items);
-        setTotalServerCount(result.total);
       });
     } catch (err) {
       console.error('Error fetching productions:', err);
@@ -71,12 +67,10 @@ export default function ProductionPage() {
     fetchProductionData();
   }, [fetchProductionData]);
 
-  // Combined productions: server ones + any local ones not on server
   const productions = useMemo(() => {
     if (serverProductions.length > 0) return serverProductions;
     return getProductions();
-  }, [serverProductions, getProductions()]);
-
+  }, [serverProductions, getProductions]);
   const machines = getMachines();
   const weavers = getWeavers();
   const articles = getArticles();
