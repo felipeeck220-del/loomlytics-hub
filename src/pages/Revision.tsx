@@ -219,6 +219,23 @@ export default function RevisionPage() {
        });
        y += 7;
      });
+ 
+     // Total row at the end of the table
+     if (y > 270) {
+       pdf.addPage();
+       y = 20;
+     }
+     pdf.setFillColor(230, 230, 230);
+     pdf.rect(margin, y, pageWidth - 2 * margin, 8, 'F');
+     pdf.setFont('helvetica', 'bold');
+     pdf.setFontSize(9);
+     pdf.text('TOTAL', margin + 2, y + 5.5);
+     
+     // Total values for columns (kg and metros)
+     const totalValueText = `${formatNumber(stats.totalKg)} kg / ${formatNumber(stats.totalMetros)} m`;
+     const valueColX = margin + cols[0].w + cols[1].w + cols[2].w + cols[3].w;
+     pdf.text(totalValueText, valueColX + 2, y + 5.5);
+ 
      const fileName = `revisao_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
      pdf.save(fileName);
      toast.success('PDF gerado com sucesso!');
