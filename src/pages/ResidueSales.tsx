@@ -934,19 +934,15 @@ export default function ResidueSales() {
                     <TableBody>
                       {filteredSales.map(s => (
                         <TableRow key={s.id}>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {s.date.split('-').reverse().join('/')}
-                            <br />
-                            <span className="text-muted-foreground">
-                              {s.created_at ? format(new Date(s.created_at), 'HH:mm') : ''}
-                            </span>
-                            {s.created_by_name && (
-                              <>
-                                <br />
-                                <span className="text-muted-foreground">
-                                  {s.created_by_name}{s.created_by_code ? ` #${s.created_by_code}` : ''}
-                                </span>
-                              </>
+                          <TableCell className="text-[10px] whitespace-nowrap">
+                            <div className="text-xs font-medium">{s.date.split('-').reverse().join('/')}</div>
+                            <div className="text-muted-foreground mt-0.5">
+                              {s.created_by_name ? `Registrado por: ${s.created_by_name}${s.created_by_code ? ` #${s.created_by_code}` : ''}` : '—'}
+                            </div>
+                            {s.created_at && (
+                              <div className="text-muted-foreground">
+                                Em: {format(new Date(s.created_at), 'dd/MM/yyyy HH:mm')}
+                              </div>
                             )}
                           </TableCell>
                           <TableCell className="font-medium">{s.material_name || '-'}</TableCell>
