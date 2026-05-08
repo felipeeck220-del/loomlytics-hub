@@ -115,9 +115,7 @@ export default function Dashboard() {
      const currentFilterDateFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null;
      const currentFilterDateTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : null;
  
-     if (dayRange === 0 && filterMonth === 'all' && !currentFilterDate && !currentFilterDateFrom && !currentFilterDateTo) {
-       // Todo período — no date filter
-     } else if (currentFilterDateFrom || currentFilterDateTo) {
+     if (currentFilterDateFrom || currentFilterDateTo) {
        if (currentFilterDateFrom) data = data.filter(p => p.date >= currentFilterDateFrom);
        if (currentFilterDateTo) data = data.filter(p => p.date <= currentFilterDateTo);
      } else if (filterMonth !== 'all') {
