@@ -91,33 +91,6 @@ export default function FaturamentoTotal() {
   const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState('all');
 
-  const [serverProdRevenue, setServerProdProdRevenue] = useState<{ current: number; previous: number }>({ current: 0, previous: 0 });
-  const [loadingProdStats, setLoadingProdStats] = useState(false);
-
-  const fetchProductionRevenues = useCallback(async () => {
-    if (!companyId || !currentPeriod) return;
-    setLoadingProdStats(true);
-    try {
-      const statsCurrent = await getProductionStats(companyId, currentPeriod.start, currentPeriod.end);
-      let prevRevenue = 0;
-      if (previousPeriod) {
-        const statsPrev = await getProductionStats(companyId, previousPeriod.start, previousPeriod.end);
-        prevRevenue = Number(statsPrev.total_revenue);
-      }
-      setServerProdProdRevenue({ 
-        current: Number(statsCurrent.total_revenue), 
-        previous: prevRevenue 
-      });
-    } catch (err) {
-      console.error('Error fetching production revenues:', err);
-    } finally {
-      setLoadingProdStats(false);
-    }
-  }, [companyId, currentPeriod, previousPeriod]);
-
-  useEffect(() => {
-    fetchProductionRevenues();
-  }, [fetchProductionRevenues]);
   const { data: outsource = [], isLoading: l2 } = useQuery({
     queryKey: ['fat-outsource', companyId],
     queryFn: () => fetchAllPaginated<OutsourceRow>('outsource_productions', companyId, 'date'),
@@ -129,7 +102,12 @@ export default function FaturamentoTotal() {
     enabled: !!companyId,
   });
 
-  const loading = l1 || l2 || l3;
+  const [serverProdRevenue, setServerProdProdRevenue] = useState<{ current: number; previous: number }>({ current: 0, previous: 0 });
+  const [loadingProdStats, setLoadingProdStats] = useState(false);
+
+  const [availableMonthsList, setAvailableMonthsList] = useState<string[]>([format(new Date(), 'yyyy-MM')]);
+
+  const loading = l2 || l3 || loadingProdStats;
 
   const clearFilters = () => {
     setDayRange(15);
