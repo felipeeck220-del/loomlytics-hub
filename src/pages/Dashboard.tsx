@@ -398,7 +398,7 @@ export default function Dashboard() {
     };
   }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
-  if (loading || (loadingStats && !serverStats)) {
+   if (loading && productions.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
