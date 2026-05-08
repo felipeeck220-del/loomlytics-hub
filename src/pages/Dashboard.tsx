@@ -213,25 +213,7 @@ export default function Dashboard() {
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
 
-  const fetchDashboardStats = useCallback(async () => {
-    if (!dbCompanyId || !currentPeriod) return;
-     setLoadingStats(true); setServerStats(null);
-    try {
-      const stats = await getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
-        shift: filterShift === 'all' ? undefined : filterShift,
-        articleId: filterArticle === 'all' ? undefined : filterArticle,
-      });
-      setServerStats(stats);
-    } catch (err) {
-      console.error('Error fetching dashboard stats:', err);
-    } finally {
-      setLoadingStats(false);
-    }
-  }, [dbCompanyId, currentPeriod, filterShift, filterArticle]);
-
-  useEffect(() => {
-    fetchDashboardStats();
-  }, [fetchDashboardStats]);
+   // Fetching server stats is no longer needed as we use the local 'filtered' data which is now synced with the requested period
 
   const nonZeroFiltered = useMemo(() => filtered.filter(p => p.rolls_produced > 0), [filtered]);
 
