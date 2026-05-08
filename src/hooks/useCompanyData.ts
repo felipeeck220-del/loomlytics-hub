@@ -28,7 +28,7 @@ export function useCompanyData() {
   const [loading, setLoading] = useState(true);
 
   // Fetch all rows from a table, paginating past the 1000-row default limit
-  const fetchAll = async (table: string, query: { column: string; value: string } | null, orderCol: string, ascending = true) => {
+  const fetchAll = useCallback(async (table: string, query: { column: string; value: string } | null, orderCol: string, ascending = true) => {
     const PAGE_SIZE = 1000;
     let allData: any[] = [];
     let from = 0;
@@ -50,7 +50,7 @@ export function useCompanyData() {
       from += PAGE_SIZE;
     }
     return allData;
-  };
+  }, []);
 
   // Mappers from DB rows to app types
   const mapMachine = (r: any): Machine => ({
@@ -148,18 +148,18 @@ export function useCompanyData() {
     }
     setLoading(true);
      try {
-        const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData] = await Promise.all([
+      const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData] = await Promise.all([
         fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
         fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
-           Promise.resolve([]), // productions (server-side)
-          sb('machine_logs').select('*').order('started_at', { ascending: false }).limit(200).then(r => r.data || []),
+        fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
+        fetchAll('machine_logs', { column: 'company_id', value: companyId }, 'started_at', false),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
         sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
-          Promise.resolve({ data: [] }), // defect_records (server-side)
-         fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code'),
-         fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false),
+        fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false),
+        fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code'),
+        fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false),
       ]);
 
       setMachines(mData.map(mapMachine));
