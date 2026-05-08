@@ -936,12 +936,12 @@ export default function ResidueSales() {
                         <TableRow key={s.id}>
                           <TableCell className="text-[10px] whitespace-nowrap">
                             <div className="text-xs font-medium">{s.date.split('-').reverse().join('/')}</div>
-                            <div className="text-muted-foreground mt-0.5">
-                              {s.created_by_name ? `Registrado por: ${s.created_by_name}${s.created_by_code ? ` #${s.created_by_code}` : ''}` : '—'}
+                            <div className="text-emerald-600 dark:text-emerald-500 font-medium mt-0.5">
+                              {s.created_by_name ? `${s.created_by_name}${s.created_by_code ? ` #${s.created_by_code}` : ''}` : '—'}
                             </div>
                             {s.created_at && (
-                              <div className="text-muted-foreground">
-                                Em: {format(new Date(s.created_at), 'dd/MM/yyyy HH:mm')}
+                              <div className="text-muted-foreground/70">
+                                {format(new Date(s.created_at), 'dd/MM/yyyy HH:mm')}
                               </div>
                             )}
                           </TableCell>
