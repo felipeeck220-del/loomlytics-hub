@@ -1497,6 +1497,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
     - **08/05/2026 11:45 (Brasília)** — **PENTE FINO — Auditoria e Padronização:** (1) Revisão técnica completa em todos os módulos para garantir que nenhum resquício dos prefixos "Registrado por:" ou "Em:" permanecesse nas modais de visualização; (2) Padronização da cor verde (`text-emerald-600`) estendida para as informações de autoria dentro dos cards de detalhes da Produção e Invoices; (3) Verificação de integridade dos campos `created_at` e `created_by` no banco de dados para evitar inconsistências em novos registros.
 
  
-     - **08/05/2026 13:35 (Brasília)** — **DASHBOARD — Correção de Limite de Dados em Gráficos e Rankings:** (1) Criadas novas funções RPC `get_production_shift_stats` e `get_production_machine_stats` para realizar agregações server-side de Turnos e Top Máquinas; (2) Atualizado o Dashboard para consumir esses novos endpoints, eliminando o problema de dados zerados ou incompletos causados pelo limite de 1000 registros na memória local (paginação server-side).
+     - **08/05/2026 13:40 (Brasília)** — **DASHBOARD — Correção de Limite de Dados (Geral):** (1) Implementada função RPC `get_production_trend_stats` para carregar dados do gráfico de tendência diretamente do servidor; (2) O Dashboard agora consome estatísticas server-side para todos os cards, rankings e gráficos, resolvendo definitivamente a limitação de visualização em períodos longos (15+ dias).
  
-     *Última atualização: 08/05/2026 13:35 (Brasília)*
+     *Última atualização: 08/05/2026 13:40 (Brasília)*
