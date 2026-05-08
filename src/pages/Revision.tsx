@@ -1,5 +1,7 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+ import { useState, useMemo, useRef, useEffect } from 'react';
+ import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+ import { useAuth } from '@/contexts/AuthContext';
+ import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,13 +18,30 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { SHIFT_LABELS, type ShiftType, type DefectRecord, type MeasureType, getCompanyShiftLabels } from '@/types';
-import { formatNumber } from '@/lib/formatters';
+ import { SHIFT_LABELS, type ShiftType, type DefectRecord, type MeasureType, getCompanyShiftLabels } from '@/types';
+ import { formatNumber } from '@/lib/formatters';
+ import { sanitizePdfText } from '@/lib/pdfUtils';
 
 const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
-export default function RevisionPage() {
-  const { getMachines, getWeavers, getArticles, getDefectRecords, addDefectRecords, updateDefectRecords, deleteDefectRecords, shiftSettings, loading } = useSharedCompanyData();
+ export default function RevisionPage() {
+   const { getMachines, getWeavers, getArticles, getDefectRecords, addDefectRecords, updateDefectRecords, deleteDefectRecords, shiftSettings, loading } = useSharedCompanyData();
+   const { user } = useAuth();
+   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+   const [companyName, setCompanyName] = useState('');
+ 
+   // Fetch company logo and name
+   useEffect(() => {
+     if (!user?.company_id) return;
+     (supabase.from as any)('companies')
+       .select('logo_url, name')
+       .eq('id', user.company_id)
+       .maybeSingle()
+       .then(({ data }: any) => {
+         if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
+         if (data?.name) setCompanyName(data.name);
+       });
+   }, [user?.company_id]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { logAction, userName, userCode } = useAuditLog();
 
@@ -133,42 +152,129 @@ export default function RevisionPage() {
     useEffect(() => {
       setCurrentPage(1);
     }, [searchTerm, filterDateFrom, filterDateTo, filterMonth, filterArticle]);
-   const exportToPdf = async () => {
-     const { default: jsPDF } = await import('jspdf');
-     const pdf = new jsPDF();
-     const pageWidth = pdf.internal.pageSize.getWidth();
-     const margin = 15;
+    const exportToPdf = async () => {
+      const { default: jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      let y = margin;
+ 
+      const colors = {
+        grayBg: [249, 250, 251] as [number, number, number],
+        border: [229, 231, 235] as [number, number, number],
+        textDark: [17, 24, 39] as [number, number, number],
+        textMid: [75, 85, 99] as [number, number, number],
+      };
+ 
+      const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0);
+              resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+            } catch { resolve(null); }
+          };
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+      };
+ 
+      const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+        if (!width || !height) return { width: maxWidth, height: maxHeight };
+        const scale = Math.min(maxWidth / width, maxHeight / height);
+        return { width: width * scale, height: height * scale };
+      };
+ 
+      const dateStr = new Date().toLocaleString('pt-BR');
+      let logoInfo: { data: string; width: number; height: number } | null = null;
+      if (companyLogoUrl) {
+        logoInfo = await loadLogo(companyLogoUrl);
+      }
+ 
+      const periodLabelText = (filterDateFrom || filterDateTo)
+        ? `${filterDateFrom ? format(new Date(filterDateFrom + 'T12:00:00'), 'dd/MM/yyyy') : ''} até ${filterDateTo ? format(new Date(filterDateTo + 'T12:00:00'), 'dd/MM/yyyy') : ''}`
+        : filterMonth !== 'all' 
+          ? formatMonthLabel(filterMonth)
+          : 'Total';
+ 
+      const addHeader = () => {
+        const headerH = 25;
+        const leftX = margin + 5;
+        const rightX = pageWidth - margin - 5;
+        
+        pdf.setFillColor(...colors.grayBg);
+        pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
+        pdf.setDrawColor(...colors.border);
+        pdf.setLineWidth(0.5);
+        pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
+ 
+        if (logoInfo) {
+          try {
+            const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+            pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(...colors.textMid);
+            pdf.text(dateStr, leftX, y + 22);
+          } catch {
+            if (companyName) {
+              pdf.setFontSize(10);
+              pdf.setFont('helvetica', 'bold');
+              pdf.setTextColor(...colors.textDark);
+              pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+            }
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(...colors.textMid);
+            pdf.text(dateStr, leftX, y + 22);
+          }
+        } else {
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...colors.textDark);
+          if (companyName) {
+            pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+          }
+          pdf.setFontSize(8);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(...colors.textMid);
+          pdf.text(dateStr, leftX, y + 22);
+        }
+ 
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...colors.textDark);
+        const reportTitle = 'RELATÓRIO DE REVISÃO (FALHAS)';
+        const titleW = pdf.getTextWidth(reportTitle);
+        pdf.text(reportTitle, (pageWidth - titleW) / 2, y + 15);
+ 
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(...colors.textMid);
+        const pW = pdf.getTextWidth(periodLabelText);
+        pdf.text(periodLabelText, rightX - pW, y + 22);
+ 
+        y += headerH + 10;
+      };
+ 
+      addHeader();
      
-     pdf.setFontSize(18);
-     pdf.setTextColor(40, 40, 40);
-     pdf.text('Relatório de Revisão (Falhas)', margin, 20);
-     
-     pdf.setFontSize(10);
-     pdf.setTextColor(100, 100, 100);
-     const periodLabel = (filterDateFrom || filterDateTo)
-       ? `Período: ${filterDateFrom ? format(new Date(filterDateFrom + 'T12:00:00'), 'dd/MM/yyyy') : ''} até ${filterDateTo ? format(new Date(filterDateTo + 'T12:00:00'), 'dd/MM/yyyy') : ''}`
-       : filterMonth !== 'all' 
-         ? `Mês: ${formatMonthLabel(filterMonth)}`
-         : 'Período: Total';
-         
-     const articleLabel = filterArticle !== 'all' 
-       ? `Artigo: ${articles.find(a => a.id === filterArticle)?.name || ''}`
-       : 'Artigo: Todos';
-       
-     pdf.text(`${periodLabel} | ${articleLabel}`, margin, 28);
-     
-     pdf.setDrawColor(200, 200, 200);
-     pdf.line(margin, 35, pageWidth - margin, 35);
-     
-     pdf.setFontSize(11);
-     pdf.setTextColor(60, 60, 60);
-     pdf.text(`Total de Falhas: ${stats.total}`, margin, 45);
-     pdf.text(`Total em Kg: ${formatNumber(stats.totalKg)} kg`, margin + 60, 45);
-     pdf.text(`Total em Metros: ${formatNumber(stats.totalMetros)} m`, margin + 120, 45);
-     
-     let y = 55;
-     pdf.setFillColor(240, 240, 240);
-     pdf.rect(margin, y, pageWidth - 2 * margin, 8, 'F');
+      pdf.setFontSize(11);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(`Total de Falhas: ${stats.total}`, margin, y);
+      pdf.text(`Total em Kg: ${formatNumber(stats.totalKg)} kg`, margin + 60, y);
+      pdf.text(`Total em Metros: ${formatNumber(stats.totalMetros)} m`, margin + 120, y);
+      
+      y += 10;
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(margin, y, pageWidth - 2 * margin, 8, 'F');
      
      pdf.setFontSize(9);
      pdf.setFont('helvetica', 'bold');
