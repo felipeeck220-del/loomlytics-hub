@@ -124,38 +124,10 @@ export async function getProductionStats(
 
   if (error) {
     console.error('Error in get_production_stats RPC:', error);
-    // Fallback if RPC fails
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from('productions')
-      .select('weight_kg, revenue, rolls_produced, efficiency')
-      .eq('company_id', companyId)
-      .gte('date', startDate)
-      .lte('date', endDate);
-      
-    if (fallbackError) throw fallbackError;
-    
-    if (!fallbackData || fallbackData.length === 0) {
-      return { total_weight: 0, total_revenue: 0, total_rolls: 0, avg_efficiency: 0, record_count: 0 };
-    }
-    
-    const stats = fallbackData.reduce((acc, curr) => {
-      acc.total_weight += Number(curr.weight_kg);
-      acc.total_revenue += Number(curr.revenue);
-      acc.total_rolls += Number(curr.rolls_produced);
-      if (Number(curr.rolls_produced) > 0) {
-        acc.eff_sum += Number(curr.efficiency);
-        acc.eff_count += 1;
-      }
-      return acc;
-    }, { total_weight: 0, total_revenue: 0, total_rolls: 0, eff_sum: 0, eff_count: 0 });
-    
-    return {
-      total_weight: stats.total_weight,
-      total_revenue: stats.total_revenue,
-      total_rolls: stats.total_rolls,
-      avg_efficiency: stats.eff_count > 0 ? stats.eff_sum / stats.eff_count : 0,
-      record_count: fallbackData.length
-    };
+    // If RPC fails, try to use a more limited fallback or just throw
+    // The dashboard should handle null stats by showing loading/zero, not incomplete data
+    console.error('Critical: get_production_stats RPC failed. Dashboard may show incomplete data.');
+    return null;
   }
   
    return data?.[0] || { total_weight: 0, total_revenue: 0, total_rolls: 0, avg_efficiency: 0, record_count: 0 };

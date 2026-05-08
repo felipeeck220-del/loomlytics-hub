@@ -101,11 +101,14 @@ export default function Dashboard() {
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const availableMonths = useMemo(() => {
-    const months = new Set(productions.map(p => p.date.substring(0, 7)));
-    // Always include current month
-    months.add(format(new Date(), 'yyyy-MM'));
+    const months = new Set<string>();
+    const today = new Date();
+    // Add last 24 months as options
+    for (let i = 0; i < 24; i++) {
+      months.add(format(subMonths(today, i), 'yyyy-MM'));
+    }
     return Array.from(months).sort().reverse();
-  }, [productions]);
+  }, []);
 
    const filtered = useMemo(() => {
      let data = [...productions];
@@ -256,19 +259,18 @@ export default function Dashboard() {
  
   const nonZeroFiltered = useMemo(() => filtered.filter(p => p.rolls_produced > 0), [filtered]);
 
-   // Use server stats when available, fallback to filtered productions in memory
-   const totalRolls = serverStats ? Number(serverStats.total_rolls) : filtered.reduce((s, p) => s + p.rolls_produced, 0);
-   const totalWeight = serverStats ? Number(serverStats.total_weight) : filtered.reduce((s, p) => s + p.weight_kg, 0);
-   const totalRevenue = serverStats ? Number(serverStats.total_revenue) : filtered.reduce((s, p) => s + p.revenue, 0);
-   const avgEfficiency = serverStats ? Number(serverStats.avg_efficiency) : (nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0);
-   const totalRecordCount = serverStats ? Number(serverStats.record_count) : filtered.length;
+    // Use server stats when available, otherwise show 0 while loading
+    const totalRolls = serverStats ? Number(serverStats.total_rolls) : 0;
+    const totalWeight = serverStats ? Number(serverStats.total_weight) : 0;
+    const totalRevenue = serverStats ? Number(serverStats.total_revenue) : 0;
+    const avgEfficiency = serverStats ? Number(serverStats.avg_efficiency) : 0;
+    const totalRecordCount = serverStats ? Number(serverStats.record_count) : 0;
 
-   // Previous period KPIs - use server stats if available
-   const nonZeroPrev = prevFiltered.filter(p => p.rolls_produced > 0);
-   const prevTotalRolls = prevServerStats ? Number(prevServerStats.total_rolls) : prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
-   const prevTotalWeight = prevServerStats ? Number(prevServerStats.total_weight) : prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
-   const prevTotalRevenue = prevServerStats ? Number(prevServerStats.total_revenue) : prevFiltered.reduce((s, p) => s + p.revenue, 0);
-   const prevAvgEfficiency = prevServerStats ? Number(prevServerStats.avg_efficiency) : (nonZeroPrev.length ? nonZeroPrev.reduce((s, p) => s + p.efficiency, 0) / nonZeroPrev.length : 0);
+    // Previous period KPIs
+    const prevTotalRolls = prevServerStats ? Number(prevServerStats.total_rolls) : 0;
+    const prevTotalWeight = prevServerStats ? Number(prevServerStats.total_weight) : 0;
+    const prevTotalRevenue = prevServerStats ? Number(prevServerStats.total_revenue) : 0;
+    const prevAvgEfficiency = prevServerStats ? Number(prevServerStats.avg_efficiency) : 0;
 
   // Calculate weighted average target efficiency from articles used in filtered productions
   const avgTargetEfficiency = useMemo(() => {
@@ -286,11 +288,7 @@ export default function Dashboard() {
 
   const calendarHours = useMemo(() => {
     let days: number;
-    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-      // All data — use only days that have production records
-      const uniqueDays = new Set(filtered.map(p => p.date)).size;
-      days = uniqueDays || 1;
-    } else if (dateFrom && dateTo) {
+    if (dateFrom && dateTo) {
       days = differenceInCalendarDays(dateTo, dateFrom) + 1;
     } else if (dateFrom) {
       days = differenceInCalendarDays(new Date(), dateFrom) + 1;
@@ -309,8 +307,11 @@ export default function Dashboard() {
         const [y, m] = filterMonth.split('-').map(Number);
         days = new Date(y, m, 0).getDate();
       }
-    } else {
+    } else if (dayRange > 0) {
       days = dayRange;
+    } else {
+      // "All time" fallback: use records count / records per day average or just a default
+      days = serverStats && serverStats.record_count ? Math.max(1, Math.ceil(Number(serverStats.record_count) / 10)) : 30;
     }
 
     if (filterShift !== 'all') {
@@ -323,85 +324,43 @@ export default function Dashboard() {
   const revenuePerHour = calendarHours > 0 ? totalRevenue / calendarHours : 0;
   const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
 
-   const shiftData = useMemo(() => {
-     if (serverShiftData.length > 0) {
-       return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
-         const s = serverShiftData.find(d => d.shift === shift);
-         return {
-           shift,
-           label: companyShiftLabels[shift].split(' (')[0],
-           rolls: s ? Number(s.total_rolls) : 0,
-           kg: s ? Number(s.total_weight) : 0,
-           revenue: s ? Number(s.total_revenue) : 0,
-         };
-       });
-     }
-     return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
-       const sp = filtered.filter(p => p.shift === shift);
-       return {
-         shift,
-         label: companyShiftLabels[shift].split(' (')[0],
-         rolls: sp.reduce((s, p) => s + p.rolls_produced, 0),
-         kg: sp.reduce((s, p) => s + p.weight_kg, 0),
-         revenue: sp.reduce((s, p) => s + p.revenue, 0),
-       };
-     });
-   }, [serverShiftData, filtered, companyShiftLabels]);
+    const shiftData = useMemo(() => {
+      return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
+        const s = serverShiftData.find(d => d.shift === shift);
+        return {
+          shift,
+          label: companyShiftLabels[shift].split(' (')[0],
+          rolls: s ? Number(s.total_rolls) : 0,
+          kg: s ? Number(s.total_weight) : 0,
+          revenue: s ? Number(s.total_revenue) : 0,
+        };
+      });
+    }, [serverShiftData, companyShiftLabels]);
  
-   const machinePerf = useMemo(() => {
-     if (serverMachinePerf.length > 0) {
-       return serverMachinePerf.map(m => {
-         const machine = machines.find(mach => mach.id === m.machine_id);
-         return {
-           name: m.machine_name || machine?.name || 'M-?',
-           rolls: Number(m.total_rolls),
-           kg: Number(m.total_weight),
-           efficiency: Number(m.avg_efficiency),
-           records: Number(m.record_count),
-           targetEfficiency: 80 // Simplified for server stats
-         };
-       });
-     }
-     return machines.map(m => {
-       const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
-       const mpNonZero = mp.filter(p => p.rolls_produced > 0);
-       const eff = mpNonZero.length ? mpNonZero.reduce((s, p) => s + p.efficiency, 0) / mpNonZero.length : 0;
-       const avgTargetEff = mpNonZero.length > 0
-         ? mpNonZero.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mpNonZero.length
-         : 80;
-       return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length, targetEfficiency: avgTargetEff };
-     }).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
-   }, [serverMachinePerf, filtered, machines, articles]);
+    const machinePerf = useMemo(() => {
+      if (serverMachinePerf.length === 0) return [];
+      return serverMachinePerf.map(m => {
+        const machine = machines.find(mach => mach.id === m.machine_id);
+        return {
+          name: m.machine_name || machine?.name || 'M-?',
+          rolls: Number(m.total_rolls),
+          kg: Number(m.total_weight),
+          efficiency: Number(m.avg_efficiency),
+          records: Number(m.record_count),
+          targetEfficiency: 80 // Simplified for server stats
+        };
+      });
+    }, [serverMachinePerf, machines]);
 
-   const trendData = useMemo(() => {
-     if (serverTrendData.length > 0) {
-       return serverTrendData.map(d => ({
-         date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-         rolos: Number(d.total_rolls),
-         kg: Math.round(Number(d.total_weight) * 100) / 100,
-         faturamento: Math.round(Number(d.total_revenue) * 100) / 100,
-         eficiencia: Math.round(Number(d.avg_efficiency) * 10) / 10,
-       }));
-     }
-     const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
-     filtered.forEach(p => {
-       if (!byDate[p.date]) byDate[p.date] = { rolos: 0, kg: 0, faturamento: 0, effSum: 0, effCount: 0 };
-       byDate[p.date].rolos += p.rolls_produced;
-       byDate[p.date].kg += p.weight_kg;
-       byDate[p.date].faturamento += p.revenue;
-       if (p.rolls_produced > 0) {
-         byDate[p.date].effSum += p.efficiency;
-         byDate[p.date].effCount += 1;
-       }
-     });
-     return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
-       date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-       rolos: d.rolos,
-       kg: Math.round(d.kg * 100) / 100,
-       faturamento: Math.round(d.faturamento * 100) / 100,
-       eficiencia: d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0,
-     }));
-   }, [serverTrendData, filtered]);
+    const trendData = useMemo(() => {
+      return serverTrendData.map(d => ({
+        date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+        rolos: Number(d.total_rolls),
+        kg: Math.round(Number(d.total_weight) * 100) / 100,
+        faturamento: Math.round(Number(d.total_revenue) * 100) / 100,
+        eficiencia: Math.round(Number(d.avg_efficiency) * 10) / 10,
+      }));
+    }, [serverTrendData]);
 
   const periodSummary = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
