@@ -235,10 +235,12 @@ export default function Dashboard() {
  
   const nonZeroFiltered = useMemo(() => filtered.filter(p => p.rolls_produced > 0), [filtered]);
 
+   // Use server stats when available, fallback to filtered productions in memory
    const totalRolls = serverStats ? Number(serverStats.total_rolls) : filtered.reduce((s, p) => s + p.rolls_produced, 0);
    const totalWeight = serverStats ? Number(serverStats.total_weight) : filtered.reduce((s, p) => s + p.weight_kg, 0);
    const totalRevenue = serverStats ? Number(serverStats.total_revenue) : filtered.reduce((s, p) => s + p.revenue, 0);
    const avgEfficiency = serverStats ? Number(serverStats.avg_efficiency) : (nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0);
+   const totalRecordCount = serverStats ? Number(serverStats.record_count) : filtered.length;
 
   const nonZeroPrev = prevFiltered.filter(p => p.rolls_produced > 0);
   const prevAvgEfficiency = nonZeroPrev.length ? nonZeroPrev.reduce((s, p) => s + p.efficiency, 0) / nonZeroPrev.length : 0;
@@ -538,7 +540,7 @@ export default function Dashboard() {
           borderColor="border-l-primary"
           icon={<Package className="h-5 w-5" />}
           showComparison={showComparison}
-          footer={`${filtered.length} registros`}
+           footer={`${totalRecordCount} registros`}
         />
         <DashboardKpiCard
           label="Peso Total"
