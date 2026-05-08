@@ -345,9 +345,9 @@ Além do `audit_logs`, algumas tabelas possuem colunas de autoria direta:
 
 > **TODA listagem/tabela de registros que possua `created_by_name`/`created_by_code` DEVE exibir:**
 >
-> 1. **Quem registrou:** `Registrado por: NomeUsuário #Código` (ex: "Registrado por: João #1")
-> 2. **Data e hora do registro:** `Em: dd/MM/yyyy HH:mm` (ex: "Em: 08/05/2026 10:30")
-> 3. **Formato padrão unificado:** `Registrado por: {name}{code ? ' #' + code : ''} Em: {format(date, 'dd/MM/yyyy HH:mm')}`
+> 1. **Quem registrou:** `NomeUsuário #Código` (ex: "João #1") em verde
+> 2. **Data e hora do registro:** `dd/MM/yyyy HH:mm` (ex: "08/05/2026 10:30") em cinza
+> 3. **Formato padrão unificado:** `{name}{code ? ' #' + code : ''} \n {format(date, 'dd/MM/yyyy HH:mm')}`
 >
 > **Verificação obrigatória:** Ao criar ou alterar qualquer módulo, verificar se TODAS as tabelas/listagens exibem corretamente autoria + data/hora. Se não exibem, adicionar.
 >
