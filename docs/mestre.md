@@ -1488,5 +1488,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
    - **Paginação de Listagens:** Implementada paginação de 20 em 20 registros nos módulos de Revisão e Produções Terceirizadas para melhorar performance e usabilidade.
  
-   *Última atualização: 07/05/2026 13:45 (Brasília)*
+   - **08/05/2026 10:45 (Brasília)** — **GERAL — Padronização do "Registrado por":** (1) Padronizada a exibição de autoria de registros em todo o sistema (Produção, Revisão, Terceirizado, NFs, Resíduos); (2) Novo padrão obrigatório: `Registrado por: [Nome] Em: [Data] [Hora]`; (3) Corrigida a ausência de data/hora em diversas listagens; (4) Documentação em `auditoria.md` atualizada para reforçar este padrão.
+
+   *Última atualização: 08/05/2026 10:45 (Brasília)*
  - **Notas Fiscais:** Busca na listagem ampliada para incluir tipo de fio, fornecedor, comprador e artigos; simplificação do placeholder de busca para "Buscar...".

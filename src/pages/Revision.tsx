@@ -638,8 +638,13 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
                 <TableCell><Badge variant={d.measure_type === 'kg' ? 'secondary' : 'outline'}>{d.measure_type === 'kg' ? 'Kg' : 'Metro'}</Badge></TableCell>
                 <TableCell className="text-right font-mono">{formatNumber(d.measure_value)} {d.measure_type === 'kg' ? 'kg' : 'm'}</TableCell>
                 <TableCell className="max-w-[120px] truncate text-muted-foreground text-xs">{d.observations || '—'}</TableCell>
-                <TableCell className="text-xs text-primary font-medium whitespace-nowrap">
-                  {d.created_by_name ? `${d.created_by_name}${d.created_by_code ? ` #${d.created_by_code}` : ''}` : '—'}
+                <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  <div className="font-medium text-primary text-xs">
+                    {d.created_by_name ? `Registrado por: ${d.created_by_name}${d.created_by_code ? ` #${d.created_by_code}` : ''}` : '—'}
+                  </div>
+                  {d.created_at && (
+                    <div>Em: {format(new Date(d.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">

@@ -345,21 +345,21 @@ Além do `audit_logs`, algumas tabelas possuem colunas de autoria direta:
 
 > **TODA listagem/tabela de registros que possua `created_by_name`/`created_by_code` DEVE exibir:**
 >
-> 1. **Quem registrou:** `NomeUsuário #Código` (ex: "João #1") — coluna "Registrado por" ou inline na célula de data
-> 2. **Data e hora do registro:** formato `dd/MM/yyyy HH:mm` ou `dd/MM HH:mm` (compacto)
-> 3. **Formato padrão:** `{created_by_name}{created_by_code ? ` #${created_by_code}` : ''}` 
+> 1. **Quem registrou:** `Registrado por: NomeUsuário #Código` (ex: "Registrado por: João #1")
+> 2. **Data e hora do registro:** `Em: dd/MM/yyyy HH:mm` (ex: "Em: 08/05/2026 10:30")
+> 3. **Formato padrão unificado:** `Registrado por: {name}{code ? ' #' + code : ''} Em: {format(date, 'dd/MM/yyyy HH:mm')}`
 >
 > **Verificação obrigatória:** Ao criar ou alterar qualquer módulo, verificar se TODAS as tabelas/listagens exibem corretamente autoria + data/hora. Se não exibem, adicionar.
 >
 > **Módulos que DEVEM exibir autoria na listagem:**
 > | Módulo | Status | Formato |
 > |--------|--------|---------|
-> | Produção | ✅ | Inline: `por Nome #ID` na descrição |
-> | Revisão | ✅ | Coluna dedicada `Nome #ID` |
-> | Terceirizados | ✅ | Abaixo da data: `Nome #ID` |
-> | Resíduos | ✅ | Abaixo da hora: `Nome #ID` |
-> | Notas Fiscais | ✅ | Coluna "Registrado por" com `Nome #ID` + data/hora compacta |
+> | Produção | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
+> | Revisão | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
+> | Terceirizados | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
+> | Resíduos | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
+> | Notas Fiscais | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
 
 ---
 
-*Última atualização: 14/04/2026 22:30 (Brasília)*
+*Última atualização: 08/05/2026 10:45 (Brasília)*

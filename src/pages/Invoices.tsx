@@ -1064,9 +1064,13 @@ export default function Invoices() {
                             <TableCell>
                               <Badge className={cn('text-[10px]', STATUS_COLORS[inv.status])}>{STATUS_LABELS[inv.status]}</Badge>
                             </TableCell>
-                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                              {inv.created_by_name ? `${inv.created_by_name}${inv.created_by_code ? ` #${inv.created_by_code}` : ''}` : '—'}
-                              {inv.created_at && <div className="text-[10px]">{format(new Date(inv.created_at), 'dd/MM HH:mm')}</div>}
+                            <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
+                              <div className="font-medium text-xs text-primary">
+                                {inv.created_by_name ? `Registrado por: ${inv.created_by_name}${inv.created_by_code ? ` #${inv.created_by_code}` : ''}` : '—'}
+                              </div>
+                              {inv.created_at && (
+                                <div>Em: {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
@@ -1873,7 +1877,7 @@ export default function Invoices() {
               </div>
 
               <div className="text-xs text-muted-foreground">
-                Registrado por: {viewingInvoice.created_by_name || '—'} em {viewingInvoice.created_at ? format(new Date(viewingInvoice.created_at), 'dd/MM/yyyy HH:mm') : '—'}
+                Registrado por: {viewingInvoice.created_by_name || '—'}{viewingInvoice.created_by_code ? ` #${viewingInvoice.created_by_code}` : ''} Em: {viewingInvoice.created_at ? format(new Date(viewingInvoice.created_at), 'dd/MM/yyyy HH:mm') : '—'}
               </div>
             </div>
           )}

@@ -710,12 +710,18 @@ export default function ProductionPage() {
                     <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="font-display font-bold text-foreground text-lg">{group.machine_name}</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {group.weaver_name}{registrationTime ? ` — ${registrationTime}` : ''} -- {isMultiArticle ? 'Artigos' : 'Artigo'}: {articlesDesc}
+                        <div className="text-[10px] text-muted-foreground flex flex-wrap gap-x-2 items-center">
+                          <span className="text-sm font-medium">{group.weaver_name}</span>
+                          <span className="opacity-70">-- {isMultiArticle ? 'Artigos' : 'Artigo'}: {articlesDesc}</span>
                           {firstItem.created_by_name && (
-                            <span className="text-primary font-medium"> — por {firstItem.created_by_name}{firstItem.created_by_code ? ` #${firstItem.created_by_code}` : ''}</span>
+                            <span className="text-primary font-medium">
+                              Registrado por: {firstItem.created_by_name}{firstItem.created_by_code ? ` #${firstItem.created_by_code}` : ''}
+                            </span>
                           )}
-                        </p>
+                          {firstItem.created_at && (
+                            <span>Em: {format(new Date(firstItem.created_at), 'dd/MM/yyyy HH:mm')}</span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-3 sm:gap-4 shrink-0 flex-wrap">
@@ -855,7 +861,11 @@ export default function ProductionPage() {
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Registro</p>
                                   <p className="text-lg font-bold text-foreground">{format(new Date(group.date), 'dd/MM/yyyy')}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">Cadastrado em: {registrationTime || '—'}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {group.items[0].created_by_name ? `Registrado por: ${group.items[0].created_by_name}${group.items[0].created_by_code ? ` #${group.items[0].created_by_code}` : ''}` : '—'}
+                                    <br />
+                                    Em: {registrationTime || '—'}
+                                  </p>
                                 </div>
                                 <CalendarIcon className="h-5 w-5 text-violet-500" />
                               </div>
