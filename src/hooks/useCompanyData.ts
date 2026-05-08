@@ -148,7 +148,7 @@ export function useCompanyData() {
     }
     setLoading(true);
      try {
-       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drData, nData, ntData] = await Promise.all([
+        const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData] = await Promise.all([
         fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
         fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
@@ -169,7 +169,7 @@ export function useCompanyData() {
       setWeavers(wData.map(mapWeaver));
       setProductions(pData.map(mapProduction));
       setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
-       setDefectRecords(drData.map(mapDefectRecord));
+          setDefectRecords((drRes.data || []).map(mapDefectRecord));
        setNeedles(nData.map(mapNeedle));
        setNeedleTransactions(ntData.map(mapNeedleTransaction));
       if (csRes.data) {
