@@ -58,7 +58,7 @@ export async function fetchProductionsPage(
 
   if (error) throw error;
 
-  const totalCount = data && data.length > 0 ? Number(data[0].total_count) : 0;
+   const totalCount = (data && data.length > 0 && 'total_count' in data[0]) ? Number(data[0].total_count) : 0;
 
   return {
     items: (data || []).map(mapProduction),

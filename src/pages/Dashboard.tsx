@@ -107,40 +107,43 @@ export default function Dashboard() {
     return Array.from(months).sort().reverse();
   }, [productions]);
 
-  const filtered = useMemo(() => {
-    let data = [...productions];
-    const today = new Date();
-
-    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-      // Todo período — no date filter
-    } else if (dateFrom || dateTo) {
-      if (dateFrom) {
-        const startStr = format(dateFrom, 'yyyy-MM-dd');
-        data = data.filter(p => p.date >= startStr);
-      }
-      if (dateTo) {
-        const endStr = format(dateTo, 'yyyy-MM-dd');
-        data = data.filter(p => p.date <= endStr);
-      }
-    } else if (filterMonth !== 'all') {
-      data = data.filter(p => p.date.startsWith(filterMonth));
-    } else if (customDate) {
-      const dateStr = format(customDate, 'yyyy-MM-dd');
-      data = data.filter(p => p.date === dateStr);
-    } else {
-      const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-      const end = format(today, 'yyyy-MM-dd');
-      data = data.filter(p => p.date >= start && p.date <= end);
-    }
-
-    if (filterShift !== 'all') data = data.filter(p => p.shift === filterShift);
-    if (filterClient !== 'all') {
-      const clientArticles = articles.filter(a => a.client_id === filterClient).map(a => a.id);
-      data = data.filter(p => clientArticles.includes(p.article_id));
-    }
-    if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
-    return data;
-  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, articles]);
+   const filtered = useMemo(() => {
+     let data = [...productions];
+     const today = new Date();
+ 
+     if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
+       // Todo período — no date filter
+     } else if (dateFrom || dateTo) {
+       if (dateFrom) {
+         const startStr = format(dateFrom, 'yyyy-MM-dd');
+         data = data.filter(p => p.date >= startStr);
+       }
+       if (dateTo) {
+         const endStr = format(dateTo, 'yyyy-MM-dd');
+         data = data.filter(p => p.date <= endStr);
+       }
+     } else if (filterMonth !== 'all') {
+       data = data.filter(p => p.date.startsWith(filterMonth));
+     } else if (customDate) {
+       const dateStr = format(customDate, 'yyyy-MM-dd');
+       data = data.filter(p => p.date === dateStr);
+     } else {
+       const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+       const end = format(today, 'yyyy-MM-dd');
+       data = data.filter(p => p.date >= start && p.date <= end);
+     }
+ 
+     if (filterShift !== 'all') data = data.filter(p => p.shift === filterShift);
+     if (filterClient !== 'all') {
+       const clientArticles = articles.filter(a => a.client_id === filterClient).map(a => a.id);
+       data = data.filter(p => clientArticles.includes(p.article_id));
+     }
+     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
+     
+     // Se não houver dados locais, tenta usar os dados resumidos do servidor como base para a lista
+     // Isso evita que a tela fique zerada enquanto o useCompanyData ainda carrega (ou se carregou pouco)
+     return data;
+   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, articles]);
 
   // ── Previous period for comparison ──
   const currentPeriod = useMemo(() => {
@@ -217,7 +220,7 @@ export default function Dashboard() {
 
   const fetchDashboardStats = useCallback(async () => {
     if (!dbCompanyId || !currentPeriod) return;
-    setLoadingStats(true);
+     setLoadingStats(true); setServerStats(null);
     try {
       const stats = await getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
         shift: filterShift === 'all' ? undefined : filterShift,
@@ -395,7 +398,7 @@ export default function Dashboard() {
     };
   }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
-  if (loading || (loadingStats && !serverStats)) {
+    if (loading && productions.length === 0 && !serverStats && !loadingStats) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
