@@ -200,7 +200,7 @@ export default function FaturamentoTotal() {
     const s = format(new Date(currentPeriod.start + 'T12:00:00'), 'dd/MM/yyyy');
     const e = format(new Date(currentPeriod.end + 'T12:00:00'), 'dd/MM/yyyy');
     return s === e ? s : `${s} a ${e}`;
-  }, [currentPeriod, productions, outsource, residues]);
+  }, [currentPeriod]);
 
   // Chart data
   // chartData is tricky with server aggregation. 
