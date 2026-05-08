@@ -86,8 +86,12 @@ export default function ProductionPage() {
   }, [fetchProductionData]);
 
   const productions = useMemo(() => {
-    if (serverProductions.length > 0) return serverProductions;
-    return getProductions();
+    const local = getProductions();
+    if (serverProductions.length === 0) return local;
+    
+    // Merge server prods with any local prods that might be newer (if any)
+    // For simplicity, if we have server prods for a specific date, they are the source of truth
+    return serverProductions;
   }, [serverProductions, getProductions]);
 
   // Set filterDate to last production date once data loads
