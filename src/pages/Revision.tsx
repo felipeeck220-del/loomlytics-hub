@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, CalendarIcon, Trash2, Loader2, AlertTriangle, Search, Scale, Ruler, Pencil } from 'lucide-react';
+ import { Plus, CalendarIcon, Trash2, Loader2, AlertTriangle, Search, Scale, Ruler, Pencil, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -38,7 +38,8 @@ export default function RevisionPage() {
   const [saving, setSaving] = useState(false);
    const [searchTerm, setSearchTerm] = useState('');
    const [filterDate, setFilterDate] = useState('');
-   const [filterMonth, setFilterMonth] = useState('');
+    const [filterMonth, setFilterMonth] = useState<string>('all');
+    const [filterArticle, setFilterArticle] = useState<string>('all');
    const [currentPage, setCurrentPage] = useState(1);
    const pageSize = 20;
   const [showDelete, setShowDelete] = useState<DefectRecord | null>(null);
@@ -96,7 +97,8 @@ export default function RevisionPage() {
    const filtered = useMemo(() => {
      let data = defectRecords;
      if (filterDate) data = data.filter(d => d.date === filterDate);
-     if (filterMonth && !filterDate) data = data.filter(d => d.date?.startsWith(filterMonth));
+      if (filterMonth !== 'all' && !filterDate) data = data.filter(d => d.date?.startsWith(filterMonth));
+      if (filterArticle !== 'all') data = data.filter(d => d.article_id === filterArticle);
      if (searchTerm) {
        const s = searchTerm.toLowerCase();
        data = data.filter(d =>
@@ -114,9 +116,100 @@ export default function RevisionPage() {
      return filtered.slice(start, start + pageSize);
    }, [filtered, currentPage]);
  
-   useEffect(() => {
-     setCurrentPage(1);
-   }, [searchTerm, filterDate, filterMonth]);
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [searchTerm, filterDate, filterMonth, filterArticle]);
+   const exportToPdf = async () => {
+     const { default: jsPDF } = await import('jspdf');
+     const pdf = new jsPDF();
+     const pageWidth = pdf.internal.pageSize.getWidth();
+     const margin = 15;
+     
+     pdf.setFontSize(18);
+     pdf.setTextColor(40, 40, 40);
+     pdf.text('Relatório de Revisão (Falhas)', margin, 20);
+     
+     pdf.setFontSize(10);
+     pdf.setTextColor(100, 100, 100);
+     const periodLabel = filterDate 
+       ? `Data: ${format(new Date(filterDate + 'T12:00:00'), 'dd/MM/yyyy')}`
+       : filterMonth !== 'all' 
+         ? `Mês: ${formatMonthLabel(filterMonth)}`
+         : 'Período: Total';
+         
+     const articleLabel = filterArticle !== 'all' 
+       ? `Artigo: ${articles.find(a => a.id === filterArticle)?.name || ''}`
+       : 'Artigo: Todos';
+       
+     pdf.text(`${periodLabel} | ${articleLabel}`, margin, 28);
+     
+     pdf.setDrawColor(200, 200, 200);
+     pdf.line(margin, 35, pageWidth - margin, 35);
+     
+     pdf.setFontSize(11);
+     pdf.setTextColor(60, 60, 60);
+     pdf.text(`Total de Falhas: ${stats.total}`, margin, 45);
+     pdf.text(`Total em Kg: ${formatNumber(stats.totalKg)} kg`, margin + 60, 45);
+     pdf.text(`Total em Metros: ${formatNumber(stats.totalMetros)} m`, margin + 120, 45);
+     
+     let y = 55;
+     pdf.setFillColor(240, 240, 240);
+     pdf.rect(margin, y, pageWidth - 2 * margin, 8, 'F');
+     
+     pdf.setFontSize(9);
+     pdf.setFont('helvetica', 'bold');
+     pdf.setTextColor(0, 0, 0);
+     
+     const cols = [
+       { name: 'Data', w: 22 },
+       { name: 'Máquina', w: 20 },
+       { name: 'Artigo', w: 45 },
+       { name: 'Tecelão', w: 35 },
+       { name: 'Valor', w: 20 },
+       { name: 'Defeito', w: 38 }
+     ];
+     
+     let currentX = margin;
+     cols.forEach(col => {
+       pdf.text(col.name, currentX + 2, y + 5.5);
+       currentX += col.w;
+     });
+     
+     y += 8;
+     pdf.setFont('helvetica', 'normal');
+     pdf.setFontSize(8);
+     
+     filtered.forEach((d, i) => {
+       if (y > 270) {
+         pdf.addPage();
+         y = 20;
+       }
+       if (i % 2 === 0) {
+         pdf.setFillColor(252, 252, 252);
+         pdf.rect(margin, y, pageWidth - 2 * margin, 7, 'F');
+       }
+       currentX = margin;
+       const dateText = format(new Date(d.date + 'T12:00:00'), 'dd/MM/yy');
+       const machineText = d.machine_name || '';
+       const articleText = d.article_name || '';
+       const weaverText = d.weaver_name || '';
+       const valueText = `${formatNumber(d.measure_value)} ${d.measure_type === 'kg' ? 'kg' : 'm'}`;
+       let defectText = d.observations || '';
+       const match = defectText.match(/^\[(.+?)\]/);
+       if (match) defectText = match[1];
+       const rowData = [dateText, machineText, articleText, weaverText, valueText, defectText];
+       rowData.forEach((text, idx) => {
+         const truncated = String(text).substring(0, idx === 2 ? 30 : 20);
+         pdf.text(truncated, currentX + 2, y + 5);
+         currentX += cols[idx].w;
+       });
+       y += 7;
+     });
+     const fileName = `revisao_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
+     pdf.save(fileName);
+     toast.success('PDF gerado com sucesso!');
+   };
+
 
   const stats = useMemo(() => {
     const totalKg = filtered.filter(d => d.measure_type === 'kg').reduce((s, d) => s + d.measure_value, 0);
@@ -305,7 +398,7 @@ export default function RevisionPage() {
           </PopoverContent>
         </Popover>
 
-        <Select value={filterMonth} onValueChange={v => { setFilterMonth(v === 'all' ? '' : v); if (v !== 'all') setFilterDate(''); }}>
+        <Select value={filterMonth} onValueChange={v => { setFilterMonth(v); if (v !== 'all') setFilterDate(''); }}>
           <SelectTrigger className="min-w-[150px] w-auto">
             <SelectValue placeholder="Mês" />
           </SelectTrigger>
@@ -317,12 +410,28 @@ export default function RevisionPage() {
           </SelectContent>
         </Select>
 
-        <div className="relative flex-1 max-w-sm">
+        <Select value={filterArticle} onValueChange={setFilterArticle}>
+          <SelectTrigger className="min-w-[180px] w-auto">
+            <SelectValue placeholder="Filtrar por Artigo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os artigos</SelectItem>
+            {articles.sort((a, b) => a.name.localeCompare(b.name)).map(a => (
+              <SelectItem key={a.id} value={a.id}>{getArticleLabel(a)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="relative flex-1 max-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por máquina, artigo ou tecelão..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
         </div>
-        {(filterDate || filterMonth) && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterDate(''); setFilterMonth(''); }}>Limpar filtros</Button>
+        <Button variant="outline" className="gap-2" onClick={exportToPdf} disabled={filtered.length === 0}>
+          <FileText className="h-4 w-4" /> Exportar PDF
+        </Button>
+
+        {(filterDate || filterMonth !== 'all' || filterArticle !== 'all') && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterDate(''); setFilterMonth('all'); setFilterArticle('all'); }}>Limpar filtros</Button>
         )}
       </div>
 
