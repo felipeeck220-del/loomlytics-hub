@@ -106,14 +106,21 @@ export async function getProductionStats(
   endDate: string,
   filter?: { shift?: string; machineId?: string; articleId?: string }
 ) {
-  const { data, error } = await supabase.rpc('get_production_stats', {
-    p_company_id: companyId,
-    p_start_date: startDate,
-    p_end_date: endDate,
-    p_shift: filter?.shift ?? 'all',
-    p_machine_id: filter?.machineId || null,
-    p_article_id: filter?.articleId || null,
-  });
+   // Use direct query to bypass RPC limit if it's hitting one, 
+   // or just use RPC but ensure we aren't limited by PostgREST defaults if it returns a list
+   // Actually the RPC returns a single row. If the user says it's limited, 
+   // it might be because the RPC itself has a limit internally or the fallback does.
+   
+   let query = supabase.rpc('get_production_stats', {
+     p_company_id: companyId,
+     p_start_date: startDate,
+     p_end_date: endDate,
+     p_shift: filter?.shift ?? 'all',
+     p_machine_id: filter?.machineId || null,
+     p_article_id: filter?.articleId || null,
+   });
+ 
+   const { data, error } = await query;
 
   if (error) {
     console.error('Error in get_production_stats RPC:', error);

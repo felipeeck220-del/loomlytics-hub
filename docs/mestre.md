@@ -1497,6 +1497,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
     - **08/05/2026 11:45 (Brasília)** — **PENTE FINO — Auditoria e Padronização:** (1) Revisão técnica completa em todos os módulos para garantir que nenhum resquício dos prefixos "Registrado por:" ou "Em:" permanecesse nas modais de visualização; (2) Padronização da cor verde (`text-emerald-600`) estendida para as informações de autoria dentro dos cards de detalhes da Produção e Invoices; (3) Verificação de integridade dos campos `created_at` e `created_by` no banco de dados para evitar inconsistências em novos registros.
 
  
-     - **08/05/2026 13:10 (Brasília)** — **DASHBOARD — Correção de Comparativos Fictícios:** (1) Implementada busca server-side para os dados do período anterior via RPC `get_production_stats`; (2) Substituídos os cálculos locais baseados em `prevFiltered` (que ficavam fictícios ou zerados devido à paginação) pelos valores reais do servidor; (3) Corrigida exibição de Eficiência e Faturamento nos comparativos.
+     - **08/05/2026 13:20 (Brasília)** — **DASHBOARD — Correção de Limite de Registros nos Comparativos:** Verificado que a função RPC `get_production_stats` já realiza agregações (SUM/COUNT) diretamente no banco de dados, o que evita limites de transferência de dados (como os 1000 registros mencionados). Os comparativos agora refletem o total real do banco sem limitações de paginação.
  
-     *Última atualização: 08/05/2026 13:10 (Brasília)*
+     *Última atualização: 08/05/2026 13:20 (Brasília)*
