@@ -354,12 +354,12 @@ Além do `audit_logs`, algumas tabelas possuem colunas de autoria direta:
 > **Módulos que DEVEM exibir autoria na listagem:**
 > | Módulo | Status | Formato |
 > |--------|--------|---------|
-> | Produção | ✅ | Inline: `por Nome #ID` na descrição |
-> | Revisão | ✅ | Coluna dedicada `Nome #ID` |
-> | Terceirizados | ✅ | Abaixo da data: `Nome #ID` |
-> | Resíduos | ✅ | Abaixo da hora: `Nome #ID` |
-> | Notas Fiscais | ✅ | Coluna "Registrado por" com `Nome #ID` + data/hora compacta |
+> | Produção | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
+> | Revisão | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
+> | Terceirizados | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
+> | Resíduos | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
+> | Notas Fiscais | ✅ | `Registrado por: Nome #ID Em: dd/MM/yyyy HH:mm` |
 
 ---
 
-*Última atualização: 14/04/2026 22:30 (Brasília)*
+*Última atualização: 08/05/2026 10:45 (Brasília)*
