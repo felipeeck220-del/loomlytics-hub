@@ -86,7 +86,8 @@ export default function Reports() {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  const [productions, setProductions] = useState<Production[]>(getProductions());
+  const [productions, setProductions] = useState<Production[]>([]);
+  const [reportStats, setReportStats] = useState<any>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const fetchReportData = useCallback(async () => {
@@ -115,16 +116,28 @@ export default function Reports() {
 
     setIsSyncing(true);
     try {
-      const result = await fetchProductionsPage(dbCompanyId, {
-        startDate,
-        endDate,
-        shift: filterShift === 'all' ? undefined : filterShift as ShiftType,
-        machineId: filterMachine === 'all' ? undefined : filterMachine,
-        articleId: filterArticle === 'all' ? undefined : filterArticle,
-        page: 0,
-        pageSize: 5000,
-      });
+      const [result, stats] = await Promise.all([
+        fetchProductionsPage(dbCompanyId, {
+          startDate,
+          endDate,
+          shift: filterShift === 'all' ? undefined : filterShift as ShiftType,
+          machineId: filterMachine === 'all' ? undefined : filterMachine,
+          articleId: filterArticle === 'all' ? undefined : filterArticle,
+          page: 0,
+          pageSize: 10000, // Increased for reports
+        }),
+        supabase.rpc('get_production_stats', {
+          p_company_id: dbCompanyId,
+          p_start_date: startDate,
+          p_end_date: endDate,
+          p_shift: filterShift,
+          p_machine_id: filterMachine === 'all' ? null : filterMachine,
+          p_article_id: filterArticle === 'all' ? null : filterArticle,
+        })
+      ]);
+      
       setProductions(result.items);
+      setReportStats(stats.data?.[0] || null);
     } catch (err) {
       console.error('Error fetching report data:', err);
     } finally {
@@ -194,12 +207,11 @@ export default function Reports() {
     return data;
   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles, machines]);
 
-  // KPIs
-  const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
-  const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
-  const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
-  const nonZeroFiltered = filtered.filter(p => p.rolls_produced > 0);
-  const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
+  // KPIs - Use server stats if available to avoid pagination limits
+  const totalRolls = reportStats ? Number(reportStats.total_rolls) : filtered.reduce((s, p) => s + p.rolls_produced, 0);
+  const totalWeight = reportStats ? Number(reportStats.total_weight) : filtered.reduce((s, p) => s + p.weight_kg, 0);
+  const totalRevenue = reportStats ? Number(reportStats.total_revenue) : filtered.reduce((s, p) => s + p.revenue, 0);
+  const avgEfficiency = reportStats ? Number(reportStats.avg_efficiency) : 0;
   const uniqueDays = new Set(filtered.map(p => p.date)).size || 1;
 
   // Calculate weighted average target efficiency
