@@ -55,44 +55,12 @@ export default function ProductionPage() {
   const [filterArticle, setFilterArticle] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [serverProductions, setServerProductions] = useState<Production[]>([]);
-  const [isPending, startTransition] = useTransition();
-  const [isSyncing, setIsSyncing] = useState(false);
+  const productions = getProductions();
+  const isSyncing = false;
 
   const fetchProductionData = useCallback(async () => {
-    if (!dbCompanyId || !filterDate) return;
-    setIsSyncing(true);
-    try {
-      const result = await fetchProductionsPage(dbCompanyId, {
-        startDate: filterDate,
-        endDate: filterDate,
-        machineId: filterMachine && filterMachine !== 'all' ? filterMachine : undefined,
-        articleId: filterArticle && filterArticle !== 'all' ? filterArticle : undefined,
-        page: 0,
-        pageSize: 1000,
-      });
-      startTransition(() => {
-        setServerProductions(result.items);
-      });
-    } catch (err) {
-      console.error('Error fetching productions:', err);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [dbCompanyId, filterDate, filterMachine, filterArticle]);
-
-  useEffect(() => {
-    fetchProductionData();
-  }, [fetchProductionData]);
-
-  const productions = useMemo(() => {
-    const local = getProductions();
-    if (serverProductions.length === 0) return local;
-    
-    // Merge server prods with any local prods that might be newer (if any)
-    // For simplicity, if we have server prods for a specific date, they are the source of truth
-    return serverProductions;
-  }, [serverProductions, getProductions]);
+    // All data is loaded globally
+  }, []);
 
   // Set filterDate to last production date once data loads
   useEffect(() => {
@@ -549,7 +517,7 @@ export default function ProductionPage() {
     setFilterDate(''); setFilterMachine(''); setFilterArticle(''); setSearchQuery('');
   };
 
-  if (loading || (isSyncing && serverProductions.length === 0)) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -86,68 +86,12 @@ export default function Reports() {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  const [productions, setProductions] = useState<Production[]>([]);
-  const [reportStats, setReportStats] = useState<any>(null);
+  const productions = getProductions();
   const [isSyncing, setIsSyncing] = useState(false);
 
   const fetchReportData = useCallback(async () => {
-    if (!dbCompanyId) return;
-    
-    let startDate = '';
-    let endDate = '';
-    const today = new Date();
-
-    if (dateFrom || dateTo) {
-      startDate = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '2000-01-01';
-      endDate = dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd');
-    } else if (filterMonth !== 'all') {
-      startDate = `${filterMonth}-01`;
-      const [y, m] = filterMonth.split('-').map(Number);
-      endDate = format(new Date(y, m, 0), 'yyyy-MM-dd');
-    } else if (customDate) {
-      startDate = endDate = format(customDate, 'yyyy-MM-dd');
-    } else if (dayRange > 0) {
-      startDate = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-      endDate = format(today, 'yyyy-MM-dd');
-    } else {
-      startDate = '2000-01-01';
-      endDate = format(today, 'yyyy-MM-dd');
-    }
-
-    setIsSyncing(true);
-    try {
-      const [result, stats] = await Promise.all([
-        fetchProductionsPage(dbCompanyId, {
-          startDate,
-          endDate,
-          shift: filterShift === 'all' ? undefined : filterShift as ShiftType,
-          machineId: filterMachine === 'all' ? undefined : filterMachine,
-          articleId: filterArticle === 'all' ? undefined : filterArticle,
-          page: 0,
-          pageSize: 10000, // Increased for reports
-        }),
-        supabase.rpc('get_production_stats', {
-          p_company_id: dbCompanyId,
-          p_start_date: startDate,
-          p_end_date: endDate,
-          p_shift: filterShift,
-          p_machine_id: filterMachine === 'all' ? null : filterMachine,
-          p_article_id: filterArticle === 'all' ? null : filterArticle,
-        })
-      ]);
-      
-      setProductions(result.items);
-      setReportStats(stats.data?.[0] || null);
-    } catch (err) {
-      console.error('Error fetching report data:', err);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterMachine, filterArticle]);
-
-  useEffect(() => {
-    fetchReportData();
-  }, [fetchReportData]);
+    // No longer needs to fetch per period as useCompanyData loads all
+  }, []);
 
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
@@ -165,6 +109,7 @@ export default function Reports() {
 
   const availableMonths = useMemo(() => {
     const months = new Set(productions.map(p => p.date.substring(0, 7)));
+    // Always include current month
     months.add(format(new Date(), 'yyyy-MM'));
     return Array.from(months).sort().reverse();
   }, [productions]);
@@ -207,11 +152,12 @@ export default function Reports() {
     return data;
   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles, machines]);
 
-  // KPIs - Use server stats if available to avoid pagination limits
-  const totalRolls = reportStats ? Number(reportStats.total_rolls) : filtered.reduce((s, p) => s + p.rolls_produced, 0);
-  const totalWeight = reportStats ? Number(reportStats.total_weight) : filtered.reduce((s, p) => s + p.weight_kg, 0);
-  const totalRevenue = reportStats ? Number(reportStats.total_revenue) : filtered.reduce((s, p) => s + p.revenue, 0);
-  const avgEfficiency = reportStats ? Number(reportStats.avg_efficiency) : 0;
+  // KPIs
+  const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
+  const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
+  const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
+  const nonZeroFiltered = filtered.filter(p => p.rolls_produced > 0);
+  const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
   const uniqueDays = new Set(filtered.map(p => p.date)).size || 1;
 
   // Calculate weighted average target efficiency

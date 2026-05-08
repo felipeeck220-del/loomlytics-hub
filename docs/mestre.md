@@ -1501,4 +1501,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
       - **08/05/2026 13:55 (Brasília)** — **PENTE FINO — Filtros e Limites de Dados em todo o projeto:** (1) **Dashboard:** Removida dependência da listagem local, garantindo que KPIs e gráficos mostrem valores reais via RPC mesmo em períodos longos; (2) **Reports:** KPIs migrados para RPC `get_production_stats` e limite de listagem aumentado para 10000; (3) **Revision:** Criada RPC `get_defect_stats` para calcular totais reais e corrigida paginação que limitava os cards superiores; (4) **Faturamento Total:** Corrigido faturamento de malhas (estava 0) e seletores de mês; (5) **Production:** Aumentado pageSize para 1000 registros por dia; (6) **Fechamento:** Garantido carregamento completo de produções mensais via loop de paginação.
  
-      *Última atualização: 08/05/2026 13:55 (Brasília)*
+      - **08/05/2026 14:15 (Brasília)** — **RESTORE — Reversão de Paginação Parcial:** (1) Restaurado o comportamento de carregamento global de dados no `useCompanyData` para garantir que filtros locais em todas as telas funcionem sem lacunas; (2) Removida a dependência de chamadas parciais por período no Dashboard, Relatórios, Revisão e Produção, voltando a utilizar o estado compartilhado (contexto) para cálculos e visualizações; (3) Mantidas as otimizações de paginação de banco (loop fetchAll) para evitar o limite padrão de 1000 registros do Supabase durante a carga inicial.
+ 
+      *Última atualização: 08/05/2026 14:15 (Brasília)*

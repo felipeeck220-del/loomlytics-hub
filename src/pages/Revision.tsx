@@ -49,7 +49,7 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
   const machines = getMachines();
   const weavers = getWeavers();
   const articles = getArticles();
-   const [defectRecords, setDefectRecords] = useState<DefectRecord[]>(getDefectRecords());
+    const defectRecords = getDefectRecords();
    const [totalRecords, setTotalCount] = useState(0);
    const [isSyncing, setIsSyncing] = useState(false);
    const dbCompanyId = user?.company_id || '';
@@ -129,65 +129,15 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
    const filtered = defectRecords;
  
-   const totalPages = Math.ceil(totalRecords / pageSize);
-   const paginatedData = defectRecords;
+   const totalPages = Math.ceil(filtered.length / pageSize);
+   const paginatedData = useMemo(() => {
+     const start = (currentPage - 1) * pageSize;
+     return filtered.slice(start, start + pageSize);
+   }, [filtered, currentPage, pageSize]);
  
-  const [serverStats, setServerStats] = useState({ total_records: 0, total_kg: 0, total_metros: 0 });
-
   const fetchDefectData = useCallback(async () => {
-    if (!dbCompanyId) return;
-    setIsSyncing(true);
-    try {
-      let startDate = '2000-01-01';
-      let endDate = format(new Date(), 'yyyy-MM-dd');
-
-      if (filterDateFrom || filterDateTo) {
-        if (filterDateFrom) startDate = filterDateFrom;
-        if (filterDateTo) endDate = filterDateTo;
-      } else if (filterMonth !== 'all') {
-        startDate = `${filterMonth}-01`;
-        const [y, m] = filterMonth.split('-').map(Number);
-        endDate = format(new Date(y, m, 0), 'yyyy-MM-dd');
-      }
-
-      const [result, stats] = await Promise.all([
-        fetchDefectsPage(dbCompanyId, {
-          startDate,
-          endDate,
-          machineId: 'all',
-          articleId: filterArticle === 'all' ? undefined : filterArticle,
-          searchTerm,
-          page: currentPage - 1,
-          pageSize: pageSize,
-        }),
-        supabase.rpc('get_defect_stats', {
-          p_company_id: dbCompanyId,
-          p_start_date: startDate,
-          p_end_date: endDate,
-          p_shift: 'all',
-          p_machine_id: null,
-          p_article_id: filterArticle === 'all' ? null : filterArticle,
-          p_weaver_id: null,
-          p_search_term: searchTerm || null,
-        })
-      ]);
-
-      setDefectRecords(result.items);
-      setTotalCount(result.total);
-      if (stats.data && stats.data[0]) {
-        setServerStats(stats.data[0]);
-      }
-    } catch (err) {
-      console.error('Error fetching defects:', err);
-      toast.error('Erro ao carregar dados de revisão');
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [dbCompanyId, filterDateFrom, filterDateTo, filterMonth, filterArticle, searchTerm, currentPage, pageSize]);
- 
-   useEffect(() => {
-     fetchDefectData();
-   }, [fetchDefectData]);
+    // All data loaded via context
+  }, []);
  
    useEffect(() => {
      setCurrentPage(1);
@@ -387,12 +337,10 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
 
   const stats = useMemo(() => {
-    return { 
-      total: Number(serverStats.total_records), 
-      totalKg: Number(serverStats.total_kg), 
-      totalMetros: Number(serverStats.total_metros) 
-    };
-  }, [serverStats]);
+    const totalKg = filtered.filter(d => d.measure_type === 'kg').reduce((s, d) => s + d.measure_value, 0);
+    const totalMetros = filtered.filter(d => d.measure_type === 'metro').reduce((s, d) => s + d.measure_value, 0);
+    return { total: filtered.length, totalKg, totalMetros };
+  }, [filtered]);
 
   const openNew = () => {
     setEditingRecord(null);
