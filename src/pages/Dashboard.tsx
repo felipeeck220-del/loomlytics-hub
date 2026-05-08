@@ -220,7 +220,7 @@ export default function Dashboard() {
 
   const fetchDashboardStats = useCallback(async () => {
     if (!dbCompanyId || !currentPeriod) return;
-    setLoadingStats(true);
+     setLoadingStats(true); setServerStats(null);
     try {
       const stats = await getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
         shift: filterShift === 'all' ? undefined : filterShift,
