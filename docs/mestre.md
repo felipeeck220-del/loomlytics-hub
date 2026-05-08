@@ -1490,5 +1490,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
    - **08/05/2026 11:00 (Brasília)** — **GERAL — Refinamento da Padronização de Autoria:** (1) Removidos os prefixos textuais, mantendo apenas Nome #ID (em verde) e Data/Hora (em cinza); (2) Padronização minimalista aplicada em Produção, Revisão, Terceirizado, NFs e Resíduos; (3) Documentação técnica em `auditoria.md` atualizada.
 
-   *Última atualização: 08/05/2026 11:00 (Brasília)*
- - **Notas Fiscais:** Busca na listagem ampliada para incluir tipo de fio, fornecedor, comprador e artigos; simplificação do placeholder de busca para "Buscar...".
+
+    - **08/05/2026 11:30 (Brasília)** — **GERAL — Finalização da Padronização de Autoria:** (1) Removidos os últimos resquícios de "Registrado por:" e "Em:" nas listagens de Produção, NFs e Terceirizados; (2) Corrigida a cor da fonte da autoria para verde (`text-emerald-600`) em todos os módulos para manter a consistência visual.
+
+    *Última atualização: 08/05/2026 11:30 (Brasília)*
