@@ -139,7 +139,7 @@ export default function Reports() {
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
-    setDayRange(30);
+     setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
     setDateFrom(undefined);
     setDateTo(undefined);
@@ -397,8 +397,8 @@ export default function Reports() {
               <Button
                 key={d}
                 size="sm"
-                variant={dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
-                onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
+                 variant={dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
+                 onClick={() => { setDayRange(d); setFilterMonth('all'); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}
               >
                 {d} Dias
               </Button>
