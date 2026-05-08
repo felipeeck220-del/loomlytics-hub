@@ -69,7 +69,7 @@ export default function ProductionPage() {
         machineId: filterMachine && filterMachine !== 'all' ? filterMachine : undefined,
         articleId: filterArticle && filterArticle !== 'all' ? filterArticle : undefined,
         page: 0,
-        pageSize: 200,
+        pageSize: 1000,
       });
       startTransition(() => {
         setServerProductions(result.items);
