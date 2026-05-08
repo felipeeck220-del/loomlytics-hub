@@ -101,11 +101,14 @@ export default function Dashboard() {
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const availableMonths = useMemo(() => {
-    const months = new Set(productions.map(p => p.date.substring(0, 7)));
-    // Always include current month
-    months.add(format(new Date(), 'yyyy-MM'));
+    const months = new Set<string>();
+    const today = new Date();
+    // Add last 24 months as options
+    for (let i = 0; i < 24; i++) {
+      months.add(format(subMonths(today, i), 'yyyy-MM'));
+    }
     return Array.from(months).sort().reverse();
-  }, [productions]);
+  }, []);
 
    const filtered = useMemo(() => {
      let data = [...productions];
@@ -256,19 +259,18 @@ export default function Dashboard() {
  
   const nonZeroFiltered = useMemo(() => filtered.filter(p => p.rolls_produced > 0), [filtered]);
 
-   // Use server stats when available, fallback to filtered productions in memory
-   const totalRolls = serverStats ? Number(serverStats.total_rolls) : filtered.reduce((s, p) => s + p.rolls_produced, 0);
-   const totalWeight = serverStats ? Number(serverStats.total_weight) : filtered.reduce((s, p) => s + p.weight_kg, 0);
-   const totalRevenue = serverStats ? Number(serverStats.total_revenue) : filtered.reduce((s, p) => s + p.revenue, 0);
-   const avgEfficiency = serverStats ? Number(serverStats.avg_efficiency) : (nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0);
-   const totalRecordCount = serverStats ? Number(serverStats.record_count) : filtered.length;
+    // Use server stats when available, otherwise show 0 while loading
+    const totalRolls = serverStats ? Number(serverStats.total_rolls) : 0;
+    const totalWeight = serverStats ? Number(serverStats.total_weight) : 0;
+    const totalRevenue = serverStats ? Number(serverStats.total_revenue) : 0;
+    const avgEfficiency = serverStats ? Number(serverStats.avg_efficiency) : 0;
+    const totalRecordCount = serverStats ? Number(serverStats.record_count) : 0;
 
-   // Previous period KPIs - use server stats if available
-   const nonZeroPrev = prevFiltered.filter(p => p.rolls_produced > 0);
-   const prevTotalRolls = prevServerStats ? Number(prevServerStats.total_rolls) : prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
-   const prevTotalWeight = prevServerStats ? Number(prevServerStats.total_weight) : prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
-   const prevTotalRevenue = prevServerStats ? Number(prevServerStats.total_revenue) : prevFiltered.reduce((s, p) => s + p.revenue, 0);
-   const prevAvgEfficiency = prevServerStats ? Number(prevServerStats.avg_efficiency) : (nonZeroPrev.length ? nonZeroPrev.reduce((s, p) => s + p.efficiency, 0) / nonZeroPrev.length : 0);
+    // Previous period KPIs
+    const prevTotalRolls = prevServerStats ? Number(prevServerStats.total_rolls) : 0;
+    const prevTotalWeight = prevServerStats ? Number(prevServerStats.total_weight) : 0;
+    const prevTotalRevenue = prevServerStats ? Number(prevServerStats.total_revenue) : 0;
+    const prevAvgEfficiency = prevServerStats ? Number(prevServerStats.avg_efficiency) : 0;
 
   // Calculate weighted average target efficiency from articles used in filtered productions
   const avgTargetEfficiency = useMemo(() => {
@@ -286,11 +288,7 @@ export default function Dashboard() {
 
   const calendarHours = useMemo(() => {
     let days: number;
-    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-      // All data — use only days that have production records
-      const uniqueDays = new Set(filtered.map(p => p.date)).size;
-      days = uniqueDays || 1;
-    } else if (dateFrom && dateTo) {
+    if (dateFrom && dateTo) {
       days = differenceInCalendarDays(dateTo, dateFrom) + 1;
     } else if (dateFrom) {
       days = differenceInCalendarDays(new Date(), dateFrom) + 1;
@@ -309,8 +307,11 @@ export default function Dashboard() {
         const [y, m] = filterMonth.split('-').map(Number);
         days = new Date(y, m, 0).getDate();
       }
-    } else {
+    } else if (dayRange > 0) {
       days = dayRange;
+    } else {
+      // "All time" fallback: use records count / records per day average or just a default
+      days = serverStats && serverStats.record_count ? Math.max(1, Math.ceil(Number(serverStats.record_count) / 10)) : 30;
     }
 
     if (filterShift !== 'all') {
