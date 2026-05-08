@@ -1493,4 +1493,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
     - **08/05/2026 11:30 (Brasília)** — **GERAL — Finalização da Padronização de Autoria:** (1) Removidos os últimos resquícios de "Registrado por:" e "Em:" nas listagens de Produção, NFs e Terceirizados; (2) Corrigida a cor da fonte da autoria para verde (`text-emerald-600`) em todos os módulos para manter a consistência visual.
 
-    *Última atualização: 08/05/2026 11:30 (Brasília)*
+
+    - **08/05/2026 11:45 (Brasília)** — **PENTE FINO — Auditoria e Padronização:** (1) Revisão técnica completa em todos os módulos para garantir que nenhum resquício dos prefixos "Registrado por:" ou "Em:" permanecesse nas modais de visualização; (2) Padronização da cor verde (`text-emerald-600`) estendida para as informações de autoria dentro dos cards de detalhes da Produção e Invoices; (3) Verificação de integridade dos campos `created_at` e `created_by` no banco de dados para evitar inconsistências em novos registros.
+
+    *Última atualização: 08/05/2026 11:45 (Brasília)*
