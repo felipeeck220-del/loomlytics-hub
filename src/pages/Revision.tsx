@@ -1,7 +1,8 @@
- import { useState, useMemo, useRef, useEffect } from 'react';
+ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
  import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
  import { useAuth } from '@/contexts/AuthContext';
  import { supabase } from '@/integrations/supabase/client';
+ import { fetchDefectsPage } from '@/lib/queries/defectsQueries';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
