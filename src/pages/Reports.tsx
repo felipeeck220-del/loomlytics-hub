@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { fetchProductionsPage } from '@/lib/queries/productionsQueries';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,11 +41,60 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 };
 
 export default function Reports() {
-  const { getProductions, getMachines, getClients, getArticles, shiftSettings, loading } = useSharedCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, shiftSettings, loading, dbCompanyId } = useSharedCompanyData();
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
   const { user } = useAuth();
-  const productions = getProductions();
+  const [productions, setProductions] = useState<Production[]>(getProductions());
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchReportData = useCallback(async () => {
+    if (!dbCompanyId) return;
+    
+    let startDate = '';
+    let endDate = '';
+    const today = new Date();
+
+    if (dateFrom || dateTo) {
+      startDate = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '2000-01-01';
+      endDate = dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd');
+    } else if (filterMonth !== 'all') {
+      startDate = `${filterMonth}-01`;
+      const [y, m] = filterMonth.split('-').map(Number);
+      endDate = format(new Date(y, m, 0), 'yyyy-MM-dd');
+    } else if (customDate) {
+      startDate = endDate = format(customDate, 'yyyy-MM-dd');
+    } else if (dayRange > 0) {
+      startDate = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+      endDate = format(today, 'yyyy-MM-dd');
+    } else {
+      // All period - fallback to local or large range
+      startDate = '2000-01-01';
+      endDate = format(today, 'yyyy-MM-dd');
+    }
+
+    setIsSyncing(true);
+    try {
+      const result = await fetchProductionsPage(dbCompanyId, {
+        startDate,
+        endDate,
+        shift: filterShift === 'all' ? undefined : filterShift as ShiftType,
+        machineId: filterMachine === 'all' ? undefined : filterMachine,
+        articleId: filterArticle === 'all' ? undefined : filterArticle,
+        page: 0,
+        pageSize: 1000, // Load more for reports
+      });
+      setProductions(result.items);
+    } catch (err) {
+      console.error('Error fetching report data:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterMachine, filterArticle]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
   const machines = getMachines();
   const clients = getClients();
   const articles = getArticles();
