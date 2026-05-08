@@ -1,39 +1,3 @@
-  const fetchProdStats = useCallback(async () => {
-    if (!companyId || !currentPeriod) {
-      setServerProdProdRevenue({ current: 0, previous: 0 });
-      return;
-    }
-    setLoadingProdStats(true);
-    try {
-      const [curr, prev] = await Promise.all([
-        getProductionStats(companyId, currentPeriod.start, currentPeriod.end),
-        previousPeriod ? getProductionStats(companyId, previousPeriod.start, previousPeriod.end) : Promise.resolve(null),
-      ]);
-      setServerProdProdRevenue({
-        current: curr ? Number(curr.total_revenue) : 0,
-        previous: prev ? Number(prev.total_revenue) : 0,
-      });
-    } catch (err) {
-      console.error('Error fetching production revenue:', err);
-    } finally {
-      setLoadingProdStats(false);
-    }
-  }, [companyId, currentPeriod, previousPeriod]);
-
-  useEffect(() => {
-    fetchProdStats();
-  }, [fetchProdStats]);
-
-  // Initialize available months
-  useEffect(() => {
-    const months = new Set<string>();
-    const today = new Date();
-    for (let i = 0; i < 24; i++) {
-      months.add(format(subMonths(today, i), 'yyyy-MM'));
-    }
-    setAvailableMonthsList(Array.from(months).sort().reverse());
-  }, []);
-
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { getProductionStats } from '@/lib/queries/productionsQueries';
 import { useAuth } from '@/contexts/AuthContext';
@@ -141,7 +105,43 @@ export default function FaturamentoTotal() {
   const [serverProdRevenue, setServerProdProdRevenue] = useState<{ current: number; previous: number }>({ current: 0, previous: 0 });
   const [loadingProdStats, setLoadingProdStats] = useState(false);
 
-  const [availableMonthsList, setAvailableMonthsList] = useState<string[]>([format(new Date(), 'yyyy-MM')]);
+  const [availableMonthsList, setAvailableMonthsList] = useState<string[]>([]);
+
+  const fetchProdStats = useCallback(async () => {
+    if (!companyId || !currentPeriod) {
+      setServerProdProdRevenue({ current: 0, previous: 0 });
+      return;
+    }
+    setLoadingProdStats(true);
+    try {
+      const [curr, prev] = await Promise.all([
+        getProductionStats(companyId, currentPeriod.start, currentPeriod.end),
+        previousPeriod ? getProductionStats(companyId, previousPeriod.start, previousPeriod.end) : Promise.resolve(null),
+      ]);
+      setServerProdProdRevenue({
+        current: curr ? Number(curr.total_revenue) : 0,
+        previous: prev ? Number(prev.total_revenue) : 0,
+      });
+    } catch (err) {
+      console.error('Error fetching production revenue:', err);
+    } finally {
+      setLoadingProdStats(false);
+    }
+  }, [companyId, currentPeriod, previousPeriod]);
+
+  useEffect(() => {
+    fetchProdStats();
+  }, [fetchProdStats]);
+
+  // Initialize available months
+  useEffect(() => {
+    const months = new Set<string>();
+    const today = new Date();
+    for (let i = 0; i < 24; i++) {
+      months.add(format(subMonths(today, i), 'yyyy-MM'));
+    }
+    setAvailableMonthsList(Array.from(months).sort().reverse());
+  }, []);
 
   const loading = l2 || l3 || loadingProdStats;
 
