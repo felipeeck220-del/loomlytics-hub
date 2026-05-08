@@ -169,7 +169,7 @@ export function useCompanyData() {
       setWeavers(wData.map(mapWeaver));
       setProductions(pData.map(mapProduction));
       setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
-          setDefectRecords((drRes.data || []).map(mapDefectRecord));
+      setDefectRecords(drRes.map(mapDefectRecord));
        setNeedles(nData.map(mapNeedle));
        setNeedleTransactions(ntData.map(mapNeedleTransaction));
       if (csRes.data) {
