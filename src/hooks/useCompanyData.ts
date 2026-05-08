@@ -154,7 +154,7 @@ export function useCompanyData() {
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
          sb('productions').select('*').eq('company_id', companyId).order('date', { ascending: false }).limit(500),
-         sb('machine_logs').select('*').eq('machine_id', machines[0]?.id || '').order('started_at', { ascending: false }).limit(500),
+         sb('machine_logs').select('*').order('started_at', { ascending: false }).limit(200),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
         sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
          sb('defect_records').select('*').eq('company_id', companyId).order('date', { ascending: false }).limit(200),
