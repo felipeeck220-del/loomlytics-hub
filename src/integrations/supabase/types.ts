@@ -2055,6 +2055,56 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fetch_productions_page: {
+        Args: {
+          p_article_id?: string
+          p_company_id: string
+          p_end_date: string
+          p_machine_id?: string
+          p_page?: number
+          p_page_size?: number
+          p_shift?: string
+          p_start_date: string
+        }
+        Returns: {
+          article_id: string
+          article_name: string
+          company_id: string
+          created_at: string
+          created_by_code: string
+          created_by_name: string
+          date: string
+          efficiency: number
+          id: string
+          machine_id: string
+          machine_name: string
+          revenue: number
+          rolls_produced: number
+          rpm: number
+          shift: string
+          total_count: number
+          weaver_id: string
+          weaver_name: string
+          weight_kg: number
+        }[]
+      }
+      get_production_stats: {
+        Args: {
+          p_article_id?: string
+          p_company_id: string
+          p_end_date: string
+          p_machine_id?: string
+          p_shift?: string
+          p_start_date: string
+        }
+        Returns: {
+          avg_efficiency: number
+          record_count: number
+          total_revenue: number
+          total_rolls: number
+          total_weight: number
+        }[]
+      }
       get_user_companies: {
         Args: never
         Returns: {
