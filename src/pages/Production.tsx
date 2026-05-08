@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef, useTransition } from 'react';
+import { fetchProductionsPage } from '@/lib/queries/productionsQueries';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { Button } from '@/components/ui/button';
@@ -32,11 +33,50 @@ type SaveQueueItem = {
 const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
 
 export default function ProductionPage() {
-  const { getProductions, addProductions, updateProductions, deleteProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, getMachineLogs, getClients, shiftSettings, loading, saveWeavers, saveArticles } = useSharedCompanyData();
+  const { getProductions, addProductions, updateProductions, deleteProductions, getMachines, getWeavers, getArticles, getArticleMachineTurns, getMachineLogs, getClients, shiftSettings, loading, saveWeavers, saveArticles, dbCompanyId } = useSharedCompanyData();
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
-  const productions = getProductions();
+  const [localProductions, setLocalProductions] = useState(getProductions());
+  const [serverProductions, setServerProductions] = useState<Production[]>([]);
+  const [totalServerCount, setTotalServerCount] = useState(0);
+  const [isPending, startTransition] = useTransition();
+  const [page, setPage] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchProductionData = useCallback(async () => {
+    if (!dbCompanyId || !filterDate) return;
+    setIsSyncing(true);
+    try {
+      const result = await fetchProductionsPage(dbCompanyId, {
+        startDate: filterDate,
+        endDate: filterDate,
+        machineId: filterMachine && filterMachine !== 'all' ? filterMachine : undefined,
+        articleId: filterArticle && filterArticle !== 'all' ? filterArticle : undefined,
+        page: 0,
+        pageSize: 200, // Load enough for most days
+      });
+      startTransition(() => {
+        setServerProductions(result.items);
+        setTotalServerCount(result.total);
+      });
+    } catch (err) {
+      console.error('Error fetching productions:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [dbCompanyId, filterDate, filterMachine, filterArticle]);
+
+  useEffect(() => {
+    fetchProductionData();
+  }, [fetchProductionData]);
+
+  // Combined productions: server ones + any local ones not on server
+  const productions = useMemo(() => {
+    if (serverProductions.length > 0) return serverProductions;
+    return getProductions();
+  }, [serverProductions, getProductions()]);
+
   const machines = getMachines();
   const weavers = getWeavers();
   const articles = getArticles();
