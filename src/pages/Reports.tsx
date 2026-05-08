@@ -86,6 +86,56 @@ export default function Reports() {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
+  const [productions, setProductions] = useState<Production[]>(getProductions());
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchReportData = useCallback(async () => {
+    if (!dbCompanyId) return;
+    
+    let startDate = '';
+    let endDate = '';
+    const today = new Date();
+
+    if (dateFrom || dateTo) {
+      startDate = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '2000-01-01';
+      endDate = dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd');
+    } else if (filterMonth !== 'all') {
+      startDate = `${filterMonth}-01`;
+      const [y, m] = filterMonth.split('-').map(Number);
+      endDate = format(new Date(y, m, 0), 'yyyy-MM-dd');
+    } else if (customDate) {
+      startDate = endDate = format(customDate, 'yyyy-MM-dd');
+    } else if (dayRange > 0) {
+      startDate = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+      endDate = format(today, 'yyyy-MM-dd');
+    } else {
+      startDate = '2000-01-01';
+      endDate = format(today, 'yyyy-MM-dd');
+    }
+
+    setIsSyncing(true);
+    try {
+      const result = await fetchProductionsPage(dbCompanyId, {
+        startDate,
+        endDate,
+        shift: filterShift === 'all' ? undefined : filterShift as ShiftType,
+        machineId: filterMachine === 'all' ? undefined : filterMachine,
+        articleId: filterArticle === 'all' ? undefined : filterArticle,
+        page: 0,
+        pageSize: 1000,
+      });
+      setProductions(result.items);
+    } catch (err) {
+      console.error('Error fetching report data:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterMachine, filterArticle]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
+
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
