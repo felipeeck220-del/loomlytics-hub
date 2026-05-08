@@ -37,6 +37,24 @@ export default function ProductionPage() {
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
+  const machines = getMachines();
+  const weavers = getWeavers();
+  const articles = getArticles();
+  const clients = getClients();
+  const articleMachineTurns = getArticleMachineTurns();
+  const machineLogs = getMachineLogs();
+  const { logAction, userName, userCode } = useAuditLog();
+
+  const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
+
+  // Filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterDate, setFilterDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [filterDateInitialized, setFilterDateInitialized] = useState(false);
+  const [filterMachine, setFilterMachine] = useState('');
+  const [filterArticle, setFilterArticle] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [serverProductions, setServerProductions] = useState<Production[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -71,23 +89,6 @@ export default function ProductionPage() {
     if (serverProductions.length > 0) return serverProductions;
     return getProductions();
   }, [serverProductions, getProductions]);
-  const machines = getMachines();
-  const weavers = getWeavers();
-  const articles = getArticles();
-  const clients = getClients();
-  const articleMachineTurns = getArticleMachineTurns();
-  const machineLogs = getMachineLogs();
-  const { logAction, userName, userCode } = useAuditLog();
-
-  const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
-
-  // Filters
-  const [showFilters, setShowFilters] = useState(false);
-  const [filterDate, setFilterDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
-  const [filterDateInitialized, setFilterDateInitialized] = useState(false);
-  const [filterMachine, setFilterMachine] = useState('');
-  const [filterArticle, setFilterArticle] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Set filterDate to last production date once data loads
   useEffect(() => {
