@@ -217,14 +217,16 @@ export default function Dashboard() {
       try {
         const [stats, pStats] = await Promise.all([
           getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
-            shift: filterShift === 'all' ? undefined : filterShift,
-            articleId: filterArticle === 'all' ? undefined : filterArticle
-          }),
+             shift: filterShift === 'all' ? undefined : filterShift,
+             articleId: filterArticle === 'all' ? undefined : filterArticle,
+             machineId: undefined // Could add filterMachine if needed
+           }),
           previousPeriod 
-            ? getProductionStats(dbCompanyId, previousPeriod.start, previousPeriod.end, {
-                shift: filterShift === 'all' ? undefined : filterShift,
-                articleId: filterArticle === 'all' ? undefined : filterArticle
-              })
+             ? getProductionStats(dbCompanyId, previousPeriod.start, previousPeriod.end, {
+                 shift: filterShift === 'all' ? undefined : filterShift,
+                 articleId: filterArticle === 'all' ? undefined : filterArticle,
+                 machineId: undefined
+               })
             : Promise.resolve(null)
         ]);
         setServerStats(stats);
