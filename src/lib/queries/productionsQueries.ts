@@ -158,5 +158,45 @@ export async function getProductionStats(
     };
   }
   
-  return data?.[0] || { total_weight: 0, total_revenue: 0, total_rolls: 0, avg_efficiency: 0, record_count: 0 };
-}
+   return data?.[0] || { total_weight: 0, total_revenue: 0, total_rolls: 0, avg_efficiency: 0, record_count: 0 };
+ }
+ 
+ export async function getProductionShiftStats(
+   companyId: string,
+   startDate: string,
+   endDate: string,
+   articleId?: string
+ ) {
+   const { data, error } = await supabase.rpc('get_production_shift_stats', {
+     p_company_id: companyId,
+     p_start_date: startDate,
+     p_end_date: endDate,
+     p_article_id: articleId || null
+   });
+   if (error) {
+     console.error('Error fetching shift stats:', error);
+     return [];
+   }
+   return data || [];
+ }
+ 
+ export async function getProductionMachineStats(
+   companyId: string,
+   startDate: string,
+   endDate: string,
+   articleId?: string,
+   limit: number = 5
+ ) {
+   const { data, error } = await supabase.rpc('get_production_machine_stats', {
+     p_company_id: companyId,
+     p_start_date: startDate,
+     p_end_date: endDate,
+     p_article_id: articleId || null,
+     p_limit: limit
+   });
+   if (error) {
+     console.error('Error fetching machine stats:', error);
+     return [];
+   }
+   return data || [];
+ }
