@@ -139,7 +139,7 @@ export default function Reports() {
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
-    setDayRange(30);
+     setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
     setDateFrom(undefined);
     setDateTo(undefined);
@@ -160,23 +160,18 @@ export default function Reports() {
     let data = [...productions];
     const today = new Date();
 
-    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-      // Todo período — no date filter
-    } else if (dateFrom || dateTo) {
-      if (dateFrom) {
-        const startStr = format(dateFrom, 'yyyy-MM-dd');
-        data = data.filter(p => p.date >= startStr);
-      }
-      if (dateTo) {
-        const endStr = format(dateTo, 'yyyy-MM-dd');
-        data = data.filter(p => p.date <= endStr);
-      }
+     const currentFilterDate = customDate ? format(customDate, 'yyyy-MM-dd') : null;
+     const currentFilterDateFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null;
+     const currentFilterDateTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : null;
+ 
+     if (currentFilterDateFrom || currentFilterDateTo) {
+       if (currentFilterDateFrom) data = data.filter(p => p.date >= currentFilterDateFrom);
+       if (currentFilterDateTo) data = data.filter(p => p.date <= currentFilterDateTo);
     } else if (filterMonth !== 'all') {
       data = data.filter(p => p.date.startsWith(filterMonth));
-    } else if (customDate) {
-      const dateStr = format(customDate, 'yyyy-MM-dd');
-      data = data.filter(p => p.date === dateStr);
-    } else {
+     } else if (currentFilterDate) {
+       data = data.filter(p => p.date === currentFilterDate);
+     } else if (dayRange > 0) {
       const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
       const end = format(today, 'yyyy-MM-dd');
       data = data.filter(p => p.date >= start && p.date <= end);
@@ -400,8 +395,8 @@ export default function Reports() {
               <Button
                 key={d}
                 size="sm"
-                variant={dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
-                onClick={() => { setDayRange(d); setCustomDate(undefined); setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); }}
+                 variant={dayRange === d && filterMonth === 'all' && !customDate && !dateFrom && !dateTo ? 'default' : 'outline'}
+                 onClick={() => { setDayRange(d); setFilterMonth('all'); setCustomDate(undefined); setDateFrom(undefined); setDateTo(undefined); }}
               >
                 {d} Dias
               </Button>
