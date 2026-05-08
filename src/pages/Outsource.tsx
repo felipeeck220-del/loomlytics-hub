@@ -1037,13 +1037,13 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                    const timeStr = !isNaN(createdAt.getTime()) ? format(createdAt, 'HH:mm') : '';
                    return (
                    <TableRow key={p.id || idx}>
-                    <TableCell className="whitespace-nowrap text-[10px] text-muted-foreground">
+                    <TableCell className="whitespace-nowrap text-[10px]">
                       <div className="text-xs font-medium text-foreground">{dateStr}</div>
-                      <div className="mt-0.5">
-                        {p.created_by_name ? `Registrado por: ${p.created_by_name}${p.created_by_code ? ` #${p.created_by_code}` : ''}` : '—'}
+                      <div className="text-emerald-600 font-medium mt-0.5">
+                        {p.created_by_name ? `${p.created_by_name}${p.created_by_code ? ` #${p.created_by_code}` : ''}` : '—'}
                       </div>
                       {p.created_at && (
-                        <div>Em: {format(new Date(p.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                        <div className="text-muted-foreground/70">{format(new Date(p.created_at), 'dd/MM/yyyy HH:mm')}</div>
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{p.outsource_company_name || '—'}</TableCell>

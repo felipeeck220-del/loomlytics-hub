@@ -713,14 +713,16 @@ export default function ProductionPage() {
                         <div className="text-[10px] text-muted-foreground flex flex-wrap gap-x-2 items-center">
                           <span className="text-sm font-medium">{group.weaver_name}</span>
                           <span className="opacity-70">-- {isMultiArticle ? 'Artigos' : 'Artigo'}: {articlesDesc}</span>
-                          {firstItem.created_by_name && (
-                            <span className="text-primary font-medium">
-                              Registrado por: {firstItem.created_by_name}{firstItem.created_by_code ? ` #${firstItem.created_by_code}` : ''}
-                            </span>
-                          )}
-                          {firstItem.created_at && (
-                            <span>Em: {format(new Date(firstItem.created_at), 'dd/MM/yyyy HH:mm')}</span>
-                          )}
+                          <div className="flex flex-col">
+                            {firstItem.created_by_name && (
+                              <span className="text-emerald-600 font-medium">
+                                {firstItem.created_by_name}{firstItem.created_by_code ? ` #${firstItem.created_by_code}` : ''}
+                              </span>
+                            )}
+                            {firstItem.created_at && (
+                              <span className="text-muted-foreground/70">{format(new Date(firstItem.created_at), 'dd/MM/yyyy HH:mm')}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
