@@ -2122,6 +2122,23 @@ export type Database = {
               weight_kg: number
             }[]
           }
+      get_defect_stats: {
+        Args: {
+          p_article_id?: string
+          p_company_id: string
+          p_end_date: string
+          p_machine_id?: string
+          p_search_term?: string
+          p_shift?: string
+          p_start_date: string
+          p_weaver_id?: string
+        }
+        Returns: {
+          total_kg: number
+          total_metros: number
+          total_records: number
+        }[]
+      }
       get_production_machine_stats: {
         Args: {
           p_article_id?: string
