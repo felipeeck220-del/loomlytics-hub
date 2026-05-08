@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { fetchProductionsPage } from '@/lib/queries/productionsQueries';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +20,7 @@ import {
   Package, TrendingUp, DollarSign, Gauge, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SHIFT_LABELS, type ShiftType, getCompanyShiftLabels } from '@/types';
+import { SHIFT_LABELS, type ShiftType, type Production, getCompanyShiftLabels } from '@/types';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -40,11 +41,10 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 };
 
 export default function Reports() {
-  const { getProductions, getMachines, getClients, getArticles, shiftSettings, loading } = useSharedCompanyData();
+  const { getProductions, getMachines, getClients, getArticles, shiftSettings, loading, dbCompanyId } = useSharedCompanyData();
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
   const { user } = useAuth();
-  const productions = getProductions();
   const machines = getMachines();
   const clients = getClients();
   const articles = getArticles();
@@ -85,6 +85,56 @@ export default function Reports() {
   const [searchMachine, setSearchMachine] = useState('');
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
+
+  const [productions, setProductions] = useState<Production[]>(getProductions());
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchReportData = useCallback(async () => {
+    if (!dbCompanyId) return;
+    
+    let startDate = '';
+    let endDate = '';
+    const today = new Date();
+
+    if (dateFrom || dateTo) {
+      startDate = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '2000-01-01';
+      endDate = dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd');
+    } else if (filterMonth !== 'all') {
+      startDate = `${filterMonth}-01`;
+      const [y, m] = filterMonth.split('-').map(Number);
+      endDate = format(new Date(y, m, 0), 'yyyy-MM-dd');
+    } else if (customDate) {
+      startDate = endDate = format(customDate, 'yyyy-MM-dd');
+    } else if (dayRange > 0) {
+      startDate = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+      endDate = format(today, 'yyyy-MM-dd');
+    } else {
+      startDate = '2000-01-01';
+      endDate = format(today, 'yyyy-MM-dd');
+    }
+
+    setIsSyncing(true);
+    try {
+      const result = await fetchProductionsPage(dbCompanyId, {
+        startDate,
+        endDate,
+        shift: filterShift === 'all' ? undefined : filterShift as ShiftType,
+        machineId: filterMachine === 'all' ? undefined : filterMachine,
+        articleId: filterArticle === 'all' ? undefined : filterArticle,
+        page: 0,
+        pageSize: 1000,
+      });
+      setProductions(result.items);
+    } catch (err) {
+      console.error('Error fetching report data:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterMachine, filterArticle]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
 
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
@@ -310,7 +360,7 @@ export default function Reports() {
     return `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
   }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
-  if (loading) {
+  if (loading || (isSyncing && productions.length === 0)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -329,9 +379,15 @@ export default function Reports() {
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              <RotateCcw className="h-4 w-4 mr-1" /> Limpar Filtros
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <RotateCcw className="h-4 w-4 mr-1" /> Limpar
+              </Button>
+              <Button variant="outline" size="sm" onClick={fetchReportData} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RotateCcw className="h-4 w-4 mr-1" />}
+                Sincronizar
+              </Button>
+            </div>
           )}
         </div>
       </div>

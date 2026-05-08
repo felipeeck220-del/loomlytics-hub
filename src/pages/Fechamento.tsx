@@ -76,7 +76,7 @@ export default function Fechamento() {
       const [inv, items, prods, arts, yt, op, oc, ys, rs] = await Promise.all([
         fetchAll('invoices', companyId, 'issue_date'),
         fetchAll('invoice_items', companyId, 'created_at'),
-        fetchAll('productions', companyId, 'date'),
+        sb('productions').select('*').eq('company_id', companyId).gte('date', `${selectedMonth}-01`).lte('date', `${selectedMonth}-31`).then((r: any) => r.data || []),
         fetchAll('articles', companyId, 'name'),
         fetchAll('yarn_types', companyId, 'name'),
         fetchAll('outsource_productions', companyId, 'date'),

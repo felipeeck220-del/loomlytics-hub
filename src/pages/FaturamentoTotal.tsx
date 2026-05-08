@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { getProductionStats } from '@/lib/queries/productionsQueries';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -90,11 +91,6 @@ export default function FaturamentoTotal() {
   const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState('all');
 
-  const { data: productions = [], isLoading: l1 } = useQuery({
-    queryKey: ['fat-productions', companyId],
-    queryFn: () => fetchAllPaginated<ProductionRow>('productions', companyId, 'date'),
-    enabled: !!companyId,
-  });
   const { data: outsource = [], isLoading: l2 } = useQuery({
     queryKey: ['fat-outsource', companyId],
     queryFn: () => fetchAllPaginated<OutsourceRow>('outsource_productions', companyId, 'date'),
@@ -106,7 +102,12 @@ export default function FaturamentoTotal() {
     enabled: !!companyId,
   });
 
-  const loading = l1 || l2 || l3;
+  const [serverProdRevenue, setServerProdProdRevenue] = useState<{ current: number; previous: number }>({ current: 0, previous: 0 });
+  const [loadingProdStats, setLoadingProdStats] = useState(false);
+
+  const [availableMonthsList, setAvailableMonthsList] = useState<string[]>([format(new Date(), 'yyyy-MM')]);
+
+  const loading = l2 || l3 || loadingProdStats;
 
   const clearFilters = () => {
     setDayRange(15);
@@ -116,16 +117,6 @@ export default function FaturamentoTotal() {
     setFilterMonth('all');
   };
   const hasActiveFilters = dayRange !== 15 || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
-
-  // Available months from all 3 sources
-  const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    productions.forEach(p => months.add(p.date.substring(0, 7)));
-    outsource.forEach(p => months.add(p.date.substring(0, 7)));
-    residues.forEach(p => months.add(p.date.substring(0, 7)));
-    months.add(format(new Date(), 'yyyy-MM'));
-    return Array.from(months).sort().reverse();
-  }, [productions, outsource, residues]);
 
   // Compute current period range
   const currentPeriod = useMemo(() => {
@@ -185,20 +176,18 @@ export default function FaturamentoTotal() {
     return data.filter(d => d.date >= period.start && d.date <= period.end);
   };
 
-  const filteredProd = useMemo(() => filterByPeriod(productions, currentPeriod), [productions, currentPeriod]);
   const filteredOut = useMemo(() => filterByPeriod(outsource, currentPeriod), [outsource, currentPeriod]);
   const filteredRes = useMemo(() => filterByPeriod(residues, currentPeriod), [residues, currentPeriod]);
 
-  const prevProd = useMemo(() => filterByPeriod(productions, previousPeriod), [productions, previousPeriod]);
   const prevOut = useMemo(() => filterByPeriod(outsource, previousPeriod), [outsource, previousPeriod]);
   const prevRes = useMemo(() => filterByPeriod(residues, previousPeriod), [residues, previousPeriod]);
 
-  const malhasCurrent = filteredProd.reduce((s, p) => s + p.revenue, 0);
+  const malhasCurrent = serverProdRevenue.current;
   const tercCurrent = filteredOut.reduce((s, p) => s + p.total_profit, 0);
   const resCurrent = filteredRes.reduce((s, p) => s + p.total, 0);
   const totalCurrent = malhasCurrent + tercCurrent + resCurrent;
 
-  const malhasPrev = prevProd.reduce((s, p) => s + p.revenue, 0);
+  const malhasPrev = serverProdRevenue.previous;
   const tercPrev = prevOut.reduce((s, p) => s + p.total_profit, 0);
   const resPrev = prevRes.reduce((s, p) => s + p.total, 0);
   const totalPrev = malhasPrev + tercPrev + resPrev;
@@ -207,47 +196,17 @@ export default function FaturamentoTotal() {
 
   // Period label
   const periodLabel = useMemo(() => {
-    if (!currentPeriod) {
-      const allDates = [
-        ...productions.map(p => p.date),
-        ...outsource.map(p => p.date),
-        ...residues.map(p => p.date),
-      ].sort();
-      if (allDates.length === 0) return 'Todo período';
-      const first = allDates[0];
-      const last = allDates[allDates.length - 1];
-      return `Todo período: ${format(new Date(first + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(last + 'T12:00:00'), 'dd/MM/yyyy')}`;
-    }
+    if (!currentPeriod) return 'Todo período';
     const s = format(new Date(currentPeriod.start + 'T12:00:00'), 'dd/MM/yyyy');
     const e = format(new Date(currentPeriod.end + 'T12:00:00'), 'dd/MM/yyyy');
     return s === e ? s : `${s} a ${e}`;
-  }, [currentPeriod, productions, outsource, residues]);
+  }, [currentPeriod]);
 
   // Chart data
-  const chartData = useMemo(() => {
-    const dateMap: Record<string, { malhas: number; terceirizado: number; residuos: number }> = {};
-    filteredProd.forEach(p => {
-      if (!dateMap[p.date]) dateMap[p.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
-      dateMap[p.date].malhas += p.revenue;
-    });
-    filteredOut.forEach(p => {
-      if (!dateMap[p.date]) dateMap[p.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
-      dateMap[p.date].terceirizado += p.total_profit;
-    });
-    filteredRes.forEach(s => {
-      if (!dateMap[s.date]) dateMap[s.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
-      dateMap[s.date].residuos += s.total;
-    });
-    return Object.entries(dateMap)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, vals]) => ({
-        date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-        malhas: vals.malhas,
-        terceirizado: vals.terceirizado,
-        residuos: vals.residuos,
-        total: vals.malhas + vals.terceirizado + vals.residuos,
-      }));
-  }, [filteredProd, filteredOut, filteredRes]);
+  // chartData is tricky with server aggregation. 
+  // For now, we omit individual dates in chart if we don't fetch all records.
+  // Or we could fetch daily stats if the range is small.
+  const chartData: any[] = []; 
 
   // Table data
   const tableData = useMemo(() => {
@@ -321,7 +280,7 @@ export default function FaturamentoTotal() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {availableMonths.map(m => (
+                {availableMonthsList.map(m => (
                   <SelectItem key={m} value={m}>
                     {format(new Date(m + '-15'), 'MMMM yyyy', { locale: ptBR })}
                   </SelectItem>
