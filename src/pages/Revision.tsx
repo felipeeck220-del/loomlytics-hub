@@ -126,26 +126,7 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
     return Array.from(monthSet).sort().reverse();
   }, [defectRecords]);
 
-    const filtered = useMemo(() => {
-      let data = defectRecords;
-      if (filterDateFrom) data = data.filter(d => d.date >= filterDateFrom);
-      if (filterDateTo) data = data.filter(d => d.date <= filterDateTo);
-      if (filterMonth !== 'all' && !filterDateFrom && !filterDateTo) {
-        data = data.filter(d => d.date?.startsWith(filterMonth));
-      }
-      if (filterArticle !== 'all') {
-        data = data.filter(d => d.article_id === filterArticle);
-      }
-      if (searchTerm) {
-        const s = searchTerm.toLowerCase();
-        data = data.filter(d =>
-          (d.machine_name || '').toLowerCase().includes(s) ||
-          (d.article_name || '').toLowerCase().includes(s) ||
-          (d.weaver_name || '').toLowerCase().includes(s)
-        );
-      }
-      return data;
-    }, [defectRecords, filterDateFrom, filterDateTo, filterMonth, filterArticle, searchTerm]);
+   const filtered = defectRecords;
  
    const totalPages = Math.ceil(totalRecords / pageSize);
    const paginatedData = defectRecords;
