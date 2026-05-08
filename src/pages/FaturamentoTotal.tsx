@@ -91,22 +91,42 @@ export default function FaturamentoTotal() {
   const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState('all');
 
-  const { data: outsource = [], isLoading: l2 } = useQuery({
-    queryKey: ['fat-outsource', companyId],
-    queryFn: () => fetchAllPaginated<OutsourceRow>('outsource_productions', companyId, 'date'),
-    enabled: !!companyId,
-  });
-  const { data: residues = [], isLoading: l3 } = useQuery({
-    queryKey: ['fat-residues', companyId],
-    queryFn: () => fetchAllPaginated<ResidueRow>('residue_sales', companyId, 'date'),
-    enabled: !!companyId,
-  });
-
-  const [serverProdRevenue, setServerProdProdRevenue] = useState<{ current: number; previous: number }>({ current: 0, previous: 0 });
-  const [loadingProdStats, setLoadingProdStats] = useState(false);
+  const [outsource, setOutsource] = useState<OutsourceRow[]>([]);
+  const [residues, setResidues] = useState<ResidueRow[]>([]);
+  const [productions, setProductions] = useState<ProductionRow[]>([]);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
 
   const [availableMonthsList, setAvailableMonthsList] = useState<string[]>([]);
 
+  const loadInitialData = useCallback(async () => {
+    if (!companyId) return;
+    setIsLoadingAll(true);
+    try {
+      const [out, res, prod] = await Promise.all([
+        fetchAllPaginated<OutsourceRow>('outsource_productions', companyId, 'date'),
+        fetchAllPaginated<ResidueRow>('residue_sales', companyId, 'date'),
+        fetchAllPaginated<ProductionRow>('productions', companyId, 'date'),
+      ]);
+      setOutsource(out);
+      setResidues(res);
+      setProductions(prod);
+
+      const months = new Set<string>();
+      prod.forEach(p => months.add(p.date.substring(0, 7)));
+      out.forEach(p => months.add(p.date.substring(0, 7)));
+      res.forEach(p => months.add(p.date.substring(0, 7)));
+      months.add(format(new Date(), 'yyyy-MM'));
+      setAvailableMonthsList(Array.from(months).sort().reverse());
+    } catch (err) {
+      console.error('Error loading faturamento data:', err);
+    } finally {
+      setIsLoadingAll(false);
+    }
+  }, [companyId]);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
 
   const clearFilters = () => {
     setDayRange(15);
@@ -170,43 +190,7 @@ export default function FaturamentoTotal() {
     return { start: format(prevStart, 'yyyy-MM-dd'), end: format(prevEnd, 'yyyy-MM-dd') };
   }, [currentPeriod, filterMonth, customDate]);
 
-  const fetchProdStats = useCallback(async () => {
-    if (!companyId || !currentPeriod) {
-      setServerProdProdRevenue({ current: 0, previous: 0 });
-      return;
-    }
-    setLoadingProdStats(true);
-    try {
-      const [curr, prev] = await Promise.all([
-        getProductionStats(companyId, currentPeriod.start, currentPeriod.end),
-        previousPeriod ? getProductionStats(companyId, previousPeriod.start, previousPeriod.end) : Promise.resolve(null),
-      ]);
-      setServerProdProdRevenue({
-        current: curr ? Number(curr.total_revenue) : 0,
-        previous: prev ? Number(prev.total_revenue) : 0,
-      });
-    } catch (err) {
-      console.error('Error fetching production revenue:', err);
-    } finally {
-      setLoadingProdStats(false);
-    }
-  }, [companyId, currentPeriod, previousPeriod]);
-
-  useEffect(() => {
-    fetchProdStats();
-  }, [fetchProdStats]);
-
-  // Initialize available months
-  useEffect(() => {
-    const months = new Set<string>();
-    const today = new Date();
-    for (let i = 0; i < 24; i++) {
-      months.add(format(subMonths(today, i), 'yyyy-MM'));
-    }
-    setAvailableMonthsList(Array.from(months).sort().reverse());
-  }, []);
-
-  const loading = l2 || l3 || loadingProdStats;
+  const loading = isLoadingAll;
 
   const filterByPeriod = <T extends { date: string }>(data: T[], period: { start: string; end: string } | null) => {
     if (!period) return data;
@@ -215,16 +199,18 @@ export default function FaturamentoTotal() {
 
   const filteredOut = useMemo(() => filterByPeriod(outsource, currentPeriod), [outsource, currentPeriod]);
   const filteredRes = useMemo(() => filterByPeriod(residues, currentPeriod), [residues, currentPeriod]);
+  const filteredProd = useMemo(() => filterByPeriod(productions, currentPeriod), [productions, currentPeriod]);
 
   const prevOut = useMemo(() => filterByPeriod(outsource, previousPeriod), [outsource, previousPeriod]);
   const prevRes = useMemo(() => filterByPeriod(residues, previousPeriod), [residues, previousPeriod]);
+  const prevProd = useMemo(() => filterByPeriod(productions, previousPeriod), [productions, previousPeriod]);
 
-  const malhasCurrent = serverProdRevenue.current;
+  const malhasCurrent = filteredProd.reduce((s, p) => s + p.revenue, 0);
   const tercCurrent = filteredOut.reduce((s, p) => s + p.total_profit, 0);
   const resCurrent = filteredRes.reduce((s, p) => s + p.total, 0);
   const totalCurrent = malhasCurrent + tercCurrent + resCurrent;
 
-  const malhasPrev = serverProdRevenue.previous;
+  const malhasPrev = prevProd.reduce((s, p) => s + p.revenue, 0);
   const tercPrev = prevOut.reduce((s, p) => s + p.total_profit, 0);
   const resPrev = prevRes.reduce((s, p) => s + p.total, 0);
   const totalPrev = malhasPrev + tercPrev + resPrev;
