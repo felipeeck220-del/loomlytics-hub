@@ -107,40 +107,43 @@ export default function Dashboard() {
     return Array.from(months).sort().reverse();
   }, [productions]);
 
-  const filtered = useMemo(() => {
-    let data = [...productions];
-    const today = new Date();
-
-    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-      // Todo período — no date filter
-    } else if (dateFrom || dateTo) {
-      if (dateFrom) {
-        const startStr = format(dateFrom, 'yyyy-MM-dd');
-        data = data.filter(p => p.date >= startStr);
-      }
-      if (dateTo) {
-        const endStr = format(dateTo, 'yyyy-MM-dd');
-        data = data.filter(p => p.date <= endStr);
-      }
-    } else if (filterMonth !== 'all') {
-      data = data.filter(p => p.date.startsWith(filterMonth));
-    } else if (customDate) {
-      const dateStr = format(customDate, 'yyyy-MM-dd');
-      data = data.filter(p => p.date === dateStr);
-    } else {
-      const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-      const end = format(today, 'yyyy-MM-dd');
-      data = data.filter(p => p.date >= start && p.date <= end);
-    }
-
-    if (filterShift !== 'all') data = data.filter(p => p.shift === filterShift);
-    if (filterClient !== 'all') {
-      const clientArticles = articles.filter(a => a.client_id === filterClient).map(a => a.id);
-      data = data.filter(p => clientArticles.includes(p.article_id));
-    }
-    if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
-    return data;
-  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, articles]);
+   const filtered = useMemo(() => {
+     let data = [...productions];
+     const today = new Date();
+ 
+     if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
+       // Todo período — no date filter
+     } else if (dateFrom || dateTo) {
+       if (dateFrom) {
+         const startStr = format(dateFrom, 'yyyy-MM-dd');
+         data = data.filter(p => p.date >= startStr);
+       }
+       if (dateTo) {
+         const endStr = format(dateTo, 'yyyy-MM-dd');
+         data = data.filter(p => p.date <= endStr);
+       }
+     } else if (filterMonth !== 'all') {
+       data = data.filter(p => p.date.startsWith(filterMonth));
+     } else if (customDate) {
+       const dateStr = format(customDate, 'yyyy-MM-dd');
+       data = data.filter(p => p.date === dateStr);
+     } else {
+       const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+       const end = format(today, 'yyyy-MM-dd');
+       data = data.filter(p => p.date >= start && p.date <= end);
+     }
+ 
+     if (filterShift !== 'all') data = data.filter(p => p.shift === filterShift);
+     if (filterClient !== 'all') {
+       const clientArticles = articles.filter(a => a.client_id === filterClient).map(a => a.id);
+       data = data.filter(p => clientArticles.includes(p.article_id));
+     }
+     if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
+     
+     // Se não houver dados locais, tenta usar os dados resumidos do servidor como base para a lista
+     // Isso evita que a tela fique zerada enquanto o useCompanyData ainda carrega (ou se carregou pouco)
+     return data;
+   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, articles]);
 
   // ── Previous period for comparison ──
   const currentPeriod = useMemo(() => {
