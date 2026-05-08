@@ -486,7 +486,7 @@ export default function RevisionPage() {
              {paginatedData.length === 0 ? (
                <TableRow>
                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                   Nenhuma falha registrada{filterDate ? ' nesta data' : filterMonth ? ' neste mês' : ''}
+                    Nenhuma falha registrada{(filterDateFrom || filterDateTo) ? ' neste período' : filterMonth !== 'all' ? ' neste mês' : ''}
                  </TableCell>
                </TableRow>
              ) : paginatedData.map(d => (
