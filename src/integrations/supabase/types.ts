@@ -2122,6 +2122,37 @@ export type Database = {
               weight_kg: number
             }[]
           }
+      get_production_machine_stats: {
+        Args: {
+          p_article_id?: string
+          p_company_id: string
+          p_end_date: string
+          p_limit?: number
+          p_start_date: string
+        }
+        Returns: {
+          avg_efficiency: number
+          machine_id: string
+          machine_name: string
+          record_count: number
+          total_rolls: number
+          total_weight: number
+        }[]
+      }
+      get_production_shift_stats: {
+        Args: {
+          p_article_id?: string
+          p_company_id: string
+          p_end_date: string
+          p_start_date: string
+        }
+        Returns: {
+          shift: string
+          total_revenue: number
+          total_rolls: number
+          total_weight: number
+        }[]
+      }
       get_production_stats:
         | {
             Args: {

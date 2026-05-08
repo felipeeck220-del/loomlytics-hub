@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getProductionStats } from '@/lib/queries/productionsQueries';
+ import { getProductionStats, getProductionShiftStats, getProductionMachineStats } from '@/lib/queries/productionsQueries';
 import { useNavigate } from 'react-router-dom';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { SHIFT_LABELS, SHIFT_MINUTES, type ShiftType, getCompanyShiftMinutes, getCompanyShiftLabels } from '@/types';
@@ -207,36 +207,43 @@ export default function Dashboard() {
      avg_efficiency: number;
      record_count: number;
    }
-   const [serverStats, setServerStats] = useState<DashboardStats | null>(null);
-   const [prevServerStats, setPrevServerStats] = useState<DashboardStats | null>(null);
-  const [loadingStats, setLoadingStats] = useState(false);
-
-    const fetchServerStats = useCallback(async () => {
-      if (!dbCompanyId || !currentPeriod) return;
-      setLoadingStats(true);
-      try {
-        const [stats, pStats] = await Promise.all([
-          getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
+    const [serverStats, setServerStats] = useState<DashboardStats | null>(null);
+    const [prevServerStats, setPrevServerStats] = useState<DashboardStats | null>(null);
+    const [serverShiftData, setServerShiftData] = useState<any[]>([]);
+    const [serverMachinePerf, setServerMachinePerf] = useState<any[]>([]);
+    const [loadingStats, setLoadingStats] = useState(false);
+ 
+     const fetchServerStats = useCallback(async () => {
+       if (!dbCompanyId || !currentPeriod) return;
+       setLoadingStats(true);
+       try {
+         const [stats, pStats, sShiftData, sMachineData] = await Promise.all([
+           getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
              shift: filterShift === 'all' ? undefined : filterShift,
              articleId: filterArticle === 'all' ? undefined : filterArticle,
-             machineId: undefined // Could add filterMachine if needed
            }),
-          previousPeriod 
+           previousPeriod 
              ? getProductionStats(dbCompanyId, previousPeriod.start, previousPeriod.end, {
                  shift: filterShift === 'all' ? undefined : filterShift,
                  articleId: filterArticle === 'all' ? undefined : filterArticle,
-                 machineId: undefined
                })
-            : Promise.resolve(null)
-        ]);
-        setServerStats(stats);
-        setPrevServerStats(pStats);
-      } catch (err) {
-        console.error('Error fetching dashboard stats:', err);
-      } finally {
-        setLoadingStats(false);
-      }
-    }, [dbCompanyId, currentPeriod, previousPeriod, filterShift, filterArticle]);
+             : Promise.resolve(null),
+           // Shift and Machine stats only if no specific shift filter (or always, for visualization)
+           getProductionShiftStats(dbCompanyId, currentPeriod.start, currentPeriod.end, 
+             filterArticle === 'all' ? undefined : filterArticle),
+           getProductionMachineStats(dbCompanyId, currentPeriod.start, currentPeriod.end,
+             filterArticle === 'all' ? undefined : filterArticle, 5)
+         ]);
+         setServerStats(stats);
+         setPrevServerStats(pStats);
+         setServerShiftData(sShiftData);
+         setServerMachinePerf(sMachineData);
+       } catch (err) {
+         console.error('Error fetching dashboard stats:', err);
+       } finally {
+         setLoadingStats(false);
+       }
+     }, [dbCompanyId, currentPeriod, previousPeriod, filterShift, filterArticle]);
  
    useEffect(() => {
      fetchServerStats();
@@ -311,26 +318,55 @@ export default function Dashboard() {
   const revenuePerHour = calendarHours > 0 ? totalRevenue / calendarHours : 0;
   const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
 
-  const shiftData = (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
-    const sp = filtered.filter(p => p.shift === shift);
-    return {
-      shift,
-      label: companyShiftLabels[shift].split(' (')[0],
-      rolls: sp.reduce((s, p) => s + p.rolls_produced, 0),
-      kg: sp.reduce((s, p) => s + p.weight_kg, 0),
-      revenue: sp.reduce((s, p) => s + p.revenue, 0),
-    };
-  });
-
-  const machinePerf = machines.map(m => {
-    const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
-    const mpNonZero = mp.filter(p => p.rolls_produced > 0);
-    const eff = mpNonZero.length ? mpNonZero.reduce((s, p) => s + p.efficiency, 0) / mpNonZero.length : 0;
-    const avgTargetEff = mpNonZero.length > 0
-      ? mpNonZero.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mpNonZero.length
-      : 80;
-    return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length, targetEfficiency: avgTargetEff };
-  }).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
+   const shiftData = useMemo(() => {
+     if (serverShiftData.length > 0) {
+       return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
+         const s = serverShiftData.find(d => d.shift === shift);
+         return {
+           shift,
+           label: companyShiftLabels[shift].split(' (')[0],
+           rolls: s ? Number(s.total_rolls) : 0,
+           kg: s ? Number(s.total_weight) : 0,
+           revenue: s ? Number(s.total_revenue) : 0,
+         };
+       });
+     }
+     return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
+       const sp = filtered.filter(p => p.shift === shift);
+       return {
+         shift,
+         label: companyShiftLabels[shift].split(' (')[0],
+         rolls: sp.reduce((s, p) => s + p.rolls_produced, 0),
+         kg: sp.reduce((s, p) => s + p.weight_kg, 0),
+         revenue: sp.reduce((s, p) => s + p.revenue, 0),
+       };
+     });
+   }, [serverShiftData, filtered, companyShiftLabels]);
+ 
+   const machinePerf = useMemo(() => {
+     if (serverMachinePerf.length > 0) {
+       return serverMachinePerf.map(m => {
+         const machine = machines.find(mach => mach.id === m.machine_id);
+         return {
+           name: m.machine_name || machine?.name || 'M-?',
+           rolls: Number(m.total_rolls),
+           kg: Number(m.total_weight),
+           efficiency: Number(m.avg_efficiency),
+           records: Number(m.record_count),
+           targetEfficiency: 80 // Simplified for server stats
+         };
+       });
+     }
+     return machines.map(m => {
+       const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
+       const mpNonZero = mp.filter(p => p.rolls_produced > 0);
+       const eff = mpNonZero.length ? mpNonZero.reduce((s, p) => s + p.efficiency, 0) / mpNonZero.length : 0;
+       const avgTargetEff = mpNonZero.length > 0
+         ? mpNonZero.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mpNonZero.length
+         : 80;
+       return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length, targetEfficiency: avgTargetEff };
+     }).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
+   }, [serverMachinePerf, filtered, machines, articles]);
 
   const trendData = useMemo(() => {
     const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
