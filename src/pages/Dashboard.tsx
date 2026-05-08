@@ -39,36 +39,7 @@ export default function Dashboard() {
   const { canSeeFinancial } = usePermissions();
   const companyShiftMinutes = useMemo(() => getCompanyShiftMinutes(shiftSettings), [shiftSettings]);
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
-  const [productions, setProductions] = useState(getProductions());
-  const [serverStats, setServerStats] = useState<{
-    total_weight: number;
-    total_revenue: number;
-    total_rolls: number;
-    avg_efficiency: number;
-    record_count: number;
-  } | null>(null);
-  const [loadingStats, setLoadingStats] = useState(false);
-
-  const fetchDashboardStats = useCallback(async () => {
-    if (!dbCompanyId || !currentPeriod) return;
-    setLoadingStats(true);
-    try {
-      const stats = await getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
-        shift: filterShift === 'all' ? undefined : filterShift,
-        articleId: filterArticle === 'all' ? undefined : filterArticle,
-      });
-      setServerStats(stats);
-    } catch (err) {
-      console.error('Error fetching dashboard stats:', err);
-    } finally {
-      setLoadingStats(false);
-    }
-  }, [dbCompanyId, currentPeriod, filterShift, filterArticle]);
-
-  useEffect(() => {
-    fetchDashboardStats();
-  }, [fetchDashboardStats]);
-
+  const productions = getProductions();
   const machines = getMachines();
   const clients = getClients();
   const articles = getArticles();
@@ -229,6 +200,37 @@ export default function Dashboard() {
   }, [productions, previousPeriod, filterShift, filterClient, filterArticle, articles]);
 
   const showComparison = currentPeriod !== null;
+
+  const [serverStats, setServerStats] = useState<{
+    total_weight: number;
+    total_revenue: number;
+    total_rolls: number;
+    avg_efficiency: number;
+    record_count: number;
+  } | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  const fetchDashboardStats = useCallback(async () => {
+    if (!dbCompanyId || !currentPeriod) return;
+    setLoadingStats(true);
+    try {
+      const stats = await getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
+        shift: filterShift === 'all' ? undefined : filterShift,
+        articleId: filterArticle === 'all' ? undefined : filterArticle,
+      });
+      setServerStats(stats);
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [dbCompanyId, currentPeriod, filterShift, filterArticle]);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [fetchDashboardStats]);
+
+  const nonZeroFiltered = useMemo(() => filtered.filter(p => p.rolls_produced > 0), [filtered]);
 
   const totalRolls = serverStats ? Number(serverStats.total_rolls) : filtered.reduce((s, p) => s + p.rolls_produced, 0);
   const totalWeight = serverStats ? Number(serverStats.total_weight) : filtered.reduce((s, p) => s + p.weight_kg, 0);
