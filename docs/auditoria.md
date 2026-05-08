@@ -362,4 +362,4 @@ Além do `audit_logs`, algumas tabelas possuem colunas de autoria direta:
 
 ---
 
-*Última atualização: 08/05/2026 11:00 (Brasília)*
+ *Última atualização: 08/05/2026 11:25 (Brasília)*

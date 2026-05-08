@@ -1064,12 +1064,12 @@ export default function Invoices() {
                             <TableCell>
                               <Badge className={cn('text-[10px]', STATUS_COLORS[inv.status])}>{STATUS_LABELS[inv.status]}</Badge>
                             </TableCell>
-                            <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
-                              <div className="font-medium text-xs text-primary">
-                                {inv.created_by_name ? `Registrado por: ${inv.created_by_name}${inv.created_by_code ? ` #${inv.created_by_code}` : ''}` : '—'}
+                            <TableCell className="text-[10px] whitespace-nowrap">
+                              <div className="font-medium text-xs text-emerald-600">
+                                {inv.created_by_name ? `${inv.created_by_name}${inv.created_by_code ? ` #${inv.created_by_code}` : ''}` : '—'}
                               </div>
                               {inv.created_at && (
-                                <div>Em: {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                                <div className="text-muted-foreground/70">{format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}</div>
                               )}
                             </TableCell>
                             <TableCell className="text-right">
