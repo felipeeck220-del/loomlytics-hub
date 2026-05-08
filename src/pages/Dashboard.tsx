@@ -200,34 +200,41 @@ export default function Dashboard() {
   const showComparison = currentPeriod !== null;
 
 
-  // Previous period KPIs
-  const prevTotalRolls = prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
-  const prevTotalWeight = prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
-  const prevTotalRevenue = prevFiltered.reduce((s, p) => s + p.revenue, 0);
-  const [serverStats, setServerStats] = useState<{
-    total_weight: number;
-    total_revenue: number;
-    total_rolls: number;
-    avg_efficiency: number;
-    record_count: number;
-  } | null>(null);
+   interface DashboardStats {
+     total_weight: number;
+     total_revenue: number;
+     total_rolls: number;
+     avg_efficiency: number;
+     record_count: number;
+   }
+   const [serverStats, setServerStats] = useState<DashboardStats | null>(null);
+   const [prevServerStats, setPrevServerStats] = useState<DashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
 
-   const fetchServerStats = useCallback(async () => {
-     if (!dbCompanyId || !currentPeriod) return;
-     setLoadingStats(true);
-     try {
-       const stats = await getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
-         shift: filterShift === 'all' ? undefined : filterShift,
-         articleId: filterArticle === 'all' ? undefined : filterArticle
-       });
-       setServerStats(stats);
-     } catch (err) {
-       console.error('Error fetching dashboard stats:', err);
-     } finally {
-       setLoadingStats(false);
-     }
-   }, [dbCompanyId, currentPeriod, filterShift, filterArticle]);
+    const fetchServerStats = useCallback(async () => {
+      if (!dbCompanyId || !currentPeriod) return;
+      setLoadingStats(true);
+      try {
+        const [stats, pStats] = await Promise.all([
+          getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
+            shift: filterShift === 'all' ? undefined : filterShift,
+            articleId: filterArticle === 'all' ? undefined : filterArticle
+          }),
+          previousPeriod 
+            ? getProductionStats(dbCompanyId, previousPeriod.start, previousPeriod.end, {
+                shift: filterShift === 'all' ? undefined : filterShift,
+                articleId: filterArticle === 'all' ? undefined : filterArticle
+              })
+            : Promise.resolve(null)
+        ]);
+        setServerStats(stats);
+        setPrevServerStats(pStats);
+      } catch (err) {
+        console.error('Error fetching dashboard stats:', err);
+      } finally {
+        setLoadingStats(false);
+      }
+    }, [dbCompanyId, currentPeriod, previousPeriod, filterShift, filterArticle]);
  
    useEffect(() => {
      fetchServerStats();
@@ -242,8 +249,12 @@ export default function Dashboard() {
    const avgEfficiency = serverStats ? Number(serverStats.avg_efficiency) : (nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0);
    const totalRecordCount = serverStats ? Number(serverStats.record_count) : filtered.length;
 
-  const nonZeroPrev = prevFiltered.filter(p => p.rolls_produced > 0);
-  const prevAvgEfficiency = nonZeroPrev.length ? nonZeroPrev.reduce((s, p) => s + p.efficiency, 0) / nonZeroPrev.length : 0;
+   // Previous period KPIs - use server stats if available
+   const nonZeroPrev = prevFiltered.filter(p => p.rolls_produced > 0);
+   const prevTotalRolls = prevServerStats ? Number(prevServerStats.total_rolls) : prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
+   const prevTotalWeight = prevServerStats ? Number(prevServerStats.total_weight) : prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
+   const prevTotalRevenue = prevServerStats ? Number(prevServerStats.total_revenue) : prevFiltered.reduce((s, p) => s + p.revenue, 0);
+   const prevAvgEfficiency = prevServerStats ? Number(prevServerStats.avg_efficiency) : (nonZeroPrev.length ? nonZeroPrev.reduce((s, p) => s + p.efficiency, 0) / nonZeroPrev.length : 0);
 
   // Calculate weighted average target efficiency from articles used in filtered productions
   const avgTargetEfficiency = useMemo(() => {
