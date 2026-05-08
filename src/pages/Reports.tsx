@@ -86,7 +86,6 @@ export default function Reports() {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  const { getProductions } = useSharedCompanyData();
   const productions = getProductions();
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -157,6 +156,7 @@ export default function Reports() {
   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
   const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
+  const nonZeroFiltered = filtered.filter(p => p.rolls_produced > 0);
   const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
   const uniqueDays = new Set(filtered.map(p => p.date)).size || 1;
 
