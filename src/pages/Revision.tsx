@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
  import { Plus, CalendarIcon, Trash2, Loader2, AlertTriangle, Search, Scale, Ruler, Pencil, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
  import { SHIFT_LABELS, type ShiftType, type DefectRecord, type MeasureType, getCompanyShiftLabels } from '@/types';
