@@ -545,8 +545,13 @@ export default function ProductionPage() {
     setFilterDate(''); setFilterMachine(''); setFilterArticle(''); setSearchQuery('');
   };
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-3 text-muted-foreground">Carregando...</span></div>;
+  if (loading || (isSyncing && serverProductions.length === 0)) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-3 text-muted-foreground">Carregando produções...</span>
+      </div>
+    );
   }
 
   return (
@@ -580,7 +585,7 @@ export default function ProductionPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-end">
             <div className="space-y-1">
               <Label className="text-sm">Data</Label>
               <Input type="date" min={getDateLimits().minDate} max={getDateLimits().maxDate} value={filterDate} onChange={e => setFilterDate(e.target.value)} />
@@ -605,9 +610,20 @@ export default function ProductionPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" onClick={clearFilters}>
-              <X className="h-4 w-4 mr-1" /> Limpar Filtros
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button variant="outline" onClick={clearFilters} className="w-full">
+                <X className="h-4 w-4 mr-1" /> Limpar
+              </Button>
+              <Button 
+                variant="default" 
+                onClick={fetchProductionData} 
+                disabled={isSyncing} 
+                className="w-full btn-gradient"
+              >
+                {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                Sincronizar
+              </Button>
+            </div>
           </div>
 
           {hasActiveFilters && (
