@@ -37,7 +37,8 @@ export default function RevisionPage() {
   const [editingRecord, setEditingRecord] = useState<DefectRecord | null>(null);
   const [saving, setSaving] = useState(false);
    const [searchTerm, setSearchTerm] = useState('');
-   const [filterDate, setFilterDate] = useState('');
+    const [filterDateFrom, setFilterDateFrom] = useState('');
+    const [filterDateTo, setFilterDateTo] = useState('');
     const [filterMonth, setFilterMonth] = useState<string>('all');
     const [filterArticle, setFilterArticle] = useState<string>('all');
    const [currentPage, setCurrentPage] = useState(1);
@@ -94,21 +95,26 @@ export default function RevisionPage() {
     return Array.from(monthSet).sort().reverse();
   }, [defectRecords]);
 
-   const filtered = useMemo(() => {
-     let data = defectRecords;
-     if (filterDate) data = data.filter(d => d.date === filterDate);
-      if (filterMonth !== 'all' && !filterDate) data = data.filter(d => d.date?.startsWith(filterMonth));
-      if (filterArticle !== 'all') data = data.filter(d => d.article_id === filterArticle);
-     if (searchTerm) {
-       const s = searchTerm.toLowerCase();
-       data = data.filter(d =>
-         (d.machine_name || '').toLowerCase().includes(s) ||
-         (d.article_name || '').toLowerCase().includes(s) ||
-         (d.weaver_name || '').toLowerCase().includes(s)
-       );
-     }
-     return data;
-   }, [defectRecords, filterDate, filterMonth, searchTerm]);
+    const filtered = useMemo(() => {
+      let data = defectRecords;
+      if (filterDateFrom) data = data.filter(d => d.date >= filterDateFrom);
+      if (filterDateTo) data = data.filter(d => d.date <= filterDateTo);
+      if (filterMonth !== 'all' && !filterDateFrom && !filterDateTo) {
+        data = data.filter(d => d.date?.startsWith(filterMonth));
+      }
+      if (filterArticle !== 'all') {
+        data = data.filter(d => d.article_id === filterArticle);
+      }
+      if (searchTerm) {
+        const s = searchTerm.toLowerCase();
+        data = data.filter(d =>
+          (d.machine_name || '').toLowerCase().includes(s) ||
+          (d.article_name || '').toLowerCase().includes(s) ||
+          (d.weaver_name || '').toLowerCase().includes(s)
+        );
+      }
+      return data;
+    }, [defectRecords, filterDateFrom, filterDateTo, filterMonth, filterArticle, searchTerm]);
  
    const totalPages = Math.ceil(filtered.length / pageSize);
    const paginatedData = useMemo(() => {
@@ -118,7 +124,7 @@ export default function RevisionPage() {
  
     useEffect(() => {
       setCurrentPage(1);
-    }, [searchTerm, filterDate, filterMonth, filterArticle]);
+    }, [searchTerm, filterDateFrom, filterDateTo, filterMonth, filterArticle]);
    const exportToPdf = async () => {
      const { default: jsPDF } = await import('jspdf');
      const pdf = new jsPDF();
@@ -131,8 +137,8 @@ export default function RevisionPage() {
      
      pdf.setFontSize(10);
      pdf.setTextColor(100, 100, 100);
-     const periodLabel = filterDate 
-       ? `Data: ${format(new Date(filterDate + 'T12:00:00'), 'dd/MM/yyyy')}`
+     const periodLabel = (filterDateFrom || filterDateTo)
+       ? `Período: ${filterDateFrom ? format(new Date(filterDateFrom + 'T12:00:00'), 'dd/MM/yyyy') : ''} até ${filterDateTo ? format(new Date(filterDateTo + 'T12:00:00'), 'dd/MM/yyyy') : ''}`
        : filterMonth !== 'all' 
          ? `Mês: ${formatMonthLabel(filterMonth)}`
          : 'Período: Total';
@@ -379,26 +385,50 @@ export default function RevisionPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="gap-2 justify-start min-w-[180px]">
-              <CalendarIcon className="h-4 w-4" />
-              {filterDate ? format(new Date(filterDate + 'T12:00:00'), 'dd/MM/yyyy') : 'Todas as datas'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={filterDate ? new Date(filterDate + 'T12:00:00') : undefined}
-              onSelect={d => { setFilterDate(d ? format(d, 'yyyy-MM-dd') : ''); if (d) setFilterMonth(''); }}
-              locale={ptBR}
-              className="p-3 pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-
-        <Select value={filterMonth} onValueChange={v => { setFilterMonth(v); if (v !== 'all') setFilterDate(''); }}>
+       <div className="flex flex-wrap gap-3 items-end">
+         <div className="space-y-1.5">
+           <Label className="text-xs">De</Label>
+           <Popover>
+             <PopoverTrigger asChild>
+               <Button variant="outline" size="sm" className="gap-2 justify-start w-[140px]">
+                 <CalendarIcon className="h-3 w-3" />
+                 {filterDateFrom ? format(new Date(filterDateFrom + 'T12:00:00'), 'dd/MM/yy') : 'Início'}
+               </Button>
+             </PopoverTrigger>
+             <PopoverContent className="w-auto p-0" align="start">
+               <Calendar
+                 mode="single"
+                 selected={filterDateFrom ? new Date(filterDateFrom + 'T12:00:00') : undefined}
+                 onSelect={d => { setFilterDateFrom(d ? format(d, 'yyyy-MM-dd') : ''); if (d) setFilterMonth('all'); }}
+                 locale={ptBR}
+                 className="p-3 pointer-events-auto"
+               />
+             </PopoverContent>
+           </Popover>
+         </div>
+ 
+         <div className="space-y-1.5">
+           <Label className="text-xs">Até</Label>
+           <Popover>
+             <PopoverTrigger asChild>
+               <Button variant="outline" size="sm" className="gap-2 justify-start w-[140px]">
+                 <CalendarIcon className="h-3 w-3" />
+                 {filterDateTo ? format(new Date(filterDateTo + 'T12:00:00'), 'dd/MM/yy') : 'Fim'}
+               </Button>
+             </PopoverTrigger>
+             <PopoverContent className="w-auto p-0" align="start">
+               <Calendar
+                 mode="single"
+                 selected={filterDateTo ? new Date(filterDateTo + 'T12:00:00') : undefined}
+                 onSelect={d => { setFilterDateTo(d ? format(d, 'yyyy-MM-dd') : ''); if (d) setFilterMonth('all'); }}
+                 locale={ptBR}
+                 className="p-3 pointer-events-auto"
+               />
+             </PopoverContent>
+           </Popover>
+         </div>
+ 
+         <Select value={filterMonth} onValueChange={v => { setFilterMonth(v); if (v !== 'all') { setFilterDateFrom(''); setFilterDateTo(''); } }}>
           <SelectTrigger className="min-w-[150px] w-auto">
             <SelectValue placeholder="Mês" />
           </SelectTrigger>
@@ -430,8 +460,8 @@ export default function RevisionPage() {
           <FileText className="h-4 w-4" /> Exportar PDF
         </Button>
 
-        {(filterDate || filterMonth !== 'all' || filterArticle !== 'all') && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterDate(''); setFilterMonth('all'); setFilterArticle('all'); }}>Limpar filtros</Button>
+        {(filterDateFrom || filterDateTo || filterMonth !== 'all' || filterArticle !== 'all') && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterDateFrom(''); setFilterDateTo(''); setFilterMonth('all'); setFilterArticle('all'); }}>Limpar filtros</Button>
         )}
       </div>
 
@@ -456,7 +486,7 @@ export default function RevisionPage() {
              {paginatedData.length === 0 ? (
                <TableRow>
                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                   Nenhuma falha registrada{filterDate ? ' nesta data' : filterMonth ? ' neste mês' : ''}
+                    Nenhuma falha registrada{(filterDateFrom || filterDateTo) ? ' neste período' : filterMonth !== 'all' ? ' neste mês' : ''}
                  </TableCell>
                </TableRow>
              ) : paginatedData.map(d => (
