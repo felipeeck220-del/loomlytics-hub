@@ -153,11 +153,11 @@ export function useCompanyData() {
         fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
         fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
-          fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
+           Promise.resolve([]), // productions (server-side)
           sb('machine_logs').select('*').order('started_at', { ascending: false }).limit(200).then(r => r.data || []),
         fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
         sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
-         sb('defect_records').select('*').eq('company_id', companyId).order('date', { ascending: false }).limit(200),
+          Promise.resolve({ data: [] }), // defect_records (server-side)
          fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code'),
          fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false),
       ]);
