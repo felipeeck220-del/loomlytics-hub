@@ -1496,4 +1496,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
     - **08/05/2026 11:45 (Brasília)** — **PENTE FINO — Auditoria e Padronização:** (1) Revisão técnica completa em todos os módulos para garantir que nenhum resquício dos prefixos "Registrado por:" ou "Em:" permanecesse nas modais de visualização; (2) Padronização da cor verde (`text-emerald-600`) estendida para as informações de autoria dentro dos cards de detalhes da Produção e Invoices; (3) Verificação de integridade dos campos `created_at` e `created_by` no banco de dados para evitar inconsistências em novos registros.
 
-    *Última atualização: 08/05/2026 11:45 (Brasília)*
+ 
+     - **08/05/2026 12:55 (Brasília)** — **DASHBOARD — Correção de KPIs:** (1) Corrigido bug onde o rodapé de "Rolos" exibia "0 registros" devido à paginação server-side; (2) Implementado uso do campo `record_count` retornado pelo RPC `get_production_stats` para exibir o total correto de registros do período mesmo sem baixá-los para o cliente.
+ 
+     *Última atualização: 08/05/2026 12:55 (Brasília)*
