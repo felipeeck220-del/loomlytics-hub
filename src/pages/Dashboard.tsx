@@ -201,6 +201,11 @@ export default function Dashboard() {
 
   const showComparison = currentPeriod !== null;
 
+
+  // Previous period KPIs
+  const prevTotalRolls = prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
+  const prevTotalWeight = prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
+  const prevTotalRevenue = prevFiltered.reduce((s, p) => s + p.revenue, 0);
   const [serverStats, setServerStats] = useState<{
     total_weight: number;
     total_revenue: number;
@@ -237,10 +242,6 @@ export default function Dashboard() {
   const totalRevenue = serverStats ? Number(serverStats.total_revenue) : filtered.reduce((s, p) => s + p.revenue, 0);
   const avgEfficiency = serverStats ? Number(serverStats.avg_efficiency) : (nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0);
 
-  // Previous period KPIs
-  const prevTotalRolls = prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
-  const prevTotalWeight = prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
-  const prevTotalRevenue = prevFiltered.reduce((s, p) => s + p.revenue, 0);
   const nonZeroPrev = prevFiltered.filter(p => p.rolls_produced > 0);
   const prevAvgEfficiency = nonZeroPrev.length ? nonZeroPrev.reduce((s, p) => s + p.efficiency, 0) / nonZeroPrev.length : 0;
 
