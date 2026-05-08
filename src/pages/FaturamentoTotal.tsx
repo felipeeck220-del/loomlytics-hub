@@ -280,7 +280,7 @@ export default function FaturamentoTotal() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {availableMonths.map(m => (
+                {availableMonthsList.map(m => (
                   <SelectItem key={m} value={m}>
                     {format(new Date(m + '-15'), 'MMMM yyyy', { locale: ptBR })}
                   </SelectItem>
