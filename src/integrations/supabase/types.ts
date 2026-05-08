@@ -2188,6 +2188,22 @@ export type Database = {
               total_weight: number
             }[]
           }
+      get_production_trend_stats: {
+        Args: {
+          p_article_id?: string
+          p_company_id: string
+          p_end_date: string
+          p_shift?: string
+          p_start_date: string
+        }
+        Returns: {
+          avg_efficiency: number
+          date: string
+          total_revenue: number
+          total_rolls: number
+          total_weight: number
+        }[]
+      }
       get_user_companies: {
         Args: never
         Returns: {
