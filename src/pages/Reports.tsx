@@ -360,7 +360,7 @@ export default function Reports() {
     return `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
   }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
-  if (loading) {
+  if (loading || (isSyncing && productions.length === 0)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -379,9 +379,15 @@ export default function Reports() {
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              <RotateCcw className="h-4 w-4 mr-1" /> Limpar Filtros
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <RotateCcw className="h-4 w-4 mr-1" /> Limpar
+              </Button>
+              <Button variant="outline" size="sm" onClick={fetchReportData} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RotateCcw className="h-4 w-4 mr-1" />}
+                Sincronizar
+              </Button>
+            </div>
           )}
         </div>
       </div>
