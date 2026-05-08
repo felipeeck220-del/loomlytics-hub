@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { getProductionStats } from '@/lib/queries/productionsQueries';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -90,11 +91,33 @@ export default function FaturamentoTotal() {
   const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState('all');
 
-  const { data: productions = [], isLoading: l1 } = useQuery({
-    queryKey: ['fat-productions', companyId],
-    queryFn: () => fetchAllPaginated<ProductionRow>('productions', companyId, 'date'),
-    enabled: !!companyId,
-  });
+  const [serverProdRevenue, setServerProdProdRevenue] = useState<{ current: number; previous: number }>({ current: 0, previous: 0 });
+  const [loadingProdStats, setLoadingProdStats] = useState(false);
+
+  const fetchProductionRevenues = useCallback(async () => {
+    if (!companyId || !currentPeriod) return;
+    setLoadingProdStats(true);
+    try {
+      const statsCurrent = await getProductionStats(companyId, currentPeriod.start, currentPeriod.end);
+      let prevRevenue = 0;
+      if (previousPeriod) {
+        const statsPrev = await getProductionStats(companyId, previousPeriod.start, previousPeriod.end);
+        prevRevenue = Number(statsPrev.total_revenue);
+      }
+      setServerProdProdRevenue({ 
+        current: Number(statsCurrent.total_revenue), 
+        previous: prevRevenue 
+      });
+    } catch (err) {
+      console.error('Error fetching production revenues:', err);
+    } finally {
+      setLoadingProdStats(false);
+    }
+  }, [companyId, currentPeriod, previousPeriod]);
+
+  useEffect(() => {
+    fetchProductionRevenues();
+  }, [fetchProductionRevenues]);
   const { data: outsource = [], isLoading: l2 } = useQuery({
     queryKey: ['fat-outsource', companyId],
     queryFn: () => fetchAllPaginated<OutsourceRow>('outsource_productions', companyId, 'date'),
@@ -193,12 +216,12 @@ export default function FaturamentoTotal() {
   const prevOut = useMemo(() => filterByPeriod(outsource, previousPeriod), [outsource, previousPeriod]);
   const prevRes = useMemo(() => filterByPeriod(residues, previousPeriod), [residues, previousPeriod]);
 
-  const malhasCurrent = filteredProd.reduce((s, p) => s + p.revenue, 0);
+  const malhasCurrent = serverProdRevenue.current;
   const tercCurrent = filteredOut.reduce((s, p) => s + p.total_profit, 0);
   const resCurrent = filteredRes.reduce((s, p) => s + p.total, 0);
   const totalCurrent = malhasCurrent + tercCurrent + resCurrent;
 
-  const malhasPrev = prevProd.reduce((s, p) => s + p.revenue, 0);
+  const malhasPrev = serverProdRevenue.previous;
   const tercPrev = prevOut.reduce((s, p) => s + p.total_profit, 0);
   const resPrev = prevRes.reduce((s, p) => s + p.total, 0);
   const totalPrev = malhasPrev + tercPrev + resPrev;
