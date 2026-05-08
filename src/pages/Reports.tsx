@@ -122,7 +122,7 @@ export default function Reports() {
         machineId: filterMachine === 'all' ? undefined : filterMachine,
         articleId: filterArticle === 'all' ? undefined : filterArticle,
         page: 0,
-        pageSize: 1000,
+        pageSize: 5000,
       });
       setProductions(result.items);
     } catch (err) {
