@@ -213,14 +213,32 @@ export default function Dashboard() {
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
 
-   // Fetching server stats is no longer needed as we use the local 'filtered' data which is now synced with the requested period
-
+   const fetchServerStats = useCallback(async () => {
+     if (!dbCompanyId || !currentPeriod) return;
+     setLoadingStats(true);
+     try {
+       const stats = await getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
+         shift: filterShift === 'all' ? undefined : filterShift,
+         articleId: filterArticle === 'all' ? undefined : filterArticle
+       });
+       setServerStats(stats);
+     } catch (err) {
+       console.error('Error fetching dashboard stats:', err);
+     } finally {
+       setLoadingStats(false);
+     }
+   }, [dbCompanyId, currentPeriod, filterShift, filterArticle]);
+ 
+   useEffect(() => {
+     fetchServerStats();
+   }, [fetchServerStats]);
+ 
   const nonZeroFiltered = useMemo(() => filtered.filter(p => p.rolls_produced > 0), [filtered]);
 
-   const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
-   const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
-   const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
-   const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
+   const totalRolls = serverStats ? Number(serverStats.total_rolls) : filtered.reduce((s, p) => s + p.rolls_produced, 0);
+   const totalWeight = serverStats ? Number(serverStats.total_weight) : filtered.reduce((s, p) => s + p.weight_kg, 0);
+   const totalRevenue = serverStats ? Number(serverStats.total_revenue) : filtered.reduce((s, p) => s + p.revenue, 0);
+   const avgEfficiency = serverStats ? Number(serverStats.avg_efficiency) : (nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0);
 
   const nonZeroPrev = prevFiltered.filter(p => p.rolls_produced > 0);
   const prevAvgEfficiency = nonZeroPrev.length ? nonZeroPrev.reduce((s, p) => s + p.efficiency, 0) / nonZeroPrev.length : 0;

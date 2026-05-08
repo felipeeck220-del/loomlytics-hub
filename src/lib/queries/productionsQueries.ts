@@ -45,6 +45,7 @@ export async function fetchProductionsPage(
   companyId: string,
   filter: ProductionFilter
 ) {
+  // Using RPC to ensure performance and proper count
   const { data, error } = await supabase.rpc('fetch_productions_page', {
     p_company_id: companyId,
     p_start_date: filter.startDate,
@@ -56,9 +57,39 @@ export async function fetchProductionsPage(
     p_article_id: filter.articleId || null,
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error in fetch_productions_page RPC:', error);
+    // Fallback to direct query if RPC fails (e.g. not created yet or wrong params)
+    let q = supabase
+      .from('productions')
+      .select('*', { count: 'exact' })
+      .eq('company_id', companyId)
+      .gte('date', filter.startDate)
+      .lte('date', filter.endDate)
+      .order('date', { ascending: false })
+      .order('id', { ascending: true });
 
-   const totalCount = (data && data.length > 0 && 'total_count' in data[0]) ? Number(data[0].total_count) : 0;
+    if (filter.shift && filter.shift !== 'all') q = q.eq('shift', filter.shift);
+    if (filter.machineId && filter.machineId !== 'all') q = q.eq('machine_id', filter.machineId);
+    if (filter.articleId && filter.articleId !== 'all') q = q.eq('article_id', filter.articleId);
+
+    const page = filter.page ?? 0;
+    const pageSize = filter.pageSize ?? 50;
+    q = q.range(page * pageSize, (page + 1) * pageSize - 1);
+
+    const { data: qData, error: qError, count } = await q;
+    if (qError) throw qError;
+
+    return {
+      items: (qData || []).map(mapProduction),
+      total: count ?? 0,
+      page,
+      pageSize,
+      hasMore: ((page + 1) * pageSize) < (count ?? 0),
+    };
+  }
+
+  const totalCount = (data && data.length > 0 && 'total_count' in data[0]) ? Number(data[0].total_count) : 0;
 
   return {
     items: (data || []).map(mapProduction),
@@ -84,6 +115,41 @@ export async function getProductionStats(
     p_article_id: filter?.articleId || null,
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error in get_production_stats RPC:', error);
+    // Fallback if RPC fails
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('productions')
+      .select('weight_kg, revenue, rolls_produced, efficiency')
+      .eq('company_id', companyId)
+      .gte('date', startDate)
+      .lte('date', endDate);
+      
+    if (fallbackError) throw fallbackError;
+    
+    if (!fallbackData || fallbackData.length === 0) {
+      return { total_weight: 0, total_revenue: 0, total_rolls: 0, avg_efficiency: 0, record_count: 0 };
+    }
+    
+    const stats = fallbackData.reduce((acc, curr) => {
+      acc.total_weight += Number(curr.weight_kg);
+      acc.total_revenue += Number(curr.revenue);
+      acc.total_rolls += Number(curr.rolls_produced);
+      if (Number(curr.rolls_produced) > 0) {
+        acc.eff_sum += Number(curr.efficiency);
+        acc.eff_count += 1;
+      }
+      return acc;
+    }, { total_weight: 0, total_revenue: 0, total_rolls: 0, eff_sum: 0, eff_count: 0 });
+    
+    return {
+      total_weight: stats.total_weight,
+      total_revenue: stats.total_revenue,
+      total_rolls: stats.total_rolls,
+      avg_efficiency: stats.eff_count > 0 ? stats.eff_sum / stats.eff_count : 0,
+      record_count: fallbackData.length
+    };
+  }
+  
   return data?.[0] || { total_weight: 0, total_revenue: 0, total_rolls: 0, avg_efficiency: 0, record_count: 0 };
 }

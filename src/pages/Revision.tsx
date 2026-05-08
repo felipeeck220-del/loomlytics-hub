@@ -1,7 +1,8 @@
- import { useState, useMemo, useRef, useEffect } from 'react';
+ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
  import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
  import { useAuth } from '@/contexts/AuthContext';
  import { supabase } from '@/integrations/supabase/client';
+ import { fetchDefectsPage } from '@/lib/queries/defectsQueries';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +49,10 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
   const machines = getMachines();
   const weavers = getWeavers();
   const articles = getArticles();
-  const defectRecords = getDefectRecords();
+   const [defectRecords, setDefectRecords] = useState<DefectRecord[]>(getDefectRecords());
+   const [totalRecords, setTotalCount] = useState(0);
+   const [isSyncing, setIsSyncing] = useState(false);
+   const dbCompanyId = user?.company_id || '';
 
   const sortedMachines = useMemo(() => [...machines].sort((a, b) => a.number - b.number), [machines]);
 
@@ -122,36 +126,53 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
     return Array.from(monthSet).sort().reverse();
   }, [defectRecords]);
 
-    const filtered = useMemo(() => {
-      let data = defectRecords;
-      if (filterDateFrom) data = data.filter(d => d.date >= filterDateFrom);
-      if (filterDateTo) data = data.filter(d => d.date <= filterDateTo);
-      if (filterMonth !== 'all' && !filterDateFrom && !filterDateTo) {
-        data = data.filter(d => d.date?.startsWith(filterMonth));
-      }
-      if (filterArticle !== 'all') {
-        data = data.filter(d => d.article_id === filterArticle);
-      }
-      if (searchTerm) {
-        const s = searchTerm.toLowerCase();
-        data = data.filter(d =>
-          (d.machine_name || '').toLowerCase().includes(s) ||
-          (d.article_name || '').toLowerCase().includes(s) ||
-          (d.weaver_name || '').toLowerCase().includes(s)
-        );
-      }
-      return data;
-    }, [defectRecords, filterDateFrom, filterDateTo, filterMonth, filterArticle, searchTerm]);
+   const filtered = defectRecords;
  
-   const totalPages = Math.ceil(filtered.length / pageSize);
-   const paginatedData = useMemo(() => {
-     const start = (currentPage - 1) * pageSize;
-     return filtered.slice(start, start + pageSize);
-   }, [filtered, currentPage]);
+   const totalPages = Math.ceil(totalRecords / pageSize);
+   const paginatedData = defectRecords;
  
-    useEffect(() => {
-      setCurrentPage(1);
-    }, [searchTerm, filterDateFrom, filterDateTo, filterMonth, filterArticle]);
+   const fetchDefectData = useCallback(async () => {
+     if (!dbCompanyId) return;
+     setIsSyncing(true);
+     try {
+       let startDate = '2000-01-01';
+       let endDate = format(new Date(), 'yyyy-MM-dd');
+ 
+       if (filterDateFrom || filterDateTo) {
+         if (filterDateFrom) startDate = filterDateFrom;
+         if (filterDateTo) endDate = filterDateTo;
+       } else if (filterMonth !== 'all') {
+         startDate = `${filterMonth}-01`;
+         const [y, m] = filterMonth.split('-').map(Number);
+         endDate = format(new Date(y, m, 0), 'yyyy-MM-dd');
+       }
+ 
+       const result = await fetchDefectsPage(dbCompanyId, {
+         startDate,
+         endDate,
+         machineId: 'all',
+         articleId: filterArticle === 'all' ? undefined : filterArticle,
+         searchTerm,
+         page: currentPage - 1,
+         pageSize: pageSize,
+       });
+       setDefectRecords(result.items);
+       setTotalCount(result.total);
+     } catch (err) {
+       console.error('Error fetching defects:', err);
+       toast.error('Erro ao carregar dados de revisão');
+     } finally {
+       setIsSyncing(false);
+     }
+   }, [dbCompanyId, filterDateFrom, filterDateTo, filterMonth, filterArticle, searchTerm, currentPage, pageSize]);
+ 
+   useEffect(() => {
+     fetchDefectData();
+   }, [fetchDefectData]);
+ 
+   useEffect(() => {
+     setCurrentPage(1);
+   }, [searchTerm, filterDateFrom, filterDateTo, filterMonth, filterArticle]);
     const exportToPdf = async () => {
       const { default: jsPDF } = await import('jspdf');
       const pdf = new jsPDF('p', 'mm', 'a4');
