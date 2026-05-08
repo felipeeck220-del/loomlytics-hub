@@ -174,14 +174,13 @@ export default function RevisionPage() {
      pdf.setFont('helvetica', 'bold');
      pdf.setTextColor(0, 0, 0);
      
-     const cols = [
-       { name: 'Data', w: 22 },
-       { name: 'Máquina', w: 20 },
-       { name: 'Artigo', w: 45 },
-       { name: 'Tecelão', w: 35 },
-       { name: 'Valor', w: 20 },
-       { name: 'Defeito', w: 38 }
-     ];
+      const cols = [
+        { name: 'Data', w: 22 },
+        { name: 'Máquina', w: 20 },
+        { name: 'Artigo', w: 60 },
+        { name: 'Valor', w: 30 },
+        { name: 'Defeito', w: 48 }
+      ];
      
      let currentX = margin;
      cols.forEach(col => {
@@ -206,17 +205,16 @@ export default function RevisionPage() {
        const dateText = format(new Date(d.date + 'T12:00:00'), 'dd/MM/yy');
        const machineText = d.machine_name || '';
        const articleText = d.article_name || '';
-       const weaverText = d.weaver_name || '';
-       const valueText = `${formatNumber(d.measure_value)} ${d.measure_type === 'kg' ? 'kg' : 'm'}`;
-       let defectText = d.observations || '';
-       const match = defectText.match(/^\[(.+?)\]/);
-       if (match) defectText = match[1];
-       const rowData = [dateText, machineText, articleText, weaverText, valueText, defectText];
-       rowData.forEach((text, idx) => {
-         const truncated = String(text).substring(0, idx === 2 ? 30 : 20);
-         pdf.text(truncated, currentX + 2, y + 5);
-         currentX += cols[idx].w;
-       });
+        const valueText = `${formatNumber(d.measure_value)} ${d.measure_type === 'kg' ? 'kg' : 'm'}`;
+        let defectText = d.observations || '';
+        const match = defectText.match(/^\[(.+?)\]/);
+        if (match) defectText = match[1];
+        const rowData = [dateText, machineText, articleText, valueText, defectText];
+        rowData.forEach((text, idx) => {
+          const truncated = String(text).substring(0, idx === 2 ? 40 : 25);
+          pdf.text(truncated, currentX + 2, y + 5);
+          currentX += cols[idx].w;
+        });
        y += 7;
      });
  
@@ -231,10 +229,10 @@ export default function RevisionPage() {
      pdf.setFontSize(9);
      pdf.text('TOTAL', margin + 2, y + 5.5);
      
-     // Total values for columns (kg and metros)
-     const totalValueText = `${formatNumber(stats.totalKg)} kg / ${formatNumber(stats.totalMetros)} m`;
-     const valueColX = margin + cols[0].w + cols[1].w + cols[2].w + cols[3].w;
-     pdf.text(totalValueText, valueColX + 2, y + 5.5);
+      // Total values for columns (kg and metros)
+      const totalValueText = `${formatNumber(stats.totalKg)} kg / ${formatNumber(stats.totalMetros)} m`;
+      const valueColX = margin + cols[0].w + cols[1].w + cols[2].w;
+      pdf.text(totalValueText, valueColX + 2, y + 5.5);
  
      const fileName = `revisao_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
      pdf.save(fileName);
