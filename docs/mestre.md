@@ -1538,4 +1538,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
         - **09/05/2026 19:35 (Brasília)** — **RELATÓRIOS — Correção de Dados Vazios (Bug RPC):** Corrigido erro de incompatibilidade de tipos na função `get_report_data` que impedia a exibição de dados. Ajustada a lógica de datas no frontend para o filtro "Todo período" buscar o intervalo correto baseado nos registros da empresa.
 
-         *Última atualização: 09/05/2026 19:35 (Brasília)*
+        - **09/05/2026 20:10 (Brasília)** — **RELATÓRIOS — Reversão para Client-Side (JS):** Revertida a implementação server-side (RPC) para o processamento original 100% em Javascript no frontend. Esta ação restaura a lógica de cálculo local anterior enquanto mantém a ordenação cronológica de turnos e os filtros de período funcionando corretamente.
+
+         *Última atualização: 09/05/2026 20:10 (Brasília)*
