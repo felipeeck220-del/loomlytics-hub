@@ -1535,5 +1535,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
         - **09/05/2026 17:30 (Brasília)** — **GERAL — Otimização Final de RPCs e Performance:** (1) Refatorada a RPC `get_faturamento_total_metrics` para usar `LEFT JOIN` em vez de subqueries, aumentando significativamente a performance do gráfico de tendência; (2) Garantida a ordenação cronológica correta (`ORDER BY date::DATE`) em todas as queries de gráfico no Dashboard e Faturamento; (3) Reforçada a segurança de tipos (text vs date) em todas as funções do banco.
  
         - **09/05/2026 17:45 (Brasília)** — **GERAL — Normalização de Dados de Turno:** (1) Identificada e corrigida duplicação de turnos nos relatórios causada por nomes inconsistentes (ex: 'Manhã' vs 'manha'); (2) Executada migração no banco de dados para padronizar todos os registros de produção para o formato minúsculo sem acento (`manha`, `tarde`, `noite`), resolvendo a duplicação visual e garantindo a soma correta dos KPIs por turno.
- 
-        *Última atualização: 09/05/2026 17:45 (Brasília)*
+
+        - **09/05/2026 19:35 (Brasília)** — **RELATÓRIOS — Correção de Dados Vazios (Bug RPC):** Corrigido erro de incompatibilidade de tipos na função `get_report_data` que impedia a exibição de dados. Ajustada a lógica de datas no frontend para o filtro "Todo período" buscar o intervalo correto baseado nos registros da empresa.
+
+         *Última atualização: 09/05/2026 19:35 (Brasília)*
