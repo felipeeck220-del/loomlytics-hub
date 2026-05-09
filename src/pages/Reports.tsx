@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,29 +89,81 @@ export default function Reports() {
   const avgTargetEfficiency = 80;
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
+  const [reportData, setReportData] = useState<any>(null);
+  const [fetchingReport, setFetchingReport] = useState(false);
+
   const availableMonths = useMemo(() => {
     const months = new Set(productions.map(p => p.date.substring(0, 7)));
-    // Always include current month
     months.add(format(new Date(), 'yyyy-MM'));
     return Array.from(months).sort().reverse();
   }, [productions]);
 
+  const fetchReportData = useCallback(async () => {
+    if (!dbCompanyId) return;
+    setFetchingReport(true);
+    try {
+      let start: string;
+      let end: string;
+      const today = new Date();
+
+      if (dateFrom || dateTo) {
+        start = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '1900-01-01';
+        end = dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd');
+      } else if (filterMonth !== 'all') {
+        const [year, month] = filterMonth.split('-').map(Number);
+        start = format(startOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+        end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+      } else if (customDate) {
+        start = format(customDate, 'yyyy-MM-dd');
+        end = start;
+      } else if (dayRange > 0) {
+        start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+        end = format(today, 'yyyy-MM-dd');
+      } else {
+        const dates = productions.map(p => p.date).sort();
+        start = dates.length > 0 ? dates[0] : format(today, 'yyyy-MM-dd');
+        end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
+      }
+
+      const { data, error } = await supabase.rpc('get_report_data', {
+        p_company_id: dbCompanyId,
+        p_start_date: start,
+        p_end_date: end,
+        p_shift: filterShift,
+        p_client_id: filterClient === 'all' ? null : filterClient,
+        p_article_id: filterArticle === 'all' ? null : filterArticle,
+        p_machine_id: filterMachine === 'all' ? null : filterMachine
+      });
+
+      if (error) throw error;
+      setReportData(data);
+    } catch (err) {
+      console.error('Erro ao buscar dados do relatório:', err);
+    } finally {
+      setFetchingReport(false);
+    }
+  }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, productions]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
+
+  // Maintain filtered for export compatibility (though we should ideally optimize export too)
   const filtered = useMemo(() => {
     let data = [...productions];
     const today = new Date();
+    const currentFilterDate = customDate ? format(customDate, 'yyyy-MM-dd') : null;
+    const currentFilterDateFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null;
+    const currentFilterDateTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : null;
 
-     const currentFilterDate = customDate ? format(customDate, 'yyyy-MM-dd') : null;
-     const currentFilterDateFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null;
-     const currentFilterDateTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : null;
- 
-     if (currentFilterDateFrom || currentFilterDateTo) {
-       if (currentFilterDateFrom) data = data.filter(p => p.date >= currentFilterDateFrom);
-       if (currentFilterDateTo) data = data.filter(p => p.date <= currentFilterDateTo);
+    if (currentFilterDateFrom || currentFilterDateTo) {
+      if (currentFilterDateFrom) data = data.filter(p => p.date >= currentFilterDateFrom);
+      if (currentFilterDateTo) data = data.filter(p => p.date <= currentFilterDateTo);
     } else if (filterMonth !== 'all') {
       data = data.filter(p => p.date.startsWith(filterMonth));
-     } else if (currentFilterDate) {
-       data = data.filter(p => p.date === currentFilterDate);
-     } else if (dayRange > 0) {
+    } else if (currentFilterDate) {
+      data = data.filter(p => p.date === currentFilterDate);
+    } else if (dayRange > 0) {
       const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
       const end = format(today, 'yyyy-MM-dd');
       data = data.filter(p => p.date >= start && p.date <= end);
@@ -133,7 +185,6 @@ export default function Reports() {
     }
     return data;
   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles, machines]);
-
   const clearFilters = () => {
      setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
@@ -327,98 +378,58 @@ export default function Reports() {
       </Card>
 
       {/* Data Processing & Rendering */}
-      {(() => {
-        const totalRolls = filtered.reduce((sum, p) => sum + p.rolls_produced, 0);
-        const totalWeight = filtered.reduce((sum, p) => sum + p.weight_kg, 0);
-        const totalRevenue = filtered.reduce((sum, p) => sum + p.revenue, 0);
-        const uniqueDaysCount = new Set(filtered.map(p => p.date)).size;
-        const productionsWithRolls = filtered.filter(p => p.rolls_produced > 0);
-        const avgEfficiency = productionsWithRolls.length > 0 
-          ? productionsWithRolls.reduce((sum, p) => sum + p.efficiency, 0) / productionsWithRolls.length 
-          : 0;
+      {fetchingReport && !reportData ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground">Processando dados...</span>
+        </div>
+      ) : reportData ? (() => {
+        const { kpis, by_shift, by_machine, by_client, by_article, evolution } = reportData;
+        const totalRolls = kpis.total_rolls;
+        const totalWeight = kpis.total_kg;
+        const totalRevenue = kpis.total_revenue;
+        const avgEfficiency = kpis.avg_efficiency;
+        const uniqueDaysCount = evolution.length;
 
-        // Groupings
-        const byShift = Object.keys(companyShiftLabels).map(key => {
-          const items = filtered.filter(p => p.shift === key);
-          const itemsWithRolls = items.filter(p => p.rolls_produced > 0);
-          return {
-            name: SHIFT_LABELS[key as ShiftType],
-            rolos: items.reduce((s, p) => s + p.rolls_produced, 0),
-            kg: items.reduce((s, p) => s + p.weight_kg, 0),
-            faturamento: items.reduce((s, p) => s + p.revenue, 0),
-            eficiencia: itemsWithRolls.length > 0 ? itemsWithRolls.reduce((s, p) => s + p.efficiency, 0) / itemsWithRolls.length : 0
-          };
-        });
-
-        const machineMap: Record<string, any> = {};
-        filtered.forEach(p => {
-          const key = p.machine_id || p.machine_name;
-          if (!machineMap[key]) machineMap[key] = { name: p.machine_name, rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
-          machineMap[key].rolos += p.rolls_produced;
-          machineMap[key].kg += p.weight_kg;
-          machineMap[key].faturamento += p.revenue;
-          if (p.rolls_produced > 0) {
-            machineMap[key].eficienciaSum += p.efficiency;
-            machineMap[key].count++;
-          }
-        });
-        const byMachine = Object.values(machineMap).map(m => ({
-          ...m,
-          targetEfficiency: 80,
-          records: m.count,
-          eficiencia: m.count > 0 ? m.eficienciaSum / m.count : 0
-        })).sort((a, b) => b.rolos - a.rolos);
-
-        const clientMap: Record<string, any> = {};
-        filtered.forEach(p => {
-          const art = articles.find(a => a.id === p.article_id);
-          const clientName = art?.client_name || 'Sem Cliente';
-          if (!clientMap[clientName]) clientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0 };
-          clientMap[clientName].rolos += p.rolls_produced;
-          clientMap[clientName].kg += p.weight_kg;
-          clientMap[clientName].faturamento += p.revenue;
-        });
-        const byClient = Object.values(clientMap).sort((a, b) => b.faturamento - a.faturamento);
-
-        const articleMap: Record<string, any> = {};
-        filtered.forEach(p => {
-          const art = articles.find(a => a.id === p.article_id);
-          const artName = p.article_name || 'Sem Artigo';
-          if (!articleMap[artName]) articleMap[artName] = { id: p.article_id, name: artName, clientName: art?.client_name || '—', rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
-          articleMap[artName].rolos += p.rolls_produced;
-          articleMap[artName].kg += p.weight_kg;
-          articleMap[artName].faturamento += p.revenue;
-          if (p.rolls_produced > 0) {
-            articleMap[artName].eficienciaSum += p.efficiency;
-            articleMap[artName].count++;
-          }
-        });
-        const byArticle = Object.values(articleMap).map(a => ({
-          ...a,
-          targetEfficiency: 80,
-          records: a.count,
-          eficiencia: a.count > 0 ? a.eficienciaSum / a.count : 0
-        })).sort((a, b) => b.kg - a.kg);
-
-        const dateMap: Record<string, any> = {};
-        filtered.forEach(p => {
-          if (!dateMap[p.date]) dateMap[p.date] = { date: p.date, rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
-          dateMap[p.date].rolos += p.rolls_produced;
-          dateMap[p.date].kg += p.weight_kg;
-          dateMap[p.date].faturamento += p.revenue;
-          if (p.rolls_produced > 0) {
-            dateMap[p.date].eficienciaSum += p.efficiency;
-            dateMap[p.date].count++;
-          }
-        });
-        const byDate = Object.values(dateMap).map(d => ({
+        const byDate = (evolution || []).map((d: any) => ({
           ...d,
-          eficiencia: d.count > 0 ? d.eficienciaSum / d.count : 0,
-          date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
-        })).sort((a, b) => a.date.localeCompare(b.date));
+          date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+          rolos: d.rolls,
+          faturamento: d.revenue
+        }));
+
+        const byShift = (by_shift || []).map((s: any) => ({
+          ...s,
+          name: companyShiftLabels[s.name as ShiftType] || s.name,
+          rolos: s.rolls,
+          faturamento: s.revenue,
+          eficiencia: s.efficiency
+        }));
+
+        const byMachine = (by_machine || []).map((m: any) => ({
+          ...m,
+          rolos: m.rolls,
+          faturamento: m.revenue,
+          eficiencia: m.efficiency
+        }));
+
+        const byClient = (by_client || []).map((c: any) => ({
+          ...c,
+          rolos: c.rolls,
+          faturamento: c.revenue,
+          eficiencia: c.efficiency
+        }));
+
+        const byArticle = (by_article || []).map((a: any) => ({
+          ...a,
+          rolos: a.rolls,
+          faturamento: a.revenue,
+          eficiencia: a.efficiency,
+          clientName: a.client_name
+        }));
 
         return (
-          <>
+          <div className={cn("space-y-6", fetchingReport && "opacity-50 pointer-events-none transition-opacity")}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
                 label="Total de Rolos"
@@ -471,12 +482,10 @@ export default function Reports() {
               {/* POR TURNO */}
               <TabsContent value="turno" className="mt-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {byShift.map((s) => {
+                  {byShift.map((s: any) => {
                     const shiftColor = s.name === 'Manhã' ? 'hsl(38, 92%, 50%)' : s.name === 'Tarde' ? 'hsl(25, 95%, 53%)' : 'hsl(221, 83%, 53%)';
-                    const totalShiftRolls = byShift.reduce((sum, sh) => sum + sh.rolos, 0);
-                    const totalShiftRevenue = byShift.reduce((sum, sh) => sum + sh.faturamento, 0);
-                    const pctRolls = totalShiftRolls > 0 ? (s.rolos / totalShiftRolls * 100) : 0;
-                    const pctRevenue = totalShiftRevenue > 0 ? (s.faturamento / totalShiftRevenue * 100) : 0;
+                    const pctRolls = s.pct_rolls || 0;
+                    const pctRevenue = s.pct_revenue || 0;
                     return (
                       <Card key={s.name} className="relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: shiftColor }} />
@@ -618,10 +627,7 @@ export default function Reports() {
 
         {/* POR MÁQUINA */}
         <TabsContent value="maquina" className="mt-6 space-y-6">
-          {byMachine.length > 0 ? (() => {
-            const totalMachineRolls = byMachine.reduce((s, m) => s + m.rolos, 0);
-            const totalMachineRevenue = byMachine.reduce((s, m) => s + m.faturamento, 0);
-            return (
+          {byMachine.length > 0 ? (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -637,16 +643,16 @@ export default function Reports() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byMachine.filter(m => (m.name || '').toLowerCase().includes(searchMachine.toLowerCase())).map(m => {
-                      const pctRolls = totalMachineRolls > 0 ? (m.rolos / totalMachineRolls * 100) : 0;
-                      const pctRevenue = totalMachineRevenue > 0 ? (m.faturamento / totalMachineRevenue * 100) : 0;
+                    {(byMachine || []).filter((m: any) => (m.name || '').toLowerCase().includes(searchMachine.toLowerCase())).map((m: any) => {
+                      const pctRolls = m.pct_rolls || 0;
+                      const pctRevenue = m.pct_revenue || 0;
                       return (
                         <div key={m.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="font-display font-bold text-foreground">{m.name}</p>
                             <Badge className={cn(
                               "text-xs",
-                              m.eficiencia >= m.targetEfficiency ? "bg-success/10 text-success" : m.eficiencia >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                              m.eficiencia >= avgTargetEfficiency ? "bg-success/10 text-success" : m.eficiencia >= avgTargetEfficiency * 0.875 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
                             )}>
                               {formatPercent(m.eficiencia)}
                             </Badge>
@@ -681,8 +687,7 @@ export default function Reports() {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })() : (
+            ) : (
             <Card>
               <CardContent className="py-12">
                 <p className="text-sm text-muted-foreground text-center">Sem dados de máquinas no período selecionado</p>
@@ -693,11 +698,7 @@ export default function Reports() {
 
         {/* POR CLIENTE */}
         <TabsContent value="cliente" className="mt-6 space-y-6">
-          {byClient.length > 0 ? (() => {
-            const totalClientRolls = byClient.reduce((s, c) => s + c.rolos, 0);
-            const totalClientKg = byClient.reduce((s, c) => s + c.kg, 0);
-            const totalClientRevenue = byClient.reduce((s, c) => s + c.faturamento, 0);
-            return (
+          {byClient.length > 0 ? (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -713,12 +714,12 @@ export default function Reports() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byClient.filter(c => (c.name || '').toLowerCase().includes(searchClient.toLowerCase())).map(c => {
-                      const pctRolls = totalClientRolls > 0 ? (c.rolos / totalClientRolls * 100) : 0;
-                      const pctKg = totalClientKg > 0 ? (c.kg / totalClientKg * 100) : 0;
-                      const pctRevenue = totalClientRevenue > 0 ? (c.faturamento / totalClientRevenue * 100) : 0;
-                      return (
-                        <div key={c.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
+                    {byClient.filter((c: any) => (c.name || '').toLowerCase().includes(searchClient.toLowerCase())).map((c: any) => {
+                      const pctRolls = c.pct_rolls || 0;
+                      const pctKg = c.pct_kg || 0;
+                       const pctRevenue = c.pct_revenue || 0;
+                       return (
+                         <div key={c.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="font-display font-bold text-foreground">{c.name}</p>
                           </div>
@@ -749,8 +750,7 @@ export default function Reports() {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })() : (
+            ) : (
             <Card>
               <CardContent className="py-12">
                 <p className="text-sm text-muted-foreground text-center">Sem dados de clientes no período selecionado</p>
@@ -761,11 +761,7 @@ export default function Reports() {
 
         {/* POR ARTIGO */}
         <TabsContent value="artigo" className="mt-6 space-y-6">
-          {byArticle.length > 0 ? (() => {
-            const totalArticleRolls = byArticle.reduce((s, a) => s + a.rolos, 0);
-            const totalArticleKg = byArticle.reduce((s, a) => s + a.kg, 0);
-            const totalArticleRevenue = byArticle.reduce((s, a) => s + a.faturamento, 0);
-            return (
+          {byArticle.length > 0 ? (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -781,10 +777,10 @@ export default function Reports() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byArticle.filter(a => (a.name || '').toLowerCase().includes(searchArticle.toLowerCase()) || (a.clientName || '').toLowerCase().includes(searchArticle.toLowerCase())).map(a => {
-                      const pctRolls = totalArticleRolls > 0 ? (a.rolos / totalArticleRolls * 100) : 0;
-                      const pctKg = totalArticleKg > 0 ? (a.kg / totalArticleKg * 100) : 0;
-                      const pctRevenue = totalArticleRevenue > 0 ? (a.faturamento / totalArticleRevenue * 100) : 0;
+                    {byArticle.filter((a: any) => (a.name || '').toLowerCase().includes(searchArticle.toLowerCase()) || (a.clientName || '').toLowerCase().includes(searchArticle.toLowerCase())).map((a: any) => {
+                      const pctRolls = a.pct_rolls || 0;
+                      const pctKg = a.pct_kg || 0;
+                      const pctRevenue = a.pct_revenue || 0;
                       return (
                         <div key={a.id} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
                           <div className="flex items-center justify-between">
@@ -830,8 +826,7 @@ export default function Reports() {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })() : (
+            ) : (
             <Card>
               <CardContent className="py-12">
                 <p className="text-sm text-muted-foreground text-center">Sem dados de artigos no período selecionado</p>
@@ -1113,9 +1108,9 @@ export default function Reports() {
           </Card>
         </TabsContent>
       </Tabs>
-    </>
-  );
-})()}
+          </div>
+        );
+      })() : null}
 
       {productions.length === 0 && (
         <div className="text-center py-12">

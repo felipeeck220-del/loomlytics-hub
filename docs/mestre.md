@@ -1,6 +1,8 @@
+ - 09/05/2026 21:30 - Implementação da RPC get_report_data para otimização de performance nos relatórios analíticos. Agregação server-side e unificação do cálculo de eficiência baseado nos registros de produção.
+ 
  - 09/05/2026 21:15 - Atualização da RPC get_report_data para utilizar a média da coluna efficiency gravada em productions, garantindo consistência total entre telas e maior performance.
  
- *Última atualização: 09/05/2026 21:15*
+*Última atualização: 09/05/2026 21:30*
 # 📋 MESTRE.MD — Documentação Mestre do Projeto MalhaGest
 
 > **⚠️ INSTRUÇÕES OBRIGATÓRIAS PARA A IA (LOVABLE):**
