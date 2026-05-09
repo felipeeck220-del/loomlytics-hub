@@ -383,14 +383,15 @@ export default function Reports() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-3 text-muted-foreground">Processando dados...</span>
         </div>
-      ) : reportData ? (() => {
-         const { kpis, by_shift, by_machine, by_client, by_article, evolution } = reportData || {};
-         
-         if (!kpis) return (
-           <div className="text-center py-12">
-             <p className="text-muted-foreground">Nenhum dado encontrado para o período e filtros selecionados.</p>
-           </div>
-         );
+       ) : (
+         (() => {
+           const { kpis, by_shift, by_machine, by_client, by_article, evolution } = reportData || {};
+           
+           if (!kpis) return (
+             <div className="text-center py-12">
+               <p className="text-muted-foreground">Nenhum dado encontrado para o período e filtros selecionados.</p>
+             </div>
+           );
  
          const totalRolls = kpis.total_rolls || 0;
          const totalWeight = kpis.total_kg || 0;
