@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { format, subDays } from 'date-fns';
+ import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CalendarIcon, Loader2, RotateCcw, Download, Clock, Search,
@@ -87,12 +87,104 @@ export default function Reports() {
   const [searchArticle, setSearchArticle] = useState('');
 
   const productions = getProductions();
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const fetchReportData = useCallback(async () => {
-    // No longer needs to fetch per period as useCompanyData loads all
-  }, []);
-
+   const [isSyncing, setIsSyncing] = useState(false);
+   const [reportData, setReportData] = useState<any>(null);
+   const [isRpcLoading, setIsRpcLoading] = useState(false);
+ 
+   const fetchReportData = useCallback(async () => {
+     if (!dbCompanyId) return;
+     
+     setIsRpcLoading(true);
+     try {
+       const today = new Date();
+       let start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+       let end = format(today, 'yyyy-MM-dd');
+ 
+       if (dateFrom && dateTo) {
+         start = format(dateFrom, 'yyyy-MM-dd');
+         end = format(dateTo, 'yyyy-MM-dd');
+       } else if (filterMonth !== 'all') {
+         const [year, month] = filterMonth.split('-').map(Number);
+         start = format(startOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
+         end = format(endOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
+       } else if (customDate) {
+         start = format(customDate, 'yyyy-MM-dd');
+         end = format(customDate, 'yyyy-MM-dd');
+       } else if (dayRange === 0) {
+         // If all time, the RPC handles it by taking min/max but we can send a very old date
+         start = '2000-01-01';
+         end = format(today, 'yyyy-MM-dd');
+       }
+ 
+       const { data, error } = await (supabase.rpc as any)('get_report_data', {
+         p_company_id: dbCompanyId,
+         p_start_date: start,
+         p_end_date: end,
+         p_shift: filterShift,
+         p_client_id: filterClient === 'all' ? null : filterClient,
+         p_article_id: filterArticle === 'all' ? null : filterArticle,
+         p_machine_id: filterMachine === 'all' ? null : filterMachine,
+       });
+ 
+       if (error) throw error;
+       setReportData(data);
+     } catch (err) {
+       console.error('Error fetching report data:', err);
+     } finally {
+       setIsRpcLoading(false);
+     }
+   }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine]);
+ 
+   useEffect(() => {
+     fetchReportData();
+   }, [fetchReportData]);
+ 
+   const kpis = useMemo(() => reportData?.kpis || { total_rolls: 0, total_kg: 0, total_revenue: 0, avg_efficiency: 0 }, [reportData]);
+   const totalRolls = kpis.total_rolls;
+   const totalWeight = kpis.total_kg;
+   const totalRevenue = kpis.total_revenue;
+   const avgEfficiency = kpis.avg_efficiency;
+   
+   const byShift = useMemo(() => (reportData?.by_shift || []).map((s: any) => ({
+     ...s,
+     rolos: s.rolls,
+     faturamento: s.revenue,
+     eficiencia: s.efficiency,
+     name: SHIFT_LABELS[s.name as ShiftType] || s.name
+   })), [reportData]);
+ 
+   const byMachine = useMemo(() => (reportData?.by_machine || []).map((m: any) => ({
+     ...m,
+     rolos: m.rolls,
+     faturamento: m.revenue,
+     eficiencia: m.efficiency,
+     targetEfficiency: 80
+   })), [reportData]);
+ 
+   const byClient = useMemo(() => (reportData?.by_client || []).map((c: any) => ({
+     ...c,
+     rolos: c.rolls,
+     faturamento: c.revenue
+   })), [reportData]);
+ 
+   const byArticle = useMemo(() => (reportData?.by_article || []).map((a: any) => ({
+     ...a,
+     rolos: a.rolls,
+     faturamento: a.revenue,
+     eficiencia: a.efficiency,
+     targetEfficiency: 80
+   })), [reportData]);
+ 
+   const byDate = useMemo(() => (reportData?.evolution || []).map((e: any) => ({
+     ...e,
+     rolos: e.rolls,
+     faturamento: e.revenue,
+     eficiencia: e.efficiency,
+     date: format(new Date(e.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
+   })), [reportData]);
+ 
+   const uniqueDays = useMemo(() => reportData?.evolution?.length || 0, [reportData]);
+   const avgTargetEfficiency = 80;
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
@@ -151,129 +243,6 @@ export default function Reports() {
     }
     return data;
   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles, machines]);
-
-  // KPIs
-  const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
-  const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
-  const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
-  const nonZeroFiltered = filtered.filter(p => p.rolls_produced > 0);
-  const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
-  const uniqueDays = new Set(filtered.map(p => p.date)).size || 1;
-
-  // Calculate weighted average target efficiency
-  const avgTargetEfficiency = useMemo(() => {
-    if (!filtered.length) return 80;
-    let total = 0;
-    filtered.forEach(p => {
-      const article = articles.find(a => a.id === p.article_id);
-      total += (article?.target_efficiency || 80);
-    });
-    return total / filtered.length;
-  }, [filtered, articles]);
-
-  // By shift
-  const byShift = (['manha', 'tarde', 'noite'] as ShiftType[]).map(s => {
-    const sp = filtered.filter(p => p.shift === s);
-    const eff = sp.length ? sp.reduce((sum, p) => sum + p.efficiency, 0) / sp.length : 0;
-    return {
-      name: companyShiftLabels[s].split(' (')[0],
-      rolos: sp.reduce((sum, p) => sum + p.rolls_produced, 0),
-      kg: sp.reduce((sum, p) => sum + p.weight_kg, 0),
-      faturamento: sp.reduce((sum, p) => sum + p.revenue, 0),
-      eficiencia: eff,
-    };
-  });
-
-  // By machine
-  const byMachine = machines.map(m => {
-    const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
-    const mpNonZero = mp.filter(p => p.rolls_produced > 0);
-    const eff = mpNonZero.length ? mpNonZero.reduce((s, p) => s + p.efficiency, 0) / mpNonZero.length : 0;
-    const avgTargetEff = mpNonZero.length > 0
-      ? mpNonZero.reduce((s, p) => { const art = articles.find(a => a.id === p.article_id); return s + (art?.target_efficiency || 80); }, 0) / mpNonZero.length
-      : 80;
-    return {
-      name: m.name,
-      rolos: mp.reduce((s, p) => s + p.rolls_produced, 0),
-      kg: mp.reduce((s, p) => s + p.weight_kg, 0),
-      faturamento: mp.reduce((s, p) => s + p.revenue, 0),
-      eficiencia: eff,
-      records: mp.length,
-      targetEfficiency: avgTargetEff,
-    };
-  }).filter(m => m.records > 0).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }));
-
-  // By client — match via client_id OR client_name (fallback when client_id is null)
-  const byClient = useMemo(() => {
-    // Build a map: client name -> aggregated data
-    const clientMap: Record<string, { name: string; rolos: number; kg: number; faturamento: number }> = {};
-
-    // First, map articles to client names (prefer client from clients table, fallback to client_name on article)
-    const articleClientName: Record<string, string> = {};
-    articles.forEach(a => {
-      if (a.client_id) {
-        const client = clients.find(c => c.id === a.client_id);
-        if (client) articleClientName[a.id] = client.name;
-      }
-      if (!articleClientName[a.id] && a.client_name) {
-        articleClientName[a.id] = a.client_name;
-      }
-    });
-
-    filtered.forEach(p => {
-      const cName = articleClientName[p.article_id];
-      if (!cName) return;
-      if (!clientMap[cName]) clientMap[cName] = { name: cName, rolos: 0, kg: 0, faturamento: 0 };
-      clientMap[cName].rolos += p.rolls_produced;
-      clientMap[cName].kg += p.weight_kg;
-      clientMap[cName].faturamento += p.revenue;
-    });
-
-    return Object.values(clientMap)
-      .filter(c => c.rolos > 0)
-      .sort((a, b) => b.faturamento - a.faturamento);
-  }, [filtered, articles, clients]);
-
-  // By article
-  const byArticle = articles.map(a => {
-    const ap = filtered.filter(p => p.article_id === a.id);
-    const eff = ap.length ? ap.reduce((s, p) => s + p.efficiency, 0) / ap.length : 0;
-    const client = clients.find(c => c.id === a.client_id);
-    return {
-      id: a.id,
-      name: a.name,
-      clientName: client?.name || a.client_name || '—',
-      rolos: ap.reduce((s, p) => s + p.rolls_produced, 0),
-      kg: ap.reduce((s, p) => s + p.weight_kg, 0),
-      faturamento: ap.reduce((s, p) => s + p.revenue, 0),
-      eficiencia: eff,
-      targetEfficiency: a.target_efficiency || 80,
-      records: ap.length,
-    };
-  }).filter(a => a.records > 0).sort((a, b) => b.faturamento - a.faturamento);
-
-  const byDate = useMemo(() => {
-    const acc: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
-    filtered.forEach(p => {
-      if (!acc[p.date]) acc[p.date] = { rolos: 0, kg: 0, faturamento: 0, effSum: 0, effCount: 0 };
-      acc[p.date].rolos += p.rolls_produced;
-      acc[p.date].kg += p.weight_kg;
-      acc[p.date].faturamento += p.revenue;
-      if (p.rolls_produced > 0) {
-        acc[p.date].effSum += p.efficiency;
-        acc[p.date].effCount += 1;
-      }
-    });
-    return Object.entries(acc)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, vals]) => ({
-        date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-        rolos: vals.rolos,
-        kg: vals.kg,
-        faturamento: vals.faturamento,
-        eficiencia: vals.effCount > 0 ? vals.effSum / vals.effCount : 0,
-      }));
-  }, [filtered]);
 
   const periodLabel = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
