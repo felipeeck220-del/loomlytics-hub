@@ -1,3 +1,24 @@
+ ## 7. Ponto de Reversão: Funcionamento Atual (Maio/2026)
+ 
+ Caso a implementação via RPC apresente erros ou discrepâncias de valores, este é o guia para restaurar o comportamento original.
+ 
+ ### Mecanismo de Dados Atual:
+ 1. **Carregamento:** O `useCompanyData.ts` utiliza uma função `fetchAll` que busca **todos** os registros da tabela `productions` em lotes de 1.000 (sem limite total) e os armazena em um array `productions` no Contexto Global.
+ 2. **Filtros (Client-Side):** No `Dashboard.tsx`, o `useMemo` chamado `filtered` percorre todo o array de produções e aplica os filtros de Data, Turno, Cliente e Artigo usando JavaScript puro (`.filter()`).
+ 3. **Comparativos:** Um segundo `useMemo` chamado `prevFiltered` faz exatamente a mesma coisa para o intervalo de tempo anterior, gerando dois arrays distintos em memória.
+ 
+ ### Lógica de Cálculos (Frontend):
+ - **KPIs Principais:** São calculados via `reduce` ou `forEach` somando `weight_kg`, `revenue` e `rolls_produced` dos arrays filtrados.
+ - **Eficiência Média:** Calculada somando a coluna `efficiency` e dividindo pelo número de registros que possuem produção (`rolls_produced > 0`).
+ - **Gráfico de Tendência:** Utiliza um objeto `byDate` (Record<string, {...}>) para agrupar e somar os valores dia a dia antes de converter para o formato do Recharts.
+ 
+ ### Como Reverter:
+ 1. No `Dashboard.tsx`, restaure a dependência do `useSharedCompanyData().getProductions()`.
+ 2. Remova a chamada ao `supabase.rpc('get_dashboard_metrics')`.
+ 3. Reative os `useMemo` de filtragem local (`filtered` e `prevFiltered`).
+ 
+ ---
+ *Última atualização: 09/05/2026 14:45 (Brasília)*
  # Estratégia de Otimização: Dashboard via RPC (Agregação Server-Side)
  
  **Objetivo:** Migrar o processamento de indicadores e comparativos do Dashboard do navegador (Client-Side) para o Banco de Dados (Server-Side), garantindo performance instantânea mesmo com milhões de registros.
