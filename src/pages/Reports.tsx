@@ -326,7 +326,7 @@ export default function Reports() {
         </CardContent>
       </Card>
 
-      {/* KPIs */}
+      {/* Data Processing & Rendering */}
       {(() => {
         const totalRolls = filtered.reduce((sum, p) => sum + p.rolls_produced, 0);
         const totalWeight = filtered.reduce((sum, p) => sum + p.weight_kg, 0);
@@ -337,49 +337,128 @@ export default function Reports() {
           ? productionsWithRolls.reduce((sum, p) => sum + p.efficiency, 0) / productionsWithRolls.length 
           : 0;
 
-        return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard
-              label="Total de Rolos"
-              value={formatNumber(totalRolls)}
-              subtitle={`Em ${uniqueDaysCount} dias com registro`}
-              icon={<Package className="h-5 w-5 text-primary" />}
-              borderColor="border-l-primary"
-            />
-            <KpiCard
-              label="Total Produzido"
-              value={`${formatNumber(totalWeight, 2)} kg`}
-              subtitle="Peso total produzido"
-              icon={<TrendingUp className="h-5 w-5 text-accent" />}
-              borderColor="border-l-accent"
-            />
-            {canSeeFinancial && <KpiCard
-              label="Valor Total"
-              value={formatCurrency(totalRevenue)}
-              subtitle="Valor total faturado"
-              icon={<DollarSign className="h-5 w-5 text-success" />}
-              borderColor="border-l-success"
-            />}
-            <KpiCard
-              label="Eficiência Média"
-              value={formatPercent(avgEfficiency)}
-              subtitle={`Meta: ${formatPercent(avgTargetEfficiency)}`}
-              icon={<Gauge className="h-5 w-5 text-destructive" />}
-              borderColor="border-l-destructive"
-              extra={
-                avgEfficiency < avgTargetEfficiency ? (
-                  <Badge variant="destructive" className="text-[10px] mt-1">Abaixo da meta ({formatPercent(avgTargetEfficiency)})</Badge>
-                ) : (
-                  <Badge className="bg-success/10 text-success border-success/20 text-[10px] mt-1">Dentro da meta ({formatPercent(avgTargetEfficiency)})</Badge>
-                )
-              }
-            />
-          </div>
-        );
-      })()}
+        // Groupings
+        const byShift = Object.keys(companyShiftLabels).map(key => {
+          const items = filtered.filter(p => p.shift === key);
+          const itemsWithRolls = items.filter(p => p.rolls_produced > 0);
+          return {
+            name: SHIFT_LABELS[key as ShiftType],
+            rolos: items.reduce((s, p) => s + p.rolls_produced, 0),
+            kg: items.reduce((s, p) => s + p.weight_kg, 0),
+            faturamento: items.reduce((s, p) => s + p.revenue, 0),
+            eficiencia: itemsWithRolls.length > 0 ? itemsWithRolls.reduce((s, p) => s + p.efficiency, 0) / itemsWithRolls.length : 0
+          };
+        });
 
-      {/* Analysis Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        const machineMap: Record<string, any> = {};
+        filtered.forEach(p => {
+          const key = p.machine_id || p.machine_name;
+          if (!machineMap[key]) machineMap[key] = { name: p.machine_name, rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
+          machineMap[key].rolos += p.rolls_produced;
+          machineMap[key].kg += p.weight_kg;
+          machineMap[key].faturamento += p.revenue;
+          if (p.rolls_produced > 0) {
+            machineMap[key].eficienciaSum += p.efficiency;
+            machineMap[key].count++;
+          }
+        });
+        const byMachine = Object.values(machineMap).map(m => ({
+          ...m,
+          targetEfficiency: 80,
+          records: m.count,
+          eficiencia: m.count > 0 ? m.eficienciaSum / m.count : 0
+        })).sort((a, b) => b.rolos - a.rolos);
+
+        const clientMap: Record<string, any> = {};
+        filtered.forEach(p => {
+          const art = articles.find(a => a.id === p.article_id);
+          const clientName = art?.client_name || 'Sem Cliente';
+          if (!clientMap[clientName]) clientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0 };
+          clientMap[clientName].rolos += p.rolls_produced;
+          clientMap[clientName].kg += p.weight_kg;
+          clientMap[clientName].faturamento += p.revenue;
+        });
+        const byClient = Object.values(clientMap).sort((a, b) => b.faturamento - a.faturamento);
+
+        const articleMap: Record<string, any> = {};
+        filtered.forEach(p => {
+          const art = articles.find(a => a.id === p.article_id);
+          const artName = p.article_name || 'Sem Artigo';
+          if (!articleMap[artName]) articleMap[artName] = { id: p.article_id, name: artName, clientName: art?.client_name || '—', rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
+          articleMap[artName].rolos += p.rolls_produced;
+          articleMap[artName].kg += p.weight_kg;
+          articleMap[artName].faturamento += p.revenue;
+          if (p.rolls_produced > 0) {
+            articleMap[artName].eficienciaSum += p.efficiency;
+            articleMap[artName].count++;
+          }
+        });
+        const byArticle = Object.values(articleMap).map(a => ({
+          ...a,
+          targetEfficiency: 80,
+          records: a.count,
+          eficiencia: a.count > 0 ? a.eficienciaSum / a.count : 0
+        })).sort((a, b) => b.kg - a.kg);
+
+        const dateMap: Record<string, any> = {};
+        filtered.forEach(p => {
+          if (!dateMap[p.date]) dateMap[p.date] = { date: p.date, rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
+          dateMap[p.date].rolos += p.rolls_produced;
+          dateMap[p.date].kg += p.weight_kg;
+          dateMap[p.date].faturamento += p.revenue;
+          if (p.rolls_produced > 0) {
+            dateMap[p.date].eficienciaSum += p.efficiency;
+            dateMap[p.date].count++;
+          }
+        });
+        const byDate = Object.values(dateMap).map(d => ({
+          ...d,
+          eficiencia: d.count > 0 ? d.eficienciaSum / d.count : 0,
+          date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
+        })).sort((a, b) => a.date.localeCompare(b.date));
+
+        return (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard
+                label="Total de Rolos"
+                value={formatNumber(totalRolls)}
+                subtitle={`Em ${uniqueDaysCount} dias com registro`}
+                icon={<Package className="h-5 w-5 text-primary" />}
+                borderColor="border-l-primary"
+              />
+              <KpiCard
+                label="Total Produzido"
+                value={`${formatNumber(totalWeight, 2)} kg`}
+                subtitle="Peso total produzido"
+                icon={<TrendingUp className="h-5 w-5 text-accent" />}
+                borderColor="border-l-accent"
+              />
+              {canSeeFinancial && <KpiCard
+                label="Valor Total"
+                value={formatCurrency(totalRevenue)}
+                subtitle="Valor total faturado"
+                icon={<DollarSign className="h-5 w-5 text-success" />}
+                borderColor="border-l-success"
+              />}
+              <KpiCard
+                label="Eficiência Média"
+                value={formatPercent(avgEfficiency)}
+                subtitle={`Meta: ${formatPercent(avgTargetEfficiency)}`}
+                icon={<Gauge className="h-5 w-5 text-destructive" />}
+                borderColor="border-l-destructive"
+                extra={
+                  avgEfficiency < avgTargetEfficiency ? (
+                    <Badge variant="destructive" className="text-[10px] mt-1">Abaixo da meta ({formatPercent(avgTargetEfficiency)})</Badge>
+                  ) : (
+                    <Badge className="bg-success/10 text-success border-success/20 text-[10px] mt-1">Dentro da meta ({formatPercent(avgTargetEfficiency)})</Badge>
+                  )
+                }
+              />
+            </div>
+
+            {/* Analysis Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-6 gap-1 p-1">
           <TabsTrigger value="turno">Por Turno</TabsTrigger>
           <TabsTrigger value="maquina">Por Máquina</TabsTrigger>
