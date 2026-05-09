@@ -1541,8 +1541,9 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
         - **09/05/2026 19:35 (Brasília)** — **RELATÓRIOS — Correção de Dados Vazios (Bug RPC):** Corrigido erro de incompatibilidade de tipos na função `get_report_data` que impedia a exibição de dados. Ajustada a lógica de datas no frontend para o filtro "Todo período" buscar o intervalo correto baseado nos registros da empresa.
 
-        - **09/05/2026 20:10 (Brasília)** — **RELATÓRIOS — Reversão para Client-Side (JS):** Revertida a implementação server-side (RPC) para o processamento original 100% em Javascript no frontend. Esta ação restaura a lógica de cálculo local anterior enquanto mantém a ordenação cronológica de turnos e os filtros de período funcionando corretamente.
+         - **09/05/2026 20:10 (Brasília)** — **RELATÓRIOS — Reversão para Client-Side (JS):** Revertida a implementação server-side (RPC) para o processamento original 100% em Javascript no frontend. Esta ação restaura a lógica de cálculo local anterior enquanto mantém a ordenação cronológica de turnos e os filtros de período funcionando corretamente.
 
+         - **09/05/2026 21:55 (Brasília)** — **RELATÓRIOS — Documentação de Estratégia de Eficiência Consolidada:** (1) Atualizado o arquivo `docs/rpcreports.md` com a nova estratégia para o cálculo de eficiência; (2) Definido que os relatórios devem utilizar a média da coluna `efficiency` já gravada na tabela `productions`, em vez de recalcular do zero; (3) Detalhada a lógica de agrupamento por Máquina, Cliente (via join com artigos) e Artigo, garantindo que o filtro de produção positiva (`rolls_produced > 0`) seja respeitado para médias precisas.
         - **10/05/2026 10:15 (Brasília)** — **RELATÓRIOS — Re-implementação RPC (Server-Side):** Implementada novamente a lógica server-side através da função RPC `get_report_data`. A migração consolida KPIs, agregações por turno, máquina, cliente e artigo, e dados de evolução diretamente no PostgreSQL, garantindo alta performance e consistência nos cálculos de eficiência ponderada e participação.
 
          *Última atualização: 10/05/2026 10:15 (Brasília)*
