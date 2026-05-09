@@ -648,16 +648,16 @@ export default function Reports() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byMachine.filter(m => (m.name || '').toLowerCase().includes(searchMachine.toLowerCase())).map(m => {
-                      const pctRolls = totalMachineRolls > 0 ? (m.rolos / totalMachineRolls * 100) : 0;
-                      const pctRevenue = totalMachineRevenue > 0 ? (m.faturamento / totalMachineRevenue * 100) : 0;
+                    {(byMachine || []).filter((m: any) => (m.name || '').toLowerCase().includes(searchMachine.toLowerCase())).map((m: any) => {
+                      const pctRolls = m.pct_rolls || 0;
+                      const pctRevenue = m.pct_revenue || 0;
                       return (
                         <div key={m.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="font-display font-bold text-foreground">{m.name}</p>
                             <Badge className={cn(
                               "text-xs",
-                              m.eficiencia >= m.targetEfficiency ? "bg-success/10 text-success" : m.eficiencia >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
+                              m.eficiencia >= avgTargetEfficiency ? "bg-success/10 text-success" : m.eficiencia >= avgTargetEfficiency * 0.875 ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"
                             )}>
                               {formatPercent(m.eficiencia)}
                             </Badge>
