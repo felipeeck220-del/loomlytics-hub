@@ -137,30 +137,41 @@ export default function FaturamentoTotal() {
      return { start: format(prevStart, 'yyyy-MM-dd'), end: format(prevEnd, 'yyyy-MM-dd') };
    }, [currentPeriod, filterMonth, customDate]);
  
-    // Load data via RPC - using type casting to avoid TS errors with dynamic rpc calls
-    const fetchRpcData = async () => {
-      if (!companyId) return;
-      setIsLoading(true);
-      try {
-        const { data, error } = await (supabase.rpc as any)('get_faturamento_total_metrics', {
-          p_company_id: companyId,
-          p_start_date: currentPeriod?.start || null,
-          p_end_date: currentPeriod?.end || null,
-          p_prev_start_date: previousPeriod?.start || null,
-          p_prev_end_date: previousPeriod?.end || null
-        });
-        if (error) throw error;
-        setRpcData(data);
-      } catch (err) {
-        console.error('Error loading RPC data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      // Load data via RPC - Wrapped in try/catch and ensures all params are present
+      useEffect(() => {
+        const fetchRpcData = async () => {
+          if (!companyId) return;
+          
+          const params = {
+            p_company_id: companyId,
+            p_start_date: currentPeriod?.start || format(subDays(new Date(), 14), 'yyyy-MM-dd'),
+            p_end_date: currentPeriod?.end || format(new Date(), 'yyyy-MM-dd'),
+            p_prev_start_date: previousPeriod?.start || format(subDays(new Date(), 29), 'yyyy-MM-dd'),
+            p_prev_end_date: previousPeriod?.end || format(subDays(new Date(), 15), 'yyyy-MM-dd'),
+          };
 
-    useEffect(() => {
-      fetchRpcData();
-    }, [companyId, currentPeriod, previousPeriod]);
+          setIsLoading(true);
+          try {
+            // Use generic call to avoid type mismatch issues if the generated types are stale
+            const { data, error } = await (supabase.rpc as any)('get_faturamento_total_metrics', params);
+            
+            if (error) {
+              console.error('RPC Execution Error:', error);
+              return;
+            }
+            
+            if (data) {
+              setRpcData(data);
+            }
+          } catch (err) {
+            console.error('Unexpected error in fetchRpcData:', err);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+  
+        fetchRpcData();
+      }, [companyId, currentPeriod, previousPeriod]);
  
    const clearFilters = () => {
      setDayRange(15);
