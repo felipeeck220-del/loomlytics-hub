@@ -1,5 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { fetchProductionsPage } from '@/lib/queries/productionsQueries';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,106 +85,7 @@ export default function Reports() {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  const productions = useMemo(() => getProductions(), [getProductions]);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
-  const [isRpcLoading, setIsRpcLoading] = useState(false);
-
-  const fetchReportData = useCallback(async () => {
-    if (!dbCompanyId) return;
-    
-    setIsRpcLoading(true);
-    try {
-      const today = new Date();
-      let start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-      let end = format(today, 'yyyy-MM-dd');
-
-      if (dateFrom && dateTo) {
-        start = format(dateFrom, 'yyyy-MM-dd');
-        end = format(dateTo, 'yyyy-MM-dd');
-      } else if (filterMonth !== 'all') {
-        const [year, month] = filterMonth.split('-').map(Number);
-        start = format(startOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
-        end = format(endOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
-      } else if (customDate) {
-        start = format(customDate, 'yyyy-MM-dd');
-        end = format(customDate, 'yyyy-MM-dd');
-      } else if (dayRange === 0) {
-        const dates = productions.map(p => p.date).sort();
-        start = dates.length > 0 ? dates[0] : '2000-01-01';
-        end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
-      }
-
-      const { data, error } = await supabase.rpc('get_report_data', {
-        p_company_id: dbCompanyId,
-        p_start_date: start,
-        p_end_date: end,
-        p_shift: filterShift,
-        p_client_id: (filterClient === 'all' || !filterClient) ? null : filterClient,
-        p_article_id: (filterArticle === 'all' || !filterArticle) ? null : filterArticle,
-        p_machine_id: (filterMachine === 'all' || !filterMachine) ? null : filterMachine,
-      } as any);
-
-      if (error) throw error;
-      setReportData(data);
-    } catch (err) {
-      console.error('Error fetching report data:', err);
-    } finally {
-      setIsRpcLoading(false);
-    }
-  }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, productions]);
-
-  useEffect(() => {
-    fetchReportData();
-  }, [fetchReportData]);
-
-  const kpis = useMemo(() => reportData?.kpis || { total_rolls: 0, total_kg: 0, total_revenue: 0, avg_efficiency: 0 }, [reportData]);
-  const totalRolls = kpis.total_rolls;
-  const totalWeight = kpis.total_kg;
-  const totalRevenue = kpis.total_revenue;
-  const avgEfficiency = kpis.avg_efficiency;
-  
-  const byShift = useMemo(() => {
-    return (reportData?.by_shift || []).map((s: any) => ({
-      ...s,
-      rolos: s.rolls,
-      faturamento: s.revenue,
-      eficiencia: s.efficiency,
-      name: SHIFT_LABELS[s.name as ShiftType] || s.name
-    }));
-  }, [reportData]);
-
-  const byMachine = useMemo(() => (reportData?.by_machine || []).map((m: any) => ({
-    ...m,
-    rolos: m.rolls,
-    faturamento: m.revenue,
-    eficiencia: m.efficiency,
-    targetEfficiency: 80
-  })), [reportData]);
-
-  const byClient = useMemo(() => (reportData?.by_client || []).map((c: any) => ({
-    ...c,
-    rolos: c.rolls,
-    faturamento: c.revenue
-  })), [reportData]);
-
-  const byArticle = useMemo(() => (reportData?.by_article || []).map((a: any) => ({
-    ...a,
-    rolos: a.rolls,
-    faturamento: a.revenue,
-    eficiencia: a.efficiency,
-    targetEfficiency: 80
-  })), [reportData]);
-
-  const byDate = useMemo(() => (reportData?.evolution || []).map((e: any) => ({
-    ...e,
-    rolos: e.rolls,
-    faturamento: e.revenue,
-    eficiencia: e.efficiency,
-    date: format(new Date(e.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
-  })), [reportData]);
-
-  const uniqueDays = useMemo(() => reportData?.evolution?.length || 0, [reportData]);
+  const productions = getProductions();
   const avgTargetEfficiency = 80;
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
