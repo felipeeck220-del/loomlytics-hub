@@ -419,14 +419,9 @@ export default function Dashboard() {
     };
   }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
-    if (loading && productions.length === 0 && !dashboardMetrics && !loadingStats) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-3 text-muted-foreground font-light">Carregando dados...</span>
-      </div>
-    );
-  }
+     if (loading && productions.length === 0) {
+       return null;
+     }
 
   return (
     <div className="space-y-7 animate-fade-in">
