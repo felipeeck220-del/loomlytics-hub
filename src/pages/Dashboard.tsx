@@ -245,16 +245,35 @@ export default function Dashboard() {
   const nonZeroFiltered = useMemo(() => filtered.filter(p => p.rolls_produced > 0), [filtered]);
 
     // KPIs from RPC or local fallback
-    const totalRolls = dashboardMetrics?.current_period?.total_rolls ?? filtered.reduce((s, p) => s + p.rolls_produced, 0);
-    const totalWeight = dashboardMetrics?.current_period?.total_weight ?? filtered.reduce((s, p) => s + p.weight_kg, 0);
-    const totalRevenue = dashboardMetrics?.current_period?.total_revenue ?? filtered.reduce((s, p) => s + p.revenue, 0);
-    const avgEfficiency = dashboardMetrics?.current_period?.avg_efficiency ?? (nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0);
+    const totalRolls = dashboardMetrics?.current_period?.total_rolls ?? filtered.reduce((s, p) => s + (Number(p.rolls_produced) || 0), 0);
+    const totalWeight = dashboardMetrics?.current_period?.total_weight ?? filtered.reduce((s, p) => s + (Number(p.weight_kg) || 0), 0);
+    const totalRevenue = dashboardMetrics?.current_period?.total_revenue ?? filtered.reduce((s, p) => s + (Number(p.revenue) || 0), 0);
+
+    // Weighted efficiency calculation for fallback
+    const avgEfficiency = useMemo(() => {
+      if (dashboardMetrics?.current_period?.avg_efficiency !== undefined) {
+        return dashboardMetrics.current_period.avg_efficiency;
+      }
+      const totalWeightForEff = filtered.reduce((acc, p) => acc + (p.rolls_produced > 0 ? Number(p.weight_kg) || 0 : 0), 0);
+      if (totalWeightForEff === 0) return 0;
+      const weightedSum = filtered.reduce((acc, p) => acc + (p.rolls_produced > 0 ? (Number(p.efficiency) || 0) * (Number(p.weight_kg) || 0) : 0), 0);
+      return weightedSum / totalWeightForEff;
+    }, [dashboardMetrics, filtered]);
 
     // Previous period KPIs from RPC or local fallback
-    const prevTotalRolls = dashboardMetrics?.previous_period?.total_rolls ?? prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
-    const prevTotalWeight = dashboardMetrics?.previous_period?.total_weight ?? prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
-    const prevTotalRevenue = dashboardMetrics?.previous_period?.total_revenue ?? prevFiltered.reduce((s, p) => s + p.revenue, 0);
-    const prevAvgEfficiency = dashboardMetrics?.previous_period?.avg_efficiency ?? (prevFiltered.filter(p => p.rolls_produced > 0).length ? prevFiltered.filter(p => p.rolls_produced > 0).reduce((s, p) => s + p.efficiency, 0) / prevFiltered.filter(p => p.rolls_produced > 0).length : 0);
+    const prevTotalRolls = dashboardMetrics?.previous_period?.total_rolls ?? prevFiltered.reduce((s, p) => s + (Number(p.rolls_produced) || 0), 0);
+    const prevTotalWeight = dashboardMetrics?.previous_period?.total_weight ?? prevFiltered.reduce((s, p) => s + (Number(p.weight_kg) || 0), 0);
+    const prevTotalRevenue = dashboardMetrics?.previous_period?.total_revenue ?? prevFiltered.reduce((s, p) => s + (Number(p.revenue) || 0), 0);
+
+    const prevAvgEfficiency = useMemo(() => {
+      if (dashboardMetrics?.previous_period?.avg_efficiency !== undefined) {
+        return dashboardMetrics.previous_period.avg_efficiency;
+      }
+      const totalWeightForEff = prevFiltered.reduce((acc, p) => acc + (p.rolls_produced > 0 ? Number(p.weight_kg) || 0 : 0), 0);
+      if (totalWeightForEff === 0) return 0;
+      const weightedSum = prevFiltered.reduce((acc, p) => acc + (p.rolls_produced > 0 ? (Number(p.efficiency) || 0) * (Number(p.weight_kg) || 0) : 0), 0);
+      return weightedSum / totalWeightForEff;
+    }, [dashboardMetrics, prevFiltered]);
 
   // Calculate weighted average target efficiency from articles used in filtered productions
   const avgTargetEfficiency = useMemo(() => {
