@@ -25,7 +25,8 @@ export function useCompanyData() {
    const [needles, setNeedles] = useState<NeedleInventory[]>([]);
    const [needleTransactions, setNeedleTransactions] = useState<NeedleTransaction[]>([]);
   const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
-  const [loading, setLoading] = useState(true);
+   const [loading, setLoading] = useState(true);
+   const [loadingProgress, setLoadingProgress] = useState(0);
 
   // Fetch all rows from a table, paginating past the 1000-row default limit
   const fetchAll = useCallback(async (table: string, query: { column: string; value: string } | null, orderCol: string, ascending = true) => {
@@ -140,54 +141,67 @@ export function useCompanyData() {
     created_at: r.created_at,
   });
 
-  // Reusable data loader
-  const loadAllData = useCallback(async () => {
-    if (!companyId) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+   // Reusable data loader
+   const loadAllData = useCallback(async () => {
+     if (!companyId) {
+       setLoading(false);
+       return;
+     }
+     setLoading(true);
+     setLoadingProgress(0);
      try {
-      const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData] = await Promise.all([
-        fetchAll('machines', { column: 'company_id', value: companyId }, 'number'),
-        fetchAll('clients', { column: 'company_id', value: companyId }, 'name'),
-        fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
-        fetchAll('weavers', { column: 'company_id', value: companyId }, 'code'),
-        fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false),
-        fetchAll('machine_logs', { column: 'company_id', value: companyId }, 'started_at', false),
-        fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at'),
-        sb('company_settings').select('*').eq('company_id', companyId).maybeSingle(),
-        fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false),
-        fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code'),
-        fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false),
-      ]);
-
-      setMachines(mData.map(mapMachine));
-      setMachineLogs(mlRes.map(mapMachineLog));
-      setClients(cData.map(mapClient));
-      setArticles(aData.map(mapArticle));
-      setWeavers(wData.map(mapWeaver));
-      setProductions(pData.map(mapProduction));
-      setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
-      setDefectRecords(drRes.map(mapDefectRecord));
+       const tasks = [
+         { name: 'machines', fn: () => fetchAll('machines', { column: 'company_id', value: companyId }, 'number') },
+         { name: 'clients', fn: () => fetchAll('clients', { column: 'company_id', value: companyId }, 'name') },
+         { name: 'articles', fn: () => fetchAll('articles', { column: 'company_id', value: companyId }, 'name') },
+         { name: 'weavers', fn: () => fetchAll('weavers', { column: 'company_id', value: companyId }, 'code') },
+         { name: 'productions', fn: () => fetchAll('productions', { column: 'company_id', value: companyId }, 'date', false) },
+         { name: 'machine_logs', fn: () => fetchAll('machine_logs', { column: 'company_id', value: companyId }, 'started_at', false) },
+         { name: 'article_machine_turns', fn: () => fetchAll('article_machine_turns', { column: 'company_id', value: companyId }, 'created_at') },
+         { name: 'company_settings', fn: () => sb('company_settings').select('*').eq('company_id', companyId).maybeSingle() },
+         { name: 'defect_records', fn: () => fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) },
+         { name: 'needle_inventory', fn: () => fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
+         { name: 'needle_transactions', fn: () => fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false) },
+       ];
+ 
+       let completed = 0;
+       const results = await Promise.all(tasks.map(async (task) => {
+         const result = await task.fn();
+         completed++;
+         setLoadingProgress((completed / tasks.length) * 100);
+         return result;
+       }));
+ 
+       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData] = results;
+ 
+       setMachines(mData.map(mapMachine));
+       setMachineLogs(mlRes.map(mapMachineLog));
+       setClients(cData.map(mapClient));
+       setArticles(aData.map(mapArticle));
+       setWeavers(wData.map(mapWeaver));
+       setProductions(pData.map(mapProduction));
+       setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
+       setDefectRecords(drRes.map(mapDefectRecord));
        setNeedles(nData.map(mapNeedle));
        setNeedleTransactions(ntData.map(mapNeedleTransaction));
-      if (csRes.data) {
-        setShiftSettings({
-          shift_manha_start: csRes.data.shift_manha_start || DEFAULT_SHIFT_SETTINGS.shift_manha_start,
-          shift_manha_end: csRes.data.shift_manha_end || DEFAULT_SHIFT_SETTINGS.shift_manha_end,
-          shift_tarde_start: csRes.data.shift_tarde_start || DEFAULT_SHIFT_SETTINGS.shift_tarde_start,
-          shift_tarde_end: csRes.data.shift_tarde_end || DEFAULT_SHIFT_SETTINGS.shift_tarde_end,
-          shift_noite_start: csRes.data.shift_noite_start || DEFAULT_SHIFT_SETTINGS.shift_noite_start,
-          shift_noite_end: csRes.data.shift_noite_end || DEFAULT_SHIFT_SETTINGS.shift_noite_end,
-        });
-      }
-    } catch (err) {
-      console.error('Failed to load company data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [companyId]);
+       
+       if (csRes.data) {
+         setShiftSettings({
+           shift_manha_start: csRes.data.shift_manha_start || DEFAULT_SHIFT_SETTINGS.shift_manha_start,
+           shift_manha_end: csRes.data.shift_manha_end || DEFAULT_SHIFT_SETTINGS.shift_manha_end,
+           shift_tarde_start: csRes.data.shift_tarde_start || DEFAULT_SHIFT_SETTINGS.shift_tarde_start,
+           shift_tarde_end: csRes.data.shift_tarde_end || DEFAULT_SHIFT_SETTINGS.shift_tarde_end,
+           shift_noite_start: csRes.data.shift_noite_start || DEFAULT_SHIFT_SETTINGS.shift_noite_start,
+           shift_noite_end: csRes.data.shift_noite_end || DEFAULT_SHIFT_SETTINGS.shift_noite_end,
+         });
+       }
+       setLoadingProgress(100);
+     } catch (err) {
+       console.error('Failed to load company data:', err);
+     } finally {
+       setTimeout(() => setLoading(false), 300); // Pequeno delay para a barra chegar a 100% suavemente
+     }
+   }, [companyId]);
 
   // Load all data once we have the company ID from the authenticated user
   useEffect(() => {
