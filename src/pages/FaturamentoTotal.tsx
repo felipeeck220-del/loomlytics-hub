@@ -137,30 +137,38 @@ export default function FaturamentoTotal() {
      return { start: format(prevStart, 'yyyy-MM-dd'), end: format(prevEnd, 'yyyy-MM-dd') };
    }, [currentPeriod, filterMonth, customDate]);
  
-    // Load data via RPC - using type casting to avoid TS errors with dynamic rpc calls
-    const fetchRpcData = async () => {
-      if (!companyId) return;
-      setIsLoading(true);
-      try {
-        const { data, error } = await (supabase.rpc as any)('get_faturamento_total_metrics', {
-          p_company_id: companyId,
-          p_start_date: currentPeriod?.start || null,
-          p_end_date: currentPeriod?.end || null,
-          p_prev_start_date: previousPeriod?.start || null,
-          p_prev_end_date: previousPeriod?.end || null
-        });
-        if (error) throw error;
-        setRpcData(data);
-      } catch (err) {
-        console.error('Error loading RPC data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    useEffect(() => {
-      fetchRpcData();
-    }, [companyId, currentPeriod, previousPeriod]);
+     // Load data via RPC
+     useEffect(() => {
+       const fetchRpcData = async () => {
+         if (!companyId || !currentPeriod || !previousPeriod) return;
+         
+         setIsLoading(true);
+         try {
+           console.log('Fetching RPC metrics for company:', companyId);
+           const { data, error } = await supabase.rpc('get_faturamento_total_metrics', {
+             p_company_id: companyId,
+             p_start_date: currentPeriod.start,
+             p_end_date: currentPeriod.end,
+             p_prev_start_date: previousPeriod.start,
+             p_prev_end_date: previousPeriod.end
+           });
+           
+           if (error) {
+             console.error('RPC Error:', error);
+             throw error;
+           }
+           
+           console.log('RPC Response:', data);
+           setRpcData(data);
+         } catch (err) {
+           console.error('Error loading RPC data:', err);
+         } finally {
+           setIsLoading(false);
+         }
+       };
+ 
+       fetchRpcData();
+     }, [companyId, currentPeriod, previousPeriod]);
  
    const clearFilters = () => {
      setDayRange(15);
