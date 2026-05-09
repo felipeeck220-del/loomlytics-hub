@@ -142,7 +142,7 @@ export default function Reports() {
     } finally {
       setFetchingReport(false);
     }
-  }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, productions]);
+   }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine]);
 
   useEffect(() => {
     fetchReportData();
