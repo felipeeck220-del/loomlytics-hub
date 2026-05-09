@@ -139,47 +139,52 @@ export default function Reports() {
      fetchReportData();
    }, [fetchReportData]);
  
-   const kpis = reportData?.kpis || { total_rolls: 0, total_kg: 0, total_revenue: 0, avg_efficiency: 0 };
+   const kpis = useMemo(() => reportData?.kpis || { total_rolls: 0, total_kg: 0, total_revenue: 0, avg_efficiency: 0 }, [reportData]);
    const totalRolls = kpis.total_rolls;
    const totalWeight = kpis.total_kg;
    const totalRevenue = kpis.total_revenue;
    const avgEfficiency = kpis.avg_efficiency;
-   const byShift = (reportData?.by_shift || []).map((s: any) => ({
+   
+   const byShift = useMemo(() => (reportData?.by_shift || []).map((s: any) => ({
      ...s,
      rolos: s.rolls,
      faturamento: s.revenue,
      eficiencia: s.efficiency,
      name: SHIFT_LABELS[s.name as ShiftType] || s.name
-   }));
-   const byMachine = (reportData?.by_machine || []).map((m: any) => ({
+   })), [reportData]);
+ 
+   const byMachine = useMemo(() => (reportData?.by_machine || []).map((m: any) => ({
      ...m,
      rolos: m.rolls,
      faturamento: m.revenue,
      eficiencia: m.efficiency,
-     targetEfficiency: 80 // Default target for ranking
-   }));
-   const byClient = (reportData?.by_client || []).map((c: any) => ({
+     targetEfficiency: 80
+   })), [reportData]);
+ 
+   const byClient = useMemo(() => (reportData?.by_client || []).map((c: any) => ({
      ...c,
      rolos: c.rolls,
      faturamento: c.revenue
-   }));
-   const byArticle = (reportData?.by_article || []).map((a: any) => ({
+   })), [reportData]);
+ 
+   const byArticle = useMemo(() => (reportData?.by_article || []).map((a: any) => ({
      ...a,
      rolos: a.rolls,
      faturamento: a.revenue,
      eficiencia: a.efficiency,
      targetEfficiency: 80
-   }));
-   const byDate = (reportData?.evolution || []).map((e: any) => ({
+   })), [reportData]);
+ 
+   const byDate = useMemo(() => (reportData?.evolution || []).map((e: any) => ({
      ...e,
      rolos: e.rolls,
      faturamento: e.revenue,
      eficiencia: e.efficiency,
      date: format(new Date(e.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
-   }));
+   })), [reportData]);
  
-   const uniqueDays = reportData?.evolution?.length || 0;
-   const avgTargetEfficiency = 80; // Simplificado agora que usamos RPC
+   const uniqueDays = useMemo(() => reportData?.evolution?.length || 0, [reportData]);
+   const avgTargetEfficiency = 80;
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
