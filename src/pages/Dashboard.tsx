@@ -285,11 +285,25 @@ export default function Dashboard() {
         const [y, m] = filterMonth.split('-').map(Number);
         days = new Date(y, m, 0).getDate();
       }
-    } else if (dayRange > 0) {
-      days = dayRange;
     } else {
-      // "All time" fallback: use records count / records per day average or just a default
-      days = dashboardMetrics?.current_period?.record_count ? Math.max(1, Math.ceil(Number(dashboardMetrics.current_period.record_count) / 10)) : 30;
+      let startDateStr = '';
+      let endDateStr = '';
+
+      if (dayRange > 0) {
+        startDateStr = format(subDays(new Date(), dayRange - 1), 'yyyy-MM-dd');
+        endDateStr = format(new Date(), 'yyyy-MM-dd');
+      } else if (filtered.length > 0) {
+        // Todo período
+        const sortedDates = [...filtered].map(p => p.date).sort();
+        startDateStr = sortedDates[0];
+        endDateStr = sortedDates[sortedDates.length - 1];
+      }
+
+      if (startDateStr && endDateStr) {
+        days = differenceInCalendarDays(new Date(endDateStr + 'T12:00:00'), new Date(startDateStr + 'T12:00:00')) + 1;
+      } else {
+        days = 30; // Fallback
+      }
     }
 
     if (filterShift !== 'all') {
