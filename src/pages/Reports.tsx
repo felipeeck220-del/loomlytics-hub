@@ -400,7 +400,7 @@ export default function Reports() {
 
         const byShift = (by_shift || []).map((s: any) => ({
           ...s,
-          name: SHIFT_LABELS[s.name as ShiftType] || s.name,
+          name: companyShiftLabels[s.name as ShiftType] || s.name,
           rolos: s.rolls,
           faturamento: s.revenue,
           eficiencia: s.efficiency
