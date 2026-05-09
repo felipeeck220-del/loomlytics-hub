@@ -87,7 +87,7 @@ export default function Reports() {
 
   const productions = getProductions();
   const avgTargetEfficiency = 80;
-  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
+   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
 
   const [reportData, setReportData] = useState<any>(null);
   const [fetchingReport, setFetchingReport] = useState(false);
@@ -384,12 +384,19 @@ export default function Reports() {
           <span className="ml-3 text-muted-foreground">Processando dados...</span>
         </div>
       ) : reportData ? (() => {
-        const { kpis, by_shift, by_machine, by_client, by_article, evolution } = reportData;
-        const totalRolls = kpis.total_rolls;
-        const totalWeight = kpis.total_kg;
-        const totalRevenue = kpis.total_revenue;
-        const avgEfficiency = kpis.avg_efficiency;
-        const uniqueDaysCount = evolution.length;
+         const { kpis, by_shift, by_machine, by_client, by_article, evolution } = reportData || {};
+         
+         if (!kpis) return (
+           <div className="text-center py-12">
+             <p className="text-muted-foreground">Nenhum dado encontrado para o período e filtros selecionados.</p>
+           </div>
+         );
+ 
+         const totalRolls = kpis.total_rolls || 0;
+         const totalWeight = kpis.total_kg || 0;
+         const totalRevenue = kpis.total_revenue || 0;
+         const avgEfficiency = kpis.avg_efficiency || 0;
+         const uniqueDaysCount = evolution?.length || 0;
 
         const byDate = (evolution || []).map((d: any) => ({
           ...d,
@@ -1112,11 +1119,20 @@ export default function Reports() {
         );
       })() : null}
 
-      {productions.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Registre produções para ver os relatórios detalhados</p>
-        </div>
-      )}
+       {!fetchingReport && !reportData && productions.length === 0 && (
+         <div className="text-center py-12">
+           <p className="text-muted-foreground">Registre produções para ver os relatórios detalhados</p>
+         </div>
+       )}
+ 
+       {!fetchingReport && !reportData && productions.length > 0 && (
+         <div className="text-center py-12">
+           <p className="text-muted-foreground">Nenhum dado encontrado para o período selecionado.</p>
+           <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4">
+             <RotateCcw className="h-4 w-4 mr-1" /> Limpar Filtros
+           </Button>
+         </div>
+       )}
     </div>
   );
 }
