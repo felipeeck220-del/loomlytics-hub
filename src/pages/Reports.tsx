@@ -86,7 +86,7 @@ export default function Reports() {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  const productions = getProductions();
+   const productions = useMemo(() => getProductions(), [getProductions]);
    const [isSyncing, setIsSyncing] = useState(false);
    const [reportData, setReportData] = useState<any>(null);
    const [isRpcLoading, setIsRpcLoading] = useState(false);
@@ -110,12 +110,12 @@ export default function Reports() {
        } else if (customDate) {
          start = format(customDate, 'yyyy-MM-dd');
          end = format(customDate, 'yyyy-MM-dd');
-       } else if (dayRange === 0) {
-         // If all time, the RPC handles it by taking min/max but we can send a very old date
-         start = '2000-01-01';
-         end = format(today, 'yyyy-MM-dd');
-       }
- 
+        } else if (dayRange === 0) {
+          const dates = productions.map(p => p.date).sort();
+          start = dates.length > 0 ? dates[0] : '2000-01-01';
+          end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
+        }
+
        const { data, error } = await (supabase.rpc as any)('get_report_data', {
          p_company_id: dbCompanyId,
          p_start_date: start,
@@ -133,7 +133,7 @@ export default function Reports() {
      } finally {
        setIsRpcLoading(false);
      }
-   }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine]);
+    }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, productions]);
  
    useEffect(() => {
      fetchReportData();
@@ -251,11 +251,10 @@ export default function Reports() {
     const today = new Date();
 
     if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-      if (filtered.length > 0) {
-        const dates = filtered.map(p => p.date).sort();
+      const dates = productions.map(p => p.date).sort();
+      if (dates.length > 0) {
         return `${format(toDisplayDate(dates[0]), 'dd/MM/yyyy')} a ${format(toDisplayDate(dates[dates.length - 1]), 'dd/MM/yyyy')}`;
       }
-
       return 'Sem dados no período';
     }
 
