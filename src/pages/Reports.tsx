@@ -724,11 +724,10 @@ export default function Reports() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {byClient.filter(c => (c.name || '').toLowerCase().includes(searchClient.toLowerCase())).map(c => {
-                      const pctRolls = totalClientRolls > 0 ? (c.rolos / totalClientRolls * 100) : 0;
-                      const pctKg = totalClientKg > 0 ? (c.kg / totalClientKg * 100) : 0;
-                      const pctRevenue = totalClientRevenue > 0 ? (c.faturamento / totalClientRevenue * 100) : 0;
-                      return (
+                    {byClient.filter((c: any) => (c.name || '').toLowerCase().includes(searchClient.toLowerCase())).map((c: any) => {
+                      const pctRolls = c.pct_rolls || 0;
+                      const pctKg = c.pct_kg || 0;
+                      const pctRevenue = c.pct_revenue || 0;
                         <div key={c.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="font-display font-bold text-foreground">{c.name}</p>
