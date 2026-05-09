@@ -116,7 +116,9 @@ export default function Reports() {
         end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
       }
 
-      const { data, error } = await (supabase.rpc as any)('get_report_data', {
+      console.log('Fetching report data with params:', { dbCompanyId, start, end, filterShift, filterClient, filterArticle, filterMachine });
+      
+      const { data, error } = await supabase.rpc('get_report_data', {
         p_company_id: dbCompanyId,
         p_start_date: start,
         p_end_date: end,
@@ -124,7 +126,9 @@ export default function Reports() {
         p_client_id: filterClient === 'all' ? null : filterClient,
         p_article_id: filterArticle === 'all' ? null : filterArticle,
         p_machine_id: filterMachine === 'all' ? null : filterMachine,
-      });
+      } as any);
+
+      console.log('Report data response:', { data, error });
 
       if (error) throw error;
       setReportData(data);
