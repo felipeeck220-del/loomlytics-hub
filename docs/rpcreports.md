@@ -1,3 +1,23 @@
+ ## 📥 Configurações de Exportação
+ 
+ ### Modos de Visualização
+ - **Admin:** Visão completa, incluindo valores financeiros (R$), faturamento e lucro.
+ - **Equipe:** Visão operacional, ocultando valores monetários, focando em Kg, Rolos e Eficiência.
+ 
+ ### Formatos Suportados
+ - **PDF:** Documento estilizado com cabeçalho da empresa, tabelas zebradas e gráficos (opcional).
+ - **CSV:** Planilha bruta formatada com separador `;` para Excel (pt-BR).
+ 
+ ### Opções de Exportação
+ - **Exportação Geral (Relatório Completo):** Consolida todas as abas (Turno, Máquina, Cliente, Artigo, Tendência) em um único documento PDF ou CSV.
+ - **Exportações Específicas:**
+   - **Por Artigo:** Foco em Rolos, Kg e Valor produzido por tipo de malha.
+   - **Por Máquina:** Performance individual detalhada e ranking de produtividade.
+   - **Por Turno:** Análise comparativa de produtividade entre os períodos de trabalho.
+   - **Por Cliente:** Detalhamento da produção (Rolos/Kg) destinada a cada cliente parceiro.
+ 
+ ---
+ 
  # 📊 Documentação RPC: get_report_data
  
  Documentação detalhada da Função de Banco de Dados (RPC) para o módulo de Relatórios Analíticos.
