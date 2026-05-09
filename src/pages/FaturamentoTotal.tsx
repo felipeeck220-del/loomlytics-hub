@@ -1,5 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getProductionStats } from '@/lib/queries/productionsQueries';
+ import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -21,26 +20,6 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
-const sb = (table: string) => (supabase.from as any)(table);
-
-async function fetchAllPaginated<T>(table: string, companyId: string, orderCol: string = 'created_at', ascending = false): Promise<T[]> {
-  const PAGE = 1000;
-  let all: T[] = [];
-  let from = 0;
-  while (true) {
-    const { data, error } = await sb(table).select('*').eq('company_id', companyId).order(orderCol, { ascending }).order('id', { ascending: true }).range(from, from + PAGE - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    all = all.concat(data as T[]);
-    if (data.length < PAGE) break;
-    from += PAGE;
-  }
-  return all;
-}
-
-interface ProductionRow { id: string; date: string; revenue: number; company_id: string; }
-interface OutsourceRow { id: string; date: string; total_profit: number; company_id: string; }
-interface ResidueRow { id: string; date: string; total: number; company_id: string; }
 
 function RevenueKpiCard({ label, value, previousValue, icon, borderColor, showComparison }: {
   label: string; value: number; previousValue: number; icon: React.ReactNode; borderColor: string; showComparison: boolean;
@@ -91,190 +70,155 @@ export default function FaturamentoTotal() {
   const [dateTo, setDateTo] = useState<Date>();
   const [filterMonth, setFilterMonth] = useState('all');
 
-  const [outsource, setOutsource] = useState<OutsourceRow[]>([]);
-  const [residues, setResidues] = useState<ResidueRow[]>([]);
-  const [productions, setProductions] = useState<ProductionRow[]>([]);
-  const [isLoadingAll, setIsLoadingAll] = useState(false);
-
-  const [availableMonthsList, setAvailableMonthsList] = useState<string[]>([]);
-
-  const loadInitialData = useCallback(async () => {
-    if (!companyId) return;
-    setIsLoadingAll(true);
-    try {
-      const [out, res, prod] = await Promise.all([
-        fetchAllPaginated<OutsourceRow>('outsource_productions', companyId, 'date'),
-        fetchAllPaginated<ResidueRow>('residue_sales', companyId, 'date'),
-        fetchAllPaginated<ProductionRow>('productions', companyId, 'date'),
-      ]);
-      setOutsource(out);
-      setResidues(res);
-      setProductions(prod);
-
-      const months = new Set<string>();
-      prod.forEach(p => months.add(p.date.substring(0, 7)));
-      out.forEach(p => months.add(p.date.substring(0, 7)));
-      res.forEach(p => months.add(p.date.substring(0, 7)));
-      months.add(format(new Date(), 'yyyy-MM'));
-      setAvailableMonthsList(Array.from(months).sort().reverse());
-    } catch (err) {
-      console.error('Error loading faturamento data:', err);
-    } finally {
-      setIsLoadingAll(false);
-    }
-  }, [companyId]);
-
-  useEffect(() => {
-    loadInitialData();
-  }, [loadInitialData]);
-
-  const clearFilters = () => {
-    setDayRange(15);
-    setCustomDate(undefined);
-    setDateFrom(undefined);
-    setDateTo(undefined);
-    setFilterMonth('all');
-  };
-  const hasActiveFilters = dayRange !== 15 || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
-
-  // Compute current period range
-  const currentPeriod = useMemo(() => {
-    const today = new Date();
-    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-      return null; // all time
-    }
-    if (dateFrom || dateTo) {
-      return {
-        start: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '2000-01-01',
-        end: dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd'),
-      };
-    }
-    if (filterMonth !== 'all') {
-      const [y, m] = filterMonth.split('-').map(Number);
-      const lastDay = new Date(y, m, 0).getDate();
-      return { start: `${filterMonth}-01`, end: `${filterMonth}-${String(lastDay).padStart(2, '0')}` };
-    }
-    if (customDate) {
-      const d = format(customDate, 'yyyy-MM-dd');
-      return { start: d, end: d };
-    }
-    return {
-      start: format(subDays(today, dayRange - 1), 'yyyy-MM-dd'),
-      end: format(today, 'yyyy-MM-dd'),
-    };
-  }, [dayRange, customDate, dateFrom, dateTo, filterMonth]);
-
-  // Previous period for comparison
-  const previousPeriod = useMemo(() => {
-    if (!currentPeriod) return null;
-
-    if (filterMonth !== 'all') {
-      const currentMonthDate = new Date(`${filterMonth}-01T12:00:00`);
-      const previousMonthDate = subMonths(currentMonthDate, 1);
-      return {
-        start: format(startOfMonth(previousMonthDate), 'yyyy-MM-dd'),
-        end: format(endOfMonth(previousMonthDate), 'yyyy-MM-dd'),
-      };
-    }
-
-    if (customDate) {
-      const previousDate = format(subDays(customDate, 1), 'yyyy-MM-dd');
-      return { start: previousDate, end: previousDate };
-    }
-
-    const startDate = new Date(currentPeriod.start + 'T12:00:00');
-    const endDate = new Date(currentPeriod.end + 'T12:00:00');
-    const durationDays = differenceInCalendarDays(endDate, startDate) + 1;
-    const prevEnd = subDays(startDate, 1);
-    const prevStart = subDays(prevEnd, durationDays - 1);
-    return { start: format(prevStart, 'yyyy-MM-dd'), end: format(prevEnd, 'yyyy-MM-dd') };
-  }, [currentPeriod, filterMonth, customDate]);
-
-  const loading = isLoadingAll;
-
-  const filterByPeriod = <T extends { date: string }>(data: T[], period: { start: string; end: string } | null) => {
-    if (!period) return data;
-    return data.filter(d => d.date >= period.start && d.date <= period.end);
-  };
-
-  const filteredOut = useMemo(() => filterByPeriod(outsource, currentPeriod), [outsource, currentPeriod]);
-  const filteredRes = useMemo(() => filterByPeriod(residues, currentPeriod), [residues, currentPeriod]);
-  const filteredProd = useMemo(() => filterByPeriod(productions, currentPeriod), [productions, currentPeriod]);
-
-  const prevOut = useMemo(() => filterByPeriod(outsource, previousPeriod), [outsource, previousPeriod]);
-  const prevRes = useMemo(() => filterByPeriod(residues, previousPeriod), [residues, previousPeriod]);
-  const prevProd = useMemo(() => filterByPeriod(productions, previousPeriod), [productions, previousPeriod]);
-
-  const malhasCurrent = filteredProd.reduce((s, p) => s + p.revenue, 0);
-  const tercCurrent = filteredOut.reduce((s, p) => s + p.total_profit, 0);
-  const resCurrent = filteredRes.reduce((s, p) => s + p.total, 0);
-  const totalCurrent = malhasCurrent + tercCurrent + resCurrent;
-
-  const malhasPrev = prevProd.reduce((s, p) => s + p.revenue, 0);
-  const tercPrev = prevOut.reduce((s, p) => s + p.total_profit, 0);
-  const resPrev = prevRes.reduce((s, p) => s + p.total, 0);
-  const totalPrev = malhasPrev + tercPrev + resPrev;
-
-  const showComparison = currentPeriod !== null;
-
-  // Period label
-  const periodLabel = useMemo(() => {
-    if (!currentPeriod) return 'Todo período';
-    const s = format(new Date(currentPeriod.start + 'T12:00:00'), 'dd/MM/yyyy');
-    const e = format(new Date(currentPeriod.end + 'T12:00:00'), 'dd/MM/yyyy');
-    return s === e ? s : `${s} a ${e}`;
-  }, [currentPeriod]);
-
-  const chartData = useMemo(() => {
-    const dateMap: Record<string, { malhas: number; terceirizado: number; residuos: number }> = {};
-    
-    filteredProd.forEach(p => {
-      if (!dateMap[p.date]) dateMap[p.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
-      dateMap[p.date].malhas += p.revenue;
-    });
-    
-    filteredOut.forEach(p => {
-      if (!dateMap[p.date]) dateMap[p.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
-      dateMap[p.date].terceirizado += p.total_profit;
-    });
-    
-    filteredRes.forEach(s => {
-      if (!dateMap[s.date]) dateMap[s.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
-      dateMap[s.date].residuos += s.total;
-    });
-    
-    return Object.entries(dateMap)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, vals]) => ({
-        date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-        malhas: Math.round(vals.malhas * 100) / 100,
-        terceirizado: Math.round(vals.terceirizado * 100) / 100,
-        residuos: Math.round(vals.residuos * 100) / 100,
-        total: Math.round((vals.malhas + vals.terceirizado + vals.residuos) * 100) / 100,
-      }));
-  }, [filteredProd, filteredOut, filteredRes]);
-
-  // Table data
-  const tableData = useMemo(() => {
-    const rows = [
-      { fonte: malhasLabel, current: malhasCurrent, prev: malhasPrev },
-      { fonte: 'Terceirizado (Lucro)', current: tercCurrent, prev: tercPrev },
-      { fonte: 'Resíduos', current: resCurrent, prev: resPrev },
-    ];
-    return rows.map(r => ({
-      ...r,
-      pct: totalCurrent > 0 ? (r.current / totalCurrent) * 100 : 0,
-      variation: r.prev > 0 ? ((r.current - r.prev) / r.prev) * 100 : (r.current > 0 ? 100 : 0),
-    }));
-  }, [malhasCurrent, tercCurrent, resCurrent, malhasPrev, tercPrev, resPrev, totalCurrent]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+   const [rpcData, setRpcData] = useState<any>(null);
+   const [isLoading, setIsLoading] = useState(true);
+   const [availableMonthsList, setAvailableMonthsList] = useState<string[]>([]);
+   // Load available months only once
+   useEffect(() => {
+     const loadMonths = async () => {
+       if (!companyId) return;
+       try {
+         const { data: prodData } = await supabase.from('productions').select('date').eq('company_id', companyId).order('date', { ascending: false }).limit(100);
+         const months = new Set<string>();
+         prodData?.forEach(p => months.add(p.date.substring(0, 7)));
+         months.add(format(new Date(), 'yyyy-MM'));
+         setAvailableMonthsList(Array.from(months).sort().reverse());
+       } catch (err) {
+         console.error('Error loading months:', err);
+       }
+     };
+     loadMonths();
+   }, [companyId]);
+   // Compute current and previous period ranges
+   const currentPeriod = useMemo(() => {
+     const today = new Date();
+     if (dateFrom || dateTo) {
+       return {
+         start: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '2000-01-01',
+         end: dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd'),
+       };
+     }
+     if (filterMonth !== 'all') {
+       const [y, m] = filterMonth.split('-').map(Number);
+       const lastDay = new Date(y, m, 0).getDate();
+       return { start: `${filterMonth}-01`, end: `${filterMonth}-${String(lastDay).padStart(2, '0')}` };
+     }
+     if (customDate) {
+       const d = format(customDate, 'yyyy-MM-dd');
+       return { start: d, end: d };
+     }
+     if (dayRange === 0) {
+       return { start: '2000-01-01', end: format(today, 'yyyy-MM-dd') };
+     }
+     return {
+       start: format(subDays(today, dayRange - 1), 'yyyy-MM-dd'),
+       end: format(today, 'yyyy-MM-dd'),
+     };
+   }, [dayRange, customDate, dateFrom, dateTo, filterMonth]);
+ 
+   const previousPeriod = useMemo(() => {
+     if (filterMonth !== 'all') {
+       const currentMonthDate = new Date(`${filterMonth}-01T12:00:00`);
+       const previousMonthDate = subMonths(currentMonthDate, 1);
+       return {
+         start: format(startOfMonth(previousMonthDate), 'yyyy-MM-dd'),
+         end: format(endOfMonth(previousMonthDate), 'yyyy-MM-dd'),
+       };
+     }
+     if (customDate) {
+       const previousDate = format(subDays(customDate, 1), 'yyyy-MM-dd');
+       return { start: previousDate, end: previousDate };
+     }
+     const startDate = new Date(currentPeriod.start + 'T12:00:00');
+     const endDate = new Date(currentPeriod.end + 'T12:00:00');
+     const durationDays = differenceInCalendarDays(endDate, startDate) + 1;
+     const prevEnd = subDays(startDate, 1);
+     const prevStart = subDays(prevEnd, durationDays - 1);
+     return { start: format(prevStart, 'yyyy-MM-dd'), end: format(prevEnd, 'yyyy-MM-dd') };
+   }, [currentPeriod, filterMonth, customDate]);
+ 
+   // Load data via RPC
+   useEffect(() => {
+     const loadData = async () => {
+       if (!companyId) return;
+       setIsLoading(true);
+       try {
+         const { data, error } = await supabase.rpc('get_faturamento_total_metrics', {
+           p_company_id: companyId,
+           p_start_date: currentPeriod.start,
+           p_end_date: currentPeriod.end,
+           p_prev_start_date: previousPeriod.start,
+           p_prev_end_date: previousPeriod.end
+         });
+         if (error) throw error;
+         setRpcData(data);
+       } catch (err) {
+         console.error('Error loading RPC data:', err);
+       } finally {
+         setIsLoading(false);
+       }
+     };
+     loadData();
+   }, [companyId, currentPeriod, previousPeriod]);
+ 
+   const clearFilters = () => {
+     setDayRange(15);
+     setCustomDate(undefined);
+     setDateFrom(undefined);
+     setDateTo(undefined);
+     setFilterMonth('all');
+   };
+   const hasActiveFilters = dayRange !== 15 || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
+ 
+   const malhasCurrent = rpcData?.current_period?.malhas || 0;
+   const tercCurrent = rpcData?.current_period?.terceirizado || 0;
+   const resCurrent = rpcData?.current_period?.residuos || 0;
+   const totalCurrent = rpcData?.current_period?.total || 0;
+ 
+   const malhasPrev = rpcData?.previous_period?.malhas || 0;
+   const tercPrev = rpcData?.previous_period?.terceirizado || 0;
+   const resPrev = rpcData?.previous_period?.residuos || 0;
+   const totalPrev = rpcData?.previous_period?.total || 0;
+ 
+   const showComparison = true;
+ 
+   const periodLabel = useMemo(() => {
+     const s = format(new Date(currentPeriod.start + 'T12:00:00'), 'dd/MM/yyyy');
+     const e = format(new Date(currentPeriod.end + 'T12:00:00'), 'dd/MM/yyyy');
+     return s === e ? s : `${s} a ${e}`;
+   }, [currentPeriod]);
+ 
+   const chartData = useMemo(() => {
+     if (!rpcData?.chart_data) return [];
+     return rpcData.chart_data.map((vals: any) => ({
+       date: format(new Date(vals.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+       malhas: Math.round(vals.malhas * 100) / 100,
+       terceirizado: Math.round(vals.terceirizado * 100) / 100,
+       residuos: Math.round(vals.residuos * 100) / 100,
+       total: Math.round((vals.malhas + vals.terceirizado + vals.residuos) * 100) / 100,
+     }));
+   }, [rpcData]);
+ 
+   const tableData = useMemo(() => {
+     const rows = [
+       { fonte: malhasLabel, current: malhasCurrent, prev: malhasPrev },
+       { fonte: 'Terceirizado (Lucro)', current: tercCurrent, prev: tercPrev },
+       { fonte: 'Resíduos', current: resCurrent, prev: resPrev },
+     ];
+     return rows.map(r => ({
+       ...r,
+       pct: totalCurrent > 0 ? (r.current / totalCurrent) * 100 : 0,
+       variation: r.prev > 0 ? ((r.current - r.prev) / r.prev) * 100 : (r.current > 0 ? 100 : 0),
+     }));
+   }, [malhasCurrent, tercCurrent, resCurrent, malhasPrev, tercPrev, resPrev, totalCurrent, malhasLabel]);
+ 
+     if (isLoading && !rpcData) {
+       return (
+         <div className="flex items-center justify-center min-h-[400px]">
+           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         </div>
+       );
+     }
 
   return (
     <div className="space-y-6 animate-fade-in">
