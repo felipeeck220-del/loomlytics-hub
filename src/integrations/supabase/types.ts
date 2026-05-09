@@ -2152,10 +2152,10 @@ export type Database = {
       get_faturamento_total_metrics: {
         Args: {
           p_company_id: string
-          p_end_date: string
-          p_prev_end_date: string
-          p_prev_start_date: string
-          p_start_date: string
+          p_end_date?: string
+          p_prev_end_date?: string
+          p_prev_start_date?: string
+          p_start_date?: string
         }
         Returns: Json
       }
