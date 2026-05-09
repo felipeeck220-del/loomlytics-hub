@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
  import { getProductionStats, getProductionShiftStats, getProductionMachineStats, getProductionTrendStats } from '@/lib/queries/productionsQueries';
 import { useNavigate } from 'react-router-dom';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
@@ -288,7 +289,7 @@ export default function Dashboard() {
       days = dayRange;
     } else {
       // "All time" fallback: use records count / records per day average or just a default
-      days = serverStats && serverStats.record_count ? Math.max(1, Math.ceil(Number(serverStats.record_count) / 10)) : 30;
+      days = dashboardMetrics?.current_period?.record_count ? Math.max(1, Math.ceil(Number(dashboardMetrics.current_period.record_count) / 10)) : 30;
     }
 
     if (filterShift !== 'all') {
@@ -433,7 +434,7 @@ export default function Dashboard() {
     };
   }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
-    if (loading && productions.length === 0 && !serverStats && !loadingStats) {
+    if (loading && productions.length === 0 && !dashboardMetrics && !loadingStats) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -578,7 +579,7 @@ export default function Dashboard() {
           borderColor="border-l-primary"
           icon={<Package className="h-5 w-5" />}
           showComparison={showComparison}
-           footer={`${totalRecordCount} registros`}
+           footer={`${dashboardMetrics?.current_period?.record_count ?? filtered.length} registros`}
         />
         <DashboardKpiCard
           label="Peso Total"
