@@ -1512,4 +1512,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
       - **09/05/2026 13:10 (Brasília)** — **DASHBOARD — Unificação de Lógica de Horas via RPC:** (1) Atualizada RPC `get_dashboard_metrics` para calcular e retornar `calendar_hours` diretamente do banco de dados, garantindo que o Dashboard em produção e em desenvolvimento usem a mesma base de cálculo; (2) Refatorado Dashboard para utilizar o valor de horas retornado pelo servidor, eliminando discrepâncias entre o projeto publicado e a pré-visualização.
 
-      *Última atualização: 09/05/2026 13:10 (Brasília)*
+
+      - **09/05/2026 13:25 (Brasília)** — **DASHBOARD — Eliminação de Discrepâncias no Cálculo de Horas:** (1) A RPC `get_dashboard_metrics` agora assume a responsabilidade total de identificar o intervalo de datas (min/max) quando o filtro "Todo período" é usado; (2) Removida a lógica redundante de cálculo de horas no frontend, garantindo que o valor exibido venha 100% do banco de dados; (3) Isso resolve a discrepância onde o projeto publicado e o de desenvolvimento podiam interpretar "Todo período" de formas ligeiramente diferentes (ex: fusos horários ou arredondamentos de data).
+
+      *Última atualização: 09/05/2026 13:25 (Brasília)*
