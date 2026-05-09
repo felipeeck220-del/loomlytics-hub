@@ -225,11 +225,34 @@ export default function FaturamentoTotal() {
     return s === e ? s : `${s} a ${e}`;
   }, [currentPeriod]);
 
-  // Chart data
-  // chartData is tricky with server aggregation. 
-  // For now, we omit individual dates in chart if we don't fetch all records.
-  // Or we could fetch daily stats if the range is small.
-  const chartData: any[] = []; 
+  const chartData = useMemo(() => {
+    const dateMap: Record<string, { malhas: number; terceirizado: number; residuos: number }> = {};
+    
+    filteredProd.forEach(p => {
+      if (!dateMap[p.date]) dateMap[p.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
+      dateMap[p.date].malhas += p.revenue;
+    });
+    
+    filteredOut.forEach(p => {
+      if (!dateMap[p.date]) dateMap[p.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
+      dateMap[p.date].terceirizado += p.total_profit;
+    });
+    
+    filteredRes.forEach(s => {
+      if (!dateMap[s.date]) dateMap[s.date] = { malhas: 0, terceirizado: 0, residuos: 0 };
+      dateMap[s.date].residuos += s.total;
+    });
+    
+    return Object.entries(dateMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, vals]) => ({
+        date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+        malhas: Math.round(vals.malhas * 100) / 100,
+        terceirizado: Math.round(vals.terceirizado * 100) / 100,
+        residuos: Math.round(vals.residuos * 100) / 100,
+        total: Math.round((vals.malhas + vals.terceirizado + vals.residuos) * 100) / 100,
+      }));
+  }, [filteredProd, filteredOut, filteredRes]);
 
   // Table data
   const tableData = useMemo(() => {
