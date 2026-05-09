@@ -1121,9 +1121,7 @@ export default function Reports() {
       </Tabs>
           </div>
         );
-      })() : null}
-
-       {!fetchingReport && !reportData && productions.length === 0 && (
+       })() : (
          <div className="text-center py-12">
            <p className="text-muted-foreground">Registre produções para ver os relatórios detalhados</p>
          </div>
