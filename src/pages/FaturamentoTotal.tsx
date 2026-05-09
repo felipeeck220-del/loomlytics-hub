@@ -212,19 +212,13 @@ export default function FaturamentoTotal() {
      }));
    }, [malhasCurrent, tercCurrent, resCurrent, malhasPrev, tercPrev, resPrev, totalCurrent, malhasLabel]);
  
-    if (isLoading && !rpcData) {
-      return (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      );
-    }
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+     if (isLoading && !rpcData) {
+       return (
+         <div className="flex items-center justify-center min-h-[400px]">
+           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         </div>
+       );
+     }
 
   return (
     <div className="space-y-6 animate-fade-in">
