@@ -126,7 +126,7 @@ export default function Reports() {
         p_client_id: filterClient === 'all' ? null : filterClient,
         p_article_id: filterArticle === 'all' ? null : filterArticle,
         p_machine_id: filterMachine === 'all' ? null : filterMachine,
-      } as any);
+      });
 
       console.log('Report data response:', { data, error });
 
