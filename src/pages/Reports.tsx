@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,29 +89,81 @@ export default function Reports() {
   const avgTargetEfficiency = 80;
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
+  const [reportData, setReportData] = useState<any>(null);
+  const [fetchingReport, setFetchingReport] = useState(false);
+
   const availableMonths = useMemo(() => {
     const months = new Set(productions.map(p => p.date.substring(0, 7)));
-    // Always include current month
     months.add(format(new Date(), 'yyyy-MM'));
     return Array.from(months).sort().reverse();
   }, [productions]);
 
+  const fetchReportData = useCallback(async () => {
+    if (!dbCompanyId) return;
+    setFetchingReport(true);
+    try {
+      let start: string;
+      let end: string;
+      const today = new Date();
+
+      if (dateFrom || dateTo) {
+        start = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '1900-01-01';
+        end = dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd');
+      } else if (filterMonth !== 'all') {
+        const [year, month] = filterMonth.split('-').map(Number);
+        start = format(startOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+        end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+      } else if (customDate) {
+        start = format(customDate, 'yyyy-MM-dd');
+        end = start;
+      } else if (dayRange > 0) {
+        start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+        end = format(today, 'yyyy-MM-dd');
+      } else {
+        const dates = productions.map(p => p.date).sort();
+        start = dates.length > 0 ? dates[0] : format(today, 'yyyy-MM-dd');
+        end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
+      }
+
+      const { data, error } = await supabase.rpc('get_report_data', {
+        p_company_id: dbCompanyId,
+        p_start_date: start,
+        p_end_date: end,
+        p_shift: filterShift,
+        p_client_id: filterClient === 'all' ? null : filterClient,
+        p_article_id: filterArticle === 'all' ? null : filterArticle,
+        p_machine_id: filterMachine === 'all' ? null : filterMachine
+      });
+
+      if (error) throw error;
+      setReportData(data);
+    } catch (err) {
+      console.error('Erro ao buscar dados do relatório:', err);
+    } finally {
+      setFetchingReport(false);
+    }
+  }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, productions]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
+
+  // Maintain filtered for export compatibility (though we should ideally optimize export too)
   const filtered = useMemo(() => {
     let data = [...productions];
     const today = new Date();
+    const currentFilterDate = customDate ? format(customDate, 'yyyy-MM-dd') : null;
+    const currentFilterDateFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null;
+    const currentFilterDateTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : null;
 
-     const currentFilterDate = customDate ? format(customDate, 'yyyy-MM-dd') : null;
-     const currentFilterDateFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null;
-     const currentFilterDateTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : null;
- 
-     if (currentFilterDateFrom || currentFilterDateTo) {
-       if (currentFilterDateFrom) data = data.filter(p => p.date >= currentFilterDateFrom);
-       if (currentFilterDateTo) data = data.filter(p => p.date <= currentFilterDateTo);
+    if (currentFilterDateFrom || currentFilterDateTo) {
+      if (currentFilterDateFrom) data = data.filter(p => p.date >= currentFilterDateFrom);
+      if (currentFilterDateTo) data = data.filter(p => p.date <= currentFilterDateTo);
     } else if (filterMonth !== 'all') {
       data = data.filter(p => p.date.startsWith(filterMonth));
-     } else if (currentFilterDate) {
-       data = data.filter(p => p.date === currentFilterDate);
-     } else if (dayRange > 0) {
+    } else if (currentFilterDate) {
+      data = data.filter(p => p.date === currentFilterDate);
+    } else if (dayRange > 0) {
       const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
       const end = format(today, 'yyyy-MM-dd');
       data = data.filter(p => p.date >= start && p.date <= end);
@@ -133,7 +185,6 @@ export default function Reports() {
     }
     return data;
   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles, machines]);
-
   const clearFilters = () => {
      setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
