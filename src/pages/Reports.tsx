@@ -201,13 +201,13 @@ export default function Reports() {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
     const today = new Date();
 
-    if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-      const dates = productions.map(p => p.date).sort();
-      if (dates.length > 0) {
-        return `${format(toDisplayDate(dates[0]), 'dd/MM/yyyy')} a ${format(toDisplayDate(dates[dates.length - 1]), 'dd/MM/yyyy')}`;
-      }
-      return 'Sem dados no período';
-    }
+     if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
+       const dates = productions.map(p => p.date).sort();
+       if (dates.length > 0) {
+         return `${format(toDisplayDate(dates[0]), 'dd/MM/yyyy')} a ${format(toDisplayDate(dates[dates.length - 1]), 'dd/MM/yyyy')}`;
+       }
+       return 'Todo período';
+     }
 
     if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
     if (dateFrom) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
