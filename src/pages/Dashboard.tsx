@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
  import { getProductionStats, getProductionShiftStats, getProductionMachineStats, getProductionTrendStats } from '@/lib/queries/productionsQueries';
 import { useNavigate } from 'react-router-dom';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
@@ -207,68 +208,47 @@ export default function Dashboard() {
      avg_efficiency: number;
      record_count: number;
    }
-    const [serverStats, setServerStats] = useState<DashboardStats | null>(null);
-    const [prevServerStats, setPrevServerStats] = useState<DashboardStats | null>(null);
-    const [serverShiftData, setServerShiftData] = useState<any[]>([]);
-    const [serverMachinePerf, setServerMachinePerf] = useState<any[]>([]);
-    const [serverTrendData, setServerTrendData] = useState<any[]>([]);
+    const [dashboardMetrics, setDashboardMetrics] = useState<any | null>(null);
     const [loadingStats, setLoadingStats] = useState(false);
  
-     const fetchServerStats = useCallback(async () => {
-       if (!dbCompanyId || !currentPeriod) return;
-       setLoadingStats(true);
-       try {
-         const [stats, pStats, sShiftData, sMachineData, sTrendData] = await Promise.all([
-           getProductionStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
-             shift: filterShift === 'all' ? undefined : filterShift,
-             articleId: filterArticle === 'all' ? undefined : filterArticle,
-           }),
-           previousPeriod 
-             ? getProductionStats(dbCompanyId, previousPeriod.start, previousPeriod.end, {
-                 shift: filterShift === 'all' ? undefined : filterShift,
-                 articleId: filterArticle === 'all' ? undefined : filterArticle,
-               })
-             : Promise.resolve(null),
-           getProductionShiftStats(dbCompanyId, currentPeriod.start, currentPeriod.end, 
-             filterArticle === 'all' ? undefined : filterArticle),
-           getProductionMachineStats(dbCompanyId, currentPeriod.start, currentPeriod.end,
-             filterArticle === 'all' ? undefined : filterArticle, 5),
-           getProductionTrendStats(dbCompanyId, currentPeriod.start, currentPeriod.end, {
-             shift: filterShift === 'all' ? 'all' : filterShift,
-             articleId: filterArticle === 'all' ? undefined : filterArticle
-           })
-         ]);
-         setServerStats(stats);
-         setPrevServerStats(pStats);
-         setServerShiftData(sShiftData);
-         setServerMachinePerf(sMachineData);
-         setServerTrendData(sTrendData);
-       } catch (err) {
-         console.error('Error fetching dashboard stats:', err);
-       } finally {
-         setLoadingStats(false);
-       }
-     }, [dbCompanyId, currentPeriod, previousPeriod, filterShift, filterArticle]);
+    const fetchDashboardMetrics = useCallback(async () => {
+      if (!dbCompanyId || !currentPeriod) return;
+      setLoadingStats(true);
+      try {
+        const { data, error } = await (supabase.rpc as any)('get_dashboard_metrics', {
+          p_company_id: dbCompanyId,
+          p_start_date: currentPeriod.start,
+          p_end_date: currentPeriod.end,
+          p_machine_id: undefined, // Add specific filter if needed in future
+          p_shift: filterShift === 'all' ? null : filterShift
+        });
+
+        if (error) throw error;
+        setDashboardMetrics(data);
+      } catch (err) {
+        console.error('Error fetching dashboard metrics RPC:', err);
+      } finally {
+        setLoadingStats(false);
+      }
+    }, [dbCompanyId, currentPeriod, filterShift]);
  
-   useEffect(() => {
-     fetchServerStats();
-   }, [fetchServerStats]);
+    useEffect(() => {
+      fetchDashboardMetrics();
+    }, [fetchDashboardMetrics]);
  
   const nonZeroFiltered = useMemo(() => filtered.filter(p => p.rolls_produced > 0), [filtered]);
 
-    // Use server stats when available, otherwise show 0 while loading
-    const totalRolls = filtered.reduce((s, p) => s + p.rolls_produced, 0);
-    const totalWeight = filtered.reduce((s, p) => s + p.weight_kg, 0);
-    const totalRevenue = filtered.reduce((s, p) => s + p.revenue, 0);
-    const avgEfficiency = nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0;
-    const totalRecordCount = filtered.length;
+    // KPIs from RPC or local fallback
+    const totalRolls = dashboardMetrics?.current_period?.total_rolls ?? filtered.reduce((s, p) => s + p.rolls_produced, 0);
+    const totalWeight = dashboardMetrics?.current_period?.total_weight ?? filtered.reduce((s, p) => s + p.weight_kg, 0);
+    const totalRevenue = dashboardMetrics?.current_period?.total_revenue ?? filtered.reduce((s, p) => s + p.revenue, 0);
+    const avgEfficiency = dashboardMetrics?.current_period?.avg_efficiency ?? (nonZeroFiltered.length ? nonZeroFiltered.reduce((s, p) => s + p.efficiency, 0) / nonZeroFiltered.length : 0);
 
-    // Previous period KPIs
-    const nonZeroPrev = prevFiltered.filter(p => p.rolls_produced > 0);
-    const prevTotalRolls = prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
-    const prevTotalWeight = prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
-    const prevTotalRevenue = prevFiltered.reduce((s, p) => s + p.revenue, 0);
-    const prevAvgEfficiency = nonZeroPrev.length ? nonZeroPrev.reduce((s, p) => s + p.efficiency, 0) / nonZeroPrev.length : 0;
+    // Previous period KPIs from RPC or local fallback
+    const prevTotalRolls = dashboardMetrics?.previous_period?.total_rolls ?? prevFiltered.reduce((s, p) => s + p.rolls_produced, 0);
+    const prevTotalWeight = dashboardMetrics?.previous_period?.total_weight ?? prevFiltered.reduce((s, p) => s + p.weight_kg, 0);
+    const prevTotalRevenue = dashboardMetrics?.previous_period?.total_revenue ?? prevFiltered.reduce((s, p) => s + p.revenue, 0);
+    const prevAvgEfficiency = dashboardMetrics?.previous_period?.avg_efficiency ?? (prevFiltered.filter(p => p.rolls_produced > 0).length ? prevFiltered.filter(p => p.rolls_produced > 0).reduce((s, p) => s + p.efficiency, 0) / prevFiltered.filter(p => p.rolls_produced > 0).length : 0);
 
   // Calculate weighted average target efficiency from articles used in filtered productions
   const avgTargetEfficiency = useMemo(() => {
@@ -309,7 +289,7 @@ export default function Dashboard() {
       days = dayRange;
     } else {
       // "All time" fallback: use records count / records per day average or just a default
-      days = serverStats && serverStats.record_count ? Math.max(1, Math.ceil(Number(serverStats.record_count) / 10)) : 30;
+      days = dashboardMetrics?.current_period?.record_count ? Math.max(1, Math.ceil(Number(dashboardMetrics.current_period.record_count) / 10)) : 30;
     }
 
     if (filterShift !== 'all') {
@@ -323,6 +303,18 @@ export default function Dashboard() {
   const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
 
     const shiftData = useMemo(() => {
+      if (dashboardMetrics?.charts?.production_by_shift?.length) {
+        return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
+          const d = dashboardMetrics.charts.production_by_shift.find((s: any) => s.shift === shift);
+          return {
+            shift,
+            label: companyShiftLabels[shift].split(' (')[0],
+            rolls: 0, // RPC doesn't currently return rolls per shift
+            kg: d?.weight ?? 0,
+            revenue: 0, // RPC doesn't currently return revenue per shift
+          };
+        });
+      }
       return (['manha', 'tarde', 'noite'] as ShiftType[]).map(shift => {
         const sp = filtered.filter(p => p.shift === shift);
         return {
@@ -333,9 +325,19 @@ export default function Dashboard() {
           revenue: sp.reduce((s, p) => s + p.revenue, 0),
         };
       });
-    }, [filtered, companyShiftLabels]);
- 
+    }, [filtered, companyShiftLabels, dashboardMetrics]);
+
     const machinePerf = useMemo(() => {
+      if (dashboardMetrics?.charts?.top_machines?.length) {
+        return dashboardMetrics.charts.top_machines.map((m: any) => ({
+          name: m.name,
+          rolls: 0,
+          kg: m.weight,
+          efficiency: 0,
+          records: 0,
+          targetEfficiency: 80
+        }));
+      }
       return machines.map(m => {
         const mp = filtered.filter(p => (p.machine_id && p.machine_id === m.id) || (!p.machine_id && p.machine_name === m.name));
         const mpNonZero = mp.filter(p => p.rolls_produced > 0);
@@ -345,9 +347,18 @@ export default function Dashboard() {
           : 80;
         return { name: m.name, rolls: mp.reduce((s, p) => s + p.rolls_produced, 0), kg: mp.reduce((s, p) => s + p.weight_kg, 0), efficiency: eff, records: mp.length, targetEfficiency: avgTargetEff };
       }).sort((a, b) => b.rolls - a.rolls).slice(0, 5);
-    }, [filtered, machines, articles]);
+    }, [filtered, machines, articles, dashboardMetrics]);
 
     const trendData = useMemo(() => {
+      if (dashboardMetrics?.charts?.trend?.length) {
+        return dashboardMetrics.charts.trend.map((d: any) => ({
+          date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+          rolos: 0,
+          kg: Math.round(d.weight * 100) / 100,
+          faturamento: Math.round(d.revenue * 100) / 100,
+          eficiencia: 0
+        }));
+      }
       const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
       filtered.forEach(p => {
         if (!byDate[p.date]) byDate[p.date] = { rolos: 0, kg: 0, faturamento: 0, effSum: 0, effCount: 0 };
@@ -366,7 +377,7 @@ export default function Dashboard() {
         faturamento: Math.round(d.faturamento * 100) / 100,
         eficiencia: d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0,
       }));
-    }, [filtered]);
+    }, [filtered, dashboardMetrics]);
 
   const periodSummary = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
@@ -423,7 +434,7 @@ export default function Dashboard() {
     };
   }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
-    if (loading && productions.length === 0 && !serverStats && !loadingStats) {
+    if (loading && productions.length === 0 && !dashboardMetrics && !loadingStats) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -568,7 +579,7 @@ export default function Dashboard() {
           borderColor="border-l-primary"
           icon={<Package className="h-5 w-5" />}
           showComparison={showComparison}
-           footer={`${totalRecordCount} registros`}
+           footer={`${dashboardMetrics?.current_period?.record_count ?? filtered.length} registros`}
         />
         <DashboardKpiCard
           label="Peso Total"

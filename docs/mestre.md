@@ -1503,4 +1503,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
       - **08/05/2026 14:15 (Brasília)** — **RESTORE — Reversão de Paginação Parcial:** (1) Restaurado o comportamento de carregamento global de dados no `useCompanyData` para garantir que filtros locais em todas as telas funcionem sem lacunas; (2) Removida a dependência de chamadas parciais por período no Dashboard, Relatórios, Revisão e Produção, voltando a utilizar o estado compartilhado (contexto) para cálculos e visualizações; (3) Mantidas as otimizações de paginação de banco (loop fetchAll) para evitar o limite padrão de 1000 registros do Supabase durante a carga inicial.
  
-      *Última atualização: 08/05/2026 14:15 (Brasília)*
+
+      - **09/05/2026 12:15 (Brasília)** — **DASHBOARD — Implementação de Otimização via RPC (Server-Side Agregation):** (1) Criada função RPC PostgreSQL `get_dashboard_metrics` que consolida KPIs (peso, faturamento, rolos, eficiência) e dados de gráficos (turno, ranking, tendência) em uma única chamada server-side; (2) Refatorado `Dashboard.tsx` para priorizar dados retornados pela RPC, mantendo fallback local apenas para evitar telas vazias durante o carregamento; (3) Implementada lógica de "Ponto de Reversão" documentada em `docs/correcoes/rpcdashboard.md`, permitindo retorno rápido ao modelo JavaScript puro se necessário; (4) Redução drástica de consumo de dados e processamento no navegador em períodos longos.
+
+      *Última atualização: 09/05/2026 12:15 (Brasília)*

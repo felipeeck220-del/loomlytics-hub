@@ -2122,6 +2122,16 @@ export type Database = {
               weight_kg: number
             }[]
           }
+      get_dashboard_metrics: {
+        Args: {
+          p_company_id: string
+          p_end_date: string
+          p_machine_id?: string
+          p_shift?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
       get_defect_stats: {
         Args: {
           p_article_id?: string
