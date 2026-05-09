@@ -271,53 +271,17 @@ export default function Dashboard() {
   }, [filtered, articles]);
 
   const calendarHours = useMemo(() => {
-    let days: number;
-    if (dateFrom && dateTo) {
-      days = differenceInCalendarDays(dateTo, dateFrom) + 1;
-    } else if (dateFrom) {
-      days = differenceInCalendarDays(new Date(), dateFrom) + 1;
-    } else if (dateTo) {
-      days = 1;
-    } else if (customDate) {
-      days = 1;
-    } else if (filterMonth !== 'all') {
-      const now = new Date();
-      const currentMonthStr = format(now, 'yyyy-MM');
-      if (filterMonth === currentMonthStr) {
-        // Current month: use only days that have production records
-        const uniqueDaysWithProduction = new Set(filtered.map(p => p.date)).size;
-        days = uniqueDaysWithProduction || 1;
-      } else {
-        const [y, m] = filterMonth.split('-').map(Number);
-        days = new Date(y, m, 0).getDate();
-      }
-    } else {
-      let startDateStr = '';
-      let endDateStr = '';
-
-      if (dayRange > 0) {
-        startDateStr = format(subDays(new Date(), dayRange - 1), 'yyyy-MM-dd');
-        endDateStr = format(new Date(), 'yyyy-MM-dd');
-      } else if (filtered.length > 0) {
-        // Todo período
-        const sortedDates = [...filtered].map(p => p.date).sort();
-        startDateStr = sortedDates[0];
-        endDateStr = sortedDates[sortedDates.length - 1];
-      }
-
-      if (startDateStr && endDateStr) {
-        days = differenceInCalendarDays(new Date(endDateStr + 'T12:00:00'), new Date(startDateStr + 'T12:00:00')) + 1;
-      } else {
-        days = 30; // Fallback
-      }
-    }
+    // Conta apenas dias que possuem registros para evitar diluição por dias parados (domingos, feriados)
+    // Isso alinha o cálculo local com a lógica da RPC get_dashboard_metrics
+    const uniqueDaysWithProduction = new Set(filtered.map(p => p.date)).size;
+    const days = Math.max(uniqueDaysWithProduction, 1);
 
     if (filterShift !== 'all') {
       const shiftMinutes = companyShiftMinutes[filterShift as ShiftType] || 480;
       return days * (shiftMinutes / 60);
     }
     return days * 24;
-  }, [customDate, filterMonth, dayRange, filterShift, dateFrom, dateTo, companyShiftMinutes, filtered]);
+  }, [filtered, filterShift, companyShiftMinutes]);
 
   const finalCalendarHours = dashboardMetrics?.current_period?.calendar_hours ?? calendarHours;
   const revenuePerHour = finalCalendarHours > 0 ? totalRevenue / finalCalendarHours : 0;

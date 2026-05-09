@@ -1515,4 +1515,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
       - **09/05/2026 13:25 (Brasília)** — **DASHBOARD — Eliminação de Discrepâncias no Cálculo de Horas:** (1) A RPC `get_dashboard_metrics` agora assume a responsabilidade total de identificar o intervalo de datas (min/max) quando o filtro "Todo período" é usado; (2) Removida a lógica redundante de cálculo de horas no frontend, garantindo que o valor exibido venha 100% do banco de dados; (3) Isso resolve a discrepância onde o projeto publicado e o de desenvolvimento podiam interpretar "Todo período" de formas ligeiramente diferentes (ex: fusos horários ou arredondamentos de data).
 
-      *Última atualização: 09/05/2026 13:25 (Brasília)*
+
+      - **09/05/2026 13:45 (Brasília)** — **DASHBOARD — Ajuste de Produtividade por Dias Trabalhados:** (1) Modificada a lógica de cálculo de horas para considerar apenas os dias que possuem registros de produção, em vez de usar o intervalo de calendário completo; (2) Alteração aplicada tanto no frontend quanto na RPC `get_dashboard_metrics`; (3) Isso garante que períodos com dias parados (ex: fins de semana sem produção) não resultem em indicadores de produtividade por hora artificialmente baixos, refletindo a performance real das horas operativas.
+
+      *Última atualização: 09/05/2026 13:45 (Brasília)*
