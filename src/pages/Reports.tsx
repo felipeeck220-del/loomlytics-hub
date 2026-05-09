@@ -698,11 +698,7 @@ export default function Reports() {
 
         {/* POR CLIENTE */}
         <TabsContent value="cliente" className="mt-6 space-y-6">
-          {byClient.length > 0 ? (() => {
-            const totalClientRolls = byClient.reduce((s, c) => s + c.rolos, 0);
-            const totalClientKg = byClient.reduce((s, c) => s + c.kg, 0);
-            const totalClientRevenue = byClient.reduce((s, c) => s + c.faturamento, 0);
-            return (
+          {byClient.length > 0 ? (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -754,8 +750,7 @@ export default function Reports() {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })() : (
+            ) : (
             <Card>
               <CardContent className="py-12">
                 <p className="text-sm text-muted-foreground text-center">Sem dados de clientes no período selecionado</p>
