@@ -1518,6 +1518,12 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
       - **09/05/2026 13:25 (Brasília)** — **DASHBOARD — Eliminação de Discrepâncias no Cálculo de Horas:** (1) A RPC `get_dashboard_metrics` agora assume a responsabilidade total de identificar o intervalo de datas (min/max) quando o filtro "Todo período" é usado; (2) Removida a lógica redundante de cálculo de horas no frontend, garantindo que o valor exibido venha 100% do banco de dados; (3) Isso resolve a discrepância onde o projeto publicado e o de desenvolvimento podiam interpretar "Todo período" de formas ligeiramente diferentes (ex: fusos horários ou arredondamentos de data).
 
 
-      - **09/05/2026 13:45 (Brasília)** — **DASHBOARD — Ajuste de Produtividade por Dias Trabalhados:** (1) Modificada a lógica de cálculo de horas para considerar apenas os dias que possuem registros de produção, em vez de usar o intervalo de calendário completo; (2) Alteração aplicada tanto no frontend quanto na RPC `get_dashboard_metrics`; (3) Isso garante que períodos com dias parados (ex: fins de semana sem produção) não resultem em indicadores de produtividade por hora artificialmente baixos, refletindo a performance real das horas operativas.
+       - **09/05/2026 13:45 (Brasília)** — **DASHBOARD — Ajuste de Produtividade por Dias Trabalhados:** (1) Modificada a lógica de cálculo de horas para considerar apenas os dias que possuem registros de produção, em vez de usar o intervalo de calendário completo; (2) Alteração aplicada tanto no frontend quanto na RPC `get_dashboard_metrics`; (3) Isso garante que períodos com dias parados (ex: fins de semana sem produção) não resultem em indicadores de produtividade por hora artificialmente baixos, refletindo a performance real das horas operativas.
+ 
+       - **09/05/2026 15:15 (Brasília)** — **FATURAMENTO TOTAL — Restauração de Gráfico:** Restaurado o gráfico de tendência de faturamento diário na página Faturamento Total, utilizando AreaChart empilhado para exibir a contribuição de cada fonte de receita (Malhas, Terceirizados e Resíduos).
+ 
+       - **09/05/2026 15:45 (Brasília)** — **RESÍDUOS — Paginação na Listagem:** Adicionada paginação (20 registros por página) na lista de "Vendas Registradas" do módulo de Resíduos, melhorando a organização da interface quando há grande volume de registros.
+ 
+       - **09/05/2026 16:10 (Brasília)** — **FATURAMENTO TOTAL — Modelo RPC e Documentação:** Criada a estratégia e documentação detalhada para a futura implementação da RPC `get_faturamento_total_metrics` (`docs/correcoes/rpcfaturamentototal.md`), visando resolver a lentidão de 10s+ no carregamento inicial através de agregação server-side.
 
-      *Última atualização: 09/05/2026 13:45 (Brasília)*
+       *Última atualização: 09/05/2026 16:10 (Brasília)*
