@@ -1,82 +1,60 @@
-# 📊 Documentação RPC: get_report_data (V2 - Eficiência Consolidada)
+# 📊 Relatórios — Estratégia de Filtros e Exportação
 
-Esta documentação detalha a estratégia de migração do processamento de relatórios analíticos para o banco de dados (RPC), focando na consistência absoluta dos dados de eficiência.
-
----
-
-## 📌 Premissa Fundamental
-A inteligência do cálculo de eficiência reside no **momento do registro** da produção (seja via voltas ou rolos). Uma vez que esse dado é validado e salvo pelo tecelão/líder, ele se torna a "verdade" para o sistema.
-Os relatórios não devem tentar reconstruir o cálculo (o que exigiria parâmetros complexos como RPM histórico e minutos de turno clipping), mas sim **consolidar as médias** dos registros já existentes.
+Este documento detalha o funcionamento esperado dos filtros e da aba de exportação para o módulo de Relatórios, servindo como guia imutável para a implementação técnica.
 
 ---
 
-## 🛠️ Especificação Técnica da RPC
+## 🔍 Detalhamento dos Filtros (100% Detalhado)
 
-### 1. Assinatura da Função
-A função deve receber os filtros básicos de período e entidade:
-- `p_company_id`: UUID
-- `p_start_date`: DATE
-- `p_end_date`: DATE
-- `p_shift`: TEXT (default 'all')
-- `p_client_id`: UUID (opcional)
-- `p_article_id`: UUID (opcional)
-- `p_machine_id`: UUID (opcional)
+Para garantir a consistência dos dados, os filtros devem operar exatamente sob as seguintes regras:
 
-### 2. Lógica de Agregação de Eficiência
-Em todos os agrupamentos (Máquina, Cliente, Artigo, Turno), o cálculo de eficiência seguirá esta regra SQL:
-```sql
-COALESCE(AVG(efficiency) FILTER (WHERE rolls_produced > 0), 0)
-```
-- **Por que filtrar `rolls_produced > 0`?** Para evitar que dias ou turnos sem produção (máquina parada sem registro de produção) puxem a média de eficiência para baixo indevidamente. A média deve refletir apenas o desempenho operacional real registrado.
+### 1. Filtros de Período
+| Filtro | Comportamento Esperado |
+|--------|-----------------------|
+| **7 Dias** | Filtra produções dos últimos 7 dias corridos, incluindo hoje. |
+| **15 Dias** | Filtra produções dos últimos 15 dias corridos, incluindo hoje. |
+| **30 Dias** | Filtra produções dos últimos 30 dias corridos, incluindo hoje. |
+| **Todo período** | Remove as restrições de data, exibindo desde o primeiro registro até o último. |
+| **Escolher dia** | Filtra exclusivamente o dia selecionado no calendário. |
+| **Mês** | Seleciona um mês específico. O intervalo deve ser do dia 1 ao último dia do mês selecionado. |
+| **De / Até** | Permite definir um intervalo customizado. Se "De" for preenchido sem "Até", filtra de "De" até hoje. |
 
-### 3. Detalhamento dos Agrupamentos
-
-#### A. Por Máquina
-- **Foco:** Produtividade individual do tear.
-- **Campos:** Nome da máquina, Total Rolos, Total Kg, Média de Eficiência, Total Faturamento (Admin), Percentual de Participação na Produção Total.
-- **SQL Base:** `GROUP BY COALESCE(m.id, p.machine_id), p.machine_name`.
-
-#### B. Por Cliente
-- **Foco:** Rentabilidade e volume por parceiro.
-- **Desafio:** A tabela `productions` não tem `client_id`.
-- **Solução:** Join com a tabela `articles`.
-- **SQL Base:** 
-  ```sql
-  FROM productions p
-  JOIN articles a ON p.article_id = a.id
-  LEFT JOIN clients c ON a.client_id = c.id
-  GROUP BY COALESCE(c.id, a.client_id), COALESCE(c.name, a.client_name)
-  ```
-- **Métrica:** Média de eficiência dos artigos produzidos para aquele cliente no período.
-
-#### C. Por Artigo
-- **Foco:** Performance técnica de cada malha.
-- **Campos:** Nome do artigo, Cliente, Total Kg, Total Rolos, Média de Eficiência.
-- **SQL Base:** `GROUP BY p.article_id, p.article_name`.
-
-#### D. Evolução (Tendência)
-- **Foco:** Visão temporal (Gráficos).
-- **Campos:** Data, Total Kg, Total Rolos, Média de Eficiência do dia.
-- **Ordenação:** `ORDER BY p.date ASC`.
+### 2. Filtros de Seleção (Combos)
+- **Turno:** Filtra por Manhã, Tarde ou Noite. Se "Todos" for selecionado, agrupa os três.
+- **Máquina:** Filtra os dados apenas da máquina selecionada. Deve listar todas as máquinas ativas e inativas da empresa.
+- **Cliente:** Filtra a produção vinculada aos artigos daquele cliente específico.
+- **Artigo:** Filtra a performance de um artigo específico em todas as máquinas onde ele rodou.
 
 ---
 
-## 📄 Exportação para PDF e CSV
+## 📤 Aba Exportar (Modo e Formato)
 
-A RPC retornará um objeto JSON único contendo os arrays de cada aba (`by_shift`, `by_machine`, `by_client`, `by_article`, `evolution`).
+A funcionalidade de exportação deve seguir rigorosamente as definições abaixo:
 
-### Impacto no PDF:
-1. **Consistência:** O PDF usará exatamente os mesmos valores exibidos nos cards e tabelas da tela.
-2. **Performance:** O frontend apenas "desenha" o PDF. Todo o `reduce` e `map` para chegar aos totais e médias já vem pronto do banco de dados.
-3. **Totais de Rodapé:** Os totais de rodapé das tabelas no PDF (Soma de Kg, Média Geral de Eficiência) serão extraídos do nó `kpis` retornado pela RPC.
+### 1. Configurações de Exportação
+- **Modo:**
+  - **Admin:** Exportação completa, incluindo valores financeiros (faturamento, valor por kg, etc.).
+  - **Equipe:** Exportação operacional, ocultando todos os dados de valores e faturamento, focando apenas em Kg, Peças e Eficiência.
+- **Formato:**
+  - **PDF:** Relatório estilizado, com cabeçalho da empresa, logotipo e gráficos inclusos.
+  - **CSV:** Planilha bruta para manipulação de dados em Excel ou softwares similares.
+
+### 2. Tipos de Exportação
+
+#### **Exportação Geral**
+- **Relatório Completo:** Gera um documento consolidando todas as abas (Turno, Máquina, Cliente, Artigo) em um único PDF ou CSV.
+
+#### **Exportação Específica**
+- **Por Artigo:** Detalhamento técnico por malha (Rolos, Kg, Valor).
+- **Por Máquina:** Performance individual de cada teador (Eficiência, tempo parado, produção).
+- **Por Turno:** Análise comparativa de produtividade entre Manhã, Tarde e Noite.
+- **Por Cliente:** Consolidado de tudo que foi produzido para um cliente específico no período.
 
 ---
 
-## 🚀 Benefícios da Abordagem
-1. **Velocidade:** Processamento de milhares de linhas em milissegundos.
-2. **Confiabilidade:** Elimina divergências entre o Dashboard e o módulo de Relatórios.
-3. **Escalabilidade:** Suporta anos de histórico sem degradar a experiência do usuário.
+## 📈 Gráficos na Exportação
+- Deve haver um switch **"Incluir gráficos"**. Se ativado, o PDF deve renderizar os gráficos de tendência e distribuição idênticos aos visualizados na tela.
 
 ---
 
-*Documentação criada em: 09/05/2026 — Estratégia de Eficiência Consolidada.*
+*Documento de referência para implementação de relatórios — Não alterar sem aprovação.*
