@@ -116,19 +116,15 @@ export default function Reports() {
         end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
       }
 
-      console.log('Fetching report data with params:', { dbCompanyId, start, end, filterShift, filterClient, filterArticle, filterMachine });
-      
       const { data, error } = await supabase.rpc('get_report_data', {
         p_company_id: dbCompanyId,
         p_start_date: start,
         p_end_date: end,
         p_shift: filterShift,
-        p_client_id: filterClient === 'all' ? null : filterClient,
-        p_article_id: filterArticle === 'all' ? null : filterArticle,
-        p_machine_id: filterMachine === 'all' ? null : filterMachine,
-      });
-
-      console.log('Report data response:', { data, error });
+        p_client_id: (filterClient === 'all' || !filterClient) ? null : filterClient,
+        p_article_id: (filterArticle === 'all' || !filterArticle) ? null : filterArticle,
+        p_machine_id: (filterMachine === 'all' || !filterMachine) ? null : filterMachine,
+      } as any);
 
       if (error) throw error;
       setReportData(data);
