@@ -2262,6 +2262,18 @@ export type Database = {
           total_weight: number
         }[]
       }
+      get_report_data: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_end_date: string
+          p_machine_id?: string
+          p_shift?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
       get_user_companies: {
         Args: never
         Returns: {
