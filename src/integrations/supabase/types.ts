@@ -991,6 +991,7 @@ export type Database = {
       }
       machine_logs: {
         Row: {
+          company_id: string | null
           ended_at: string | null
           ended_by_code: string | null
           ended_by_name: string | null
@@ -1002,6 +1003,7 @@ export type Database = {
           status: Database["public"]["Enums"]["machine_status"]
         }
         Insert: {
+          company_id?: string | null
           ended_at?: string | null
           ended_by_code?: string | null
           ended_by_name?: string | null
@@ -1013,6 +1015,7 @@ export type Database = {
           status: Database["public"]["Enums"]["machine_status"]
         }
         Update: {
+          company_id?: string | null
           ended_at?: string | null
           ended_by_code?: string | null
           ended_by_name?: string | null
@@ -1024,6 +1027,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["machine_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "machine_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "machine_logs_machine_id_fkey"
             columns: ["machine_id"]
