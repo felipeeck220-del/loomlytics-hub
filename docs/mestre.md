@@ -1528,4 +1528,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
         - **09/05/2026 16:30 (Brasília)** — **RELATÓRIOS — Planejamento e Documentação RPC:** (1) Criada a documentação 100% detalhada para a nova RPC `get_report_data` no arquivo `docs/rpcreports.md`; (2) O planejamento abrange todas as abas de análise (Turno, Máquina, Cliente, Artigo, Evolução) e inclui cálculos automáticos de eficiência e percentuais de participação (produção, faturamento, peças, peso); (3) Definida a estrutura de dados para exportação CSV/PDF otimizada via server-side.
  
-        *Última atualização: 09/05/2026 16:30 (Brasília)*
+        - **09/05/2026 16:50 (Brasília)** — **GERAL — Pente Fino e Correções de Robustez:** (1) Corrigido erro silencioso de tipos de dados nas RPCs (`get_dashboard_metrics`, `get_production_trend_stats`) adicionando casting explícito `date::DATE` para as colunas de data que estão como `text`; (2) Adicionada coluna `company_id` à tabela `machine_logs` para garantir integridade multi-empresa e evitar erros de permissão/RLS; (3) Corrigida a tipagem de retorno da RPC de tendência para evitar erros de coerção entre `numeric` e `bigint`; (4) Atualizada a documentação de infraestrutura no banco de dados.
+ 
+        *Última atualização: 09/05/2026 16:50 (Brasília)*
