@@ -16,6 +16,39 @@
    - **Por Turno:** Análise comparativa de produtividade entre os períodos de trabalho.
    - **Por Cliente:** Detalhamento da produção (Rolos/Kg) destinada a cada cliente parceiro.
  
+ ## 🔍 Detalhamento dos Filtros (100% Funcional)
+ 
+ Para garantir que a implementação da RPC respeite a lógica de negócio atual, os filtros devem seguir rigorosamente estas regras:
+ 
+ ### 1. Filtro de Período (Data)
+ A prioridade de aplicação das datas na consulta SQL deve ser:
+ 1.  **De / Até (Custom Range):** Se `p_start_date` e `p_end_date` forem fornecidos, ignora qualquer outra seleção.
+ 2.  **Mês Específico:** Filtra registros onde `date` inicia com `YYYY-MM`.
+ 3.  **Dia Específico:** Filtra registros onde `date` é exatamente `YYYY-MM-DD`.
+ 4.  **Intervalo Rápido (7, 15, 30 dias):** Calcula retroativamente a partir de hoje.
+ 5.  **Todo Período:** Busca o `MIN(date)` e `MAX(date)` da empresa para definir o intervalo.
+ 
+ ### 2. Filtro de Turno (`p_shift`)
+ - **Valores:** `manha`, `tarde`, `noite` ou `all`.
+ - **Comportamento:** Quando `all`, a query não deve aplicar o filtro `WHERE shift = ...`.
+ - **Impacto:** Afeta o cálculo de `v_calendar_hours` (8h se turno único, 24h se `all`).
+ 
+ ### 3. Filtro de Cliente (`p_client_id`)
+ - **Desafio:** A tabela `productions` não possui `client_id` direto, apenas `article_id`.
+ - **Lógica:** Deve buscar todas as produções cujo `article_id` pertença ao cliente selecionado.
+ - **SQL:** `AND (p_client_id IS NULL OR EXISTS (SELECT 1 FROM articles a WHERE a.id = p.article_id AND a.client_id = p_client_id))`.
+ 
+ ### 4. Filtro de Artigo (`p_article_id`)
+ - **Comportamento:** Filtro direto na coluna `article_id` da tabela `productions`.
+ - **Fallback:** Deve suportar dados legados onde o vínculo era apenas pelo nome, se necessário (porém a RPC foca no ID para precisão).
+ 
+ ### 5. Filtro de Máquina (`p_machine_id`)
+ - **Comportamento:** Filtro direto na coluna `machine_id`.
+ - **Fallback:** Em registros antigos onde `machine_id` é nulo, a busca deve considerar o `machine_name`.
+ 
+ ### 6. Busca Textual (Client-side)
+ - A RPC retorna o dataset completo filtrado pelos IDs acima. A barra de busca na interface (ex: buscar nome de máquina ou cliente) filtrará os resultados já agregados retornados pela RPC para garantir interatividade instantânea.
+ 
  ---
  
  # 📊 Documentação RPC: get_report_data
