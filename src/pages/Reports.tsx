@@ -89,64 +89,11 @@ export default function Reports() {
   const avgTargetEfficiency = 80;
    const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
 
-  const [reportData, setReportData] = useState<any>(null);
-  const [fetchingReport, setFetchingReport] = useState(false);
-
-  const availableMonths = useMemo(() => {
-    const months = new Set(productions.map(p => p.date.substring(0, 7)));
-    months.add(format(new Date(), 'yyyy-MM'));
-    return Array.from(months).sort().reverse();
-  }, [productions]);
-
-  const fetchReportData = useCallback(async () => {
-    if (!dbCompanyId) return;
-    setFetchingReport(true);
-    try {
-      let start: string;
-      let end: string;
-      const today = new Date();
-
-      if (dateFrom || dateTo) {
-        start = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '1900-01-01';
-        end = dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd');
-      } else if (filterMonth !== 'all') {
-        const [year, month] = filterMonth.split('-').map(Number);
-        start = format(startOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
-        end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
-      } else if (customDate) {
-        start = format(customDate, 'yyyy-MM-dd');
-        end = start;
-      } else if (dayRange > 0) {
-        start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-        end = format(today, 'yyyy-MM-dd');
-      } else {
-        const dates = productions.map(p => p.date).sort();
-        start = dates.length > 0 ? dates[0] : format(today, 'yyyy-MM-dd');
-        end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
-      }
-
-      const { data, error } = await supabase.rpc('get_report_data', {
-        p_company_id: dbCompanyId,
-        p_start_date: start,
-        p_end_date: end,
-        p_shift: filterShift,
-        p_client_id: filterClient === 'all' ? null : filterClient,
-        p_article_id: filterArticle === 'all' ? null : filterArticle,
-        p_machine_id: filterMachine === 'all' ? null : filterMachine
-      });
-
-      if (error) throw error;
-      setReportData(data);
-    } catch (err) {
-      console.error('Erro ao buscar dados do relatório:', err);
-    } finally {
-      setFetchingReport(false);
-    }
-   }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine]);
-
-  useEffect(() => {
-    fetchReportData();
-  }, [fetchReportData]);
+   const availableMonths = useMemo(() => {
+     const months = new Set(productions.map(p => p.date.substring(0, 7)));
+     months.add(format(new Date(), 'yyyy-MM'));
+     return Array.from(months).sort().reverse();
+   }, [productions]);
 
   // Maintain filtered for export compatibility (though we should ideally optimize export too)
   const filtered = useMemo(() => {
@@ -377,73 +324,123 @@ export default function Reports() {
         </CardContent>
       </Card>
 
-      {/* Data Processing & Rendering */}
-      {fetchingReport && !reportData ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-3 text-muted-foreground">Processando dados...</span>
-        </div>
-       ) : (reportData || productions.length > 0) ? (() => {
-          const { kpis, by_shift, by_machine, by_client, by_article, evolution } = reportData || {};
-          
-          if (!kpis && !fetchingReport && reportData) return (
+       {/* Data Processing & Rendering */}
+       {productions.length > 0 ? (() => {
+          const totalRolls = filtered.reduce((acc, p) => acc + p.rolls_produced, 0);
+          const totalWeight = filtered.reduce((acc, p) => acc + p.weight_kg, 0);
+          const totalRevenue = filtered.reduce((acc, p) => acc + p.revenue, 0);
+          const prodWithEff = filtered.filter(p => p.efficiency > 0);
+          const avgEfficiency = prodWithEff.length > 0
+            ? prodWithEff.reduce((acc, p) => acc + (p.efficiency * p.weight_kg), 0) / prodWithEff.reduce((acc, p) => acc + p.weight_kg, 0)
+            : 0;
+          const uniqueDaysCount = new Set(filtered.map(p => p.date)).size;
+ 
+         const byDateMap: Record<string, any> = {};
+         filtered.forEach(p => {
+           if (!byDateMap[p.date]) byDateMap[p.date] = { date: p.date, rolos: 0, faturamento: 0 };
+           byDateMap[p.date].rolos += p.rolls_produced;
+           byDateMap[p.date].faturamento += p.revenue;
+         });
+         const byDate = Object.values(byDateMap).sort((a, b) => a.date.localeCompare(b.date)).map(d => ({
+           ...d,
+           date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
+         }));
+ 
+         const byShiftMap: Record<string, any> = {};
+         filtered.forEach(p => {
+           if (!byShiftMap[p.shift]) byShiftMap[p.shift] = { name: p.shift, rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, efficiencyWeight: 0 };
+           byShiftMap[p.shift].rolos += p.rolls_produced;
+           byShiftMap[p.shift].kg += p.weight_kg;
+           byShiftMap[p.shift].faturamento += p.revenue;
+           if (p.efficiency > 0) {
+             byShiftMap[p.shift].efficiencySum += (p.efficiency * p.weight_kg);
+             byShiftMap[p.shift].efficiencyWeight += p.weight_kg;
+           }
+         });
+         const byShift = Object.values(byShiftMap).map(s => ({
+           ...s,
+           name: companyShiftLabels[s.name as ShiftType] || s.name,
+           eficiencia: s.efficiencyWeight > 0 ? s.efficiencySum / s.efficiencyWeight : 0,
+           pct_rolls: totalRolls > 0 ? (s.rolos / totalRolls) * 100 : 0,
+           pct_revenue: totalRevenue > 0 ? (s.faturamento / totalRevenue) * 100 : 0
+         })).sort((a, b) => {
+           const order: Record<string, number> = { 'manha': 1, 'tarde': 2, 'noite': 3 };
+           const nameA = Object.keys(companyShiftLabels).find(key => companyShiftLabels[key as ShiftType] === a.name) || a.name;
+           const nameB = Object.keys(companyShiftLabels).find(key => companyShiftLabels[key as ShiftType] === b.name) || b.name;
+           return (order[nameA] || 99) - (order[nameB] || 99);
+         });
+ 
+         const byMachineMap: Record<string, any> = {};
+         filtered.forEach(p => {
+           const key = p.machine_id || p.machine_name;
+           if (!byMachineMap[key]) byMachineMap[key] = { name: p.machine_name, rolos: 0, kg: 0, faturamento: 0, records: 0, efficiencySum: 0, efficiencyWeight: 0 };
+           byMachineMap[key].rolos += p.rolls_produced;
+           byMachineMap[key].kg += p.weight_kg;
+           byMachineMap[key].faturamento += p.revenue;
+           byMachineMap[key].records += 1;
+           if (p.efficiency > 0) {
+             byMachineMap[key].efficiencySum += (p.efficiency * p.weight_kg);
+             byMachineMap[key].efficiencyWeight += p.weight_kg;
+           }
+         });
+         const byMachine = Object.values(byMachineMap).map(m => ({
+           ...m,
+           eficiencia: m.efficiencyWeight > 0 ? m.efficiencySum / m.efficiencyWeight : 0,
+           pct_rolls: totalRolls > 0 ? (m.rolos / totalRolls) * 100 : 0,
+           pct_revenue: totalRevenue > 0 ? (m.faturamento / totalRevenue) * 100 : 0
+         }));
+ 
+         const byClientMap: Record<string, any> = {};
+         filtered.forEach(p => {
+           const art = articles.find(a => a.id === p.article_id || a.name === p.article_name);
+           const clientName = art?.client_name || 'Sem Cliente';
+           if (!byClientMap[clientName]) byClientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, efficiencyWeight: 0 };
+           byClientMap[clientName].rolos += p.rolls_produced;
+           byClientMap[clientName].kg += p.weight_kg;
+           byClientMap[clientName].faturamento += p.revenue;
+           if (p.efficiency > 0) {
+             byClientMap[clientName].efficiencySum += (p.efficiency * p.weight_kg);
+             byClientMap[clientName].efficiencyWeight += p.weight_kg;
+           }
+         });
+         const byClient = Object.values(byClientMap).map(c => ({
+           ...c,
+           eficiencia: c.efficiencyWeight > 0 ? c.efficiencySum / c.efficiencyWeight : 0,
+           pct_rolls: totalRolls > 0 ? (c.rolos / totalRolls) * 100 : 0,
+           pct_kg: totalWeight > 0 ? (c.kg / totalWeight) * 100 : 0,
+           pct_revenue: totalRevenue > 0 ? (c.faturamento / totalRevenue) * 100 : 0
+         }));
+ 
+         const byArticleMap: Record<string, any> = {};
+         filtered.forEach(p => {
+           const key = p.article_id || p.article_name;
+           if (!byArticleMap[key]) {
+             const art = articles.find(a => a.id === p.article_id || a.name === p.article_name);
+             byArticleMap[key] = { name: p.article_name, clientName: art?.client_name || 'Sem Cliente', rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, efficiencyWeight: 0 };
+           }
+           byArticleMap[key].rolos += p.rolls_produced;
+           byArticleMap[key].kg += p.weight_kg;
+           byArticleMap[key].faturamento += p.revenue;
+           if (p.efficiency > 0) {
+             byArticleMap[key].efficiencySum += (p.efficiency * p.weight_kg);
+             byArticleMap[key].efficiencyWeight += p.weight_kg;
+           }
+         });
+         const byArticle = Object.values(byArticleMap).map(a => ({
+           ...a,
+           eficiencia: a.efficiencyWeight > 0 ? a.efficiencySum / a.efficiencyWeight : 0,
+           pct_kg: totalWeight > 0 ? (a.kg / totalWeight) * 100 : 0,
+           pct_revenue: totalRevenue > 0 ? (a.faturamento / totalRevenue) * 100 : 0
+         }));
+ 
+         if (filtered.length === 0) return (
             <div className="text-center py-12">
               <p className="text-muted-foreground">Nenhum dado encontrado para o período e filtros selecionados.</p>
             </div>
           );
 
-          if (!kpis && !reportData) return (
-             <div className="text-center py-20">
-               <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-               <p className="text-muted-foreground mt-4">Carregando dados consolidados...</p>
-             </div>
-          );
- 
-         const totalRolls = kpis.total_rolls || 0;
-         const totalWeight = kpis.total_kg || 0;
-         const totalRevenue = kpis.total_revenue || 0;
-         const avgEfficiency = kpis.avg_efficiency || 0;
-         const uniqueDaysCount = evolution?.length || 0;
-
-        const byDate = (evolution || []).map((d: any) => ({
-          ...d,
-          date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-          rolos: d.rolls,
-          faturamento: d.revenue
-        }));
-
-        const byShift = (by_shift || []).map((s: any) => ({
-          ...s,
-          name: companyShiftLabels[s.name as ShiftType] || s.name,
-          rolos: s.rolls,
-          faturamento: s.revenue,
-          eficiencia: s.efficiency
-        }));
-
-        const byMachine = (by_machine || []).map((m: any) => ({
-          ...m,
-          rolos: m.rolls,
-          faturamento: m.revenue,
-          eficiencia: m.efficiency
-        }));
-
-        const byClient = (by_client || []).map((c: any) => ({
-          ...c,
-          rolos: c.rolls,
-          faturamento: c.revenue,
-          eficiencia: c.efficiency
-        }));
-
-        const byArticle = (by_article || []).map((a: any) => ({
-          ...a,
-          rolos: a.rolls,
-          faturamento: a.revenue,
-          eficiencia: a.efficiency,
-          clientName: a.client_name
-        }));
-
-        return (
-          <div className={cn("space-y-6", fetchingReport && "opacity-50 pointer-events-none transition-opacity")}>
+         return (
+           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
                 label="Total de Rolos"
@@ -1124,9 +1121,7 @@ export default function Reports() {
       </Tabs>
           </div>
         );
-      })() : null}
-
-       {!fetchingReport && !reportData && productions.length === 0 && (
+       })() : (
          <div className="text-center py-12">
            <p className="text-muted-foreground">Registre produções para ver os relatórios detalhados</p>
          </div>
