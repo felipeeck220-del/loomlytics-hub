@@ -1506,4 +1506,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
       - **09/05/2026 12:15 (Brasília)** — **DASHBOARD — Implementação de Otimização via RPC (Server-Side Agregation):** (1) Criada função RPC PostgreSQL `get_dashboard_metrics` que consolida KPIs (peso, faturamento, rolos, eficiência) e dados de gráficos (turno, ranking, tendência) em uma única chamada server-side; (2) Refatorado `Dashboard.tsx` para priorizar dados retornados pela RPC, mantendo fallback local apenas para evitar telas vazias durante o carregamento; (3) Implementada lógica de "Ponto de Reversão" documentada em `docs/correcoes/rpcdashboard.md`, permitindo retorno rápido ao modelo JavaScript puro se necessário; (4) Redução drástica de consumo de dados e processamento no navegador em períodos longos.
 
-      *Última atualização: 09/05/2026 12:15 (Brasília)*
+
+      - **09/05/2026 12:45 (Brasília)** — **DASHBOARD — Correção de indicadores de produtividade por hora:** (1) Corrigido cálculo de `calendarHours` no Dashboard quando o filtro "Todo período" está ativo; (2) O sistema agora calcula a diferença real de dias entre a primeira e a última produção registrada para determinar a base de horas, evitando valores inflados nos cards de Kg/Hora e Faturamento/Hora.
+
+      *Última atualização: 09/05/2026 12:45 (Brasília)*
