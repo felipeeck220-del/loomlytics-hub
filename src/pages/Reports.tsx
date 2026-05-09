@@ -116,15 +116,15 @@ export default function Reports() {
         end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
       }
 
-      const { data, error } = await (supabase.rpc as any)('get_report_data', {
+      const { data, error } = await supabase.rpc('get_report_data', {
         p_company_id: dbCompanyId,
         p_start_date: start,
         p_end_date: end,
         p_shift: filterShift,
-        p_client_id: filterClient === 'all' ? null : filterClient,
-        p_article_id: filterArticle === 'all' ? null : filterArticle,
-        p_machine_id: filterMachine === 'all' ? null : filterMachine,
-      });
+        p_client_id: (filterClient === 'all' || !filterClient) ? null : filterClient,
+        p_article_id: (filterArticle === 'all' || !filterArticle) ? null : filterArticle,
+        p_machine_id: (filterMachine === 'all' || !filterMachine) ? null : filterMachine,
+      } as any);
 
       if (error) throw error;
       setReportData(data);
@@ -283,7 +283,7 @@ export default function Reports() {
     return `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
   }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
-   if (loading && productions.length === 0) {
+    if ((loading || isRpcLoading) && (!reportData)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
