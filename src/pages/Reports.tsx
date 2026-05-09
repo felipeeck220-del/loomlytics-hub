@@ -482,12 +482,10 @@ export default function Reports() {
               {/* POR TURNO */}
               <TabsContent value="turno" className="mt-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {byShift.map((s) => {
+                  {byShift.map((s: any) => {
                     const shiftColor = s.name === 'Manhã' ? 'hsl(38, 92%, 50%)' : s.name === 'Tarde' ? 'hsl(25, 95%, 53%)' : 'hsl(221, 83%, 53%)';
-                    const totalShiftRolls = byShift.reduce((sum, sh) => sum + sh.rolos, 0);
-                    const totalShiftRevenue = byShift.reduce((sum, sh) => sum + sh.faturamento, 0);
-                    const pctRolls = totalShiftRolls > 0 ? (s.rolos / totalShiftRolls * 100) : 0;
-                    const pctRevenue = totalShiftRevenue > 0 ? (s.faturamento / totalShiftRevenue * 100) : 0;
+                    const pctRolls = s.pct_rolls || 0;
+                    const pctRevenue = s.pct_revenue || 0;
                     return (
                       <Card key={s.name} className="relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: shiftColor }} />
