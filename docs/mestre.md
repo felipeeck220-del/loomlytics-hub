@@ -1526,4 +1526,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
        - **09/05/2026 16:10 (Brasília)** — **FATURAMENTO TOTAL — Modelo RPC e Documentação:** Criada a estratégia e documentação detalhada para a futura implementação da RPC `get_faturamento_total_metrics` (`docs/correcoes/rpcfaturamentototal.md`), visando resolver a lentidão de 10s+ no carregamento inicial através de agregação server-side.
 
-       *Última atualização: 09/05/2026 16:10 (Brasília)*
+        - **09/05/2026 16:30 (Brasília)** — **RELATÓRIOS — Planejamento e Documentação RPC:** (1) Criada a documentação 100% detalhada para a nova RPC `get_report_data` no arquivo `docs/rpcreports.md`; (2) O planejamento abrange todas as abas de análise (Turno, Máquina, Cliente, Artigo, Evolução) e inclui cálculos automáticos de eficiência e percentuais de participação (produção, faturamento, peças, peso); (3) Definida a estrutura de dados para exportação CSV/PDF otimizada via server-side.
+ 
+        *Última atualização: 09/05/2026 16:30 (Brasília)*
