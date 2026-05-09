@@ -760,8 +760,41 @@ export default function ResidueSales() {
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+             </CardContent>
+             {totalPages > 1 && (
+               <div className="flex items-center justify-center py-4 border-t gap-1">
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                   disabled={currentPage === 1}
+                   className="h-8 text-xs"
+                 >
+                   Anterior
+                 </Button>
+                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                   <Button
+                     key={page}
+                     variant={currentPage === page ? "default" : "outline"}
+                     size="sm"
+                     onClick={() => setCurrentPage(page)}
+                     className="h-8 w-8 text-xs p-0"
+                   >
+                     {page}
+                   </Button>
+                 ))}
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                   disabled={currentPage === totalPages}
+                   className="h-8 text-xs"
+                 >
+                   Próxima
+                 </Button>
+               </div>
+             )}
+           </Card>
         </TabsContent>
 
         {/* ======= MATERIAIS TAB ======= */}
