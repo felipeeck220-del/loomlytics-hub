@@ -1113,6 +1113,9 @@ export default function Reports() {
           </Card>
         </TabsContent>
       </Tabs>
+    </>
+  );
+})()}
 
       {productions.length === 0 && (
         <div className="text-center py-12">
