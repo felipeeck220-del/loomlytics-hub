@@ -1530,4 +1530,8 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
         - **09/05/2026 16:50 (Brasília)** — **GERAL — Pente Fino e Correções de Robustez:** (1) Corrigido erro silencioso de tipos de dados nas RPCs (`get_dashboard_metrics`, `get_production_trend_stats`) adicionando casting explícito `date::DATE` para as colunas de data que estão como `text`; (2) Adicionada coluna `company_id` à tabela `machine_logs` para garantir integridade multi-empresa e evitar erros de permissão/RLS; (3) Corrigida a tipagem de retorno da RPC de tendência para evitar erros de coerção entre `numeric` e `bigint`; (4) Atualizada a documentação de infraestrutura no banco de dados.
  
-        *Última atualização: 09/05/2026 16:50 (Brasília)*
+        - **09/05/2026 17:10 (Brasília)** — **RELATÓRIOS — Implementação da RPC get_report_data:** (1) Criada e implantada a função RPC `get_report_data` que centraliza todos os cálculos de relatórios (KPIs, turnos, máquinas, clientes, artigos e tendência) no servidor; (2) Refatorada a página `Reports.tsx` para consumir os dados diretamente da RPC, eliminando processamento pesado de arrays no frontend; (3) Mantida compatibilidade total com todos os filtros (data, turno, cliente, artigo, máquina).
+ 
+        - **09/05/2026 17:30 (Brasília)** — **GERAL — Otimização Final de RPCs e Performance:** (1) Refatorada a RPC `get_faturamento_total_metrics` para usar `LEFT JOIN` em vez de subqueries, aumentando significativamente a performance do gráfico de tendência; (2) Garantida a ordenação cronológica correta (`ORDER BY date::DATE`) em todas as queries de gráfico no Dashboard e Faturamento; (3) Reforçada a segurança de tipos (text vs date) em todas as funções do banco.
+ 
+         *Última atualização: 09/05/2026 17:30 (Brasília)*
