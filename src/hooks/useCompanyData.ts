@@ -509,9 +509,10 @@ export function useCompanyData() {
      }
    }, [companyId, user?.id]);
  
-   return {
-    loading,
-    refreshData: loadAllData,
+    return {
+     loading,
+     loadingProgress,
+     refreshData: loadAllData,
     dbCompanyId: companyId,
     shiftSettings,
     getMachines, saveMachines,
