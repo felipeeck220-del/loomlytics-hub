@@ -431,7 +431,6 @@ export default function Reports() {
         return (
           <div className={cn("space-y-6", fetchingReport && "opacity-50 pointer-events-none transition-opacity")}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
                 label="Total de Rolos"
                 value={formatNumber(totalRolls)}
@@ -1125,9 +1124,9 @@ export default function Reports() {
           </Card>
         </TabsContent>
       </Tabs>
-    </>
-  );
-})()}
+          </div>
+        );
+      })() : null}
 
       {productions.length === 0 && (
         <div className="text-center py-12">
