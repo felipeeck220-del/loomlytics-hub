@@ -1,6 +1,7 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+ import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+ import LoadingScreen from '@/components/LoadingScreen';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { AppSidebar } from '@/components/AppSidebar';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
@@ -54,8 +55,8 @@ function formatDate(date: Date): string {
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
-  const { refreshData } = useSharedCompanyData();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+   const { refreshData, loading: companyLoading, loadingProgress } = useSharedCompanyData();
+   const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
 
   // Persist last company slug for PWA redirect
@@ -89,9 +90,13 @@ export default function AppLayout() {
 
   const currentShift = useMemo(() => getCurrentShift(), [now]);
 
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+   if (companyLoading && !isRefreshing) {
+     return <LoadingScreen progress={loadingProgress} />;
+   }
+ 
+   return (
+     <SidebarProvider>
+       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10">
