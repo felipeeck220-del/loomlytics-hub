@@ -627,10 +627,7 @@ export default function Reports() {
 
         {/* POR MÁQUINA */}
         <TabsContent value="maquina" className="mt-6 space-y-6">
-          {byMachine.length > 0 ? (() => {
-            const totalMachineRolls = byMachine.reduce((s, m) => s + m.rolos, 0);
-            const totalMachineRevenue = byMachine.reduce((s, m) => s + m.faturamento, 0);
-            return (
+          {byMachine.length > 0 ? (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -690,8 +687,7 @@ export default function Reports() {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })() : (
+            ) : (
             <Card>
               <CardContent className="py-12">
                 <p className="text-sm text-muted-foreground text-center">Sem dados de máquinas no período selecionado</p>
