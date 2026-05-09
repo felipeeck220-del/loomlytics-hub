@@ -466,7 +466,9 @@ export default function ResidueSales() {
   const [filterMonth, setFilterMonth] = useState('all');
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
-  const [searchText, setSearchText] = useState('');
+   const [searchText, setSearchText] = useState('');
+   const [currentPage, setCurrentPage] = useState(1);
+   const itemsPerPage = 20;
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -482,29 +484,41 @@ export default function ResidueSales() {
     return Array.from(months).sort().reverse();
   }, [sales]);
 
-  const filteredSales = useMemo(() => {
-    let filtered = sales;
-    if (filterMonth !== 'all') {
-      filtered = filtered.filter(s => s.date.startsWith(filterMonth));
-    }
-    if (dateFrom) {
-      const from = format(dateFrom, 'yyyy-MM-dd');
-      filtered = filtered.filter(s => s.date >= from);
-    }
-    if (dateTo) {
-      const to = format(dateTo, 'yyyy-MM-dd');
-      filtered = filtered.filter(s => s.date <= to);
-    }
-    if (searchText.trim()) {
-      const q = searchText.toLowerCase();
-      filtered = filtered.filter(s =>
-        (s.material_name || '').toLowerCase().includes(q) ||
-        s.client_name.toLowerCase().includes(q) ||
-        (s.romaneio || '').toLowerCase().includes(q)
-      );
-    }
-    return filtered;
-  }, [sales, filterMonth, dateFrom, dateTo, searchText]);
+   const filteredSales = useMemo(() => {
+     let filtered = sales;
+     if (filterMonth !== 'all') {
+       filtered = filtered.filter(s => s.date.startsWith(filterMonth));
+     }
+     if (dateFrom) {
+       const from = format(dateFrom, 'yyyy-MM-dd');
+       filtered = filtered.filter(s => s.date >= from);
+     }
+     if (dateTo) {
+       const to = format(dateTo, 'yyyy-MM-dd');
+       filtered = filtered.filter(s => s.date <= to);
+     }
+     if (searchText.trim()) {
+       const q = searchText.toLowerCase();
+       filtered = filtered.filter(s =>
+         (s.material_name || '').toLowerCase().includes(q) ||
+         s.client_name.toLowerCase().includes(q) ||
+         (s.romaneio || '').toLowerCase().includes(q)
+       );
+     }
+     return filtered;
+   }, [sales, filterMonth, dateFrom, dateTo, searchText]);
+ 
+   const paginatedSales = useMemo(() => {
+     const start = (currentPage - 1) * itemsPerPage;
+     return filteredSales.slice(start, start + itemsPerPage);
+   }, [filteredSales, currentPage]);
+ 
+   const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
+ 
+   // Reset page when filters change
+   useEffect(() => {
+     setCurrentPage(1);
+   }, [filterMonth, dateFrom, dateTo, searchText]);
 
   // ===== KPIs =====
   const kpis = useMemo(() => {
@@ -514,9 +528,10 @@ export default function ResidueSales() {
     return { totalValue, totalQtyKg, totalQtyUn, count: filteredSales.length };
   }, [filteredSales]);
 
-  const clearFilters = () => {
-    setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); setSearchText('');
-  };
+   const clearFilters = () => {
+     setFilterMonth('all'); setDateFrom(undefined); setDateTo(undefined); setSearchText('');
+     setCurrentPage(1);
+   };
 
   const formatQtyInput = (value: string) => value.replace(/[^\d,.]/g, '');
   const formatPriceInput = (value: string) => value.replace(/[^\d,.]/g, '');
@@ -745,8 +760,41 @@ export default function ResidueSales() {
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+             </CardContent>
+             {totalPages > 1 && (
+               <div className="flex items-center justify-center py-4 border-t gap-1">
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                   disabled={currentPage === 1}
+                   className="h-8 text-xs"
+                 >
+                   Anterior
+                 </Button>
+                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                   <Button
+                     key={page}
+                     variant={currentPage === page ? "default" : "outline"}
+                     size="sm"
+                     onClick={() => setCurrentPage(page)}
+                     className="h-8 w-8 text-xs p-0"
+                   >
+                     {page}
+                   </Button>
+                 ))}
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                   disabled={currentPage === totalPages}
+                   className="h-8 text-xs"
+                 >
+                   Próxima
+                 </Button>
+               </div>
+             )}
+           </Card>
         </TabsContent>
 
         {/* ======= MATERIAIS TAB ======= */}
@@ -932,7 +980,7 @@ export default function ResidueSales() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredSales.map(s => (
+                       {paginatedSales.map(s => (
                         <TableRow key={s.id}>
                           <TableCell className="text-[10px] whitespace-nowrap">
                             <div className="text-xs font-medium">{s.date.split('-').reverse().join('/')}</div>
