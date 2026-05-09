@@ -215,13 +215,19 @@ export default function Dashboard() {
       if (!dbCompanyId || !currentPeriod) return;
       setLoadingStats(true);
       try {
-        const { data, error } = await (supabase.rpc as any)('get_dashboard_metrics', {
+        const params: any = {
           p_company_id: dbCompanyId,
-          p_start_date: currentPeriod.start,
-          p_end_date: currentPeriod.end,
-          p_machine_id: undefined, // Add specific filter if needed in future
+          p_machine_id: undefined,
           p_shift: filterShift === 'all' ? null : filterShift
-        });
+        };
+
+        // Só envia as datas se não for "Todo período"
+        if (currentPeriod) {
+          params.p_start_date = currentPeriod.start;
+          params.p_end_date = currentPeriod.end;
+        }
+
+        const { data, error } = await (supabase.rpc as any)('get_dashboard_metrics', params);
 
         if (error) throw error;
         setDashboardMetrics(data);
