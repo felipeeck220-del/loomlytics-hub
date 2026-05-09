@@ -87,12 +87,64 @@ export default function Reports() {
   const [searchArticle, setSearchArticle] = useState('');
 
   const productions = getProductions();
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const fetchReportData = useCallback(async () => {
-    // No longer needs to fetch per period as useCompanyData loads all
-  }, []);
-
+   const [isSyncing, setIsSyncing] = useState(false);
+   const [reportData, setReportData] = useState<any>(null);
+   const [isRpcLoading, setIsRpcLoading] = useState(false);
+ 
+   const fetchReportData = useCallback(async () => {
+     if (!dbCompanyId) return;
+     
+     setIsRpcLoading(true);
+     try {
+       const today = new Date();
+       let start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+       let end = format(today, 'yyyy-MM-dd');
+ 
+       if (dateFrom && dateTo) {
+         start = format(dateFrom, 'yyyy-MM-dd');
+         end = format(dateTo, 'yyyy-MM-dd');
+       } else if (filterMonth !== 'all') {
+         const [year, month] = filterMonth.split('-').map(Number);
+         start = format(startOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
+         end = format(endOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
+       } else if (customDate) {
+         start = format(customDate, 'yyyy-MM-dd');
+         end = format(customDate, 'yyyy-MM-dd');
+       } else if (dayRange === 0) {
+         // If all time, the RPC handles it by taking min/max but we can send a very old date
+         start = '2000-01-01';
+         end = format(today, 'yyyy-MM-dd');
+       }
+ 
+       const { data, error } = await (supabase.rpc as any)('get_report_data', {
+         p_company_id: dbCompanyId,
+         p_start_date: start,
+         p_end_date: end,
+         p_shift: filterShift,
+         p_client_id: filterClient === 'all' ? null : filterClient,
+         p_article_id: filterArticle === 'all' ? null : filterArticle,
+         p_machine_id: filterMachine === 'all' ? null : filterMachine,
+       });
+ 
+       if (error) throw error;
+       setReportData(data);
+     } catch (err) {
+       console.error('Error fetching report data:', err);
+     } finally {
+       setIsRpcLoading(false);
+     }
+   }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine]);
+ 
+   useEffect(() => {
+     fetchReportData();
+   }, [fetchReportData]);
+ 
+   const kpis = reportData?.kpis || { total_rolls: 0, total_kg: 0, total_revenue: 0, avg_efficiency: 0 };
+   const byShiftData = reportData?.by_shift || [];
+   const byMachineData = reportData?.by_machine || [];
+   const byClientData = reportData?.by_client || [];
+   const byArticleData = reportData?.by_article || [];
+   const evolutionData = reportData?.evolution || [];
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
   const clearFilters = () => {
