@@ -145,13 +145,18 @@ export default function Reports() {
    const totalRevenue = kpis.total_revenue;
    const avgEfficiency = kpis.avg_efficiency;
    
-   const byShift = useMemo(() => (reportData?.by_shift || []).map((s: any) => ({
-     ...s,
-     rolos: s.rolls,
-     faturamento: s.revenue,
-     eficiencia: s.efficiency,
-     name: SHIFT_LABELS[s.name as ShiftType] || s.name
-   })), [reportData]);
+    const byShift = useMemo(() => {
+      const order = { 'manha': 1, 'tarde': 2, 'noite': 3 };
+      return (reportData?.by_shift || [])
+        .sort((a: any, b: any) => (order[a.name as keyof typeof order] || 99) - (order[b.name as keyof typeof order] || 99))
+        .map((s: any) => ({
+          ...s,
+          rolos: s.rolls,
+          faturamento: s.revenue,
+          eficiencia: s.efficiency,
+          name: SHIFT_LABELS[s.name as ShiftType] || s.name
+        }));
+    }, [reportData]);
  
    const byMachine = useMemo(() => (reportData?.by_machine || []).map((m: any) => ({
      ...m,
