@@ -87,26 +87,6 @@ export default function Reports() {
   const [searchArticle, setSearchArticle] = useState('');
 
   const productions = getProductions();
-  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
-
-  const clearFilters = () => {
-     setDayRange(30); setFilterMonth('all');
-    setCustomDate(undefined);
-    setDateFrom(undefined);
-    setDateTo(undefined);
-    setFilterMonth('all');
-    setFilterShift('all');
-    setFilterClient('all');
-    setFilterArticle('all');
-    setFilterMachine('all');
-  };
-
-  const availableMonths = useMemo(() => {
-    const months = new Set(productions.map(p => p.date.substring(0, 7)));
-    // Always include current month
-    months.add(format(new Date(), 'yyyy-MM'));
-    return Array.from(months).sort().reverse();
-  }, [productions]);
 
   const filtered = useMemo(() => {
     let data = [...productions];
@@ -145,6 +125,122 @@ export default function Reports() {
     }
     return data;
   }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles, machines]);
+
+  const avgTargetEfficiency = 80;
+
+  const kpis = useMemo(() => {
+    return filtered.reduce((acc, p) => ({
+      total_rolls: acc.total_rolls + p.rolls_produced,
+      total_kg: acc.total_kg + p.weight_kg,
+      total_revenue: acc.total_revenue + p.revenue,
+      weighted_eff: acc.weighted_eff + (p.efficiency * p.weight_kg),
+    }), { total_rolls: 0, total_kg: 0, total_revenue: 0, weighted_eff: 0 });
+  }, [filtered]);
+
+  const totalRolls = kpis.total_rolls;
+  const totalWeight = kpis.total_kg;
+  const totalRevenue = kpis.total_revenue;
+  const avgEfficiency = kpis.total_kg > 0 ? kpis.weighted_eff / kpis.total_kg : 0;
+
+  const byShift = useMemo(() => {
+    const shifts = ['manha', 'tarde', 'noite'] as ShiftType[];
+    const order = { manha: 0, tarde: 1, noite: 2 };
+    return shifts.sort((a, b) => order[a] - order[b]).map(s => {
+      const shiftData = filtered.filter(p => p.shift === s);
+      const kg = shiftData.reduce((sum, p) => sum + p.weight_kg, 0);
+      const weightedEff = shiftData.reduce((sum, p) => sum + (p.efficiency * p.weight_kg), 0);
+      return {
+        name: SHIFT_LABELS[s],
+        rolos: shiftData.reduce((sum, p) => sum + p.rolls_produced, 0),
+        kg,
+        faturamento: shiftData.reduce((sum, p) => sum + p.revenue, 0),
+        eficiencia: kg > 0 ? weightedEff / kg : 0,
+      };
+    });
+  }, [filtered]);
+
+  const byMachine = useMemo(() => {
+    const machineMap: Record<string, any> = {};
+    filtered.forEach(p => {
+      const key = p.machine_id || p.machine_name || 'Desconhecida';
+      if (!machineMap[key]) machineMap[key] = { name: p.machine_name || 'Desconhecida', rolos: 0, kg: 0, faturamento: 0, weightedEff: 0, records: 0, targetEfficiency: 80 };
+      machineMap[key].rolos += p.rolls_produced;
+      machineMap[key].kg += p.weight_kg;
+      machineMap[key].faturamento += p.revenue;
+      machineMap[key].weightedEff += (p.efficiency * p.weight_kg);
+      machineMap[key].records += 1;
+    });
+    return Object.values(machineMap).map(m => ({
+      ...m,
+      eficiencia: m.kg > 0 ? m.weightedEff / m.kg : 0,
+    })).sort((a, b) => b.rolos - a.rolos);
+  }, [filtered]);
+
+  const byClient = useMemo(() => {
+    const clientMap: Record<string, any> = {};
+    filtered.forEach(p => {
+      const key = p.article_id; // Production usually doesn't have client_id, we map via article
+      const article = articles.find(a => a.id === p.article_id);
+      const clientName = article?.client_name || p.article_name?.split('(')[1]?.replace(')', '') || 'Sem Cliente';
+      
+      if (!clientMap[clientName]) clientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0 };
+      clientMap[clientName].rolos += p.rolls_produced;
+      clientMap[clientName].kg += p.weight_kg;
+      clientMap[clientName].faturamento += p.revenue;
+    });
+    return Object.values(clientMap).sort((a: any, b: any) => b.faturamento - a.faturamento);
+  }, [filtered, articles]);
+
+  const byArticle = useMemo(() => {
+    const articleMap: Record<string, any> = {};
+    filtered.forEach(p => {
+      const key = p.article_id || p.article_name || 'Sem Artigo';
+      if (!articleMap[key]) {
+        const article = articles.find(a => a.id === p.article_id);
+        articleMap[key] = { id: key, name: p.article_name || 'Sem Artigo', clientName: article?.client_name || '—', rolos: 0, kg: 0, faturamento: 0, weightedEff: 0, records: 0, targetEfficiency: 80 };
+      }
+      articleMap[key].rolos += p.rolls_produced;
+      articleMap[key].kg += p.weight_kg;
+      articleMap[key].faturamento += p.revenue;
+      articleMap[key].weightedEff += (p.efficiency * p.weight_kg);
+      articleMap[key].records += 1;
+    });
+    return Object.values(articleMap).map(a => ({
+      ...a,
+      eficiencia: a.kg > 0 ? a.weightedEff / a.kg : 0,
+    })).sort((a, b) => b.kg - a.kg);
+  }, [filtered, articles]);
+
+  const byDate = useMemo(() => {
+    const dateMap: Record<string, any> = {};
+    filtered.forEach(p => {
+      const key = p.date;
+      if (!dateMap[key]) dateMap[key] = { date: format(new Date(key + 'T12:00:00'), 'dd/MM', { locale: ptBR }), rolos: 0, kg: 0, faturamento: 0, weightedEff: 0 };
+      dateMap[key].rolos += p.rolls_produced;
+      dateMap[key].kg += p.weight_kg;
+      dateMap[key].faturamento += p.revenue;
+      dateMap[key].weightedEff += (p.efficiency * p.weight_kg);
+    });
+    return Object.values(dateMap).map((d: any) => ({
+      ...d,
+      eficiencia: d.kg > 0 ? d.weightedEff / d.kg : 0,
+    })).sort((a, b) => a.date.localeCompare(b.date));
+  }, [filtered]);
+
+  const uniqueDays = useMemo(() => new Set(filtered.map(p => p.date)).size, [filtered]);
+  const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
+
+  const clearFilters = () => {
+     setDayRange(30); setFilterMonth('all');
+    setCustomDate(undefined);
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setFilterMonth('all');
+    setFilterShift('all');
+    setFilterClient('all');
+    setFilterArticle('all');
+    setFilterMachine('all');
+  };
 
   const periodLabel = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
