@@ -89,64 +89,11 @@ export default function Reports() {
   const avgTargetEfficiency = 80;
    const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
 
-  const [reportData, setReportData] = useState<any>(null);
-  const [fetchingReport, setFetchingReport] = useState(false);
-
-  const availableMonths = useMemo(() => {
-    const months = new Set(productions.map(p => p.date.substring(0, 7)));
-    months.add(format(new Date(), 'yyyy-MM'));
-    return Array.from(months).sort().reverse();
-  }, [productions]);
-
-  const fetchReportData = useCallback(async () => {
-    if (!dbCompanyId) return;
-    setFetchingReport(true);
-    try {
-      let start: string;
-      let end: string;
-      const today = new Date();
-
-      if (dateFrom || dateTo) {
-        start = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '1900-01-01';
-        end = dateTo ? format(dateTo, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd');
-      } else if (filterMonth !== 'all') {
-        const [year, month] = filterMonth.split('-').map(Number);
-        start = format(startOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
-        end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
-      } else if (customDate) {
-        start = format(customDate, 'yyyy-MM-dd');
-        end = start;
-      } else if (dayRange > 0) {
-        start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-        end = format(today, 'yyyy-MM-dd');
-      } else {
-        const dates = productions.map(p => p.date).sort();
-        start = dates.length > 0 ? dates[0] : format(today, 'yyyy-MM-dd');
-        end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
-      }
-
-      const { data, error } = await supabase.rpc('get_report_data', {
-        p_company_id: dbCompanyId,
-        p_start_date: start,
-        p_end_date: end,
-        p_shift: filterShift,
-        p_client_id: filterClient === 'all' ? null : filterClient,
-        p_article_id: filterArticle === 'all' ? null : filterArticle,
-        p_machine_id: filterMachine === 'all' ? null : filterMachine
-      });
-
-      if (error) throw error;
-      setReportData(data);
-    } catch (err) {
-      console.error('Erro ao buscar dados do relatório:', err);
-    } finally {
-      setFetchingReport(false);
-    }
-   }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine]);
-
-  useEffect(() => {
-    fetchReportData();
-  }, [fetchReportData]);
+   const availableMonths = useMemo(() => {
+     const months = new Set(productions.map(p => p.date.substring(0, 7)));
+     months.add(format(new Date(), 'yyyy-MM'));
+     return Array.from(months).sort().reverse();
+   }, [productions]);
 
   // Maintain filtered for export compatibility (though we should ideally optimize export too)
   const filtered = useMemo(() => {
