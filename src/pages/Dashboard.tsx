@@ -313,8 +313,9 @@ export default function Dashboard() {
     return days * 24;
   }, [customDate, filterMonth, dayRange, filterShift, dateFrom, dateTo, companyShiftMinutes, filtered]);
 
-  const revenuePerHour = calendarHours > 0 ? totalRevenue / calendarHours : 0;
-  const kgPerHour = calendarHours > 0 ? totalWeight / calendarHours : 0;
+  const finalCalendarHours = dashboardMetrics?.current_period?.calendar_hours ?? calendarHours;
+  const revenuePerHour = finalCalendarHours > 0 ? totalRevenue / finalCalendarHours : 0;
+  const kgPerHour = finalCalendarHours > 0 ? totalWeight / finalCalendarHours : 0;
 
     const shiftData = useMemo(() => {
       if (dashboardMetrics?.charts?.production_by_shift?.length) {
