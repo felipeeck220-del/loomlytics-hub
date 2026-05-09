@@ -1509,4 +1509,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
       - **09/05/2026 12:45 (Brasília)** — **DASHBOARD — Correção de indicadores de produtividade por hora:** (1) Corrigido cálculo de `calendarHours` no Dashboard quando o filtro "Todo período" está ativo; (2) O sistema agora calcula a diferença real de dias entre a primeira e a última produção registrada para determinar a base de horas, evitando valores inflados nos cards de Kg/Hora e Faturamento/Hora.
 
-      *Última atualização: 09/05/2026 12:45 (Brasília)*
+
+      - **09/05/2026 13:10 (Brasília)** — **DASHBOARD — Unificação de Lógica de Horas via RPC:** (1) Atualizada RPC `get_dashboard_metrics` para calcular e retornar `calendar_hours` diretamente do banco de dados, garantindo que o Dashboard em produção e em desenvolvimento usem a mesma base de cálculo; (2) Refatorado Dashboard para utilizar o valor de horas retornado pelo servidor, eliminando discrepâncias entre o projeto publicado e a pré-visualização.
+
+      *Última atualização: 09/05/2026 13:10 (Brasília)*
