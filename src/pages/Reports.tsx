@@ -383,13 +383,20 @@ export default function Reports() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-3 text-muted-foreground">Processando dados...</span>
         </div>
-       ) : reportData ? (() => {
+       ) : (reportData || productions.length > 0) ? (() => {
           const { kpis, by_shift, by_machine, by_client, by_article, evolution } = reportData || {};
           
-          if (!kpis) return (
+          if (!kpis && !fetchingReport && reportData) return (
             <div className="text-center py-12">
               <p className="text-muted-foreground">Nenhum dado encontrado para o período e filtros selecionados.</p>
             </div>
+          );
+
+          if (!kpis && !reportData) return (
+             <div className="text-center py-20">
+               <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+               <p className="text-muted-foreground mt-4">Carregando dados consolidados...</p>
+             </div>
           );
  
          const totalRolls = kpis.total_rolls || 0;
@@ -1125,14 +1132,6 @@ export default function Reports() {
          </div>
        )}
  
-       {!fetchingReport && !reportData && productions.length > 0 && (
-         <div className="text-center py-12">
-           <p className="text-muted-foreground">Nenhum dado encontrado para o período selecionado.</p>
-           <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4">
-             <RotateCcw className="h-4 w-4 mr-1" /> Limpar Filtros
-           </Button>
-         </div>
-       )}
     </div>
   );
 }
