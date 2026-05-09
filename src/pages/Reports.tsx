@@ -230,6 +230,13 @@ export default function Reports() {
   const uniqueDays = useMemo(() => new Set(filtered.map(p => p.date)).size, [filtered]);
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
+  const availableMonths = useMemo(() => {
+    const months = new Set(productions.map(p => p.date.substring(0, 7)));
+    // Always include current month
+    months.add(format(new Date(), 'yyyy-MM'));
+    return Array.from(months).sort().reverse();
+  }, [productions]);
+
   const clearFilters = () => {
      setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
