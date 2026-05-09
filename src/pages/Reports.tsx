@@ -378,98 +378,59 @@ export default function Reports() {
       </Card>
 
       {/* Data Processing & Rendering */}
-      {(() => {
-        const totalRolls = filtered.reduce((sum, p) => sum + p.rolls_produced, 0);
-        const totalWeight = filtered.reduce((sum, p) => sum + p.weight_kg, 0);
-        const totalRevenue = filtered.reduce((sum, p) => sum + p.revenue, 0);
-        const uniqueDaysCount = new Set(filtered.map(p => p.date)).size;
-        const productionsWithRolls = filtered.filter(p => p.rolls_produced > 0);
-        const avgEfficiency = productionsWithRolls.length > 0 
-          ? productionsWithRolls.reduce((sum, p) => sum + p.efficiency, 0) / productionsWithRolls.length 
-          : 0;
+      {fetchingReport && !reportData ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground">Processando dados...</span>
+        </div>
+      ) : reportData ? (() => {
+        const { kpis, by_shift, by_machine, by_client, by_article, evolution } = reportData;
+        const totalRolls = kpis.total_rolls;
+        const totalWeight = kpis.total_kg;
+        const totalRevenue = kpis.total_revenue;
+        const avgEfficiency = kpis.avg_efficiency;
+        const uniqueDaysCount = evolution.length;
 
-        // Groupings
-        const byShift = Object.keys(companyShiftLabels).map(key => {
-          const items = filtered.filter(p => p.shift === key);
-          const itemsWithRolls = items.filter(p => p.rolls_produced > 0);
-          return {
-            name: SHIFT_LABELS[key as ShiftType],
-            rolos: items.reduce((s, p) => s + p.rolls_produced, 0),
-            kg: items.reduce((s, p) => s + p.weight_kg, 0),
-            faturamento: items.reduce((s, p) => s + p.revenue, 0),
-            eficiencia: itemsWithRolls.length > 0 ? itemsWithRolls.reduce((s, p) => s + p.efficiency, 0) / itemsWithRolls.length : 0
-          };
-        });
-
-        const machineMap: Record<string, any> = {};
-        filtered.forEach(p => {
-          const key = p.machine_id || p.machine_name;
-          if (!machineMap[key]) machineMap[key] = { name: p.machine_name, rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
-          machineMap[key].rolos += p.rolls_produced;
-          machineMap[key].kg += p.weight_kg;
-          machineMap[key].faturamento += p.revenue;
-          if (p.rolls_produced > 0) {
-            machineMap[key].eficienciaSum += p.efficiency;
-            machineMap[key].count++;
-          }
-        });
-        const byMachine = Object.values(machineMap).map(m => ({
-          ...m,
-          targetEfficiency: 80,
-          records: m.count,
-          eficiencia: m.count > 0 ? m.eficienciaSum / m.count : 0
-        })).sort((a, b) => b.rolos - a.rolos);
-
-        const clientMap: Record<string, any> = {};
-        filtered.forEach(p => {
-          const art = articles.find(a => a.id === p.article_id);
-          const clientName = art?.client_name || 'Sem Cliente';
-          if (!clientMap[clientName]) clientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0 };
-          clientMap[clientName].rolos += p.rolls_produced;
-          clientMap[clientName].kg += p.weight_kg;
-          clientMap[clientName].faturamento += p.revenue;
-        });
-        const byClient = Object.values(clientMap).sort((a, b) => b.faturamento - a.faturamento);
-
-        const articleMap: Record<string, any> = {};
-        filtered.forEach(p => {
-          const art = articles.find(a => a.id === p.article_id);
-          const artName = p.article_name || 'Sem Artigo';
-          if (!articleMap[artName]) articleMap[artName] = { id: p.article_id, name: artName, clientName: art?.client_name || '—', rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
-          articleMap[artName].rolos += p.rolls_produced;
-          articleMap[artName].kg += p.weight_kg;
-          articleMap[artName].faturamento += p.revenue;
-          if (p.rolls_produced > 0) {
-            articleMap[artName].eficienciaSum += p.efficiency;
-            articleMap[artName].count++;
-          }
-        });
-        const byArticle = Object.values(articleMap).map(a => ({
-          ...a,
-          targetEfficiency: 80,
-          records: a.count,
-          eficiencia: a.count > 0 ? a.eficienciaSum / a.count : 0
-        })).sort((a, b) => b.kg - a.kg);
-
-        const dateMap: Record<string, any> = {};
-        filtered.forEach(p => {
-          if (!dateMap[p.date]) dateMap[p.date] = { date: p.date, rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
-          dateMap[p.date].rolos += p.rolls_produced;
-          dateMap[p.date].kg += p.weight_kg;
-          dateMap[p.date].faturamento += p.revenue;
-          if (p.rolls_produced > 0) {
-            dateMap[p.date].eficienciaSum += p.efficiency;
-            dateMap[p.date].count++;
-          }
-        });
-        const byDate = Object.values(dateMap).map(d => ({
+        const byDate = (evolution || []).map((d: any) => ({
           ...d,
-          eficiencia: d.count > 0 ? d.eficienciaSum / d.count : 0,
-          date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
-        })).sort((a, b) => a.date.localeCompare(b.date));
+          date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+          rolos: d.rolls,
+          faturamento: d.revenue
+        }));
+
+        const byShift = (by_shift || []).map((s: any) => ({
+          ...s,
+          name: SHIFT_LABELS[s.name as ShiftType] || s.name,
+          rolos: s.rolls,
+          faturamento: s.revenue,
+          eficiencia: s.efficiency
+        }));
+
+        const byMachine = (by_machine || []).map((m: any) => ({
+          ...m,
+          rolos: m.rolls,
+          faturamento: m.revenue,
+          eficiencia: m.efficiency
+        }));
+
+        const byClient = (by_client || []).map((c: any) => ({
+          ...c,
+          rolos: c.rolls,
+          faturamento: c.revenue,
+          eficiencia: c.efficiency
+        }));
+
+        const byArticle = (by_article || []).map((a: any) => ({
+          ...a,
+          rolos: a.rolls,
+          faturamento: a.revenue,
+          eficiencia: a.efficiency,
+          clientName: a.client_name
+        }));
 
         return (
-          <>
+          <div className={cn("space-y-6", fetchingReport && "opacity-50 pointer-events-none transition-opacity")}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
                 label="Total de Rolos"
