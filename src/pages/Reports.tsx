@@ -761,11 +761,7 @@ export default function Reports() {
 
         {/* POR ARTIGO */}
         <TabsContent value="artigo" className="mt-6 space-y-6">
-          {byArticle.length > 0 ? (() => {
-            const totalArticleRolls = byArticle.reduce((s, a) => s + a.rolos, 0);
-            const totalArticleKg = byArticle.reduce((s, a) => s + a.kg, 0);
-            const totalArticleRevenue = byArticle.reduce((s, a) => s + a.faturamento, 0);
-            return (
+          {byArticle.length > 0 ? (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -830,8 +826,7 @@ export default function Reports() {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })() : (
+            ) : (
             <Card>
               <CardContent className="py-12">
                 <p className="text-sm text-muted-foreground text-center">Sem dados de artigos no período selecionado</p>
