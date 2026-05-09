@@ -727,8 +727,9 @@ export default function Reports() {
                     {byClient.filter((c: any) => (c.name || '').toLowerCase().includes(searchClient.toLowerCase())).map((c: any) => {
                       const pctRolls = c.pct_rolls || 0;
                       const pctKg = c.pct_kg || 0;
-                      const pctRevenue = c.pct_revenue || 0;
-                        <div key={c.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
+                       const pctRevenue = c.pct_revenue || 0;
+                       return (
+                         <div key={c.name} className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="font-display font-bold text-foreground">{c.name}</p>
                           </div>
