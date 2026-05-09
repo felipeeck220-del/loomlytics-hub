@@ -1540,4 +1540,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
         - **09/05/2026 20:10 (Brasília)** — **RELATÓRIOS — Reversão para Client-Side (JS):** Revertida a implementação server-side (RPC) para o processamento original 100% em Javascript no frontend. Esta ação restaura a lógica de cálculo local anterior enquanto mantém a ordenação cronológica de turnos e os filtros de período funcionando corretamente.
 
-         *Última atualização: 09/05/2026 20:10 (Brasília)*
+        - **10/05/2026 10:15 (Brasília)** — **RELATÓRIOS — Re-implementação RPC (Server-Side):** Implementada novamente a lógica server-side através da função RPC `get_report_data`. A migração consolida KPIs, agregações por turno, máquina, cliente e artigo, e dados de evolução diretamente no PostgreSQL, garantindo alta performance e consistência nos cálculos de eficiência ponderada e participação.
+
+         *Última atualização: 10/05/2026 10:15 (Brasília)*
