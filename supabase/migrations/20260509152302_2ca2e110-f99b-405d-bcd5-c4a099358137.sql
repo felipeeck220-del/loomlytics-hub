@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.get_report_data(UUID, DATE, DATE, TEXT, UUID, UUID, UUID);

@@ -1,5 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { fetchProductionsPage } from '@/lib/queries/productionsQueries';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,106 +85,7 @@ export default function Reports() {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  const productions = useMemo(() => getProductions(), [getProductions]);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
-  const [isRpcLoading, setIsRpcLoading] = useState(false);
-
-  const fetchReportData = useCallback(async () => {
-    if (!dbCompanyId) return;
-    
-    setIsRpcLoading(true);
-    try {
-      const today = new Date();
-      let start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-      let end = format(today, 'yyyy-MM-dd');
-
-      if (dateFrom && dateTo) {
-        start = format(dateFrom, 'yyyy-MM-dd');
-        end = format(dateTo, 'yyyy-MM-dd');
-      } else if (filterMonth !== 'all') {
-        const [year, month] = filterMonth.split('-').map(Number);
-        start = format(startOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
-        end = format(endOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
-      } else if (customDate) {
-        start = format(customDate, 'yyyy-MM-dd');
-        end = format(customDate, 'yyyy-MM-dd');
-      } else if (dayRange === 0) {
-        const dates = productions.map(p => p.date).sort();
-        start = dates.length > 0 ? dates[0] : '2000-01-01';
-        end = dates.length > 0 ? dates[dates.length - 1] : format(today, 'yyyy-MM-dd');
-      }
-
-      const { data, error } = await supabase.rpc('get_report_data', {
-        p_company_id: dbCompanyId,
-        p_start_date: start,
-        p_end_date: end,
-        p_shift: filterShift,
-        p_client_id: (filterClient === 'all' || !filterClient) ? null : filterClient,
-        p_article_id: (filterArticle === 'all' || !filterArticle) ? null : filterArticle,
-        p_machine_id: (filterMachine === 'all' || !filterMachine) ? null : filterMachine,
-      } as any);
-
-      if (error) throw error;
-      setReportData(data);
-    } catch (err) {
-      console.error('Error fetching report data:', err);
-    } finally {
-      setIsRpcLoading(false);
-    }
-  }, [dbCompanyId, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, productions]);
-
-  useEffect(() => {
-    fetchReportData();
-  }, [fetchReportData]);
-
-  const kpis = useMemo(() => reportData?.kpis || { total_rolls: 0, total_kg: 0, total_revenue: 0, avg_efficiency: 0 }, [reportData]);
-  const totalRolls = kpis.total_rolls;
-  const totalWeight = kpis.total_kg;
-  const totalRevenue = kpis.total_revenue;
-  const avgEfficiency = kpis.avg_efficiency;
-  
-  const byShift = useMemo(() => {
-    return (reportData?.by_shift || []).map((s: any) => ({
-      ...s,
-      rolos: s.rolls,
-      faturamento: s.revenue,
-      eficiencia: s.efficiency,
-      name: SHIFT_LABELS[s.name as ShiftType] || s.name
-    }));
-  }, [reportData]);
-
-  const byMachine = useMemo(() => (reportData?.by_machine || []).map((m: any) => ({
-    ...m,
-    rolos: m.rolls,
-    faturamento: m.revenue,
-    eficiencia: m.efficiency,
-    targetEfficiency: 80
-  })), [reportData]);
-
-  const byClient = useMemo(() => (reportData?.by_client || []).map((c: any) => ({
-    ...c,
-    rolos: c.rolls,
-    faturamento: c.revenue
-  })), [reportData]);
-
-  const byArticle = useMemo(() => (reportData?.by_article || []).map((a: any) => ({
-    ...a,
-    rolos: a.rolls,
-    faturamento: a.revenue,
-    eficiencia: a.efficiency,
-    targetEfficiency: 80
-  })), [reportData]);
-
-  const byDate = useMemo(() => (reportData?.evolution || []).map((e: any) => ({
-    ...e,
-    rolos: e.rolls,
-    faturamento: e.revenue,
-    eficiencia: e.efficiency,
-    date: format(new Date(e.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
-  })), [reportData]);
-
-  const uniqueDays = useMemo(() => reportData?.evolution?.length || 0, [reportData]);
+  const productions = getProductions();
   const avgTargetEfficiency = 80;
   const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo;
 
@@ -283,7 +183,7 @@ export default function Reports() {
     return `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
   }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
 
-    if ((loading || isRpcLoading) && (!reportData)) {
+    if (loading && productions.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -426,208 +326,295 @@ export default function Reports() {
         </CardContent>
       </Card>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          label="Total de Rolos"
-          value={formatNumber(totalRolls)}
-          subtitle={`Em ${uniqueDays} dias com registro`}
-          icon={<Package className="h-5 w-5 text-primary" />}
-          borderColor="border-l-primary"
-        />
-        <KpiCard
-          label="Total Produzido"
-          value={`${formatNumber(totalWeight, 2)} kg`}
-          subtitle="Peso total produzido"
-          icon={<TrendingUp className="h-5 w-5 text-accent" />}
-          borderColor="border-l-accent"
-        />
-        {canSeeFinancial && <KpiCard
-          label="Valor Total"
-          value={formatCurrency(totalRevenue)}
-          subtitle="Valor total faturado"
-          icon={<DollarSign className="h-5 w-5 text-success" />}
-          borderColor="border-l-success"
-        />}
-        <KpiCard
-          label="Eficiência Média"
-          value={formatPercent(avgEfficiency)}
-          subtitle={`Meta: ${formatPercent(avgTargetEfficiency)}`}
-          icon={<Gauge className="h-5 w-5 text-destructive" />}
-          borderColor="border-l-destructive"
-          extra={
-            avgEfficiency < avgTargetEfficiency ? (
-              <Badge variant="destructive" className="text-[10px] mt-1">Abaixo da meta ({formatPercent(avgTargetEfficiency)})</Badge>
-            ) : (
-              <Badge className="bg-success/10 text-success border-success/20 text-[10px] mt-1">Dentro da meta ({formatPercent(avgTargetEfficiency)})</Badge>
-            )
+      {/* Data Processing & Rendering */}
+      {(() => {
+        const totalRolls = filtered.reduce((sum, p) => sum + p.rolls_produced, 0);
+        const totalWeight = filtered.reduce((sum, p) => sum + p.weight_kg, 0);
+        const totalRevenue = filtered.reduce((sum, p) => sum + p.revenue, 0);
+        const uniqueDaysCount = new Set(filtered.map(p => p.date)).size;
+        const productionsWithRolls = filtered.filter(p => p.rolls_produced > 0);
+        const avgEfficiency = productionsWithRolls.length > 0 
+          ? productionsWithRolls.reduce((sum, p) => sum + p.efficiency, 0) / productionsWithRolls.length 
+          : 0;
+
+        // Groupings
+        const byShift = Object.keys(companyShiftLabels).map(key => {
+          const items = filtered.filter(p => p.shift === key);
+          const itemsWithRolls = items.filter(p => p.rolls_produced > 0);
+          return {
+            name: SHIFT_LABELS[key as ShiftType],
+            rolos: items.reduce((s, p) => s + p.rolls_produced, 0),
+            kg: items.reduce((s, p) => s + p.weight_kg, 0),
+            faturamento: items.reduce((s, p) => s + p.revenue, 0),
+            eficiencia: itemsWithRolls.length > 0 ? itemsWithRolls.reduce((s, p) => s + p.efficiency, 0) / itemsWithRolls.length : 0
+          };
+        });
+
+        const machineMap: Record<string, any> = {};
+        filtered.forEach(p => {
+          const key = p.machine_id || p.machine_name;
+          if (!machineMap[key]) machineMap[key] = { name: p.machine_name, rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
+          machineMap[key].rolos += p.rolls_produced;
+          machineMap[key].kg += p.weight_kg;
+          machineMap[key].faturamento += p.revenue;
+          if (p.rolls_produced > 0) {
+            machineMap[key].eficienciaSum += p.efficiency;
+            machineMap[key].count++;
           }
-        />
-      </div>
+        });
+        const byMachine = Object.values(machineMap).map(m => ({
+          ...m,
+          targetEfficiency: 80,
+          records: m.count,
+          eficiencia: m.count > 0 ? m.eficienciaSum / m.count : 0
+        })).sort((a, b) => b.rolos - a.rolos);
 
-      {/* Analysis Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-6 gap-1 p-1">
-          <TabsTrigger value="turno">Por Turno</TabsTrigger>
-          <TabsTrigger value="maquina">Por Máquina</TabsTrigger>
-          <TabsTrigger value="cliente">Por Cliente</TabsTrigger>
-          <TabsTrigger value="artigo">Por Artigo</TabsTrigger>
-          <TabsTrigger value="evolucao">Evolução</TabsTrigger>
-          <TabsTrigger value="exportar" className="flex items-center gap-1"><Download className="h-3.5 w-3.5" />Exportar</TabsTrigger>
-        </TabsList>
+        const clientMap: Record<string, any> = {};
+        filtered.forEach(p => {
+          const art = articles.find(a => a.id === p.article_id);
+          const clientName = art?.client_name || 'Sem Cliente';
+          if (!clientMap[clientName]) clientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0 };
+          clientMap[clientName].rolos += p.rolls_produced;
+          clientMap[clientName].kg += p.weight_kg;
+          clientMap[clientName].faturamento += p.revenue;
+        });
+        const byClient = Object.values(clientMap).sort((a, b) => b.faturamento - a.faturamento);
 
-        {/* POR TURNO */}
-        <TabsContent value="turno" className="mt-6 space-y-6">
-          {/* Shift summary cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {byShift.map((s, i) => {
-              const shiftColor = s.name === 'Manhã' ? 'hsl(38, 92%, 50%)' : s.name === 'Tarde' ? 'hsl(25, 95%, 53%)' : 'hsl(221, 83%, 53%)';
-              const totalShiftRolls = byShift.reduce((sum, sh) => sum + sh.rolos, 0);
-              const totalShiftRevenue = byShift.reduce((sum, sh) => sum + sh.faturamento, 0);
-              const pctRolls = totalShiftRolls > 0 ? (s.rolos / totalShiftRolls * 100) : 0;
-              const pctRevenue = totalShiftRevenue > 0 ? (s.faturamento / totalShiftRevenue * 100) : 0;
-              return (
-                <Card key={s.name} className="relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: shiftColor }} />
-                  <CardContent className="pt-5 pb-4 pl-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="font-display font-bold text-foreground text-lg">{s.name}</p>
-                      <div className="flex flex-col items-end gap-0.5">
-                        <Badge variant="secondary" className="text-[10px] font-mono">{pctRolls.toFixed(1)}% da produção</Badge>
-                        {canSeeFinancial && <Badge variant="secondary" className="text-[10px] font-mono">{pctRevenue.toFixed(1)}% do faturamento</Badge>}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peças</p>
-                        <p className="text-base font-bold text-foreground">{formatNumber(s.rolos)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peso</p>
-                        <p className="text-base font-bold text-foreground">{formatWeight(s.kg)}</p>
-                      </div>
-                      {canSeeFinancial && (
-                        <div>
-                          <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Faturamento</p>
-                          <p className="text-base font-bold text-success">{formatCurrency(s.faturamento)}</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Eficiência</p>
-                        <p className={cn("text-base font-bold", s.eficiencia >= 80 ? "text-success" : s.eficiencia >= 70 ? "text-warning" : "text-destructive")}>
-                          {formatPercent(s.eficiencia)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+        const articleMap: Record<string, any> = {};
+        filtered.forEach(p => {
+          const art = articles.find(a => a.id === p.article_id);
+          const artName = p.article_name || 'Sem Artigo';
+          if (!articleMap[artName]) articleMap[artName] = { id: p.article_id, name: artName, clientName: art?.client_name || '—', rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
+          articleMap[artName].rolos += p.rolls_produced;
+          articleMap[artName].kg += p.weight_kg;
+          articleMap[artName].faturamento += p.revenue;
+          if (p.rolls_produced > 0) {
+            articleMap[artName].eficienciaSum += p.efficiency;
+            articleMap[artName].count++;
+          }
+        });
+        const byArticle = Object.values(articleMap).map(a => ({
+          ...a,
+          targetEfficiency: 80,
+          records: a.count,
+          eficiencia: a.count > 0 ? a.eficienciaSum / a.count : 0
+        })).sort((a, b) => b.kg - a.kg);
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Bar chart - Rolos & Kg comparison */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  Peças e Peso por Turno
-                </CardTitle>
-                <CardDescription>Comparativo de produção entre turnos</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {byShift.some(s => s.rolos > 0) ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={byShift} barGap={8}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                      <XAxis dataKey="name" fontSize={12} />
-                      <YAxis fontSize={12} />
-                      <Tooltip formatter={(v: number, name: string) => [formatNumber(v, 1), name === 'rolos' ? 'Peças' : 'Kg']} />
-                      <Legend formatter={(value) => value === 'rolos' ? 'Peças' : 'Peso (kg)'} />
-                      {byShift.map((entry) => null)}
-                      <Bar dataKey="rolos" name="Peças" radius={[4, 4, 0, 0]}>
-                        {byShift.map((entry, i) => (
-                          <Cell key={i} fill={SHIFT_CHART_COLORS[entry.name] || CHART_COLORS[i]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
-                )}
-              </CardContent>
-            </Card>
+        const dateMap: Record<string, any> = {};
+        filtered.forEach(p => {
+          if (!dateMap[p.date]) dateMap[p.date] = { date: p.date, rolos: 0, kg: 0, faturamento: 0, eficienciaSum: 0, count: 0 };
+          dateMap[p.date].rolos += p.rolls_produced;
+          dateMap[p.date].kg += p.weight_kg;
+          dateMap[p.date].faturamento += p.revenue;
+          if (p.rolls_produced > 0) {
+            dateMap[p.date].eficienciaSum += p.efficiency;
+            dateMap[p.date].count++;
+          }
+        });
+        const byDate = Object.values(dateMap).map(d => ({
+          ...d,
+          eficiencia: d.count > 0 ? d.eficienciaSum / d.count : 0,
+          date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
+        })).sort((a, b) => a.date.localeCompare(b.date));
 
-            {/* Pie chart - Revenue distribution */}
-            {canSeeFinancial && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    Faturamento por Turno
-                  </CardTitle>
-                  <CardDescription>Distribuição do faturamento</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {byShift.some(s => s.faturamento > 0) ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={byShift.filter(s => s.faturamento > 0)}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={55}
-                          outerRadius={95}
-                          dataKey="faturamento"
-                          label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
-                          labelLine={true}
-                          paddingAngle={3}
-                        >
-                          {byShift.filter(s => s.faturamento > 0).map((entry, i) => (
-                            <Cell key={i} fill={SHIFT_CHART_COLORS[entry.name] || CHART_COLORS[i % CHART_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                      </PieChart>
-                    </ResponsiveContainer>
+        return (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard
+                label="Total de Rolos"
+                value={formatNumber(totalRolls)}
+                subtitle={`Em ${uniqueDaysCount} dias com registro`}
+                icon={<Package className="h-5 w-5 text-primary" />}
+                borderColor="border-l-primary"
+              />
+              <KpiCard
+                label="Total Produzido"
+                value={`${formatNumber(totalWeight, 2)} kg`}
+                subtitle="Peso total produzido"
+                icon={<TrendingUp className="h-5 w-5 text-accent" />}
+                borderColor="border-l-accent"
+              />
+              {canSeeFinancial && <KpiCard
+                label="Valor Total"
+                value={formatCurrency(totalRevenue)}
+                subtitle="Valor total faturado"
+                icon={<DollarSign className="h-5 w-5 text-success" />}
+                borderColor="border-l-success"
+              />}
+              <KpiCard
+                label="Eficiência Média"
+                value={formatPercent(avgEfficiency)}
+                subtitle={`Meta: ${formatPercent(avgTargetEfficiency)}`}
+                icon={<Gauge className="h-5 w-5 text-destructive" />}
+                borderColor="border-l-destructive"
+                extra={
+                  avgEfficiency < avgTargetEfficiency ? (
+                    <Badge variant="destructive" className="text-[10px] mt-1">Abaixo da meta ({formatPercent(avgTargetEfficiency)})</Badge>
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                    <Badge className="bg-success/10 text-success border-success/20 text-[10px] mt-1">Dentro da meta ({formatPercent(avgTargetEfficiency)})</Badge>
+                  )
+                }
+              />
+            </div>
 
-            {/* Efficiency comparison */}
-            <Card className={cn(canSeeFinancial ? "lg:col-span-2" : "")}>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Gauge className="h-4 w-4 text-muted-foreground" />
-                  Eficiência por Turno
-                </CardTitle>
-                <CardDescription>Comparativo de eficiência média</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {byShift.some(s => s.eficiencia > 0) ? (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={byShift} barSize={50}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                      <XAxis dataKey="name" fontSize={12} />
-                      <YAxis domain={[0, 100]} fontSize={12} tickFormatter={(v) => `${v}%`} />
-                      <Tooltip formatter={(v: number) => [`${formatPercent(v)}`, 'Eficiência']} />
-                      <Bar dataKey="eficiencia" name="Eficiência" radius={[4, 4, 0, 0]}>
-                        {byShift.map((entry, i) => (
-                          <Cell key={i} fill={entry.eficiencia >= 80 ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= 70 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+            {/* Analysis Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-6 gap-1 p-1">
+                <TabsTrigger value="turno">Por Turno</TabsTrigger>
+                <TabsTrigger value="maquina">Por Máquina</TabsTrigger>
+                <TabsTrigger value="cliente">Por Cliente</TabsTrigger>
+                <TabsTrigger value="artigo">Por Artigo</TabsTrigger>
+                <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+                <TabsTrigger value="exportar" className="flex items-center gap-1"><Download className="h-3.5 w-3.5" />Exportar</TabsTrigger>
+              </TabsList>
+
+              {/* POR TURNO */}
+              <TabsContent value="turno" className="mt-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {byShift.map((s) => {
+                    const shiftColor = s.name === 'Manhã' ? 'hsl(38, 92%, 50%)' : s.name === 'Tarde' ? 'hsl(25, 95%, 53%)' : 'hsl(221, 83%, 53%)';
+                    const totalShiftRolls = byShift.reduce((sum, sh) => sum + sh.rolos, 0);
+                    const totalShiftRevenue = byShift.reduce((sum, sh) => sum + sh.faturamento, 0);
+                    const pctRolls = totalShiftRolls > 0 ? (s.rolos / totalShiftRolls * 100) : 0;
+                    const pctRevenue = totalShiftRevenue > 0 ? (s.faturamento / totalShiftRevenue * 100) : 0;
+                    return (
+                      <Card key={s.name} className="relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: shiftColor }} />
+                        <CardContent className="pt-5 pb-4 pl-5">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="font-display font-bold text-foreground text-lg">{s.name}</p>
+                            <div className="flex flex-col items-end gap-0.5">
+                              <Badge variant="secondary" className="text-[10px] font-mono">{pctRolls.toFixed(1)}% da produção</Badge>
+                              {canSeeFinancial && <Badge variant="secondary" className="text-[10px] font-mono">{pctRevenue.toFixed(1)}% do faturamento</Badge>}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peças</p>
+                              <p className="text-base font-bold text-foreground">{formatNumber(s.rolos)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peso</p>
+                              <p className="text-base font-bold text-foreground">{formatWeight(s.kg)}</p>
+                            </div>
+                            {canSeeFinancial && (
+                              <div>
+                                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Faturamento</p>
+                                <p className="text-base font-bold text-success">{formatCurrency(s.faturamento)}</p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Eficiência</p>
+                              <p className={cn("text-base font-bold", s.eficiencia >= 80 ? "text-success" : s.eficiencia >= 70 ? "text-warning" : "text-destructive")}>
+                                {formatPercent(s.eficiencia)}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                        Peças e Peso por Turno
+                      </CardTitle>
+                      <CardDescription>Comparativo de produção entre turnos</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {byShift.some(s => s.rolos > 0) ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={byShift} barGap={8}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                            <XAxis dataKey="name" fontSize={12} />
+                            <YAxis fontSize={12} />
+                            <Tooltip formatter={(v: number, name: string) => [formatNumber(v, 1), name === 'rolos' ? 'Peças' : 'Kg']} />
+                            <Legend formatter={(value) => value === 'rolos' ? 'Peças' : 'Peso (kg)'} />
+                            <Bar dataKey="rolos" name="Peças" radius={[4, 4, 0, 0]}>
+                              {byShift.map((entry, i) => (
+                                <Cell key={i} fill={SHIFT_CHART_COLORS[entry.name] || CHART_COLORS[i]} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {canSeeFinancial && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          Faturamento por Turno
+                        </CardTitle>
+                        <CardDescription>Distribuição do faturamento</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {byShift.some(s => s.faturamento > 0) ? (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                              <Pie
+                                data={byShift.filter(s => s.faturamento > 0)}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={95}
+                                dataKey="faturamento"
+                                label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
+                                labelLine={true}
+                                paddingAngle={3}
+                              >
+                                {byShift.filter(s => s.faturamento > 0).map((entry, i) => (
+                                  <Cell key={i} fill={SHIFT_CHART_COLORS[entry.name] || CHART_COLORS[i % CHART_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Card className={cn(canSeeFinancial ? "lg:col-span-2" : "")}>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Gauge className="h-4 w-4 text-muted-foreground" />
+                        Eficiência por Turno
+                      </CardTitle>
+                      <CardDescription>Comparativo de eficiência média</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {byShift.some(s => s.eficiencia > 0) ? (
+                        <ResponsiveContainer width="100%" height={260}>
+                          <BarChart data={byShift} barSize={50}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                            <XAxis dataKey="name" fontSize={12} />
+                            <YAxis domain={[0, 100]} fontSize={12} tickFormatter={(v) => `${v}%`} />
+                            <Tooltip formatter={(v: number) => [`${formatPercent(v)}`, 'Eficiência']} />
+                            <Bar dataKey="eficiencia" name="Eficiência" radius={[4, 4, 0, 0]}>
+                              {byShift.map((entry, i) => (
+                                <Cell key={i} fill={entry.eficiencia >= 80 ? 'hsl(142, 71%, 45%)' : entry.eficiencia >= 70 ? 'hsl(38, 92%, 50%)' : 'hsl(0, 84%, 60%)'} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
 
         {/* POR MÁQUINA */}
         <TabsContent value="maquina" className="mt-6 space-y-6">
@@ -1126,6 +1113,9 @@ export default function Reports() {
           </Card>
         </TabsContent>
       </Tabs>
+    </>
+  );
+})()}
 
       {productions.length === 0 && (
         <div className="text-center py-12">
