@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ import { useState, useEffect, useMemo } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,7 +37,9 @@ export default function ClientsArticles() {
   const allMachineTurns = getArticleMachineTurns();
   const [tab, setTab] = useState('clients');
   const [clientSearch, setClientSearch] = useState('');
-  const [articleSearch, setArticleSearch] = useState('');
+   const [articleSearch, setArticleSearch] = useState('');
+   const [currentPage, setCurrentPage] = useState(1);
+   const pageSize = 18;
 
   // Fetch yarn types for article form
   const { data: yarnTypes = [] } = useQuery({
@@ -185,9 +187,32 @@ export default function ClientsArticles() {
     !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) || (c.contact || '').toLowerCase().includes(clientSearch.toLowerCase())
   );
 
-  const filteredArticles = articles.filter(a =>
-    !articleSearch || a.name.toLowerCase().includes(articleSearch.toLowerCase()) || (a.client_name || '').toLowerCase().includes(articleSearch.toLowerCase()) || (a.observations || '').toLowerCase().includes(articleSearch.toLowerCase())
-  );
+   const filteredArticles = useMemo(() => {
+     return articles.filter(a =>
+       !articleSearch || a.name.toLowerCase().includes(articleSearch.toLowerCase()) || (a.client_name || '').toLowerCase().includes(articleSearch.toLowerCase()) || (a.observations || '').toLowerCase().includes(articleSearch.toLowerCase())
+     );
+   }, [articles, articleSearch]);
+ 
+   const totalPages = Math.ceil(filteredArticles.length / pageSize);
+ 
+   const paginatedArticles = useMemo(() => {
+     const start = (currentPage - 1) * pageSize;
+     return filteredArticles.slice(start, start + pageSize);
+   }, [filteredArticles, currentPage, pageSize]);
+ 
+   const visiblePages = useMemo(() => {
+     const pages = [];
+     const maxVisible = 3;
+     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+     let end = Math.min(totalPages, start + maxVisible - 1);
+     if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+     for (let i = start; i <= end; i++) pages.push(i);
+     return pages;
+   }, [currentPage, totalPages]);
+ 
+   useEffect(() => {
+     setCurrentPage(1);
+   }, [articleSearch]);
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-3 text-muted-foreground">Carregando...</span></div>;
@@ -264,8 +289,8 @@ export default function ClientsArticles() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Pesquisar artigos por nome, cliente ou observações..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="pl-9" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredArticles.map(a => (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+               {paginatedArticles.map(a => (
                 <div key={a.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
                   <div>
                     <p className="font-display font-semibold text-foreground">{a.name}</p>
@@ -293,10 +318,45 @@ export default function ClientsArticles() {
                   </div>
                 </div>
               ))}
-              {filteredArticles.length === 0 && (
+               {paginatedArticles.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-8">Nenhum artigo encontrado</div>
               )}
             </div>
+ 
+             {/* Numerical Pagination Control */}
+             {totalPages > 1 && (
+               <div className="flex flex-wrap items-center justify-center gap-2 pt-6">
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                   disabled={currentPage === 1}
+                 >
+                   Anterior
+                 </Button>
+                 <div className="flex flex-wrap items-center justify-center gap-1">
+                   {visiblePages.map(page => (
+                       <Button
+                         key={page}
+                         variant={currentPage === page ? "default" : "outline"}
+                         size="sm"
+                         className="w-8 h-8 p-0"
+                         onClick={() => setCurrentPage(page)}
+                       >
+                         {page}
+                       </Button>
+                     ))}
+                 </div>
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                   disabled={currentPage === totalPages}
+                 >
+                   Próximo
+                 </Button>
+               </div>
+             )}
           </div>
         </TabsContent>
       </Tabs>
