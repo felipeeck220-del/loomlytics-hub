@@ -701,7 +701,7 @@ export default function ProductionPage() {
 
             {/* Production Rows */}
             <div className="space-y-2">
-              {shiftProductionGroups.map(group => {
+               {paginatedProductionGroups.map(group => {
                 const isExpanded = expandedId === group.key;
                 const isMultiArticle = group.items.length > 1;
                 const firstItem = group.items[0];
@@ -945,9 +945,44 @@ export default function ProductionPage() {
                 );
               })}
 
-              {shiftProductionGroups.length === 0 && (
+               {paginatedProductionGroups.length === 0 && (
                 <div className="text-center text-muted-foreground py-12">Nenhum registro de produção para este turno</div>
               )}
+ 
+               {/* Numerical Pagination Control */}
+               {totalPages > 1 && (
+                 <div className="flex flex-wrap items-center justify-center gap-2 pt-6">
+                   <Button 
+                     variant="outline" 
+                     size="sm" 
+                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                     disabled={currentPage === 1}
+                   >
+                     Anterior
+                   </Button>
+                   <div className="flex flex-wrap items-center justify-center gap-1">
+                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                       <Button
+                         key={page}
+                         variant={currentPage === page ? "default" : "outline"}
+                         size="sm"
+                         className="w-8 h-8 p-0"
+                         onClick={() => setCurrentPage(page)}
+                       >
+                         {page}
+                       </Button>
+                     ))}
+                   </div>
+                   <Button 
+                     variant="outline" 
+                     size="sm" 
+                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                     disabled={currentPage === totalPages}
+                   >
+                     Próximo
+                   </Button>
+                 </div>
+               )}
             </div>
           </TabsContent>
         ))}
