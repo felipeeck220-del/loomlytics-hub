@@ -978,7 +978,7 @@ export default function ProductionPage() {
                      Anterior
                    </Button>
                    <div className="flex flex-wrap items-center justify-center gap-1">
-                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                     {visiblePages.map(page => (
                        <Button
                          key={page}
                          variant={currentPage === page ? "default" : "outline"}
