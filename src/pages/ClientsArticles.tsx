@@ -289,8 +289,8 @@ export default function ClientsArticles() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Pesquisar artigos por nome, cliente ou observações..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} className="pl-9" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredArticles.map(a => (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+               {paginatedArticles.map(a => (
                 <div key={a.id} className="rounded-lg border border-border bg-background p-4 flex flex-col gap-3">
                   <div>
                     <p className="font-display font-semibold text-foreground">{a.name}</p>
@@ -318,10 +318,45 @@ export default function ClientsArticles() {
                   </div>
                 </div>
               ))}
-              {filteredArticles.length === 0 && (
+               {paginatedArticles.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-8">Nenhum artigo encontrado</div>
               )}
             </div>
+ 
+             {/* Numerical Pagination Control */}
+             {totalPages > 1 && (
+               <div className="flex flex-wrap items-center justify-center gap-2 pt-6">
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                   disabled={currentPage === 1}
+                 >
+                   Anterior
+                 </Button>
+                 <div className="flex flex-wrap items-center justify-center gap-1">
+                   {visiblePages.map(page => (
+                       <Button
+                         key={page}
+                         variant={currentPage === page ? "default" : "outline"}
+                         size="sm"
+                         className="w-8 h-8 p-0"
+                         onClick={() => setCurrentPage(page)}
+                       >
+                         {page}
+                       </Button>
+                     ))}
+                 </div>
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                   disabled={currentPage === totalPages}
+                 >
+                   Próximo
+                 </Button>
+               </div>
+             )}
           </div>
         </TabsContent>
       </Tabs>
