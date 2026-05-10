@@ -1,17 +1,27 @@
-Standardize the display of registration metadata ("Registered by") across all modules to follow the pattern: `Registrado por: [Nome] Em: [Data] [Hora]`.
+text
+The goal is to implement numerical pagination (1, 2, 3...) in the production listing within `src/pages/Production.tsx`, limiting the display to 10 records per page, similar to the logic used in the outsourced production module.
+
+### Proposed Changes
+
+#### 1. State and Logic in `Production.tsx`
+- Add `currentPage` state initialized to 1.
+- Define `pageSize = 10`.
+- Implement a `useMemo` for `paginatedProductionGroups` that slices `shiftProductionGroups` based on `currentPage` and `pageSize`.
+- Add a `useEffect` to reset `currentPage` to 1 whenever the `activeShift`, `filterDate`, `filterMachine`, `filterArticle`, or `searchQuery` changes, ensuring users start from the first page when their search criteria change.
+
+#### 2. UI Implementation
+- Replace the direct mapping of `shiftProductionGroups` with `paginatedProductionGroups`.
+- Add a pagination control section below the list, including:
+    - "Anterior" (Previous) button.
+    - Numerical buttons (1, 2, 3...) for each page.
+    - "Próximo" (Next) button.
+- Apply consistent styling using shadcn/ui buttons.
+
+#### 3. Documentation
+- Update `docs/mestre.md` to reflect the implementation of numerical pagination in the production module.
 
 ### Technical Details
-- **Pattern:** `Registrado por: {name}{code ? ' #' + code : ''} Em: {format(date, 'dd/MM/yyyy HH:mm')}`
-- **Files to modify:**
-    - `src/pages/Revision.tsx`: Standardize the "Registrado por" table column.
-    - `src/pages/ResidueSales.tsx`: Update the registration info in the "Data" column of the sales table.
-    - `src/pages/Invoices.tsx`: Update the "Registrado por" column in the invoices table and the detail modal footer.
-    - `src/pages/Production.tsx`: Update the registration info in the production list items and the detail card.
-    - `src/pages/Outsource.tsx`: Standardize the registration metadata in the "Data" column of the productions table.
-    - `docs/auditoria.md`: Update the "Regra de Exibição Obrigatória" section with the new standardized format.
-    - `docs/mestre.md`: Update the change history.
-
-### User Impact
-- Consistency across all system modules regarding who registered a record and when.
-- Inclusion of the "Em:" label with capital "E" as requested.
-- Ensuring date and time are always visible where applicable.
+- **File:** `src/pages/Production.tsx`
+- **Hook:** `useMemo` for slicing data.
+- **State:** `useState` for `currentPage`.
+- **Constraint:** Pagination must be per shift (since the list is inside shift tabs).
