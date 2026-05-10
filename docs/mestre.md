@@ -1,6 +1,6 @@
- - 10/05/2026 15:55 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada, mantendo o cálculo de eficiência no frontend.
+ - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
- *Última atualização: 10/05/2026 15:55 (Brasília)*
+ *Última atualização: 10/05/2026 16:15 (Brasília)*
 # 📋 MESTRE.MD — Documentação Mestre do Projeto MalhaGest
 
 > **⚠️ INSTRUÇÕES OBRIGATÓRIAS PARA A IA (LOVABLE):**
@@ -1550,4 +1550,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
           - **10/05/2026 15:55 (Brasília)** — **RELATÓRIOS — Implementação de RPC para Filtros:** (1) Criadas funções RPC (`get_production_filter_...`) para buscar meses, máquinas, clientes e artigos produzidos diretamente no banco; (2) Refatorado o `Reports.tsx` para usar esses dados nos seletores, otimizando o carregamento inicial em empresas com histórico longo; (3) Mantida a regra de cálculo de eficiência 100% no frontend conforme `rpcproduction.md`.
  
-          *Última atualização: 10/05/2026 15:55 (Brasília)*
+          - **10/05/2026 16:15 (Brasília)** — **PRODUÇÃO — Correção de Travamento nos Filtros:** (1) Identificado travamento causado pela re-criação da função `clearFilters` em cada render, gerando ciclos de atualização; (2) Aplicado `useCallback` para estabilizar a função; (3) Mantida a integridade dos filtros de produção.
+ 
+          *Última atualização: 10/05/2026 16:15 (Brasília)*
