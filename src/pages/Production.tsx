@@ -513,9 +513,12 @@ export default function ProductionPage() {
     return { metaTarget: metaRolls * (targetEff / 100), meta100: metaRolls, metaRolls, targetEfficiency: targetEff };
   };
 
-  const clearFilters = () => {
-    setFilterDate(''); setFilterMachine(''); setFilterArticle(''); setSearchQuery('');
-  };
+   const clearFilters = useCallback(() => {
+     setFilterDate('');
+     setFilterMachine('');
+     setFilterArticle('');
+     setSearchQuery('');
+   }, []);
 
   if (loading) {
     return (
