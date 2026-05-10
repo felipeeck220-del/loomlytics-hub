@@ -1,6 +1,6 @@
- - 09/05/2026 21:40 - Reversão do arquivo docs/rpcreports.md para a versão de planejamento funcional e detalhamento de filtros/exportação, atendendo à solicitação do usuário.
+ - 10/05/2026 15:55 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada, mantendo o cálculo de eficiência no frontend.
  
- *Última atualização: 09/05/2026 21:40*
+ *Última atualização: 10/05/2026 15:55 (Brasília)*
 # 📋 MESTRE.MD — Documentação Mestre do Projeto MalhaGest
 
 > **⚠️ INSTRUÇÕES OBRIGATÓRIAS PARA A IA (LOVABLE):**
@@ -1548,4 +1548,6 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
 
          - **09/05/2026 22:15 (Brasília)** — **RELATÓRIOS — Correção de Visibilidade e Robustez:** (1) Adicionado tratamento de erro (error boundary) e estados nulos para os componentes de Relatórios, garantindo que cards e abas permaneçam visíveis mesmo se a RPC retornar dados vazios ou falhar; (2) Corrigida a detecção de filtros ativos para incluir o seletor "Escolher dia"; (3) Implementada renderização condicional robusta para evitar que a tela de "Sem dados" bloqueie a navegação pelos filtros.
  
-         *Última atualização: 09/05/2026 22:15 (Brasília)*
+          - **10/05/2026 15:55 (Brasília)** — **RELATÓRIOS — Implementação de RPC para Filtros:** (1) Criadas funções RPC (`get_production_filter_...`) para buscar meses, máquinas, clientes e artigos produzidos diretamente no banco; (2) Refatorado o `Reports.tsx` para usar esses dados nos seletores, otimizando o carregamento inicial em empresas com histórico longo; (3) Mantida a regra de cálculo de eficiência 100% no frontend conforme `rpcproduction.md`.
+ 
+          *Última atualização: 10/05/2026 15:55 (Brasília)*

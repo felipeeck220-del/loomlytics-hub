@@ -524,6 +524,30 @@ export function useCompanyData() {
     getArticleMachineTurns, saveArticleMachineTurns,
      getDefectRecords, addDefectRecords, updateDefectRecords, deleteDefectRecords,
      getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
-     saveShiftSettings,
-  };
-}
+      saveShiftSettings,
+     getProductionFilterMonths: useCallback(async () => {
+       if (!companyId) return [];
+       const { data, error } = await supabase.rpc('get_production_filter_months', { p_company_id: companyId });
+       if (error) { console.error('Error fetching production filter months:', error); return []; }
+       return (data as any[]).map(r => r.month_str);
+     }, [companyId]),
+     getProductionFilterMachines: useCallback(async () => {
+       if (!companyId) return [];
+       const { data, error } = await supabase.rpc('get_production_filter_machines', { p_company_id: companyId });
+       if (error) { console.error('Error fetching production filter machines:', error); return []; }
+       return data as { id: string, name: string }[];
+     }, [companyId]),
+     getProductionFilterClients: useCallback(async () => {
+       if (!companyId) return [];
+       const { data, error } = await supabase.rpc('get_production_filter_clients', { p_company_id: companyId });
+       if (error) { console.error('Error fetching production filter clients:', error); return []; }
+       return data as { id: string, name: string }[];
+     }, [companyId]),
+     getProductionFilterArticles: useCallback(async () => {
+       if (!companyId) return [];
+       const { data, error } = await supabase.rpc('get_production_filter_articles', { p_company_id: companyId });
+       if (error) { console.error('Error fetching production filter articles:', error); return []; }
+       return data as { id: string, name: string }[];
+     }, [companyId]),
+   };
+ }
