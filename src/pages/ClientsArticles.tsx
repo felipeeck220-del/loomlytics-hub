@@ -37,7 +37,9 @@ export default function ClientsArticles() {
   const allMachineTurns = getArticleMachineTurns();
   const [tab, setTab] = useState('clients');
   const [clientSearch, setClientSearch] = useState('');
-  const [articleSearch, setArticleSearch] = useState('');
+   const [articleSearch, setArticleSearch] = useState('');
+   const [currentPage, setCurrentPage] = useState(1);
+   const pageSize = 18;
 
   // Fetch yarn types for article form
   const { data: yarnTypes = [] } = useQuery({
@@ -185,9 +187,32 @@ export default function ClientsArticles() {
     !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) || (c.contact || '').toLowerCase().includes(clientSearch.toLowerCase())
   );
 
-  const filteredArticles = articles.filter(a =>
-    !articleSearch || a.name.toLowerCase().includes(articleSearch.toLowerCase()) || (a.client_name || '').toLowerCase().includes(articleSearch.toLowerCase()) || (a.observations || '').toLowerCase().includes(articleSearch.toLowerCase())
-  );
+   const filteredArticles = useMemo(() => {
+     return articles.filter(a =>
+       !articleSearch || a.name.toLowerCase().includes(articleSearch.toLowerCase()) || (a.client_name || '').toLowerCase().includes(articleSearch.toLowerCase()) || (a.observations || '').toLowerCase().includes(articleSearch.toLowerCase())
+     );
+   }, [articles, articleSearch]);
+ 
+   const totalPages = Math.ceil(filteredArticles.length / pageSize);
+ 
+   const paginatedArticles = useMemo(() => {
+     const start = (currentPage - 1) * pageSize;
+     return filteredArticles.slice(start, start + pageSize);
+   }, [filteredArticles, currentPage, pageSize]);
+ 
+   const visiblePages = useMemo(() => {
+     const pages = [];
+     const maxVisible = 3;
+     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+     let end = Math.min(totalPages, start + maxVisible - 1);
+     if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+     for (let i = start; i <= end; i++) pages.push(i);
+     return pages;
+   }, [currentPage, totalPages]);
+ 
+   useEffect(() => {
+     setCurrentPage(1);
+   }, [articleSearch]);
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-3 text-muted-foreground">Carregando...</span></div>;
