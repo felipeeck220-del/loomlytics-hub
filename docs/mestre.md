@@ -1,7 +1,8 @@
+  - 10/05/2026 16:40 - Refinamento da paginação na Produção (Production.tsx): exibição limitada a 3 páginas por vez (janela deslizante) para melhorar a UI em telas menores.
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
- *Última atualização: 10/05/2026 16:35 (Brasília)*
+ *Última atualização: 10/05/2026 16:40 (Brasília)*
 # 📋 MESTRE.MD — Documentação Mestre do Projeto MalhaGest
 
 > **⚠️ INSTRUÇÕES OBRIGATÓRIAS PARA A IA (LOVABLE):**
@@ -1107,6 +1108,7 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 > Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
 
+- **10/05/2026 16:40 (Brasília)** — Ajustada a visualização da paginação na página de Produção para exibir apenas 3 números de página por vez, criando um efeito de "janela deslizante" conforme o usuário navega.
 - **10/05/2026 16:35 (Brasília)** — Implementação de paginação numérica na página de Produção (Production.tsx), limitando a visualização a 10 registros por página (conforme padrão do módulo terceirizado). A paginação é independente por turno e reinicia ao aplicar filtros.
 - **19/04/2026 (Brasília)** — **LIMPEZA DA PASTA /docs:** (1) `DOCUMENTACAO.md` removido (estava desatualizado, conteúdo absorvido por `mestre.md`); (2) `nuvemfiscal.md` movido para `docs/roadmap/` (integração ainda não implementada); (3) Histórico de Alterações consolidado em uma única seção (eliminada duplicação que existia entre as linhas 1071 e 1143); (4) Criado `docs/README.md` como índice de toda a documentação com selo de status (✅ Produção / 🔒 Em breve / 🚧 Em teste / 📋 Planejado) por módulo; (5) Adicionado selo de status no topo de cada arquivo `.md` da pasta `docs/`; (6) Criados docs faltantes: `dashboard.md` (expandido), `reports.md`, `settings.md`, `weavers.md`.
 
