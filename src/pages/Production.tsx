@@ -52,7 +52,9 @@ export default function ProductionPage() {
   const [filterDate, setFilterDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [filterDateInitialized, setFilterDateInitialized] = useState(false);
   const [filterMachine, setFilterMachine] = useState('');
-  const [filterArticle, setFilterArticle] = useState('');
+   const [filterArticle, setFilterArticle] = useState('');
+   const [currentPage, setCurrentPage] = useState(1);
+   const pageSize = 10;
   const [searchQuery, setSearchQuery] = useState('');
 
   const productions = getProductions();
@@ -482,8 +484,19 @@ export default function ProductionPage() {
       );
     }
 
-    return groups;
-  }, [filteredProductions, activeShift, machines, searchQuery]);
+     return groups;
+   }, [filteredProductions, activeShift, machines, searchQuery]);
+ 
+   const totalPages = Math.ceil(shiftProductionGroups.length / pageSize);
+   const paginatedProductionGroups = useMemo(() => {
+     const start = (currentPage - 1) * pageSize;
+     return shiftProductionGroups.slice(start, start + pageSize);
+   }, [shiftProductionGroups, currentPage, pageSize]);
+ 
+   // Reset page when filters or shift change
+   useEffect(() => {
+     setCurrentPage(1);
+   }, [activeShift, filterDate, filterMachine, filterArticle, searchQuery]);
 
   // KPIs for active shift
   const shiftKPIs = useMemo(() => {
