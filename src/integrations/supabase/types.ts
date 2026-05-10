@@ -2180,6 +2180,33 @@ export type Database = {
         }
         Returns: Json
       }
+      get_production_filter_articles: {
+        Args: { p_company_id: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
+      get_production_filter_clients: {
+        Args: { p_company_id: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
+      get_production_filter_machines: {
+        Args: { p_company_id: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
+      get_production_filter_months: {
+        Args: { p_company_id: string }
+        Returns: {
+          month_str: string
+        }[]
+      }
       get_production_machine_stats: {
         Args: {
           p_article_id?: string
