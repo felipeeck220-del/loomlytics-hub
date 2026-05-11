@@ -264,7 +264,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Relatórios</h1>
-          <p className="page-subtitle">Produção · {periodLabel}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType].split(' (')[0]}` : ''}</p>
+           <p className="page-subtitle">Produção · {periodLabel}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType]?.split(' (')[0] || filterShift}` : ''}</p>
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
