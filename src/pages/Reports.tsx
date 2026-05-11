@@ -389,13 +389,13 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       </Card>
 
         {/* Data Processing & Rendering */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-3 text-muted-foreground">Carregando dados...</span>
-          </div>
-        ) : kpis && kpis.total_rolls > 0 ? (
-          <div className="space-y-6">
+         {loading && !kpis ? (
+           <div className="flex items-center justify-center py-20">
+             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+             <span className="ml-3 text-muted-foreground">Carregando dados...</span>
+           </div>
+         ) : kpis ? (
+           <div className={cn("space-y-6", loading && "opacity-50 pointer-events-none")}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
                 label="Total de Rolos"
