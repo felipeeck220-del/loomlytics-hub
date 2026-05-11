@@ -1,4 +1,5 @@
-  - 10/05/2026 16:45 - Implementação de paginação numérica (18 itens por página) na aba de Artigos (ClientsArticles.tsx) com janela de visualização de 3 páginas.
+   - 11/05/2026 09:15 - Criação do arquivo rpcreports.md documentando a lógica de cálculos do módulo de Relatórios para futura migração para RPCs, garantindo que os algoritmos permaneçam idênticos.
+   - 10/05/2026 16:45 - Implementação de paginação numérica (18 itens por página) na aba de Artigos (ClientsArticles.tsx) com janela de visualização de 3 páginas.
   - 10/05/2026 16:40 - Refinamento da paginação na Produção (Production.tsx): exibição limitada a 3 páginas por vez (janela deslizante) para melhorar a UI em telas menores.
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
