@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,10 +23,11 @@ import { SHIFT_LABELS, type ShiftType, type Production, getCompanyShiftLabels } 
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import { usePermissions } from '@/hooks/usePermissions';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area,
-} from 'recharts';
+ import {
+   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+   LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area,
+ } from 'recharts';
+ import * as reportQueries from '@/lib/queries/reportsQueries';
 
 const CHART_COLORS = [
   'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(221, 83%, 53%)',
@@ -39,11 +40,11 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   'Noite': 'hsl(221, 83%, 53%)',
 };
 
-export default function Reports() {
-   const { 
-     getProductions, getMachines, getClients, getArticles, shiftSettings, loading, dbCompanyId,
-     getProductionFilterMonths, getProductionFilterMachines, getProductionFilterClients, getProductionFilterArticles
-   } = useSharedCompanyData();
+ export default function Reports() {
+    const { 
+      getMachines, getClients, getArticles, shiftSettings, dbCompanyId,
+      getProductionFilterMonths, getProductionFilterMachines, getProductionFilterClients, getProductionFilterArticles
+    } = useSharedCompanyData();
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
   const { user } = useAuth();
