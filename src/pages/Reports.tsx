@@ -233,7 +233,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      return 'Todo período';
    }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
-    if (loading && productions.length === 0) {
+     if (loading && !kpis) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
