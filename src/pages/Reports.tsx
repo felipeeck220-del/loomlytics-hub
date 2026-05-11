@@ -801,16 +801,15 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
           )}
         </TabsContent>
 
-        <TabsContent value="evolucao" className="mt-6 space-y-6">
-          {byDate.length > 1 ? (
+         <TabsContent value="evolucao" className="mt-6 space-y-6">
+           {evolutionData.length > 1 ? (
             <>
               {/* Daily KPIs */}
-              {(() => {
-                const bestDay = [...byDate].sort((a, b) => b.rolos - a.rolos)[0];
-                const worstDay = [...byDate].sort((a, b) => a.rolos - b.rolos)[0];
-                const avgRolls = byDate.reduce((s, d) => s + d.rolos, 0) / byDate.length;
-                const avgKg = byDate.reduce((s, d) => s + d.kg, 0) / byDate.length;
-                const avgRevenue = byDate.reduce((s, d) => s + d.faturamento, 0) / byDate.length;
+               {(() => {
+                 const bestDay = [...evolutionData].sort((a, b) => b.rolos - a.rolos)[0];
+                 const avgRolls = evolutionData.reduce((s, d) => s + d.rolos, 0) / evolutionData.length;
+                 const avgRevenue = evolutionData.reduce((s, d) => s + Number(d.faturamento || 0), 0) / evolutionData.length;
+                 const avgWeight = kpis.total_weight / evolutionData.length;
                 return (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <Card>
