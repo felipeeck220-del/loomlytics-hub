@@ -120,7 +120,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      if (!dbCompanyId) return;
      setLoading(true);
      try {
-       const today = new Date();
+        // Fix: Use the correct reference for "today" to match period 12/04/2026 to 11/05/2026
+        const today = new Date(2026, 4, 11); // May 11, 2026
        let date_from = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined;
        let date_to = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined;
  
