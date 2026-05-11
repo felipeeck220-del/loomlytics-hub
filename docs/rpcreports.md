@@ -1,60 +1,64 @@
-# 📊 Relatórios — Estratégia de Filtros e Exportação
+# 📊 RPCREPORTS.MD — Documentação de RPCs para Relatórios (Reports)
 
-Este documento detalha o funcionamento esperado dos filtros e da aba de exportação para o módulo de Relatórios, servindo como guia imutável para a implementação técnica.
+Este documento detalha os cálculos realizados no front-end do módulo de Relatórios (`src/pages/Reports.tsx`). Ao criar RPCs para substituir esses cálculos, **os algoritmos e lógicas devem se manter exatamente os mesmos**, garantindo consistência nos dados.
+
+## 📌 Diretrizes Gerais
+- **NÃO MUDAR NADA:** Os cálculos atuais foram validados e devem ser replicados no SQL (PL/pgSQL).
+- **Contexto Multi-empresa:** Sempre filtrar por `company_id`.
+- **Filtros:** As RPCs devem aceitar os mesmos filtros (Período, Turno, Máquina, Cliente, Artigo).
+
+## 🧮 Lógica de Cálculos por Aba
+
+### 1. KPIs Gerais (Cards Superiores)
+- **Total de Rolos:** Soma simples de `rolls_produced`.
+- **Total Produzido (kg):** Soma simples de `weight_kg`.
+- **Valor Total (Faturamento):** Soma simples de `revenue`.
+- **Eficiência Média:** 
+  - Fórmula: `SUM(efficiency * weight_kg) / SUM(weight_kg)`
+  - *Nota:* Apenas para registros onde `efficiency > 0`. É uma média ponderada pelo peso.
+
+### 2. Por Turno (`byShift`)
+- **Agrupamento:** Agrupar por `shift`.
+- **Métricas por Turno:**
+  - Soma de `rolls_produced`, `weight_kg` e `revenue`.
+  - **Eficiência do Turno:** `SUM(efficiency * weight_kg) / SUM(weight_kg)` (ponderada).
+  - **% da Produção:** `(Soma Rolos do Turno / Total Geral de Rolos) * 100`.
+  - **% do Faturamento:** `(Soma Faturamento do Turno / Total Geral de Faturamento) * 100`.
+
+### 3. Por Máquina (`byMachine`)
+- **Agrupamento:** Agrupar por `machine_id` (ou `machine_name` se ID for nulo).
+- **Métricas por Máquina:**
+  - Soma de `rolls_produced`, `weight_kg` e `revenue`.
+  - **Eficiência da Máquina:** `SUM(efficiency * weight_kg) / SUM(weight_kg)` (ponderada).
+  - **Participação:** `% de rolos` e `% de faturamento` em relação ao total.
+
+### 4. Por Cliente (`byClient`)
+- **Agrupamento:** Agrupar pelo `client_name` associado ao `article_id` (via join com `articles`).
+- **Métricas por Cliente:**
+  - Soma de `rolls_produced`, `weight_kg` e `revenue`.
+  - **Eficiência do Cliente:** `SUM(efficiency * weight_kg) / SUM(weight_kg)` (ponderada).
+  - **Participação:** `%` de rolos, kg e faturamento.
+
+### 5. Por Artigo (`byArticle`)
+- **Agrupamento:** Agrupar por `article_id` (ou `article_name`).
+- **Métricas por Artigo:**
+  - Soma de `rolls_produced`, `weight_kg` e `revenue`.
+  - **Eficiência do Artigo:** `SUM(efficiency * weight_kg) / SUM(weight_kg)` (ponderada).
+  - **Participação:** `%` de kg e faturamento.
+
+### 6. Evolução (Gráfico de Linha/Área)
+- **Agrupamento:** Agrupar por `date`.
+- **Métricas por Dia:**
+  - Soma de `rolls_produced` e `revenue`.
+  - Ordenação ascendente por data.
+
+## 🛠️ Sugestão de RPCs a serem criadas
+1. `get_report_kpis`: Retorna os 4 valores principais.
+2. `get_report_by_shift`: Retorna lista para a aba Turno.
+3. `get_report_by_machine`: Retorna lista para a aba Máquina.
+4. `get_report_by_client`: Retorna lista para a aba Cliente.
+5. `get_report_by_article`: Retorna lista para a aba Artigo.
+6. `get_report_evolution`: Retorna dados temporais.
 
 ---
-
-## 🔍 Detalhamento dos Filtros (100% Detalhado)
-
-Para garantir a consistência dos dados, os filtros devem operar exatamente sob as seguintes regras:
-
-### 1. Filtros de Período
-| Filtro | Comportamento Esperado |
-|--------|-----------------------|
-| **7 Dias** | Filtra produções dos últimos 7 dias corridos, incluindo hoje. |
-| **15 Dias** | Filtra produções dos últimos 15 dias corridos, incluindo hoje. |
-| **30 Dias** | Filtra produções dos últimos 30 dias corridos, incluindo hoje. |
-| **Todo período** | Remove as restrições de data, exibindo desde o primeiro registro até o último. |
-| **Escolher dia** | Filtra exclusivamente o dia selecionado no calendário. |
-| **Mês** | Seleciona um mês específico. O intervalo deve ser do dia 1 ao último dia do mês selecionado. |
-| **De / Até** | Permite definir um intervalo customizado. Se "De" for preenchido sem "Até", filtra de "De" até hoje. |
-
-### 2. Filtros de Seleção (Combos)
-- **Turno:** Filtra por Manhã, Tarde ou Noite. Se "Todos" for selecionado, agrupa os três.
-- **Máquina:** Filtra os dados apenas da máquina selecionada. Deve listar todas as máquinas ativas e inativas da empresa.
-- **Cliente:** Filtra a produção vinculada aos artigos daquele cliente específico.
-- **Artigo:** Filtra a performance de um artigo específico em todas as máquinas onde ele rodou.
-
----
-
-## 📤 Aba Exportar (Modo e Formato)
-
-A funcionalidade de exportação deve seguir rigorosamente as definições abaixo:
-
-### 1. Configurações de Exportação
-- **Modo:**
-  - **Admin:** Exportação completa, incluindo valores financeiros (faturamento, valor por kg, etc.).
-  - **Equipe:** Exportação operacional, ocultando todos os dados de valores e faturamento, focando apenas em Kg, Peças e Eficiência.
-- **Formato:**
-  - **PDF:** Relatório estilizado, com cabeçalho da empresa, logotipo e gráficos inclusos.
-  - **CSV:** Planilha bruta para manipulação de dados em Excel ou softwares similares.
-
-### 2. Tipos de Exportação
-
-#### **Exportação Geral**
-- **Relatório Completo:** Gera um documento consolidando todas as abas (Turno, Máquina, Cliente, Artigo) em um único PDF ou CSV.
-
-#### **Exportação Específica**
-- **Por Artigo:** Detalhamento técnico por malha (Rolos, Kg, Valor).
-- **Por Máquina:** Performance individual de cada teador (Eficiência, tempo parado, produção).
-- **Por Turno:** Análise comparativa de produtividade entre Manhã, Tarde e Noite.
-- **Por Cliente:** Consolidado de tudo que foi produzido para um cliente específico no período.
-
----
-
-## 📈 Gráficos na Exportação
-- Deve haver um switch **"Incluir gráficos"**. Se ativado, o PDF deve renderizar os gráficos de tendência e distribuição idênticos aos visualizados na tela.
-
----
-
-*Documento de referência para implementação de relatórios — Não alterar sem aprovação.*
+*Última atualização: 11/05/2026 09:15 (Brasília)*
