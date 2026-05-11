@@ -821,7 +821,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                     <Card>
                       <CardContent className="pt-4 pb-3">
                         <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Média Diária Kg</p>
-                        <p className="text-2xl font-bold text-foreground">{formatWeight(avgKg)}</p>
+                         <p className="text-2xl font-bold text-foreground">{formatWeight(avgWeight)}</p>
                       </CardContent>
                     </Card>
                     {canSeeFinancial && (
@@ -853,8 +853,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                   <CardDescription>Peças e peso ao longo do período</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={byDate}>
+                   <ResponsiveContainer width="100%" height={300}>
+                     <AreaChart data={evolutionData}>
                       <defs>
                         <linearGradient id="evoGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0.2} />
@@ -883,8 +883,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                   <CardDescription>Eficiência média diária ao longo do período</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <LineChart data={byDate}>
+                   <ResponsiveContainer width="100%" height={280}>
+                     <LineChart data={evolutionData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                       <XAxis dataKey="date" fontSize={11} />
                       <YAxis domain={[0, 100]} fontSize={12} tickFormatter={(v) => `${v}%`} />
@@ -906,8 +906,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                     <CardDescription>Faturamento diário ao longo do período</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={280}>
-                      <AreaChart data={byDate}>
+                     <ResponsiveContainer width="100%" height={280}>
+                       <AreaChart data={evolutionData}>
                         <defs>
                           <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.2} />
@@ -935,8 +935,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                   <CardDescription>Peças produzidas por dia</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={byDate}>
+                   <ResponsiveContainer width="100%" height={280}>
+                     <BarChart data={evolutionData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                       <XAxis dataKey="date" fontSize={11} />
                       <YAxis fontSize={12} />
