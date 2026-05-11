@@ -1168,7 +1168,10 @@ function ExportButton({ label, description, onClick }: {
  ) {
   const isAdmin = mode === 'admin';
 
-  const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+   const fmtN = (v: number | undefined | null, d = 0) => {
+     if (v === undefined || v === null || isNaN(v as number)) return '0';
+     return v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+   };
   const fmtK = (v: number) => fmtN(v, 2);
   const fmtR = (v: number) => `R$ ${fmtN(v, 2)}`;
   const fmtE = (v: number) => `${fmtN(v, 1)}%`;
