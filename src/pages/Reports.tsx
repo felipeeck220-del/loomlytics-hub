@@ -393,7 +393,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
               <KpiCard
                 label="Total de Rolos"
                 value={formatNumber(kpis.total_rolls)}
-                subtitle="Total de peças"
+                subtitle={`Em ${kpis.active_days || 0} dias com registro`}
                 icon={<Package className="h-5 w-5 text-primary" />}
                 borderColor="border-l-primary"
               />
