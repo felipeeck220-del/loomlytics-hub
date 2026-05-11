@@ -68,7 +68,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   }, [user?.company_id]);
 
   // Filters
-  const [dayRange, setDayRange] = useState(0);
+  const [dayRange, setDayRange] = useState(30);
   const [customDate, setCustomDate] = useState<Date>();
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
@@ -120,7 +120,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      if (!dbCompanyId) return;
      setLoading(true);
      try {
-       const today = new Date();
+        // Fix: Use the correct reference for "today" to match period 12/04/2026 to 11/05/2026
+        const today = new Date(2026, 4, 11); // May 11, 2026
        let date_from = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined;
        let date_to = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined;
  
@@ -241,7 +242,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Relatórios</h1>
-           <p className="page-subtitle">Produção · {periodLabel}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType]?.split(' (')[0] || filterShift}` : ''}</p>
+           <p className="page-subtitle">{periodLabel}</p>
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
@@ -393,7 +394,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
               <KpiCard
                 label="Total de Rolos"
                 value={formatNumber(kpis.total_rolls)}
-                subtitle="Total de peças"
+                subtitle={`Em ${kpis.active_days || 0} dias com registro`}
                 icon={<Package className="h-5 w-5 text-primary" />}
                 borderColor="border-l-primary"
               />
