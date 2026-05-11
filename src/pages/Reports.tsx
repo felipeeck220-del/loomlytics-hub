@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,10 +23,11 @@ import { SHIFT_LABELS, type ShiftType, type Production, getCompanyShiftLabels } 
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import { usePermissions } from '@/hooks/usePermissions';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area,
-} from 'recharts';
+ import {
+   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+   LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area,
+ } from 'recharts';
+ import * as reportQueries from '@/lib/queries/reportsQueries';
 
 const CHART_COLORS = [
   'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(221, 83%, 53%)',
@@ -39,11 +40,11 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   'Noite': 'hsl(221, 83%, 53%)',
 };
 
-export default function Reports() {
-   const { 
-     getProductions, getMachines, getClients, getArticles, shiftSettings, loading, dbCompanyId,
-     getProductionFilterMonths, getProductionFilterMachines, getProductionFilterClients, getProductionFilterArticles
-   } = useSharedCompanyData();
+ export default function Reports() {
+    const { 
+      getMachines, getClients, getArticles, shiftSettings, dbCompanyId,
+      getProductionFilterMonths, getProductionFilterMachines, getProductionFilterClients, getProductionFilterArticles
+    } = useSharedCompanyData();
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
   const { user } = useAuth();
@@ -88,10 +89,17 @@ export default function Reports() {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  const productions = getProductions();
-  const avgTargetEfficiency = 80;
+   const avgTargetEfficiency = 80;
+   const [loading, setLoading] = useState(true);
+   const [kpis, setKpis] = useState<any>(null);
+   const [byShift, setByShift] = useState<any[]>([]);
+   const [byMachine, setByMachine] = useState<any[]>([]);
+   const [byClient, setByClient] = useState<any[]>([]);
+   const [byArticle, setByArticle] = useState<any[]>([]);
+   const [evolutionData, setEvolutionData] = useState<any[]>([]);
+ 
    const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
-
+ 
    const [availableMonths, setAvailableMonths] = useState<string[]>([]);
    const [availableMachines, setAvailableMachines] = useState<{id: string, name: string}[]>([]);
    const [availableClients, setAvailableClients] = useState<{id: string, name: string}[]>([]);
@@ -108,43 +116,92 @@ export default function Reports() {
      getProductionFilterArticles().then(setAvailableArticles);
    }, [dbCompanyId]);
 
-  // Maintain filtered for export compatibility (though we should ideally optimize export too)
-  const filtered = useMemo(() => {
-    let data = [...productions];
-    const today = new Date();
-    const currentFilterDate = customDate ? format(customDate, 'yyyy-MM-dd') : null;
-    const currentFilterDateFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null;
-    const currentFilterDateTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : null;
-
-    if (currentFilterDateFrom || currentFilterDateTo) {
-      if (currentFilterDateFrom) data = data.filter(p => p.date >= currentFilterDateFrom);
-      if (currentFilterDateTo) data = data.filter(p => p.date <= currentFilterDateTo);
-    } else if (filterMonth !== 'all') {
-      data = data.filter(p => p.date.startsWith(filterMonth));
-    } else if (currentFilterDate) {
-      data = data.filter(p => p.date === currentFilterDate);
-    } else if (dayRange > 0) {
-      const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-      const end = format(today, 'yyyy-MM-dd');
-      data = data.filter(p => p.date >= start && p.date <= end);
-    }
-
-    if (filterShift !== 'all') data = data.filter(p => p.shift === filterShift);
-    if (filterClient !== 'all') {
-      const selectedClient = clients.find(c => c.id === filterClient);
-      const clientArticles = articles.filter(a => 
-        a.client_id === filterClient || 
-        (selectedClient && a.client_name === selectedClient.name)
-      ).map(a => a.id);
-      data = data.filter(p => clientArticles.includes(p.article_id));
-    }
-    if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
-    if (filterMachine !== 'all') {
-      const selectedMachine = machines.find(m => m.id === filterMachine);
-      data = data.filter(p => p.machine_id === filterMachine || (!p.machine_id && selectedMachine && p.machine_name === selectedMachine.name));
-    }
-    return data;
-  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles, machines]);
+   const fetchReportData = useCallback(async () => {
+     if (!dbCompanyId) return;
+     setLoading(true);
+     try {
+       const today = new Date();
+       let date_from = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined;
+       let date_to = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined;
+ 
+       if (!date_from && !date_to) {
+         if (filterMonth !== 'all') {
+           const [year, month] = filterMonth.split('-').map(Number);
+           date_from = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+           date_to = format(new Date(year, month, 0), 'yyyy-MM-dd');
+         } else if (customDate) {
+           date_from = format(customDate, 'yyyy-MM-dd');
+           date_to = date_from;
+         } else if (dayRange > 0) {
+           date_from = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+           date_to = format(today, 'yyyy-MM-dd');
+         }
+       }
+ 
+       const filter: reportQueries.ReportFilter = {
+         company_id: dbCompanyId,
+         date_from,
+         date_to,
+         shift: filterShift !== 'all' ? filterShift : undefined,
+         machine_id: filterMachine !== 'all' ? filterMachine : undefined,
+         client_id: filterClient !== 'all' ? filterClient : undefined,
+         article_id: filterArticle !== 'all' ? filterArticle : undefined,
+       };
+ 
+       const [kpisRes, shiftRes, machineRes, clientRes, articleRes, evolutionRes] = await Promise.all([
+         reportQueries.getReportKpis(filter),
+         reportQueries.getReportByShift({ ...filter }),
+         reportQueries.getReportByMachine(filter),
+         reportQueries.getReportByClient(filter),
+         reportQueries.getReportByArticle(filter),
+         reportQueries.getReportEvolution(filter),
+       ]);
+ 
+       const byDateFormatted = evolutionRes.map((d: any) => ({
+         ...d,
+         date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+       }));
+ 
+       setKpis(kpisRes);
+       setByShift(shiftRes.map((s: any) => ({
+         ...s,
+         name: companyShiftLabels[s.shift as ShiftType] || s.shift,
+         pct_rolls: kpisRes.total_rolls > 0 ? (s.rolos / kpisRes.total_rolls) * 100 : 0,
+         pct_revenue: kpisRes.total_revenue > 0 ? (s.faturamento / kpisRes.total_revenue) * 100 : 0,
+       })).sort((a: any, b: any) => {
+         const order: Record<string, number> = { 'manha': 1, 'tarde': 2, 'noite': 3 };
+         return (order[a.shift] || 99) - (order[b.shift] || 99);
+       }));
+       setByMachine(machineRes.map((m: any) => ({
+         ...m,
+         name: m.machine_name,
+         pct_rolls: kpisRes.total_rolls > 0 ? (m.rolos / kpisRes.total_rolls) * 100 : 0,
+         pct_revenue: kpisRes.total_revenue > 0 ? (m.faturamento / kpisRes.total_revenue) * 100 : 0,
+       })));
+       setByClient(clientRes.map((c: any) => ({
+         ...c,
+         name: c.client_name,
+         pct_rolls: kpisRes.total_rolls > 0 ? (c.rolos / kpisRes.total_rolls) * 100 : 0,
+         pct_kg: kpisRes.total_weight > 0 ? (c.kg / kpisRes.total_weight) * 100 : 0,
+         pct_revenue: kpisRes.total_revenue > 0 ? (c.faturamento / kpisRes.total_revenue) * 100 : 0,
+       })));
+       setByArticle(articleRes.map((a: any) => ({
+         ...a,
+         name: a.article_name,
+         pct_kg: kpisRes.total_weight > 0 ? (a.kg / kpisRes.total_weight) * 100 : 0,
+         pct_revenue: kpisRes.total_revenue > 0 ? (a.faturamento / kpisRes.total_revenue) * 100 : 0,
+       })));
+       setEvolutionData(byDateFormatted);
+     } catch (err) {
+       console.error('Error fetching report data:', err);
+     } finally {
+       setLoading(false);
+     }
+   }, [dbCompanyId, dateFrom, dateTo, filterMonth, customDate, dayRange, filterShift, filterMachine, filterClient, filterArticle, companyShiftLabels]);
+ 
+   useEffect(() => {
+     fetchReportData();
+   }, [fetchReportData]);
   const clearFilters = () => {
      setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
@@ -157,44 +214,26 @@ export default function Reports() {
     setFilterMachine('all');
   };
 
-  const periodLabel = useMemo(() => {
-    const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
-    const today = new Date();
-
-     if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-       const dates = productions.map(p => p.date).sort();
-       if (dates.length > 0) {
-         return `${format(toDisplayDate(dates[0]), 'dd/MM/yyyy')} a ${format(toDisplayDate(dates[dates.length - 1]), 'dd/MM/yyyy')}`;
-       }
-       return 'Todo período';
+   const periodLabel = useMemo(() => {
+     const today = new Date();
+     if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
+     if (dateFrom) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
+     if (dateTo) return `Até ${format(dateTo, 'dd/MM/yyyy')}`;
+     if (customDate) return format(customDate, 'dd/MM/yyyy');
+     if (filterMonth !== 'all') {
+       const [year, month] = filterMonth.split('-').map(Number);
+       const startDate = new Date(year, month - 1, 1);
+       const endDate = new Date(year, month, 0);
+       return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
      }
+     if (dayRange > 0) {
+       const startDate = subDays(today, dayRange - 1);
+       return `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
+     }
+     return 'Todo período';
+   }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
-    if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
-    if (dateFrom) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
-
-    if (dateTo) {
-      const dates = filtered.map(p => p.date).sort();
-      const startDate = dates.length > 0 ? toDisplayDate(dates[0]) : dateTo;
-      return `${format(startDate, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
-    }
-
-    if (customDate) {
-      const formattedDate = format(customDate, 'dd/MM/yyyy');
-      return `${formattedDate} a ${formattedDate}`;
-    }
-
-    if (filterMonth !== 'all') {
-      const [year, month] = filterMonth.split('-').map(Number);
-      const startDate = new Date(year, month - 1, 1, 12);
-      const endDate = new Date(year, month, 0, 12);
-      return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
-    }
-
-    const startDate = subDays(today, dayRange - 1);
-    return `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
-  }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
-
-    if (loading && productions.length === 0) {
+     if (loading && !kpis) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -209,7 +248,7 @@ export default function Reports() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Relatórios</h1>
-          <p className="page-subtitle">Produção · {periodLabel}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType].split(' (')[0]}` : ''}</p>
+           <p className="page-subtitle">Produção · {periodLabel}{filterShift !== 'all' ? ` · Turno: ${companyShiftLabels[filterShift as ShiftType]?.split(' (')[0] || filterShift}` : ''}</p>
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
@@ -349,153 +388,44 @@ export default function Reports() {
         </CardContent>
       </Card>
 
-       {/* Data Processing & Rendering */}
-       {productions.length > 0 ? (() => {
-          const totalRolls = filtered.reduce((acc, p) => acc + p.rolls_produced, 0);
-          const totalWeight = filtered.reduce((acc, p) => acc + p.weight_kg, 0);
-          const totalRevenue = filtered.reduce((acc, p) => acc + p.revenue, 0);
-          const prodWithEff = filtered.filter(p => p.efficiency > 0);
-          const avgEfficiency = prodWithEff.length > 0
-            ? prodWithEff.reduce((acc, p) => acc + (p.efficiency * p.weight_kg), 0) / prodWithEff.reduce((acc, p) => acc + p.weight_kg, 0)
-            : 0;
-          const uniqueDaysCount = new Set(filtered.map(p => p.date)).size;
- 
-         const byDateMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           if (!byDateMap[p.date]) byDateMap[p.date] = { date: p.date, rolos: 0, faturamento: 0 };
-           byDateMap[p.date].rolos += p.rolls_produced;
-           byDateMap[p.date].faturamento += p.revenue;
-         });
-         const byDate = Object.values(byDateMap).sort((a, b) => a.date.localeCompare(b.date)).map(d => ({
-           ...d,
-           date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
-         }));
- 
-         const byShiftMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           if (!byShiftMap[p.shift]) byShiftMap[p.shift] = { name: p.shift, rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, efficiencyWeight: 0 };
-           byShiftMap[p.shift].rolos += p.rolls_produced;
-           byShiftMap[p.shift].kg += p.weight_kg;
-           byShiftMap[p.shift].faturamento += p.revenue;
-           if (p.efficiency > 0) {
-             byShiftMap[p.shift].efficiencySum += (p.efficiency * p.weight_kg);
-             byShiftMap[p.shift].efficiencyWeight += p.weight_kg;
-           }
-         });
-         const byShift = Object.values(byShiftMap).map(s => ({
-           ...s,
-           name: companyShiftLabels[s.name as ShiftType] || s.name,
-           eficiencia: s.efficiencyWeight > 0 ? s.efficiencySum / s.efficiencyWeight : 0,
-           pct_rolls: totalRolls > 0 ? (s.rolos / totalRolls) * 100 : 0,
-           pct_revenue: totalRevenue > 0 ? (s.faturamento / totalRevenue) * 100 : 0
-         })).sort((a, b) => {
-           const order: Record<string, number> = { 'manha': 1, 'tarde': 2, 'noite': 3 };
-           const nameA = Object.keys(companyShiftLabels).find(key => companyShiftLabels[key as ShiftType] === a.name) || a.name;
-           const nameB = Object.keys(companyShiftLabels).find(key => companyShiftLabels[key as ShiftType] === b.name) || b.name;
-           return (order[nameA] || 99) - (order[nameB] || 99);
-         });
- 
-         const byMachineMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           const key = p.machine_id || p.machine_name;
-           if (!byMachineMap[key]) byMachineMap[key] = { name: p.machine_name, rolos: 0, kg: 0, faturamento: 0, records: 0, efficiencySum: 0, efficiencyWeight: 0 };
-           byMachineMap[key].rolos += p.rolls_produced;
-           byMachineMap[key].kg += p.weight_kg;
-           byMachineMap[key].faturamento += p.revenue;
-           byMachineMap[key].records += 1;
-           if (p.efficiency > 0) {
-             byMachineMap[key].efficiencySum += (p.efficiency * p.weight_kg);
-             byMachineMap[key].efficiencyWeight += p.weight_kg;
-           }
-         });
-         const byMachine = Object.values(byMachineMap).map(m => ({
-           ...m,
-           eficiencia: m.efficiencyWeight > 0 ? m.efficiencySum / m.efficiencyWeight : 0,
-           pct_rolls: totalRolls > 0 ? (m.rolos / totalRolls) * 100 : 0,
-           pct_revenue: totalRevenue > 0 ? (m.faturamento / totalRevenue) * 100 : 0
-         }));
- 
-         const byClientMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           const art = articles.find(a => a.id === p.article_id || a.name === p.article_name);
-           const clientName = art?.client_name || 'Sem Cliente';
-           if (!byClientMap[clientName]) byClientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, efficiencyWeight: 0 };
-           byClientMap[clientName].rolos += p.rolls_produced;
-           byClientMap[clientName].kg += p.weight_kg;
-           byClientMap[clientName].faturamento += p.revenue;
-           if (p.efficiency > 0) {
-             byClientMap[clientName].efficiencySum += (p.efficiency * p.weight_kg);
-             byClientMap[clientName].efficiencyWeight += p.weight_kg;
-           }
-         });
-         const byClient = Object.values(byClientMap).map(c => ({
-           ...c,
-           eficiencia: c.efficiencyWeight > 0 ? c.efficiencySum / c.efficiencyWeight : 0,
-           pct_rolls: totalRolls > 0 ? (c.rolos / totalRolls) * 100 : 0,
-           pct_kg: totalWeight > 0 ? (c.kg / totalWeight) * 100 : 0,
-           pct_revenue: totalRevenue > 0 ? (c.faturamento / totalRevenue) * 100 : 0
-         }));
- 
-         const byArticleMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           const key = p.article_id || p.article_name;
-           if (!byArticleMap[key]) {
-             const art = articles.find(a => a.id === p.article_id || a.name === p.article_name);
-             byArticleMap[key] = { name: p.article_name, clientName: art?.client_name || 'Sem Cliente', rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, efficiencyWeight: 0 };
-           }
-           byArticleMap[key].rolos += p.rolls_produced;
-           byArticleMap[key].kg += p.weight_kg;
-           byArticleMap[key].faturamento += p.revenue;
-           if (p.efficiency > 0) {
-             byArticleMap[key].efficiencySum += (p.efficiency * p.weight_kg);
-             byArticleMap[key].efficiencyWeight += p.weight_kg;
-           }
-         });
-         const byArticle = Object.values(byArticleMap).map(a => ({
-           ...a,
-           eficiencia: a.efficiencyWeight > 0 ? a.efficiencySum / a.efficiencyWeight : 0,
-           pct_kg: totalWeight > 0 ? (a.kg / totalWeight) * 100 : 0,
-           pct_revenue: totalRevenue > 0 ? (a.faturamento / totalRevenue) * 100 : 0
-         }));
- 
-         if (filtered.length === 0) return (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhum dado encontrado para o período e filtros selecionados.</p>
-            </div>
-          );
-
-         return (
-           <div className="space-y-6">
+        {/* Data Processing & Rendering */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Carregando dados...</span>
+          </div>
+        ) : kpis && kpis.total_rolls > 0 ? (
+          <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
                 label="Total de Rolos"
-                value={formatNumber(totalRolls)}
-                subtitle={`Em ${uniqueDaysCount} dias com registro`}
+                value={formatNumber(kpis.total_rolls)}
+                subtitle="Total de peças"
                 icon={<Package className="h-5 w-5 text-primary" />}
                 borderColor="border-l-primary"
               />
               <KpiCard
                 label="Total Produzido"
-                value={`${formatNumber(totalWeight, 2)} kg`}
+                value={`${formatNumber(kpis.total_weight, 2)} kg`}
                 subtitle="Peso total produzido"
                 icon={<TrendingUp className="h-5 w-5 text-accent" />}
                 borderColor="border-l-accent"
               />
               {canSeeFinancial && <KpiCard
                 label="Valor Total"
-                value={formatCurrency(totalRevenue)}
+                value={formatCurrency(kpis.total_revenue)}
                 subtitle="Valor total faturado"
                 icon={<DollarSign className="h-5 w-5 text-success" />}
                 borderColor="border-l-success"
               />}
               <KpiCard
                 label="Eficiência Média"
-                value={formatPercent(avgEfficiency)}
+                value={formatPercent(kpis.avg_efficiency)}
                 subtitle={`Meta: ${formatPercent(avgTargetEfficiency)}`}
                 icon={<Gauge className="h-5 w-5 text-destructive" />}
                 borderColor="border-l-destructive"
                 extra={
-                  avgEfficiency < avgTargetEfficiency ? (
+                  kpis.avg_efficiency < avgTargetEfficiency ? (
                     <Badge variant="destructive" className="text-[10px] mt-1">Abaixo da meta ({formatPercent(avgTargetEfficiency)})</Badge>
                   ) : (
                     <Badge className="bg-success/10 text-success border-success/20 text-[10px] mt-1">Dentro da meta ({formatPercent(avgTargetEfficiency)})</Badge>
@@ -871,16 +801,15 @@ export default function Reports() {
           )}
         </TabsContent>
 
-        <TabsContent value="evolucao" className="mt-6 space-y-6">
-          {byDate.length > 1 ? (
+         <TabsContent value="evolucao" className="mt-6 space-y-6">
+           {evolutionData.length > 1 ? (
             <>
               {/* Daily KPIs */}
-              {(() => {
-                const bestDay = [...byDate].sort((a, b) => b.rolos - a.rolos)[0];
-                const worstDay = [...byDate].sort((a, b) => a.rolos - b.rolos)[0];
-                const avgRolls = byDate.reduce((s, d) => s + d.rolos, 0) / byDate.length;
-                const avgKg = byDate.reduce((s, d) => s + d.kg, 0) / byDate.length;
-                const avgRevenue = byDate.reduce((s, d) => s + d.faturamento, 0) / byDate.length;
+               {(() => {
+                 const bestDay = [...evolutionData].sort((a, b) => b.rolos - a.rolos)[0];
+                 const avgRolls = evolutionData.reduce((s, d) => s + d.rolos, 0) / evolutionData.length;
+                 const avgRevenue = evolutionData.reduce((s, d) => s + Number(d.faturamento || 0), 0) / evolutionData.length;
+                 const avgWeight = kpis.total_weight / evolutionData.length;
                 return (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <Card>
@@ -892,7 +821,7 @@ export default function Reports() {
                     <Card>
                       <CardContent className="pt-4 pb-3">
                         <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Média Diária Kg</p>
-                        <p className="text-2xl font-bold text-foreground">{formatWeight(avgKg)}</p>
+                         <p className="text-2xl font-bold text-foreground">{formatWeight(avgWeight)}</p>
                       </CardContent>
                     </Card>
                     {canSeeFinancial && (
@@ -924,8 +853,8 @@ export default function Reports() {
                   <CardDescription>Peças e peso ao longo do período</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={byDate}>
+                   <ResponsiveContainer width="100%" height={300}>
+                     <AreaChart data={evolutionData}>
                       <defs>
                         <linearGradient id="evoGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0.2} />
@@ -954,8 +883,8 @@ export default function Reports() {
                   <CardDescription>Eficiência média diária ao longo do período</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <LineChart data={byDate}>
+                   <ResponsiveContainer width="100%" height={280}>
+                     <LineChart data={evolutionData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                       <XAxis dataKey="date" fontSize={11} />
                       <YAxis domain={[0, 100]} fontSize={12} tickFormatter={(v) => `${v}%`} />
@@ -977,8 +906,8 @@ export default function Reports() {
                     <CardDescription>Faturamento diário ao longo do período</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={280}>
-                      <AreaChart data={byDate}>
+                     <ResponsiveContainer width="100%" height={280}>
+                       <AreaChart data={evolutionData}>
                         <defs>
                           <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.2} />
@@ -1006,8 +935,8 @@ export default function Reports() {
                   <CardDescription>Peças produzidas por dia</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={byDate}>
+                   <ResponsiveContainer width="100%" height={280}>
+                     <BarChart data={evolutionData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                       <XAxis dataKey="date" fontSize={11} />
                       <YAxis fontSize={12} />
@@ -1028,130 +957,129 @@ export default function Reports() {
         </TabsContent>
 
         {/* EXPORTAR RELATÓRIOS */}
-        <TabsContent value="exportar" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Download className="h-4 w-4 text-muted-foreground" />
-                Exportar Relatórios
-              </CardTitle>
-              <CardDescription>Exporte relatórios detalhados em PDF com base nos filtros aplicados</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Export toggles */}
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="flex items-center gap-3">
-                  <Label className="text-sm font-medium">Modo:</Label>
-                  <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                    <Button
-                      size="sm"
-                      variant={exportMode === 'admin' ? 'default' : 'ghost'}
-                      className="h-7 text-xs"
-                      onClick={() => setExportMode('admin')}
-                    >
-                      Admin
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={exportMode === 'employee' ? 'default' : 'ghost'}
-                      className="h-7 text-xs"
-                      onClick={() => setExportMode('employee')}
-                    >
-                      Equipe
-                    </Button>
-                  </div>
-                </div>
+              {/* EXPORTAR RELATÓRIOS */}
+              <TabsContent value="exportar" className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Download className="h-4 w-4 text-muted-foreground" />
+                      Exportar Relatórios
+                    </CardTitle>
+                    <CardDescription>Exporte relatórios detalhados em PDF com base nos filtros aplicados</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Export toggles */}
+                    <div className="flex flex-wrap items-center gap-6">
+                      <div className="flex items-center gap-3">
+                        <Label className="text-sm font-medium">Modo:</Label>
+                        <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                          <Button
+                            size="sm"
+                            variant={exportMode === 'admin' ? 'default' : 'ghost'}
+                            className="h-7 text-xs"
+                            onClick={() => setExportMode('admin')}
+                          >
+                            Admin
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={exportMode === 'employee' ? 'default' : 'ghost'}
+                            className="h-7 text-xs"
+                            onClick={() => setExportMode('employee')}
+                          >
+                            Equipe
+                          </Button>
+                        </div>
+                      </div>
 
-                <div className="flex items-center gap-3">
-                  <Label className="text-sm font-medium">Formato:</Label>
-                  <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                    <Button
-                      size="sm"
-                      variant={exportFormat === 'pdf' ? 'default' : 'ghost'}
-                      className="h-7 text-xs"
-                      onClick={() => setExportFormat('pdf')}
-                    >
-                      PDF
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={exportFormat === 'csv' ? 'default' : 'ghost'}
-                      className="h-7 text-xs"
-                      onClick={() => setExportFormat('csv')}
-                    >
-                      CSV
-                    </Button>
-                  </div>
-                </div>
+                      <div className="flex items-center gap-3">
+                        <Label className="text-sm font-medium">Formato:</Label>
+                        <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                          <Button
+                            size="sm"
+                            variant={exportFormat === 'pdf' ? 'default' : 'ghost'}
+                            className="h-7 text-xs"
+                            onClick={() => setExportFormat('pdf')}
+                          >
+                            PDF
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={exportFormat === 'csv' ? 'default' : 'ghost'}
+                            className="h-7 text-xs"
+                            onClick={() => setExportFormat('csv')}
+                          >
+                            CSV
+                          </Button>
+                        </div>
+                      </div>
 
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="include-charts"
-                    checked={includeCharts}
-                    onCheckedChange={setIncludeCharts}
-                    disabled={exportFormat === 'csv'}
-                  />
-                  <Label htmlFor="include-charts" className={cn("text-sm cursor-pointer", exportFormat === 'csv' && "text-muted-foreground/50")}>
-                    Incluir gráficos {exportFormat === 'csv' && '(só PDF)'}
-                  </Label>
-                </div>
-              </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="include-charts"
+                          checked={includeCharts}
+                          onCheckedChange={setIncludeCharts}
+                          disabled={exportFormat === 'csv'}
+                        />
+                        <Label htmlFor="include-charts" className={cn("text-sm cursor-pointer", exportFormat === 'csv' && "text-muted-foreground/50")}>
+                          Incluir gráficos {exportFormat === 'csv' && '(só PDF)'}
+                        </Label>
+                      </div>
+                    </div>
 
-              <div className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 border border-border">
-                {exportMode === 'admin' ? (
-                  <p>📊 <strong>Modo Admin:</strong> Inclui todos os dados financeiros (faturamento, valor por kg, receitas) além de rolos, peso e eficiência.</p>
-                ) : (
-                  <p>👷 <strong>Modo Equipe:</strong> Inclui apenas dados de produção (rolos, peso, eficiência). Dados financeiros são omitidos.</p>
-                )}
-              </div>
+                    <div className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/50 border border-border">
+                      {exportMode === 'admin' ? (
+                        <p>📊 <strong>Modo Admin:</strong> Inclui todos os dados financeiros (faturamento, valor por kg, receitas) além de rolos, peso e eficiência.</p>
+                      ) : (
+                        <p>👷 <strong>Modo Equipe:</strong> Inclui apenas dados de produção (rolos, peso, eficiência). Dados financeiros são omitidos.</p>
+                      )}
+                    </div>
 
-              {/* Export options */}
-              <div>
-                <p className="text-sm font-semibold text-foreground mb-3">Exportação Geral</p>
-                <ExportButton
-                  label="Relatório Completo"
-                  description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
-                  onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl, companyName)}
-                />
-              </div>
+                    {/* Export options */}
+                    <div>
+                      <p className="text-sm font-semibold text-foreground mb-3">Exportação Geral</p>
+                   <ExportButton
+                     label="Relatório Completo"
+                     description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
+                     onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                   />
+                    </div>
 
-              <div>
-                <p className="text-sm font-semibold text-foreground mb-3">Exportação Específica</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <ExportButton
-                    label="Por Artigo"
-                    description="Rolos, Kg, Valor"
-                    onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl, companyName)}
-                  />
-                  <ExportButton
-                    label="Por Máquina"
-                    description="Performance individual"
-                    onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl, companyName)}
-                  />
-                  <ExportButton
-                    label="Por Turno"
-                    description="Análise comparativa"
-                    onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl, companyName)}
-                  />
-                  <ExportButton
-                    label="Por Cliente"
-                    description="Produção por cliente"
-                    onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, filtered, byShift, byMachine, byClient, periodLabel, companyLogoUrl, companyName)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground mb-3">Exportação Específica</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                         <ExportButton
+                           label="Por Artigo"
+                           description="Rolos, Kg, Valor"
+                           onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                         />
+                         <ExportButton
+                           label="Por Máquina"
+                           description="Performance individual"
+                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                         />
+                         <ExportButton
+                           label="Por Turno"
+                           description="Análise comparativa"
+                           onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                         />
+                         <ExportButton
+                           label="Por Cliente"
+                           description="Produção por cliente"
+                           onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                         />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
-        );
-       })() : (
-         <div className="text-center py-12">
-           <p className="text-muted-foreground">Registre produções para ver os relatórios detalhados</p>
-         </div>
-       )}
- 
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Registre produções para ver os relatórios detalhados</p>
+          </div>
+        )}
     </div>
   );
 }
@@ -1194,19 +1122,20 @@ function ExportButton({ label, description, onClick }: {
 
 // --- Export handler ---
 
-function handleExport(
-  type: string,
-  mode: 'admin' | 'employee',
-  _includeCharts: boolean,
-  exportFormat: 'pdf' | 'csv',
-  filtered: any[],
-  byShift: any[],
-  byMachine: any[],
-  byClient: any[],
-  periodLabel: string,
-  logoUrl?: string | null,
-  companyName?: string,
-) {
+ function handleExport(
+   type: string,
+   mode: 'admin' | 'employee',
+   _includeCharts: boolean,
+   exportFormat: 'pdf' | 'csv',
+   filtered: any[],
+   byShift: any[],
+   byMachine: any[],
+   byClient: any[],
+   byArticle: any[],
+   periodLabel: string,
+   logoUrl?: string | null,
+   companyName?: string,
+ ) {
   const isAdmin = mode === 'admin';
 
   const fmtN = (v: number, d = 0) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -1244,22 +1173,13 @@ function handleExport(
     sections.push({ title: 'Por Cliente', headers, rows });
   }
 
-  if (type === 'completo' || type === 'artigo') {
-    const articleMap: Record<string, { name: string; rolos: number; kg: number; faturamento: number }> = {};
-    filtered.forEach(p => {
-      const key = p.article_id || 'sem-artigo';
-      if (!articleMap[key]) articleMap[key] = { name: p.article_name || 'Sem artigo', rolos: 0, kg: 0, faturamento: 0 };
-      articleMap[key].rolos += p.rolls_produced;
-      articleMap[key].kg += p.weight_kg;
-      articleMap[key].faturamento += p.revenue;
-    });
-    const headers = isAdmin ? ['Artigo', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Artigo', 'Rolos', 'Peso (kg)'];
-    const artVals = Object.values(articleMap).sort((a, b) => b.rolos - a.rolos);
-    const rows = artVals.map(a => isAdmin ? [a.name, fmtN(a.rolos), fmtK(a.kg), fmtR(a.faturamento)] : [a.name, fmtN(a.rolos), fmtK(a.kg)]);
-    const tR = artVals.reduce((ac, a) => ac + a.rolos, 0), tK = artVals.reduce((ac, a) => ac + a.kg, 0), tF = artVals.reduce((ac, a) => ac + a.faturamento, 0);
-    rows.push(isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK)]);
-    sections.push({ title: 'Por Artigo', headers, rows });
-  }
+   if (type === 'completo' || type === 'artigo') {
+     const headers = isAdmin ? ['Artigo', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Artigo', 'Rolos', 'Peso (kg)'];
+     const rows = byArticle.map(a => isAdmin ? [a.name, fmtN(a.rolos), fmtK(a.kg), fmtR(a.faturamento)] : [a.name, fmtN(a.rolos), fmtK(a.kg)]);
+     const tR = byArticle.reduce((ac, a) => ac + a.rolos, 0), tK = byArticle.reduce((ac, a) => ac + a.kg, 0), tF = byArticle.reduce((ac, a) => ac + a.faturamento, 0);
+     rows.push(isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK)]);
+     sections.push({ title: 'Por Artigo', headers, rows });
+   }
 
   if (exportFormat === 'csv') {
     let csvContent = '';
