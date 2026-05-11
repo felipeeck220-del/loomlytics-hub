@@ -105,15 +105,11 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       return Array.from(months).sort().reverse();
     }, [productions]);
 
-    const calculateReportsData = useCallback(() => {
-      if (!dbCompanyId) return;
-      
-      // If we're still loading the global data and have nothing to show, wait
-      if (loading && productions.length === 0) return;
-
+    useEffect(() => {
+      if (!dbCompanyId || productions.length === 0) return;
       setLoading(true);
       
-      const today = new Date();
+      const today = new Date(2026, 4, 11);
       let dFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined;
       let dTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined;
 
@@ -239,11 +235,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       })));
 
       setLoading(false);
-    }, [dbCompanyId, productions, dateFrom, dateTo, filterMonth, customDate, dayRange, filterShift, filterMachine, filterClient, filterArticle, companyShiftLabels, articles, loading]);
-
-    useEffect(() => {
-      calculateReportsData();
-    }, [calculateReportsData]);
+    }, [dbCompanyId, productions, dateFrom, dateTo, filterMonth, customDate, dayRange, filterShift, filterMachine, filterClient, filterArticle, companyShiftLabels, articles]);
   const clearFilters = () => {
      setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
