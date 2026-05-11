@@ -157,6 +157,11 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
          reportQueries.getReportEvolution(filter),
        ]);
  
+       const byDateFormatted = evolutionRes.map((d: any) => ({
+         ...d,
+         date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+       }));
+ 
        setKpis(kpisRes);
        setByShift(shiftRes.map((s: any) => ({
          ...s,
@@ -186,10 +191,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
          pct_kg: kpisRes.total_weight > 0 ? (a.kg / kpisRes.total_weight) * 100 : 0,
          pct_revenue: kpisRes.total_revenue > 0 ? (a.faturamento / kpisRes.total_revenue) * 100 : 0,
        })));
-       setEvolutionData(evolutionRes.map((d: any) => ({
-         ...d,
-         date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-       })));
+       setEvolutionData(byDateFormatted);
      } catch (err) {
        console.error('Error fetching report data:', err);
      } finally {
