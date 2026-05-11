@@ -199,9 +199,11 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      }
    }, [dbCompanyId, dateFrom, dateTo, filterMonth, customDate, dayRange, filterShift, filterMachine, filterClient, filterArticle, companyShiftLabels]);
  
-   useEffect(() => {
-     fetchReportData();
-   }, [fetchReportData]);
+    useEffect(() => {
+      if (dbCompanyId) {
+        fetchReportData();
+      }
+    }, [fetchReportData, dbCompanyId]);
   const clearFilters = () => {
      setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
