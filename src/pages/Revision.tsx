@@ -127,7 +127,41 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
     return Array.from(months).sort().reverse();
   }, []);
 
-   const filtered = defectRecords;
+    const filtered = useMemo(() => {
+      return defectRecords.filter(record => {
+        // Filter by Date Range
+        if (filterDateFrom) {
+          const fromDate = filterDateFrom;
+          if (record.date < fromDate) return false;
+        }
+        if (filterDateTo) {
+          const toDate = filterDateTo;
+          if (record.date > toDate) return false;
+        }
+
+        // Filter by Month
+        if (filterMonth !== 'all') {
+          const recordMonth = record.date.substring(0, 7); // yyyy-MM
+          if (recordMonth !== filterMonth) return false;
+        }
+
+        // Filter by Article
+        if (filterArticle !== 'all') {
+          if (record.article_id !== filterArticle) return false;
+        }
+
+        // Search Term (Machine, Article, Weaver)
+        if (searchTerm) {
+          const s = searchTerm.toLowerCase();
+          const machineMatch = (record.machine_name || '').toLowerCase().includes(s);
+          const articleMatch = (record.article_name || '').toLowerCase().includes(s);
+          const weaverMatch = (record.weaver_name || '').toLowerCase().includes(s);
+          if (!machineMatch && !articleMatch && !weaverMatch) return false;
+        }
+
+        return true;
+      });
+    }, [defectRecords, filterDateFrom, filterDateTo, filterMonth, filterArticle, searchTerm]);
  
    const totalPages = Math.ceil(filtered.length / pageSize);
    const paginatedData = useMemo(() => {
