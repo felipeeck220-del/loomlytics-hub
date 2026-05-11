@@ -2412,6 +2412,7 @@ export type Database = {
           p_shift?: string
         }
         Returns: {
+          active_days: number
           avg_efficiency: number
           total_revenue: number
           total_rolls: number
