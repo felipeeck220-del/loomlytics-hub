@@ -116,43 +116,90 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      getProductionFilterArticles().then(setAvailableArticles);
    }, [dbCompanyId]);
 
-  // Maintain filtered for export compatibility (though we should ideally optimize export too)
-  const filtered = useMemo(() => {
-    let data = [...productions];
-    const today = new Date();
-    const currentFilterDate = customDate ? format(customDate, 'yyyy-MM-dd') : null;
-    const currentFilterDateFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : null;
-    const currentFilterDateTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : null;
-
-    if (currentFilterDateFrom || currentFilterDateTo) {
-      if (currentFilterDateFrom) data = data.filter(p => p.date >= currentFilterDateFrom);
-      if (currentFilterDateTo) data = data.filter(p => p.date <= currentFilterDateTo);
-    } else if (filterMonth !== 'all') {
-      data = data.filter(p => p.date.startsWith(filterMonth));
-    } else if (currentFilterDate) {
-      data = data.filter(p => p.date === currentFilterDate);
-    } else if (dayRange > 0) {
-      const start = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-      const end = format(today, 'yyyy-MM-dd');
-      data = data.filter(p => p.date >= start && p.date <= end);
-    }
-
-    if (filterShift !== 'all') data = data.filter(p => p.shift === filterShift);
-    if (filterClient !== 'all') {
-      const selectedClient = clients.find(c => c.id === filterClient);
-      const clientArticles = articles.filter(a => 
-        a.client_id === filterClient || 
-        (selectedClient && a.client_name === selectedClient.name)
-      ).map(a => a.id);
-      data = data.filter(p => clientArticles.includes(p.article_id));
-    }
-    if (filterArticle !== 'all') data = data.filter(p => p.article_id === filterArticle);
-    if (filterMachine !== 'all') {
-      const selectedMachine = machines.find(m => m.id === filterMachine);
-      data = data.filter(p => p.machine_id === filterMachine || (!p.machine_id && selectedMachine && p.machine_name === selectedMachine.name));
-    }
-    return data;
-  }, [productions, dayRange, customDate, dateFrom, dateTo, filterMonth, filterShift, filterClient, filterArticle, filterMachine, articles, machines]);
+   const fetchReportData = useCallback(async () => {
+     if (!dbCompanyId) return;
+     setLoading(true);
+     try {
+       const today = new Date();
+       let date_from = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined;
+       let date_to = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined;
+ 
+       if (!date_from && !date_to) {
+         if (filterMonth !== 'all') {
+           const [year, month] = filterMonth.split('-').map(Number);
+           date_from = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+           date_to = format(new Date(year, month, 0), 'yyyy-MM-dd');
+         } else if (customDate) {
+           date_from = format(customDate, 'yyyy-MM-dd');
+           date_to = date_from;
+         } else if (dayRange > 0) {
+           date_from = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+           date_to = format(today, 'yyyy-MM-dd');
+         }
+       }
+ 
+       const filter: reportQueries.ReportFilter = {
+         company_id: dbCompanyId,
+         date_from,
+         date_to,
+         shift: filterShift !== 'all' ? filterShift : undefined,
+         machine_id: filterMachine !== 'all' ? filterMachine : undefined,
+         client_id: filterClient !== 'all' ? filterClient : undefined,
+         article_id: filterArticle !== 'all' ? filterArticle : undefined,
+       };
+ 
+       const [kpisRes, shiftRes, machineRes, clientRes, articleRes, evolutionRes] = await Promise.all([
+         reportQueries.getReportKpis(filter),
+         reportQueries.getReportByShift({ ...filter }),
+         reportQueries.getReportByMachine(filter),
+         reportQueries.getReportByClient(filter),
+         reportQueries.getReportByArticle(filter),
+         reportQueries.getReportEvolution(filter),
+       ]);
+ 
+       setKpis(kpisRes);
+       setByShift(shiftRes.map((s: any) => ({
+         ...s,
+         name: companyShiftLabels[s.shift as ShiftType] || s.shift,
+         pct_rolls: kpisRes.total_rolls > 0 ? (s.rolos / kpisRes.total_rolls) * 100 : 0,
+         pct_revenue: kpisRes.total_revenue > 0 ? (s.faturamento / kpisRes.total_revenue) * 100 : 0,
+       })).sort((a: any, b: any) => {
+         const order: Record<string, number> = { 'manha': 1, 'tarde': 2, 'noite': 3 };
+         return (order[a.shift] || 99) - (order[b.shift] || 99);
+       }));
+       setByMachine(machineRes.map((m: any) => ({
+         ...m,
+         name: m.machine_name,
+         pct_rolls: kpisRes.total_rolls > 0 ? (m.rolos / kpisRes.total_rolls) * 100 : 0,
+         pct_revenue: kpisRes.total_revenue > 0 ? (m.faturamento / kpisRes.total_revenue) * 100 : 0,
+       })));
+       setByClient(clientRes.map((c: any) => ({
+         ...c,
+         name: c.client_name,
+         pct_rolls: kpisRes.total_rolls > 0 ? (c.rolos / kpisRes.total_rolls) * 100 : 0,
+         pct_kg: kpisRes.total_weight > 0 ? (c.kg / kpisRes.total_weight) * 100 : 0,
+         pct_revenue: kpisRes.total_revenue > 0 ? (c.faturamento / kpisRes.total_revenue) * 100 : 0,
+       })));
+       setByArticle(articleRes.map((a: any) => ({
+         ...a,
+         name: a.article_name,
+         pct_kg: kpisRes.total_weight > 0 ? (a.kg / kpisRes.total_weight) * 100 : 0,
+         pct_revenue: kpisRes.total_revenue > 0 ? (a.faturamento / kpisRes.total_revenue) * 100 : 0,
+       })));
+       setEvolutionData(evolutionRes.map((d: any) => ({
+         ...d,
+         date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+       })));
+     } catch (err) {
+       console.error('Error fetching report data:', err);
+     } finally {
+       setLoading(false);
+     }
+   }, [dbCompanyId, dateFrom, dateTo, filterMonth, customDate, dayRange, filterShift, filterMachine, filterClient, filterArticle, companyShiftLabels]);
+ 
+   useEffect(() => {
+     fetchReportData();
+   }, [fetchReportData]);
   const clearFilters = () => {
      setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
