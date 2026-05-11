@@ -89,10 +89,17 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  const productions = getProductions();
-  const avgTargetEfficiency = 80;
+   const avgTargetEfficiency = 80;
+   const [loading, setLoading] = useState(true);
+   const [kpis, setKpis] = useState<any>(null);
+   const [byShift, setByShift] = useState<any[]>([]);
+   const [byMachine, setByMachine] = useState<any[]>([]);
+   const [byClient, setByClient] = useState<any[]>([]);
+   const [byArticle, setByArticle] = useState<any[]>([]);
+   const [evolutionData, setEvolutionData] = useState<any[]>([]);
+ 
    const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
-
+ 
    const [availableMonths, setAvailableMonths] = useState<string[]>([]);
    const [availableMachines, setAvailableMachines] = useState<{id: string, name: string}[]>([]);
    const [availableClients, setAvailableClients] = useState<{id: string, name: string}[]>([]);
