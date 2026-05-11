@@ -27,7 +27,6 @@ import { usePermissions } from '@/hooks/usePermissions';
    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
    LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area,
  } from 'recharts';
- import * as reportQueries from '@/lib/queries/reportsQueries';
 
 const CHART_COLORS = [
   'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(221, 83%, 53%)',
@@ -42,9 +41,9 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 
  export default function Reports() {
     const { 
-      getMachines, getClients, getArticles, shiftSettings, dbCompanyId,
-      getProductionFilterMonths, getProductionFilterMachines, getProductionFilterClients, getProductionFilterArticles
+      getMachines, getClients, getArticles, shiftSettings, dbCompanyId, getProductions
     } = useSharedCompanyData();
+    const productions = getProductions();
   const companyShiftLabels = useMemo(() => getCompanyShiftLabels(shiftSettings), [shiftSettings]);
   const { canSeeFinancial } = usePermissions();
   const { user } = useAuth();
@@ -100,111 +99,143 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
  
    const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
  
-   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
-   const [availableMachines, setAvailableMachines] = useState<{id: string, name: string}[]>([]);
-   const [availableClients, setAvailableClients] = useState<{id: string, name: string}[]>([]);
-   const [availableArticles, setAvailableArticles] = useState<{id: string, name: string}[]>([]);
- 
-   useEffect(() => {
-     if (!dbCompanyId) return;
-     getProductionFilterMonths().then(months => {
-       const unique = new Set([...months, format(new Date(), 'yyyy-MM')]);
-       setAvailableMonths(Array.from(unique).sort().reverse());
-     });
-     getProductionFilterMachines().then(setAvailableMachines);
-     getProductionFilterClients().then(setAvailableClients);
-     getProductionFilterArticles().then(setAvailableArticles);
-   }, [dbCompanyId]);
+    const availableMonths = useMemo(() => {
+      const months = new Set(productions.map(p => p.date.substring(0, 7)));
+      months.add(format(new Date(), 'yyyy-MM'));
+      return Array.from(months).sort().reverse();
+    }, [productions]);
 
-   const fetchReportData = useCallback(async () => {
-     if (!dbCompanyId) return;
-     setLoading(true);
-     try {
-        // Fix: Use the correct reference for "today" to match period 12/04/2026 to 11/05/2026
-        const today = new Date(2026, 4, 11); // May 11, 2026
-       let date_from = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined;
-       let date_to = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined;
- 
-       if (!date_from && !date_to) {
-         if (filterMonth !== 'all') {
-           const [year, month] = filterMonth.split('-').map(Number);
-           date_from = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
-           date_to = format(new Date(year, month, 0), 'yyyy-MM-dd');
-         } else if (customDate) {
-           date_from = format(customDate, 'yyyy-MM-dd');
-           date_to = date_from;
-         } else if (dayRange > 0) {
-           date_from = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-           date_to = format(today, 'yyyy-MM-dd');
-         }
-       }
- 
-       const filter: reportQueries.ReportFilter = {
-         company_id: dbCompanyId,
-         date_from,
-         date_to,
-         shift: filterShift !== 'all' ? filterShift : undefined,
-         machine_id: filterMachine !== 'all' ? filterMachine : undefined,
-         client_id: filterClient !== 'all' ? filterClient : undefined,
-         article_id: filterArticle !== 'all' ? filterArticle : undefined,
-       };
- 
-       const [kpisRes, shiftRes, machineRes, clientRes, articleRes, evolutionRes] = await Promise.all([
-         reportQueries.getReportKpis(filter),
-         reportQueries.getReportByShift({ ...filter }),
-         reportQueries.getReportByMachine(filter),
-         reportQueries.getReportByClient(filter),
-         reportQueries.getReportByArticle(filter),
-         reportQueries.getReportEvolution(filter),
-       ]);
- 
-       const byDateFormatted = evolutionRes.map((d: any) => ({
-         ...d,
-         date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-       }));
- 
-       setKpis(kpisRes);
-       setByShift(shiftRes.map((s: any) => ({
-         ...s,
-         name: companyShiftLabels[s.shift as ShiftType] || s.shift,
-         pct_rolls: kpisRes.total_rolls > 0 ? (s.rolos / kpisRes.total_rolls) * 100 : 0,
-         pct_revenue: kpisRes.total_revenue > 0 ? (s.faturamento / kpisRes.total_revenue) * 100 : 0,
-       })).sort((a: any, b: any) => {
-         const order: Record<string, number> = { 'manha': 1, 'tarde': 2, 'noite': 3 };
-         return (order[a.shift] || 99) - (order[b.shift] || 99);
-       }));
-       setByMachine(machineRes.map((m: any) => ({
-         ...m,
-         name: m.machine_name,
-         pct_rolls: kpisRes.total_rolls > 0 ? (m.rolos / kpisRes.total_rolls) * 100 : 0,
-         pct_revenue: kpisRes.total_revenue > 0 ? (m.faturamento / kpisRes.total_revenue) * 100 : 0,
-       })));
-       setByClient(clientRes.map((c: any) => ({
-         ...c,
-         name: c.client_name,
-         pct_rolls: kpisRes.total_rolls > 0 ? (c.rolos / kpisRes.total_rolls) * 100 : 0,
-         pct_kg: kpisRes.total_weight > 0 ? (c.kg / kpisRes.total_weight) * 100 : 0,
-         pct_revenue: kpisRes.total_revenue > 0 ? (c.faturamento / kpisRes.total_revenue) * 100 : 0,
-       })));
-       setByArticle(articleRes.map((a: any) => ({
-         ...a,
-         name: a.article_name,
-         pct_kg: kpisRes.total_weight > 0 ? (a.kg / kpisRes.total_weight) * 100 : 0,
-         pct_revenue: kpisRes.total_revenue > 0 ? (a.faturamento / kpisRes.total_revenue) * 100 : 0,
-       })));
-       setEvolutionData(byDateFormatted);
-     } catch (err) {
-       console.error('Error fetching report data:', err);
-     } finally {
-       setLoading(false);
-     }
-   }, [dbCompanyId, dateFrom, dateTo, filterMonth, customDate, dayRange, filterShift, filterMachine, filterClient, filterArticle, companyShiftLabels]);
- 
     useEffect(() => {
-      if (dbCompanyId) {
-        fetchReportData();
+      if (!dbCompanyId || productions.length === 0) return;
+      setLoading(true);
+      
+      const today = new Date(2026, 4, 11);
+      let dFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined;
+      let dTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined;
+
+      if (!dFrom && !dTo) {
+        if (filterMonth !== 'all') {
+          const [year, month] = filterMonth.split('-').map(Number);
+          dFrom = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+          dTo = format(new Date(year, month, 0), 'yyyy-MM-dd');
+        } else if (customDate) {
+          dFrom = format(customDate, 'yyyy-MM-dd');
+          dTo = dFrom;
+        } else if (dayRange > 0) {
+          dFrom = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
+          dTo = format(today, 'yyyy-MM-dd');
+        }
       }
-    }, [fetchReportData, dbCompanyId]);
+
+      let filtered = [...productions];
+      if (dFrom) filtered = filtered.filter(p => p.date >= dFrom!);
+      if (dTo) filtered = filtered.filter(p => p.date <= dTo!);
+      if (filterShift !== 'all') filtered = filtered.filter(p => p.shift === filterShift);
+      if (filterMachine !== 'all') filtered = filtered.filter(p => p.machine_id === filterMachine);
+      if (filterClient !== 'all') {
+        const clientArticles = articles.filter(a => a.client_id === filterClient).map(a => a.id);
+        filtered = filtered.filter(p => clientArticles.includes(p.article_id));
+      }
+      if (filterArticle !== 'all') filtered = filtered.filter(p => p.article_id === filterArticle);
+
+      const total_rolls = filtered.reduce((acc, p) => acc + p.rolls_produced, 0);
+      const total_weight = filtered.reduce((acc, p) => acc + p.weight_kg, 0);
+      const total_revenue = filtered.reduce((acc, p) => acc + p.revenue, 0);
+      const active_days = new Set(filtered.map(p => p.date)).size;
+      
+      const nonZeroEff = filtered.filter(p => p.rolls_produced > 0);
+      const totalWeightForEff = nonZeroEff.reduce((acc, p) => acc + p.weight_kg, 0);
+      const avg_efficiency = totalWeightForEff > 0 
+        ? nonZeroEff.reduce((acc, p) => acc + (p.efficiency * p.weight_kg), 0) / totalWeightForEff
+        : 0;
+
+      setKpis({ total_rolls, total_weight, total_revenue, active_days, avg_efficiency });
+
+      const shiftMap: Record<string, any> = {};
+      ['manha', 'tarde', 'noite'].forEach(s => {
+        const sf = filtered.filter(p => p.shift === s);
+        const sWeight = sf.reduce((acc, p) => acc + p.weight_kg, 0);
+        const sNonZeroEff = sf.filter(p => p.rolls_produced > 0);
+        const sWeightForEff = sNonZeroEff.reduce((acc, p) => acc + p.weight_kg, 0);
+        const sEff = sWeightForEff > 0 ? sNonZeroEff.reduce((acc, p) => acc + (p.efficiency * p.weight_kg), 0) / sWeightForEff : 0;
+        
+        shiftMap[s] = {
+          shift: s,
+          name: companyShiftLabels[s as ShiftType] || s,
+          rolos: sf.reduce((acc, p) => acc + p.rolls_produced, 0),
+          kg: sWeight,
+          faturamento: sf.reduce((acc, p) => acc + p.revenue, 0),
+          eficiencia: sEff,
+          pct_rolls: total_rolls > 0 ? (sf.reduce((acc, p) => acc + p.rolls_produced, 0) / total_rolls) * 100 : 0,
+          pct_revenue: total_revenue > 0 ? (sf.reduce((acc, p) => acc + p.revenue, 0) / total_revenue) * 100 : 0,
+        };
+      });
+      setByShift(Object.values(shiftMap));
+
+      const machineMap: Record<string, any> = {};
+      filtered.forEach(p => {
+        const key = p.machine_id || p.machine_name;
+        if (!machineMap[key]) machineMap[key] = { name: p.machine_name, rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, weightForEff: 0, records: 0 };
+        machineMap[key].rolos += p.rolls_produced;
+        machineMap[key].kg += p.weight_kg;
+        machineMap[key].faturamento += p.revenue;
+        machineMap[key].records += 1;
+        if (p.rolls_produced > 0) {
+          machineMap[key].efficiencySum += (p.efficiency * p.weight_kg);
+          machineMap[key].weightForEff += p.weight_kg;
+        }
+      });
+      setByMachine(Object.values(machineMap).map((m: any) => ({
+        ...m,
+        eficiencia: m.weightForEff > 0 ? m.efficiencySum / m.weightForEff : 0,
+        pct_rolls: total_rolls > 0 ? (m.rolos / total_rolls) * 100 : 0,
+        pct_revenue: total_revenue > 0 ? (m.faturamento / total_revenue) * 100 : 0,
+      })).sort((a, b) => b.rolos - a.rolos));
+
+      const clientMap: Record<string, any> = {};
+      filtered.forEach(p => {
+        const art = articles.find(a => a.id === p.article_id);
+        const clientName = art?.client_name || 'Diversos';
+        if (!clientMap[clientName]) clientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0 };
+        clientMap[clientName].rolos += p.rolls_produced;
+        clientMap[clientName].kg += p.weight_kg;
+        clientMap[clientName].faturamento += p.revenue;
+      });
+      setByClient(Object.values(clientMap).map((c: any) => ({
+        ...c,
+        pct_rolls: total_rolls > 0 ? (c.rolos / total_rolls) * 100 : 0,
+        pct_kg: total_weight > 0 ? (c.kg / total_weight) * 100 : 0,
+        pct_revenue: total_revenue > 0 ? (c.faturamento / total_revenue) * 100 : 0,
+      })).sort((a, b) => b.kg - a.kg));
+
+      const articleMap: Record<string, any> = {};
+      filtered.forEach(p => {
+        const name = p.article_name;
+        if (!articleMap[name]) articleMap[name] = { name, rolos: 0, kg: 0, faturamento: 0 };
+        articleMap[name].rolos += p.rolls_produced;
+        articleMap[name].kg += p.weight_kg;
+        articleMap[name].faturamento += p.revenue;
+      });
+      setByArticle(Object.values(articleMap).map((a: any) => ({
+        ...a,
+        pct_kg: total_weight > 0 ? (a.kg / total_weight) * 100 : 0,
+        pct_revenue: total_revenue > 0 ? (a.faturamento / total_revenue) * 100 : 0,
+      })).sort((a, b) => b.kg - a.kg));
+
+      const evolutionMap: Record<string, any> = {};
+      filtered.forEach(p => {
+        if (!evolutionMap[p.date]) evolutionMap[p.date] = { date: p.date, rolos: 0, kg: 0, faturamento: 0 };
+        evolutionMap[p.date].rolos += p.rolls_produced;
+        evolutionMap[p.date].kg += p.weight_kg;
+        evolutionMap[p.date].faturamento += p.revenue;
+      });
+      setEvolutionData(Object.values(evolutionMap).sort((a: any, b: any) => a.date.localeCompare(b.date)).map((d: any) => ({
+        ...d,
+        date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+      })));
+
+      setLoading(false);
+    }, [dbCompanyId, productions, dateFrom, dateTo, filterMonth, customDate, dayRange, filterShift, filterMachine, filterClient, filterArticle, companyShiftLabels, articles]);
   const clearFilters = () => {
      setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
@@ -343,41 +374,29 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
               </SelectContent>
             </Select>
 
-             <Select value={filterMachine} onValueChange={setFilterMachine}>
-               <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="all">Máquina</SelectItem>
-                 {availableMachines.length > 0 ? (
-                   availableMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)
-                 ) : (
-                   machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)
-                 )}
-               </SelectContent>
-             </Select>
+              <Select value={filterMachine} onValueChange={setFilterMachine}>
+                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Máquina</SelectItem>
+                  {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
  
-             <Select value={filterClient} onValueChange={setFilterClient}>
-               <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Cliente" /></SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="all">Cliente</SelectItem>
-                 {availableClients.length > 0 ? (
-                   availableClients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)
-                 ) : (
-                   clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)
-                 )}
-               </SelectContent>
-             </Select>
+              <Select value={filterClient} onValueChange={setFilterClient}>
+                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Cliente" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Cliente</SelectItem>
+                  {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
  
-             <Select value={filterArticle} onValueChange={setFilterArticle}>
-               <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="all">Artigo</SelectItem>
-                 {availableArticles.length > 0 ? (
-                   availableArticles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)
-                 ) : (
-                   articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)
-                 )}
-               </SelectContent>
-             </Select>
+              <Select value={filterArticle} onValueChange={setFilterArticle}>
+                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Artigo</SelectItem>
+                  {articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
           </div>
         </CardContent>
       </Card>
