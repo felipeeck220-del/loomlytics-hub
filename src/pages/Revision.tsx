@@ -117,15 +117,16 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
     return weavers.filter(w => w.name.toLowerCase().includes(s) || w.code.toLowerCase().includes(s));
   }, [weavers, weaverSearch]);
 
-  // Available months for filter
+  // Available months for filter - Only show months with existing records
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
-    const today = new Date();
-    for (let i = 0; i < 24; i++) {
-      months.add(format(subMonths(today, i), 'yyyy-MM'));
-    }
-    return Array.from(months).sort().reverse();
-  }, []);
+    defectRecords.forEach(record => {
+      if (record.date) {
+        months.add(record.date.substring(0, 7)); // Get yyyy-MM
+      }
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  }, [defectRecords]);
 
     const filtered = useMemo(() => {
       return defectRecords.filter(record => {
