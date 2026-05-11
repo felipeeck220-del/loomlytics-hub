@@ -68,7 +68,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   }, [user?.company_id]);
 
   // Filters
-  const [dayRange, setDayRange] = useState(0);
+  const [dayRange, setDayRange] = useState(30);
   const [customDate, setCustomDate] = useState<Date>();
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
