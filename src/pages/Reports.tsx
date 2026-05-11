@@ -109,7 +109,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       if (!dbCompanyId || productions.length === 0) return;
       setLoading(true);
       
-      const today = new Date(2026, 4, 11);
+      const today = new Date();
       let dFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined;
       let dTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined;
 
