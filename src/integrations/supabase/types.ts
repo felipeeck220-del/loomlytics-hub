@@ -2289,6 +2289,77 @@ export type Database = {
           total_weight: number
         }[]
       }
+      get_report_by_article: {
+        Args: {
+          p_client_id?: string
+          p_company_id: string
+          p_date_from?: string
+          p_date_to?: string
+          p_machine_id?: string
+          p_shift?: string
+        }
+        Returns: {
+          article_id: string
+          article_name: string
+          eficiencia: number
+          faturamento: number
+          kg: number
+          rolos: number
+        }[]
+      }
+      get_report_by_client: {
+        Args: {
+          p_article_id?: string
+          p_company_id: string
+          p_date_from?: string
+          p_date_to?: string
+          p_machine_id?: string
+          p_shift?: string
+        }
+        Returns: {
+          client_id: string
+          client_name: string
+          eficiencia: number
+          faturamento: number
+          kg: number
+          rolos: number
+        }[]
+      }
+      get_report_by_machine: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_date_from?: string
+          p_date_to?: string
+          p_shift?: string
+        }
+        Returns: {
+          eficiencia: number
+          faturamento: number
+          kg: number
+          machine_id: string
+          machine_name: string
+          rolos: number
+        }[]
+      }
+      get_report_by_shift: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_date_from?: string
+          p_date_to?: string
+          p_machine_id?: string
+        }
+        Returns: {
+          eficiencia: number
+          faturamento: number
+          kg: number
+          rolos: number
+          shift: string
+        }[]
+      }
       get_report_data:
         | {
             Args: {
@@ -2314,6 +2385,39 @@ export type Database = {
             }
             Returns: Json
           }
+      get_report_evolution: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_date_from?: string
+          p_date_to?: string
+          p_machine_id?: string
+          p_shift?: string
+        }
+        Returns: {
+          date: string
+          faturamento: number
+          rolos: number
+        }[]
+      }
+      get_report_kpis: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_date_from?: string
+          p_date_to?: string
+          p_machine_id?: string
+          p_shift?: string
+        }
+        Returns: {
+          avg_efficiency: number
+          total_revenue: number
+          total_rolls: number
+          total_weight: number
+        }[]
+      }
       get_user_companies: {
         Args: never
         Returns: {
