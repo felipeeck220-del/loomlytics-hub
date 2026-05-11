@@ -66,11 +66,13 @@ export default function ProductionPage() {
 
   // Set filterDate to last production date once data loads
   useEffect(() => {
-    if (!filterDateInitialized && !loading && productions.length > 0) {
+    if (filterDateInitialized || loading) return;
+    
+    if (productions.length > 0) {
       const lastDate = productions.reduce((max, p) => p.date > max ? p.date : max, productions[0].date);
       setFilterDate(lastDate);
       setFilterDateInitialized(true);
-    } else if (!filterDateInitialized && !loading && productions.length === 0) {
+    } else {
       setFilterDateInitialized(true);
     }
   }, [loading, productions, filterDateInitialized]);
