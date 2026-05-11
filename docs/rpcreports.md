@@ -61,4 +61,20 @@ Este documento detalha os cálculos realizados no front-end do módulo de Relat�
 6. `get_report_evolution`: Retorna dados temporais.
 
 ---
-*Última atualização: 11/05/2026 09:15 (Brasília)*
+
+### 7. Exportação de Relatórios (`handleExport`)
+A funcionalidade de exportação deve manter a integridade dos dados e as distinções de permissões:
+- **Modos de Exportação:**
+  - **Admin:** Inclui todos os dados, inclusive financeiros (faturamento, receitas).
+  - **Equipe (Employee):** Omite dados financeiros; exibe apenas rolos, peso e eficiência.
+- **Formatos Suportados:** PDF (estilizado com logomarca e gráficos) e CSV (tabelas brutas).
+- **Agrupamentos de Exportação:**
+  - **Completo:** Consolida tabelas por Turno, Máquina, Cliente e Artigo em um único documento.
+  - **Específicos:** Permite exportar apenas um dos grupos (Turno, Máquina, Cliente ou Artigo).
+- **Processamento para Exportação:**
+  - Utiliza os mesmos arrays pré-calculados (`byShift`, `byMachine`, `byClient`, `filtered`).
+  - O cálculo do **Total** no rodapé das tabelas de exportação deve ser idêntico aos cálculos das abas visuais (somas simples para quantidades e média ponderada para eficiência).
+  - A exportação por **Artigo** dentro de `handleExport` realiza um agrupamento local (via `articleMap`) para garantir que mesmo registros "Sem artigo" sejam incluídos.
+
+---
+*Última atualização: 11/05/2026 09:20 (Brasília)*
