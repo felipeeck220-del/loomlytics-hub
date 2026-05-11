@@ -213,6 +213,9 @@ export default function Dashboard() {
  
     const fetchDashboardMetrics = useCallback(async () => {
       if (!dbCompanyId || !currentPeriod) return;
+      
+      // Avoid double fetching if we're already loading the base data
+      // but allow it if we already have some productions to show something
       setLoadingStats(true);
       try {
         const params: any = {
