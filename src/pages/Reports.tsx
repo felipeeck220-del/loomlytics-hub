@@ -404,122 +404,14 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
         </CardContent>
       </Card>
 
-       {/* Data Processing & Rendering */}
-       {productions.length > 0 ? (() => {
-          const totalRolls = filtered.reduce((acc, p) => acc + p.rolls_produced, 0);
-          const totalWeight = filtered.reduce((acc, p) => acc + p.weight_kg, 0);
-          const totalRevenue = filtered.reduce((acc, p) => acc + p.revenue, 0);
-          const prodWithEff = filtered.filter(p => p.efficiency > 0);
-          const avgEfficiency = prodWithEff.length > 0
-            ? prodWithEff.reduce((acc, p) => acc + (p.efficiency * p.weight_kg), 0) / prodWithEff.reduce((acc, p) => acc + p.weight_kg, 0)
-            : 0;
-          const uniqueDaysCount = new Set(filtered.map(p => p.date)).size;
- 
-         const byDateMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           if (!byDateMap[p.date]) byDateMap[p.date] = { date: p.date, rolos: 0, faturamento: 0 };
-           byDateMap[p.date].rolos += p.rolls_produced;
-           byDateMap[p.date].faturamento += p.revenue;
-         });
-         const byDate = Object.values(byDateMap).sort((a, b) => a.date.localeCompare(b.date)).map(d => ({
-           ...d,
-           date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })
-         }));
- 
-         const byShiftMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           if (!byShiftMap[p.shift]) byShiftMap[p.shift] = { name: p.shift, rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, efficiencyWeight: 0 };
-           byShiftMap[p.shift].rolos += p.rolls_produced;
-           byShiftMap[p.shift].kg += p.weight_kg;
-           byShiftMap[p.shift].faturamento += p.revenue;
-           if (p.efficiency > 0) {
-             byShiftMap[p.shift].efficiencySum += (p.efficiency * p.weight_kg);
-             byShiftMap[p.shift].efficiencyWeight += p.weight_kg;
-           }
-         });
-         const byShift = Object.values(byShiftMap).map(s => ({
-           ...s,
-           name: companyShiftLabels[s.name as ShiftType] || s.name,
-           eficiencia: s.efficiencyWeight > 0 ? s.efficiencySum / s.efficiencyWeight : 0,
-           pct_rolls: totalRolls > 0 ? (s.rolos / totalRolls) * 100 : 0,
-           pct_revenue: totalRevenue > 0 ? (s.faturamento / totalRevenue) * 100 : 0
-         })).sort((a, b) => {
-           const order: Record<string, number> = { 'manha': 1, 'tarde': 2, 'noite': 3 };
-           const nameA = Object.keys(companyShiftLabels).find(key => companyShiftLabels[key as ShiftType] === a.name) || a.name;
-           const nameB = Object.keys(companyShiftLabels).find(key => companyShiftLabels[key as ShiftType] === b.name) || b.name;
-           return (order[nameA] || 99) - (order[nameB] || 99);
-         });
- 
-         const byMachineMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           const key = p.machine_id || p.machine_name;
-           if (!byMachineMap[key]) byMachineMap[key] = { name: p.machine_name, rolos: 0, kg: 0, faturamento: 0, records: 0, efficiencySum: 0, efficiencyWeight: 0 };
-           byMachineMap[key].rolos += p.rolls_produced;
-           byMachineMap[key].kg += p.weight_kg;
-           byMachineMap[key].faturamento += p.revenue;
-           byMachineMap[key].records += 1;
-           if (p.efficiency > 0) {
-             byMachineMap[key].efficiencySum += (p.efficiency * p.weight_kg);
-             byMachineMap[key].efficiencyWeight += p.weight_kg;
-           }
-         });
-         const byMachine = Object.values(byMachineMap).map(m => ({
-           ...m,
-           eficiencia: m.efficiencyWeight > 0 ? m.efficiencySum / m.efficiencyWeight : 0,
-           pct_rolls: totalRolls > 0 ? (m.rolos / totalRolls) * 100 : 0,
-           pct_revenue: totalRevenue > 0 ? (m.faturamento / totalRevenue) * 100 : 0
-         }));
- 
-         const byClientMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           const art = articles.find(a => a.id === p.article_id || a.name === p.article_name);
-           const clientName = art?.client_name || 'Sem Cliente';
-           if (!byClientMap[clientName]) byClientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, efficiencyWeight: 0 };
-           byClientMap[clientName].rolos += p.rolls_produced;
-           byClientMap[clientName].kg += p.weight_kg;
-           byClientMap[clientName].faturamento += p.revenue;
-           if (p.efficiency > 0) {
-             byClientMap[clientName].efficiencySum += (p.efficiency * p.weight_kg);
-             byClientMap[clientName].efficiencyWeight += p.weight_kg;
-           }
-         });
-         const byClient = Object.values(byClientMap).map(c => ({
-           ...c,
-           eficiencia: c.efficiencyWeight > 0 ? c.efficiencySum / c.efficiencyWeight : 0,
-           pct_rolls: totalRolls > 0 ? (c.rolos / totalRolls) * 100 : 0,
-           pct_kg: totalWeight > 0 ? (c.kg / totalWeight) * 100 : 0,
-           pct_revenue: totalRevenue > 0 ? (c.faturamento / totalRevenue) * 100 : 0
-         }));
- 
-         const byArticleMap: Record<string, any> = {};
-         filtered.forEach(p => {
-           const key = p.article_id || p.article_name;
-           if (!byArticleMap[key]) {
-             const art = articles.find(a => a.id === p.article_id || a.name === p.article_name);
-             byArticleMap[key] = { name: p.article_name, clientName: art?.client_name || 'Sem Cliente', rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, efficiencyWeight: 0 };
-           }
-           byArticleMap[key].rolos += p.rolls_produced;
-           byArticleMap[key].kg += p.weight_kg;
-           byArticleMap[key].faturamento += p.revenue;
-           if (p.efficiency > 0) {
-             byArticleMap[key].efficiencySum += (p.efficiency * p.weight_kg);
-             byArticleMap[key].efficiencyWeight += p.weight_kg;
-           }
-         });
-         const byArticle = Object.values(byArticleMap).map(a => ({
-           ...a,
-           eficiencia: a.efficiencyWeight > 0 ? a.efficiencySum / a.efficiencyWeight : 0,
-           pct_kg: totalWeight > 0 ? (a.kg / totalWeight) * 100 : 0,
-           pct_revenue: totalRevenue > 0 ? (a.faturamento / totalRevenue) * 100 : 0
-         }));
- 
-         if (filtered.length === 0) return (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhum dado encontrado para o período e filtros selecionados.</p>
-            </div>
-          );
-
-         return (
+        {/* Data Processing & Rendering */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Carregando dados...</span>
+          </div>
+        ) : kpis && kpis.total_rolls > 0 ? (
+          <div className="space-y-6">
            <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
