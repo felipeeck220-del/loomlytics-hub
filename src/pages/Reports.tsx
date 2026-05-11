@@ -1172,22 +1172,13 @@ function handleExport(
     sections.push({ title: 'Por Cliente', headers, rows });
   }
 
-  if (type === 'completo' || type === 'artigo') {
-    const articleMap: Record<string, { name: string; rolos: number; kg: number; faturamento: number }> = {};
-    filtered.forEach(p => {
-      const key = p.article_id || 'sem-artigo';
-      if (!articleMap[key]) articleMap[key] = { name: p.article_name || 'Sem artigo', rolos: 0, kg: 0, faturamento: 0 };
-      articleMap[key].rolos += p.rolls_produced;
-      articleMap[key].kg += p.weight_kg;
-      articleMap[key].faturamento += p.revenue;
-    });
-    const headers = isAdmin ? ['Artigo', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Artigo', 'Rolos', 'Peso (kg)'];
-    const artVals = Object.values(articleMap).sort((a, b) => b.rolos - a.rolos);
-    const rows = artVals.map(a => isAdmin ? [a.name, fmtN(a.rolos), fmtK(a.kg), fmtR(a.faturamento)] : [a.name, fmtN(a.rolos), fmtK(a.kg)]);
-    const tR = artVals.reduce((ac, a) => ac + a.rolos, 0), tK = artVals.reduce((ac, a) => ac + a.kg, 0), tF = artVals.reduce((ac, a) => ac + a.faturamento, 0);
-    rows.push(isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK)]);
-    sections.push({ title: 'Por Artigo', headers, rows });
-  }
+   if (type === 'completo' || type === 'artigo') {
+     const headers = isAdmin ? ['Artigo', 'Rolos', 'Peso (kg)', 'Faturamento'] : ['Artigo', 'Rolos', 'Peso (kg)'];
+     const rows = byArticle.map(a => isAdmin ? [a.name, fmtN(a.rolos), fmtK(a.kg), fmtR(a.faturamento)] : [a.name, fmtN(a.rolos), fmtK(a.kg)]);
+     const tR = byArticle.reduce((ac, a) => ac + a.rolos, 0), tK = byArticle.reduce((ac, a) => ac + a.kg, 0), tF = byArticle.reduce((ac, a) => ac + a.faturamento, 0);
+     rows.push(isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK)]);
+     sections.push({ title: 'Por Artigo', headers, rows });
+   }
 
   if (exportFormat === 'csv') {
     let csvContent = '';
