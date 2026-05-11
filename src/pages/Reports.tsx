@@ -412,37 +412,36 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
           </div>
         ) : kpis && kpis.total_rolls > 0 ? (
           <div className="space-y-6">
-           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard
                 label="Total de Rolos"
-                value={formatNumber(totalRolls)}
-                subtitle={`Em ${uniqueDaysCount} dias com registro`}
+                value={formatNumber(kpis.total_rolls)}
+                subtitle="Total de peças"
                 icon={<Package className="h-5 w-5 text-primary" />}
                 borderColor="border-l-primary"
               />
               <KpiCard
                 label="Total Produzido"
-                value={`${formatNumber(totalWeight, 2)} kg`}
+                value={`${formatNumber(kpis.total_weight, 2)} kg`}
                 subtitle="Peso total produzido"
                 icon={<TrendingUp className="h-5 w-5 text-accent" />}
                 borderColor="border-l-accent"
               />
               {canSeeFinancial && <KpiCard
                 label="Valor Total"
-                value={formatCurrency(totalRevenue)}
+                value={formatCurrency(kpis.total_revenue)}
                 subtitle="Valor total faturado"
                 icon={<DollarSign className="h-5 w-5 text-success" />}
                 borderColor="border-l-success"
               />}
               <KpiCard
                 label="Eficiência Média"
-                value={formatPercent(avgEfficiency)}
+                value={formatPercent(kpis.avg_efficiency)}
                 subtitle={`Meta: ${formatPercent(avgTargetEfficiency)}`}
                 icon={<Gauge className="h-5 w-5 text-destructive" />}
                 borderColor="border-l-destructive"
                 extra={
-                  avgEfficiency < avgTargetEfficiency ? (
+                  kpis.avg_efficiency < avgTargetEfficiency ? (
                     <Badge variant="destructive" className="text-[10px] mt-1">Abaixo da meta ({formatPercent(avgTargetEfficiency)})</Badge>
                   ) : (
                     <Badge className="bg-success/10 text-success border-success/20 text-[10px] mt-1">Dentro da meta ({formatPercent(avgTargetEfficiency)})</Badge>
