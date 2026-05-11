@@ -214,42 +214,24 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
     setFilterMachine('all');
   };
 
-  const periodLabel = useMemo(() => {
-    const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
-    const today = new Date();
-
-     if (dayRange === 0 && filterMonth === 'all' && !customDate && !dateFrom && !dateTo) {
-       const dates = productions.map(p => p.date).sort();
-       if (dates.length > 0) {
-         return `${format(toDisplayDate(dates[0]), 'dd/MM/yyyy')} a ${format(toDisplayDate(dates[dates.length - 1]), 'dd/MM/yyyy')}`;
-       }
-       return 'Todo período';
+   const periodLabel = useMemo(() => {
+     const today = new Date();
+     if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
+     if (dateFrom) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
+     if (dateTo) return `Até ${format(dateTo, 'dd/MM/yyyy')}`;
+     if (customDate) return format(customDate, 'dd/MM/yyyy');
+     if (filterMonth !== 'all') {
+       const [year, month] = filterMonth.split('-').map(Number);
+       const startDate = new Date(year, month - 1, 1);
+       const endDate = new Date(year, month, 0);
+       return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
      }
-
-    if (dateFrom && dateTo) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
-    if (dateFrom) return `${format(dateFrom, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
-
-    if (dateTo) {
-      const dates = filtered.map(p => p.date).sort();
-      const startDate = dates.length > 0 ? toDisplayDate(dates[0]) : dateTo;
-      return `${format(startDate, 'dd/MM/yyyy')} a ${format(dateTo, 'dd/MM/yyyy')}`;
-    }
-
-    if (customDate) {
-      const formattedDate = format(customDate, 'dd/MM/yyyy');
-      return `${formattedDate} a ${formattedDate}`;
-    }
-
-    if (filterMonth !== 'all') {
-      const [year, month] = filterMonth.split('-').map(Number);
-      const startDate = new Date(year, month - 1, 1, 12);
-      const endDate = new Date(year, month, 0, 12);
-      return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
-    }
-
-    const startDate = subDays(today, dayRange - 1);
-    return `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
-  }, [customDate, dateFrom, dateTo, dayRange, filterMonth, filtered]);
+     if (dayRange > 0) {
+       const startDate = subDays(today, dayRange - 1);
+       return `${format(startDate, 'dd/MM/yyyy')} a ${format(today, 'dd/MM/yyyy')}`;
+     }
+     return 'Todo período';
+   }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
     if (loading && productions.length === 0) {
     return (
