@@ -1068,9 +1068,26 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
               </TabsContent>
             </Tabs>
           </div>
+        ) : kpis && kpis.total_rolls === 0 ? (
+          <div className="text-center py-24 bg-muted/30 rounded-xl border border-dashed border-border">
+            <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground">Nenhuma produção encontrada</h3>
+            <p className="text-muted-foreground max-w-xs mx-auto mt-2">
+              Não há registros de produção para os filtros selecionados no período de {periodLabel}.
+            </p>
+            {hasActiveFilters && (
+              <Button variant="outline" size="sm" onClick={clearFilters} className="mt-6">
+                <RotateCcw className="h-4 w-4 mr-2" /> Limpar Filtros
+              </Button>
+            )}
+          </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Registre produções para ver os relatórios detalhados</p>
+          <div className="text-center py-24 bg-muted/30 rounded-xl border border-dashed border-border">
+            <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground">Aguardando dados</h3>
+            <p className="text-muted-foreground max-w-xs mx-auto mt-2">
+              Registre produções para começar a visualizar seus relatórios detalhados.
+            </p>
           </div>
         )}
     </div>
