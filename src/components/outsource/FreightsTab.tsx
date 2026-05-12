@@ -223,13 +223,13 @@
              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
              <Input placeholder="Buscar malharia, ROM..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 w-full sm:w-56" />
            </div>
-           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
              <DialogTrigger asChild>
                <Button size="sm" className="gap-1.5 whitespace-nowrap" disabled={companies.length === 0}>
                  <Plus className="h-4 w-4" /> Registrar Frete
                </Button>
              </DialogTrigger>
-             <DialogContent onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
+              <DialogContent className="max-w-[95vw] sm:max-w-[500px]" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
                <DialogHeader>
                  <DialogTitle>{editId ? 'Editar Frete' : 'Registrar Novo Frete'}</DialogTitle>
                </DialogHeader>
@@ -351,7 +351,7 @@
                  <TableHead className="text-right">Peso (kg)</TableHead>
                  <TableHead className="text-right">Frete/kg</TableHead>
                  <TableHead className="text-right font-bold text-blue-600">Frete Total</TableHead>
-                 <TableHead className="w-20 text-right">Ações</TableHead>
+                  <TableHead className="w-32 text-right">Ações</TableHead>
                </TableRow>
              </TableHeader>
              <TableBody>
@@ -364,15 +364,21 @@
                    <TableCell>{f.nf_rom || '—'}</TableCell>
                    <TableCell className="text-right">{formatWeight(f.weight_kg)}</TableCell>
                    <TableCell className="text-right">{formatCurrency(f.freight_per_kg)}</TableCell>
-                   <TableCell className="text-right font-bold text-blue-600">{formatCurrency(f.total_freight)}</TableCell>
-                   <TableCell className="text-right">
-                     <div className="flex justify-end gap-1">
-                       <Button variant="ghost" size="icon" onClick={() => openEdit(f)}><Edit className="h-4 w-4" /></Button>
-                       <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(f.id)}>
-                         <Trash2 className="h-4 w-4 text-destructive" />
-                       </Button>
-                     </div>
-                   </TableCell>
+                    <TableCell className="text-right font-bold text-blue-600">{formatCurrency(f.total_freight)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end items-center gap-1">
+                        {f.created_by_name && (
+                          <div className="flex flex-col items-end mr-2 text-[10px] text-muted-foreground leading-tight hidden xs:flex">
+                            <span className="font-medium">{f.created_by_name}</span>
+                            <span>{f.created_by_code ? `Cód: ${f.created_by_code}` : ''}</span>
+                          </div>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(f)}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(f.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
                  </TableRow>
                ))}
                {filteredFreights.length === 0 && (
