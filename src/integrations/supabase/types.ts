@@ -1336,6 +1336,66 @@ export type Database = {
           },
         ]
       }
+      outsource_freights: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          created_by_code: string | null
+          created_by_name: string | null
+          date: string
+          freight_per_kg: number
+          id: string
+          nf_rom: string | null
+          observations: string | null
+          outsource_company_id: string | null
+          total_freight: number | null
+          weight_kg: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          created_by_code?: string | null
+          created_by_name?: string | null
+          date?: string
+          freight_per_kg?: number
+          id?: string
+          nf_rom?: string | null
+          observations?: string | null
+          outsource_company_id?: string | null
+          total_freight?: number | null
+          weight_kg?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          created_by_code?: string | null
+          created_by_name?: string | null
+          date?: string
+          freight_per_kg?: number
+          id?: string
+          nf_rom?: string | null
+          observations?: string | null
+          outsource_company_id?: string | null
+          total_freight?: number | null
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outsource_freights_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outsource_freights_outsource_company_id_fkey"
+            columns: ["outsource_company_id"]
+            isOneToOne: false
+            referencedRelation: "outsource_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outsource_productions: {
         Row: {
           article_id: string
