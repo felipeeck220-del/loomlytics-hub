@@ -28,7 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
  import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
  import { SearchableSelect } from '@/components/SearchableSelect';
-
+ import { FreightsTab } from '@/components/outsource/FreightsTab';
 const sb = (table: string) => (supabase.from as any)(table);
 
 interface OutsourceCompany {
@@ -40,7 +40,23 @@ interface OutsourceCompany {
   created_at: string;
 }
 
-interface OutsourceProduction {
+ interface OutsourceFreight {
+   id: string;
+   company_id: string;
+   outsource_company_id: string;
+   outsource_company_name?: string;
+   date: string;
+   nf_rom?: string;
+   weight_kg: number;
+   freight_per_kg: number;
+   total_freight: number;
+   observations?: string;
+   created_by_name?: string;
+   created_by_code?: string;
+   created_at: string;
+ }
+ 
+ interface OutsourceProduction {
   id: string;
   company_id: string;
   outsource_company_id: string;
@@ -94,7 +110,27 @@ export default function Outsource() {
     enabled: !!companyId,
   });
 
-  // Fetch outsource productions
+   // Fetch outsource freights
+   const { data: freights = [], isLoading: loadingFreights } = useQuery({
+     queryKey: ['outsource_freights', companyId],
+     queryFn: async () => {
+       const { data, error } = await sb('outsource_freights')
+         .select('*, outsource_companies(name)')
+         .eq('company_id', companyId)
+         .order('date', { ascending: false });
+       if (error) throw error;
+       return (data as any[]).map(f => ({
+         ...f,
+         outsource_company_name: f.outsource_companies?.name,
+         weight_kg: Number(f.weight_kg),
+         freight_per_kg: Number(f.freight_per_kg),
+         total_freight: Number(f.total_freight),
+       })) as OutsourceFreight[];
+     },
+     enabled: !!companyId,
+   });
+ 
+   // Fetch outsource productions
   const { data: productions = [], isLoading: loadingProductions } = useQuery({
     queryKey: ['outsource_productions', companyId],
     queryFn: async () => {
@@ -165,16 +201,41 @@ export default function Outsource() {
   }, [productions, filterMonth, filterFrom, filterTo]);
 
   // KPIs based on filtered productions
-  const totals = useMemo(() => {
-    const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
-    const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
-    const totalProfit = displayProductions.reduce((s, p) => s + p.total_profit, 0);
-    const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
-    const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
-    const totalLoss = displayProductions.filter(p => p.total_profit < 0).reduce((s, p) => s + p.total_profit, 0);
-    const totalFreight = displayProductions.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
-    return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
-  }, [displayProductions]);
+   const displayFreights = useMemo(() => {
+     let result = freights;
+     if (filterMonth) result = result.filter(f => f.date.startsWith(filterMonth));
+     if (filterFrom) {
+       const from = format(filterFrom, 'yyyy-MM-dd');
+       result = result.filter(f => f.date >= from);
+     }
+     if (filterTo) {
+       const to = format(filterTo, 'yyyy-MM-dd');
+       result = result.filter(f => f.date <= to);
+     }
+     return result;
+   }, [freights, filterMonth, filterFrom, filterTo]);
+ 
+   const totals = useMemo(() => {
+     const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
+     const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
+     const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
+     const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
+     
+     // Total Freight comes from the freights table
+     const totalFreight = displayFreights.reduce((s, f) => s + f.total_freight, 0);
+     
+     // Global Profit: Gross Revenue - Total Cost - Total Freight
+     const grossProfit = totalRevenue - totalCost;
+     const totalProfit = grossProfit - totalFreight;
+ 
+     // Recalculate total loss based on individual production profits (gross) and then subtracting the freights
+     // However, simpler to just keep the existing calculation logic but using new freight table.
+     // For individual production, profit is now client_revenue - outsource_cost.
+     const totalLoss = displayProductions.filter(p => (p.total_revenue - p.total_cost) < 0)
+       .reduce((s, p) => s + (p.total_revenue - p.total_cost), 0);
+ 
+     return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
+   }, [displayProductions, displayFreights]);
 
   const firstName = companyName.split(' ')[0] || 'Empresa';
 
@@ -205,9 +266,12 @@ export default function Outsource() {
       {/* Tabs */}
       <Tabs defaultValue="productions" className="space-y-4">
          <TabsList>
-           <TabsTrigger value="productions" className="gap-1.5">
-             <Package className="h-4 w-4" /> Produções
-           </TabsTrigger>
+            <TabsTrigger value="productions" className="gap-1.5">
+              <Package className="h-4 w-4" /> Produções
+            </TabsTrigger>
+            <TabsTrigger value="freights" className="gap-1.5">
+              <Truck className="h-4 w-4" /> Frete
+            </TabsTrigger>
            <TabsTrigger value="companies" className="gap-1.5">
              <Factory className="h-4 w-4" /> Malharias
            </TabsTrigger>
@@ -216,21 +280,36 @@ export default function Outsource() {
            </TabsTrigger>
          </TabsList>
 
-         <TabsContent value="productions">
-           <ProductionsTab
-             productions={productions}
-             companies={companies}
-             articles={articles}
-             companyId={companyId}
-             loading={loadingProductions}
-             filterMonth={filterMonth}
-             setFilterMonth={setFilterMonth}
-             filterFrom={filterFrom}
-             setFilterFrom={setFilterFrom}
-             filterTo={filterTo}
-             setFilterTo={setFilterTo}
-           />
-         </TabsContent>
+          <TabsContent value="productions">
+            <ProductionsTab
+              productions={productions}
+              companies={companies}
+              articles={articles}
+              companyId={companyId}
+              loading={loadingProductions}
+              filterMonth={filterMonth}
+              setFilterMonth={setFilterMonth}
+              filterFrom={filterFrom}
+              setFilterFrom={setFilterFrom}
+              filterTo={filterTo}
+              setFilterTo={setFilterTo}
+            />
+          </TabsContent>
+ 
+          <TabsContent value="freights">
+            <FreightsTab
+              freights={freights}
+              companies={companies}
+              companyId={companyId}
+              loading={loadingFreights}
+              filterMonth={filterMonth}
+              setFilterMonth={setFilterMonth}
+              filterFrom={filterFrom}
+              setFilterFrom={setFilterFrom}
+              filterTo={filterTo}
+              setFilterTo={setFilterTo}
+            />
+          </TabsContent>
 
          <TabsContent value="companies">
            <CompaniesTab
@@ -463,7 +542,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
      date: format(new Date(), 'yyyy-MM-dd'),
      nf_rom: '',
      observations: '',
-     items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+     items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: "0" }]
    });
 
   const resetForm = useCallback((keepCompany = false) => {
@@ -472,7 +551,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
       date: format(new Date(), 'yyyy-MM-dd'),
       nf_rom: '',
       observations: '',
-      items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+      items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: "0" }]
     }));
     setEditId(null);
   }, []);
@@ -839,7 +918,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                    {!editId && (
                      <Button type="button" variant="outline" size="sm" onClick={() => setForm(f => ({
                        ...f,
-                       items: [...f.items, { id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+                       items: [...f.items, { id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: "0" }]
                      }))}>
                        <Plus className="h-4 w-4 mr-1" /> Adicionar Artigo
                      </Button>
@@ -886,10 +965,6 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                            <div className="space-y-2">
                              <Label>Repasse *</Label>
                              <Input type="text" inputMode="decimal" placeholder="0,00" value={item.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, outsource_value_per_kg: formatRepasseInput(e.target.value) } : i) }))} />
-                           </div>
-                           <div className="space-y-2">
-                             <Label>Frete</Label>
-                             <Input type="text" inputMode="decimal" placeholder="0,00" value={item.freight_per_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, freight_per_kg: formatRepasseInput(e.target.value) } : i) }))} />
                            </div>
                          </div>
                        </div>
@@ -1022,7 +1097,6 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                   <TableHead className="text-right">Rolos</TableHead>
                   <TableHead className="text-right">R$/kg Cliente</TableHead>
                   <TableHead className="text-right">R$/kg Repasse</TableHead>
-                  <TableHead className="text-right">Frete/kg</TableHead>
                   <TableHead className="text-right">Lucro/kg</TableHead>
                   <TableHead className="text-right">Lucro Total</TableHead>
                   <TableHead>NF/ROM</TableHead>
@@ -1053,9 +1127,6 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                     <TableCell className="text-right">{p.rolls}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.client_value_per_kg)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.outsource_value_per_kg)}</TableCell>
-                    <TableCell className="text-right">
-                      {p.freight_per_kg > 0 ? <span className="text-blue-600">{formatCurrency(p.freight_per_kg)}</span> : '—'}
-                    </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline" className={`whitespace-nowrap ${p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}`}>
                         {formatCurrency(p.profit_per_kg)}
