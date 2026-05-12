@@ -966,10 +966,6 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                              <Label>Repasse *</Label>
                              <Input type="text" inputMode="decimal" placeholder="0,00" value={item.outsource_value_per_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, outsource_value_per_kg: formatRepasseInput(e.target.value) } : i) }))} />
                            </div>
-                           <div className="space-y-2">
-                             <Label>Frete</Label>
-                             <Input type="text" inputMode="decimal" placeholder="0,00" value={item.freight_per_kg} onChange={e => setForm(f => ({ ...f, items: f.items.map(i => i.id === item.id ? { ...i, freight_per_kg: formatRepasseInput(e.target.value) } : i) }))} />
-                           </div>
                          </div>
                        </div>
                      </div>
@@ -1101,7 +1097,6 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                   <TableHead className="text-right">Rolos</TableHead>
                   <TableHead className="text-right">R$/kg Cliente</TableHead>
                   <TableHead className="text-right">R$/kg Repasse</TableHead>
-                  <TableHead className="text-right">Frete/kg</TableHead>
                   <TableHead className="text-right">Lucro/kg</TableHead>
                   <TableHead className="text-right">Lucro Total</TableHead>
                   <TableHead>NF/ROM</TableHead>
@@ -1132,9 +1127,6 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                     <TableCell className="text-right">{p.rolls}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.client_value_per_kg)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.outsource_value_per_kg)}</TableCell>
-                    <TableCell className="text-right">
-                      {p.freight_per_kg > 0 ? <span className="text-blue-600">{formatCurrency(p.freight_per_kg)}</span> : '—'}
-                    </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline" className={`whitespace-nowrap ${p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}`}>
                         {formatCurrency(p.profit_per_kg)}
