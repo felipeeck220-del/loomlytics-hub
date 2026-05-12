@@ -362,11 +362,9 @@
                         <span className="text-xs font-medium">
                           {(() => { const parts = f.date.split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : f.date; })()}
                         </span>
-                        {f.created_by_name && (
-                          <span className="text-[10px] text-muted-foreground leading-tight">
-                            {f.created_by_name} {f.created_by_code ? `(Cód: ${f.created_by_code})` : ''}
-                          </span>
-                        )}
+                        <span className="text-[10px] text-muted-foreground leading-tight">
+                          {f.created_by_name || 'Sistema'} #{f.id.substring(0, 4)} - {format(new Date(f.created_at), 'dd/MM/yy HH:mm')}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{f.outsource_company_name || 'Não Informado'}</TableCell>
