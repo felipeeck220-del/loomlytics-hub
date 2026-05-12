@@ -180,6 +180,22 @@
  
     const filteredFreights = useMemo(() => {
       let result = [...freights];
+
+      // Month filter
+      if (filterMonth) {
+        result = result.filter(f => f.date.startsWith(filterMonth));
+      }
+
+      // Date range filter
+      if (filterFrom) {
+        const from = format(filterFrom, 'yyyy-MM-dd');
+        result = result.filter(f => f.date >= from);
+      }
+      if (filterTo) {
+        const to = format(filterTo, 'yyyy-MM-dd');
+        result = result.filter(f => f.date <= to);
+      }
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         result = result.filter(f => 
@@ -188,7 +204,7 @@
         );
       }
       return result;
-    }, [freights, searchQuery]);
+    }, [freights, searchQuery, filterMonth, filterFrom, filterTo]);
  
    const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo;
  
