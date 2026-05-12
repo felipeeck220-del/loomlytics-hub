@@ -113,20 +113,21 @@ export default function Outsource() {
    // Fetch outsource freights
    const { data: freights = [], isLoading: loadingFreights } = useQuery({
      queryKey: ['outsource_freights', companyId],
-     queryFn: async () => {
-       const { data, error } = await sb('outsource_freights')
-         .select('*, outsource_companies(name)')
-         .eq('company_id', companyId)
-         .order('date', { ascending: false });
-       if (error) throw error;
-       return (data as any[]).map(f => ({
-         ...f,
-         outsource_company_name: f.outsource_companies?.name,
-         weight_kg: Number(f.weight_kg),
-         freight_per_kg: Number(f.freight_per_kg),
-         total_freight: Number(f.total_freight),
-       })) as OutsourceFreight[];
-     },
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('outsource_freights')
+          .select('*, outsource_companies(name)')
+          .eq('company_id', companyId)
+          .order('date', { ascending: false });
+        if (error) throw error;
+        return (data as any[]).map(f => ({
+          ...f,
+          outsource_company_name: f.outsource_companies?.name,
+          weight_kg: Number(f.weight_kg),
+          freight_per_kg: Number(f.freight_per_kg),
+          total_freight: Number(f.total_freight),
+        })) as OutsourceFreight[];
+      },
      enabled: !!companyId,
    });
  
