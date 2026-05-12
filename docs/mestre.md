@@ -4,7 +4,7 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
- *Última atualização: 12/05/2026 14:00 (Brasília)*
+ *Última atualização: 12/05/2026 14:15 (Brasília)*
 # 📋 MESTRE.MD — Documentação Mestre do Projeto MalhaGest
 
 > **⚠️ INSTRUÇÕES OBRIGATÓRIAS PARA A IA (LOVABLE):**
@@ -1559,5 +1559,7 @@ logAction('modulo_create', { name: 'Item X', value: 100 });
  
           - **10/05/2026 16:15 (Brasília)** — **PRODUÇÃO — Correção de Travamento nos Filtros:** (1) Identificado travamento causado pela re-criação da função `clearFilters` em cada render, gerando ciclos de atualização; (2) Aplicado `useCallback` para estabilizar a função; (3) Mantida a integridade dos filtros de produção.
  
-          *Última atualização: 12/05/2026 14:00 (Brasília)*
+          *Última atualização: 12/05/2026 14:15 (Brasília)*
 - **12/05/2026 14:00 (Brasília)** — **TERCEIRIZADO — Reorganização do Frete:** (1) Criada a tabela outsource_freights para gestão independente de fretes; (2) Migrados dados de frete existentes de outsource_productions; (3) Adicionada nova aba Frete em /outsource com tabela e modal de registro dedicados; (4) Removido campo de frete do modal de produção para centralizar a gestão; (5) Atualizada lógica de KPIs para consolidar fretes de ambas as fontes.
+- **12/05/2026 14:15 (Brasília)** — **TERCEIRIZADO — Limpeza de Frete nas Produções:** (1) Verificados registros de produções terceirizadas que possuíam frete; (2) Confirmado que a migração para a nova tabela  foi concluída com sucesso; (3) Zerada a coluna  na tabela  e atualizado o mapeamento no frontend para garantir que novos fretes sejam geridos exclusivamente pela nova aba, evitando duplicidade de custos nos KPIs.
+- **12/05/2026 14:15 (Brasília)** — **TERCEIRIZADO — Limpeza de Frete nas Produções:** (1) Verificados registros de produções terceirizadas que possuíam frete; (2) Confirmado que a migração para a nova tabela 'outsource_freights' foi concluída com sucesso; (3) Zerada a coluna 'freight_per_kg' na tabela 'outsource_productions' e atualizado o mapeamento no frontend para garantir que novos fretes sejam geridos exclusivamente pela nova aba, evitando duplicidade de custos nos KPIs.
