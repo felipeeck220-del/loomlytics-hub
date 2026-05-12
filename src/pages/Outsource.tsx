@@ -236,16 +236,17 @@ export default function Outsource() {
       const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
       const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
 
-      // Important: if some productions STILL have freight_per_kg in DB (before cleanup),
-      // they might be contributing to total_profit. But we decided to use new table.
-      const totalFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
+      // Include historical freights still in productions table + new freights from freights table
+      const historicalFreight = displayProductions.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
+      const newFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
+      const totalFreight = historicalFreight + newFreight;
 
-      // Global Profit = Revenue - Repasse - Fretes
+      // Global Profit = Revenue - Repasse - Total Freight
       const totalProfit = totalRevenue - totalCost - totalFreight;
 
       const totalLoss = displayProductions
-        .filter(p => (p.total_revenue - p.total_cost) < 0)
-        .reduce((s, p) => s + (p.total_revenue - p.total_cost), 0);
+        .filter(p => p.total_profit < 0)
+        .reduce((s, p) => s + p.total_profit, 0);
 
       return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
     }, [displayProductions, filteredFreights]);
