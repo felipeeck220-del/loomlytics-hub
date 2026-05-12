@@ -152,18 +152,28 @@ export default function Outsource() {
         hasMore = data.length === PAGE_SIZE;
         from += PAGE_SIZE;
       }
-      return (allData as OutsourceProduction[]).map(p => ({
-        ...p,
-        weight_kg: Number(p.weight_kg),
-        rolls: Number(p.rolls),
-        client_value_per_kg: Number(p.client_value_per_kg),
-        outsource_value_per_kg: Number(p.outsource_value_per_kg),
-        freight_per_kg: 0,
-        profit_per_kg: Number(p.profit_per_kg),
-        total_revenue: Number(p.total_revenue),
-        total_cost: Number(p.total_cost),
-        total_profit: Number(p.total_profit),
-      }));
+      return (allData as OutsourceProduction[]).map(p => {
+        const weight = Number(p.weight_kg);
+        const clientVal = Number(p.client_value_per_kg);
+        const outsourceVal = Number(p.outsource_value_per_kg);
+        const revenue = weight * clientVal;
+        const cost = weight * outsourceVal;
+        const profitKg = clientVal - outsourceVal;
+        const profitTotal = revenue - cost;
+
+        return {
+          ...p,
+          weight_kg: weight,
+          rolls: Number(p.rolls),
+          client_value_per_kg: clientVal,
+          outsource_value_per_kg: outsourceVal,
+          freight_per_kg: 0,
+          profit_per_kg: profitKg,
+          total_revenue: revenue,
+          total_cost: cost,
+          total_profit: profitTotal,
+        };
+      });
     },
     enabled: !!companyId,
   });
