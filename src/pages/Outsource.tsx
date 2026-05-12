@@ -322,6 +322,7 @@ export default function Outsource() {
               setFilterFrom={setFilterFrom}
               filterTo={filterTo}
               setFilterTo={setFilterTo}
+              companyName={companyName}
             />
           </TabsContent>
 
