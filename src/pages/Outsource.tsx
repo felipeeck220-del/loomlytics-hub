@@ -152,18 +152,28 @@ export default function Outsource() {
         hasMore = data.length === PAGE_SIZE;
         from += PAGE_SIZE;
       }
-      return (allData as OutsourceProduction[]).map(p => ({
-        ...p,
-        weight_kg: Number(p.weight_kg),
-        rolls: Number(p.rolls),
-        client_value_per_kg: Number(p.client_value_per_kg),
-        outsource_value_per_kg: Number(p.outsource_value_per_kg),
-        freight_per_kg: 0,
-        profit_per_kg: Number(p.profit_per_kg),
-        total_revenue: Number(p.total_revenue),
-        total_cost: Number(p.total_cost),
-        total_profit: Number(p.total_profit),
-      }));
+      return (allData as OutsourceProduction[]).map(p => {
+        const weight = Number(p.weight_kg);
+        const clientVal = Number(p.client_value_per_kg);
+        const outsourceVal = Number(p.outsource_value_per_kg);
+        const revenue = weight * clientVal;
+        const cost = weight * outsourceVal;
+        const profitKg = clientVal - outsourceVal;
+        const profitTotal = revenue - cost;
+
+        return {
+          ...p,
+          weight_kg: weight,
+          rolls: Number(p.rolls),
+          client_value_per_kg: clientVal,
+          outsource_value_per_kg: outsourceVal,
+          freight_per_kg: 0,
+          profit_per_kg: profitKg,
+          total_revenue: revenue,
+          total_cost: cost,
+          total_profit: profitTotal,
+        };
+      });
     },
     enabled: !!companyId,
   });
@@ -201,8 +211,8 @@ export default function Outsource() {
     return result;
   }, [productions, filterMonth, filterFrom, filterTo]);
 
-  // KPIs based on filtered productions
-   const displayFreights = useMemo(() => {
+   // KPIs based on filtered data
+   const filteredFreights = useMemo(() => {
      let result = freights;
      if (filterMonth) result = result.filter(f => f.date.startsWith(filterMonth));
      if (filterFrom) {
@@ -215,28 +225,19 @@ export default function Outsource() {
      }
      return result;
    }, [freights, filterMonth, filterFrom, filterTo]);
- 
+
    const totals = useMemo(() => {
      const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
      const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
      const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
      const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
-     
-     // Total Freight comes from the freights table
-     const totalFreight = displayFreights.reduce((s, f) => s + f.total_freight, 0);
-     
-     // Global Profit: Gross Revenue - Total Cost - Total Freight
-     const grossProfit = totalRevenue - totalCost;
-     const totalProfit = grossProfit - totalFreight;
- 
-     // Recalculate total loss based on individual production profits (gross) and then subtracting the freights
-     // However, simpler to just keep the existing calculation logic but using new freight table.
-     // For individual production, profit is now client_revenue - outsource_cost.
+     const totalFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
+     const totalProfit = totalRevenue - totalCost - totalFreight;
      const totalLoss = displayProductions.filter(p => (p.total_revenue - p.total_cost) < 0)
        .reduce((s, p) => s + (p.total_revenue - p.total_cost), 0);
- 
+
      return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
-   }, [displayProductions, displayFreights]);
+   }, [displayProductions, filteredFreights]);
 
   const firstName = companyName.split(' ')[0] || 'Empresa';
 
@@ -299,7 +300,7 @@ export default function Outsource() {
  
           <TabsContent value="freights">
             <FreightsTab
-              freights={freights}
+              freights={filteredFreights}
               companies={companies}
               companyId={companyId}
               loading={loadingFreights}
@@ -320,9 +321,9 @@ export default function Outsource() {
            />
          </TabsContent>
 
-         <TabsContent value="reports">
-           <ReportsTab productions={productions} companies={companies} loading={loadingProductions} companyName={companyName} companyLogoUrl={companyLogoUrl} />
-         </TabsContent>
+          <TabsContent value="reports">
+            <ReportsTab productions={productions} freights={freights} companies={companies} loading={loadingProductions} companyName={companyName} companyLogoUrl={companyLogoUrl} />
+          </TabsContent>
        </Tabs>
      </div>
    );
@@ -1203,8 +1204,9 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 
 // ─── Reports Tab ─────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
-function ReportsTab({ productions, companies, loading, companyName, companyLogoUrl }: {
+function ReportsTab({ productions, freights, companies, loading, companyName, companyLogoUrl }: {
   productions: OutsourceProduction[];
+  freights: OutsourceFreight[];
   companies: OutsourceCompany[];
   loading: boolean;
   companyName?: string;
@@ -1273,14 +1275,33 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     return result;
   }, [productions, startDate, endDate, profitFilter, reportMonth, selectedCompanyId, selectedClientName]);
 
-  const totals = useMemo(() => ({
-    revenue: filtered.reduce((s, p) => s + p.total_revenue, 0),
-    cost: filtered.reduce((s, p) => s + p.total_cost, 0),
-    profit: filtered.reduce((s, p) => s + p.total_profit, 0),
-    weight: filtered.reduce((s, p) => s + p.weight_kg, 0),
-    rolls: filtered.reduce((s, p) => s + p.rolls, 0),
-    freight: 0,
-  }), [filtered]);
+  const totals = useMemo(() => {
+    const revenue = filtered.reduce((s, p) => s + p.total_revenue, 0);
+    const cost = filtered.reduce((s, p) => s + p.total_cost, 0);
+    const weight = filtered.reduce((s, p) => s + p.weight_kg, 0);
+    const rolls = filtered.reduce((s, p) => s + p.rolls, 0);
+
+    let filteredFreights = [...freights];
+    if (selectedCompanyId !== '_all') {
+      filteredFreights = filteredFreights.filter(f => f.outsource_company_id === selectedCompanyId);
+    }
+    if (reportMonth) {
+      filteredFreights = filteredFreights.filter(f => f.date.startsWith(reportMonth));
+    }
+    if (startDate) {
+      const start = format(startDate, 'yyyy-MM-dd');
+      filteredFreights = filteredFreights.filter(f => f.date >= start);
+    }
+    if (endDate) {
+      const end = format(endDate, 'yyyy-MM-dd');
+      filteredFreights = filteredFreights.filter(f => f.date <= end);
+    }
+
+    const totalFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
+    const profit = revenue - cost - totalFreight;
+
+    return { revenue, cost, profit, weight, rolls, freight: totalFreight };
+  }, [filtered, freights, reportMonth, startDate, endDate, selectedCompanyId]);
 
   const periodLabel = useMemo(() => {
     const today = format(new Date(), 'dd/MM/yyyy');
@@ -1476,6 +1497,12 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Custo</p>
             <p className="text-lg font-bold text-foreground">{formatCurrency(totals.cost)}</p>
           </div>
+          {totals.freight > 0 && (
+            <div className="rounded-lg border p-3 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Frete</p>
+              <p className="text-lg font-bold text-blue-600">{formatCurrency(totals.freight)}</p>
+            </div>
+          )}
           <div className={cn("rounded-lg border p-3", totals.profit >= 0 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-destructive/30 bg-destructive/5")}>
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro</p>
             <p className={cn("text-lg font-bold", totals.profit >= 0 ? "text-emerald-600" : "text-destructive")}>{formatCurrency(totals.profit)}</p>
