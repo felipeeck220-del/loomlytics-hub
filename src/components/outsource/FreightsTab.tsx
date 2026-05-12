@@ -638,7 +638,7 @@
                     </TableCell>
                  </TableRow>
                ))}
-                {filteredFreights.length > 0 && filterCompany !== '_all' ? (
+                {filteredFreights.length > 0 && filterCompany !== '_all' && (
                   <TableRow className="bg-muted/50 font-bold">
                     <TableCell colSpan={3} className="text-right py-3 text-xs uppercase tracking-wider text-muted-foreground">
                       Totais Selecionados:
@@ -652,9 +652,13 @@
                     </TableCell>
                     <TableCell />
                   </TableRow>
-                ) : (
+                )}
+                
+                {filteredFreights.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado.</TableCell>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Nenhum registro encontrado.
+                    </TableCell>
                   </TableRow>
                 )}
              </TableBody>
