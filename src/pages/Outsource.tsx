@@ -116,13 +116,13 @@ export default function Outsource() {
       queryFn: async () => {
         const { data, error } = await supabase
           .from('outsource_freights')
-          .select('*, outsource_companies(name)')
+          .select('*, outsource_companies!left(name)')
           .eq('company_id', companyId)
           .order('date', { ascending: false });
         if (error) throw error;
-        return (data as any[]).map(f => ({
+        return (data || []).map(f => ({
           ...f,
-          outsource_company_name: f.outsource_companies?.name,
+          outsource_company_name: f.outsource_companies?.name || 'Não Informado',
           weight_kg: Number(f.weight_kg),
           freight_per_kg: Number(f.freight_per_kg),
           total_freight: Number(f.total_freight),
