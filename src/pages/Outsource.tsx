@@ -211,8 +211,8 @@ export default function Outsource() {
     return result;
   }, [productions, filterMonth, filterFrom, filterTo]);
 
-  // KPIs based on filtered productions
-   const displayFreights = useMemo(() => {
+   // KPIs based on filtered data
+   const filteredFreights = useMemo(() => {
      let result = freights;
      if (filterMonth) result = result.filter(f => f.date.startsWith(filterMonth));
      if (filterFrom) {
@@ -225,28 +225,19 @@ export default function Outsource() {
      }
      return result;
    }, [freights, filterMonth, filterFrom, filterTo]);
- 
+
    const totals = useMemo(() => {
      const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
      const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
      const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
      const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
-     
-     // Total Freight comes from the freights table
-     const totalFreight = displayFreights.reduce((s, f) => s + f.total_freight, 0);
-     
-     // Global Profit: Gross Revenue - Total Cost - Total Freight
-     const grossProfit = totalRevenue - totalCost;
-     const totalProfit = grossProfit - totalFreight;
- 
-     // Recalculate total loss based on individual production profits (gross) and then subtracting the freights
-     // However, simpler to just keep the existing calculation logic but using new freight table.
-     // For individual production, profit is now client_revenue - outsource_cost.
+     const totalFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
+     const totalProfit = totalRevenue - totalCost - totalFreight;
      const totalLoss = displayProductions.filter(p => (p.total_revenue - p.total_cost) < 0)
        .reduce((s, p) => s + (p.total_revenue - p.total_cost), 0);
- 
+
      return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
-   }, [displayProductions, displayFreights]);
+   }, [displayProductions, filteredFreights]);
 
   const firstName = companyName.split(' ')[0] || 'Empresa';
 
@@ -309,7 +300,7 @@ export default function Outsource() {
  
           <TabsContent value="freights">
             <FreightsTab
-              freights={freights}
+              freights={filteredFreights}
               companies={companies}
               companyId={companyId}
               loading={loadingFreights}
