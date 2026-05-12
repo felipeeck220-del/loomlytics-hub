@@ -15,8 +15,8 @@
  <TableCell className="py-2">
    <div className="flex flex-col">
      <span className="text-sm font-medium">{formatDate(item.date)}</span>
-      <span className="text-[10px] text-muted-foreground leading-tight">
-        {item.created_by_name} #{item.created_by_code} - {formatDateTime(item.created_at)}
+      <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
+        {item.created_by_name} #{item.created_by_code} - {"\n"}{formatDateTime(item.created_at)}
       </span>
    </div>
  </TableCell>

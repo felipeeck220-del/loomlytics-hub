@@ -362,8 +362,8 @@
                         <span className="text-xs font-medium">
                           {(() => { const parts = f.date.split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : f.date; })()}
                         </span>
-                        <span className="text-[10px] text-muted-foreground leading-tight">
-                          {f.created_by_name || 'Sistema'} #{f.created_by_code || '0'} - {format(new Date(f.created_at), 'dd/MM/yy HH:mm')}
+                        <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
+                          {f.created_by_name || 'Sistema'} #{f.created_by_code || '0'} - {"\n"}{format(new Date(f.created_at), 'dd/MM/yy HH:mm')}
                         </span>
                       </div>
                     </TableCell>
