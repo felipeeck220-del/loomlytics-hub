@@ -178,26 +178,17 @@
      return Array.from(months).sort().reverse();
    }, [freights]);
  
-   const filteredFreights = useMemo(() => {
-     let result = [...freights];
-     if (filterMonth) result = result.filter(f => f.date.startsWith(filterMonth));
-     if (filterFrom) {
-       const from = format(filterFrom, 'yyyy-MM-dd');
-       result = result.filter(f => f.date >= from);
-     }
-     if (filterTo) {
-       const to = format(filterTo, 'yyyy-MM-dd');
-       result = result.filter(f => f.date <= to);
-     }
-     if (searchQuery.trim()) {
-       const q = searchQuery.toLowerCase();
-       result = result.filter(f => 
-         f.outsource_company_name?.toLowerCase().includes(q) || 
-         f.nf_rom?.toLowerCase().includes(q)
-       );
-     }
-     return result;
-   }, [freights, filterMonth, filterFrom, filterTo, searchQuery]);
+    const filteredFreights = useMemo(() => {
+      let result = [...freights];
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        result = result.filter(f => 
+          f.outsource_company_name?.toLowerCase().includes(q) || 
+          f.nf_rom?.toLowerCase().includes(q)
+        );
+      }
+      return result;
+    }, [freights, searchQuery]);
  
    const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo;
  
