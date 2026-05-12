@@ -1204,8 +1204,9 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 
 // ─── Reports Tab ─────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
-function ReportsTab({ productions, companies, loading, companyName, companyLogoUrl }: {
+function ReportsTab({ productions, freights, companies, loading, companyName, companyLogoUrl }: {
   productions: OutsourceProduction[];
+  freights: OutsourceFreight[];
   companies: OutsourceCompany[];
   loading: boolean;
   companyName?: string;
