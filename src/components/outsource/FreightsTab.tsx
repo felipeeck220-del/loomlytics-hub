@@ -198,10 +198,11 @@
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        result = result.filter(f => 
-          f.outsource_company_name?.toLowerCase().includes(q) || 
-          f.nf_rom?.toLowerCase().includes(q)
-        );
+        result = result.filter(f => {
+          const companyName = (f.outsource_company_name || 'não informado').toLowerCase();
+          const nfRom = (f.nf_rom || '').toLowerCase();
+          return companyName.includes(q) || nfRom.includes(q);
+        });
       }
       return result;
     }, [freights, searchQuery, filterMonth, filterFrom, filterTo]);
