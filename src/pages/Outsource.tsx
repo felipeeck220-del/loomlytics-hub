@@ -218,21 +218,21 @@ export default function Outsource() {
    const totals = useMemo(() => {
      const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
      const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
-     // The profit card should still reflect the production profit which ALREADY has freight deducted (historically)
-     // but for NEW entries we should ensure the logic is consistent. 
-     // If we separate freights, the profit calculation in ProductionsTab should NOT subtract freight if it's being managed here.
-     // However, the user said "os fretes listados continuam aparecendo em Frete Total nos cards e descontando do lucro, exatamente como está"
      const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
      const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
-     const totalLoss = displayProductions.filter(p => p.total_profit < 0).reduce((s, p) => s + p.total_profit, 0);
      
      // Total Freight comes from the freights table
      const totalFreight = displayFreights.reduce((s, f) => s + f.total_freight, 0);
      
      // Global Profit: Gross Revenue - Total Cost - Total Freight
-     // Gross Revenue and Cost from productions
      const grossProfit = totalRevenue - totalCost;
      const totalProfit = grossProfit - totalFreight;
+ 
+     // Recalculate total loss based on individual production profits (gross) and then subtracting the freights
+     // However, simpler to just keep the existing calculation logic but using new freight table.
+     // For individual production, profit is now client_revenue - outsource_cost.
+     const totalLoss = displayProductions.filter(p => (p.total_revenue - p.total_cost) < 0)
+       .reduce((s, p) => s + (p.total_revenue - p.total_cost), 0);
  
      return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
    }, [displayProductions, displayFreights]);
