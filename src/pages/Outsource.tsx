@@ -542,7 +542,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
      date: format(new Date(), 'yyyy-MM-dd'),
      nf_rom: '',
      observations: '',
-     items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+     items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: "0" }]
    });
 
   const resetForm = useCallback((keepCompany = false) => {
@@ -551,7 +551,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
       date: format(new Date(), 'yyyy-MM-dd'),
       nf_rom: '',
       observations: '',
-      items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+      items: [{ id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: "0" }]
     }));
     setEditId(null);
   }, []);
@@ -918,7 +918,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                    {!editId && (
                      <Button type="button" variant="outline" size="sm" onClick={() => setForm(f => ({
                        ...f,
-                       items: [...f.items, { id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: '' }]
+                       items: [...f.items, { id: crypto.randomUUID(), article_id: '', weight_kg: '', rolls: '', outsource_value_per_kg: '', freight_per_kg: "0" }]
                      }))}>
                        <Plus className="h-4 w-4 mr-1" /> Adicionar Artigo
                      </Button>
