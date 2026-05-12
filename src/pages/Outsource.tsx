@@ -28,7 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
  import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
  import { SearchableSelect } from '@/components/SearchableSelect';
-
+ import { FreightsTab } from '@/components/outsource/FreightsTab';
 const sb = (table: string) => (supabase.from as any)(table);
 
 interface OutsourceCompany {
