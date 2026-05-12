@@ -126,13 +126,13 @@
          created_by_code: userCode || null,
        };
  
-       if (editId) {
-         const { error } = await sb('outsource_freights').update(data).eq('id', editId);
-         if (error) throw error;
-       } else {
-         const { error } = await sb('outsource_freights').insert(data);
-         if (error) throw error;
-       }
+        if (editId) {
+          const { error } = await supabase.from('outsource_freights').update(data).eq('id', editId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('outsource_freights').insert(data);
+          if (error) throw error;
+        }
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['outsource_freights'] });
@@ -144,11 +144,11 @@
      onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
    });
  
-   const deleteMutation = useMutation({
-     mutationFn: async (id: string) => {
-       const { error } = await sb('outsource_freights').delete().eq('id', id);
-       if (error) throw error;
-     },
+    const deleteMutation = useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.from('outsource_freights').delete().eq('id', id);
+        if (error) throw error;
+      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['outsource_freights'] });
        logAction('outsource_freight_delete', {});
@@ -178,26 +178,33 @@
      return Array.from(months).sort().reverse();
    }, [freights]);
  
-   const filteredFreights = useMemo(() => {
-     let result = [...freights];
-     if (filterMonth) result = result.filter(f => f.date.startsWith(filterMonth));
-     if (filterFrom) {
-       const from = format(filterFrom, 'yyyy-MM-dd');
-       result = result.filter(f => f.date >= from);
-     }
-     if (filterTo) {
-       const to = format(filterTo, 'yyyy-MM-dd');
-       result = result.filter(f => f.date <= to);
-     }
-     if (searchQuery.trim()) {
-       const q = searchQuery.toLowerCase();
-       result = result.filter(f => 
-         f.outsource_company_name?.toLowerCase().includes(q) || 
-         f.nf_rom?.toLowerCase().includes(q)
-       );
-     }
-     return result;
-   }, [freights, filterMonth, filterFrom, filterTo, searchQuery]);
+    const filteredFreights = useMemo(() => {
+      let result = [...freights];
+
+      // Month filter
+      if (filterMonth) {
+        result = result.filter(f => f.date.startsWith(filterMonth));
+      }
+
+      // Date range filter
+      if (filterFrom) {
+        const from = format(filterFrom, 'yyyy-MM-dd');
+        result = result.filter(f => f.date >= from);
+      }
+      if (filterTo) {
+        const to = format(filterTo, 'yyyy-MM-dd');
+        result = result.filter(f => f.date <= to);
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        result = result.filter(f => 
+          f.outsource_company_name?.toLowerCase().includes(q) || 
+          f.nf_rom?.toLowerCase().includes(q)
+        );
+      }
+      return result;
+    }, [freights, searchQuery, filterMonth, filterFrom, filterTo]);
  
    const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo;
  

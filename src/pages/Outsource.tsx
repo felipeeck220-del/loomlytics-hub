@@ -113,20 +113,21 @@ export default function Outsource() {
    // Fetch outsource freights
    const { data: freights = [], isLoading: loadingFreights } = useQuery({
      queryKey: ['outsource_freights', companyId],
-     queryFn: async () => {
-       const { data, error } = await sb('outsource_freights')
-         .select('*, outsource_companies(name)')
-         .eq('company_id', companyId)
-         .order('date', { ascending: false });
-       if (error) throw error;
-       return (data as any[]).map(f => ({
-         ...f,
-         outsource_company_name: f.outsource_companies?.name,
-         weight_kg: Number(f.weight_kg),
-         freight_per_kg: Number(f.freight_per_kg),
-         total_freight: Number(f.total_freight),
-       })) as OutsourceFreight[];
-     },
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('outsource_freights')
+          .select('*, outsource_companies(name)')
+          .eq('company_id', companyId)
+          .order('date', { ascending: false });
+        if (error) throw error;
+        return (data as any[]).map(f => ({
+          ...f,
+          outsource_company_name: f.outsource_companies?.name,
+          weight_kg: Number(f.weight_kg),
+          freight_per_kg: Number(f.freight_per_kg),
+          total_freight: Number(f.total_freight),
+        })) as OutsourceFreight[];
+      },
      enabled: !!companyId,
    });
  
@@ -298,7 +299,7 @@ export default function Outsource() {
  
           <TabsContent value="freights">
             <FreightsTab
-              freights={displayFreights}
+              freights={freights}
               companies={companies}
               companyId={companyId}
               loading={loadingFreights}
@@ -1278,7 +1279,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     profit: filtered.reduce((s, p) => s + p.total_profit, 0),
     weight: filtered.reduce((s, p) => s + p.weight_kg, 0),
     rolls: filtered.reduce((s, p) => s + p.rolls, 0),
-    freight: filtered.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0),
+    freight: 0,
   }), [filtered]);
 
   const periodLabel = useMemo(() => {
@@ -1475,12 +1476,6 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Custo</p>
             <p className="text-lg font-bold text-foreground">{formatCurrency(totals.cost)}</p>
           </div>
-          {totals.freight > 0 && (
-            <div className="rounded-lg border p-3 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Frete</p>
-              <p className="text-lg font-bold text-blue-600">{formatCurrency(totals.freight)}</p>
-            </div>
-          )}
           <div className={cn("rounded-lg border p-3", totals.profit >= 0 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-destructive/30 bg-destructive/5")}>
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro</p>
             <p className={cn("text-lg font-bold", totals.profit >= 0 ? "text-emerald-600" : "text-destructive")}>{formatCurrency(totals.profit)}</p>
@@ -1503,7 +1498,6 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
                   <TableHead className="text-right">Rolos</TableHead>
                   <TableHead className="text-right">R$/kg Cliente</TableHead>
                   <TableHead className="text-right">R$/kg Repasse</TableHead>
-                  <TableHead className="text-right">Frete/kg</TableHead>
                   <TableHead className="text-right">Lucro/kg</TableHead>
                   <TableHead className="text-right">Lucro Total</TableHead>
                 </TableRow>
@@ -1519,7 +1513,6 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
                     <TableCell className="text-right">{p.rolls}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.client_value_per_kg)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(p.outsource_value_per_kg)}</TableCell>
-                    <TableCell className="text-right">{p.freight_per_kg > 0 ? <span className="text-blue-600">{formatCurrency(p.freight_per_kg)}</span> : '—'}</TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline" className={p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}>
                         {formatCurrency(p.profit_per_kg)}
