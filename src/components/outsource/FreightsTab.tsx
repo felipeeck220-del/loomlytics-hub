@@ -351,15 +351,24 @@
                  <TableHead className="text-right">Peso (kg)</TableHead>
                  <TableHead className="text-right">Frete/kg</TableHead>
                  <TableHead className="text-right font-bold text-blue-600">Frete Total</TableHead>
-                  <TableHead className="w-32 text-right">Ações</TableHead>
+                  <TableHead className="w-20 text-right">Ações</TableHead>
                </TableRow>
              </TableHeader>
              <TableBody>
                {filteredFreights.map(f => (
                  <TableRow key={f.id}>
-                   <TableCell className="text-xs">
-                     {(() => { const parts = f.date.split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : f.date; })()}
-                   </TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium">
+                          {(() => { const parts = f.date.split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : f.date; })()}
+                        </span>
+                        {f.created_by_name && (
+                          <span className="text-[10px] text-muted-foreground leading-tight">
+                            {f.created_by_name} {f.created_by_code ? `(Cód: ${f.created_by_code})` : ''}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-medium">{f.outsource_company_name || 'Não Informado'}</TableCell>
                    <TableCell>{f.nf_rom || '—'}</TableCell>
                    <TableCell className="text-right">{formatWeight(f.weight_kg)}</TableCell>
@@ -367,12 +376,6 @@
                     <TableCell className="text-right font-bold text-blue-600">{formatCurrency(f.total_freight)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-1">
-                        {f.created_by_name && (
-                          <div className="flex flex-col items-end mr-2 text-[10px] text-muted-foreground leading-tight hidden xs:flex">
-                            <span className="font-medium">{f.created_by_name}</span>
-                            <span>{f.created_by_code ? `Cód: ${f.created_by_code}` : ''}</span>
-                          </div>
-                        )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(f)}><Edit className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(f.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
