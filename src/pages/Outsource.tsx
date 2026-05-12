@@ -228,18 +228,25 @@ export default function Outsource() {
      return result;
    }, [freights, filterMonth, filterFrom, filterTo]);
 
-   const totals = useMemo(() => {
-     const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
-     const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
-     const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
-     const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
-     const totalFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
-     const totalProfit = totalRevenue - totalCost - totalFreight;
-     const totalLoss = displayProductions.filter(p => (p.total_revenue - p.total_cost) < 0)
-       .reduce((s, p) => s + (p.total_revenue - p.total_cost), 0);
+    const totals = useMemo(() => {
+      const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
+      const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
+      const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
+      const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
 
-     return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
-   }, [displayProductions, filteredFreights]);
+      // Important: if some productions STILL have freight_per_kg in DB (before cleanup),
+      // they might be contributing to total_profit. But we decided to use new table.
+      const totalFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
+
+      // Global Profit = Revenue - Repasse - Fretes
+      const totalProfit = totalRevenue - totalCost - totalFreight;
+
+      const totalLoss = displayProductions
+        .filter(p => (p.total_revenue - p.total_cost) < 0)
+        .reduce((s, p) => s + (p.total_revenue - p.total_cost), 0);
+
+      return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
+    }, [displayProductions, filteredFreights]);
 
   const firstName = companyName.split(' ')[0] || 'Empresa';
 
