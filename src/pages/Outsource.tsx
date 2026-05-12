@@ -1275,14 +1275,33 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
     return result;
   }, [productions, startDate, endDate, profitFilter, reportMonth, selectedCompanyId, selectedClientName]);
 
-  const totals = useMemo(() => ({
-    revenue: filtered.reduce((s, p) => s + p.total_revenue, 0),
-    cost: filtered.reduce((s, p) => s + p.total_cost, 0),
-    profit: filtered.reduce((s, p) => s + p.total_profit, 0),
-    weight: filtered.reduce((s, p) => s + p.weight_kg, 0),
-    rolls: filtered.reduce((s, p) => s + p.rolls, 0),
-    freight: 0,
-  }), [filtered]);
+  const totals = useMemo(() => {
+    const revenue = filtered.reduce((s, p) => s + p.total_revenue, 0);
+    const cost = filtered.reduce((s, p) => s + p.total_cost, 0);
+    const weight = filtered.reduce((s, p) => s + p.weight_kg, 0);
+    const rolls = filtered.reduce((s, p) => s + p.rolls, 0);
+
+    let filteredFreights = [...freights];
+    if (selectedCompanyId !== '_all') {
+      filteredFreights = filteredFreights.filter(f => f.outsource_company_id === selectedCompanyId);
+    }
+    if (reportMonth) {
+      filteredFreights = filteredFreights.filter(f => f.date.startsWith(reportMonth));
+    }
+    if (startDate) {
+      const start = format(startDate, 'yyyy-MM-dd');
+      filteredFreights = filteredFreights.filter(f => f.date >= start);
+    }
+    if (endDate) {
+      const end = format(endDate, 'yyyy-MM-dd');
+      filteredFreights = filteredFreights.filter(f => f.date <= end);
+    }
+
+    const totalFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
+    const profit = revenue - cost - totalFreight;
+
+    return { revenue, cost, profit, weight, rolls, freight: totalFreight };
+  }, [filtered, freights, reportMonth, startDate, endDate, selectedCompanyId]);
 
   const periodLabel = useMemo(() => {
     const today = format(new Date(), 'dd/MM/yyyy');
