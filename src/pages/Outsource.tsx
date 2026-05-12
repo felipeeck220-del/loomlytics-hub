@@ -163,17 +163,19 @@ export default function Outsource() {
         const profitKg = clientVal - outsourceVal;
         const profitTotal = revenue - cost;
 
+        const originalFreightPerKg = Number((p as any).freight_per_kg) || 0;
+
         return {
           ...p,
           weight_kg: weight,
           rolls: Number(p.rolls),
           client_value_per_kg: clientVal,
           outsource_value_per_kg: outsourceVal,
-          freight_per_kg: 0,
-          profit_per_kg: profitKg,
+          freight_per_kg: originalFreightPerKg,
+          profit_per_kg: profitKg - originalFreightPerKg,
           total_revenue: revenue,
           total_cost: cost,
-          total_profit: profitTotal,
+          total_profit: profitTotal - (weight * originalFreightPerKg),
         };
       });
     },
