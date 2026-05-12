@@ -7,7 +7,7 @@
  
  ## 🛠️ Implementação (Frontend)
  - **Data principal:** Formato `dd/mm/aaaa`.
- - **Audit Log:** Exibir o nome do usuário, o ID do registro (hash curto), a data e a hora exata do registro logo abaixo da data de competência.
+ - **Audit Log:** Exibir o nome do usuário acompanhado do seu código de identificação (#ID), seguido da data e hora exata do registro.
  - **Estilo:** Utilizar texto menor (`text-[10px]` ou `text-xs`) e cor secundária (`text-muted-foreground`).
  
  ## 📋 Exemplo de Estrutura:
@@ -16,7 +16,7 @@
    <div className="flex flex-col">
      <span className="text-sm font-medium">{formatDate(item.date)}</span>
       <span className="text-[10px] text-muted-foreground leading-tight">
-        {item.created_by_name} #{item.id.substring(0, 4)} - {formatDateTime(item.created_at)}
+        {item.created_by_name} #{item.created_by_code} - {formatDateTime(item.created_at)}
       </span>
    </div>
  </TableCell>
