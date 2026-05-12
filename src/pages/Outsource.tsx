@@ -321,9 +321,9 @@ export default function Outsource() {
            />
          </TabsContent>
 
-         <TabsContent value="reports">
-           <ReportsTab productions={productions} companies={companies} loading={loadingProductions} companyName={companyName} companyLogoUrl={companyLogoUrl} />
-         </TabsContent>
+          <TabsContent value="reports">
+            <ReportsTab productions={productions} freights={freights} companies={companies} loading={loadingProductions} companyName={companyName} companyLogoUrl={companyLogoUrl} />
+          </TabsContent>
        </Tabs>
      </div>
    );
