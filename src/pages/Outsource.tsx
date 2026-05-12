@@ -298,7 +298,7 @@ export default function Outsource() {
  
           <TabsContent value="freights">
             <FreightsTab
-              freights={freights}
+              freights={displayFreights}
               companies={companies}
               companyId={companyId}
               loading={loadingFreights}
