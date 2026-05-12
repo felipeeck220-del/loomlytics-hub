@@ -157,7 +157,7 @@ export default function Outsource() {
         rolls: Number(p.rolls),
         client_value_per_kg: Number(p.client_value_per_kg),
         outsource_value_per_kg: Number(p.outsource_value_per_kg),
-        freight_per_kg: Number((p as any).freight_per_kg) || 0,
+        freight_per_kg: 0,
         profit_per_kg: Number(p.profit_per_kg),
         total_revenue: Number(p.total_revenue),
         total_cost: Number(p.total_cost),
