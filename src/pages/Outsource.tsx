@@ -158,6 +158,8 @@ export default function Outsource() {
         const outsourceVal = Number(p.outsource_value_per_kg);
         const revenue = weight * clientVal;
         const cost = weight * outsourceVal;
+        // Original values from DB might already have freight_per_kg as 0 if I cleaned it
+        // but I need to make sure p.total_revenue and p.total_cost are correct
         const profitKg = clientVal - outsourceVal;
         const profitTotal = revenue - cost;
 
