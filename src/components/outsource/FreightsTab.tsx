@@ -126,13 +126,13 @@
          created_by_code: userCode || null,
        };
  
-       if (editId) {
-         const { error } = await sb('outsource_freights').update(data).eq('id', editId);
-         if (error) throw error;
-       } else {
-         const { error } = await sb('outsource_freights').insert(data);
-         if (error) throw error;
-       }
+        if (editId) {
+          const { error } = await supabase.from('outsource_freights').update(data).eq('id', editId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('outsource_freights').insert(data);
+          if (error) throw error;
+        }
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['outsource_freights'] });
@@ -144,11 +144,11 @@
      onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
    });
  
-   const deleteMutation = useMutation({
-     mutationFn: async (id: string) => {
-       const { error } = await sb('outsource_freights').delete().eq('id', id);
-       if (error) throw error;
-     },
+    const deleteMutation = useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.from('outsource_freights').delete().eq('id', id);
+        if (error) throw error;
+      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['outsource_freights'] });
        logAction('outsource_freight_delete', {});
