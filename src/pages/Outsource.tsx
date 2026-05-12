@@ -1279,7 +1279,7 @@ function ReportsTab({ productions, companies, loading, companyName, companyLogoU
     profit: filtered.reduce((s, p) => s + p.total_profit, 0),
     weight: filtered.reduce((s, p) => s + p.weight_kg, 0),
     rolls: filtered.reduce((s, p) => s + p.rolls, 0),
-    freight: filtered.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0),
+    freight: 0,
   }), [filtered]);
 
   const periodLabel = useMemo(() => {
