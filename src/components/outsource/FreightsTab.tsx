@@ -46,7 +46,20 @@
    name: string;
  }
  
- export function FreightsTab({ freights, companies, companyId, loading, filterMonth, setFilterMonth, filterFrom, setFilterFrom, filterTo, setFilterTo }: {
+  export function FreightsTab({ 
+    freights, 
+    companies, 
+    companyId, 
+    loading, 
+    filterMonth, 
+    setFilterMonth, 
+    filterFrom, 
+    setFilterFrom, 
+    filterTo, 
+    setFilterTo,
+    companyName,
+  }: {
+    companyName?: string;
    freights: OutsourceFreight[];
    companies: OutsourceCompany[];
    companyId: string;
@@ -222,68 +235,168 @@
       const pw = pdf.internal.pageSize.getWidth();
       const ph = pdf.internal.pageSize.getHeight();
       const m = 10;
-      let y = m + 10;
+      let y = m;
 
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(14);
-      pdf.text(sanitizePdfText('Relatório de Fretes Terceirizados'), m, y);
-      y += 6;
-      pdf.setFontSize(9);
+      const textDark: [number, number, number] = [17, 24, 39];
+      const textMid: [number, number, number] = [75, 85, 99];
+      const border: [number, number, number] = [229, 231, 235];
+      const date = format(new Date(), 'dd/MM/yyyy HH:mm');
+
+      // Header Box
+      const headerH = 25;
+      pdf.setFillColor(249, 250, 251);
+      pdf.rect(m, y, pw - 2 * m, headerH, 'F');
+      pdf.setDrawColor(...border);
+      pdf.setLineWidth(0.5);
+      pdf.rect(m, y, pw - 2 * m, headerH, 'S');
+
+      const leftX = m + 5;
+      const rightX = pw - m - 5;
+
+      // Company Name
+      if (companyName) {
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...textDark);
+        pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+      }
+
+      pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, m, y);
-      y += 10;
+      pdf.setTextColor(...textMid);
+      pdf.text(date, leftX, y + 22);
+
+      // Title
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...textDark);
+      const titleText = 'CONTROLE DE FRETE';
+      const titleW = pdf.getTextWidth(titleText);
+      pdf.text(titleText, (pw - titleW) / 2, y + 10);
+
+      // Period
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...textDark);
+      const periodTitle = 'Período';
+      pdf.text(periodTitle, rightX - pdf.getTextWidth(periodTitle), y + 10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...textMid);
+      
+      let periodLabel = 'Todos os registros';
+      if (filterMonth) {
+        const [year, mo] = filterMonth.split('-');
+        periodLabel = format(new Date(Number(year), Number(mo)-1, 1), 'MMMM/yyyy', { locale: ptBR });
+      } else if (filterFrom && filterTo) {
+        periodLabel = `${format(filterFrom, 'dd/MM/yy')} até ${format(filterTo, 'dd/MM/yy')}`;
+      } else if (filterFrom) {
+        periodLabel = `Desde ${format(filterFrom, 'dd/MM/yy')}`;
+      } else if (filterTo) {
+        periodLabel = `Até ${format(filterTo, 'dd/MM/yy')}`;
+      }
+
+      const periodLines = pdf.splitTextToSize(sanitizePdfText(periodLabel), 42) as string[];
+      periodLines.slice(0, 2).forEach((line, index) => {
+        pdf.text(line, rightX - pdf.getTextWidth(line), y + 16 + index * 5);
+      });
+
+      y += headerH + 10;
 
       // Header table
-      pdf.setFillColor(240, 240, 240);
+      pdf.setFillColor(241, 245, 249);
       pdf.rect(m, y, pw - 2*m, 8, 'F');
+      pdf.setDrawColor(...border);
+      pdf.setLineWidth(0.3);
+      pdf.rect(m, y, pw - 2*m, 8, 'S');
+      
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(8);
-      const cols = [20, 50, 30, 25, 25, 30]; // Data, Malharia, ROM, Peso, Frete/kg, Total
+      pdf.setFontSize(7);
+      pdf.setTextColor(71, 85, 105);
+      
+      const cols = [20, 50, 30, 25, 25, 30]; 
+      const scale = (pw - 2 * m) / cols.reduce((a, b) => a + b, 0);
+      const scaledCols = cols.map(w => w * scale);
+      
       let x = m;
       const headers = ['Data', 'Malharia', 'ROM/NF', 'Peso (kg)', 'Frete/kg', 'Total'];
       headers.forEach((h, i) => {
-        pdf.text(sanitizePdfText(h), x + 2, y + 5);
-        x += cols[i];
+        pdf.text(sanitizePdfText(h), x + 2, y + 5.5);
+        x += scaledCols[i];
       });
       y += 8;
 
       pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...textDark);
       let totalWeight = 0;
       let totalValue = 0;
 
-      filteredFreights.forEach(f => {
-        if (y > ph - 20) {
+      filteredFreights.forEach((f, index) => {
+        const rowH = 7;
+        if (y + rowH > ph - 20) {
           pdf.addPage();
-          y = m + 10;
+          y = m;
         }
+        
+        if (index % 2 === 1) {
+          pdf.setFillColor(250, 251, 252);
+          pdf.rect(m, y, pw - 2 * m, rowH, 'F');
+        }
+        pdf.setDrawColor(241, 245, 249);
+        pdf.setLineWidth(0.1);
+        pdf.rect(m, y, pw - 2 * m, rowH, 'S');
+
         x = m;
-        const date = format(new Date(f.date + 'T12:00:00'), 'dd/MM/yyyy');
+        const dateStr = format(new Date(f.date + 'T12:00:00'), 'dd/MM/yyyy');
         const data = [
-          date,
+          dateStr,
           f.outsource_company_name || 'Não Informado',
           f.nf_rom || '-',
-          formatWeight(f.weight_kg),
+          `${formatWeight(f.weight_kg)} kg`,
           formatCurrency(f.freight_per_kg),
           formatCurrency(f.total_freight)
         ];
 
         data.forEach((d, i) => {
-          pdf.text(sanitizePdfText(d), x + 2, y + 5);
-          x += cols[i];
+          const text = sanitizePdfText(d);
+          const fitText = text.length > 25 ? text.substring(0, 24) + '…' : text;
+          pdf.text(fitText, x + 2, y + 5);
+          x += scaledCols[i];
         });
 
         totalWeight += f.weight_kg;
         totalValue += f.total_freight;
-        y += 6;
-        pdf.setDrawColor(230, 230, 230);
-        pdf.line(m, y, pw - m, y);
+        y += rowH;
       });
 
-      y += 4;
+      // Totals Row
+      if (y + 8 > ph - 20) {
+        pdf.addPage();
+        y = m;
+      }
+      pdf.setFillColor(226, 232, 240);
+      pdf.rect(m, y, pw - 2 * m, 8, 'F');
+      pdf.setDrawColor(148, 163, 184);
+      pdf.setLineWidth(0.3);
+      pdf.line(m, y, pw - m, y);
+      
       pdf.setFont('helvetica', 'bold');
-      pdf.text('TOTAIS:', m, y + 5);
-      pdf.text(`Peso: ${formatWeight(totalWeight)}`, m + 70, y + 5);
-      pdf.text(`Valor: ${formatCurrency(totalValue)}`, m + 130, y + 5);
+      pdf.setFontSize(7);
+      pdf.setTextColor(...textDark);
+      pdf.text('TOTAL GERAL', m + 2, y + 5);
+      
+      x = m + scaledCols[0] + scaledCols[1] + scaledCols[2];
+      pdf.text(`${formatWeight(totalWeight)} kg`, x + 2, y + 5); x += scaledCols[3];
+      pdf.text('-', x + 2, y + 5); x += scaledCols[4];
+      pdf.text(formatCurrency(totalValue), x + 2, y + 5);
+
+      // Footer
+      y = ph - 10;
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(148, 163, 184);
+      const footer = `Relatório gerado automaticamente pelo sistema MalhaGest · ${date}`;
+      const fw = pdf.getTextWidth(footer);
+      pdf.text(footer, (pw - fw) / 2, y);
 
       pdf.save(`fretes_terceirizado_${format(new Date(), 'dd_MM_yyyy')}.pdf`);
       toast({ title: "PDF gerado com sucesso!" });
