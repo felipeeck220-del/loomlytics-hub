@@ -15,7 +15,9 @@
  import { Badge } from '@/components/ui/badge';
  import { toast } from '@/hooks/use-toast';
  import { formatCurrency, formatWeight, getDateLimits } from '@/lib/formatters';
- import { Plus, Trash2, Edit, Loader2, Search, CalendarIcon } from 'lucide-react';
+  import { Plus, Trash2, Edit, Loader2, Search, CalendarIcon, Download, FileText } from 'lucide-react';
+  import { jsPDF } from 'jspdf';
+  import { sanitizePdfText } from '@/lib/pdfUtils';
  import { format } from 'date-fns';
  import { ptBR } from 'date-fns/locale';
  import { cn, getFriendlyErrorMessage } from '@/lib/utils';
@@ -63,7 +65,8 @@
    const [searchQuery, setSearchQuery] = useState('');
    const [fromOpen, setFromOpen] = useState(false);
    const [toOpen, setToOpen] = useState(false);
-   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const [filterCompany, setFilterCompany] = useState<string>('_all');
  
    const [form, setForm] = useState({
      outsource_company_id: '',
@@ -196,6 +199,11 @@
         result = result.filter(f => f.date <= to);
       }
 
+      // Company filter
+      if (filterCompany !== '_all') {
+        result = result.filter(f => f.outsource_company_id === filterCompany);
+      }
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         result = result.filter(f => {
@@ -205,9 +213,81 @@
         });
       }
       return result;
-    }, [freights, searchQuery, filterMonth, filterFrom, filterTo]);
- 
-   const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo;
+    }, [freights, searchQuery, filterMonth, filterFrom, filterTo, filterCompany]);
+
+    const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo || filterCompany !== '_all';
+
+    const exportPdf = () => {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pw = pdf.internal.pageSize.getWidth();
+      const ph = pdf.internal.pageSize.getHeight();
+      const m = 10;
+      let y = m + 10;
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(14);
+      pdf.text(sanitizePdfText('Relatório de Fretes Terceirizados'), m, y);
+      y += 6;
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, m, y);
+      y += 10;
+
+      // Header table
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(m, y, pw - 2*m, 8, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
+      const cols = [20, 50, 30, 25, 25, 30]; // Data, Malharia, ROM, Peso, Frete/kg, Total
+      let x = m;
+      const headers = ['Data', 'Malharia', 'ROM/NF', 'Peso (kg)', 'Frete/kg', 'Total'];
+      headers.forEach((h, i) => {
+        pdf.text(sanitizePdfText(h), x + 2, y + 5);
+        x += cols[i];
+      });
+      y += 8;
+
+      pdf.setFont('helvetica', 'normal');
+      let totalWeight = 0;
+      let totalValue = 0;
+
+      filteredFreights.forEach(f => {
+        if (y > ph - 20) {
+          pdf.addPage();
+          y = m + 10;
+        }
+        x = m;
+        const date = format(new Date(f.date + 'T12:00:00'), 'dd/MM/yyyy');
+        const data = [
+          date,
+          f.outsource_company_name || 'Não Informado',
+          f.nf_rom || '-',
+          formatWeight(f.weight_kg),
+          formatCurrency(f.freight_per_kg),
+          formatCurrency(f.total_freight)
+        ];
+
+        data.forEach((d, i) => {
+          pdf.text(sanitizePdfText(d), x + 2, y + 5);
+          x += cols[i];
+        });
+
+        totalWeight += f.weight_kg;
+        totalValue += f.total_freight;
+        y += 6;
+        pdf.setDrawColor(230, 230, 230);
+        pdf.line(m, y, pw - m, y);
+      });
+
+      y += 4;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('TOTAIS:', m, y + 5);
+      pdf.text(`Peso: ${formatWeight(totalWeight)}`, m + 70, y + 5);
+      pdf.text(`Valor: ${formatCurrency(totalValue)}`, m + 130, y + 5);
+
+      pdf.save(`fretes_terceirizado_${format(new Date(), 'dd_MM_yyyy')}.pdf`);
+      toast({ title: "PDF gerado com sucesso!" });
+    };
  
    if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
  
@@ -333,13 +413,32 @@
                  </Popover>
                </div>
              </div>
-             {hasActiveFilters && (
-               <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setFilterMonth(''); setFilterFrom(undefined); setFilterTo(undefined); }}>
-                 ✕ Limpar
-               </Button>
-             )}
-           </div>
-         </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Malharia</Label>
+                <Select value={filterCompany} onValueChange={setFilterCompany}>
+                  <SelectTrigger className="w-[180px] h-8 text-xs capitalize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all">Todas as malharias</SelectItem>
+                    {companies.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5" onClick={exportPdf} disabled={filteredFreights.length === 0}>
+                  <FileText className="h-3.5 w-3.5" /> PDF
+                </Button>
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setFilterMonth(''); setFilterFrom(undefined); setFilterTo(undefined); setFilterCompany('_all'); }}>
+                    ✕ Limpar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
  
          <div className="overflow-auto">
            <Table>
