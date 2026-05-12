@@ -1309,7 +1309,10 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
       filteredFreights = filteredFreights.filter(f => f.date <= end);
     }
 
-    const totalFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
+    // Historical freights in productions table + new freights
+    const historicalFreight = filtered.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
+    const newFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
+    const totalFreight = historicalFreight + newFreight;
     const profit = revenue - cost - totalFreight;
 
     return { revenue, cost, profit, weight, rolls, freight: totalFreight };
