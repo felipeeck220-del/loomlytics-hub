@@ -1497,6 +1497,12 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Custo</p>
             <p className="text-lg font-bold text-foreground">{formatCurrency(totals.cost)}</p>
           </div>
+          {totals.freight > 0 && (
+            <div className="rounded-lg border p-3 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Frete</p>
+              <p className="text-lg font-bold text-blue-600">{formatCurrency(totals.freight)}</p>
+            </div>
+          )}
           <div className={cn("rounded-lg border p-3", totals.profit >= 0 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-destructive/30 bg-destructive/5")}>
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro</p>
             <p className={cn("text-lg font-bold", totals.profit >= 0 ? "text-emerald-600" : "text-destructive")}>{formatCurrency(totals.profit)}</p>
