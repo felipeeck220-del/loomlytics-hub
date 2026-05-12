@@ -359,7 +359,7 @@
                    <TableCell className="text-xs">
                      {(() => { const parts = f.date.split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : f.date; })()}
                    </TableCell>
-                   <TableCell className="font-medium">{f.outsource_company_name}</TableCell>
+                    <TableCell className="font-medium">{f.outsource_company_name || 'Não Informado'}</TableCell>
                    <TableCell>{f.nf_rom || '—'}</TableCell>
                    <TableCell className="text-right">{formatWeight(f.weight_kg)}</TableCell>
                    <TableCell className="text-right">{formatCurrency(f.freight_per_kg)}</TableCell>
