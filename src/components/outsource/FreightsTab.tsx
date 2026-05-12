@@ -58,8 +58,10 @@
     filterTo, 
     setFilterTo,
     companyName,
+    logoUrl,
   }: {
     companyName?: string;
+    logoUrl?: string | null;
    freights: OutsourceFreight[];
    companies: OutsourceCompany[];
    companyId: string;
@@ -230,8 +232,38 @@
 
     const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo || filterCompany !== '_all';
 
-    const exportPdf = () => {
+    const exportPdf = async () => {
       const pdf = new jsPDF('p', 'mm', 'a4');
+      const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0);
+              resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+            } catch { resolve(null); }
+          };
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+      };
+
+      const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+        if (!width || !height) return { width: maxWidth, height: maxHeight };
+        const scale = Math.min(maxWidth / width, maxHeight / height);
+        return { width: width * scale, height: height * scale };
+      };
+
+      let logoInfo = null;
+      if (logoUrl) {
+        logoInfo = await loadLogo(logoUrl);
+      }
+
       const pw = pdf.internal.pageSize.getWidth();
       const ph = pdf.internal.pageSize.getHeight();
       const m = 10;
@@ -253,8 +285,20 @@
       const leftX = m + 5;
       const rightX = pw - m - 5;
 
-      // Company Name
-      if (companyName) {
+      // Logo or Company Name
+      if (logoInfo) {
+        try {
+          const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+          pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
+        } catch {
+          if (companyName) {
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(...textDark);
+            pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+          }
+        }
+      } else if (companyName) {
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(...textDark);

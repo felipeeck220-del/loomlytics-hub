@@ -323,6 +323,7 @@ export default function Outsource() {
               filterTo={filterTo}
               setFilterTo={setFilterTo}
               companyName={companyName}
+              logoUrl={companyLogoUrl}
             />
           </TabsContent>
 
