@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
- *Última atualização: 12/05/2026 14:45 (Brasília)*
+ *Última atualização: 19/05/2026 10:15 (Brasília)*
+ - 19/05/2026 10:15 - Adição da coluna Lucro/kg nos relatórios de PDF "Exportar por Cliente" e "Exportar por Malharia" no módulo de Terceirizados, padronizando com a exportação geral.
 # 📋 MESTRE.MD — Documentação Mestre do Projeto MalhaGest
 
 > **⚠️ INSTRUÇÕES OBRIGATÓRIAS PARA A IA (LOVABLE):**
