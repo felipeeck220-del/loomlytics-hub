@@ -2043,8 +2043,8 @@ function exportByCompanyPdf(
       });
 
       // Article table header
-      const headers = ['Artigo', 'Cliente', 'Kg Produzidos', 'Rolos', 'Receita', 'Custo', 'Lucro'];
-      const colWidths = [40, 35, 30, 20, 35, 35, 35];
+      const headers = ['Artigo', 'Cliente', 'Kg Produzidos', 'Rolos', 'Receita', 'Custo', 'Lucro/kg', 'Lucro'];
+      const colWidths = [38, 32, 28, 18, 30, 30, 24, 30];
       const totalW = colWidths.reduce((a, b) => a + b, 0);
       const scale = (pw - 2 * m) / totalW;
       const cols = colWidths.map(w => w * scale);
@@ -2089,19 +2089,26 @@ function exportByCompanyPdf(
         pdf.setTextColor(...textDark);
 
         const cells = [
-          sanitizePdfText(artName), sanitizePdfText(stats.client), `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
-          fmtR(stats.revenue), fmtR(stats.cost), fmtR(stats.profit),
+          sanitizePdfText(artName), 
+          sanitizePdfText(stats.client), 
+          `${fmtN(stats.weight, 1)} kg`, 
+          String(stats.rolls),
+          fmtR(stats.revenue), 
+          fmtR(stats.cost), 
+          fmtR(stats.profit / (stats.weight || 1)), 
+          fmtR(stats.profit),
         ];
 
         x = m;
         cells.forEach((cell, ci) => {
           const text = cell.length > 22 ? cell.substring(0, 21) + '…' : cell;
-          if (ci === 6) {
+          if (ci === 6 || ci === 7) {
+            const val = ci === 6 ? stats.profit / (stats.weight || 1) : stats.profit;
             pdf.setFont('helvetica', 'bold');
-            pdf.setTextColor(stats.profit >= 0 ? 22 : 220, stats.profit >= 0 ? 163 : 38, stats.profit >= 0 ? 74 : 38);
+            pdf.setTextColor(val >= 0 ? 22 : 220, val >= 0 ? 163 : 38, val >= 0 ? 74 : 38);
           }
           pdf.text(text, x + 2, y + 5);
-          if (ci === 6) {
+          if (ci === 6 || ci === 7) {
             pdf.setFont('helvetica', 'normal');
             pdf.setTextColor(...textDark);
           }
@@ -2129,6 +2136,7 @@ function exportByCompanyPdf(
       pdf.text(String(cRolls), x + 2, y + 5); x += cols[3];
       pdf.text(fmtR(cRevenue), x + 2, y + 5); x += cols[4];
       pdf.text(fmtR(cCost), x + 2, y + 5); x += cols[5];
+      x += cols[6];
       pdf.setTextColor(cProfit >= 0 ? 22 : 220, cProfit >= 0 ? 163 : 38, cProfit >= 0 ? 74 : 38);
       pdf.text(fmtR(cProfit), x + 2, y + 5);
       pdf.setTextColor(...textDark);
@@ -2335,8 +2343,8 @@ function exportByClientPdf(
         a.profit += p.total_profit;
       });
 
-      const headers = ['Artigo', 'Malharia', 'Kg Produzidos', 'Rolos', 'Receita', 'Custo', 'Lucro'];
-      const colWidths = [40, 35, 30, 20, 35, 35, 35];
+      const headers = ['Artigo', 'Malharia', 'Kg Produzidos', 'Rolos', 'Receita', 'Custo', 'Lucro/kg', 'Lucro'];
+      const colWidths = [38, 32, 28, 18, 30, 30, 24, 30];
       const totalW = colWidths.reduce((a, b) => a + b, 0);
       const scale = (pw - 2 * m) / totalW;
       const cols = colWidths.map(w => w * scale);
@@ -2379,19 +2387,26 @@ function exportByClientPdf(
         pdf.setTextColor(...textDark);
 
         const cells = [
-          sanitizePdfText(artName), sanitizePdfText(stats.malharia), `${fmtN(stats.weight, 1)} kg`, String(stats.rolls),
-          fmtR(stats.revenue), fmtR(stats.cost), fmtR(stats.profit),
+          sanitizePdfText(artName), 
+          sanitizePdfText(stats.malharia), 
+          `${fmtN(stats.weight, 1)} kg`, 
+          String(stats.rolls),
+          fmtR(stats.revenue), 
+          fmtR(stats.cost), 
+          fmtR(stats.profit / (stats.weight || 1)), 
+          fmtR(stats.profit),
         ];
 
         x = m;
         cells.forEach((cell, ci) => {
           const text = cell.length > 22 ? cell.substring(0, 21) + '…' : cell;
-          if (ci === 6) {
+          if (ci === 6 || ci === 7) {
+            const val = ci === 6 ? stats.profit / (stats.weight || 1) : stats.profit;
             pdf.setFont('helvetica', 'bold');
-            pdf.setTextColor(stats.profit >= 0 ? 22 : 220, stats.profit >= 0 ? 163 : 38, stats.profit >= 0 ? 74 : 38);
+            pdf.setTextColor(val >= 0 ? 22 : 220, val >= 0 ? 163 : 38, val >= 0 ? 74 : 38);
           }
           pdf.text(text, x + 2, y + 5);
-          if (ci === 6) {
+          if (ci === 6 || ci === 7) {
             pdf.setFont('helvetica', 'normal');
             pdf.setTextColor(...textDark);
           }
@@ -2419,6 +2434,7 @@ function exportByClientPdf(
       pdf.text(String(cRolls), x + 2, y + 5); x += cols[3];
       pdf.text(fmtR(cRevenue), x + 2, y + 5); x += cols[4];
       pdf.text(fmtR(cCost), x + 2, y + 5); x += cols[5];
+      x += cols[6];
       pdf.setTextColor(cProfit >= 0 ? 22 : 220, cProfit >= 0 ? 163 : 38, cProfit >= 0 ? 74 : 38);
       pdf.text(fmtR(cProfit), x + 2, y + 5);
       pdf.setTextColor(...textDark);
