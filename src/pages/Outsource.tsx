@@ -2520,7 +2520,39 @@ function exportByClientPdf(
     pdf.setTextColor(148, 163, 184);
     const footer = `Relatório gerado automaticamente pelo sistema MalhaGest · ${date}`;
     const fw = pdf.getTextWidth(footer);
+
+    // Final summary footer for the whole export
+    if (y + 35 > ph - m) {
+      pdf.addPage();
+      y = m;
+    }
+
+    pdf.setFillColor(248, 250, 252);
+    pdf.setDrawColor(203, 213, 225);
+    pdf.rect(m, y, pw - 2 * m, 26, 'F');
+    pdf.rect(m, y, pw - 2 * m, 26, 'S');
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.text('RESUMO GERAL DA EXPORTAÇÃO', m + 5, y + 8);
+
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Total Faturamento:`, m + 5, y + 14);
+    pdf.text(fmtR(grandTotalRevenue), pw - m - 40, y + 14, { align: 'right' });
+
+    pdf.text(`Total Lucro Bruto:`, m + 5, y + 19);
+    pdf.text(fmtR(grandTotalProfit), pw - m - 40, y + 19, { align: 'right' });
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(grandTotalProfit >= 0 ? 22 : 220, grandTotalProfit >= 0 ? 163 : 38, grandTotalProfit >= 0 ? 74 : 38);
+    pdf.text(`LUCRO TOTAL DA LISTAGEM:`, m + 5, y + 24);
+    pdf.text(fmtR(grandTotalProfit), pw - m - 40, y + 24, { align: 'right' });
+
+    y += 32;
+
     if (y + 10 > ph - m) { pdf.addPage(); y = m; }
+    pdf.setTextColor(148, 163, 184);
     pdf.text(footer, (pw - fw) / 2, y);
 
     pdf.save(fileName);
