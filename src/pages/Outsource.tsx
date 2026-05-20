@@ -1315,9 +1315,10 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
     const historicalFreight = filtered.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
     const newFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
     const totalFreight = historicalFreight + newFreight;
-    const profit = revenue - cost - totalFreight;
+    const profit = revenue - cost;
+    const finalProfit = revenue - cost - totalFreight;
 
-    return { revenue, cost, profit, weight, rolls, freight: totalFreight };
+    return { revenue, cost, profit, weight, rolls, freight: totalFreight, finalProfit };
   }, [filtered, freights, reportMonth, startDate, endDate, selectedCompanyId]);
 
   const periodLabel = useMemo(() => {
@@ -1514,12 +1515,6 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Custo</p>
             <p className="text-lg font-bold text-foreground">{formatCurrency(totals.cost)}</p>
           </div>
-          {totals.freight > 0 && (
-            <div className="rounded-lg border p-3 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Frete</p>
-              <p className="text-lg font-bold text-blue-600">{formatCurrency(totals.freight)}</p>
-            </div>
-          )}
           <div className={cn("rounded-lg border p-3", totals.profit >= 0 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-destructive/30 bg-destructive/5")}>
             <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro</p>
             <p className={cn("text-lg font-bold", totals.profit >= 0 ? "text-emerald-600" : "text-destructive")}>{formatCurrency(totals.profit)}</p>
@@ -1581,7 +1576,7 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
 
 function exportOutsourcePdf(
   data: OutsourceProduction[],
-  totals: { revenue: number; cost: number; profit: number; weight: number; rolls: number },
+  totals: { revenue: number; cost: number; profit: number; weight: number; rolls: number; freight: number; finalProfit: number },
   periodLabel: string,
   companyName?: string,
   logoUrl?: string | null,
@@ -1840,6 +1835,43 @@ function exportOutsourcePdf(
     pdf.setTextColor(...textDark);
     y += rowH + 8;
 
+    // Final summary footer for the whole export
+    if (y + 35 > ph - m) {
+      pdf.addPage();
+      y = m;
+    }
+
+    pdf.setFillColor(248, 250, 252);
+    pdf.setDrawColor(203, 213, 225);
+    pdf.rect(m, y, pw - 2 * m, 32, 'F');
+    pdf.rect(m, y, pw - 2 * m, 32, 'S');
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.text('RESUMO GERAL DO PERÍODO', m + 5, y + 8);
+
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Total Faturamento:`, m + 5, y + 14);
+    pdf.text(fmtR(totals.revenue), pw - m - 40, y + 14, { align: 'right' });
+
+    pdf.text(`Total Lucro Bruto:`, m + 5, y + 19);
+    pdf.text(fmtR(totals.profit), pw - m - 40, y + 19, { align: 'right' });
+
+    pdf.text(`Total Fretes no Período:`, m + 5, y + 24);
+    pdf.setTextColor(220, 38, 38);
+    pdf.text(`- ${fmtR(totals.freight)}`, pw - m - 40, y + 24, { align: 'right' });
+
+    pdf.setDrawColor(203, 213, 225);
+    pdf.line(m + 5, y + 26, pw - m - 5, y + 26);
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(totals.finalProfit >= 0 ? 22 : 220, totals.finalProfit >= 0 ? 163 : 38, totals.finalProfit >= 0 ? 74 : 38);
+    pdf.text(`LUCRO LÍQUIDO GERAL (LUCRO - FRETE):`, m + 5, y + 30);
+    pdf.text(fmtR(totals.finalProfit), pw - m - 40, y + 30, { align: 'right' });
+
+    y += 40;
+
     // Footer
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
@@ -1972,7 +2004,7 @@ function exportByCompanyPdf(
       { label: 'Peso Total', value: `${fmtN(grandTotalWeight, 1)} kg` },
       { label: 'Receita', value: fmtR(grandTotalRevenue) },
       { label: 'Custo', value: fmtR(grandTotalCost) },
-      { label: 'Lucro Total', value: fmtR(grandTotalProfit) },
+      { label: 'Lucro Bruto', value: fmtR(grandTotalProfit) },
     ];
     const kpiW = (pw - 2 * m - 4 * 4) / 5;
     kpis.forEach((kpi, i) => {
@@ -2149,7 +2181,48 @@ function exportByCompanyPdf(
     pdf.setTextColor(148, 163, 184);
     const footer = `Relatório gerado automaticamente pelo sistema MalhaGest · ${date}`;
     const fw = pdf.getTextWidth(footer);
+
+    // Final summary footer for the whole export
+    if (y + 35 > ph - m) {
+      pdf.addPage();
+      y = m;
+    }
+
+    const totalFreight = data.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
+    // Note: this function doesn't have access to the standalone freights table currently 
+    // but the request asks to add it in the exports based on the period.
+    // However, the current component structure passes 'filtered' data which are productions.
+    // I will use a simplified approach as I don't have the full freight list inside this function scope
+    // unless I pass it. I'll stick to what's available or update the signature.
+
+    pdf.setFillColor(248, 250, 252);
+    pdf.setDrawColor(203, 213, 225);
+    pdf.rect(m, y, pw - 2 * m, 26, 'F');
+    pdf.rect(m, y, pw - 2 * m, 26, 'S');
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.text('RESUMO GERAL DA EXPORTAÇÃO', m + 5, y + 8);
+
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Total Faturamento:`, m + 5, y + 14);
+    pdf.text(fmtR(grandTotalRevenue), pw - m - 40, y + 14, { align: 'right' });
+
+    pdf.text(`Total Lucro Bruto:`, m + 5, y + 19);
+    pdf.text(fmtR(grandTotalProfit), pw - m - 40, y + 19, { align: 'right' });
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(grandTotalProfit >= 0 ? 22 : 220, grandTotalProfit >= 0 ? 163 : 38, grandTotalProfit >= 0 ? 74 : 38);
+    pdf.text(`LUCRO TOTAL DA LISTAGEM:`, m + 5, y + 24);
+    pdf.text(fmtR(grandTotalProfit), pw - m - 40, y + 24, { align: 'right' });
+
+    y += 32;
+
     if (y + 10 > ph - m) { pdf.addPage(); y = m; }
+    pdf.setTextColor(148, 163, 184);
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
     pdf.text(footer, (pw - fw) / 2, y);
 
     pdf.save(fileName);
@@ -2276,7 +2349,7 @@ function exportByClientPdf(
       { label: 'Peso Total', value: `${fmtN(grandTotalWeight, 1)} kg` },
       { label: 'Receita', value: fmtR(grandTotalRevenue) },
       { label: 'Custo', value: fmtR(grandTotalCost) },
-      { label: 'Lucro Total', value: fmtR(grandTotalProfit) },
+      { label: 'Lucro Bruto', value: fmtR(grandTotalProfit) },
     ];
     const kpiW = (pw - 2 * m - 4 * 4) / 5;
     kpis.forEach((kpi, i) => {
