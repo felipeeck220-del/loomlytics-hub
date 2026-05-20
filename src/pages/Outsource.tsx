@@ -1321,6 +1321,25 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
     return { revenue, cost, profit, weight, rolls, freight: totalFreight, finalProfit };
   }, [filtered, freights, reportMonth, startDate, endDate, selectedCompanyId]);
 
+  const filteredFreightsInReport = useMemo(() => {
+    let result = freights;
+    if (selectedCompanyId !== '_all') {
+      result = result.filter(f => f.outsource_company_id === selectedCompanyId);
+    }
+    if (reportMonth) {
+      result = result.filter(f => f.date.startsWith(reportMonth));
+    }
+    if (startDate) {
+      const from = format(startDate, 'yyyy-MM-dd');
+      result = result.filter(f => f.date >= from);
+    }
+    if (endDate) {
+      const to = format(endDate, 'yyyy-MM-dd');
+      result = result.filter(f => f.date <= to);
+    }
+    return result;
+  }, [freights, selectedCompanyId, reportMonth, startDate, endDate]);
+
   const periodLabel = useMemo(() => {
     const today = format(new Date(), 'dd/MM/yyyy');
     if (startDate && endDate) return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
@@ -1475,22 +1494,22 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
         {/* Export PDFs */}
         <div className="flex justify-end gap-2 flex-wrap">
           {selectedClientName !== '_all' ? (
-            <Button onClick={() => exportByClientPdf(filtered, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+            <Button onClick={() => exportByClientPdf(filtered, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
               <Download className="h-4 w-4 mr-2" /> Exportar PDF ({selectedClientName})
             </Button>
           ) : selectedCompanyId !== '_all' ? (
-            <Button onClick={() => exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+            <Button onClick={() => exportByCompanyPdf(filtered, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
               <Download className="h-4 w-4 mr-2" /> Exportar PDF ({companies.find(c => c.id === selectedCompanyId)?.name})
             </Button>
           ) : (
             <>
-              <Button onClick={() => exportByClientPdf(filtered, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
+              <Button onClick={() => exportByClientPdf(filtered, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
                 <Users className="h-4 w-4 mr-2" /> Exportar por Cliente
               </Button>
-              <Button onClick={() => exportByCompanyPdf(filtered, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
+              <Button onClick={() => exportByCompanyPdf(filtered, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
                 <Factory className="h-4 w-4 mr-2" /> Exportar por Malharia
               </Button>
-              <Button onClick={() => exportOutsourcePdf(filtered, totals, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+              <Button onClick={() => exportOutsourcePdf(filtered, { ...totals, freight: filteredFreightsInReport.reduce((s,f) => s+f.total_freight, 0), finalProfit: totals.profit - filteredFreightsInReport.reduce((s,f) => s+f.total_freight, 0) }, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
                 <Download className="h-4 w-4 mr-2" /> Exportar PDF
               </Button>
             </>
@@ -1888,6 +1907,7 @@ function exportOutsourcePdf(
 
 function exportByCompanyPdf(
   data: OutsourceProduction[],
+  freights: OutsourceFreight[],
   periodLabel: string,
   companyName?: string,
   logoUrl?: string | null,
@@ -2188,17 +2208,13 @@ function exportByCompanyPdf(
       y = m;
     }
 
-    const totalFreight = data.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
-    // Note: this function doesn't have access to the standalone freights table currently 
-    // but the request asks to add it in the exports based on the period.
-    // However, the current component structure passes 'filtered' data which are productions.
-    // I will use a simplified approach as I don't have the full freight list inside this function scope
-    // unless I pass it. I'll stick to what's available or update the signature.
+    const totalFreight = freights.reduce((s, f) => s + f.total_freight, 0);
+    const finalProfit = grandTotalProfit - totalFreight;
 
     pdf.setFillColor(248, 250, 252);
     pdf.setDrawColor(203, 213, 225);
-    pdf.rect(m, y, pw - 2 * m, 26, 'F');
-    pdf.rect(m, y, pw - 2 * m, 26, 'S');
+    pdf.rect(m, y, pw - 2 * m, 32, 'F');
+    pdf.rect(m, y, pw - 2 * m, 32, 'S');
 
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
@@ -2209,15 +2225,20 @@ function exportByCompanyPdf(
     pdf.text(`Total Faturamento:`, m + 5, y + 14);
     pdf.text(fmtR(grandTotalRevenue), pw - m - 40, y + 14, { align: 'right' });
 
-    pdf.text(`Total Lucro Bruto:`, m + 5, y + 19);
-    pdf.text(fmtR(grandTotalProfit), pw - m - 40, y + 19, { align: 'right' });
+    pdf.text(`Total Fretes no Período:`, m + 5, y + 19);
+    pdf.setTextColor(220, 38, 38);
+    pdf.text(`- ${fmtR(totalFreight)}`, pw - m - 40, y + 19, { align: 'right' });
+    pdf.setTextColor(...textDark);
 
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(grandTotalProfit >= 0 ? 22 : 220, grandTotalProfit >= 0 ? 163 : 38, grandTotalProfit >= 0 ? 74 : 38);
-    pdf.text(`LUCRO TOTAL DA LISTAGEM:`, m + 5, y + 24);
+    pdf.text(`Total Lucro Bruto:`, m + 5, y + 24);
     pdf.text(fmtR(grandTotalProfit), pw - m - 40, y + 24, { align: 'right' });
 
-    y += 32;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(finalProfit >= 0 ? 22 : 220, finalProfit >= 0 ? 163 : 38, finalProfit >= 0 ? 74 : 38);
+    pdf.text(`LUCRO LÍQUIDO GERAL (LUCRO - FRETE):`, m + 5, y + 29);
+    pdf.text(fmtR(finalProfit), pw - m - 40, y + 29, { align: 'right' });
+
+    y += 38;
 
     if (y + 10 > ph - m) { pdf.addPage(); y = m; }
     pdf.setTextColor(148, 163, 184);
@@ -2233,6 +2254,7 @@ function exportByCompanyPdf(
 
 function exportByClientPdf(
   data: OutsourceProduction[],
+  freights: OutsourceFreight[],
   periodLabel: string,
   companyName?: string,
   logoUrl?: string | null,
@@ -2527,10 +2549,13 @@ function exportByClientPdf(
       y = m;
     }
 
+    const totalFreight = freights.reduce((s, f) => s + f.total_freight, 0);
+    const finalProfit = grandTotalProfit - totalFreight;
+
     pdf.setFillColor(248, 250, 252);
     pdf.setDrawColor(203, 213, 225);
-    pdf.rect(m, y, pw - 2 * m, 26, 'F');
-    pdf.rect(m, y, pw - 2 * m, 26, 'S');
+    pdf.rect(m, y, pw - 2 * m, 32, 'F');
+    pdf.rect(m, y, pw - 2 * m, 32, 'S');
 
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
@@ -2541,15 +2566,20 @@ function exportByClientPdf(
     pdf.text(`Total Faturamento:`, m + 5, y + 14);
     pdf.text(fmtR(grandTotalRevenue), pw - m - 40, y + 14, { align: 'right' });
 
-    pdf.text(`Total Lucro Bruto:`, m + 5, y + 19);
-    pdf.text(fmtR(grandTotalProfit), pw - m - 40, y + 19, { align: 'right' });
+    pdf.text(`Total Fretes no Período:`, m + 5, y + 19);
+    pdf.setTextColor(220, 38, 38);
+    pdf.text(`- ${fmtR(totalFreight)}`, pw - m - 40, y + 19, { align: 'right' });
+    pdf.setTextColor(...textDark);
 
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(grandTotalProfit >= 0 ? 22 : 220, grandTotalProfit >= 0 ? 163 : 38, grandTotalProfit >= 0 ? 74 : 38);
-    pdf.text(`LUCRO TOTAL DA LISTAGEM:`, m + 5, y + 24);
+    pdf.text(`Total Lucro Bruto:`, m + 5, y + 24);
     pdf.text(fmtR(grandTotalProfit), pw - m - 40, y + 24, { align: 'right' });
 
-    y += 32;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(finalProfit >= 0 ? 22 : 220, finalProfit >= 0 ? 163 : 38, finalProfit >= 0 ? 74 : 38);
+    pdf.text(`LUCRO LÍQUIDO GERAL (LUCRO - FRETE):`, m + 5, y + 29);
+    pdf.text(fmtR(finalProfit), pw - m - 40, y + 29, { align: 'right' });
+
+    y += 38;
 
     if (y + 10 > ph - m) { pdf.addPage(); y = m; }
     pdf.setTextColor(148, 163, 184);
