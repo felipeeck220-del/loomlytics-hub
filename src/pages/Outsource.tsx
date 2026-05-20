@@ -237,7 +237,7 @@ export default function Outsource() {
       const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
 
       // Include historical freights still in productions table + new freights from freights table
-      const historicalFreight = displayProductions.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
+      const historicalFreight = displayProductions.reduce((s, p) => s + (Number(p.freight_per_kg || 0) * p.weight_kg), 0);
       const newFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
       const totalFreight = historicalFreight + newFreight;
 
@@ -245,8 +245,8 @@ export default function Outsource() {
       const totalProfit = totalRevenue - totalCost - totalFreight;
 
       const totalLoss = displayProductions
-        .filter(p => p.total_profit < 0)
-        .reduce((s, p) => s + p.total_profit, 0);
+        .filter(p => (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)) < 0)
+        .reduce((s, p) => s + (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)), 0);
 
       return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
     }, [displayProductions, filteredFreights]);
@@ -1149,8 +1149,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-bold">
-                      <span className={p.total_profit >= 0 ? 'text-emerald-600' : 'text-destructive'}>
-                        {formatCurrency(p.total_profit)}
+                      <span className={(p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)) >= 0 ? 'text-emerald-600' : 'text-destructive'}>
+                        {formatCurrency(p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg))}
                       </span>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">{p.nf_rom || '—'}</TableCell>
@@ -1312,7 +1312,7 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
     }
 
     // Historical freights in productions table + new freights
-    const historicalFreight = filtered.reduce((s, p) => s + (p.freight_per_kg * p.weight_kg), 0);
+    const historicalFreight = filtered.reduce((s, p) => s + (Number(p.freight_per_kg || 0) * p.weight_kg), 0);
     const newFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
     const totalFreight = historicalFreight + newFreight;
     const profit = revenue - cost;
@@ -1577,8 +1577,8 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-bold">
-                      <span className={p.total_profit >= 0 ? 'text-emerald-600' : 'text-destructive'}>
-                        {formatCurrency(p.total_profit)}
+                      <span className={(p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)) >= 0 ? 'text-emerald-600' : 'text-destructive'}>
+                        {formatCurrency(p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg))}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -1803,7 +1803,7 @@ function exportOutsourcePdf(
         formattedDate, sanitizePdfText(p.outsource_company_name || ''), sanitizePdfText(p.article_name || ''), sanitizePdfText(p.client_name || ''),
         `${fmtN(p.weight_kg, 1)} kg`, String(p.rolls),
         fmtR(p.client_value_per_kg), fmtR(p.outsource_value_per_kg),
-        fmtR(p.profit_per_kg), fmtR(p.total_profit),
+        fmtR(p.client_value_per_kg - p.outsource_value_per_kg - Number(p.freight_per_kg || 0)), fmtR(p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)),
       ];
 
       let x = m;
@@ -1811,7 +1811,7 @@ function exportOutsourcePdf(
         const text = cell.length > 18 ? cell.substring(0, 17) + '…' : cell;
         // Color Lucro/kg (8) and Lucro Total (9)
         if (ci === 8 || ci === 9) {
-          const isProfit = ci === 8 ? p.profit_per_kg >= 0 : p.total_profit >= 0;
+          const isProfit = ci === 8 ? (p.client_value_per_kg - p.outsource_value_per_kg - Number(p.freight_per_kg || 0)) >= 0 : (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)) >= 0;
           pdf.setFont('helvetica', 'bold');
           if (isProfit) {
             pdf.setTextColor(22, 163, 74); // green
@@ -2015,7 +2015,7 @@ function exportByCompanyPdf(
 
     // Grand totals
     const grandTotalWeight = data.reduce((s, p) => s + p.weight_kg, 0);
-    const grandTotalProfit = data.reduce((s, p) => s + p.total_profit, 0);
+    const grandTotalProfit = data.reduce((s, p) => s + (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)), 0);
     const grandTotalRevenue = data.reduce((s, p) => s + p.total_revenue, 0);
     const grandTotalCost = data.reduce((s, p) => s + p.total_cost, 0);
 
@@ -2058,7 +2058,7 @@ function exportByCompanyPdf(
       const cRolls = prods.reduce((s, p) => s + p.rolls, 0);
       const cRevenue = prods.reduce((s, p) => s + p.total_revenue, 0);
       const cCost = prods.reduce((s, p) => s + p.total_cost, 0);
-      const cProfit = prods.reduce((s, p) => s + p.total_profit, 0);
+      const cProfit = prods.reduce((s, p) => s + (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)), 0);
 
       // Company header bar
       pdf.setFillColor(219, 234, 254);
@@ -2091,7 +2091,7 @@ function exportByCompanyPdf(
         a.rolls += p.rolls;
         a.revenue += p.total_revenue;
         a.cost += p.total_cost;
-        a.profit += p.total_profit;
+        a.profit += (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg));
       });
 
       // Article table header
@@ -2362,7 +2362,7 @@ function exportByClientPdf(
 
     // Grand totals
     const grandTotalWeight = data.reduce((s, p) => s + p.weight_kg, 0);
-    const grandTotalProfit = data.reduce((s, p) => s + p.total_profit, 0);
+    const grandTotalProfit = data.reduce((s, p) => s + (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)), 0);
     const grandTotalRevenue = data.reduce((s, p) => s + p.total_revenue, 0);
     const grandTotalCost = data.reduce((s, p) => s + p.total_cost, 0);
 
@@ -2403,7 +2403,7 @@ function exportByClientPdf(
       const cRolls = prods.reduce((s, p) => s + p.rolls, 0);
       const cRevenue = prods.reduce((s, p) => s + p.total_revenue, 0);
       const cCost = prods.reduce((s, p) => s + p.total_cost, 0);
-      const cProfit = prods.reduce((s, p) => s + p.total_profit, 0);
+      const cProfit = prods.reduce((s, p) => s + (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)), 0);
 
       // Client header bar (green-ish to differentiate from malharia blue)
       pdf.setFillColor(220, 252, 231);
@@ -2435,7 +2435,7 @@ function exportByClientPdf(
         a.rolls += p.rolls;
         a.revenue += p.total_revenue;
         a.cost += p.total_cost;
-        a.profit += p.total_profit;
+        a.profit += (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg));
       });
 
       const headers = ['Artigo', 'Malharia', 'Kg Produzidos', 'Rolos', 'Receita', 'Custo', 'Lucro/kg', 'Lucro'];
