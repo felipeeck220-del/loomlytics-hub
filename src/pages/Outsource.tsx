@@ -312,7 +312,7 @@ export default function Outsource() {
  
           <TabsContent value="freights">
             <FreightsTab
-              freights={filteredFreights}
+              freights={freights}
               companies={companies}
               companyId={companyId}
               loading={loadingFreights}
@@ -595,12 +595,9 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
   const formatRepasseInput = (value: string): string => {
     const digits = value.replace(/\D/g, '');
     if (!digits) return '';
-    // Pad to at least 3 digits for formatting (e.g. "1" → "001" → "0,01")
-    const padded = digits.padStart(3, '0');
-    // Take last 3 digits only (max 9,99)
-    const last3 = padded.slice(-3);
-    const intPart = last3[0] === '0' ? '0' : last3[0];
-    const decPart = last3.slice(1);
+    const val = parseInt(digits, 10);
+    const intPart = Math.floor(val / 100).toString();
+    const decPart = (val % 100).toString().padStart(2, '0');
     return `${intPart},${decPart}`;
   };
 
