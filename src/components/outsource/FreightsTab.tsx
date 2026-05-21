@@ -123,15 +123,14 @@
      return decPart !== undefined ? `${intPart},${decPart}` : intPart;
    };
  
-   const formatRepasseInput = (value: string): string => {
-     const digits = value.replace(/\D/g, '');
-     if (!digits) return '';
-     const padded = digits.padStart(3, '0');
-     const last3 = padded.slice(-3);
-     const intPart = last3[0] === '0' ? '0' : last3[0];
-     const decPart = last3.slice(1);
-     return `${intPart},${decPart}`;
-   };
+    const formatRepasseInput = (value: string): string => {
+      const digits = value.replace(/\D/g, '');
+      if (!digits) return '';
+      const val = parseInt(digits, 10);
+      const intPart = Math.floor(val / 100).toString();
+      const decPart = (val % 100).toString().padStart(2, '0');
+      return `${intPart},${decPart}`;
+    };
  
    const saveMutation = useMutation({
      mutationFn: async () => {
@@ -436,8 +435,8 @@
       pdf.text('TOTAL GERAL', m + 2, y + 5);
       
       x = m + scaledCols[0] + scaledCols[1] + scaledCols[2] + scaledCols[3];
-      pdf.text(`${formatWeight(totalWeight)} kg`, x + 2, y + 5); x += scaledCols[3];
-      pdf.text('-', x + 2, y + 5); x += scaledCols[4];
+      pdf.text(`${formatWeight(totalWeight)} kg`, x + 2, y + 5); x += scaledCols[4];
+      pdf.text('-', x + 2, y + 5); x += scaledCols[5];
       pdf.text(formatCurrency(totalValue), x + 2, y + 5);
 
       // Footer
@@ -624,59 +623,61 @@
                   <TableHead className="w-20 text-right">Ações</TableHead>
                </TableRow>
              </TableHeader>
-             <TableBody>
-               {filteredFreights.map(f => (
-                 <TableRow key={f.id}>
-                    <TableCell className="py-2">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium">
-                          {(() => { const parts = f.date.split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : f.date; })()}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
-                          {f.created_by_name || 'Sistema'} #{f.created_by_code || '0'} - {"\n"}{format(new Date(f.created_at), 'dd/MM/yy HH:mm')}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{f.outsource_company_name || 'Não Informado'}</TableCell>
-                    <TableCell>{f.nf_rom || '—'}</TableCell>
-                    <TableCell>{f.freteiro || '—'}</TableCell>
-                   <TableCell className="text-right">{formatWeight(f.weight_kg)}</TableCell>
-                   <TableCell className="text-right">{formatCurrency(f.freight_per_kg)}</TableCell>
-                    <TableCell className="text-right font-bold text-blue-600">{formatCurrency(f.total_freight)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(f)}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(f.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                 </TableRow>
-               ))}
-                {filteredFreights.length > 0 && filterCompany !== '_all' && (
-                  <TableRow className="bg-muted/50 font-bold">
-                    <TableCell colSpan={4} className="text-right py-3 text-xs uppercase tracking-wider text-muted-foreground">
-                      Totais Selecionados:
-                    </TableCell>
-                    <TableCell className="text-right text-foreground">
-                      {formatWeight(filteredFreights.reduce((sum, f) => sum + f.weight_kg, 0))}
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">-</TableCell>
-                    <TableCell className="text-right text-blue-600">
-                      {formatCurrency(filteredFreights.reduce((sum, f) => sum + f.total_freight, 0))}
-                    </TableCell>
-                    <TableCell />
-                  </TableRow>
-                )}
-                
-                {filteredFreights.length === 0 && (
+              <TableBody>
+                {filteredFreights.length > 0 ? (
+                  <>
+                    {filteredFreights.map(f => (
+                      <TableRow key={f.id}>
+                        <TableCell className="py-2">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-medium">
+                              {(() => { const parts = f.date.split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : f.date; })()}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
+                              {f.created_by_name || 'Sistema'} #{f.created_by_code || '0'} - {"\n"}{format(new Date(f.created_at), 'dd/MM/yy HH:mm')}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{f.outsource_company_name || 'Não Informado'}</TableCell>
+                        <TableCell>{f.nf_rom || '—'}</TableCell>
+                        <TableCell>{f.freteiro || '—'}</TableCell>
+                        <TableCell className="text-right">{formatWeight(f.weight_kg)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(f.freight_per_kg)}</TableCell>
+                        <TableCell className="text-right font-bold text-blue-600">{formatCurrency(f.total_freight)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(f)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(f.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filterCompany !== '_all' && (
+                      <TableRow className="bg-muted/50 font-bold">
+                        <TableCell colSpan={4} className="text-right py-3 text-xs uppercase tracking-wider text-muted-foreground">
+                          Totais Selecionados:
+                        </TableCell>
+                        <TableCell className="text-right text-foreground">
+                          {formatWeight(filteredFreights.reduce((sum, f) => sum + f.weight_kg, 0))}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">-</TableCell>
+                        <TableCell className="text-right text-blue-600">
+                          {formatCurrency(filteredFreights.reduce((sum, f) => sum + f.total_freight, 0))}
+                        </TableCell>
+                        <TableCell />
+                      </TableRow>
+                    )}
+                  </>
+                ) : (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       Nenhum registro encontrado.
                     </TableCell>
                   </TableRow>
                 )}
-             </TableBody>
+              </TableBody>
            </Table>
          </div>
        </CardContent>
