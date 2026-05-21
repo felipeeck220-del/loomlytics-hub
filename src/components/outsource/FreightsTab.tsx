@@ -31,13 +31,14 @@
    outsource_company_id: string;
    outsource_company_name?: string;
    date: string;
-   nf_rom?: string;
-   weight_kg: number;
-   freight_per_kg: number;
-   total_freight: number;
-   observations?: string;
-   created_by_name?: string;
-   created_by_code?: string;
+    nf_rom?: string;
+    freteiro?: string;
+    weight_kg: number;
+    freight_per_kg: number;
+    total_freight: number;
+    observations?: string;
+    created_by_name?: string;
+    created_by_code?: string;
    created_at: string;
  }
  
@@ -83,26 +84,28 @@
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [filterCompany, setFilterCompany] = useState<string>('_all');
  
-   const [form, setForm] = useState({
-     outsource_company_id: '',
-     date: format(new Date(), 'yyyy-MM-dd'),
-     nf_rom: '',
-     weight_kg: '',
-     freight_per_kg: '',
-     observations: '',
-   });
+    const [form, setForm] = useState({
+      outsource_company_id: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      nf_rom: '',
+      freteiro: '',
+      weight_kg: '',
+      freight_per_kg: '',
+      observations: '',
+    });
  
-   const resetForm = () => {
-     setForm({
-       outsource_company_id: '',
-       date: format(new Date(), 'yyyy-MM-dd'),
-       nf_rom: '',
-       weight_kg: '',
-       freight_per_kg: '',
-       observations: '',
-     });
-     setEditId(null);
-   };
+    const resetForm = () => {
+      setForm({
+        outsource_company_id: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        nf_rom: '',
+        freteiro: '',
+        weight_kg: '',
+        freight_per_kg: '',
+        observations: '',
+      });
+      setEditId(null);
+    };
  
    const parseBrNumber = (str: string): number => {
      if (!str) return 0;
@@ -132,17 +135,18 @@
  
    const saveMutation = useMutation({
      mutationFn: async () => {
-       const data = {
-         company_id: companyId,
-         outsource_company_id: form.outsource_company_id,
-         date: form.date,
-         nf_rom: form.nf_rom || null,
-         weight_kg: parseBrNumber(form.weight_kg),
-         freight_per_kg: parseBrNumber(form.freight_per_kg),
-         observations: form.observations || null,
-         created_by_name: userName || null,
-         created_by_code: userCode || null,
-       };
+        const data = {
+          company_id: companyId,
+          outsource_company_id: form.outsource_company_id,
+          date: form.date,
+          nf_rom: form.nf_rom || null,
+          freteiro: form.freteiro || null,
+          weight_kg: parseBrNumber(form.weight_kg),
+          freight_per_kg: parseBrNumber(form.freight_per_kg),
+          observations: form.observations || null,
+          created_by_name: userName || null,
+          created_by_code: userCode || null,
+        };
  
         if (editId) {
           const { error } = await supabase.from('outsource_freights').update(data).eq('id', editId);
@@ -175,18 +179,19 @@
      onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
    });
  
-   const openEdit = (f: OutsourceFreight) => {
-     setEditId(f.id);
-     setForm({
-       outsource_company_id: f.outsource_company_id,
-       date: f.date,
-       nf_rom: f.nf_rom || '',
-       weight_kg: f.weight_kg.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-       freight_per_kg: formatRepasseInput(String(Math.round(f.freight_per_kg * 100))),
-       observations: f.observations || '',
-     });
-     setOpen(true);
-   };
+    const openEdit = (f: OutsourceFreight) => {
+      setEditId(f.id);
+      setForm({
+        outsource_company_id: f.outsource_company_id,
+        date: f.date,
+        nf_rom: f.nf_rom || '',
+        freteiro: f.freteiro || '',
+        weight_kg: f.weight_kg.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+        freight_per_kg: formatRepasseInput(String(Math.round(f.freight_per_kg * 100))),
+        observations: f.observations || '',
+      });
+      setOpen(true);
+    };
  
    const availableMonths = useMemo(() => {
      const months = new Set<string>();
@@ -224,7 +229,8 @@
         result = result.filter(f => {
           const companyName = (f.outsource_company_name || 'não informado').toLowerCase();
           const nfRom = (f.nf_rom || '').toLowerCase();
-          return companyName.includes(q) || nfRom.includes(q);
+          const freteiro = (f.freteiro || '').toLowerCase();
+          return companyName.includes(q) || nfRom.includes(q) || freteiro.includes(q);
         });
       }
       return result;
@@ -357,12 +363,12 @@
       pdf.setFontSize(7);
       pdf.setTextColor(71, 85, 105);
       
-      const cols = [20, 50, 30, 25, 25, 30]; 
+      const cols = [20, 40, 25, 30, 25, 20, 30]; 
       const scale = (pw - 2 * m) / cols.reduce((a, b) => a + b, 0);
       const scaledCols = cols.map(w => w * scale);
       
       let x = m;
-      const headers = ['Data', 'Malharia', 'ROM/NF', 'Peso (kg)', 'Frete/kg', 'Total'];
+      const headers = ['Data', 'Malharia', 'ROM/NF', 'Freteiro', 'Peso (kg)', 'Frete/kg', 'Total'];
       headers.forEach((h, i) => {
         pdf.text(sanitizePdfText(h), x + 2, y + 5.5);
         x += scaledCols[i];
@@ -395,6 +401,7 @@
           dateStr,
           f.outsource_company_name || 'Não Informado',
           f.nf_rom || '-',
+          f.freteiro || '-',
           `${formatWeight(f.weight_kg)} kg`,
           formatCurrency(f.freight_per_kg),
           formatCurrency(f.total_freight)
@@ -428,7 +435,7 @@
       pdf.setTextColor(...textDark);
       pdf.text('TOTAL GERAL', m + 2, y + 5);
       
-      x = m + scaledCols[0] + scaledCols[1] + scaledCols[2];
+      x = m + scaledCols[0] + scaledCols[1] + scaledCols[2] + scaledCols[3];
       pdf.text(`${formatWeight(totalWeight)} kg`, x + 2, y + 5); x += scaledCols[3];
       pdf.text('-', x + 2, y + 5); x += scaledCols[4];
       pdf.text(formatCurrency(totalValue), x + 2, y + 5);
@@ -486,11 +493,17 @@
                      <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
                    </div>
                  </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                   <div className="space-y-2">
-                     <Label>Romaneio/NF</Label>
-                     <Input placeholder="Opcional" value={form.nf_rom} onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))} />
-                   </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Romaneio/NF</Label>
+                      <Input placeholder="Opcional" value={form.nf_rom} onChange={e => setForm(f => ({ ...f, nf_rom: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Freteiro</Label>
+                      <Input placeholder="Nome do motorista/transportadora" value={form.freteiro} onChange={e => setForm(f => ({ ...f, freteiro: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div className="space-y-2">
                      <Label>Peso (kg) *</Label>
                      <Input type="text" inputMode="decimal" placeholder="0,00" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: formatBrInput(e.target.value, 2) }))} />
@@ -603,7 +616,8 @@
                <TableRow>
                  <TableHead>Data</TableHead>
                  <TableHead>Malharia</TableHead>
-                 <TableHead>Romaneio/NF</TableHead>
+                  <TableHead>Romaneio/NF</TableHead>
+                  <TableHead>Freteiro</TableHead>
                  <TableHead className="text-right">Peso (kg)</TableHead>
                  <TableHead className="text-right">Frete/kg</TableHead>
                  <TableHead className="text-right font-bold text-blue-600">Frete Total</TableHead>
@@ -624,7 +638,8 @@
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{f.outsource_company_name || 'Não Informado'}</TableCell>
-                   <TableCell>{f.nf_rom || '—'}</TableCell>
+                    <TableCell>{f.nf_rom || '—'}</TableCell>
+                    <TableCell>{f.freteiro || '—'}</TableCell>
                    <TableCell className="text-right">{formatWeight(f.weight_kg)}</TableCell>
                    <TableCell className="text-right">{formatCurrency(f.freight_per_kg)}</TableCell>
                     <TableCell className="text-right font-bold text-blue-600">{formatCurrency(f.total_freight)}</TableCell>
@@ -640,7 +655,7 @@
                ))}
                 {filteredFreights.length > 0 && filterCompany !== '_all' && (
                   <TableRow className="bg-muted/50 font-bold">
-                    <TableCell colSpan={3} className="text-right py-3 text-xs uppercase tracking-wider text-muted-foreground">
+                    <TableCell colSpan={4} className="text-right py-3 text-xs uppercase tracking-wider text-muted-foreground">
                       Totais Selecionados:
                     </TableCell>
                     <TableCell className="text-right text-foreground">
@@ -656,7 +671,7 @@
                 
                 {filteredFreights.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       Nenhum registro encontrado.
                     </TableCell>
                   </TableRow>
