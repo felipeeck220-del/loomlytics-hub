@@ -196,6 +196,15 @@ export default function Invoices() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
   const [saving, setSaving] = useState(false);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  // Reset pagination when tab or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, filterStatus, filterMonth, searchTerm]);
 
   // NF form state
   const [formType, setFormType] = useState<InvoiceType>('entrada');
@@ -311,7 +320,7 @@ export default function Invoices() {
   }, [invoices]);
 
   // ===== Filtered invoices by tab + filters =====
-  const filteredInvoices = useMemo(() => {
+  const filteredInvoicesBase = useMemo(() => {
     let filtered = invoices;
 
     // Tab filter
@@ -349,16 +358,23 @@ export default function Invoices() {
     return filtered;
   }, [invoices, activeTab, filterStatus, filterMonth, searchTerm]);
 
+  const totalPages = Math.ceil(filteredInvoicesBase.length / itemsPerPage);
+  
+  const filteredInvoices = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredInvoicesBase.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredInvoicesBase, currentPage]);
+
   // ===== KPIs =====
   const kpis = useMemo(() => {
-    const active = filteredInvoices.filter(i => i.status !== 'cancelada');
+    const active = filteredInvoicesBase.filter(i => i.status !== 'cancelada');
     return {
       count: active.length,
       totalKg: active.reduce((s, i) => s + Number(i.total_weight_kg), 0),
       totalValue: active.reduce((s, i) => s + Number(i.total_value || 0), 0),
       pendentes: active.filter(i => i.status === 'pendente').length,
     };
-  }, [filteredInvoices]);
+  }, [filteredInvoicesBase]);
 
   // ===== Available brands from items with positive stock =====
   const availableBrands = useMemo(() => {
@@ -1096,6 +1112,47 @@ export default function Invoices() {
                   </div>
                 )}
               </CardContent>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center py-4 border-t gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) pageNum = i + 1;
+                      else if (currentPage <= 3) pageNum = i + 1;
+                      else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                      else pageNum = currentPage - 2 + i;
+
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              )}
             </Card>
           </TabsContent>
           );
