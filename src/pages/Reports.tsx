@@ -190,7 +190,13 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
         eficiencia: m.weightForEff > 0 ? m.efficiencySum / m.weightForEff : 0,
         pct_rolls: total_rolls > 0 ? (m.rolos / total_rolls) * 100 : 0,
         pct_revenue: total_revenue > 0 ? (m.faturamento / total_revenue) * 100 : 0,
-      })).sort((a, b) => b.rolos - a.rolos));
+      })).sort((a, b) => {
+        // Sort by machine number if possible, then by name
+        const numA = parseInt(a.name.replace(/\D/g, ''));
+        const numB = parseInt(b.name.replace(/\D/g, ''));
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+      }));
 
       const clientMap: Record<string, any> = {};
       filtered.forEach(p => {

@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 21/05/2026 12:15 (Brasília)*
+*Última atualização: 22/05/2026 10:30 (Brasília)*
+- 22/05/2026 10:30 - Relatórios: Alterada a ordenação da listagem e exportação por máquina (Exportação Geral Por Máquina) para ordem crescente (1, 2, 3...) em vez de faturamento decrescente.
 - 21/05/2026 12:15 - Pente fino no módulo de Terceirizados > Fretes: Correção de bug no seletor de meses (agora mostra todos os meses disponíveis), correção de bug visual que exibia "Nenhum registro encontrado" incorretamente, correção de alinhamento de colunas no PDF e melhoria na máscara de entrada de valores (R$/kg) para suportar valores acima de 9,99.
 - 21/05/2026 11:35 - Módulo de Terceirizados > Fretes: Adição do campo "Freteiro" (transportador) no modal de registro de frete, na listagem de Controle de Frete e na exportação de relatório PDF. Migração de banco de dados para inclusão da coluna `freteiro` na tabela `outsource_freights`.
 - 20/05/2026 15:45 - Pente fino no módulo de Terceirizados: Correção da lógica de cálculo de lucro nos KPIs, tabelas e exportações PDF para garantir que o frete histórico por item (freight_per_kg) seja sempre considerado no lucro bruto antes da dedução dos fretes globais, evitando discrepâncias financeiras.
