@@ -381,13 +381,17 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
               </SelectContent>
             </Select>
 
-              <Select value={filterMachine} onValueChange={setFilterMachine}>
-                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Máquina</SelectItem>
-                  {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={filterMachine}
+                onValueChange={setFilterMachine}
+                options={[
+                  { value: 'all', label: 'Máquina' },
+                  ...machines.map(m => ({ value: m.id, label: m.name }))
+                ]}
+                placeholder="Máquina"
+                triggerClassName="w-[160px]"
+                icon={<Search className="h-3.5 w-3.5 opacity-50" />}
+              />
  
               <SearchableSelect
                 value={filterClient}
