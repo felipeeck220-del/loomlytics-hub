@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, ReactNode } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,8 @@ interface SearchableSelectProps {
   triggerClassName?: string;
   /** Custom filter function. Defaults to case-insensitive label match. */
   filterFn?: (option: SearchableSelectOption, search: string) => boolean;
+  /** Optional icon to display in the trigger button */
+  icon?: ReactNode;
 }
 
 export function SearchableSelect({
@@ -31,6 +33,7 @@ export function SearchableSelect({
   className,
   triggerClassName,
   filterFn,
+  icon,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -74,14 +77,17 @@ export function SearchableSelect({
           className={cn(
             'h-9 w-full justify-between font-normal',
             !value && 'text-muted-foreground',
-            triggerClassName
-          )}
-        >
-          <span className="truncate text-left">
+          triggerClassName
+        )}
+      >
+        <div className="flex items-center gap-2 truncate text-left">
+          {icon}
+          <span className="truncate">
             {selectedLabel || placeholder}
           </span>
-          <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
-        </Button>
+        </div>
+        <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+      </Button>
       </PopoverTrigger>
       <PopoverContent
         className={cn('w-auto min-w-[--radix-popover-trigger-width] p-0', className)}
