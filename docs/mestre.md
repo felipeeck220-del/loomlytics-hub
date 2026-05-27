@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 22/05/2026 10:45 (Brasília)*
+*Última atualização: 27/05/2026 14:30 (Brasília)*
+- 27/05/2026 14:30 - Relatórios: Implementada a "lupa de pesquisa" nos filtros de Máquina, Cliente e Artigo, substituindo os seletores padrão por `SearchableSelect` com ícone de busca para facilitar a filtragem em listas extensas.
 - 22/05/2026 10:45 - Notas Fiscais: Implementada paginação numérica (1, 2, 3...) nas abas de Entrada de Fio, Venda de Fio e Saída Malha (Invoices.tsx), com 20 registros por página.
 - 22/05/2026 10:30 - Relatórios: Alterada a ordenação da listagem e exportação por máquina (Exportação Geral Por Máquina) para ordem crescente (1, 2, 3...) em vez de faturamento decrescente.
 - 21/05/2026 12:15 - Pente fino no módulo de Terceirizados > Fretes: Correção de bug no seletor de meses (agora mostra todos os meses disponíveis), correção de bug visual que exibia "Nenhum registro encontrado" incorretamente, correção de alinhamento de colunas no PDF e melhoria na máscara de entrada de valores (R$/kg) para suportar valores acima de 9,99.
