@@ -23,6 +23,7 @@ import { SHIFT_LABELS, type ShiftType, type Production, getCompanyShiftLabels } 
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import { usePermissions } from '@/hooks/usePermissions';
+ import { SearchableSelect } from '@/components/SearchableSelect';
  import {
    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
    LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area,
@@ -380,29 +381,41 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
               </SelectContent>
             </Select>
 
-              <Select value={filterMachine} onValueChange={setFilterMachine}>
-                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Máquina" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Máquina</SelectItem>
-                  {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={filterMachine}
+                onValueChange={setFilterMachine}
+                options={[
+                  { value: 'all', label: 'Máquina' },
+                  ...machines.map(m => ({ value: m.id, label: m.name }))
+                ]}
+                placeholder="Máquina"
+                triggerClassName="w-[160px]"
+                icon={<Search className="h-3.5 w-3.5 opacity-50" />}
+              />
  
-              <Select value={filterClient} onValueChange={setFilterClient}>
-                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Cliente" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Cliente</SelectItem>
-                  {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={filterClient}
+                onValueChange={setFilterClient}
+                options={[
+                  { value: 'all', label: 'Cliente' },
+                  ...clients.map(c => ({ value: c.id, label: c.name }))
+                ]}
+                placeholder="Cliente"
+                triggerClassName="w-[160px]"
+                icon={<Search className="h-3.5 w-3.5 opacity-50" />}
+              />
  
-              <Select value={filterArticle} onValueChange={setFilterArticle}>
-                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Artigo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Artigo</SelectItem>
-                  {articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={filterArticle}
+                onValueChange={setFilterArticle}
+                options={[
+                  { value: 'all', label: 'Artigo' },
+                  ...articles.map(a => ({ value: a.id, label: a.name }))
+                ]}
+                placeholder="Artigo"
+                triggerClassName="w-[160px]"
+                icon={<Search className="h-3.5 w-3.5 opacity-50" />}
+              />
           </div>
         </CardContent>
       </Card>
