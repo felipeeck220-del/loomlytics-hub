@@ -1,16 +1,16 @@
- import { useState, useMemo, useCallback, useRef } from 'react';
- import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
- import { supabase } from '@/integrations/supabase/client';
- import { useAuditLog } from '@/hooks/useAuditLog';
- import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
- import { Button } from '@/components/ui/button';
- import { Input } from '@/components/ui/input';
- import { Label } from '@/components/ui/label';
- import { Textarea } from '@/components/ui/textarea';
- import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
- import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
- import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
- import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
  import { Calendar } from '@/components/ui/calendar';
  import { Badge } from '@/components/ui/badge';
  import { toast } from '@/hooks/use-toast';
@@ -77,12 +77,19 @@
    const queryClient = useQueryClient();
    const { userCode, userName, logAction } = useAuditLog();
    const [open, setOpen] = useState(false);
-   const [editId, setEditId] = useState<string | null>(null);
-   const [searchQuery, setSearchQuery] = useState('');
-   const [fromOpen, setFromOpen] = useState(false);
-   const [toOpen, setToOpen] = useState(false);
+    const [editId, setEditId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [fromOpen, setFromOpen] = useState(false);
+    const [toOpen, setToOpen] = useState(false);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [filterCompany, setFilterCompany] = useState<string>('_all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
+
+    // Reset pagination when search or filters change
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [searchQuery, filterMonth, filterFrom, filterTo, filterCompany]);
  
     const [form, setForm] = useState({
       outsource_company_id: '',
@@ -136,7 +143,7 @@
      mutationFn: async () => {
         const data = {
           company_id: companyId,
-          outsource_company_id: form.outsource_company_id,
+          outsource_company_id: form.outsource_company_id || null,
           date: form.date,
           nf_rom: form.nf_rom || null,
           freteiro: form.freteiro || null,
@@ -234,6 +241,13 @@
       }
       return result;
     }, [freights, searchQuery, filterMonth, filterFrom, filterTo, filterCompany]);
+
+    const totalPages = Math.ceil(filteredFreights.length / itemsPerPage);
+
+    const paginatedFreights = useMemo(() => {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      return filteredFreights.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredFreights, currentPage]);
 
     const hasActiveFilters = !!filterMonth || !!filterFrom || !!filterTo || filterCompany !== '_all';
 
@@ -479,7 +493,7 @@
                <div className="space-y-4 py-2">
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div className="space-y-2">
-                     <Label>Malharia *</Label>
+                     <Label>Malharia</Label>
                      <Select value={form.outsource_company_id} onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}>
                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                        <SelectContent>
@@ -525,7 +539,7 @@
                </div>
                <DialogFooter>
                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                 <Button onClick={() => saveMutation.mutate()} disabled={!form.outsource_company_id || !form.weight_kg || !form.freight_per_kg || saveMutation.isPending}>
+                 <Button onClick={() => saveMutation.mutate()} disabled={!form.weight_kg || !form.freight_per_kg || saveMutation.isPending}>
                    {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                    {editId ? 'Salvar' : 'Registrar'}
                  </Button>
@@ -624,9 +638,9 @@
                </TableRow>
              </TableHeader>
               <TableBody>
-                {filteredFreights.length > 0 ? (
+                {paginatedFreights.length > 0 ? (
                   <>
-                    {filteredFreights.map(f => (
+                    {paginatedFreights.map(f => (
                       <TableRow key={f.id}>
                         <TableCell className="py-2">
                           <div className="flex flex-col">
@@ -679,8 +693,50 @@
                 )}
               </TableBody>
            </Table>
-         </div>
-       </CardContent>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center py-4 border-t gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Anterior
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) pageNum = i + 1;
+                  else if (currentPage <= 3) pageNum = i + 1;
+                  else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                  else pageNum = currentPage - 2 + i;
+
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Próxima
+              </Button>
+            </div>
+          )}
+        </CardContent>
        <DeleteConfirmDialog
          open={!!deleteConfirmId}
          onOpenChange={(v) => { if (!v) setDeleteConfirmId(null); }}
