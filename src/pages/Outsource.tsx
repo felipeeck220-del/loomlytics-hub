@@ -122,7 +122,7 @@ export default function Outsource() {
         if (error) throw error;
         return (data || []).map(f => ({
           ...f,
-          outsource_company_name: f.outsource_companies?.name || 'Não Informado',
+          outsource_company_name: f.outsource_companies?.name || 'Avulso',
           weight_kg: Number(f.weight_kg),
           freight_per_kg: Number(f.freight_per_kg),
           total_freight: Number(f.total_freight),
@@ -675,7 +675,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
          outsource_company_id: form.outsource_company_id,
          article_id: calc.article?.id || '',
          article_name: calc.article?.name || '',
-         outsource_company_name: selectedCompany?.name || '',
+         outsource_company_name: selectedCompany?.name || 'Avulso',
          client_name: calc.article?.client_name || '',
          date: form.date,
          weight_kg: calc.weightKg,
@@ -1134,7 +1134,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                         <div className="text-muted-foreground/70">{format(new Date(p.created_at), 'dd/MM/yyyy HH:mm')}</div>
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{p.outsource_company_name || '—'}</TableCell>
+                    <TableCell className="font-medium">{p.outsource_company_name || 'Avulso'}</TableCell>
                     <TableCell>{p.article_name || '—'}</TableCell>
                     <TableCell>{p.client_name || '—'}</TableCell>
                     <TableCell className="text-right">{formatWeight(p.weight_kg)}</TableCell>
