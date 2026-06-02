@@ -158,6 +158,7 @@ import { Badge } from '@/components/ui/badge';
           freteiro: form.freteiro || null,
           weight_kg: parseBrNumber(form.weight_kg),
           freight_per_kg: parseBrNumber(form.freight_per_kg),
+          total_freight: parseBrNumber(form.total_freight),
           observations: form.observations || null,
           created_by_name: userNameRef.current || null,
           created_by_code: userCodeRef.current || null,
@@ -194,19 +195,20 @@ import { Badge } from '@/components/ui/badge';
      onError: (e: any) => toast({ title: 'Erro', description: getFriendlyErrorMessage(e.message), variant: 'destructive' }),
    });
  
-    const openEdit = (f: OutsourceFreight) => {
-      setEditId(f.id);
-      setForm({
-        outsource_company_id: f.outsource_company_id,
-        date: f.date,
-        nf_rom: f.nf_rom || '',
-        freteiro: f.freteiro || '',
-        weight_kg: f.weight_kg.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-        freight_per_kg: formatRepasseInput(String(Math.round(f.freight_per_kg * 100))),
-        observations: f.observations || '',
-      });
-      setOpen(true);
-    };
+     const openEdit = (f: OutsourceFreight) => {
+       setEditId(f.id);
+       setForm({
+         outsource_company_id: f.outsource_company_id,
+         date: f.date,
+         nf_rom: f.nf_rom || '',
+         freteiro: f.freteiro || '',
+         weight_kg: f.weight_kg ? f.weight_kg.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '',
+         freight_per_kg: f.freight_per_kg ? formatRepasseInput(String(Math.round(f.freight_per_kg * 100))) : '',
+         total_freight: f.total_freight ? formatRepasseInput(String(Math.round(f.total_freight * 100))) : '',
+         observations: f.observations || '',
+       });
+       setOpen(true);
+     };
  
    const availableMonths = useMemo(() => {
      const months = new Set<string>();
@@ -530,30 +532,44 @@ import { Badge } from '@/components/ui/badge';
                       <Input placeholder="Nome do motorista/transportadora" value={form.freteiro} onChange={e => setForm(f => ({ ...f, freteiro: e.target.value }))} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <Label>Peso (kg) *</Label>
-                     <Input type="text" inputMode="decimal" placeholder="0,00" value={form.weight_kg} onChange={e => setForm(f => ({ ...f, weight_kg: formatBrInput(e.target.value, 2) }))} />
-                   </div>
-                   <div className="space-y-2">
-                     <Label>Frete/kg *</Label>
-                     <Input type="text" inputMode="decimal" placeholder="0,00" value={form.freight_per_kg} onChange={e => setForm(f => ({ ...f, freight_per_kg: formatRepasseInput(e.target.value) }))} />
-                   </div>
-                 </div>
-                 <div className="space-y-2">
-                   <Label>Observações</Label>
-                   <Textarea value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
-                 </div>
-                 {parseBrNumber(form.weight_kg) > 0 && parseBrNumber(form.freight_per_kg) > 0 && (
-                   <div className="p-3 bg-muted rounded-md flex justify-between items-center text-sm">
-                     <span className="text-muted-foreground">Total Estimado:</span>
-                     <span className="font-bold text-blue-600">{formatCurrency(parseBrNumber(form.weight_kg) * parseBrNumber(form.freight_per_kg))}</span>
-                   </div>
-                 )}
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Peso (kg)</Label>
+                      <Input type="text" inputMode="decimal" placeholder="0,00" value={form.weight_kg} onChange={e => {
+                        const newWeight = formatBrInput(e.target.value, 2);
+                        setForm(f => {
+                          const w = parseBrNumber(newWeight);
+                          const p = parseBrNumber(f.freight_per_kg);
+                          const total = w > 0 && p > 0 ? formatRepasseInput(String(Math.round(w * p * 100))) : f.total_freight;
+                          return { ...f, weight_kg: newWeight, total_freight: total };
+                        });
+                      }} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Frete/kg</Label>
+                      <Input type="text" inputMode="decimal" placeholder="0,00" value={form.freight_per_kg} onChange={e => {
+                        const newPrice = formatRepasseInput(e.target.value);
+                        setForm(f => {
+                          const w = parseBrNumber(f.weight_kg);
+                          const p = parseBrNumber(newPrice);
+                          const total = w > 0 && p > 0 ? formatRepasseInput(String(Math.round(w * p * 100))) : f.total_freight;
+                          return { ...f, freight_per_kg: newPrice, total_freight: total };
+                        });
+                      }} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Frete Total *</Label>
+                    <Input type="text" inputMode="decimal" placeholder="0,00" className="font-bold text-blue-600" value={form.total_freight} onChange={e => setForm(f => ({ ...f, total_freight: formatRepasseInput(e.target.value) }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Observações</Label>
+                    <Textarea value={form.observations} onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+                  </div>
                </div>
                <DialogFooter>
                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                 <Button onClick={() => saveMutation.mutate()} disabled={!form.weight_kg || !form.freight_per_kg || saveMutation.isPending}>
+                 <Button onClick={() => saveMutation.mutate()} disabled={!form.total_freight || saveMutation.isPending}>
                    {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                    {editId ? 'Salvar' : 'Registrar'}
                  </Button>
