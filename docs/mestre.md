@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 02/06/2026 16:20 (Brasília)*
+*Última atualização: 02/06/2026 16:30 (Brasília)*
+- 02/06/2026 16:30 - Módulo de Terceirizados > Fretes: Alteração do modal de registro de frete para tornar os campos "Peso (kg)" e "Frete/kg" opcionais e adição do campo obrigatório "Frete Total". Implementada lógica de cálculo automático do total quando peso e valor/kg são informados, permitindo também a inserção direta do valor total. Migração realizada para transformar a coluna `total_freight` de gerada para coluna comum no banco de dados.
 - 02/06/2026 16:20 - Módulo de Terceirizados > Fretes: Adicionada a opção "SEM MALHARIA" no seletor de malharias do modal de registro de frete, permitindo desmarcar uma malharia previamente selecionada.
 - 02/06/2026 16:10 - Pente fino no módulo de Terceirizados: Implementada a "lupa de pesquisa" (`SearchableSelect`) nos filtros e modais de Frete e Produção para seleção de malharias. Padronização do termo "Avulso" para registros sem malharia vinculada. Melhoria na estabilidade dos logs de auditoria e expansão da busca no Controle de Frete para incluir observações. Correção de bug que impedia o registro de fretes avulsos quando não havia malharias cadastradas.
 - 02/06/2026 15:45 - Módulo de Terceirizados > Fretes: Implementada paginação numérica (1, 2, 3...) na listagem de Controle de Frete com 20 registros por página. O campo "Malharia" no modal de registro de frete agora é opcional.

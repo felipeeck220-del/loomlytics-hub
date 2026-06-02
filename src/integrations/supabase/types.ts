@@ -1349,7 +1349,7 @@ export type Database = {
           nf_rom: string | null
           observations: string | null
           outsource_company_id: string | null
-          total_freight: number | null
+          total_freight: number
           weight_kg: number
         }
         Insert: {
@@ -1364,7 +1364,7 @@ export type Database = {
           nf_rom?: string | null
           observations?: string | null
           outsource_company_id?: string | null
-          total_freight?: number | null
+          total_freight?: number
           weight_kg?: number
         }
         Update: {
@@ -1379,7 +1379,7 @@ export type Database = {
           nf_rom?: string | null
           observations?: string | null
           outsource_company_id?: string | null
-          total_freight?: number | null
+          total_freight?: number
           weight_kg?: number
         }
         Relationships: [
