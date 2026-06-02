@@ -504,8 +504,11 @@ import { Badge } from '@/components/ui/badge';
                      <Label>Malharia</Label>
                       <SearchableSelect 
                         value={form.outsource_company_id} 
-                        onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}
-                        options={companies.map(c => ({ value: c.id, label: c.name }))}
+                        onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v === '_none' ? '' : v }))}
+                        options={[
+                          { value: '_none', label: 'SEM MALHARIA' },
+                          ...companies.map(c => ({ value: c.id, label: c.name }))
+                        ]}
                         placeholder="Pesquisar malharia..."
                         searchPlaceholder="Buscar malharia..."
                       />
