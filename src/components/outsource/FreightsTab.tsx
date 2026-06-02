@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
- import { Calendar } from '@/components/ui/calendar';
- import { Badge } from '@/components/ui/badge';
+import { SearchableSelect } from '@/components/SearchableSelect';
+import { Calendar } from '@/components/ui/calendar';
+import { Badge } from '@/components/ui/badge';
  import { toast } from '@/hooks/use-toast';
  import { formatCurrency, formatWeight, getDateLimits } from '@/lib/formatters';
   import { Plus, Trash2, Edit, Loader2, Search, CalendarIcon, Download, FileText } from 'lucide-react';
@@ -75,8 +76,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
    setFilterTo: (v: Date | undefined) => void;
  }) {
    const queryClient = useQueryClient();
-   const { userCode, userName, logAction } = useAuditLog();
-   const [open, setOpen] = useState(false);
+    const { userCode, userName, logAction } = useAuditLog();
+    const userNameRef = useRef(userName);
+    const userCodeRef = useRef(userCode);
+    useEffect(() => { userNameRef.current = userName; }, [userName]);
+    useEffect(() => { userCodeRef.current = userCode; }, [userCode]);
+
+    const [open, setOpen] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [fromOpen, setFromOpen] = useState(false);
@@ -119,16 +125,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
      return Number(str.replace(/\./g, '').replace(',', '.')) || 0;
    };
  
-   const formatBrInput = (value: string, decimals: number): string => {
-     let raw = value.replace(/[^\d,]/g, '');
-     const parts = raw.split(',');
-     let intPart = parts[0] || '';
-     let decPart = parts.length > 1 ? parts[1].slice(0, decimals) : undefined;
-     intPart = intPart.replace(/^0+(?=\d)/, '');
-     if (!intPart) intPart = '0';
-     intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-     return decPart !== undefined ? `${intPart},${decPart}` : intPart;
-   };
+  const formatBrInput = (value: string, decimals: number): string => {
+    let raw = value.replace(/[^\d,]/g, '');
+    const parts = raw.split(',');
+    let intPart = parts[0] || '';
+    let decPart = parts.length > 1 ? parts[1].slice(0, decimals) : undefined;
+    intPart = intPart.replace(/^0+(?=\d)/, '');
+    if (!intPart) intPart = '0';
+    // Adiciona separador de milhar
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return decPart !== undefined ? `${intPart},${decPart}` : intPart;
+  };
  
     const formatRepasseInput = (value: string): string => {
       const digits = value.replace(/\D/g, '');
@@ -150,8 +157,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
           weight_kg: parseBrNumber(form.weight_kg),
           freight_per_kg: parseBrNumber(form.freight_per_kg),
           observations: form.observations || null,
-          created_by_name: userName || null,
-          created_by_code: userCode || null,
+          created_by_name: userNameRef.current || null,
+          created_by_code: userCodeRef.current || null,
         };
  
         if (editId) {
@@ -208,7 +215,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
    }, [freights]);
  
     const filteredFreights = useMemo(() => {
-      let result = [...freights];
+      let result = [...freights].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       // Month filter
       if (filterMonth) {
@@ -233,10 +240,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         result = result.filter(f => {
-          const companyName = (f.outsource_company_name || 'não informado').toLowerCase();
+          const companyName = (f.outsource_company_name || 'avulso').toLowerCase();
           const nfRom = (f.nf_rom || '').toLowerCase();
           const freteiro = (f.freteiro || '').toLowerCase();
-          return companyName.includes(q) || nfRom.includes(q) || freteiro.includes(q);
+          const observations = (f.observations || '').toLowerCase();
+          return companyName.includes(q) || nfRom.includes(q) || freteiro.includes(q) || observations.includes(q);
         });
       }
       return result;
@@ -412,7 +420,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
         const dateStr = format(new Date(f.date + 'T12:00:00'), 'dd/MM/yyyy');
         const data = [
           dateStr,
-          f.outsource_company_name || 'Não Informado',
+          f.outsource_company_name || 'Avulso',
           f.nf_rom || '-',
           f.freteiro || '-',
           `${formatWeight(f.weight_kg)} kg`,
@@ -482,9 +490,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
            </div>
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
              <DialogTrigger asChild>
-               <Button size="sm" className="gap-1.5 whitespace-nowrap" disabled={companies.length === 0}>
-                 <Plus className="h-4 w-4" /> Registrar Frete
-               </Button>
+                <Button size="sm" className="gap-1.5 whitespace-nowrap">
+                  <Plus className="h-4 w-4" /> Registrar Frete
+                </Button>
              </DialogTrigger>
               <DialogContent className="max-w-[95vw] sm:max-w-[500px]" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
                <DialogHeader>
@@ -494,12 +502,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div className="space-y-2">
                      <Label>Malharia</Label>
-                     <Select value={form.outsource_company_id} onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}>
-                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                       <SelectContent>
-                         {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                       </SelectContent>
-                     </Select>
+                      <SearchableSelect 
+                        value={form.outsource_company_id} 
+                        onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}
+                        options={companies.map(c => ({ value: c.id, label: c.name }))}
+                        placeholder="Pesquisar malharia..."
+                        searchPlaceholder="Buscar malharia..."
+                      />
                    </div>
                    <div className="space-y-2">
                      <Label>Data *</Label>
@@ -598,17 +607,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
              </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Malharia</Label>
-                <Select value={filterCompany} onValueChange={setFilterCompany}>
-                  <SelectTrigger className="w-[180px] h-8 text-xs capitalize">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_all">Todas as malharias</SelectItem>
-                    {companies.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect 
+                  value={filterCompany === '_all' ? '' : filterCompany} 
+                  onValueChange={v => setFilterCompany(v || '_all')}
+                  options={[{ value: '_all', label: 'Todas as malharias' }, ...companies.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todas as malharias"
+                  searchPlaceholder="Buscar malharia..."
+                  triggerClassName="w-[180px] h-8 text-xs"
+                />
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5" onClick={exportPdf} disabled={filteredFreights.length === 0}>
@@ -652,7 +658,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{f.outsource_company_name || 'Não Informado'}</TableCell>
+                        <TableCell className="font-medium">{f.outsource_company_name || 'Avulso'}</TableCell>
                         <TableCell>{f.nf_rom || '—'}</TableCell>
                         <TableCell>{f.freteiro || '—'}</TableCell>
                         <TableCell className="text-right">{formatWeight(f.weight_kg)}</TableCell>
