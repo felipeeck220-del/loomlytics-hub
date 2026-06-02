@@ -104,6 +104,7 @@ import { Badge } from '@/components/ui/badge';
       freteiro: '',
       weight_kg: '',
       freight_per_kg: '',
+      total_freight: '',
       observations: '',
     });
  
@@ -115,6 +116,7 @@ import { Badge } from '@/components/ui/badge';
         freteiro: '',
         weight_kg: '',
         freight_per_kg: '',
+        total_freight: '',
         observations: '',
       });
       setEditId(null);
