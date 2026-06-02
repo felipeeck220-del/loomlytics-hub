@@ -689,8 +689,8 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
          total_profit: calc.totalProfit,
          observations: form.observations || null,
          nf_rom: form.nf_rom || null,
-         created_by_name: userNameRef.current || null,
-         created_by_code: userCodeRef.current || null,
+          created_by_name: userNameRef.current || null,
+          created_by_code: userCodeRef.current || null,
        }));
 
        if (editId) {
