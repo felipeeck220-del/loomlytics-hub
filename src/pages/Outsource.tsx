@@ -903,12 +903,13 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                  <div className="space-y-2">
                    <Label>Malharia *</Label>
-                   <Select value={form.outsource_company_id} onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}>
-                     <SelectTrigger ref={companySelectRef}><SelectValue placeholder="Selecione" /></SelectTrigger>
-                     <SelectContent>
-                       {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                     </SelectContent>
-                   </Select>
+                    <SearchableSelect 
+                      value={form.outsource_company_id} 
+                      onValueChange={v => setForm(f => ({ ...f, outsource_company_id: v }))}
+                      options={companies.map(c => ({ value: c.id, label: c.name }))}
+                      placeholder="Pesquisar malharia..."
+                      searchPlaceholder="Buscar malharia..."
+                    />
                  </div>
                  <div className="space-y-2">
                     <Label>Data *</Label>
