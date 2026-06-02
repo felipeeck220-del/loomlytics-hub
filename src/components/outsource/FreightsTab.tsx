@@ -14,8 +14,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
- import { Calendar } from '@/components/ui/calendar';
- import { Badge } from '@/components/ui/badge';
  import { toast } from '@/hooks/use-toast';
  import { formatCurrency, formatWeight, getDateLimits } from '@/lib/formatters';
   import { Plus, Trash2, Edit, Loader2, Search, CalendarIcon, Download, FileText } from 'lucide-react';
