@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 02/06/2026 16:50 (Brasília)*
+*Última atualização: 04/06/2026 12:30 (Brasília)*
+- 04/06/2026 12:30 - Módulo Mecânica > Agulhas: Correção do gatilho `handle_needle_transaction_trigger` que tentava atualizar a coluna `updated_at` inexistente na tabela `machines`, causando o erro "Erro ao registrar baixa" ao registrar saídas (especialmente em troca de agulheiro). Removidos também registros de teste residuais do estoque.
 - 02/06/2026 16:50 - Módulo Mecânica > Agulhas: Remoção dos dados de teste do estoque (marcas 'vvv' e 'teste') e de todas as transações associadas (entradas, reposição e troca de agulheiro), tanto do histórico exibido quanto do banco de dados.
 - 02/06/2026 16:30 - Módulo de Terceirizados > Fretes: Alteração do modal de registro de frete para tornar os campos "Peso (kg)" e "Frete/kg" opcionais e adição do campo obrigatório "Frete Total". Implementada lógica de cálculo automático do total quando peso e valor/kg são informados, permitindo também a inserção direta do valor total. Migração realizada para transformar a coluna `total_freight` de gerada para coluna comum no banco de dados.
 - 02/06/2026 16:20 - Módulo de Terceirizados > Fretes: Adicionada a opção "SEM MALHARIA" no seletor de malharias do modal de registro de frete, permitindo desmarcar uma malharia previamente selecionada.
