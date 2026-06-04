@@ -1,0 +1,2 @@
+DELETE FROM public.needle_transactions WHERE id='883673eb-b7c1-4099-8e5b-b7a392f4ef1e';
+UPDATE public.needle_inventory SET current_quantity = current_quantity + 1 WHERE id='d168058d-0c6b-4a62-9645-8acc4e3fc2d6';
