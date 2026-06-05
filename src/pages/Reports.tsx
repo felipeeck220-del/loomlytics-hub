@@ -89,7 +89,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  // Pódio (Ranking de Tecelões) — filtros independentes
+  // Pódio (Ranking por Turno) — filtros independentes
   const [podioRange, setPodioRange] = useState<'1' | '7' | 'custom'>('7');
   const [podioFrom, setPodioFrom] = useState<Date>();
   const [podioTo, setPodioTo] = useState<Date>();
@@ -1191,7 +1191,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                 </Card>
               </TabsContent>
 
-              {/* PÓDIO — Ranking de Tecelões */}
+              {/* PÓDIO — Ranking por Turno */}
               <TabsContent value="podio" className="mt-4 space-y-6">
                 <Card>
                   <CardHeader>
@@ -1199,10 +1199,10 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                       <div>
                         <CardTitle className="text-base flex items-center gap-2">
                           <Trophy className="h-4 w-4 text-amber-500" />
-                          Pódio dos Tecelões
+                          Pódio por Turno
                         </CardTitle>
                         <CardDescription>
-                          Top 3 tecelões somando eficiência, peças e peso produzido — {podioComputed.periodLabel}
+                          Top 3 turnos somando eficiência, peças e peso produzido — {podioComputed.periodLabel}
                         </CardDescription>
                       </div>
                       <Button
