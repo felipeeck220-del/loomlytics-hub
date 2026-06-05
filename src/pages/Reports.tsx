@@ -1713,11 +1713,11 @@ async function handlePodioExport(
       pdf.setFillColor(...color);
       pdf.circle(x + width / 2, yPos, 6, 'F');
       
-      const medals: Record<number, string> = { 1: '1', 2: '2', 3: '3' };
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
+      const medals: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
+      pdf.setFontSize(14);
       pdf.setTextColor(...colors.white);
-      pdf.text(medals[rank] || rank.toString(), x + width / 2, yPos + 1.5, { align: 'center' });
+      // Center the emoji
+      pdf.text(medals[rank] || rank.toString(), x + width / 2, yPos + 2, { align: 'center' });
 
       pdf.setFontSize(12);
       pdf.setTextColor(...colors.dark);
@@ -1829,12 +1829,12 @@ async function handlePodioExport(
     const statCenterY = resumoY + (resumoH / 2);
 
     // KPI 1: Peças Totais
-    // Draw icon circle (simplified)
-    pdf.setDrawColor(200, 200, 200);
-    pdf.circle(margin + 12, statCenterY, 8, 'S');
-    // Simplified box icon inside circle
-    pdf.setDrawColor(100, 100, 100);
-    pdf.rect(margin + 9, statCenterY - 3, 6, 6);
+    // Background Circle for Icon
+    pdf.setFillColor(235, 239, 245);
+    pdf.circle(margin + 12, statCenterY, 8, 'F');
+    // Simple icon text representation since actual icons might not render
+    pdf.setFontSize(10);
+    pdf.text('📦', margin + 12, statCenterY + 1.5, { align: 'center' });
     
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
@@ -1846,14 +1846,10 @@ async function handlePodioExport(
     pdf.text(`${formatNumber(totalPieces)} pcs`, margin + 25, statCenterY + 4);
 
     // KPI 2: Peso Total
-    pdf.setDrawColor(200, 200, 200);
-    pdf.circle(margin + colW + 12, statCenterY, 8, 'S');
-    // Simplified weight icon (using line for path)
-    pdf.setDrawColor(100, 100, 100);
-    pdf.line(margin + colW + 9, statCenterY + 3, margin + colW + 15, statCenterY + 3);
-    pdf.line(margin + colW + 15, statCenterY + 3, margin + colW + 13, statCenterY - 3);
-    pdf.line(margin + colW + 13, statCenterY - 3, margin + colW + 11, statCenterY - 3);
-    pdf.line(margin + colW + 11, statCenterY - 3, margin + colW + 9, statCenterY + 3);
+    pdf.setFillColor(235, 239, 245);
+    pdf.circle(margin + colW + 12, statCenterY, 8, 'F');
+    pdf.setFontSize(10);
+    pdf.text('⚖️', margin + colW + 12, statCenterY + 1.5, { align: 'center' });
 
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
@@ -1865,11 +1861,10 @@ async function handlePodioExport(
     pdf.text(`${formatNumber(totalKg, 2)} kg`, margin + colW + 25, statCenterY + 4);
 
     // KPI 3: Eficiência Média
-    pdf.setDrawColor(200, 200, 200);
-    pdf.circle(margin + (colW * 2) + 12, statCenterY, 8, 'S');
-    // Simplified icon instead of arc
-    pdf.setDrawColor(100, 100, 100);
-    pdf.circle(margin + (colW * 2) + 12, statCenterY, 4, 'S');
+    pdf.setFillColor(235, 239, 245);
+    pdf.circle(margin + (colW * 2) + 12, statCenterY, 8, 'F');
+    pdf.setFontSize(10);
+    pdf.text('📈', margin + (colW * 2) + 12, statCenterY + 1.5, { align: 'center' });
 
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
@@ -1880,86 +1875,8 @@ async function handlePodioExport(
     pdf.setTextColor(20, 20, 20);
     pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 25, statCenterY + 4);
 
-    // --- Daily Chart Area ---
-    let chartY = resumoY + resumoH + 15;
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(60, 60, 60);
-    pdf.text('PRODUTIVIDADE (kg) POR DIA', margin, chartY);
-
-    // Legend
-    const legendX = pageWidth - margin - 50;
-    const drawLegendItem = (x: number, label: string, color: number[]) => {
-      pdf.setDrawColor(color[0], color[1], color[2]);
-      pdf.setLineWidth(1);
-      pdf.line(x, chartY - 1, x + 5, chartY - 1);
-      pdf.setFontSize(7);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(label, x + 7, chartY);
-      return x + 15;
-    };
-    let curLX = legendX;
-    curLX = drawLegendItem(curLX, 'Manhã', [200, 200, 200]);
-    curLX = drawLegendItem(curLX, 'Tarde', [255, 191, 0]);
-    curLX = drawLegendItem(curLX, 'Noite', [255, 87, 34]);
-
-    chartY += 10;
-    const chartH = 45;
-    const chartW = pageWidth - (margin * 2);
-    
-    // Draw Grid and Axis
-    pdf.setDrawColor(230, 230, 230);
-    pdf.setLineWidth(0.1);
-    for (let i = 0; i <= 4; i++) {
-      const gridY = chartY + (chartH / 4) * i;
-      pdf.line(margin, gridY, margin + chartW, gridY);
-      pdf.setFontSize(6);
-      pdf.setTextColor(150, 150, 150);
-      // Mock labels for scale (in a real app these would be dynamic)
-      const labelVal = 8000 - (i * 1000);
-      pdf.text(labelVal.toString(), margin - 7, gridY + 1);
-    }
-
-    // Process daily data for chart
-    const dailyData = podio.daily;
-    const stepX = chartW / (dailyData.length - 1 || 1);
-    
-    const drawLine = (shiftKey: string, color: number[]) => {
-      pdf.setDrawColor(color[0], color[1], color[2]);
-      pdf.setLineWidth(0.8);
-      let lastX = 0, lastY = 0;
-      
-      dailyData.forEach((d, idx) => {
-        const item = d.ranking.find(r => r.id === shiftKey);
-        const val = item ? item.kg : 0;
-        // Map kg (0-8000) to chart height
-        const normalizedY = chartY + chartH - ((val / 8000) * chartH);
-        const curX = margin + (idx * stepX);
-        
-        if (idx > 0) {
-          pdf.line(lastX, lastY, curX, normalizedY);
-        }
-        
-        // Draw point
-        pdf.setFillColor(color[0], color[1], color[2]);
-        pdf.circle(curX, normalizedY, 0.8, 'F');
-        
-        lastX = curX;
-        lastY = normalizedY;
-
-        // X Axis labels (Dates)
-        if (idx % Math.max(1, Math.floor(dailyData.length / 7)) === 0) {
-          pdf.setFontSize(6);
-          pdf.setTextColor(150, 150, 150);
-          pdf.text(format(new Date(d.date + 'T12:00:00'), 'dd/MM'), curX, chartY + chartH + 5, { align: 'center' });
-        }
-      });
-    };
-
-    drawLine('manha', [180, 180, 180]);
-    drawLine('tarde', [255, 191, 0]);
-    drawLine('noite', [255, 87, 34]);
+    // Removed chart to prevent overflow issues as requested
+    y = resumoY + resumoH + 10;
 
     pdf.save(`podio-performance-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast.success('PDF gerado com sucesso!');
