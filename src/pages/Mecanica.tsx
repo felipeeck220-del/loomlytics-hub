@@ -47,7 +47,7 @@ export default function MecanicaPage() {
    const [needleEntrySearch, setNeedleEntrySearch] = useState('');
    const [needleExitSearch, setNeedleExitSearch] = useState('');
    const [editTxn, setEditTxn] = useState<any>(null);
-   const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '' });
+  const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_agulheiro' });
    const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
  
   const { canSeeFinancial } = usePermissions();
@@ -528,7 +528,9 @@ export default function MecanicaPage() {
                                 <div className="flex justify-end gap-1">
                                   <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
                                     setEditTxn(t);
-                                    setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '' });
+                                    const kind: 'entry' | 'reposicao' | 'troca_agulheiro' =
+                                      t.type === 'entry' ? 'entry' : (t.exit_mode === 'troca_agulheiro' ? 'troca_agulheiro' : 'reposicao');
+                                    setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
                                   }}>
                                     <Pencil className="h-4 w-4" />
                                   </Button>
@@ -1060,12 +1062,23 @@ export default function MecanicaPage() {
 
     {/* Edit Needle Transaction Modal */}
     <Dialog open={!!editTxn} onOpenChange={(o) => !o && setEditTxn(null)}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar Movimentação</DialogTitle>
         </DialogHeader>
         {editTxn && (
           <div className="space-y-3">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={editForm.kind} onValueChange={(v: any) => setEditForm({ ...editForm, kind: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="entry">Entrada</SelectItem>
+                  <SelectItem value="reposicao">Reposição</SelectItem>
+                  <SelectItem value="troca_agulheiro">Troca de Agulheiro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Data</Label>
               <Input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} {...getDateLimits()} />
@@ -1074,7 +1087,7 @@ export default function MecanicaPage() {
               <Label>Quantidade</Label>
               <Input type="number" min="1" value={editForm.quantity} onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} />
             </div>
-            {editTxn.type === 'exit' && (
+            {editForm.kind !== 'entry' && (
               <div>
                 <Label>Máquina</Label>
                 <Select value={editForm.machine_id} onValueChange={(v) => setEditForm({ ...editForm, machine_id: v })}>
@@ -1094,13 +1107,17 @@ export default function MecanicaPage() {
             const qty = parseInt(editForm.quantity);
             if (!qty || qty <= 0) { toast.error('Quantidade inválida'); return; }
             if (!isDateValid(editForm.date)) { toast.error('Data inválida'); return; }
+            const isEntry = editForm.kind === 'entry';
+            if (!isEntry && !editForm.machine_id) { toast.error('Selecione a máquina'); return; }
             try {
               await updateNeedleTransaction(editTxn.id, {
                 quantity: qty,
                 date: editForm.date,
-                machine_id: editTxn.type === 'exit' ? (editForm.machine_id || undefined) : undefined,
+                type: isEntry ? 'entry' : 'exit',
+                exit_mode: isEntry ? undefined : (editForm.kind as 'reposicao' | 'troca_agulheiro'),
+                machine_id: isEntry ? undefined : editForm.machine_id,
               });
-              await logAction('needle_transaction_edit', { id: editTxn.id, quantity: qty, date: editForm.date });
+              await logAction('needle_transaction_edit', { id: editTxn.id, quantity: qty, date: editForm.date, kind: editForm.kind });
               toast.success('Movimentação atualizada');
               setEditTxn(null);
             } catch (e: any) {
