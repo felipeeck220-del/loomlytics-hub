@@ -528,7 +528,9 @@ export default function MecanicaPage() {
                                 <div className="flex justify-end gap-1">
                                   <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
                                     setEditTxn(t);
-                                    setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '' });
+                                    const kind: 'entry' | 'reposicao' | 'troca_agulheiro' =
+                                      t.type === 'entry' ? 'entry' : (t.exit_mode === 'troca_agulheiro' ? 'troca_agulheiro' : 'reposicao');
+                                    setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
                                   }}>
                                     <Pencil className="h-4 w-4" />
                                   </Button>
