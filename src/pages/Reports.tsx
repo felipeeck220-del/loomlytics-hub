@@ -27,7 +27,8 @@ import { usePermissions } from '@/hooks/usePermissions';
  import {
    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
    LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area,
- } from 'recharts';
+  } from 'recharts';
+import html2canvas from 'html2canvas';
 
 const CHART_COLORS = [
   'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(221, 83%, 53%)',
