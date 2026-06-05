@@ -426,10 +426,10 @@ export default function MecanicaPage() {
                     </Card>
                     <Card>
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Movimentações (Mês)</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Total Movimentações</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">{needleTransactions.filter(t => t.date.startsWith(format(new Date(), 'yyyy-MM'))).length}</div>
+                        <div className="text-2xl font-bold">{needleTransactions.length}</div>
                       </CardContent>
                     </Card>
                   </div>
