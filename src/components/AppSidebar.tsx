@@ -63,11 +63,12 @@ export function AppSidebar() {
   useEffect(() => {
     if (!user?.company_id) return;
     (supabase.from as any)('companies')
-      .select('logo_url')
+      .select('logo_url, name')
       .eq('id', user.company_id)
       .maybeSingle()
       .then(({ data }: any) => {
         if (data?.logo_url) setLogoUrl(data.logo_url);
+        if (data?.name) setCompanyName(data.name);
       });
 
     (supabase.from as any)('company_settings')
