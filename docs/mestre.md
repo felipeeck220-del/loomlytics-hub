@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 05/06/2026 12:40 (Brasília)*
+*Última atualização: 05/06/2026 13:10 (Brasília)*
+- 05/06/2026 13:10 - Relatórios: Adicionada nova aba "Pódio" após a aba Exportar — exibe ranking dos tecelões (top 3) somando eficiência, peças e peso produzido. Filtros próprios (1 Dia, 7 Dias, intervalo De/Até). Pódio visual com 1º lugar acima e 2º/3º abaixo (formato triângulo), abaixo lista diária com top 3 de cada dia. Botão "Exportar PDF" mantém o cabeçalho padrão e desenha o pódio (1º no topo, 2º e 3º abaixo) seguido da tabela de detalhamento por dia.
 - 05/06/2026 12:40 - Relatórios > Por Artigo > Detalhamento por Artigo: Corrigido o cálculo dos campos zerados (badge de eficiência e "% das peças") — o agregado por artigo agora inclui `pct_rolls`, `eficiencia` (média ponderada por kg), `targetEfficiency`, `records` e `clientName`, preenchendo corretamente os cards.
 - 05/06/2026 12:25 - Sidebar: Item "Notas Fiscais" renomeado para "Notas Fiscais (PrimeiroNomeEmpresa)" — exibe dinamicamente o primeiro nome da empresa logada. Removido o badge "Em teste" do item Notas Fiscais (retirado de TESTING_KEYS).
 - 05/06/2026 12:10 - Módulo Mecânica > Agulhas: Card "Movimentações (Mês)" substituído por "Total Movimentações" para refletir exatamente a quantidade de registros listada na aba Movimentações (evita divergência entre contagem do mês x total histórico).
