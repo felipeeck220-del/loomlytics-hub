@@ -1427,8 +1427,6 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
       },
     }[rank] || { border: 'border-gray-200', bg: 'bg-gray-50', text: 'text-gray-400', icon: Trophy, medalColor: 'bg-gray-400' };
 
-    const Icon = colors.icon;
-
     return (
       <div className={cn(
         "relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl overflow-hidden",
@@ -1437,9 +1435,6 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         colors.glow,
         isFirst ? "md:-mt-12 z-10 min-h-[380px]" : "opacity-95 min-h-[340px]"
       )}>
-        {/* Background Decorative Icon - Reduced opacity and size to prevent "bleeding" feel */}
-        <Icon className={cn("absolute -right-2 -bottom-2 opacity-[0.03] h-24 w-24 rotate-12", colors.text)} />
-
         <div className={cn(
           "absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center border-4 border-[#1a1c1e] shadow-xl z-20",
           colors.medalColor
@@ -1453,13 +1448,9 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
             isFirst ? "w-24 h-24" : "w-20 h-20"
           )}>
             <div className="w-full h-full rounded-full bg-[#1a1c1e] flex items-center justify-center border border-white/5 shadow-inner overflow-hidden">
-              <img 
-                src={rank === 1 ? "https://cdn-icons-png.flaticon.com/512/3112/3112946.png" : 
-                     rank === 2 ? "https://cdn-icons-png.flaticon.com/512/3112/3112932.png" : 
-                     "https://cdn-icons-png.flaticon.com/512/3112/3112952.png"} 
-                alt="Trophy"
-                className={isFirst ? "w-16 h-16 object-contain" : "w-12 h-12 object-contain"}
-              />
+              <span className={cn("font-black leading-none", isFirst ? "text-6xl" : "text-5xl", colors.text)}>
+                {rank}º
+              </span>
             </div>
           </div>
           <h3 className={cn("text-center font-black uppercase tracking-tighter leading-none text-white", isFirst ? "text-3xl" : "text-2xl")}>
@@ -1539,9 +1530,6 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         {winnerMsg && (
           <div className="mt-20 text-center">
             <div className="inline-flex flex-col sm:flex-row items-center gap-4 px-10 py-6 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl shadow-2xl border border-white/20">
-              <div className="bg-amber-400 p-2 rounded-full shadow-lg">
-                <Gauge className="h-8 w-8 text-black" />
-              </div>
               <span className="font-black tracking-tight uppercase tracking-[0.15em] text-sm sm:text-lg leading-tight text-center sm:text-left drop-shadow-sm">
                 {winnerMsg}
               </span>
@@ -1824,9 +1812,9 @@ async function handlePodioExport(
       pdf.setTextColor(...colors.muted);
       
       const rankY = summaryY + 12;
-      pdf.text(`🥇 1º: ${stats.rank1}d`, cardX + summaryCardW / 6, rankY);
-      pdf.text(`🥈 2º: ${stats.rank2}d`, cardX + (summaryCardW / 2), rankY, { align: 'center' });
-      pdf.text(`🥉 3º: ${stats.rank3}d`, cardX + (summaryCardW * 5 / 6), rankY, { align: 'right' });
+      pdf.text(`1o: ${stats.rank1}d`, cardX + summaryCardW / 6, rankY);
+      pdf.text(`2o: ${stats.rank2}d`, cardX + (summaryCardW / 2), rankY, { align: 'center' });
+      pdf.text(`3o: ${stats.rank3}d`, cardX + (summaryCardW * 5 / 6), rankY, { align: 'right' });
       
       // Add a small footer in the card
       pdf.setFontSize(7);
