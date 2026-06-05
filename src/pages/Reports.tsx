@@ -1603,15 +1603,19 @@ async function handlePodioExport(
     const second = podio.ranking[1];
     const third = podio.ranking[2];
 
-    const boxW = 50;
-    const gap = 8;
+    const boxW = 52;
+    const gap = 6;
     const totalW = boxW * 3 + gap * 2;
     const startX = (pageWidth - totalW) / 2;
-    const baseY = y + 70;
+    const baseY = y + 75;
 
-    // Dark background for podium section to match the "incetive/rivalry" vibe
-    pdf.setFillColor(31, 41, 55); // Gray-800
-    pdf.roundedRect(startX - 5, y - 5, totalW + 10, 85, 3, 3, 'F');
+    // Outer container shadow-like effect
+    pdf.setFillColor(243, 244, 246); // Gray-100
+    pdf.roundedRect(startX - 8, y - 5, totalW + 16, 95, 4, 4, 'F');
+    
+    // Main podium dark background
+    pdf.setFillColor(17, 24, 39); // Gray-900
+    pdf.roundedRect(startX - 5, y - 2, totalW + 10, 88, 3, 3, 'F');
 
     const drawBox = (
       x: number,
@@ -1623,88 +1627,90 @@ async function handlePodioExport(
     ) => {
       const top = baseY - h;
       
-      // Gradient-like effect for the box (outer shadow)
+      // Border color with slight glow effect simulation
       pdf.setDrawColor(...color);
-      pdf.setLineWidth(0.8);
+      pdf.setLineWidth(0.7);
       pdf.roundedRect(x, top, boxW, h, 2, 2, 'D');
 
-      // Box body
-      pdf.setFillColor(17, 24, 39); // Gray-900 (Darker)
-      pdf.roundedRect(x, top, boxW, h, 2, 2, 'F');
+      // Box body with slightly different dark tone
+      pdf.setFillColor(31, 41, 55); // Gray-800
+      pdf.roundedRect(x + 0.5, top + 0.5, boxW - 1, h - 1, 2, 2, 'F');
 
-      // Rank Number with Color
-      pdf.setFontSize(isFirst ? 24 : 18);
+      // Rank Number Circle
+      pdf.setFillColor(...color);
+      pdf.circle(x + boxW / 2, top - 2, 4, 'F');
+      pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...color);
-      const pw = pdf.getTextWidth(place);
-      pdf.text(place, x + 6, top + (isFirst ? 14 : 10));
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(place, x + boxW / 2 - (pdf.getTextWidth(place) / 2), top - 0.5);
 
-      // Trophy/Award Icon representation
+      // WIN Badge
       if (isFirst) {
         pdf.setFillColor(...color);
-        pdf.circle(x + boxW - 10, top + 10, 4, 'F');
+        pdf.circle(x + boxW - 8, top + 8, 4, 'F');
         pdf.setTextColor(17, 24, 39);
-        pdf.setFontSize(6);
-        pdf.text('WIN', x + boxW - 13, top + 11);
+        pdf.setFontSize(5);
+        pdf.text('WIN', x + boxW - 10.5, top + 8.5);
       }
 
       // Name
-      pdf.setFontSize(isFirst ? 12 : 10);
+      pdf.setFontSize(isFirst ? 13 : 11);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(255, 255, 255);
       const name = sanitizePdfText(w?.name || '—');
-      const nameLines = pdf.splitTextToSize(name, boxW - 4) as string[];
-      let ny = top + (isFirst ? 24 : 20);
-      nameLines.slice(0, 2).forEach(line => {
-        const lw = pdf.getTextWidth(line);
-        pdf.text(line, x + boxW / 2 - lw / 2, ny);
-        ny += 5;
-      });
+      const lw = pdf.getTextWidth(name);
+      pdf.text(name, x + boxW / 2 - lw / 2, top + 18);
 
       if (w) {
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(isFirst ? 9 : 8);
-        pdf.setTextColor(209, 213, 219); // Gray-300
+        pdf.setFontSize(9);
         
         const metrics = [
           { label: 'PEÇAS', val: `${fmtN(w.rolos)}` },
-          { label: 'PESO', val: `${fmtN(w.kg, 2)} kg` },
+          { label: 'PESO', val: `${fmtN(w.kg, 1)} kg` },
           { label: 'EFIC.', val: `${fmtN(w.eficiencia, 1)}%` }
         ];
 
-        ny += 4;
+        let my = top + 28;
         metrics.forEach((m) => {
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(...color);
-          pdf.text(m.label, x + 4, ny);
+          pdf.setFontSize(7);
+          pdf.text(m.label, x + 4, my);
           
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(255, 255, 255);
+          pdf.setFontSize(9);
           const valW = pdf.getTextWidth(m.val);
-          pdf.text(m.val, x + boxW - valW - 4, ny);
-          ny += 5;
+          pdf.text(m.val, x + boxW - valW - 4, my);
+          my += 6;
         });
 
-        // Efficiency bar
+        // Efficiency bar container
         const barMaxW = boxW - 8;
         const barW = (Math.min(w.eficiencia, 100) / 100) * barMaxW;
         pdf.setFillColor(55, 65, 81); // Gray-700
-        pdf.roundedRect(x + 4, ny, barMaxW, 2, 1, 1, 'F');
+        pdf.roundedRect(x + 4, my + 2, barMaxW, 2.5, 1, 1, 'F');
+        // Efficiency bar fill
         pdf.setFillColor(...color);
-        pdf.roundedRect(x + 4, ny, barW, 2, 1, 1, 'F');
+        pdf.roundedRect(x + 4, my + 2, barW, 2.5, 1, 1, 'F');
       }
     };
 
-    // Draw in order: 2nd, 1st (overlaps slightly if needed), 3rd
-    if (second) drawBox(startX, 55, [192, 192, 192], '2', second);
-    if (first) drawBox(startX + boxW + gap, 70, [234, 179, 8], '1', first, true); // Amber-500 for Gold
-    if (third) drawBox(startX + 2 * (boxW + gap), 45, [205, 127, 50], '3', third);
+    // Equalized height for 2nd and 3rd place as requested
+    const secondaryHeight = 55;
+    const primaryHeight = 70;
 
-    // Motivational Quote at the bottom of podium section
+    // Draw in order for correct layering
+    if (second) drawBox(startX, secondaryHeight, [192, 192, 192], '2', second);
+    if (first) drawBox(startX + boxW + gap, primaryHeight, [234, 179, 8], '1', first, true);
+    if (third) drawBox(startX + 2 * (boxW + gap), secondaryHeight, [205, 127, 50], '3', third);
+
+    // Motivational Quote centered at the bottom
     pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'italic');
+    pdf.setFont('helvetica', 'bolditalic');
     pdf.setTextColor(156, 163, 175); // Gray-400
-    const quote = "FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS PELO DESEMPENHO!";
+    const quote = first ? `FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS AO TURNO ${first.name.toUpperCase()} PELO DESEMPENHO!` : "";
     const qw = pdf.getTextWidth(quote);
     pdf.text(quote, (pageWidth - qw) / 2, baseY + 10);
 
