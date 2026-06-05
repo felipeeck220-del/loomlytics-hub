@@ -1846,10 +1846,12 @@ async function handlePodioExport(
     // KPI 2: Peso Total
     pdf.setDrawColor(200, 200, 200);
     pdf.circle(margin + colW + 12, statCenterY, 8, 'S');
-    // Simplified weight icon
+    // Simplified weight icon (using line for path)
     pdf.setDrawColor(100, 100, 100);
-    pdf.path('M ' + (margin + colW + 9) + ' ' + (statCenterY + 3) + ' L ' + (margin + colW + 15) + ' ' + (statCenterY + 3) + ' L ' + (margin + colW + 13) + ' ' + (statCenterY - 3) + ' L ' + (margin + colW + 11) + ' ' + (statCenterY - 3) + ' Z');
-    pdf.stroke();
+    pdf.line(margin + colW + 9, statCenterY + 3, margin + colW + 15, statCenterY + 3);
+    pdf.line(margin + colW + 15, statCenterY + 3, margin + colW + 13, statCenterY - 3);
+    pdf.line(margin + colW + 13, statCenterY - 3, margin + colW + 11, statCenterY - 3);
+    pdf.line(margin + colW + 11, statCenterY - 3, margin + colW + 9, statCenterY + 3);
 
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
@@ -1863,10 +1865,9 @@ async function handlePodioExport(
     // KPI 3: Eficiência Média
     pdf.setDrawColor(200, 200, 200);
     pdf.circle(margin + (colW * 2) + 12, statCenterY, 8, 'S');
-    // Simplified gauge/refresh icon
+    // Simplified icon instead of arc
     pdf.setDrawColor(100, 100, 100);
-    pdf.arc(margin + (colW * 2) + 12, statCenterY, 4, 0, 1.5 * Math.PI);
-    pdf.stroke();
+    pdf.circle(margin + (colW * 2) + 12, statCenterY, 4, 'S');
 
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
@@ -1887,7 +1888,7 @@ async function handlePodioExport(
     // Legend
     const legendX = pageWidth - margin - 50;
     const drawLegendItem = (x: number, label: string, color: number[]) => {
-      pdf.setDrawColor(...color);
+      pdf.setDrawColor(color[0], color[1], color[2]);
       pdf.setLineWidth(1);
       pdf.line(x, chartY - 1, x + 5, chartY - 1);
       pdf.setFontSize(7);
