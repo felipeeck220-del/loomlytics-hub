@@ -1431,14 +1431,14 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
 
     return (
       <div className={cn(
-        "relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-2xl overflow-hidden",
+        "relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl overflow-hidden",
         colors.border,
         colors.bg,
         colors.glow,
-        isFirst ? "md:-mt-12 z-10 min-h-[360px]" : "opacity-95 min-h-[320px]"
+        isFirst ? "md:-mt-12 z-10 min-h-[380px]" : "opacity-95 min-h-[340px]"
       )}>
-        {/* Background Decorative Icon */}
-        <Icon className={cn("absolute -right-4 -bottom-4 opacity-5 h-32 w-32 rotate-12", colors.text)} />
+        {/* Background Decorative Icon - Reduced opacity and size to prevent "bleeding" feel */}
+        <Icon className={cn("absolute -right-2 -bottom-2 opacity-[0.03] h-24 w-24 rotate-12", colors.text)} />
 
         <div className={cn(
           "absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center border-4 border-[#1a1c1e] shadow-xl z-20",
@@ -1447,23 +1447,34 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
           <span className="text-white font-black text-lg">{rank}</span>
         </div>
 
-        <div className="mt-6 mb-2 flex flex-col items-center w-full">
-          <div className={cn("p-4 rounded-xl bg-white/5 mb-4 shadow-2xl backdrop-blur-sm border border-white/10", colors.text)}>
-            <Icon className={isFirst ? "h-12 w-12" : "h-10 w-10"} />
+        <div className="mt-8 mb-2 flex flex-col items-center w-full relative z-10">
+          <div className={cn(
+            "p-1 mb-4 rounded-full bg-gradient-to-b from-white/10 to-transparent",
+            isFirst ? "w-24 h-24" : "w-20 h-20"
+          )}>
+            <div className="w-full h-full rounded-full bg-[#1a1c1e] flex items-center justify-center border border-white/5 shadow-inner overflow-hidden">
+              <img 
+                src={rank === 1 ? "https://cdn-icons-png.flaticon.com/512/3112/3112946.png" : 
+                     rank === 2 ? "https://cdn-icons-png.flaticon.com/512/3112/3112932.png" : 
+                     "https://cdn-icons-png.flaticon.com/512/3112/3112952.png"} 
+                alt="Trophy"
+                className={isFirst ? "w-16 h-16 object-contain" : "w-12 h-12 object-contain"}
+              />
+            </div>
           </div>
           <h3 className={cn("text-center font-black uppercase tracking-tighter leading-none text-white", isFirst ? "text-3xl" : "text-2xl")}>
             {winner?.name || '—'}
           </h3>
         </div>
 
-        <div className="w-full space-y-4 mt-6">
-          <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+        <div className="w-full space-y-4 mt-6 relative z-10">
+          <div className="flex justify-between items-center bg-black/40 backdrop-blur-md p-3 rounded-xl border border-white/5">
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
               <Package className="h-3 w-3" /> Peças
             </span>
             <span className="font-black text-lg text-white">{formatNumber(winner?.rolos || 0)}</span>
           </div>
-          <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+          <div className="flex justify-between items-center bg-black/40 backdrop-blur-md p-3 rounded-xl border border-white/5">
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
               <TrendingUp className="h-3 w-3" /> Peso (kg)
             </span>
@@ -1476,9 +1487,9 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
                 {formatPercent(winner?.eficiencia || 0)}
               </span>
             </div>
-            <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden shadow-inner p-[1px]">
+            <div className="h-3 w-full bg-black/60 rounded-full overflow-hidden shadow-inner p-[1px] border border-white/5">
               <div 
-                className={cn("h-full rounded-full transition-all duration-1000", colors.medalColor)}
+                className={cn("h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.2)]", colors.medalColor)}
                 style={{ width: `${Math.min(winner?.eficiencia || 0, 100)}%` }}
               />
             </div>
