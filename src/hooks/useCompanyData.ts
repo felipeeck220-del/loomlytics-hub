@@ -509,6 +509,29 @@ export function useCompanyData() {
      }
    }, [companyId, user?.id]);
  
+  const updateNeedleTransaction = useCallback(async (id: string, updates: Partial<NeedleTransaction>) => {
+    if (!companyId) return;
+    const row: any = {};
+    if (updates.quantity !== undefined) row.quantity = updates.quantity;
+    if (updates.date !== undefined) row.date = updates.date;
+    if (updates.machine_id !== undefined) row.machine_id = updates.machine_id || null;
+    if (updates.needle_id !== undefined) row.needle_id = updates.needle_id;
+    const { error } = await sb('needle_transactions').update(row).eq('id', id);
+    if (error) throw error;
+    setNeedleTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    const nData = await fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code');
+    setNeedles(nData.map(mapNeedle));
+  }, [companyId]);
+
+  const deleteNeedleTransaction = useCallback(async (id: string) => {
+    if (!companyId) return;
+    const { error } = await sb('needle_transactions').delete().eq('id', id);
+    if (error) throw error;
+    setNeedleTransactions(prev => prev.filter(t => t.id !== id));
+    const nData = await fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code');
+    setNeedles(nData.map(mapNeedle));
+  }, [companyId]);
+
     return {
      loading,
      loadingProgress,
@@ -524,6 +547,7 @@ export function useCompanyData() {
     getArticleMachineTurns, saveArticleMachineTurns,
      getDefectRecords, addDefectRecords, updateDefectRecords, deleteDefectRecords,
      getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
+     updateNeedleTransaction, deleteNeedleTransaction,
       saveShiftSettings,
      getProductionFilterMonths: useCallback(async () => {
        if (!companyId) return [];

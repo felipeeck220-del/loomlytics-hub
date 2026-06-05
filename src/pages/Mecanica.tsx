@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
- import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter } from 'lucide-react';
+  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getDateLimits, isDateValid } from '@/lib/formatters';
 import { usePermissions } from '@/hooks/usePermissions';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
   'manutencao_preventiva',
@@ -30,6 +31,7 @@ export default function MecanicaPage() {
    const { 
      getMachines, getMachineLogs, getProductions, saveMachineLogs, 
      getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
+     updateNeedleTransaction, deleteNeedleTransaction,
      loading 
    } = useSharedCompanyData();
    const needles = getNeedles();
@@ -44,6 +46,9 @@ export default function MecanicaPage() {
    const [exitForm, setExitForm] = useState({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_agulheiro', date: format(new Date(), 'yyyy-MM-dd') });
    const [needleEntrySearch, setNeedleEntrySearch] = useState('');
    const [needleExitSearch, setNeedleExitSearch] = useState('');
+   const [editTxn, setEditTxn] = useState<any>(null);
+   const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '' });
+   const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
  
   const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
@@ -492,6 +497,7 @@ export default function MecanicaPage() {
                            <th className="text-left p-4 font-medium">Agulha</th>
                            <th className="text-left p-4 font-medium">Destino</th>
                            <th className="text-right p-4 font-medium">Quantidade</th>
+                          <th className="text-right p-4 font-medium">Ações</th>
                          </tr>
                        </thead>
                        <tbody>
@@ -500,7 +506,16 @@ export default function MecanicaPage() {
                            const machine = machines.find(m => m.id === t.machine_id);
                            return (
                              <tr key={t.id} className="border-b">
-                               <td className="p-4">{format(new Date(t.date), 'dd/MM/yyyy')}</td>
+                              <td className="p-4 align-top">
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">{format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}</span>
+                                  {(t.created_by_name || t.created_at) && (
+                                    <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
+                                      {t.created_by_name || '—'} - {"\n"}{t.created_at ? format(new Date(t.created_at), 'dd/MM/yyyy HH:mm') : ''}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
                                <td className="p-4">
                                  <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">
                                    {t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_agulheiro' ? 'Troca' : 'Reposição'}
@@ -509,12 +524,25 @@ export default function MecanicaPage() {
                                <td className="p-4">{needle?.brand} ({needle?.reference_code})</td>
                                <td className="p-4">{machine?.name || '—'}</td>
                                <td className="p-4 text-right font-medium">{t.quantity}</td>
+                              <td className="p-4 text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                    setEditTxn(t);
+                                    setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '' });
+                                  }}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTxnId(t.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
                              </tr>
                            );
                          })}
                          {needleTransactions.length === 0 && (
                            <tr>
-                             <td colSpan={5} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
+                            <td colSpan={6} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
                            </tr>
                          )}
                        </tbody>
@@ -1029,6 +1057,78 @@ export default function MecanicaPage() {
          </DialogFooter>
        </DialogContent>
      </Dialog>
+
+    {/* Edit Needle Transaction Modal */}
+    <Dialog open={!!editTxn} onOpenChange={(o) => !o && setEditTxn(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Movimentação</DialogTitle>
+        </DialogHeader>
+        {editTxn && (
+          <div className="space-y-3">
+            <div>
+              <Label>Data</Label>
+              <Input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} {...getDateLimits()} />
+            </div>
+            <div>
+              <Label>Quantidade</Label>
+              <Input type="number" min="1" value={editForm.quantity} onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} />
+            </div>
+            {editTxn.type === 'exit' && (
+              <div>
+                <Label>Máquina</Label>
+                <Select value={editForm.machine_id} onValueChange={(v) => setEditForm({ ...editForm, machine_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setEditTxn(null)}>Cancelar</Button>
+          <Button onClick={async () => {
+            if (!editTxn) return;
+            const qty = parseInt(editForm.quantity);
+            if (!qty || qty <= 0) { toast.error('Quantidade inválida'); return; }
+            if (!isDateValid(editForm.date)) { toast.error('Data inválida'); return; }
+            try {
+              await updateNeedleTransaction(editTxn.id, {
+                quantity: qty,
+                date: editForm.date,
+                machine_id: editTxn.type === 'exit' ? (editForm.machine_id || undefined) : undefined,
+              });
+              await logAction('needle_transaction_edit', { id: editTxn.id, quantity: qty, date: editForm.date });
+              toast.success('Movimentação atualizada');
+              setEditTxn(null);
+            } catch (e: any) {
+              toast.error('Erro ao atualizar: ' + (e?.message || ''));
+            }
+          }}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <DeleteConfirmDialog
+      open={!!deleteTxnId}
+      onOpenChange={(o) => !o && setDeleteTxnId(null)}
+      title="Excluir movimentação"
+      description="Esta ação irá reverter o saldo de estoque e não pode ser desfeita."
+      onConfirm={async () => {
+        if (!deleteTxnId) return;
+        try {
+          await deleteNeedleTransaction(deleteTxnId);
+          await logAction('needle_transaction_delete', { id: deleteTxnId });
+          toast.success('Movimentação excluída');
+        } catch (e: any) {
+          toast.error('Erro ao excluir: ' + (e?.message || ''));
+        } finally {
+          setDeleteTxnId(null);
+        }
+      }}
+    />
    </div>
  );
 }
