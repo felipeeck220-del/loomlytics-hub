@@ -1808,102 +1808,111 @@ async function handlePodioExport(
 
     const finalY = (pdf as any).lastAutoTable.finalY + 15;
 
-    // --- Resumo Geral Section (Inspired by image) ---
+    // --- Resumo Geral & Desempenho por Turno Section ---
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(20, 20, 20); // Darker
+    pdf.setTextColor(20, 20, 20);
     pdf.text('RESUMO GERAL', margin, finalY);
 
+    // Calculate Totals and Shift Performance
+    let totalPieces = 0;
+    let totalKg = 0;
+    let avgEf = 0;
+    let count = 0;
+    const shiftPerformance: Record<string, { rank1: number; rank2: number; rank3: number }> = {};
+
+    podio.daily.forEach(d => {
+      d.ranking.forEach((item, index) => {
+        totalPieces += item.rolos;
+        totalKg += item.kg;
+        avgEf += item.eficiencia;
+        count++;
+
+        if (index < 3) {
+          const shiftName = item.name.toUpperCase();
+          if (!shiftPerformance[shiftName]) {
+            shiftPerformance[shiftName] = { rank1: 0, rank2: 0, rank3: 0 };
+          }
+          if (index === 0) shiftPerformance[shiftName].rank1++;
+          else if (index === 1) shiftPerformance[shiftName].rank2++;
+          else if (index === 2) shiftPerformance[shiftName].rank3++;
+        }
+      });
+    });
+
     const resumoY = finalY + 5;
-    const resumoH = 30;
+    const resumoH = 25;
     
-    // Background card (Dark aesthetic inspired by image, but adjusted for white paper)
+    // Background card for Resumo Geral
     pdf.setFillColor(245, 247, 250);
     pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'F');
     pdf.setDrawColor(220, 225, 230);
     pdf.setLineWidth(0.2);
     pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'S');
 
-    // Calculate Totals
-    let totalPieces = 0;
-    let totalKg = 0;
-    let avgEf = 0;
-    let count = 0;
-
-    podio.daily.forEach(d => {
-      d.ranking.forEach(item => {
-        totalPieces += item.rolos;
-        totalKg += item.kg;
-        avgEf += item.eficiencia;
-        count++;
-      });
-    });
-
     const colW = (pageWidth - (margin * 2)) / 3;
     const statCenterY = resumoY + (resumoH / 2);
 
     // KPI 1: Peças Totais
-    // Background Circle for Icon
-    pdf.setFillColor(235, 239, 245);
-    pdf.circle(margin + 12, statCenterY, 8, 'F');
-    // Draw a simple box icon using lines since emojis fail
-    pdf.setDrawColor(100, 100, 100);
-    pdf.setLineWidth(0.3);
-    pdf.rect(margin + 9, statCenterY - 3, 6, 6);
-    pdf.line(margin + 9, statCenterY, margin + 15, statCenterY);
-    
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(100, 100, 100);
-    pdf.text('PEÇAS TOTAIS', margin + 25, statCenterY - 3);
-    pdf.setFontSize(11);
+    pdf.text('PEÇAS TOTAIS', margin + 10, statCenterY - 2);
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
-    pdf.text(`${formatNumber(totalPieces)} pcs`, margin + 25, statCenterY + 4);
+    pdf.text(`${formatNumber(totalPieces)} pcs`, margin + 10, statCenterY + 4);
 
     // KPI 2: Peso Total
-    pdf.setFillColor(235, 239, 245);
-    pdf.circle(margin + colW + 12, statCenterY, 8, 'F');
-    // Draw a simple weight icon
-    pdf.setDrawColor(100, 100, 100);
-    pdf.setLineWidth(0.3);
-    pdf.line(margin + colW + 9, statCenterY + 3, margin + colW + 15, statCenterY + 3);
-    pdf.line(margin + colW + 9, statCenterY + 3, margin + colW + 10, statCenterY - 3);
-    pdf.line(margin + colW + 15, statCenterY + 3, margin + colW + 14, statCenterY - 3);
-    pdf.line(margin + colW + 10, statCenterY - 3, margin + colW + 14, statCenterY - 3);
-
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(100, 100, 100);
-    pdf.text('PESO TOTAL', margin + colW + 25, statCenterY - 3);
-    pdf.setFontSize(11);
+    pdf.text('PESO TOTAL', margin + colW + 10, statCenterY - 2);
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
-    pdf.text(`${formatNumber(totalKg, 2)} kg`, margin + colW + 25, statCenterY + 4);
+    pdf.text(`${formatNumber(totalKg, 2)} kg`, margin + colW + 10, statCenterY + 4);
 
     // KPI 3: Eficiência Média
-    pdf.setFillColor(235, 239, 245);
-    pdf.circle(margin + (colW * 2) + 12, statCenterY, 8, 'F');
-    // Draw a simple chart icon
-    pdf.setDrawColor(100, 100, 100);
-    pdf.setLineWidth(0.3);
-    pdf.line(margin + (colW * 2) + 9, statCenterY + 3, margin + (colW * 2) + 15, statCenterY + 3);
-    pdf.line(margin + (colW * 2) + 9, statCenterY + 3, margin + (colW * 2) + 9, statCenterY - 3);
-    pdf.line(margin + (colW * 2) + 9, statCenterY + 2, margin + (colW * 2) + 11, statCenterY);
-    pdf.line(margin + (colW * 2) + 11, statCenterY, margin + (colW * 2) + 13, statCenterY - 2);
-    pdf.line(margin + (colW * 2) + 13, statCenterY - 2, margin + (colW * 2) + 15, statCenterY + 1);
-
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(100, 100, 100);
-    pdf.text('EFICIÊNCIA MÉDIA', margin + (colW * 2) + 25, statCenterY - 3);
-    pdf.setFontSize(11);
+    pdf.text('EFICIÊNCIA MÉDIA', margin + (colW * 2) + 10, statCenterY - 2);
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
-    pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 25, statCenterY + 4);
+    pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 10, statCenterY + 4);
 
-    // Removed chart to prevent overflow issues as requested
+    // --- Desempenho por Turno Table ---
     y = resumoY + resumoH + 10;
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(20, 20, 20);
+    pdf.text('DESEMPENHO POR TURNO (PÓDIOS)', margin, y);
+    y += 5;
+
+    const perfRows = Object.entries(shiftPerformance).map(([name, perf]) => [
+      name,
+      perf.rank1.toString(),
+      perf.rank2.toString(),
+      perf.rank3.toString(),
+      (perf.rank1 + perf.rank2 + perf.rank3).toString()
+    ]);
+
+    autoTable(pdf, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Turno', '1º Lugar', '2º Lugar', '3º Lugar', 'Total']],
+      body: perfRows,
+      theme: 'grid',
+      headStyles: { fillColor: [40, 40, 40], textColor: colors.white, fontSize: 8, halign: 'center' },
+      styles: { fontSize: 8, halign: 'center' },
+      columnStyles: {
+        0: { halign: 'left', fontStyle: 'bold' }
+      }
+    });
+
+    y = (pdf as any).lastAutoTable.finalY + 10;
 
     pdf.save(`podio-performance-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast.success('PDF gerado com sucesso!');
