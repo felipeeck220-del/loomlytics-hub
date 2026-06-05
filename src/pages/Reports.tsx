@@ -1443,16 +1443,9 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         </div>
 
         <div className="mt-8 mb-2 flex flex-col items-center w-full relative z-10">
-          <div className={cn(
-            "p-1 mb-4 rounded-full bg-gradient-to-b from-white/10 to-transparent",
-            isFirst ? "w-24 h-24" : "w-20 h-20"
-          )}>
-            <div className="w-full h-full rounded-full bg-[#1a1c1e] flex items-center justify-center border border-white/5 shadow-inner overflow-hidden">
-              <span className={cn("font-black leading-none", isFirst ? "text-6xl" : "text-5xl", colors.text)}>
-                {rank}º
-              </span>
-            </div>
-          </div>
+          <span className={cn("font-black leading-none mb-4", isFirst ? "text-6xl" : "text-5xl", colors.text)}>
+            {rank}º
+          </span>
           <h3 className={cn("text-center font-black uppercase tracking-tighter leading-none text-white", isFirst ? "text-3xl" : "text-2xl")}>
             {winner?.name || '—'}
           </h3>
