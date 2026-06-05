@@ -1713,7 +1713,14 @@ async function handlePodioExport(
       pdf.setFillColor(...color);
       pdf.circle(x + width / 2, yPos, 6, 'F');
       
-      pdf.setFontSize(10);
+      // Desenhar medalha estilizada com vetores para garantir compatibilidade
+      pdf.setDrawColor(255, 255, 255, 0.8);
+      pdf.setLineWidth(0.4);
+      // Fita da medalha
+      pdf.line(x + width / 2 - 2, yPos - 3, x + width / 2, yPos - 1);
+      pdf.line(x + width / 2 + 2, yPos - 3, x + width / 2, yPos - 1);
+      
+      pdf.setFontSize(rank === 1 ? 9 : 8);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...colors.white);
       pdf.text(rank.toString(), x + width / 2, yPos + 1.5, { align: 'center' });
