@@ -1812,9 +1812,9 @@ async function handlePodioExport(
       pdf.setTextColor(...colors.muted);
       
       const rankY = summaryY + 12;
-      pdf.text(`🥇 1º: ${stats.rank1}d`, cardX + summaryCardW / 6, rankY);
-      pdf.text(`🥈 2º: ${stats.rank2}d`, cardX + (summaryCardW / 2), rankY, { align: 'center' });
-      pdf.text(`🥉 3º: ${stats.rank3}d`, cardX + (summaryCardW * 5 / 6), rankY, { align: 'right' });
+      pdf.text(`1o: ${stats.rank1}d`, cardX + summaryCardW / 6, rankY);
+      pdf.text(`2o: ${stats.rank2}d`, cardX + (summaryCardW / 2), rankY, { align: 'center' });
+      pdf.text(`3o: ${stats.rank3}d`, cardX + (summaryCardW * 5 / 6), rankY, { align: 'right' });
       
       // Add a small footer in the card
       pdf.setFontSize(7);
