@@ -89,7 +89,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   const [searchClient, setSearchClient] = useState('');
   const [searchArticle, setSearchArticle] = useState('');
 
-  // Pódio (Ranking de Tecelões) — filtros independentes
+  // Pódio (Ranking por Turno) — filtros independentes
   const [podioRange, setPodioRange] = useState<'1' | '7' | 'custom'>('7');
   const [podioFrom, setPodioFrom] = useState<Date>();
   const [podioTo, setPodioTo] = useState<Date>();
@@ -300,7 +300,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      return 'Todo período';
    }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
-  // ---- PÓDIO: cálculo de ranking de tecelões ----
+  // ---- PÓDIO: cálculo de ranking por turno ----
   const podioComputed = useMemo(() => {
     const today = new Date();
     let pFrom: string, pTo: string;
@@ -319,8 +319,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
     const aggregate = (rows: Production[]) => {
       const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
       rows.forEach(p => {
-        const key = p.weaver_id || p.weaver_name || 'sem';
-        const name = p.weaver_name || 'Sem tecelão';
+        const key = p.shift || 'sem';
+        const name = companyShiftLabels[p.shift as ShiftType]?.split(' (')[0] || p.shift || 'Sem turno';
         if (!map[key]) map[key] = { id: key, name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
         map[key].rolos += p.rolls_produced;
         map[key].kg += p.weight_kg;
@@ -356,7 +356,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       : `${format(new Date(pFrom + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
 
     return { ranking, daily, periodLabel: label, from: pFrom, to: pTo };
-  }, [productions, podioRange, podioFrom, podioTo]);
+  }, [productions, podioRange, podioFrom, podioTo, companyShiftLabels]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -1191,7 +1191,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                 </Card>
               </TabsContent>
 
-              {/* PÓDIO — Ranking de Tecelões */}
+              {/* PÓDIO — Ranking por Turno */}
               <TabsContent value="podio" className="mt-4 space-y-6">
                 <Card>
                   <CardHeader>
@@ -1199,10 +1199,10 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                       <div>
                         <CardTitle className="text-base flex items-center gap-2">
                           <Trophy className="h-4 w-4 text-amber-500" />
-                          Pódio dos Tecelões
+                          Pódio por Turno
                         </CardTitle>
                         <CardDescription>
-                          Top 3 tecelões somando eficiência, peças e peso produzido — {podioComputed.periodLabel}
+                          Top 3 turnos somando eficiência, peças e peso produzido — {podioComputed.periodLabel}
                         </CardDescription>
                       </div>
                       <Button
@@ -1482,7 +1482,7 @@ async function handlePodioExport(
 
   const cName = companyName || '';
   const dateStr = new Date().toLocaleString('pt-BR');
-  const reportTitle = 'PÓDIO DOS TECELÕES';
+  const reportTitle = 'PÓDIO POR TURNO';
 
   const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
     if (!width || !height) return { width: maxWidth, height: maxHeight };
@@ -1677,7 +1677,7 @@ async function handlePodioExport(
   drawPodium();
   drawDailyTable();
 
-  const fileName = `podio_tecelões_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+  const fileName = `podio_turnos_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
   pdf.save(fileName);
 }
 
