@@ -1924,7 +1924,7 @@ async function handlePodioExport(
     const stepX = chartW / (dailyData.length - 1 || 1);
     
     const drawLine = (shiftKey: string, color: number[]) => {
-      pdf.setDrawColor(...color);
+      pdf.setDrawColor(color[0], color[1], color[2]);
       pdf.setLineWidth(0.8);
       let lastX = 0, lastY = 0;
       
@@ -1940,7 +1940,7 @@ async function handlePodioExport(
         }
         
         // Draw point
-        pdf.setFillColor(...color);
+        pdf.setFillColor(color[0], color[1], color[2]);
         pdf.circle(curX, normalizedY, 0.8, 'F');
         
         lastX = curX;
