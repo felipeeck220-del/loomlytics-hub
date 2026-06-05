@@ -1374,6 +1374,313 @@ function ExportButton({ label, description, onClick }: {
   );
 }
 
+// --- Pódio: componente visual (1º acima, 2º e 3º abaixo formando triângulo) ---
+function PodiumDisplay({ ranking }: { ranking: any[] }) {
+  const first = ranking[0];
+  const second = ranking[1];
+  const third = ranking[2];
+
+  const Card1 = ({ w, place, heightCls, gradient, icon, medal }: any) => (
+    <div className="flex flex-col items-center">
+      <div className={cn(
+        "w-full max-w-[220px] rounded-t-2xl border border-border p-4 flex flex-col items-center justify-end text-center shadow-md transition-transform hover:-translate-y-1",
+        heightCls,
+        gradient,
+      )}>
+        <div className="text-3xl mb-1">{medal}</div>
+        {icon}
+        <div className="font-display font-bold text-foreground text-base mt-1 line-clamp-2">{w?.name || '—'}</div>
+        {w && (
+          <div className="mt-2 space-y-0.5 text-xs">
+            <div><span className="font-semibold">{formatNumber(w.rolos)}</span> peças</div>
+            <div><span className="font-semibold">{formatNumber(w.kg, 2)}</span> kg</div>
+            <div><span className="font-semibold">{formatNumber(w.eficiencia, 1)}%</span> efic.</div>
+          </div>
+        )}
+      </div>
+      <div className="w-full max-w-[220px] bg-muted border-x border-b border-border rounded-b-md py-2 text-center font-display font-bold text-lg">
+        {place}º
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-3 gap-3 items-end max-w-3xl mx-auto">
+      <Card1
+        w={second}
+        place={2}
+        heightCls="h-44 justify-end"
+        gradient="bg-gradient-to-b from-slate-200/40 to-slate-300/60 dark:from-slate-700/40 dark:to-slate-600/60"
+        medal="🥈"
+      />
+      <Card1
+        w={first}
+        place={1}
+        heightCls="h-56 justify-end"
+        gradient="bg-gradient-to-b from-amber-200/50 to-amber-400/70 dark:from-amber-700/50 dark:to-amber-500/60"
+        medal="🥇"
+      />
+      <Card1
+        w={third}
+        place={3}
+        heightCls="h-36 justify-end"
+        gradient="bg-gradient-to-b from-orange-200/40 to-orange-400/60 dark:from-orange-800/40 dark:to-orange-600/50"
+        medal="🥉"
+      />
+    </div>
+  );
+}
+
+// --- Pódio: exportação PDF ---
+async function handlePodioExport(
+  podio: { ranking: any[]; daily: { date: string; ranking: any[] }[]; periodLabel: string },
+  logoUrl?: string | null,
+  companyName?: string,
+) {
+  const fmtN = (v: number | undefined | null, d = 0) =>
+    (v === undefined || v === null || isNaN(v as number))
+      ? '0'
+      : v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+  const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+        } catch { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+
+  let logoInfo: { data: string; width: number; height: number } | null = null;
+  if (logoUrl) logoInfo = await loadLogo(logoUrl);
+
+  const { jsPDF } = await import('jspdf');
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 15;
+  let y = margin;
+
+  const colors = {
+    grayBg: [249, 250, 251] as [number, number, number],
+    border: [229, 231, 235] as [number, number, number],
+    textDark: [17, 24, 39] as [number, number, number],
+    textMid: [75, 85, 99] as [number, number, number],
+    gold: [251, 191, 36] as [number, number, number],
+    silver: [203, 213, 225] as [number, number, number],
+    bronze: [251, 146, 60] as [number, number, number],
+  };
+
+  const cName = companyName || '';
+  const dateStr = new Date().toLocaleString('pt-BR');
+  const reportTitle = 'PÓDIO DOS TECELÕES';
+
+  const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+    if (!width || !height) return { width: maxWidth, height: maxHeight };
+    const scale = Math.min(maxWidth / width, maxHeight / height);
+    return { width: width * scale, height: height * scale };
+  };
+
+  const addHeader = () => {
+    const headerH = 25;
+    const leftX = margin + 5;
+    const rightX = pageWidth - margin - 5;
+    pdf.setFillColor(...colors.grayBg);
+    pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
+    pdf.setDrawColor(...colors.border);
+    pdf.setLineWidth(0.5);
+    pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
+
+    if (logoInfo) {
+      try {
+        const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+        pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
+      } catch { /* noop */ }
+    } else if (cName) {
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      pdf.text(sanitizePdfText(cName), leftX, y + 10);
+    }
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.textMid);
+    pdf.text(dateStr, leftX, y + 22);
+
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.textDark);
+    const tw = pdf.getTextWidth(reportTitle);
+    pdf.text(reportTitle, (pageWidth - tw) / 2, y + 14);
+
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.textMid);
+    const pw = pdf.getTextWidth(podio.periodLabel);
+    pdf.text(podio.periodLabel, rightX - pw, y + 22);
+
+    y += headerH + 8;
+  };
+
+  // Draw podium boxes: 1st centered & tallest, 2nd left, 3rd right
+  const drawPodium = () => {
+    const first = podio.ranking[0];
+    const second = podio.ranking[1];
+    const third = podio.ranking[2];
+
+    const boxW = 55;
+    const gap = 6;
+    const totalW = boxW * 3 + gap * 2;
+    const startX = (pageWidth - totalW) / 2;
+    const baseY = y + 70;
+
+    const drawBox = (
+      x: number,
+      h: number,
+      color: [number, number, number],
+      place: string,
+      w?: any,
+    ) => {
+      const top = baseY - h;
+      pdf.setFillColor(...color);
+      pdf.roundedRect(x, top, boxW, h, 2, 2, 'F');
+      pdf.setDrawColor(...colors.border);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(x, top, boxW, h, 2, 2, 'S');
+
+      pdf.setFontSize(18);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      const pw = pdf.getTextWidth(place);
+      pdf.text(place, x + boxW / 2 - pw / 2, top + 12);
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      const name = sanitizePdfText(w?.name || '—');
+      const nameLines = pdf.splitTextToSize(name, boxW - 4) as string[];
+      let ny = top + 20;
+      nameLines.slice(0, 2).forEach(line => {
+        const lw = pdf.getTextWidth(line);
+        pdf.text(line, x + boxW / 2 - lw / 2, ny);
+        ny += 5;
+      });
+
+      if (w) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        const lines = [
+          `${fmtN(w.rolos)} pcs`,
+          `${fmtN(w.kg, 2)} kg`,
+          `${fmtN(w.eficiencia, 1)}% efic.`,
+        ];
+        lines.forEach((l, i) => {
+          const lw = pdf.getTextWidth(l);
+          pdf.text(l, x + boxW / 2 - lw / 2, ny + i * 5);
+        });
+      }
+    };
+
+    drawBox(startX, 45, colors.silver, '2', second);
+    drawBox(startX + boxW + gap, 65, colors.gold, '1', first);
+    drawBox(startX + 2 * (boxW + gap), 35, colors.bronze, '3', third);
+
+    // base
+    pdf.setFillColor(...colors.grayBg);
+    pdf.rect(startX - 4, baseY, totalW + 8, 3, 'F');
+
+    y = baseY + 12;
+  };
+
+  const drawDailyTable = () => {
+    const availW = pageWidth - 2 * margin;
+    const cols = [38, (availW - 38) / 3, (availW - 38) / 3, (availW - 38) / 3];
+    const rowH = 9;
+    const headerH = 9;
+
+    const drawTableHeader = () => {
+      if (y + headerH + rowH > pageHeight - margin) {
+        pdf.addPage();
+        y = margin;
+        addHeader();
+      }
+      pdf.setFillColor(...colors.grayBg);
+      pdf.rect(margin, y, availW, headerH, 'F');
+      pdf.setDrawColor(...colors.border);
+      pdf.setLineWidth(0.3);
+      pdf.rect(margin, y, availW, headerH);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      const headers = ['Data', '1o Lugar', '2o Lugar', '3o Lugar'];
+      let x = margin;
+      headers.forEach((h, i) => {
+        pdf.text(h, x + 2, y + 6);
+        x += cols[i];
+      });
+      y += headerH;
+    };
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.textDark);
+    pdf.text('Detalhamento por Dia', margin, y);
+    y += 6;
+
+    drawTableHeader();
+
+    podio.daily.forEach((d, ri) => {
+      if (y + rowH > pageHeight - margin) {
+        pdf.addPage();
+        y = margin;
+        addHeader();
+        drawTableHeader();
+      }
+      pdf.setFillColor(ri % 2 === 0 ? 255 : 248, ri % 2 === 0 ? 255 : 250, ri % 2 === 0 ? 255 : 252);
+      pdf.rect(margin, y, availW, rowH, 'F');
+      pdf.setDrawColor(...colors.border);
+      pdf.setLineWidth(0.1);
+      pdf.rect(margin, y, availW, rowH);
+
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...colors.textDark);
+
+      const dateLabel = (() => {
+        const dt = new Date(d.date + 'T12:00:00');
+        return dt.toLocaleDateString('pt-BR');
+      })();
+      let x = margin;
+      pdf.text(dateLabel, x + 2, y + 5.5);
+      x += cols[0];
+      [0, 1, 2].forEach(idx => {
+        const w = d.ranking[idx];
+        const text = w
+          ? `${sanitizePdfText(w.name).substring(0, 18)} - ${fmtN(w.kg, 2)}kg - ${fmtN(w.eficiencia, 1)}%`
+          : '—';
+        pdf.text(text, x + 2, y + 5.5);
+        x += cols[idx + 1];
+      });
+      y += rowH;
+    });
+  };
+
+  addHeader();
+  drawPodium();
+  drawDailyTable();
+
+  const fileName = `podio_tecelões_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+  pdf.save(fileName);
+}
+
 // --- Export handler ---
 
  function handleExport(
