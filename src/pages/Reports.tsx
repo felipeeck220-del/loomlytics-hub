@@ -1711,11 +1711,6 @@ async function handlePodioExport(
     toast.error('Erro ao gerar PDF');
   }
 }
-  } catch (error) {
-    console.error('PDF Error:', error);
-    toast.error('Erro ao gerar PDF');
-  }
-}
 
 // --- Export handler ---
 
