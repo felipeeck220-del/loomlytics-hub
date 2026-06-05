@@ -1755,66 +1755,67 @@ async function handlePodioExport(
 
     const finalY = (pdf as any).lastAutoTable.finalY + 15;
 
-    // --- Performance Summary Cards (DESEMPENHO GERAL - MÉDIAS DE PERFORMANCE) ---
+    // --- Resumo Geral Section (Inspired by image) ---
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(...colors.dark);
-    pdf.text('DESEMPENHO GERAL (MÉDIAS DE PERFORMANCE)', margin, finalY);
+    pdf.text('RESUMO GERAL', margin, finalY);
 
-    const summaryY = finalY + 5;
-    const summaryCardW = (pageWidth - (margin * 2) - 10) / 3;
-    const summaryCardH = 35; // Aumentado para caber mais dados
+    const resumoY = finalY + 5;
+    const resumoH = 25;
+    
+    pdf.setFillColor(...colors.cardBg);
+    pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'F');
+    pdf.setDrawColor(...colors.border);
+    pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'S');
 
-    // Calculate average performance for all shifts
-    const shiftsStats: Record<string, { name: string, totalKg: number, totalEf: number, days: number, rank1: number }> = {};
+    // Calculate Totals
+    let totalPieces = 0;
+    let totalKg = 0;
+    let avgEf = 0;
+    let count = 0;
+
     podio.daily.forEach(d => {
-      d.ranking.forEach((item, index) => {
-        if (!shiftsStats[item.id]) {
-          shiftsStats[item.id] = { name: item.name, totalKg: 0, totalEf: 0, days: 0, rank1: 0 };
-        }
-        shiftsStats[item.id].totalKg += item.kg;
-        shiftsStats[item.id].totalEf += item.eficiencia;
-        shiftsStats[item.id].days++;
-        if (index === 0) shiftsStats[item.id].rank1++;
+      d.ranking.forEach(item => {
+        totalPieces += item.rolos;
+        totalKg += item.kg;
+        avgEf += item.eficiencia;
+        count++;
       });
     });
 
-    const shiftIds = Object.keys(shiftsStats).sort((a, b) => shiftsStats[b].totalKg - shiftsStats[a].totalKg);
-    shiftIds.forEach((id, idx) => {
-      if (idx > 2) return; 
-      const stats = shiftsStats[id];
-      const cardX = margin + (summaryCardW + 5) * idx;
-      
-      pdf.setFillColor(...colors.cardBg);
-      pdf.roundedRect(cardX, summaryY, summaryCardW, summaryCardH, 2, 2, 'F');
-      pdf.setDrawColor(...colors.border);
-      pdf.setLineWidth(0.1);
-      pdf.roundedRect(cardX, summaryY, summaryCardW, summaryCardH, 2, 2, 'S');
+    const colW = (pageWidth - (margin * 2)) / 3;
+    const statCenterY = resumoY + (resumoH / 2);
 
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...colors.dark);
-      pdf.text(stats.name.toUpperCase(), cardX + summaryCardW / 2, summaryY + 6, { align: 'center' });
+    // Peças Totais
+    pdf.setFontSize(7);
+    pdf.setTextColor(...colors.muted);
+    pdf.text('PEÇAS TOTAIS', margin + colW / 2, statCenterY - 2, { align: 'center' });
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.dark);
+    pdf.text(`${formatNumber(totalPieces)} pcs`, margin + colW / 2, statCenterY + 5, { align: 'center' });
 
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(...colors.muted);
-      
-      const lineY = summaryY + 13;
-      pdf.text(`Prod. Média:`, cardX + 5, lineY);
-      pdf.setTextColor(...colors.dark);
-      pdf.text(`${formatNumber(stats.totalKg / stats.days, 1)}kg`, cardX + summaryCardW - 5, lineY, { align: 'right' });
-      
-      pdf.setTextColor(...colors.muted);
-      pdf.text(`Efic. Média:`, cardX + 5, lineY + 6);
-      pdf.setTextColor(...colors.dark);
-      pdf.text(`${formatNumber(stats.totalEf / stats.days, 1)}%`, cardX + summaryCardW - 5, lineY + 6, { align: 'right' });
+    // Peso Total
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.muted);
+    pdf.text('PESO TOTAL', margin + colW + colW / 2, statCenterY - 2, { align: 'center' });
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.dark);
+    pdf.text(`${formatNumber(totalKg, 2)} kg`, margin + colW + colW / 2, statCenterY + 5, { align: 'center' });
 
-      pdf.setTextColor(...colors.muted);
-      pdf.text(`Vitórias (1º):`, cardX + 5, lineY + 12);
-      pdf.setTextColor(...colors.dark);
-      pdf.text(`${stats.rank1} vezes`, cardX + summaryCardW - 5, lineY + 12, { align: 'right' });
-    });
+    // Eficiência Média
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.muted);
+    pdf.text('EFICIÊNCIA MÉDIA', margin + (colW * 2) + colW / 2, statCenterY - 2, { align: 'center' });
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.dark);
+    pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + colW / 2, statCenterY + 5, { align: 'center' });
+
 
     pdf.save(`podio-performance-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast.success('PDF gerado com sucesso!');
