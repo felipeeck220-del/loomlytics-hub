@@ -1548,309 +1548,85 @@ async function handlePodioExport(
   logoUrl?: string | null,
   companyName?: string,
 ) {
-  const fmtN = (v: number | undefined | null, d = 0) =>
-    (v === undefined || v === null || isNaN(v as number))
-      ? '0'
-      : v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const { toast } = await import('sonner');
+  const element = document.getElementById('podium-section-export');
+  
+  if (!element) {
+    toast.error('Erro ao capturar o pódio');
+    return;
+  }
 
-  const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> =>
-    new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0);
-          resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
-        } catch { resolve(null); }
-      };
-      img.onerror = () => resolve(null);
-      img.src = url;
+  toast.info('Gerando PDF de alta qualidade...');
+
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 3, // High quality
+      useCORS: true,
+      backgroundColor: '#0f141e', // Match theme
+      logging: false,
     });
 
-  let logoInfo: { data: string; width: number; height: number } | null = null;
-  if (logoUrl) logoInfo = await loadLogo(logoUrl);
-
-  const { jsPDF } = await import('jspdf');
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 15;
-  let y = margin;
-
-  const colors = {
-    grayBg: [249, 250, 251] as [number, number, number],
-    border: [229, 231, 235] as [number, number, number],
-    textDark: [17, 24, 39] as [number, number, number],
-    textMid: [75, 85, 99] as [number, number, number],
-    gold: [251, 191, 36] as [number, number, number],
-    silver: [203, 213, 225] as [number, number, number],
-    bronze: [251, 146, 60] as [number, number, number],
-  };
-
-  const cName = companyName || '';
-  const dateStr = new Date().toLocaleString('pt-BR');
-  const reportTitle = 'PÓDIO POR TURNO';
-
-  const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
-    if (!width || !height) return { width: maxWidth, height: maxHeight };
-    const scale = Math.min(maxWidth / width, maxHeight / height);
-    return { width: width * scale, height: height * scale };
-  };
-
-  const addHeader = () => {
-    const headerH = 25;
-    const leftX = margin + 5;
-    const rightX = pageWidth - margin - 5;
-    pdf.setFillColor(...colors.grayBg);
-    pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
-    pdf.setDrawColor(...colors.border);
-    pdf.setLineWidth(0.5);
-    pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
-
-    if (logoInfo) {
-      try {
-        const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
-        pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
-      } catch { /* noop */ }
-    } else if (cName) {
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...colors.textDark);
-      pdf.text(sanitizePdfText(cName), leftX, y + 10);
-    }
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(...colors.textMid);
-    pdf.text(dateStr, leftX, y + 22);
-
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(...colors.textDark);
-    const tw = pdf.getTextWidth(reportTitle);
-    pdf.text(reportTitle, (pageWidth - tw) / 2, y + 14);
-
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(...colors.textMid);
-    const pw = pdf.getTextWidth(podio.periodLabel);
-    pdf.text(podio.periodLabel, rightX - pw, y + 22);
-
-    y += headerH + 8;
-  };
-
-  // Draw podium: 1st centered & tallest, 2nd left, 3rd right with a darker, modern aesthetic
-  const drawPodium = () => {
-    const first = podio.ranking[0];
-    const second = podio.ranking[1];
-    const third = podio.ranking[2];
-
-    const boxW = 52;
-    const gap = 6;
-    const totalW = boxW * 3 + gap * 2;
-    const startX = (pageWidth - totalW) / 2;
-    const baseY = y + 75;
-
-    // Outer container shadow-like effect
-    pdf.setFillColor(243, 244, 246); // Gray-100
-    pdf.roundedRect(startX - 8, y - 5, totalW + 16, 105, 4, 4, 'F');
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    const { jsPDF } = await import('jspdf');
+    const pdf = new jsPDF('p', 'mm', 'a4');
     
-    // Main podium dark background
-    pdf.setFillColor(15, 20, 30); // Darker Blue-Black
-    pdf.roundedRect(startX - 5, y - 2, totalW + 10, 98, 3, 3, 'F');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 10;
+    const imgWidth = pageWidth - (margin * 2);
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    const drawBox = (
-      x: number,
-      h: number,
-      color: [number, number, number],
-      place: string,
-      w: any,
-      isFirst = false
-    ) => {
-      const top = baseY - h;
-      
-      // Box body with slightly different dark tone
-      pdf.setFillColor(28, 35, 48); // Dark gray-blue
-      pdf.roundedRect(x, top, boxW, h, 2, 2, 'F');
+    // Header standard
+    pdf.setFillColor(249, 250, 251);
+    pdf.rect(margin, 10, imgWidth, 25, 'F');
+    pdf.setDrawColor(229, 231, 235);
+    pdf.rect(margin, 10, imgWidth, 25, 'S');
 
-      // Border color with slight glow effect simulation
-      pdf.setDrawColor(...color);
-      pdf.setLineWidth(0.8);
-      pdf.roundedRect(x, top, boxW, h, 2, 2, 'D');
-
-      // Rank Number Circle
-      pdf.setFillColor(...color);
-      pdf.circle(x + boxW / 2, top - 4, 5, 'F');
-      pdf.setFontSize(11);
+    if (companyName) {
+      pdf.setFontSize(12);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(255, 255, 255);
-      pdf.text(place, x + boxW / 2 - (pdf.getTextWidth(place) / 2), top - 2.5);
-
-      // WIN Badge
-      if (isFirst) {
-        pdf.setFillColor(...color);
-        pdf.circle(x + boxW - 8, top + 8, 4, 'F');
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(5.5);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('WIN', x + boxW - 10.5, top + 8.5);
-      }
-
-      // Name
-      pdf.setFontSize(isFirst ? 14 : 12);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(255, 255, 255);
-      const name = sanitizePdfText(w?.name || '—');
-      const lw = pdf.getTextWidth(name);
-      pdf.text(name, x + boxW / 2 - lw / 2, top + 15);
-
-      if (w) {
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(9);
-        
-        const metrics = [
-          { label: 'PEÇAS', val: `${fmtN(w.rolos)}` },
-          { label: 'PESO', val: `${fmtN(w.kg, 1)} kg` },
-          { label: 'EFIC.', val: `${fmtN(w.eficiencia, 1)}%` }
-        ];
-
-        let my = top + 26;
-        metrics.forEach((m) => {
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(...color);
-          pdf.setFontSize(7.5);
-          pdf.text(m.label, x + 6, my);
-          
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFontSize(9);
-          const valW = pdf.getTextWidth(m.val);
-          pdf.text(m.val, x + boxW - valW - 6, my);
-          my += 7;
-        });
-
-        // Efficiency bar container
-        const barMaxW = boxW - 12;
-        const barW = (Math.min(w.eficiencia, 100) / 100) * barMaxW;
-        pdf.setFillColor(45, 55, 70); // Darker bar bg
-        pdf.roundedRect(x + 6, my + 3, barMaxW, 3, 1.5, 1.5, 'F');
-        // Efficiency bar fill
-        pdf.setFillColor(...color);
-        pdf.roundedRect(x + 6, my + 3, barW, 3, 1.5, 1.5, 'F');
-      }
-    };
-
-    // Equalized height for 2nd and 3rd place as requested
-    const secondaryHeight = 55;
-    const primaryHeight = 75;
-
-    // Draw in order for correct layering
-    if (second) drawBox(startX, secondaryHeight, [192, 192, 192], '2', second);
-    if (first) drawBox(startX + boxW + gap, primaryHeight, [234, 179, 8], '1', first, true);
-    if (third) drawBox(startX + 2 * (boxW + gap), secondaryHeight, [205, 127, 50], '3', third);
-
-    // Motivational Quote centered at the bottom
-    const quote = first ? `FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS AO TURNO ${first.name.toUpperCase()} PELO DESEMPENHO!` : "";
-    if (quote) {
-      const qw = pdf.getTextWidth(quote);
-      const quoteBoxH = 14;
-      pdf.setFillColor(17, 24, 39); // Match dark theme
-      pdf.roundedRect((pageWidth - qw - 24) / 2, baseY + 8, qw + 24, quoteBoxH, 4, 4, 'F');
-      pdf.setDrawColor(234, 179, 8); // Gold border
-      pdf.setLineWidth(0.5);
-      pdf.roundedRect((pageWidth - qw - 24) / 2, baseY + 8, qw + 24, quoteBoxH, 4, 4, 'D');
-      
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(255, 255, 255);
-      pdf.text(quote, (pageWidth - qw) / 2, baseY + 8 + 9);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(sanitizePdfText(companyName), margin + 5, 20);
     }
+    
+    pdf.setFontSize(14);
+    pdf.setTextColor(17, 24, 39);
+    pdf.text('PÓDIO POR TURNO', pageWidth / 2, 25, { align: 'center' });
+    
+    pdf.setFontSize(8);
+    pdf.setTextColor(75, 85, 99);
+    pdf.text(podio.periodLabel, pageWidth - margin - 5, 30, { align: 'right' });
 
-    y = baseY + 32;
-  };
+    // Podium Image (The "Beautiful" part)
+    pdf.addImage(imgData, 'PNG', margin, 40, imgWidth, imgHeight);
 
-  const drawDailyTable = () => {
-    const availW = pageWidth - 2 * margin;
-    const cols = [38, (availW - 38) / 3, (availW - 38) / 3, (availW - 38) / 3];
-    const rowH = 9;
-    const headerH = 9;
+    // Daily Listing Table
+    let y = 40 + imgHeight + 10;
+    
+    // AutoTable for daily details
+    const tableRows = podio.daily.map(d => [
+      format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }),
+      d.ranking[0] ? `${d.ranking[0].name} (${formatPercent(d.ranking[0].eficiencia)})` : '-',
+      d.ranking[1] ? `${d.ranking[1].name} (${formatPercent(d.ranking[1].eficiencia)})` : '-',
+      d.ranking[2] ? `${d.ranking[2].name} (${formatPercent(d.ranking[2].eficiencia)})` : '-'
+    ]);
 
-    const drawTableHeader = () => {
-      if (y + headerH + rowH > pageHeight - margin) {
-        pdf.addPage();
-        y = margin;
-        addHeader();
-      }
-      pdf.setFillColor(...colors.grayBg);
-      pdf.rect(margin, y, availW, headerH, 'F');
-      pdf.setDrawColor(...colors.border);
-      pdf.setLineWidth(0.3);
-      pdf.rect(margin, y, availW, headerH);
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...colors.textDark);
-      const headers = ['Data', '1o Lugar', '2o Lugar', '3o Lugar'];
-      let x = margin;
-      headers.forEach((h, i) => {
-        pdf.text(h, x + 2, y + 6);
-        x += cols[i];
-      });
-      y += headerH;
-    };
-
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(...colors.textDark);
-    pdf.text('Detalhamento por Dia', margin, y);
-    y += 6;
-
-    drawTableHeader();
-
-    podio.daily.forEach((d, ri) => {
-      if (y + rowH > pageHeight - margin) {
-        pdf.addPage();
-        y = margin;
-        addHeader();
-        drawTableHeader();
-      }
-      pdf.setFillColor(ri % 2 === 0 ? 255 : 248, ri % 2 === 0 ? 255 : 250, ri % 2 === 0 ? 255 : 252);
-      pdf.rect(margin, y, availW, rowH, 'F');
-      pdf.setDrawColor(...colors.border);
-      pdf.setLineWidth(0.1);
-      pdf.rect(margin, y, availW, rowH);
-
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(...colors.textDark);
-
-      const dateLabel = (() => {
-        const dt = new Date(d.date + 'T12:00:00');
-        return dt.toLocaleDateString('pt-BR');
-      })();
-      let x = margin;
-      pdf.text(dateLabel, x + 2, y + 5.5);
-      x += cols[0];
-      [0, 1, 2].forEach(idx => {
-        const w = d.ranking[idx];
-        const text = w
-          ? `${sanitizePdfText(w.name).substring(0, 18)} - ${fmtN(w.kg, 2)}kg - ${fmtN(w.eficiencia, 1)}%`
-          : '—';
-        pdf.text(text, x + 2, y + 5.5);
-        x += cols[idx + 1];
-      });
-      y += rowH;
+    const { default: autoTable } = await import('jspdf-autotable');
+    autoTable(pdf, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Data', '1o Lugar', '2o Lugar', '3o Lugar']],
+      body: tableRows,
+      theme: 'grid',
+      headStyles: { fillColor: [15, 20, 30], textColor: [255, 255, 255] },
+      styles: { fontSize: 8 },
     });
-  };
 
-  addHeader();
-  drawPodium();
-  drawDailyTable();
-
-  const fileName = `podio_turnos_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
-  pdf.save(fileName);
+    pdf.save(`podio-turnos-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    toast.success('PDF gerado com sucesso!');
+  } catch (error) {
+    console.error('PDF Error:', error);
+    toast.error('Erro ao gerar PDF');
+  }
 }
 
 // --- Export handler ---
