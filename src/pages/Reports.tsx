@@ -1531,43 +1531,64 @@ async function handlePodioExport(
     y += headerH + 8;
   };
 
-  // Draw podium boxes: 1st centered & tallest, 2nd left, 3rd right
+  // Draw podium: 1st centered & tallest, 2nd left, 3rd right with a darker, modern aesthetic
   const drawPodium = () => {
     const first = podio.ranking[0];
     const second = podio.ranking[1];
     const third = podio.ranking[2];
 
-    const boxW = 55;
-    const gap = 6;
+    const boxW = 50;
+    const gap = 8;
     const totalW = boxW * 3 + gap * 2;
     const startX = (pageWidth - totalW) / 2;
     const baseY = y + 70;
+
+    // Dark background for podium section to match the "incetive/rivalry" vibe
+    pdf.setFillColor(31, 41, 55); // Gray-800
+    pdf.roundedRect(startX - 5, y - 5, totalW + 10, 85, 3, 3, 'F');
 
     const drawBox = (
       x: number,
       h: number,
       color: [number, number, number],
       place: string,
-      w?: any,
+      w: any,
+      isFirst = false
     ) => {
       const top = baseY - h;
-      pdf.setFillColor(...color);
+      
+      // Gradient-like effect for the box (outer shadow)
+      pdf.setDrawColor(...color);
+      pdf.setLineWidth(0.8);
+      pdf.roundedRect(x, top, boxW, h, 2, 2, 'D');
+
+      // Box body
+      pdf.setFillColor(17, 24, 39); // Gray-900 (Darker)
       pdf.roundedRect(x, top, boxW, h, 2, 2, 'F');
-      pdf.setDrawColor(...colors.border);
-      pdf.setLineWidth(0.3);
-      pdf.roundedRect(x, top, boxW, h, 2, 2, 'S');
 
-      pdf.setFontSize(18);
+      // Rank Number with Color
+      pdf.setFontSize(isFirst ? 24 : 18);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...colors.textDark);
+      pdf.setTextColor(...color);
       const pw = pdf.getTextWidth(place);
-      pdf.text(place, x + boxW / 2 - pw / 2, top + 12);
+      pdf.text(place, x + 6, top + (isFirst ? 14 : 10));
 
-      pdf.setFontSize(10);
+      // Trophy/Award Icon representation
+      if (isFirst) {
+        pdf.setFillColor(...color);
+        pdf.circle(x + boxW - 10, top + 10, 4, 'F');
+        pdf.setTextColor(17, 24, 39);
+        pdf.setFontSize(6);
+        pdf.text('WIN', x + boxW - 13, top + 11);
+      }
+
+      // Name
+      pdf.setFontSize(isFirst ? 12 : 10);
       pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(255, 255, 255);
       const name = sanitizePdfText(w?.name || '—');
       const nameLines = pdf.splitTextToSize(name, boxW - 4) as string[];
-      let ny = top + 20;
+      let ny = top + (isFirst ? 24 : 20);
       nameLines.slice(0, 2).forEach(line => {
         const lw = pdf.getTextWidth(line);
         pdf.text(line, x + boxW / 2 - lw / 2, ny);
@@ -1576,28 +1597,52 @@ async function handlePodioExport(
 
       if (w) {
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8);
-        const lines = [
-          `${fmtN(w.rolos)} pcs`,
-          `${fmtN(w.kg, 2)} kg`,
-          `${fmtN(w.eficiencia, 1)}% efic.`,
+        pdf.setFontSize(isFirst ? 9 : 8);
+        pdf.setTextColor(209, 213, 219); // Gray-300
+        
+        const metrics = [
+          { label: 'PEÇAS', val: `${fmtN(w.rolos)}` },
+          { label: 'PESO', val: `${fmtN(w.kg, 2)} kg` },
+          { label: 'EFIC.', val: `${fmtN(w.eficiencia, 1)}%` }
         ];
-        lines.forEach((l, i) => {
-          const lw = pdf.getTextWidth(l);
-          pdf.text(l, x + boxW / 2 - lw / 2, ny + i * 5);
+
+        ny += 4;
+        metrics.forEach((m) => {
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...color);
+          pdf.text(m.label, x + 4, ny);
+          
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(255, 255, 255);
+          const valW = pdf.getTextWidth(m.val);
+          pdf.text(m.val, x + boxW - valW - 4, ny);
+          ny += 5;
         });
+
+        // Efficiency bar
+        const barMaxW = boxW - 8;
+        const barW = (Math.min(w.eficiencia, 100) / 100) * barMaxW;
+        pdf.setFillColor(55, 65, 81); // Gray-700
+        pdf.roundedRect(x + 4, ny, barMaxW, 2, 1, 1, 'F');
+        pdf.setFillColor(...color);
+        pdf.roundedRect(x + 4, ny, barW, 2, 1, 1, 'F');
       }
     };
 
-    drawBox(startX, 45, colors.silver, '2', second);
-    drawBox(startX + boxW + gap, 65, colors.gold, '1', first);
-    drawBox(startX + 2 * (boxW + gap), 35, colors.bronze, '3', third);
+    // Draw in order: 2nd, 1st (overlaps slightly if needed), 3rd
+    if (second) drawBox(startX, 55, [192, 192, 192], '2', second);
+    if (first) drawBox(startX + boxW + gap, 70, [234, 179, 8], '1', first, true); // Amber-500 for Gold
+    if (third) drawBox(startX + 2 * (boxW + gap), 45, [205, 127, 50], '3', third);
 
-    // base
-    pdf.setFillColor(...colors.grayBg);
-    pdf.rect(startX - 4, baseY, totalW + 8, 3, 'F');
+    // Motivational Quote at the bottom of podium section
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'italic');
+    pdf.setTextColor(156, 163, 175); // Gray-400
+    const quote = "FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS PELO DESEMPENHO!";
+    const qw = pdf.getTextWidth(quote);
+    pdf.text(quote, (pageWidth - qw) / 2, baseY + 10);
 
-    y = baseY + 12;
+    y = baseY + 20;
   };
 
   const drawDailyTable = () => {
