@@ -1399,7 +1399,7 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         "relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl",
         colors.border,
         colors.bg,
-        isFirst ? "md:-mt-12 z-10 bg-gradient-to-b from-amber-500/20 to-transparent" : "opacity-90"
+        isFirst ? "md:-mt-12 z-10 bg-gradient-to-b from-amber-500/20 to-transparent min-h-[340px]" : "opacity-90 min-h-[300px]"
       )}>
         <div className={cn(
           "absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-lg",
@@ -1446,7 +1446,7 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
   };
 
   return (
-    <div className="py-12 px-4 bg-slate-50 rounded-3xl border border-slate-200 shadow-inner relative overflow-hidden">
+    <div className="py-12 px-4 rounded-3xl border border-border relative overflow-hidden bg-card text-card-foreground">
       {/* Background decorative elements */}
       <div className="absolute top-0 right-0 p-8 opacity-5">
         <Trophy className="h-64 w-64 rotate-12" />
@@ -1454,13 +1454,13 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
 
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
-          <Badge variant="outline" className="mb-4 bg-white px-4 py-1 border-amber-500 text-amber-600 font-bold tracking-widest uppercase">
+          <Badge variant="outline" className="mb-4 px-4 py-1 border-amber-500 text-amber-600 font-bold tracking-widest uppercase bg-transparent">
             Ranking de Performance
           </Badge>
-          <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase italic">
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic">
             Pódio por Turno
           </h2>
-          <p className="text-slate-500 font-medium max-w-lg mx-auto mt-2">
+          <p className="text-muted-foreground font-medium max-w-lg mx-auto mt-2">
             O reconhecimento dos melhores resultados gera excelência. Parabéns aos líderes!
           </p>
         </div>
@@ -1483,8 +1483,8 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         </div>
 
         {winnerMsg && (
-          <div className="mt-16 text-center animate-bounce">
-            <div className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full shadow-2xl">
+          <div className="mt-16 text-center">
+            <div className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-full shadow-2xl">
               <Gauge className="h-6 w-6 text-amber-400" />
               <span className="font-bold tracking-tight uppercase tracking-widest text-xs sm:text-sm text-center">
                 {winnerMsg}
@@ -1603,15 +1603,19 @@ async function handlePodioExport(
     const second = podio.ranking[1];
     const third = podio.ranking[2];
 
-    const boxW = 50;
-    const gap = 8;
+    const boxW = 52;
+    const gap = 6;
     const totalW = boxW * 3 + gap * 2;
     const startX = (pageWidth - totalW) / 2;
-    const baseY = y + 70;
+    const baseY = y + 75;
 
-    // Dark background for podium section to match the "incetive/rivalry" vibe
-    pdf.setFillColor(31, 41, 55); // Gray-800
-    pdf.roundedRect(startX - 5, y - 5, totalW + 10, 85, 3, 3, 'F');
+    // Outer container shadow-like effect
+    pdf.setFillColor(243, 244, 246); // Gray-100
+    pdf.roundedRect(startX - 8, y - 5, totalW + 16, 95, 4, 4, 'F');
+    
+    // Main podium dark background
+    pdf.setFillColor(17, 24, 39); // Gray-900
+    pdf.roundedRect(startX - 5, y - 2, totalW + 10, 88, 3, 3, 'F');
 
     const drawBox = (
       x: number,
@@ -1623,88 +1627,90 @@ async function handlePodioExport(
     ) => {
       const top = baseY - h;
       
-      // Gradient-like effect for the box (outer shadow)
+      // Border color with slight glow effect simulation
       pdf.setDrawColor(...color);
-      pdf.setLineWidth(0.8);
+      pdf.setLineWidth(0.7);
       pdf.roundedRect(x, top, boxW, h, 2, 2, 'D');
 
-      // Box body
-      pdf.setFillColor(17, 24, 39); // Gray-900 (Darker)
-      pdf.roundedRect(x, top, boxW, h, 2, 2, 'F');
+      // Box body with slightly different dark tone
+      pdf.setFillColor(31, 41, 55); // Gray-800
+      pdf.roundedRect(x + 0.5, top + 0.5, boxW - 1, h - 1, 2, 2, 'F');
 
-      // Rank Number with Color
-      pdf.setFontSize(isFirst ? 24 : 18);
+      // Rank Number Circle
+      pdf.setFillColor(...color);
+      pdf.circle(x + boxW / 2, top - 2, 4, 'F');
+      pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...color);
-      const pw = pdf.getTextWidth(place);
-      pdf.text(place, x + 6, top + (isFirst ? 14 : 10));
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(place, x + boxW / 2 - (pdf.getTextWidth(place) / 2), top - 0.5);
 
-      // Trophy/Award Icon representation
+      // WIN Badge
       if (isFirst) {
         pdf.setFillColor(...color);
-        pdf.circle(x + boxW - 10, top + 10, 4, 'F');
+        pdf.circle(x + boxW - 8, top + 8, 4, 'F');
         pdf.setTextColor(17, 24, 39);
-        pdf.setFontSize(6);
-        pdf.text('WIN', x + boxW - 13, top + 11);
+        pdf.setFontSize(5);
+        pdf.text('WIN', x + boxW - 10.5, top + 8.5);
       }
 
       // Name
-      pdf.setFontSize(isFirst ? 12 : 10);
+      pdf.setFontSize(isFirst ? 13 : 11);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(255, 255, 255);
       const name = sanitizePdfText(w?.name || '—');
-      const nameLines = pdf.splitTextToSize(name, boxW - 4) as string[];
-      let ny = top + (isFirst ? 24 : 20);
-      nameLines.slice(0, 2).forEach(line => {
-        const lw = pdf.getTextWidth(line);
-        pdf.text(line, x + boxW / 2 - lw / 2, ny);
-        ny += 5;
-      });
+      const lw = pdf.getTextWidth(name);
+      pdf.text(name, x + boxW / 2 - lw / 2, top + 18);
 
       if (w) {
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(isFirst ? 9 : 8);
-        pdf.setTextColor(209, 213, 219); // Gray-300
+        pdf.setFontSize(9);
         
         const metrics = [
           { label: 'PEÇAS', val: `${fmtN(w.rolos)}` },
-          { label: 'PESO', val: `${fmtN(w.kg, 2)} kg` },
+          { label: 'PESO', val: `${fmtN(w.kg, 1)} kg` },
           { label: 'EFIC.', val: `${fmtN(w.eficiencia, 1)}%` }
         ];
 
-        ny += 4;
+        let my = top + 28;
         metrics.forEach((m) => {
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(...color);
-          pdf.text(m.label, x + 4, ny);
+          pdf.setFontSize(7);
+          pdf.text(m.label, x + 4, my);
           
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(255, 255, 255);
+          pdf.setFontSize(9);
           const valW = pdf.getTextWidth(m.val);
-          pdf.text(m.val, x + boxW - valW - 4, ny);
-          ny += 5;
+          pdf.text(m.val, x + boxW - valW - 4, my);
+          my += 6;
         });
 
-        // Efficiency bar
+        // Efficiency bar container
         const barMaxW = boxW - 8;
         const barW = (Math.min(w.eficiencia, 100) / 100) * barMaxW;
         pdf.setFillColor(55, 65, 81); // Gray-700
-        pdf.roundedRect(x + 4, ny, barMaxW, 2, 1, 1, 'F');
+        pdf.roundedRect(x + 4, my + 2, barMaxW, 2.5, 1, 1, 'F');
+        // Efficiency bar fill
         pdf.setFillColor(...color);
-        pdf.roundedRect(x + 4, ny, barW, 2, 1, 1, 'F');
+        pdf.roundedRect(x + 4, my + 2, barW, 2.5, 1, 1, 'F');
       }
     };
 
-    // Draw in order: 2nd, 1st (overlaps slightly if needed), 3rd
-    if (second) drawBox(startX, 55, [192, 192, 192], '2', second);
-    if (first) drawBox(startX + boxW + gap, 70, [234, 179, 8], '1', first, true); // Amber-500 for Gold
-    if (third) drawBox(startX + 2 * (boxW + gap), 45, [205, 127, 50], '3', third);
+    // Equalized height for 2nd and 3rd place as requested
+    const secondaryHeight = 55;
+    const primaryHeight = 70;
 
-    // Motivational Quote at the bottom of podium section
+    // Draw in order for correct layering
+    if (second) drawBox(startX, secondaryHeight, [192, 192, 192], '2', second);
+    if (first) drawBox(startX + boxW + gap, primaryHeight, [234, 179, 8], '1', first, true);
+    if (third) drawBox(startX + 2 * (boxW + gap), secondaryHeight, [205, 127, 50], '3', third);
+
+    // Motivational Quote centered at the bottom
     pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'italic');
+    pdf.setFont('helvetica', 'bolditalic');
     pdf.setTextColor(156, 163, 175); // Gray-400
-    const quote = "FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS PELO DESEMPENHO!";
+    const quote = first ? `FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS AO TURNO ${first.name.toUpperCase()} PELO DESEMPENHO!` : "";
     const qw = pdf.getTextWidth(quote);
     pdf.text(quote, (pageWidth - qw) / 2, baseY + 10);
 
