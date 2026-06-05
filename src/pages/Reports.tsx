@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { ptBR } from 'date-fns/locale';
 import {
   CalendarIcon, Loader2, RotateCcw, Download, Clock, Search,
-  Package, TrendingUp, DollarSign, Gauge, FileText,
+  Package, TrendingUp, DollarSign, Gauge, FileText, Trophy, Medal, Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SHIFT_LABELS, type ShiftType, type Production, getCompanyShiftLabels } from '@/types';
