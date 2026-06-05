@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2 } from 'lucide-react';
+  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -49,6 +49,8 @@ export default function MecanicaPage() {
    const [editTxn, setEditTxn] = useState<any>(null);
   const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_agulheiro' });
    const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
+   const [needleHistoryPage, setNeedleHistoryPage] = useState(1);
+   const NEEDLE_HISTORY_PER_PAGE = 15;
  
   const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
@@ -389,172 +391,231 @@ export default function MecanicaPage() {
            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
            <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
          </TabsList>
-         {/* Agulhas Tab */}
-         <TabsContent value="agulhas">
-           <div className="space-y-6">
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               <Card>
-                 <CardHeader className="pb-2">
-                   <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Tipos de Agulha</CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                   <div className="text-2xl font-bold">{needles.length}</div>
-                 </CardContent>
-               </Card>
-               <Card>
-                 <CardHeader className="pb-2">
-                   <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Total em Estoque</CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                   <div className="text-2xl font-bold">{needles.reduce((sum, n) => sum + n.current_quantity, 0)}</div>
-                 </CardContent>
-               </Card>
-               <Card>
-                 <CardHeader className="pb-2">
-                   <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Movimentações (Mês)</CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                   <div className="text-2xl font-bold">{needleTransactions.filter(t => t.date.startsWith(format(new Date(), 'yyyy-MM'))).length}</div>
-                 </CardContent>
-               </Card>
-             </div>
- 
-             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-               <div className="relative w-full sm:w-72">
-                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                 <Input 
-                   placeholder="Pesquisar agulha..." 
-                   value={needleSearch} 
-                   onChange={e => setNeedleSearch(e.target.value)} 
-                   className="pl-9" 
-                 />
-               </div>
-               <div className="flex gap-2 w-full sm:w-auto">
-                 <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 sm:flex-none">
-                   <Plus className="h-4 w-4 mr-2" /> Cadastrar
-                 </Button>
-                 <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
-                   <Plus className="h-4 w-4 mr-2" /> Entrada
-                 </Button>
-                 <Button onClick={() => setShowExitModal(true)} variant="default" className="flex-1 sm:flex-none">
-                   <Wrench className="h-4 w-4 mr-2" /> Baixa
-                 </Button>
-               </div>
-             </div>
- 
-             <Card>
-               <CardContent className="p-0">
-                 <div className="overflow-x-auto">
-                   <table className="w-full text-sm">
-                     <thead>
-                       <tr className="border-b bg-muted/50">
-                         <th className="text-left p-4 font-medium">Fornecedor</th>
-                         <th className="text-left p-4 font-medium">Marca</th>
-                         <th className="text-left p-4 font-medium">Ref. Código</th>
-                         <th className="text-right p-4 font-medium">Estoque</th>
-                       </tr>
-                     </thead>
-                     <tbody>
-                       {[...needles]
-                         .sort((a, b) => a.brand.localeCompare(b.brand))
-                         .filter(n => 
-                           n.brand.toLowerCase().includes(needleSearch.toLowerCase()) || 
-                           n.provider.toLowerCase().includes(needleSearch.toLowerCase()) || 
-                           n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
-                         )
-                         .map(n => (
-                         <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
-                           <td className="p-4">{n.provider}</td>
-                           <td className="p-4">{n.brand}</td>
-                           <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
-                           <td className="p-4 text-right font-bold">{n.current_quantity}</td>
-                         </tr>
-                       ))}
-                       {needles.length === 0 && (
-                         <tr>
-                           <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
-                         </tr>
-                       )}
-                     </tbody>
-                   </table>
-                 </div>
-               </CardContent>
-             </Card>
- 
-             <div className="space-y-4">
-               <div className="flex items-center gap-2">
-                 <History className="h-5 w-5 text-primary" />
-                 <h3 className="font-semibold">Histórico de Movimentações</h3>
-               </div>
-               <Card>
-                 <CardContent className="p-0">
-                   <div className="overflow-x-auto">
-                     <table className="w-full text-sm">
-                       <thead>
-                         <tr className="border-b bg-muted/50 text-muted-foreground">
-                           <th className="text-left p-4 font-medium">Data</th>
-                           <th className="text-left p-4 font-medium">Tipo</th>
-                           <th className="text-left p-4 font-medium">Agulha</th>
-                           <th className="text-left p-4 font-medium">Destino</th>
-                           <th className="text-right p-4 font-medium">Quantidade</th>
-                          <th className="text-right p-4 font-medium">Ações</th>
-                         </tr>
-                       </thead>
-                       <tbody>
-                         {needleTransactions.map(t => {
-                           const needle = needles.find(n => n.id === t.needle_id);
-                           const machine = machines.find(m => m.id === t.machine_id);
-                           return (
-                             <tr key={t.id} className="border-b">
-                              <td className="p-4 align-top">
-                                <div className="flex flex-col">
-                                  <span className="text-sm font-medium">{format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}</span>
-                                  {(t.created_by_name || t.created_at) && (
-                                    <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
-                                      {t.created_by_name || '—'} - {"\n"}{t.created_at ? format(new Date(t.created_at), 'dd/MM/yyyy HH:mm') : ''}
-                                    </span>
+          <TabsContent value="agulhas">
+            <Tabs defaultValue="estoque" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="estoque">
+                  <Package className="h-4 w-4 mr-1.5" />
+                  Estoque
+                </TabsTrigger>
+                <TabsTrigger value="movimentacoes">
+                  <History className="h-4 w-4 mr-1.5" />
+                  Movimentações
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Estoque Sub-Tab */}
+              <TabsContent value="estoque">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Tipos de Agulha</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{needles.length}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Total em Estoque</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{needles.reduce((sum, n) => sum + n.current_quantity, 0)}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Movimentações (Mês)</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{needleTransactions.filter(t => t.date.startsWith(format(new Date(), 'yyyy-MM'))).length}</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                    <div className="relative w-full sm:w-72">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Pesquisar agulha..." 
+                        value={needleSearch} 
+                        onChange={e => setNeedleSearch(e.target.value)} 
+                        className="pl-9" 
+                      />
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                        <Plus className="h-4 w-4 mr-2" /> Cadastrar
+                      </Button>
+                      <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                        <Plus className="h-4 w-4 mr-2" /> Entrada
+                      </Button>
+                      <Button onClick={() => setShowExitModal(true)} variant="default" className="flex-1 sm:flex-none">
+                        <Wrench className="h-4 w-4 mr-2" /> Baixa
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Card>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/50">
+                              <th className="text-left p-4 font-medium">Fornecedor</th>
+                              <th className="text-left p-4 font-medium">Marca</th>
+                              <th className="text-left p-4 font-medium">Ref. Código</th>
+                              <th className="text-right p-4 font-medium">Estoque</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[...needles]
+                              .sort((a, b) => a.brand.localeCompare(b.brand))
+                              .filter(n => 
+                                n.brand.toLowerCase().includes(needleSearch.toLowerCase()) || 
+                                n.provider.toLowerCase().includes(needleSearch.toLowerCase()) || 
+                                n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
+                              )
+                              .map(n => (
+                              <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
+                                <td className="p-4">{n.provider}</td>
+                                <td className="p-4">{n.brand}</td>
+                                <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
+                                <td className="p-4 text-right font-bold">{n.current_quantity}</td>
+                              </tr>
+                            ))}
+                            {needles.length === 0 && (
+                              <tr>
+                                <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Movimentações Sub-Tab */}
+              <TabsContent value="movimentacoes">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Histórico de Movimentações</h3>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {needleTransactions.length} registro{needleTransactions.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <Card>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/50 text-muted-foreground">
+                              <th className="text-left p-4 font-medium">Data</th>
+                              <th className="text-left p-4 font-medium">Tipo</th>
+                              <th className="text-left p-4 font-medium">Agulha</th>
+                              <th className="text-left p-4 font-medium">Destino</th>
+                              <th className="text-right p-4 font-medium">Quantidade</th>
+                              <th className="text-right p-4 font-medium">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const sorted = [...needleTransactions].sort((a, b) => new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime());
+                              const totalPages = Math.max(1, Math.ceil(sorted.length / NEEDLE_HISTORY_PER_PAGE));
+                              const start = (needleHistoryPage - 1) * NEEDLE_HISTORY_PER_PAGE;
+                              const pageItems = sorted.slice(start, start + NEEDLE_HISTORY_PER_PAGE);
+                              return (
+                                <>
+                                  {pageItems.map(t => {
+                                    const needle = needles.find(n => n.id === t.needle_id);
+                                    const machine = machines.find(m => m.id === t.machine_id);
+                                    return (
+                                      <tr key={t.id} className="border-b">
+                                        <td className="p-4 align-top">
+                                          <div className="flex flex-col">
+                                            <span className="text-sm font-medium">{format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}</span>
+                                            {(t.created_by_name || t.created_at) && (
+                                              <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
+                                                {t.created_by_name || '—'} - {'\n'}{t.created_at ? format(new Date(t.created_at), 'dd/MM/yyyy HH:mm') : ''}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="p-4">
+                                          <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">
+                                            {t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_agulheiro' ? 'Troca' : 'Reposição'}
+                                          </Badge>
+                                        </td>
+                                        <td className="p-4">{needle?.brand} ({needle?.reference_code})</td>
+                                        <td className="p-4">{machine?.name || '—'}</td>
+                                        <td className="p-4 text-right font-medium">{t.quantity}</td>
+                                        <td className="p-4 text-right">
+                                          <div className="flex justify-end gap-1">
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                              setEditTxn(t);
+                                              const kind: 'entry' | 'reposicao' | 'troca_agulheiro' =
+                                                t.type === 'entry' ? 'entry' : (t.exit_mode === 'troca_agulheiro' ? 'troca_agulheiro' : 'reposicao');
+                                              setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
+                                            }}>
+                                              <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTxnId(t.id)}>
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                  {needleTransactions.length === 0 && (
+                                    <tr>
+                                      <td colSpan={6} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
+                                    </tr>
                                   )}
-                                </div>
-                              </td>
-                               <td className="p-4">
-                                 <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">
-                                   {t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_agulheiro' ? 'Troca' : 'Reposição'}
-                                 </Badge>
-                               </td>
-                               <td className="p-4">{needle?.brand} ({needle?.reference_code})</td>
-                               <td className="p-4">{machine?.name || '—'}</td>
-                               <td className="p-4 text-right font-medium">{t.quantity}</td>
-                              <td className="p-4 text-right">
-                                <div className="flex justify-end gap-1">
-                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
-                                    setEditTxn(t);
-                                    const kind: 'entry' | 'reposicao' | 'troca_agulheiro' =
-                                      t.type === 'entry' ? 'entry' : (t.exit_mode === 'troca_agulheiro' ? 'troca_agulheiro' : 'reposicao');
-                                    setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
-                                  }}>
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTxnId(t.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </td>
-                             </tr>
-                           );
-                         })}
-                         {needleTransactions.length === 0 && (
-                           <tr>
-                            <td colSpan={6} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
-                           </tr>
-                         )}
-                       </tbody>
-                     </table>
-                   </div>
-                 </CardContent>
-               </Card>
-             </div>
-           </div>
-         </TabsContent>
+                                </>
+                              );
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Pagination */}
+                      {(() => {
+                        const sorted = [...needleTransactions].sort((a, b) => new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime());
+                        const totalPages = Math.max(1, Math.ceil(sorted.length / NEEDLE_HISTORY_PER_PAGE));
+                        if (totalPages <= 1) return null;
+                        const windowSize = 3;
+                        let startPage = Math.max(1, needleHistoryPage - Math.floor(windowSize / 2));
+                        let endPage = Math.min(totalPages, startPage + windowSize - 1);
+                        if (endPage - startPage + 1 < windowSize) {
+                          startPage = Math.max(1, endPage - windowSize + 1);
+                        }
+                        const pages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+                        return (
+                          <div className="flex items-center justify-center gap-1 py-3 border-t">
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setNeedleHistoryPage(p => Math.max(1, p - 1))} disabled={needleHistoryPage === 1}>
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            {pages.map(p => (
+                              <Button key={p} variant={needleHistoryPage === p ? 'default' : 'outline'} size="sm" className="h-8 w-8 p-0 text-xs" onClick={() => setNeedleHistoryPage(p)}>
+                                {p}
+                              </Button>
+                            ))}
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setNeedleHistoryPage(p => Math.min(totalPages, p + 1))} disabled={needleHistoryPage === totalPages}>
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
  
 
         {/* Calendário Tab */}
