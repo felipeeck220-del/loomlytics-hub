@@ -1057,6 +1057,78 @@ export default function MecanicaPage() {
          </DialogFooter>
        </DialogContent>
      </Dialog>
+
+    {/* Edit Needle Transaction Modal */}
+    <Dialog open={!!editTxn} onOpenChange={(o) => !o && setEditTxn(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Movimentação</DialogTitle>
+        </DialogHeader>
+        {editTxn && (
+          <div className="space-y-3">
+            <div>
+              <Label>Data</Label>
+              <Input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} {...getDateLimits()} />
+            </div>
+            <div>
+              <Label>Quantidade</Label>
+              <Input type="number" min="1" value={editForm.quantity} onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} />
+            </div>
+            {editTxn.type === 'exit' && (
+              <div>
+                <Label>Máquina</Label>
+                <Select value={editForm.machine_id} onValueChange={(v) => setEditForm({ ...editForm, machine_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setEditTxn(null)}>Cancelar</Button>
+          <Button onClick={async () => {
+            if (!editTxn) return;
+            const qty = parseInt(editForm.quantity);
+            if (!qty || qty <= 0) { toast.error('Quantidade inválida'); return; }
+            if (!isDateValid(editForm.date)) { toast.error('Data inválida'); return; }
+            try {
+              await updateNeedleTransaction(editTxn.id, {
+                quantity: qty,
+                date: editForm.date,
+                machine_id: editTxn.type === 'exit' ? (editForm.machine_id || undefined) : undefined,
+              });
+              await logAction('needle_transaction_edit', { id: editTxn.id, quantity: qty, date: editForm.date });
+              toast.success('Movimentação atualizada');
+              setEditTxn(null);
+            } catch (e: any) {
+              toast.error('Erro ao atualizar: ' + (e?.message || ''));
+            }
+          }}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <DeleteConfirmDialog
+      open={!!deleteTxnId}
+      onOpenChange={(o) => !o && setDeleteTxnId(null)}
+      title="Excluir movimentação"
+      description="Esta ação irá reverter o saldo de estoque e não pode ser desfeita."
+      onConfirm={async () => {
+        if (!deleteTxnId) return;
+        try {
+          await deleteNeedleTransaction(deleteTxnId);
+          await logAction('needle_transaction_delete', { id: deleteTxnId });
+          toast.success('Movimentação excluída');
+        } catch (e: any) {
+          toast.error('Erro ao excluir: ' + (e?.message || ''));
+        } finally {
+          setDeleteTxnId(null);
+        }
+      }}
+    />
    </div>
  );
 }
