@@ -52,6 +52,7 @@ export function AppSidebar() {
   const { role, filterNavItems } = usePermissions();
   const { sidebarLocked } = useSubscription();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string>('');
   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const isAdmin = role === 'admin';
