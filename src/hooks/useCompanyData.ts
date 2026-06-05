@@ -517,7 +517,7 @@ export function useCompanyData() {
     if (updates.machine_id !== undefined) row.machine_id = updates.machine_id || null;
     if (updates.needle_id !== undefined) row.needle_id = updates.needle_id;
     if (updates.type !== undefined) row.type = updates.type;
-    if (updates.exit_mode !== undefined) row.exit_mode = updates.exit_mode || null;
+    if ('exit_mode' in updates) row.exit_mode = updates.exit_mode || null;
     const { error } = await sb('needle_transactions').update(row).eq('id', id);
     if (error) throw error;
     setNeedleTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
