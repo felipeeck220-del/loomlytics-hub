@@ -497,6 +497,7 @@ export default function MecanicaPage() {
                            <th className="text-left p-4 font-medium">Agulha</th>
                            <th className="text-left p-4 font-medium">Destino</th>
                            <th className="text-right p-4 font-medium">Quantidade</th>
+                          <th className="text-right p-4 font-medium">Ações</th>
                          </tr>
                        </thead>
                        <tbody>
@@ -505,7 +506,16 @@ export default function MecanicaPage() {
                            const machine = machines.find(m => m.id === t.machine_id);
                            return (
                              <tr key={t.id} className="border-b">
-                               <td className="p-4">{format(new Date(t.date), 'dd/MM/yyyy')}</td>
+                              <td className="p-4 align-top">
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">{format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}</span>
+                                  {(t.created_by_name || t.created_at) && (
+                                    <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
+                                      {t.created_by_name || '—'} - {"\n"}{t.created_at ? format(new Date(t.created_at), 'dd/MM/yyyy HH:mm') : ''}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
                                <td className="p-4">
                                  <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">
                                    {t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_agulheiro' ? 'Troca' : 'Reposição'}
@@ -514,12 +524,25 @@ export default function MecanicaPage() {
                                <td className="p-4">{needle?.brand} ({needle?.reference_code})</td>
                                <td className="p-4">{machine?.name || '—'}</td>
                                <td className="p-4 text-right font-medium">{t.quantity}</td>
+                              <td className="p-4 text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                    setEditTxn(t);
+                                    setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '' });
+                                  }}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTxnId(t.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
                              </tr>
                            );
                          })}
                          {needleTransactions.length === 0 && (
                            <tr>
-                             <td colSpan={5} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
+                            <td colSpan={6} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
                            </tr>
                          )}
                        </tbody>
