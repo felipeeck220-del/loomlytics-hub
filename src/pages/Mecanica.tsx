@@ -49,6 +49,8 @@ export default function MecanicaPage() {
    const [editTxn, setEditTxn] = useState<any>(null);
   const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_agulheiro' });
    const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
+   const [needleHistoryPage, setNeedleHistoryPage] = useState(1);
+   const NEEDLE_HISTORY_PER_PAGE = 15;
  
   const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
