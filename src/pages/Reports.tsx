@@ -1642,11 +1642,11 @@ async function handlePodioExport(
 
     // Outer container shadow-like effect
     pdf.setFillColor(243, 244, 246); // Gray-100
-    pdf.roundedRect(startX - 8, y - 5, totalW + 16, 95, 4, 4, 'F');
+    pdf.roundedRect(startX - 8, y - 5, totalW + 16, 105, 4, 4, 'F');
     
     // Main podium dark background
-    pdf.setFillColor(17, 24, 39); // Gray-900
-    pdf.roundedRect(startX - 5, y - 2, totalW + 10, 88, 3, 3, 'F');
+    pdf.setFillColor(15, 20, 30); // Darker Blue-Black
+    pdf.roundedRect(startX - 5, y - 2, totalW + 10, 98, 3, 3, 'F');
 
     const drawBox = (
       x: number,
@@ -1658,39 +1658,40 @@ async function handlePodioExport(
     ) => {
       const top = baseY - h;
       
+      // Box body with slightly different dark tone
+      pdf.setFillColor(28, 35, 48); // Dark gray-blue
+      pdf.roundedRect(x, top, boxW, h, 2, 2, 'F');
+
       // Border color with slight glow effect simulation
       pdf.setDrawColor(...color);
-      pdf.setLineWidth(0.7);
+      pdf.setLineWidth(0.8);
       pdf.roundedRect(x, top, boxW, h, 2, 2, 'D');
-
-      // Box body with slightly different dark tone
-      pdf.setFillColor(31, 41, 55); // Gray-800
-      pdf.roundedRect(x + 0.5, top + 0.5, boxW - 1, h - 1, 2, 2, 'F');
 
       // Rank Number Circle
       pdf.setFillColor(...color);
-      pdf.circle(x + boxW / 2, top - 2, 4, 'F');
-      pdf.setFontSize(10);
+      pdf.circle(x + boxW / 2, top - 4, 5, 'F');
+      pdf.setFontSize(11);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(255, 255, 255);
-      pdf.text(place, x + boxW / 2 - (pdf.getTextWidth(place) / 2), top - 0.5);
+      pdf.text(place, x + boxW / 2 - (pdf.getTextWidth(place) / 2), top - 2.5);
 
       // WIN Badge
       if (isFirst) {
         pdf.setFillColor(...color);
         pdf.circle(x + boxW - 8, top + 8, 4, 'F');
-        pdf.setTextColor(17, 24, 39);
-        pdf.setFontSize(5);
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(5.5);
+        pdf.setFont('helvetica', 'bold');
         pdf.text('WIN', x + boxW - 10.5, top + 8.5);
       }
 
       // Name
-      pdf.setFontSize(isFirst ? 13 : 11);
+      pdf.setFontSize(isFirst ? 14 : 12);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(255, 255, 255);
       const name = sanitizePdfText(w?.name || '—');
       const lw = pdf.getTextWidth(name);
-      pdf.text(name, x + boxW / 2 - lw / 2, top + 18);
+      pdf.text(name, x + boxW / 2 - lw / 2, top + 15);
 
       if (w) {
         pdf.setFont('helvetica', 'normal');
@@ -1702,35 +1703,35 @@ async function handlePodioExport(
           { label: 'EFIC.', val: `${fmtN(w.eficiencia, 1)}%` }
         ];
 
-        let my = top + 28;
+        let my = top + 26;
         metrics.forEach((m) => {
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(...color);
-          pdf.setFontSize(7);
-          pdf.text(m.label, x + 4, my);
+          pdf.setFontSize(7.5);
+          pdf.text(m.label, x + 6, my);
           
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(255, 255, 255);
           pdf.setFontSize(9);
           const valW = pdf.getTextWidth(m.val);
-          pdf.text(m.val, x + boxW - valW - 4, my);
-          my += 6;
+          pdf.text(m.val, x + boxW - valW - 6, my);
+          my += 7;
         });
 
         // Efficiency bar container
-        const barMaxW = boxW - 8;
+        const barMaxW = boxW - 12;
         const barW = (Math.min(w.eficiencia, 100) / 100) * barMaxW;
-        pdf.setFillColor(55, 65, 81); // Gray-700
-        pdf.roundedRect(x + 4, my + 2, barMaxW, 2.5, 1, 1, 'F');
+        pdf.setFillColor(45, 55, 70); // Darker bar bg
+        pdf.roundedRect(x + 6, my + 3, barMaxW, 3, 1.5, 1.5, 'F');
         // Efficiency bar fill
         pdf.setFillColor(...color);
-        pdf.roundedRect(x + 4, my + 2, barW, 2.5, 1, 1, 'F');
+        pdf.roundedRect(x + 6, my + 3, barW, 3, 1.5, 1.5, 'F');
       }
     };
 
     // Equalized height for 2nd and 3rd place as requested
     const secondaryHeight = 55;
-    const primaryHeight = 70;
+    const primaryHeight = 75;
 
     // Draw in order for correct layering
     if (second) drawBox(startX, secondaryHeight, [192, 192, 192], '2', second);
@@ -1743,18 +1744,18 @@ async function handlePodioExport(
       const qw = pdf.getTextWidth(quote);
       const quoteBoxH = 14;
       pdf.setFillColor(17, 24, 39); // Match dark theme
-      pdf.roundedRect((pageWidth - qw - 20) / 2, baseY + 6, qw + 20, quoteBoxH, 4, 4, 'F');
+      pdf.roundedRect((pageWidth - qw - 24) / 2, baseY + 8, qw + 24, quoteBoxH, 4, 4, 'F');
       pdf.setDrawColor(234, 179, 8); // Gold border
       pdf.setLineWidth(0.5);
-      pdf.roundedRect((pageWidth - qw - 20) / 2, baseY + 6, qw + 20, quoteBoxH, 4, 4, 'D');
+      pdf.roundedRect((pageWidth - qw - 24) / 2, baseY + 8, qw + 24, quoteBoxH, 4, 4, 'D');
       
       pdf.setFontSize(9);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(255, 255, 255);
-      pdf.text(quote, (pageWidth - qw) / 2, baseY + 6 + 9);
+      pdf.text(quote, (pageWidth - qw) / 2, baseY + 8 + 9);
     }
 
-    y = baseY + 28;
+    y = baseY + 32;
   };
 
   const drawDailyTable = () => {
