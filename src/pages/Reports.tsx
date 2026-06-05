@@ -1399,7 +1399,7 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         "relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl",
         colors.border,
         colors.bg,
-        isFirst ? "md:-mt-12 z-10 bg-gradient-to-b from-amber-500/20 to-transparent" : "opacity-90"
+        isFirst ? "md:-mt-12 z-10 bg-gradient-to-b from-amber-500/20 to-transparent min-h-[340px]" : "opacity-90 min-h-[300px]"
       )}>
         <div className={cn(
           "absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-lg",
@@ -1446,7 +1446,7 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
   };
 
   return (
-    <div className="py-12 px-4 bg-slate-50 rounded-3xl border border-slate-200 shadow-inner relative overflow-hidden">
+    <div className="py-12 px-4 rounded-3xl border border-border relative overflow-hidden bg-card text-card-foreground">
       {/* Background decorative elements */}
       <div className="absolute top-0 right-0 p-8 opacity-5">
         <Trophy className="h-64 w-64 rotate-12" />
@@ -1454,13 +1454,13 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
 
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
-          <Badge variant="outline" className="mb-4 bg-white px-4 py-1 border-amber-500 text-amber-600 font-bold tracking-widest uppercase">
+          <Badge variant="outline" className="mb-4 px-4 py-1 border-amber-500 text-amber-600 font-bold tracking-widest uppercase bg-transparent">
             Ranking de Performance
           </Badge>
-          <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase italic">
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic">
             Pódio por Turno
           </h2>
-          <p className="text-slate-500 font-medium max-w-lg mx-auto mt-2">
+          <p className="text-muted-foreground font-medium max-w-lg mx-auto mt-2">
             O reconhecimento dos melhores resultados gera excelência. Parabéns aos líderes!
           </p>
         </div>
@@ -1483,8 +1483,8 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         </div>
 
         {winnerMsg && (
-          <div className="mt-16 text-center animate-bounce">
-            <div className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full shadow-2xl">
+          <div className="mt-16 text-center">
+            <div className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-full shadow-2xl">
               <Gauge className="h-6 w-6 text-amber-400" />
               <span className="font-bold tracking-tight uppercase tracking-widest text-xs sm:text-sm text-center">
                 {winnerMsg}
