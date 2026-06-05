@@ -300,7 +300,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      return 'Todo período';
    }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
-  // ---- PÓDIO: cálculo de ranking de tecelões ----
+  // ---- PÓDIO: cálculo de ranking por turno ----
   const podioComputed = useMemo(() => {
     const today = new Date();
     let pFrom: string, pTo: string;
@@ -319,8 +319,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
     const aggregate = (rows: Production[]) => {
       const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
       rows.forEach(p => {
-        const key = p.weaver_id || p.weaver_name || 'sem';
-        const name = p.weaver_name || 'Sem tecelão';
+        const key = p.shift || 'sem';
+        const name = companyShiftLabels[p.shift as ShiftType]?.split(' (')[0] || p.shift || 'Sem turno';
         if (!map[key]) map[key] = { id: key, name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
         map[key].rolos += p.rolls_produced;
         map[key].kg += p.weight_kg;
@@ -356,7 +356,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       : `${format(new Date(pFrom + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
 
     return { ranking, daily, periodLabel: label, from: pFrom, to: pTo };
-  }, [productions, podioRange, podioFrom, podioTo]);
+  }, [productions, podioRange, podioFrom, podioTo, companyShiftLabels]);
 
   return (
     <div className="space-y-6 animate-fade-in">
