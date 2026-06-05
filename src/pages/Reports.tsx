@@ -218,13 +218,34 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       const articleMap: Record<string, any> = {};
       filtered.forEach(p => {
         const name = p.article_name;
-        if (!articleMap[name]) articleMap[name] = { name, rolos: 0, kg: 0, faturamento: 0 };
+        if (!articleMap[name]) {
+          const art = articles.find(a => a.id === p.article_id);
+          articleMap[name] = {
+            id: p.article_id || name,
+            name,
+            clientName: art?.client_name || '',
+            rolos: 0,
+            kg: 0,
+            faturamento: 0,
+            records: 0,
+            efficiencySum: 0,
+            weightForEff: 0,
+          };
+        }
         articleMap[name].rolos += p.rolls_produced;
         articleMap[name].kg += p.weight_kg;
         articleMap[name].faturamento += p.revenue;
+        articleMap[name].records += 1;
+        if (p.rolls_produced > 0) {
+          articleMap[name].efficiencySum += (p.efficiency * p.weight_kg);
+          articleMap[name].weightForEff += p.weight_kg;
+        }
       });
       setByArticle(Object.values(articleMap).map((a: any) => ({
         ...a,
+        eficiencia: a.weightForEff > 0 ? a.efficiencySum / a.weightForEff : 0,
+        targetEfficiency: avgTargetEfficiency,
+        pct_rolls: total_rolls > 0 ? (a.rolos / total_rolls) * 100 : 0,
         pct_kg: total_weight > 0 ? (a.kg / total_weight) * 100 : 0,
         pct_revenue: total_revenue > 0 ? (a.faturamento / total_revenue) * 100 : 0,
       })).sort((a, b) => b.kg - a.kg));
