@@ -1446,7 +1446,6 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
           <span className={cn("font-black leading-none mb-4", isFirst ? "text-6xl" : "text-5xl", colors.text)}>
             {rank}º
           </span>
-        </div>
           <h3 className={cn("text-center font-black uppercase tracking-tighter leading-none text-white", isFirst ? "text-3xl" : "text-2xl")}>
             {winner?.name || '—'}
           </h3>
