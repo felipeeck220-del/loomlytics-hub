@@ -1713,11 +1713,10 @@ async function handlePodioExport(
       pdf.setFillColor(...color);
       pdf.circle(x + width / 2, yPos, 6, 'F');
       
-      const medals: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
-      pdf.setFontSize(14);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...colors.white);
-      // Center the emoji
-      pdf.text(medals[rank] || rank.toString(), x + width / 2, yPos + 2, { align: 'center' });
+      pdf.text(rank.toString(), x + width / 2, yPos + 1.5, { align: 'center' });
 
       pdf.setFontSize(12);
       pdf.setTextColor(...colors.dark);
@@ -1832,9 +1831,11 @@ async function handlePodioExport(
     // Background Circle for Icon
     pdf.setFillColor(235, 239, 245);
     pdf.circle(margin + 12, statCenterY, 8, 'F');
-    // Simple icon text representation since actual icons might not render
-    pdf.setFontSize(10);
-    pdf.text('📦', margin + 12, statCenterY + 1.5, { align: 'center' });
+    // Draw a simple box icon using lines since emojis fail
+    pdf.setDrawColor(100, 100, 100);
+    pdf.setLineWidth(0.3);
+    pdf.rect(margin + 9, statCenterY - 3, 6, 6);
+    pdf.line(margin + 9, statCenterY, margin + 15, statCenterY);
     
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
@@ -1848,8 +1849,13 @@ async function handlePodioExport(
     // KPI 2: Peso Total
     pdf.setFillColor(235, 239, 245);
     pdf.circle(margin + colW + 12, statCenterY, 8, 'F');
-    pdf.setFontSize(10);
-    pdf.text('⚖️', margin + colW + 12, statCenterY + 1.5, { align: 'center' });
+    // Draw a simple weight icon
+    pdf.setDrawColor(100, 100, 100);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin + colW + 9, statCenterY + 3, margin + colW + 15, statCenterY + 3);
+    pdf.line(margin + colW + 9, statCenterY + 3, margin + colW + 10, statCenterY - 3);
+    pdf.line(margin + colW + 15, statCenterY + 3, margin + colW + 14, statCenterY - 3);
+    pdf.line(margin + colW + 10, statCenterY - 3, margin + colW + 14, statCenterY - 3);
 
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
@@ -1863,8 +1869,14 @@ async function handlePodioExport(
     // KPI 3: Eficiência Média
     pdf.setFillColor(235, 239, 245);
     pdf.circle(margin + (colW * 2) + 12, statCenterY, 8, 'F');
-    pdf.setFontSize(10);
-    pdf.text('📈', margin + (colW * 2) + 12, statCenterY + 1.5, { align: 'center' });
+    // Draw a simple chart icon
+    pdf.setDrawColor(100, 100, 100);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin + (colW * 2) + 9, statCenterY + 3, margin + (colW * 2) + 15, statCenterY + 3);
+    pdf.line(margin + (colW * 2) + 9, statCenterY + 3, margin + (colW * 2) + 9, statCenterY - 3);
+    pdf.line(margin + (colW * 2) + 9, statCenterY + 2, margin + (colW * 2) + 11, statCenterY);
+    pdf.line(margin + (colW * 2) + 11, statCenterY, margin + (colW * 2) + 13, statCenterY - 2);
+    pdf.line(margin + (colW * 2) + 13, statCenterY - 2, margin + (colW * 2) + 15, statCenterY + 1);
 
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
