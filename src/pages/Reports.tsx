@@ -1795,15 +1795,17 @@ async function handlePodioExport(
     // --- Resumo Geral Section (Inspired by image) ---
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(...colors.dark);
+    pdf.setTextColor(20, 20, 20); // Darker
     pdf.text('RESUMO GERAL', margin, finalY);
 
     const resumoY = finalY + 5;
-    const resumoH = 25;
+    const resumoH = 30;
     
-    pdf.setFillColor(...colors.cardBg);
+    // Background card (Dark aesthetic inspired by image, but adjusted for white paper)
+    pdf.setFillColor(245, 247, 250);
     pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'F');
-    pdf.setDrawColor(...colors.border);
+    pdf.setDrawColor(220, 225, 230);
+    pdf.setLineWidth(0.2);
     pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'S');
 
     // Calculate Totals
@@ -1824,35 +1826,137 @@ async function handlePodioExport(
     const colW = (pageWidth - (margin * 2)) / 3;
     const statCenterY = resumoY + (resumoH / 2);
 
-    // Peças Totais
-    pdf.setFontSize(7);
-    pdf.setTextColor(...colors.muted);
-    pdf.text('PEÇAS TOTAIS', margin + colW / 2, statCenterY - 2, { align: 'center' });
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(...colors.dark);
-    pdf.text(`${formatNumber(totalPieces)} pcs`, margin + colW / 2, statCenterY + 5, { align: 'center' });
-
-    // Peso Total
+    // KPI 1: Peças Totais
+    // Draw icon circle (simplified)
+    pdf.setDrawColor(200, 200, 200);
+    pdf.circle(margin + 12, statCenterY, 8, 'S');
+    // Simplified box icon inside circle
+    pdf.setDrawColor(100, 100, 100);
+    pdf.rect(margin + 9, statCenterY - 3, 6, 6);
+    
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(...colors.muted);
-    pdf.text('PESO TOTAL', margin + colW + colW / 2, statCenterY - 2, { align: 'center' });
-    pdf.setFontSize(10);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('PEÇAS TOTAIS', margin + 25, statCenterY - 3);
+    pdf.setFontSize(11);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(...colors.dark);
-    pdf.text(`${formatNumber(totalKg, 2)} kg`, margin + colW + colW / 2, statCenterY + 5, { align: 'center' });
+    pdf.setTextColor(20, 20, 20);
+    pdf.text(`${formatNumber(totalPieces)} pcs`, margin + 25, statCenterY + 4);
 
-    // Eficiência Média
+    // KPI 2: Peso Total
+    pdf.setDrawColor(200, 200, 200);
+    pdf.circle(margin + colW + 12, statCenterY, 8, 'S');
+    // Simplified weight icon
+    pdf.setDrawColor(100, 100, 100);
+    pdf.path('M ' + (margin + colW + 9) + ' ' + (statCenterY + 3) + ' L ' + (margin + colW + 15) + ' ' + (statCenterY + 3) + ' L ' + (margin + colW + 13) + ' ' + (statCenterY - 3) + ' L ' + (margin + colW + 11) + ' ' + (statCenterY - 3) + ' Z');
+    pdf.stroke();
+
     pdf.setFontSize(7);
     pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(...colors.muted);
-    pdf.text('EFICIÊNCIA MÉDIA', margin + (colW * 2) + colW / 2, statCenterY - 2, { align: 'center' });
-    pdf.setFontSize(10);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('PESO TOTAL', margin + colW + 25, statCenterY - 3);
+    pdf.setFontSize(11);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(...colors.dark);
-    pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + colW / 2, statCenterY + 5, { align: 'center' });
+    pdf.setTextColor(20, 20, 20);
+    pdf.text(`${formatNumber(totalKg, 2)} kg`, margin + colW + 25, statCenterY + 4);
 
+    // KPI 3: Eficiência Média
+    pdf.setDrawColor(200, 200, 200);
+    pdf.circle(margin + (colW * 2) + 12, statCenterY, 8, 'S');
+    // Simplified gauge/refresh icon
+    pdf.setDrawColor(100, 100, 100);
+    pdf.arc(margin + (colW * 2) + 12, statCenterY, 4, 0, 1.5 * Math.PI);
+    pdf.stroke();
+
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('EFICIÊNCIA MÉDIA', margin + (colW * 2) + 25, statCenterY - 3);
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(20, 20, 20);
+    pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 25, statCenterY + 4);
+
+    // --- Daily Chart Area ---
+    let chartY = resumoY + resumoH + 15;
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(60, 60, 60);
+    pdf.text('PRODUTIVIDADE (kg) POR DIA', margin, chartY);
+
+    // Legend
+    const legendX = pageWidth - margin - 50;
+    const drawLegendItem = (x: number, label: string, color: number[]) => {
+      pdf.setDrawColor(...color);
+      pdf.setLineWidth(1);
+      pdf.line(x, chartY - 1, x + 5, chartY - 1);
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(label, x + 7, chartY);
+      return x + 15;
+    };
+    let curLX = legendX;
+    curLX = drawLegendItem(curLX, 'Manhã', [200, 200, 200]);
+    curLX = drawLegendItem(curLX, 'Tarde', [255, 191, 0]);
+    curLX = drawLegendItem(curLX, 'Noite', [255, 87, 34]);
+
+    chartY += 10;
+    const chartH = 45;
+    const chartW = pageWidth - (margin * 2);
+    
+    // Draw Grid and Axis
+    pdf.setDrawColor(230, 230, 230);
+    pdf.setLineWidth(0.1);
+    for (let i = 0; i <= 4; i++) {
+      const gridY = chartY + (chartH / 4) * i;
+      pdf.line(margin, gridY, margin + chartW, gridY);
+      pdf.setFontSize(6);
+      pdf.setTextColor(150, 150, 150);
+      // Mock labels for scale (in a real app these would be dynamic)
+      const labelVal = 8000 - (i * 1000);
+      pdf.text(labelVal.toString(), margin - 7, gridY + 1);
+    }
+
+    // Process daily data for chart
+    const dailyData = podio.daily;
+    const stepX = chartW / (dailyData.length - 1 || 1);
+    
+    const drawLine = (shiftKey: string, color: number[]) => {
+      pdf.setDrawColor(...color);
+      pdf.setLineWidth(0.8);
+      let lastX = 0, lastY = 0;
+      
+      dailyData.forEach((d, idx) => {
+        const item = d.ranking.find(r => r.id === shiftKey);
+        const val = item ? item.kg : 0;
+        // Map kg (0-8000) to chart height
+        const normalizedY = chartY + chartH - ((val / 8000) * chartH);
+        const curX = margin + (idx * stepX);
+        
+        if (idx > 0) {
+          pdf.line(lastX, lastY, curX, normalizedY);
+        }
+        
+        // Draw point
+        pdf.setFillColor(...color);
+        pdf.circle(curX, normalizedY, 0.8, 'F');
+        
+        lastX = curX;
+        lastY = normalizedY;
+
+        // X Axis labels (Dates)
+        if (idx % Math.max(1, Math.floor(dailyData.length / 7)) === 0) {
+          pdf.setFontSize(6);
+          pdf.setTextColor(150, 150, 150);
+          pdf.text(format(new Date(d.date + 'T12:00:00'), 'dd/MM'), curX, chartY + chartH + 5, { align: 'center' });
+        }
+      });
+    };
+
+    drawLine('manha', [180, 180, 180]);
+    drawLine('tarde', [255, 191, 0]);
+    drawLine('noite', [255, 87, 34]);
 
     pdf.save(`podio-performance-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast.success('PDF gerado com sucesso!');
