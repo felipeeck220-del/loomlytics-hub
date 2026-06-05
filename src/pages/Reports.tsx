@@ -1482,7 +1482,7 @@ async function handlePodioExport(
 
   const cName = companyName || '';
   const dateStr = new Date().toLocaleString('pt-BR');
-  const reportTitle = 'PÓDIO DOS TECELÕES';
+  const reportTitle = 'PÓDIO POR TURNO';
 
   const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
     if (!width || !height) return { width: maxWidth, height: maxHeight };
@@ -1677,7 +1677,7 @@ async function handlePodioExport(
   drawPodium();
   drawDailyTable();
 
-  const fileName = `podio_tecelões_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+  const fileName = `podio_turnos_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
   pdf.save(fileName);
 }
 
