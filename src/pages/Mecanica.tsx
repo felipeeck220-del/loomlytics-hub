@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
- import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter } from 'lucide-react';
+  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getDateLimits, isDateValid } from '@/lib/formatters';
 import { usePermissions } from '@/hooks/usePermissions';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
   'manutencao_preventiva',
@@ -30,6 +31,7 @@ export default function MecanicaPage() {
    const { 
      getMachines, getMachineLogs, getProductions, saveMachineLogs, 
      getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
+     updateNeedleTransaction, deleteNeedleTransaction,
      loading 
    } = useSharedCompanyData();
    const needles = getNeedles();
@@ -44,6 +46,9 @@ export default function MecanicaPage() {
    const [exitForm, setExitForm] = useState({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_agulheiro', date: format(new Date(), 'yyyy-MM-dd') });
    const [needleEntrySearch, setNeedleEntrySearch] = useState('');
    const [needleExitSearch, setNeedleExitSearch] = useState('');
+   const [editTxn, setEditTxn] = useState<any>(null);
+   const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '' });
+   const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
  
   const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
