@@ -1629,6 +1629,12 @@ async function handlePodioExport(
     if (logoUrl) {
       logoInfo = await loadLogo(logoUrl);
     }
+    
+    // Load medals
+    const medal1 = await loadLogo('/medal1.png');
+    const medal2 = await loadLogo('/medal2.png');
+    const medal3 = await loadLogo('/medal3.png');
+    const medalInfos = { 1: medal1, 2: medal2, 3: medal3 };
 
     const reportTitle = "PÓDIO DE PERFORMANCE";
     const dateStr = new Date().toLocaleString('pt-BR');
@@ -1710,20 +1716,22 @@ async function handlePodioExport(
       pdf.setLineWidth(0.8);
       pdf.roundedRect(x, yPos, width, height, 3, 3, 'S');
 
-      pdf.setFillColor(...color);
-      pdf.circle(x + width / 2, yPos, 6, 'F');
-      
-      // Desenhar medalha estilizada com vetores para garantir compatibilidade
-      pdf.setDrawColor(255, 255, 255, 0.8);
-      pdf.setLineWidth(0.4);
-      // Fita da medalha
-      pdf.line(x + width / 2 - 2, yPos - 3, x + width / 2, yPos - 1);
-      pdf.line(x + width / 2 + 2, yPos - 3, x + width / 2, yPos - 1);
-      
-      pdf.setFontSize(rank === 1 ? 9 : 8);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...colors.white);
-      pdf.text(rank.toString(), x + width / 2, yPos + 1.5, { align: 'center' });
+      const medalInfo = medalInfos[rank as 1|2|3];
+      if (medalInfo) {
+        const medalSize = 14;
+        pdf.addImage(medalInfo.data, 'PNG', x + width / 2 - medalSize / 2, yPos - medalSize / 2, medalSize, medalSize);
+      } else {
+        pdf.setFillColor(...color);
+        pdf.circle(x + width / 2, yPos, 6, 'F');
+        pdf.setDrawColor(255, 255, 255, 0.8);
+        pdf.setLineWidth(0.4);
+        pdf.line(x + width / 2 - 2, yPos - 3, x + width / 2, yPos - 1);
+        pdf.line(x + width / 2 + 2, yPos - 3, x + width / 2, yPos - 1);
+        pdf.setFontSize(rank === 1 ? 9 : 8);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...colors.white);
+        pdf.text(rank.toString(), x + width / 2, yPos + 1.5, { align: 'center' });
+      }
 
       pdf.setFontSize(12);
       pdf.setTextColor(...colors.dark);
