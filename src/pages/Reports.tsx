@@ -1387,53 +1387,82 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
 
   const PodiumBox = ({ winner, rank, isFirst = false }: { winner: any, rank: number, isFirst?: boolean }) => {
     const colors = {
-      1: { border: 'border-amber-400', bg: 'bg-amber-400/10', text: 'text-amber-500', icon: Trophy, medalColor: 'bg-amber-500' },
-      2: { border: 'border-slate-300', bg: 'bg-slate-300/10', text: 'text-slate-400', icon: Medal, medalColor: 'bg-slate-400' },
-      3: { border: 'border-amber-700', bg: 'bg-amber-700/10', text: 'text-amber-800', icon: Award, medalColor: 'bg-amber-800' },
+      1: { 
+        border: 'border-amber-400', 
+        bg: 'bg-[#1a1c1e] bg-gradient-to-b from-amber-400/20 to-transparent', 
+        text: 'text-amber-500', 
+        icon: Trophy, 
+        medalColor: 'bg-amber-500',
+        glow: 'shadow-[0_0_20px_rgba(251,191,36,0.2)]'
+      },
+      2: { 
+        border: 'border-slate-300', 
+        bg: 'bg-[#1a1c1e] bg-gradient-to-b from-slate-300/20 to-transparent', 
+        text: 'text-slate-300', 
+        icon: Medal, 
+        medalColor: 'bg-slate-300',
+        glow: 'shadow-[0_0_15px_rgba(148,163,184,0.1)]'
+      },
+      3: { 
+        border: 'border-amber-700', 
+        bg: 'bg-[#1a1c1e] bg-gradient-to-b from-amber-700/20 to-transparent', 
+        text: 'text-amber-700', 
+        icon: Award, 
+        medalColor: 'bg-amber-700',
+        glow: 'shadow-[0_0_15px_rgba(180,83,9,0.1)]'
+      },
     }[rank] || { border: 'border-gray-200', bg: 'bg-gray-50', text: 'text-gray-400', icon: Trophy, medalColor: 'bg-gray-400' };
 
     const Icon = colors.icon;
 
     return (
       <div className={cn(
-        "relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl",
+        "relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-2xl overflow-hidden",
         colors.border,
         colors.bg,
-        isFirst ? "md:-mt-12 z-10 bg-gradient-to-b from-amber-500/20 to-transparent min-h-[340px]" : "opacity-90 min-h-[300px]"
+        colors.glow,
+        isFirst ? "md:-mt-12 z-10 min-h-[360px]" : "opacity-95 min-h-[320px]"
       )}>
+        {/* Background Decorative Icon */}
+        <Icon className={cn("absolute -right-4 -bottom-4 opacity-5 h-32 w-32 rotate-12", colors.text)} />
+
         <div className={cn(
-          "absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-lg",
+          "absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center border-4 border-[#1a1c1e] shadow-xl z-20",
           colors.medalColor
         )}>
-          <span className="text-white font-black text-xl">{rank}</span>
+          <span className="text-white font-black text-lg">{rank}</span>
         </div>
 
-        <div className="mt-4 mb-2 flex flex-col items-center">
-          <div className={cn("p-3 rounded-full bg-white/80 mb-3 shadow-inner", colors.text)}>
-            <Icon className={isFirst ? "h-10 w-10" : "h-8 w-8"} />
+        <div className="mt-6 mb-2 flex flex-col items-center w-full">
+          <div className={cn("p-4 rounded-xl bg-white/5 mb-4 shadow-2xl backdrop-blur-sm border border-white/10", colors.text)}>
+            <Icon className={isFirst ? "h-12 w-12" : "h-10 w-10"} />
           </div>
-          <h3 className={cn("text-center font-black uppercase tracking-tighter leading-none", isFirst ? "text-2xl" : "text-xl")}>
+          <h3 className={cn("text-center font-black uppercase tracking-tighter leading-none text-white", isFirst ? "text-3xl" : "text-2xl")}>
             {winner?.name || '—'}
           </h3>
         </div>
 
-        <div className="w-full space-y-3 mt-4">
-          <div className="flex justify-between items-end border-b border-black/5 pb-1">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest text-left">Peças</span>
-            <span className="font-black text-lg leading-none">{formatNumber(winner?.rolos || 0)}</span>
+        <div className="w-full space-y-4 mt-6">
+          <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+              <Package className="h-3 w-3" /> Peças
+            </span>
+            <span className="font-black text-lg text-white">{formatNumber(winner?.rolos || 0)}</span>
           </div>
-          <div className="flex justify-between items-end border-b border-black/5 pb-1">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest text-left">Peso (kg)</span>
-            <span className="font-black text-lg leading-none">{formatWeight(winner?.kg || 0)}</span>
+          <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" /> Peso (kg)
+            </span>
+            <span className="font-black text-lg text-white">{formatWeight(winner?.kg || 0)}</span>
           </div>
           <div className="pt-2">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-left">Eficiência</span>
-              <span className={cn("font-black text-xl italic", colors.text)}>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Eficiência</span>
+              <span className={cn("font-black text-2xl italic", colors.text)}>
                 {formatPercent(winner?.eficiencia || 0)}
               </span>
             </div>
-            <div className="h-2.5 w-full bg-gray-200 rounded-full overflow-hidden shadow-inner">
+            <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden shadow-inner p-[1px]">
               <div 
                 className={cn("h-full rounded-full transition-all duration-1000", colors.medalColor)}
                 style={{ width: `${Math.min(winner?.eficiencia || 0, 100)}%` }}
@@ -1483,10 +1512,12 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         </div>
 
         {winnerMsg && (
-          <div className="mt-16 text-center">
-            <div className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-full shadow-2xl">
-              <Gauge className="h-6 w-6 text-amber-400" />
-              <span className="font-bold tracking-tight uppercase tracking-widest text-xs sm:text-sm text-center">
+          <div className="mt-20 text-center">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-4 px-10 py-6 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl shadow-2xl border border-white/20">
+              <div className="bg-amber-400 p-2 rounded-full shadow-lg">
+                <Gauge className="h-8 w-8 text-black" />
+              </div>
+              <span className="font-black tracking-tight uppercase tracking-[0.15em] text-sm sm:text-lg leading-tight text-center sm:text-left drop-shadow-sm">
                 {winnerMsg}
               </span>
             </div>
@@ -1707,14 +1738,23 @@ async function handlePodioExport(
     if (third) drawBox(startX + 2 * (boxW + gap), secondaryHeight, [205, 127, 50], '3', third);
 
     // Motivational Quote centered at the bottom
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'bolditalic');
-    pdf.setTextColor(156, 163, 175); // Gray-400
     const quote = first ? `FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS AO TURNO ${first.name.toUpperCase()} PELO DESEMPENHO!` : "";
-    const qw = pdf.getTextWidth(quote);
-    pdf.text(quote, (pageWidth - qw) / 2, baseY + 10);
+    if (quote) {
+      const qw = pdf.getTextWidth(quote);
+      const quoteBoxH = 14;
+      pdf.setFillColor(17, 24, 39); // Match dark theme
+      pdf.roundedRect((pageWidth - qw - 20) / 2, baseY + 6, qw + 20, quoteBoxH, 4, 4, 'F');
+      pdf.setDrawColor(234, 179, 8); // Gold border
+      pdf.setLineWidth(0.5);
+      pdf.roundedRect((pageWidth - qw - 20) / 2, baseY + 6, qw + 20, quoteBoxH, 4, 4, 'D');
+      
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(quote, (pageWidth - qw) / 2, baseY + 6 + 9);
+    }
 
-    y = baseY + 20;
+    y = baseY + 28;
   };
 
   const drawDailyTable = () => {
