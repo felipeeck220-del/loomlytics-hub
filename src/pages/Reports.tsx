@@ -1261,10 +1261,23 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                       </div>
                     ) : (
                       <>
-                        <PodiumDisplay ranking={podioComputed.ranking} />
+                        <div id="podium-section-export">
+                          <PodiumDisplay ranking={podioComputed.ranking} />
+                        </div>
+                        
+                        <div className="flex justify-end mt-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            onClick={() => handlePodioExport(podioComputed, companyLogoUrl, companyName)}
+                          >
+                            <Download className="h-4 w-4 mr-2" /> Exportar Pódio PDF
+                          </Button>
+                        </div>
 
                         {/* Listagem por dia */}
-                        <div>
+                        <div className="mt-8">
                           <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                             <Clock className="h-4 w-4 text-muted-foreground" />
                             Detalhamento por Dia
