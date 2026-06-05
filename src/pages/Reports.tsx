@@ -552,13 +552,14 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 
             {/* Analysis Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-6 gap-1 p-1">
+              <TabsList className="w-full h-auto grid grid-cols-3 sm:grid-cols-7 gap-1 p-1">
                 <TabsTrigger value="turno">Por Turno</TabsTrigger>
                 <TabsTrigger value="maquina">Por Máquina</TabsTrigger>
                 <TabsTrigger value="cliente">Por Cliente</TabsTrigger>
                 <TabsTrigger value="artigo">Por Artigo</TabsTrigger>
                 <TabsTrigger value="evolucao">Evolução</TabsTrigger>
                 <TabsTrigger value="exportar" className="flex items-center gap-1"><Download className="h-3.5 w-3.5" />Exportar</TabsTrigger>
+                <TabsTrigger value="podio" className="flex items-center gap-1"><Trophy className="h-3.5 w-3.5" />Pódio</TabsTrigger>
               </TabsList>
 
               {/* POR TURNO */}
