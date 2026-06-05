@@ -1435,12 +1435,7 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         colors.glow,
         isFirst ? "md:-mt-12 z-10 min-h-[380px]" : "opacity-95 min-h-[340px]"
       )}>
-        <div className={cn(
-          "absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center border-4 border-[#1a1c1e] shadow-xl z-20",
-          colors.medalColor
-        )}>
-          <span className="text-white font-black text-lg">{rank}</span>
-        </div>
+        {/* Removido o badge superior para evitar duplicidade de números */}
 
         <div className="mt-8 mb-2 flex flex-col items-center w-full relative z-10">
           <span className={cn("font-black leading-none mb-4", isFirst ? "text-6xl" : "text-5xl", colors.text)}>
