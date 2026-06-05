@@ -1755,32 +1755,33 @@ async function handlePodioExport(
 
     const finalY = (pdf as any).lastAutoTable.finalY + 15;
 
-    // --- Performance Summary Cards (DESEMPENHO GERAL) ---
+    // --- Performance Summary Cards (DESEMPENHO GERAL - MÉDIAS DE PERFORMANCE) ---
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(...colors.dark);
-    pdf.text('DESEMPENHO GERAL (DIAS NO PÓDIO)', margin, finalY);
+    pdf.text('DESEMPENHO GERAL (MÉDIAS DE PERFORMANCE)', margin, finalY);
 
     const summaryY = finalY + 5;
     const summaryCardW = (pageWidth - (margin * 2) - 10) / 3;
-    const summaryCardH = 25;
+    const summaryCardH = 35; // Aumentado para caber mais dados
 
-    // Calculate podium stats for all shifts
-    const shiftsStats: Record<string, { name: string, rank1: number, rank2: number, rank3: number }> = {};
+    // Calculate average performance for all shifts
+    const shiftsStats: Record<string, { name: string, totalKg: number, totalEf: number, days: number, rank1: number }> = {};
     podio.daily.forEach(d => {
       d.ranking.forEach((item, index) => {
         if (!shiftsStats[item.id]) {
-          shiftsStats[item.id] = { name: item.name, rank1: 0, rank2: 0, rank3: 0 };
+          shiftsStats[item.id] = { name: item.name, totalKg: 0, totalEf: 0, days: 0, rank1: 0 };
         }
+        shiftsStats[item.id].totalKg += item.kg;
+        shiftsStats[item.id].totalEf += item.eficiencia;
+        shiftsStats[item.id].days++;
         if (index === 0) shiftsStats[item.id].rank1++;
-        if (index === 1) shiftsStats[item.id].rank2++;
-        if (index === 2) shiftsStats[item.id].rank3++;
       });
     });
 
-    const shiftIds = Object.keys(shiftsStats);
+    const shiftIds = Object.keys(shiftsStats).sort((a, b) => shiftsStats[b].totalKg - shiftsStats[a].totalKg);
     shiftIds.forEach((id, idx) => {
-      if (idx > 2) return; // Only top 3 shifts for layout
+      if (idx > 2) return; 
       const stats = shiftsStats[id];
       const cardX = margin + (summaryCardW + 5) * idx;
       
@@ -1799,16 +1800,20 @@ async function handlePodioExport(
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...colors.muted);
       
-      const rankY = summaryY + 12;
-      pdf.text(`1o: ${stats.rank1}d`, cardX + summaryCardW / 6, rankY);
-      pdf.text(`2o: ${stats.rank2}d`, cardX + (summaryCardW / 2), rankY, { align: 'center' });
-      pdf.text(`3o: ${stats.rank3}d`, cardX + (summaryCardW * 5 / 6), rankY, { align: 'right' });
-      
-      // Add a small footer in the card
-      pdf.setFontSize(7);
+      const lineY = summaryY + 13;
+      pdf.text(`Prod. Média:`, cardX + 5, lineY);
       pdf.setTextColor(...colors.dark);
-      const totalDays = stats.rank1 + stats.rank2 + stats.rank3;
-      pdf.text(`Total no Pódio: ${totalDays} dias`, cardX + summaryCardW / 2, summaryY + 20, { align: 'center' });
+      pdf.text(`${formatNumber(stats.totalKg / stats.days, 1)}kg`, cardX + summaryCardW - 5, lineY, { align: 'right' });
+      
+      pdf.setTextColor(...colors.muted);
+      pdf.text(`Efic. Média:`, cardX + 5, lineY + 6);
+      pdf.setTextColor(...colors.dark);
+      pdf.text(`${formatNumber(stats.totalEf / stats.days, 1)}%`, cardX + summaryCardW - 5, lineY + 6, { align: 'right' });
+
+      pdf.setTextColor(...colors.muted);
+      pdf.text(`Vitórias (1º):`, cardX + 5, lineY + 12);
+      pdf.setTextColor(...colors.dark);
+      pdf.text(`${stats.rank1} vezes`, cardX + summaryCardW - 5, lineY + 12, { align: 'right' });
     });
 
     pdf.save(`podio-performance-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
