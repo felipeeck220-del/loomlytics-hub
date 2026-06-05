@@ -94,11 +94,14 @@ export function AppSidebar() {
       ? roleFiltered.filter(item => !mobileFooterKeys.includes(item.key))
       : roleFiltered;
 
+    const firstName = companyName.split(' ')[0];
+
     return finalItems.map(item => ({
       ...item,
+      title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role]);
+  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
