@@ -300,6 +300,64 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      return 'Todo período';
    }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
+  // ---- PÓDIO: cálculo de ranking de tecelões ----
+  const podioComputed = useMemo(() => {
+    const today = new Date();
+    let pFrom: string, pTo: string;
+    if (podioRange === 'custom' && (podioFrom || podioTo)) {
+      pFrom = podioFrom ? format(podioFrom, 'yyyy-MM-dd') : format(podioTo!, 'yyyy-MM-dd');
+      pTo = podioTo ? format(podioTo, 'yyyy-MM-dd') : format(podioFrom!, 'yyyy-MM-dd');
+    } else if (podioRange === '1') {
+      pFrom = format(today, 'yyyy-MM-dd');
+      pTo = pFrom;
+    } else {
+      pFrom = format(subDays(today, 6), 'yyyy-MM-dd');
+      pTo = format(today, 'yyyy-MM-dd');
+    }
+    const list = productions.filter(p => p.date >= pFrom && p.date <= pTo);
+
+    const aggregate = (rows: Production[]) => {
+      const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
+      rows.forEach(p => {
+        const key = p.weaver_id || p.weaver_name || 'sem';
+        const name = p.weaver_name || 'Sem tecelão';
+        if (!map[key]) map[key] = { id: key, name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
+        map[key].rolos += p.rolls_produced;
+        map[key].kg += p.weight_kg;
+        if (p.rolls_produced > 0) {
+          map[key].effSum += p.efficiency * p.weight_kg;
+          map[key].effW += p.weight_kg;
+        }
+      });
+      return Object.values(map).map(w => ({
+        ...w,
+        eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
+      })).sort((a, b) => b.kg - a.kg);
+    };
+
+    const ranking = aggregate(list);
+
+    // dias do período
+    const dates: string[] = [];
+    {
+      const d0 = new Date(pFrom + 'T12:00:00');
+      const d1 = new Date(pTo + 'T12:00:00');
+      for (let d = new Date(d0); d <= d1; d.setDate(d.getDate() + 1)) {
+        dates.push(format(d, 'yyyy-MM-dd'));
+      }
+    }
+    const daily = dates.map(date => ({
+      date,
+      ranking: aggregate(list.filter(p => p.date === date)),
+    }));
+
+    const label = pFrom === pTo
+      ? format(new Date(pFrom + 'T12:00:00'), 'dd/MM/yyyy')
+      : `${format(new Date(pFrom + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
+
+    return { ranking, daily, periodLabel: label, from: pFrom, to: pTo };
+  }, [productions, podioRange, podioFrom, podioTo]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
