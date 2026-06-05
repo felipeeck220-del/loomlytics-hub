@@ -332,7 +332,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       return Object.values(map).map(w => ({
         ...w,
         eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
-      })).sort((a, b) => b.kg - a.kg);
+      })).sort((a, b) => b.eficiencia - a.eficiencia);
     };
 
     const ranking = aggregate(list);
