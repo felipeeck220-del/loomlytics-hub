@@ -1777,6 +1777,64 @@ async function handlePodioExport(
       }
     });
 
+    const finalY = (pdf as any).lastAutoTable.finalY + 15;
+
+    // --- Performance Summary Cards (DESEMPENHO GERAL) ---
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.dark);
+    pdf.text('DESEMPENHO GERAL (DIAS NO PÓDIO)', margin, finalY);
+
+    const summaryY = finalY + 5;
+    const summaryCardW = (pageWidth - (margin * 2) - 10) / 3;
+    const summaryCardH = 25;
+
+    // Calculate podium stats for all shifts
+    const shiftsStats: Record<string, { name: string, rank1: number, rank2: number, rank3: number }> = {};
+    podio.daily.forEach(d => {
+      d.ranking.forEach((item, index) => {
+        if (!shiftsStats[item.id]) {
+          shiftsStats[item.id] = { name: item.name, rank1: 0, rank2: 0, rank3: 0 };
+        }
+        if (index === 0) shiftsStats[item.id].rank1++;
+        if (index === 1) shiftsStats[item.id].rank2++;
+        if (index === 2) shiftsStats[item.id].rank3++;
+      });
+    });
+
+    const shiftIds = Object.keys(shiftsStats);
+    shiftIds.forEach((id, idx) => {
+      if (idx > 2) return; // Only top 3 shifts for layout
+      const stats = shiftsStats[id];
+      const cardX = margin + (summaryCardW + 5) * idx;
+      
+      pdf.setFillColor(...colors.cardBg);
+      pdf.roundedRect(cardX, summaryY, summaryCardW, summaryCardH, 2, 2, 'F');
+      pdf.setDrawColor(...colors.border);
+      pdf.setLineWidth(0.1);
+      pdf.roundedRect(cardX, summaryY, summaryCardW, summaryCardH, 2, 2, 'S');
+
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.dark);
+      pdf.text(stats.name.toUpperCase(), cardX + summaryCardW / 2, summaryY + 6, { align: 'center' });
+
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...colors.muted);
+      
+      const rankY = summaryY + 12;
+      pdf.text(`🥇 1º: ${stats.rank1}d`, cardX + summaryCardW / 6, rankY);
+      pdf.text(`🥈 2º: ${stats.rank2}d`, cardX + (summaryCardW / 2), rankY, { align: 'center' });
+      pdf.text(`🥉 3º: ${stats.rank3}d`, cardX + (summaryCardW * 5 / 6), rankY, { align: 'right' });
+      
+      // Add a small footer in the card
+      pdf.setFontSize(7);
+      pdf.setTextColor(...colors.dark);
+      const totalDays = stats.rank1 + stats.rank2 + stats.rank3;
+      pdf.text(`Total no Pódio: ${totalDays} dias`, cardX + summaryCardW / 2, summaryY + 20, { align: 'center' });
+    });
+
     pdf.save(`podio-performance-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast.success('PDF gerado com sucesso!');
   } catch (error) {
