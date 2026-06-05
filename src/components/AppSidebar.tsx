@@ -25,7 +25,7 @@ import {
 const COMING_SOON_KEYS = new Set<string>([]);
 
 /** Keys of features in testing phase — shown with "Em teste" badge but accessible */
-const TESTING_KEYS = new Set(['contas-pagar', 'invoices', 'fechamento']);
+const TESTING_KEYS = new Set(['contas-pagar', 'fechamento']);
 
 const allItems = [
   { title: 'Dashboard', path: '', icon: LayoutDashboard, key: 'dashboard' },
@@ -52,6 +52,7 @@ export function AppSidebar() {
   const { role, filterNavItems } = usePermissions();
   const { sidebarLocked } = useSubscription();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string>('');
   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const isAdmin = role === 'admin';
@@ -62,11 +63,12 @@ export function AppSidebar() {
   useEffect(() => {
     if (!user?.company_id) return;
     (supabase.from as any)('companies')
-      .select('logo_url')
+      .select('logo_url, name')
       .eq('id', user.company_id)
       .maybeSingle()
       .then(({ data }: any) => {
         if (data?.logo_url) setLogoUrl(data.logo_url);
+        if (data?.name) setCompanyName(data.name);
       });
 
     (supabase.from as any)('company_settings')
@@ -92,11 +94,14 @@ export function AppSidebar() {
       ? roleFiltered.filter(item => !mobileFooterKeys.includes(item.key))
       : roleFiltered;
 
+    const firstName = companyName.split(' ')[0];
+
     return finalItems.map(item => ({
       ...item,
+      title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role]);
+  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
