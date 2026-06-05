@@ -1272,7 +1272,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                             className="bg-primary text-primary-foreground hover:bg-primary/90"
                             onClick={() => handlePodioExport(podioComputed, companyLogoUrl, companyName)}
                           >
-                            <Download className="h-4 w-4 mr-2" /> Exportar Pódio PDF
+                            <Download className="h-4 w-4 mr-2" /> Exportar PDF
                           </Button>
                         </div>
 
@@ -1579,43 +1579,107 @@ async function handlePodioExport(
       muted: [107, 114, 128] as [number, number, number],
       border: [229, 231, 235] as [number, number, number],
       cardBg: [249, 250, 251] as [number, number, number],
+      grayBg: [249, 250, 251] as [number, number, number],
+      textDark: [17, 24, 39] as [number, number, number],
+      textMid: [75, 85, 99] as [number, number, number],
     };
 
-    // --- Header ---
-    pdf.setFillColor(...colors.dark);
-    pdf.rect(margin, y, pageWidth - (margin * 2), 30, 'F');
-    
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(...colors.white);
-    pdf.text('PÓDIO DE PERFORMANCE', pageWidth / 2, y + 12, { align: 'center' });
-    
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(...colors.gold);
-    pdf.text(podio.periodLabel, pageWidth / 2, y + 20, { align: 'center' });
-    
-    if (companyName) {
-      pdf.setFontSize(8);
-      pdf.setTextColor(...colors.white);
-      pdf.text(sanitizePdfText(companyName).toUpperCase(), margin + 5, y + 25);
+    const fitWithinBox = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+      if (!width || !height) return { width: maxWidth, height: maxHeight };
+      const scale = Math.min(maxWidth / width, maxHeight / height);
+      return {
+        width: width * scale,
+        height: height * scale,
+      };
+    };
+
+    const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+          } catch { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    };
+
+    let logoInfo: { data: string; width: number; height: number } | null = null;
+    if (logoUrl) {
+      logoInfo = await loadLogo(logoUrl);
     }
 
-    y += 40;
+    const reportTitle = "PÓDIO DE PERFORMANCE";
+    const dateStr = new Date().toLocaleString('pt-BR');
 
-    // --- Winner Message (Highlighted Box) ---
+    // --- Header Padrao ---
+    const headerH = 25;
+    const leftX = margin + 5;
+    const rightX = pageWidth - margin - 5;
+    const titleMaxWidth = pageWidth - 2 * margin - 90;
+
+    pdf.setFillColor(...colors.grayBg);
+    pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
+    pdf.setDrawColor(...colors.border);
+    pdf.setLineWidth(0.5);
+    pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
+
+    if (logoInfo) {
+      try {
+        const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+        pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
+      } catch (e) {
+        console.error('Logo add error:', e);
+      }
+    } else if (companyName) {
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+    }
+
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.textMid);
+    pdf.text(dateStr, leftX, y + 22);
+
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...colors.textDark);
+    const titleLines = pdf.splitTextToSize(reportTitle, titleMaxWidth) as string[];
+    let titleY = y + 10;
+    titleLines.forEach((line) => {
+      const titleW = pdf.getTextWidth(line);
+      pdf.text(line, (pageWidth - titleW) / 2, titleY);
+      titleY += 6;
+    });
+
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(...colors.textMid);
+    const pW = pdf.getTextWidth(podio.periodLabel);
+    pdf.text(podio.periodLabel, rightX - pW, y + 22);
+
+    y += headerH + 10;
+
+    // --- Winner Message (Clean Text) ---
     const first = podio.ranking[0];
     if (first) {
       const msg = `FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS AO TURNO ${first.name.toUpperCase()} PELO DESEMPENHO!`;
-      pdf.setFillColor(...colors.gold);
-      pdf.roundedRect(margin, y, pageWidth - (margin * 2), 15, 2, 2, 'F');
-      
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...colors.dark);
       const splitMsg = pdf.splitTextToSize(msg, pageWidth - (margin * 2) - 10);
-      pdf.text(splitMsg, pageWidth / 2, y + 6, { align: 'center' });
-      y += 25;
+      pdf.text(splitMsg, pageWidth / 2, y, { align: 'center' });
+      y += 15;
     }
 
     // --- Podium Cards ---
@@ -1627,14 +1691,12 @@ async function handlePodioExport(
       };
       const color = colorMap[rank as 1|2|3] || colors.muted;
 
-      // Card Background
       pdf.setFillColor(...colors.cardBg);
       pdf.roundedRect(x, yPos, width, height, 3, 3, 'F');
       pdf.setDrawColor(...color);
       pdf.setLineWidth(0.8);
       pdf.roundedRect(x, yPos, width, height, 3, 3, 'S');
 
-      // Rank Badge
       pdf.setFillColor(...color);
       pdf.circle(x + width / 2, yPos, 6, 'F');
       pdf.setFontSize(10);
@@ -1642,12 +1704,10 @@ async function handlePodioExport(
       pdf.setTextColor(...colors.white);
       pdf.text(rank.toString(), x + width / 2, yPos + 1.5, { align: 'center' });
 
-      // Shift Name
       pdf.setFontSize(12);
       pdf.setTextColor(...colors.dark);
       pdf.text(sanitizePdfText(item?.name || '-').toUpperCase(), x + width / 2, yPos + 15, { align: 'center' });
 
-      // Efficiency
       pdf.setFontSize(18);
       pdf.setTextColor(...color);
       pdf.text(`${formatNumber(item?.eficiencia || 0, 1)}%`, x + width / 2, yPos + 28, { align: 'center' });
@@ -1656,7 +1716,6 @@ async function handlePodioExport(
       pdf.setTextColor(...colors.muted);
       pdf.text('EFICIÊNCIA MÉDIA', x + width / 2, yPos + 33, { align: 'center' });
 
-      // Stats
       const statY = yPos + 42;
       pdf.setDrawColor(...colors.border);
       pdf.setLineWidth(0.1);
@@ -1664,12 +1723,8 @@ async function handlePodioExport(
 
       pdf.setFontSize(8);
       pdf.setTextColor(...colors.dark);
-      
-      // Items
       pdf.text('Peças:', x + 5, statY + 6);
       pdf.text(formatNumber(item?.rolos || 0), x + width - 5, statY + 6, { align: 'right' });
-      
-      // Weight
       pdf.text('Peso:', x + 5, statY + 12);
       pdf.text(`${formatNumber(item?.kg || 0, 1)} kg`, x + width - 5, statY + 12, { align: 'right' });
     };
@@ -1677,7 +1732,6 @@ async function handlePodioExport(
     const cardW = (pageWidth - (margin * 2) - 10) / 3;
     const cardH = 60;
     
-    // Draw in 2-1-3 order or simple 1-2-3
     if (podio.ranking[1]) drawPodiumCard(margin, y + 5, cardW, cardH, podio.ranking[1], 2);
     if (podio.ranking[0]) drawPodiumCard(margin + cardW + 5, y, cardW, cardH + 5, podio.ranking[0], 1);
     if (podio.ranking[2]) drawPodiumCard(margin + (cardW + 5) * 2, y + 5, cardW, cardH, podio.ranking[2], 3);
@@ -1691,28 +1745,36 @@ async function handlePodioExport(
     pdf.text('DETALHAMENTO DIÁRIO', margin, y);
     y += 5;
 
-    const tableRows = podio.daily.map(d => [
-      format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }),
-      d.ranking[0] ? `${d.ranking[0].name} (${formatNumber(d.ranking[0].eficiencia, 1)}%)` : '-',
-      d.ranking[1] ? `${d.ranking[1].name} (${formatNumber(d.ranking[1].eficiencia, 1)}%)` : '-',
-      d.ranking[2] ? `${d.ranking[2].name} (${formatNumber(d.ranking[2].eficiencia, 1)}%)` : '-'
-    ]);
+    const tableRows = podio.daily.map(d => {
+      const getShiftData = (rankIdx: number) => {
+        const item = d.ranking[rankIdx];
+        if (!item) return '-';
+        return `${item.name} - ${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%`;
+      };
+      
+      return [
+        format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }),
+        getShiftData(0),
+        getShiftData(1),
+        getShiftData(2)
+      ];
+    });
 
     const { default: autoTable } = await import('jspdf-autotable');
     autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Data', '🥇 1º Lugar', '🥈 2º Lugar', '🥉 3º Lugar']],
+      head: [['Data', '1o Lugar', '2o Lugar', '3o Lugar']],
       body: tableRows,
       theme: 'grid',
       headStyles: { fillColor: colors.dark, textColor: colors.white, fontSize: 8, halign: 'center' },
+      styles: { fontSize: 7 },
       columnStyles: {
-        0: { cellWidth: 30, halign: 'center' },
-        1: { halign: 'center' },
-        2: { halign: 'center' },
-        3: { halign: 'center' },
-      },
-      styles: { fontSize: 8 },
+        0: { cellWidth: 25 },
+        1: { halign: 'left' },
+        2: { halign: 'left' },
+        3: { halign: 'left' },
+      }
     });
 
     pdf.save(`podio-performance-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
