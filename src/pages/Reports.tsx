@@ -1375,58 +1375,124 @@ function ExportButton({ label, description, onClick }: {
 }
 
 // --- Pódio: componente visual (1º acima, 2º e 3º abaixo formando triângulo) ---
+// --- Pódio: componente visual moderno inspirado na imagem ---
 function PodiumDisplay({ ranking }: { ranking: any[] }) {
   const first = ranking[0];
   const second = ranking[1];
   const third = ranking[2];
 
-  const Card1 = ({ w, place, heightCls, gradient, icon, medal }: any) => (
-    <div className="flex flex-col items-center">
+  const winnerMsg = first 
+    ? `FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS AO TURNO ${first.name.toUpperCase()} PELO DESEMPENHO!` 
+    : null;
+
+  const PodiumBox = ({ winner, rank, isFirst = false }: { winner: any, rank: number, isFirst?: boolean }) => {
+    const colors = {
+      1: { border: 'border-amber-400', bg: 'bg-amber-400/10', text: 'text-amber-500', icon: Trophy, medalColor: 'bg-amber-500' },
+      2: { border: 'border-slate-300', bg: 'bg-slate-300/10', text: 'text-slate-400', icon: Medal, medalColor: 'bg-slate-400' },
+      3: { border: 'border-amber-700', bg: 'bg-amber-700/10', text: 'text-amber-800', icon: Award, medalColor: 'bg-amber-800' },
+    }[rank] || { border: 'border-gray-200', bg: 'bg-gray-50', text: 'text-gray-400', icon: Trophy, medalColor: 'bg-gray-400' };
+
+    const Icon = colors.icon;
+
+    return (
       <div className={cn(
-        "w-full max-w-[220px] rounded-t-2xl border border-border p-4 flex flex-col items-center justify-end text-center shadow-md transition-transform hover:-translate-y-1",
-        heightCls,
-        gradient,
+        "relative flex flex-col items-center p-6 rounded-2xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl",
+        colors.border,
+        colors.bg,
+        isFirst ? "md:-mt-12 z-10 bg-gradient-to-b from-amber-500/20 to-transparent" : "opacity-90"
       )}>
-        <div className="text-3xl mb-1">{medal}</div>
-        {icon}
-        <div className="font-display font-bold text-foreground text-base mt-1 line-clamp-2">{w?.name || '—'}</div>
-        {w && (
-          <div className="mt-2 space-y-0.5 text-xs">
-            <div><span className="font-semibold">{formatNumber(w.rolos)}</span> peças</div>
-            <div><span className="font-semibold">{formatNumber(w.kg, 2)}</span> kg</div>
-            <div><span className="font-semibold">{formatNumber(w.eficiencia, 1)}%</span> efic.</div>
+        <div className={cn(
+          "absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-lg",
+          colors.medalColor
+        )}>
+          <span className="text-white font-black text-xl">{rank}</span>
+        </div>
+
+        <div className="mt-4 mb-2 flex flex-col items-center">
+          <div className={cn("p-3 rounded-full bg-white/80 mb-3 shadow-inner", colors.text)}>
+            <Icon className={isFirst ? "h-10 w-10" : "h-8 w-8"} />
+          </div>
+          <h3 className={cn("text-center font-black uppercase tracking-tighter leading-none", isFirst ? "text-2xl" : "text-xl")}>
+            {winner?.name || '—'}
+          </h3>
+        </div>
+
+        <div className="w-full space-y-3 mt-4">
+          <div className="flex justify-between items-end border-b border-black/5 pb-1">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest text-left">Peças</span>
+            <span className="font-black text-lg leading-none">{formatNumber(winner?.rolos || 0)}</span>
+          </div>
+          <div className="flex justify-between items-end border-b border-black/5 pb-1">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest text-left">Peso (kg)</span>
+            <span className="font-black text-lg leading-none">{formatWeight(winner?.kg || 0)}</span>
+          </div>
+          <div className="pt-2">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-left">Eficiência</span>
+              <span className={cn("font-black text-xl italic", colors.text)}>
+                {formatPercent(winner?.eficiencia || 0)}
+              </span>
+            </div>
+            <div className="h-2.5 w-full bg-gray-200 rounded-full overflow-hidden shadow-inner">
+              <div 
+                className={cn("h-full rounded-full transition-all duration-1000", colors.medalColor)}
+                style={{ width: `${Math.min(winner?.eficiencia || 0, 100)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="py-12 px-4 bg-slate-50 rounded-3xl border border-slate-200 shadow-inner relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute top-0 right-0 p-8 opacity-5">
+        <Trophy className="h-64 w-64 rotate-12" />
+      </div>
+
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-12">
+          <Badge variant="outline" className="mb-4 bg-white px-4 py-1 border-amber-500 text-amber-600 font-bold tracking-widest uppercase">
+            Ranking de Performance
+          </Badge>
+          <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase italic">
+            Pódio por Turno
+          </h2>
+          <p className="text-slate-500 font-medium max-w-lg mx-auto mt-2">
+            O reconhecimento dos melhores resultados gera excelência. Parabéns aos líderes!
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 items-end mt-8">
+          {/* 2nd Place */}
+          <div className="order-2 md:order-1">
+            <PodiumBox winner={second} rank={2} />
+          </div>
+
+          {/* 1st Place */}
+          <div className="order-1 md:order-2">
+            <PodiumBox winner={first} rank={1} isFirst />
+          </div>
+
+          {/* 3rd Place */}
+          <div className="order-3">
+            <PodiumBox winner={third} rank={3} />
+          </div>
+        </div>
+
+        {winnerMsg && (
+          <div className="mt-16 text-center animate-bounce">
+            <div className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full shadow-2xl">
+              <Gauge className="h-6 w-6 text-amber-400" />
+              <span className="font-bold tracking-tight uppercase tracking-widest text-xs sm:text-sm text-center">
+                {winnerMsg}
+              </span>
+            </div>
           </div>
         )}
       </div>
-      <div className="w-full max-w-[220px] bg-muted border-x border-b border-border rounded-b-md py-2 text-center font-display font-bold text-lg">
-        {place}º
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="grid grid-cols-3 gap-3 items-end max-w-3xl mx-auto">
-      <Card1
-        w={second}
-        place={2}
-        heightCls="h-44 justify-end"
-        gradient="bg-gradient-to-b from-slate-200/40 to-slate-300/60 dark:from-slate-700/40 dark:to-slate-600/60"
-        medal="🥈"
-      />
-      <Card1
-        w={first}
-        place={1}
-        heightCls="h-56 justify-end"
-        gradient="bg-gradient-to-b from-amber-200/50 to-amber-400/70 dark:from-amber-700/50 dark:to-amber-500/60"
-        medal="🥇"
-      />
-      <Card1
-        w={third}
-        place={3}
-        heightCls="h-36 justify-end"
-        gradient="bg-gradient-to-b from-orange-200/40 to-orange-400/60 dark:from-orange-800/40 dark:to-orange-600/50"
-        medal="🥉"
-      />
     </div>
   );
 }
