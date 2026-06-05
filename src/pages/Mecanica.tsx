@@ -540,8 +540,7 @@ export default function MecanicaPage() {
                                             <span className="text-sm font-medium">{format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}</span>
                                             {(t.created_by_name || t.created_at) && (
                                               <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
-                                                {t.created_by_name || '—'} - {"
-"}{t.created_at ? format(new Date(t.created_at), 'dd/MM/yyyy HH:mm') : ''}
+                                                {t.created_by_name || '—'} - {'\n'}{t.created_at ? format(new Date(t.created_at), 'dd/MM/yyyy HH:mm') : ''}
                                               </span>
                                             )}
                                           </div>
