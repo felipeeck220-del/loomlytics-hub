@@ -1530,9 +1530,6 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
         {winnerMsg && (
           <div className="mt-20 text-center">
             <div className="inline-flex flex-col sm:flex-row items-center gap-4 px-10 py-6 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl shadow-2xl border border-white/20">
-              <div className="bg-amber-400 p-2 rounded-full shadow-lg">
-                <Gauge className="h-8 w-8 text-black" />
-              </div>
               <span className="font-black tracking-tight uppercase tracking-[0.15em] text-sm sm:text-lg leading-tight text-center sm:text-left drop-shadow-sm">
                 {winnerMsg}
               </span>
