@@ -1190,6 +1190,126 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* PÓDIO — Ranking de Tecelões */}
+              <TabsContent value="podio" className="mt-4 space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Trophy className="h-4 w-4 text-amber-500" />
+                          Pódio dos Tecelões
+                        </CardTitle>
+                        <CardDescription>
+                          Top 3 tecelões somando eficiência, peças e peso produzido — {podioComputed.periodLabel}
+                        </CardDescription>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlePodioExport(podioComputed, companyLogoUrl, companyName)}
+                        disabled={podioComputed.ranking.length === 0}
+                      >
+                        <Download className="h-4 w-4 mr-1" /> Exportar PDF
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Filtros do pódio */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={podioRange === '1' ? 'default' : 'outline'}
+                        onClick={() => { setPodioRange('1'); setPodioFrom(undefined); setPodioTo(undefined); }}
+                      >1 Dia</Button>
+                      <Button
+                        size="sm"
+                        variant={podioRange === '7' ? 'default' : 'outline'}
+                        onClick={() => { setPodioRange('7'); setPodioFrom(undefined); setPodioTo(undefined); }}
+                      >7 Dias</Button>
+                      <div className="w-px h-6 bg-border mx-1" />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant={podioRange === 'custom' && podioFrom ? 'default' : 'outline'} size="sm">
+                            <CalendarIcon className="h-4 w-4 mr-1" />
+                            {podioFrom ? format(podioFrom, 'dd/MM/yyyy') : 'De'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={podioFrom} onSelect={(d) => { setPodioFrom(d); setPodioRange('custom'); }} locale={ptBR} className="pointer-events-auto" />
+                        </PopoverContent>
+                      </Popover>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant={podioRange === 'custom' && podioTo ? 'default' : 'outline'} size="sm">
+                            <CalendarIcon className="h-4 w-4 mr-1" />
+                            {podioTo ? format(podioTo, 'dd/MM/yyyy') : 'Até'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={podioTo} onSelect={(d) => { setPodioTo(d); setPodioRange('custom'); }} locale={ptBR} className="pointer-events-auto" />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Pódio visual */}
+                    {podioComputed.ranking.length === 0 ? (
+                      <div className="text-center py-12 text-sm text-muted-foreground">
+                        Nenhuma produção registrada no período.
+                      </div>
+                    ) : (
+                      <>
+                        <PodiumDisplay ranking={podioComputed.ranking} />
+
+                        {/* Listagem por dia */}
+                        <div>
+                          <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            Detalhamento por Dia
+                          </p>
+                          <div className="border border-border rounded-lg overflow-hidden">
+                            <table className="w-full text-sm">
+                              <thead className="bg-muted/50">
+                                <tr className="text-left">
+                                  <th className="px-3 py-2 font-medium">Data</th>
+                                  <th className="px-3 py-2 font-medium">🥇 1º Lugar</th>
+                                  <th className="px-3 py-2 font-medium">🥈 2º Lugar</th>
+                                  <th className="px-3 py-2 font-medium">🥉 3º Lugar</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {podioComputed.daily.map(d => (
+                                  <tr key={d.date} className="border-t border-border">
+                                    <td className="px-3 py-2 font-medium">
+                                      {format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy (EEE)', { locale: ptBR })}
+                                    </td>
+                                    {[0, 1, 2].map(i => {
+                                      const w = d.ranking[i];
+                                      return (
+                                        <td key={i} className="px-3 py-2 text-muted-foreground">
+                                          {w ? (
+                                            <div className="space-y-0.5">
+                                              <div className="font-medium text-foreground">{w.name}</div>
+                                              <div className="text-xs">
+                                                {formatNumber(w.rolos)} pç · {formatNumber(w.kg, 2)} kg · {formatNumber(w.eficiencia, 1)}%
+                                              </div>
+                                            </div>
+                                          ) : <span className="text-xs">—</span>}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </div>
         ) : kpis && kpis.total_rolls === 0 ? (
