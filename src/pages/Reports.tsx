@@ -1254,18 +1254,55 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                       </Popover>
                     </div>
 
-                    {/* Pódio visual */}
+                    {/* Pódio visual substituído por lista simples */}
                     {podioComputed.ranking.length === 0 ? (
                       <div className="text-center py-12 text-sm text-muted-foreground">
                         Nenhuma produção registrada no período.
                       </div>
                     ) : (
                       <>
-                        <div id="podium-section-export">
-                          <PodiumDisplay ranking={podioComputed.ranking} />
+                        <div id="podium-section-export" className="space-y-3">
+                          <div className="text-center mb-6">
+                            <h3 className="text-xl font-bold uppercase italic tracking-tighter">Ranking de Performance</h3>
+                            <p className="text-sm text-muted-foreground">Resultados consolidados por turno no período</p>
+                          </div>
+                          
+                          <div className="grid gap-3 max-w-2xl mx-auto">
+                            {podioComputed.ranking.slice(0, 3).map((w, i) => {
+                              const colors = [
+                                { border: 'border-amber-500', bg: 'bg-amber-500/5', text: 'text-amber-600', medal: '🥇' },
+                                { border: 'border-slate-400', bg: 'bg-slate-400/5', text: 'text-slate-600', medal: '🥈' },
+                                { border: 'border-amber-800', bg: 'bg-amber-800/5', text: 'text-amber-900', medal: '🥉' }
+                              ][i];
+                              
+                              return (
+                                <div key={w.id} className={cn(
+                                  "flex items-center justify-between p-4 rounded-xl border-2 transition-all",
+                                  colors.border,
+                                  colors.bg
+                                )}>
+                                  <div className="flex items-center gap-4">
+                                    <span className="text-3xl font-black italic">{colors.medal} {i + 1}º</span>
+                                    <div>
+                                      <h4 className="font-bold text-lg uppercase leading-tight">{w.name}</h4>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatNumber(w.rolos)} peças · {formatWeight(w.kg)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Eficiência</p>
+                                    <p className={cn("text-2xl font-black italic", colors.text)}>
+                                      {formatPercent(w.eficiencia)}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                         
-                        <div className="flex justify-end mt-4">
+                        <div className="flex justify-end mt-6">
                           <Button 
                             variant="outline" 
                             size="sm" 
