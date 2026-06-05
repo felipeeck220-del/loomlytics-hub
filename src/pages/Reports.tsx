@@ -1712,10 +1712,12 @@ async function handlePodioExport(
 
       pdf.setFillColor(...color);
       pdf.circle(x + width / 2, yPos, 6, 'F');
+      
+      const medals: Record<number, string> = { 1: '1', 2: '2', 3: '3' };
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...colors.white);
-      pdf.text(rank.toString(), x + width / 2, yPos + 1.5, { align: 'center' });
+      pdf.text(medals[rank] || rank.toString(), x + width / 2, yPos + 1.5, { align: 'center' });
 
       pdf.setFontSize(12);
       pdf.setTextColor(...colors.dark);
