@@ -514,7 +514,7 @@ export function useCompanyData() {
     const row: any = {};
     if (updates.quantity !== undefined) row.quantity = updates.quantity;
     if (updates.date !== undefined) row.date = updates.date;
-    if (updates.machine_id !== undefined) row.machine_id = updates.machine_id || null;
+    if ('machine_id' in updates) row.machine_id = updates.machine_id || null;
     if (updates.needle_id !== undefined) row.needle_id = updates.needle_id;
     if (updates.type !== undefined) row.type = updates.type;
     if ('exit_mode' in updates) row.exit_mode = updates.exit_mode || null;
