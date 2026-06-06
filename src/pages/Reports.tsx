@@ -1315,15 +1315,6 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                           </div>
                         </div>
                         
-                        <div className="flex justify-end mt-6 gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setIsDailyModalOpen(true)}
-                          >
-                            <Trophy className="h-4 w-4 mr-2 text-amber-500" /> Exportar PDF Diário
-                          </Button>
-                        </div>
 
                         {/* Listagem por dia */}
                         <div className="mt-8">
