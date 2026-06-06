@@ -1208,14 +1208,24 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                           Top 3 turnos somando eficiência, peças e peso produzido — {podioComputed.periodLabel}
                         </CardDescription>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handlePodioExport(podioComputed, companyLogoUrl, companyName)}
-                        disabled={podioComputed.ranking.length === 0}
-                      >
-                        <Download className="h-4 w-4 mr-1" /> Exportar PDF
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-primary text-primary hover:bg-primary/5"
+                          onClick={() => setIsDailyModalOpen(true)}
+                        >
+                          <CalendarIcon className="h-4 w-4 mr-1" /> Exportar PDF Diário
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePodioExport(podioComputed, companyLogoUrl, companyName)}
+                          disabled={podioComputed.ranking.length === 0}
+                        >
+                          <Download className="h-4 w-4 mr-1" /> Exportar PDF
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
