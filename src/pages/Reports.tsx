@@ -1375,7 +1375,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                 </Card>
 
                 {/* Modal Exportar PDF Diário */}
-                <Dialog open={isDailyModalOpen} onValueChange={setIsDailyModalOpen}>
+                <Dialog open={isDailyModalOpen} onOpenChange={setIsDailyModalOpen}>
                   <DialogContent className="max-w-md">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
