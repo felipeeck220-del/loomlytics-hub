@@ -1935,7 +1935,7 @@ async function handlePodioExport(
       }
     });
 
-    const finalY = (pdf as any).lastAutoTable.finalY + 15;
+    const finalY = (pdf as any).lastAutoTable.finalY + 8;
 
     // --- Resumo Geral & Desempenho por Turno Section ---
     pdf.setFontSize(10);
@@ -2013,12 +2013,12 @@ async function handlePodioExport(
     pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 10, statCenterY + 4);
 
     // --- Desempenho por Turno Table ---
-    y = resumoY + resumoH + 10;
+    y = resumoY + resumoH + 6;
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
     pdf.text('DESEMPENHO POR TURNO (PÓDIOS)', margin, y);
-    y += 5;
+    y += 4;
 
     const perfRows = Object.entries(shiftPerformance).map(([name, perf]) => [
       name,
