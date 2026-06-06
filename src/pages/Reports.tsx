@@ -94,6 +94,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   const [podioRange, setPodioRange] = useState<'1' | '7' | 'custom'>('7');
   const [podioFrom, setPodioFrom] = useState<Date>();
   const [podioTo, setPodioTo] = useState<Date>();
+  const [podioSelectedDates, setPodioSelectedDates] = useState<Date[]>([]);
+  const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
 
    const avgTargetEfficiency = 80;
    const [loading, setLoading] = useState(true);
