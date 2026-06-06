@@ -1362,7 +1362,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                           ) : <span className="text-xs">—</span>}
                                         </td>
                                       );
-                                    })}
+                                      })}
                                   </tr>
                                 ))}
                               </tbody>
@@ -1445,7 +1445,6 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                           const pFrom = allDates[0];
                           const pTo = allDates[allDates.length - 1];
                           
-                          const list = productions.filter(p => allDates.includes(p.date));
                           const podiumList = productions.filter(p => p.date === podiumDayStr);
 
                           const aggregate = (rows: Production[]) => {
@@ -1485,16 +1484,6 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
               </TabsContent>
             </Tabs>
           </div>
