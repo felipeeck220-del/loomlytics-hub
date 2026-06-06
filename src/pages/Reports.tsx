@@ -1373,6 +1373,128 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Modal Exportar PDF Diário */}
+                <Dialog open={isDailyModalOpen} onValueChange={setIsDailyModalOpen}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Trophy className="h-5 w-5 text-amber-500" />
+                        Exportar PDF Diário
+                      </DialogTitle>
+                      <DialogDescription>
+                        Selecione o dia do pódio e os outros dias para o detalhamento semanal.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Dia do Pódio (Ganhador Diário)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start font-normal">
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {podioFrom ? format(podioFrom, 'dd/MM/yyyy') : <span>Selecione o dia</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={podioFrom}
+                              onSelect={(d) => {
+                                if (d) {
+                                  setPodioFrom(d);
+                                  setPodioTo(d);
+                                  setPodioRange('custom');
+                                }
+                              }}
+                              locale={ptBR}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <p className="text-[10px] text-muted-foreground">Este dia aparecerá no pódio principal do PDF.</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Dias para Detalhamento (Semana)</Label>
+                        <div className="border rounded-md p-2 max-h-[200px] overflow-y-auto space-y-1">
+                          <Calendar
+                            mode="multiple"
+                            selected={podioSelectedDates}
+                            onSelect={(dates) => setPodioSelectedDates(dates || [])}
+                            locale={ptBR}
+                            className="rounded-md border-none"
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Estes dias serão somados no Resumo Geral e Desempenho por Turno.</p>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsDailyModalOpen(false)}>Cancelar</Button>
+                      <Button 
+                        onClick={() => {
+                          if (!podioFrom) return;
+                          
+                          // Consolidar todos os dias selecionados
+                          const podiumDayStr = format(podioFrom, 'yyyy-MM-dd');
+                          const selectedDateStrs = podioSelectedDates.map(d => format(d, 'yyyy-MM-dd'));
+                          const allDates = Array.from(new Set([podiumDayStr, ...selectedDateStrs])).sort();
+                          
+                          const pFrom = allDates[0];
+                          const pTo = allDates[allDates.length - 1];
+                          
+                          const list = productions.filter(p => allDates.includes(p.date));
+                          const podiumList = productions.filter(p => p.date === podiumDayStr);
+
+                          const aggregate = (rows: Production[]) => {
+                            const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
+                            rows.forEach(p => {
+                              const key = p.shift || 'sem';
+                              const name = companyShiftLabels[p.shift as ShiftType]?.split(' (')[0] || p.shift || 'Sem turno';
+                              if (!map[key]) map[key] = { id: key, name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
+                              map[key].rolos += p.rolls_produced;
+                              map[key].kg += p.weight_kg;
+                              if (p.rolls_produced > 0) {
+                                map[key].effSum += p.efficiency * p.weight_kg;
+                                map[key].effW += p.weight_kg;
+                              }
+                            });
+                            return Object.values(map).map(w => ({
+                              ...w,
+                              eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
+                            })).sort((a, b) => b.eficiencia - a.eficiencia);
+                          };
+
+                          const ranking = aggregate(podiumList); // Ranking apenas do dia do pódio
+                          const daily = allDates.map(date => ({
+                            date,
+                            ranking: aggregate(productions.filter(p => p.date === date)),
+                          }));
+
+                          const label = `Pódio: ${format(podioFrom, 'dd/MM/yyyy')} | Período: ${format(new Date(pFrom + 'T12:00:00'), 'dd/MM')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
+
+                          handlePodioExport({ ranking, daily, periodLabel: label, from: pFrom, to: pTo }, companyLogoUrl, companyName);
+                          setIsDailyModalOpen(false);
+                        }}
+                        disabled={!podioFrom}
+                      >
+                        Gerar PDF Diário
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>
