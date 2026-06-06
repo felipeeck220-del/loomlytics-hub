@@ -1902,6 +1902,7 @@ async function handlePodioExport(
       const getShiftData = (rankIdx: number) => {
         const item = d.ranking[rankIdx];
         if (!item) return '-';
+        // Dados em negrito conforme solicitado: 01/06/2026 Manhã - 6.343,0kg - 73,1%
         return `${item.name} - ${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%`;
       };
       
@@ -1917,16 +1918,30 @@ async function handlePodioExport(
     autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Data', '1o Lugar', '2o Lugar', '3o Lugar']],
+      head: [['Data', 'Medalha', 'Medalha', 'Medalha']],
       body: tableRows,
       theme: 'grid',
       headStyles: { fillColor: colors.dark, textColor: colors.white, fontSize: 8, halign: 'center' },
-      styles: { fontSize: 7 },
+      styles: { fontSize: 7, fontStyle: 'bold' },
       columnStyles: {
-        0: { cellWidth: 25 },
-        1: { halign: 'left' },
-        2: { halign: 'left' },
-        3: { halign: 'left' },
+        0: { cellWidth: 25, fontStyle: 'normal' },
+        1: { halign: 'left', cellWidth: 50 },
+        2: { halign: 'left', cellWidth: 50 },
+        3: { halign: 'left', cellWidth: 50 },
+      },
+      didDrawCell: (data) => {
+        if (data.section === 'head' && data.column.index >= 1) {
+          const rank = data.column.index;
+          const medal = medalInfos[rank as 1|2|3];
+          if (medal) {
+            const medalSize = 6;
+            const x = data.cell.x + (data.cell.width / 2) - (medalSize / 2);
+            const yPos = data.cell.y + (data.cell.height / 2) - (medalSize / 2);
+            pdf.addImage(medal.data, 'PNG', x, yPos, medalSize, medalSize);
+            // Clear text
+            data.cell.text = [];
+          }
+        }
       }
     });
 
@@ -2026,13 +2041,27 @@ async function handlePodioExport(
     autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Turno', '1º Lugar', '2º Lugar', '3º Lugar', 'Total']],
+      head: [['Turno', 'Medalha', 'Medalha', 'Medalha', 'Total']],
       body: perfRows,
       theme: 'grid',
       headStyles: { fillColor: [40, 40, 40], textColor: colors.white, fontSize: 8, halign: 'center' },
       styles: { fontSize: 8, halign: 'center' },
       columnStyles: {
         0: { halign: 'left', fontStyle: 'bold' }
+      },
+      didDrawCell: (data) => {
+        if (data.section === 'head' && data.column.index >= 1 && data.column.index <= 3) {
+          const rank = data.column.index;
+          const medal = medalInfos[rank as 1|2|3];
+          if (medal) {
+            const medalSize = 6;
+            const x = data.cell.x + (data.cell.width / 2) - (medalSize / 2);
+            const yPos = data.cell.y + (data.cell.height / 2) - (medalSize / 2);
+            pdf.addImage(medal.data, 'PNG', x, yPos, medalSize, medalSize);
+            // Clear text
+            data.cell.text = [];
+          }
+        }
       }
     });
 
