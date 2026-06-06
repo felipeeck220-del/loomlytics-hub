@@ -1692,7 +1692,7 @@ function PodiumDisplay({ ranking }: { ranking: any[] }) {
 
 // --- Pódio: exportação PDF ---
 async function handlePodioExport(
-  podio: { ranking: any[]; daily: { date: string; ranking: any[] }[]; periodLabel: string },
+  podio: { ranking: any[]; daily: { date: string; ranking: any[] }[]; periodLabel: string; from?: string; to?: string },
   logoUrl?: string | null,
   companyName?: string,
 ) {
