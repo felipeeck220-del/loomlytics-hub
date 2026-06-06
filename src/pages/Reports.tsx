@@ -1918,7 +1918,7 @@ async function handlePodioExport(
     autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Data', 'Medalha', 'Medalha', 'Medalha']],
+      head: [['Data', '', '', '']],
       body: tableRows,
       theme: 'grid',
       headStyles: { fillColor: colors.dark, textColor: colors.white, fontSize: 8, halign: 'center' },
@@ -2041,7 +2041,7 @@ async function handlePodioExport(
     autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Turno', 'Medalha', 'Medalha', 'Medalha', 'Total']],
+      head: [['Turno', '', '', '', 'Total']],
       body: perfRows,
       theme: 'grid',
       headStyles: { fillColor: [40, 40, 40], textColor: colors.white, fontSize: 8, halign: 'center' },
