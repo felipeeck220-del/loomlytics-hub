@@ -1131,6 +1131,7 @@ export type Database = {
           fineness: string | null
           id: string
           last_needle_change_at: string | null
+          last_sinker_change_at: string | null
           model: string | null
           name: string
           needle_quantity: number | null
@@ -1150,6 +1151,7 @@ export type Database = {
           fineness?: string | null
           id?: string
           last_needle_change_at?: string | null
+          last_sinker_change_at?: string | null
           model?: string | null
           name: string
           needle_quantity?: number | null
@@ -1169,6 +1171,7 @@ export type Database = {
           fineness?: string | null
           id?: string
           last_needle_change_at?: string | null
+          last_sinker_change_at?: string | null
           model?: string | null
           name?: string
           needle_quantity?: number | null
@@ -1970,6 +1973,96 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "residue_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sinker_inventory: {
+        Row: {
+          brand: string
+          company_id: string
+          created_at: string
+          current_quantity: number
+          id: string
+          provider: string
+          reference_code: string
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          company_id: string
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          provider: string
+          reference_code: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          company_id?: string
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          provider?: string
+          reference_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sinker_transactions: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by_id: string | null
+          created_by_name: string | null
+          date: string
+          exit_mode: string | null
+          id: string
+          machine_id: string | null
+          quantity: number
+          sinker_id: string
+          type: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by_id?: string | null
+          created_by_name?: string | null
+          date: string
+          exit_mode?: string | null
+          id?: string
+          machine_id?: string | null
+          quantity: number
+          sinker_id: string
+          type: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by_id?: string | null
+          created_by_name?: string | null
+          date?: string
+          exit_mode?: string | null
+          id?: string
+          machine_id?: string | null
+          quantity?: number
+          sinker_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sinker_transactions_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sinker_transactions_sinker_id_fkey"
+            columns: ["sinker_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_inventory"
             referencedColumns: ["id"]
           },
         ]
