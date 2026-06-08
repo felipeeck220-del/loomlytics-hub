@@ -479,17 +479,19 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
 // ─── Weaver Defects Tab ──────────────────────────────────────
 function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weavers: Weaver[]; defectRecords: DefectRecord[]; articles: Article[]; machines: any[] }) {
   const { user } = useAuth();
-  const currentMonth = format(new Date(), 'yyyy-MM');
-  const [filterMonth, setFilterMonth] = useState(currentMonth);
+  const [filterMonth, setFilterMonth] = useState('all');
   const [selectedWeaverId, setSelectedWeaverId] = useState<string | null>(null);
 
   // Available months from defect records
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
-    months.add(currentMonth);
-    defectRecords.forEach(d => months.add(d.date.substring(0, 7)));
+    defectRecords.forEach(d => {
+      if (d.date && d.date.length >= 7) {
+        months.add(d.date.substring(0, 7));
+      }
+    });
     return Array.from(months).sort().reverse();
-  }, [defectRecords, currentMonth]);
+  }, [defectRecords]);
 
   // Filtered records by month
   const filtered = useMemo(() => {
@@ -592,7 +594,7 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
     doc.setFontSize(16);
     doc.text(sanitizePdfText('Relatorio de Falhas por Tecelao'), pageW / 2, 12, { align: 'center' });
     doc.setFontSize(10);
-    const periodLabel = filterMonth === 'all' ? 'Todo periodo' : format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
+    const periodLabel = filterMonth === 'all' ? 'Todo periodo' : format(new Date(filterMonth + '-15'), 'MMMM yyyy', { locale: ptBR });
     doc.text(sanitizePdfText(`Periodo: ${periodLabel}`), pageW / 2, 20, { align: 'center' });
     y = 36;
 
@@ -645,7 +647,7 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
     doc.setFontSize(16);
     doc.text(sanitizePdfText(`Falhas - ${selectedWeaver.name} ${selectedWeaver.code}`), pageW / 2, 12, { align: 'center' });
     doc.setFontSize(10);
-    const periodLabel = filterMonth === 'all' ? 'Todo periodo' : format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
+    const periodLabel = filterMonth === 'all' ? 'Todo periodo' : format(new Date(filterMonth + '-15'), 'MMMM yyyy', { locale: ptBR });
     doc.text(sanitizePdfText(`Periodo: ${periodLabel}`), pageW / 2, 20, { align: 'center' });
     y = 36;
 
@@ -752,7 +754,7 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
                   <SelectItem value="all">Todo período</SelectItem>
                   {availableMonths.map(m => (
                     <SelectItem key={m} value={m}>
-                      {format(new Date(m + '-01'), 'MMMM yyyy', { locale: ptBR })}
+                      {format(new Date(m + '-15'), 'MMMM yyyy', { locale: ptBR })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -846,7 +848,7 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
               Falhas — {selectedWeaver?.name} <Badge variant="outline" className="font-mono text-xs">{selectedWeaver?.code}</Badge>
             </DialogTitle>
             <DialogDescription>
-              {filterMonth === 'all' ? 'Todo período' : format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR })}
+              {filterMonth === 'all' ? 'Todo período' : format(new Date(filterMonth + '-15'), 'MMMM yyyy', { locale: ptBR })}
             </DialogDescription>
           </DialogHeader>
 
