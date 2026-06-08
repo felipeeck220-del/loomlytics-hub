@@ -2645,11 +2645,17 @@ async function handlePodioExport(
               }
             }
 
+            // Adjust font size for Por Máquina to fit more columns
+            if (sec.title === 'Por Máquina') {
+              pdf.setFontSize(7);
+            }
+
             const truncated = text.length > 25 ? text.substring(0, 24) + '…' : text;
-            pdf.text(truncated, margin + ci * colW + 3, y + 5.5);
+            pdf.text(truncated, margin + ci * colW + 2, y + 5.5);
             
-            // Reset text color for next cell
+            // Reset text color and font size for next cell
             pdf.setTextColor(...colors.textDark);
+            pdf.setFontSize(8);
           });
 
           if (isTotal) {
