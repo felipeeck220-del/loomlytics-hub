@@ -459,6 +459,7 @@ export default function MecanicaPage() {
       try {
         const newCyl = {
           id: editingCylinder ? editingCylinder.id : crypto.randomUUID(),
+          company_id: editingCylinder ? editingCylinder.company_id : '',
           brand: cylinderForm.brand,
           model: cylinderForm.model,
           diameter: cylinderForm.diameter,
@@ -468,7 +469,6 @@ export default function MecanicaPage() {
           observations: cylinderForm.observations,
           created_at: editingCylinder ? editingCylinder.created_at : new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          company_id: ''
         };
 
         const updatedCylinders = editingCylinder 
