@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 08/06/2026 12:00 (Brasília)*
+*Última atualização: 08/06/2026 13:40 (Brasília)*
+- 08/06/2026 13:40 - Relatórios > Pódio: Adicionada lógica de comparação competitiva no pódio e no PDF Diário. Agora, os turnos em 2º e 3º lugar visualizam a "Meta para 1º", mostrando a diferença de eficiência necessária para atingir a liderança. A atualização abrange o componente visual na web e o gerador de PDF programático, garantindo transparência nos objetivos de melhoria por turno.
 - 08/06/2026 12:00 - Tecelões > Falhas: Corrigido bug no filtro de meses que exibia apenas o mês atual por padrão e apresentava rótulos de meses incorretos devido ao fuso horário (ex: Junho aparecendo como Maio). Alterado o padrão para exibir "Todo período" e corrigida a formatação de data para garantir a exibição correta dos meses nos seletores e exportações.
 - 08/06/2026 11:30 - Máquinas: Adicionada a opção "NENHUM ARTIGO" no topo do seletor de Artigo Atual nos modais de cadastro e edição. Esta opção permite desvincular um artigo da máquina, salvando o registro com o campo de artigo vazio. Implementada lógica visual para destacar a opção de desmarcação e ocultar o resumo técnico do artigo quando "NENHUM ARTIGO" está selecionado.
 - 08/06/2026 10:45 - Faturamento Total: Corrigido bug no filtro de meses que exibia apenas o mês atual. Implementada nova RPC `get_faturamento_available_months` que busca meses únicos de faturamento a partir de todas as fontes de receita (Produção, Terceirizados e Resíduos). Atualizada a página `FaturamentoTotal.tsx` para utilizar esta RPC, garantindo que o histórico completo de meses esteja disponível para filtragem, com fallback robusto em caso de falha.
@@ -1138,6 +1139,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 ## 📅 Histórico de Alterações
 
 > Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
+
+- **08/06/2026 13:40 (Brasília)** — Relatórios > Pódio: Implementada métrica de "Meta para 1º Lugar" para os turnos que ficaram em 2º e 3º. Tanto no pódio visual da página quanto na exportação "PDF Diário", agora é exibido o percentual exato de eficiência que o turno precisaria ter alcançado para igualar o primeiro lugar. O detalhamento diário no PDF também foi atualizado para incluir essa comparação, incentivando a competitividade saudável entre as equipes.
 
 - **10/05/2026 16:45 (Brasília)** — Adicionada paginação numérica na aba de Artigos dentro de Clientes & Artigos, exibindo 18 itens por página e limitando os botões de página a uma janela de 3 números.
 - **10/05/2026 16:40 (Brasília)** — Ajustada a visualização da paginação na página de Produção para exibir apenas 3 números de página por vez, criando um efeito de "janela deslizante" conforme o usuário navega.

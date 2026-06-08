@@ -1303,11 +1303,18 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                       </p>
                                     </div>
                                   </div>
-                                  <div className="text-right">
+                                  <div className="text-right flex flex-col items-end">
                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Eficiência</p>
                                     <p className={cn("text-2xl font-black italic", colors.text)}>
                                       {formatPercent(w.eficiencia)}
                                     </p>
+                                    {i > 0 && podioComputed.ranking[0] && (
+                                      <div className="mt-1 flex flex-col items-end">
+                                        <Badge variant="outline" className="text-[9px] h-4 px-1 font-bold border-muted-foreground/30 text-muted-foreground uppercase italic bg-muted/5">
+                                          +{formatPercent(podioComputed.ranking[0].eficiencia - w.eficiencia)} para o 1º
+                                        </Badge>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -1340,13 +1347,23 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                     </td>
                                     {[0, 1, 2].map(i => {
                                       const w = d.ranking[i];
+                                      const firstEff = d.ranking[0]?.eficiencia || 0;
                                       return (
                                         <td key={i} className="px-3 py-2 text-muted-foreground">
                                           {w ? (
                                             <div className="space-y-0.5">
                                               <div className="font-medium text-foreground">{w.name}</div>
-                                              <div className="text-xs">
-                                                {formatNumber(w.rolos)} pç · {formatNumber(w.kg, 2)} kg · {formatNumber(w.eficiencia, 1)}%
+                                              <div className="text-xs flex flex-wrap items-center gap-1">
+                                                <span>{formatNumber(w.rolos)} pç</span>
+                                                <span>·</span>
+                                                <span>{formatNumber(w.kg, 1)} kg</span>
+                                                <span>·</span>
+                                                <span className="font-bold">{formatNumber(w.eficiencia, 1)}%</span>
+                                                {i > 0 && firstEff > w.eficiencia && (
+                                                  <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 border-amber-200 bg-amber-50 text-amber-700 font-bold">
+                                                    +{formatNumber(firstEff - w.eficiencia, 1)}%
+                                                  </Badge>
+                                                )}
                                               </div>
                                             </div>
                                           ) : <span className="text-xs">—</span>}
@@ -1859,7 +1876,15 @@ async function handlePodioExport(
       pdf.setTextColor(...colors.muted);
       pdf.text('EFICIÊNCIA MÉDIA', x + width / 2, yPos + 33, { align: 'center' });
 
-      const statY = yPos + 42;
+      if (rank > 1 && podio.ranking[0]) {
+        const diff = podio.ranking[0].eficiencia - item.eficiencia;
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(180, 83, 9); // bronze
+        pdf.text(`+${formatNumber(diff, 1)}% PARA O 1º LUGAR`, x + width / 2, yPos + 38, { align: 'center' });
+      }
+
+      const statY = yPos + (rank > 1 ? 46 : 42);
       pdf.setDrawColor(...colors.border);
       pdf.setLineWidth(0.1);
       pdf.line(x + 5, statY, x + width - 5, statY);
@@ -1892,8 +1917,10 @@ async function handlePodioExport(
       const getShiftData = (rankIdx: number) => {
         const item = d.ranking[rankIdx];
         if (!item) return '-';
+        const firstEff = d.ranking[0]?.eficiencia || 0;
+        const diffStr = (rankIdx > 0 && firstEff > item.eficiencia) ? ` (+${formatNumber(firstEff - item.eficiencia, 1)}%)` : '';
         // Dados em negrito conforme solicitado: 01/06/2026 Manhã - 6.343,0kg - 73,1%
-        return `${item.name} - ${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%`;
+        return `${item.name} - ${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%${diffStr}`;
       };
       
       return [
