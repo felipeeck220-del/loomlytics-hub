@@ -1215,6 +1215,51 @@ export default function MecanicaPage() {
                         </div>
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                      {machine.cylinder_id ? (
+                        (() => {
+                          const cyl = cylinders.find(c => c.id === machine.cylinder_id);
+                          return (
+                            <div className="col-span-full rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
+                                  <Package className="h-4 w-4 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase font-bold text-primary">Cilindro em uso</p>
+                                  <p className="text-sm font-semibold">{cyl?.brand} {cyl?.model} (Ø:{cyl?.diameter} F:{cyl?.fineness})</p>
+                                </div>
+                              </div>
+                              <Button variant="ghost" size="sm" className="h-7 text-[10px]" onClick={() => {
+                                setEditingCylinder(cyl);
+                                setCylinderForm({
+                                  brand: cyl?.brand || '',
+                                  model: cyl?.model || '',
+                                  diameter: cyl?.diameter || '',
+                                  fineness: cyl?.fineness || '',
+                                  needle_quantity: String(cyl?.needle_quantity || ''),
+                                  feeder_quantity: String(cyl?.feeder_quantity || ''),
+                                  observations: cyl?.observations || ''
+                                });
+                                setShowCylinderModal(true);
+                              }}>
+                                Detalhes
+                              </Button>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div className="col-span-full rounded-lg border border-dashed p-3 text-center">
+                          <p className="text-xs text-muted-foreground">Nenhum cilindro atribuído</p>
+                          <Button variant="link" size="sm" className="h-auto p-0 text-[10px]" onClick={() => {
+                            setAssignForm({ ...assignForm, machine_id: machine.id });
+                            setShowAssignModal(true);
+                          }}>
+                            Atribuir agora
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
