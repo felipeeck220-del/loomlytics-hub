@@ -1397,7 +1397,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label>Dia do Pódio (Ganhador Diário)</Label>
-                        <Popover>
+                        <Popover open={isPodioCalendarOpen} onOpenChange={setIsPodioCalendarOpen}>
                           <PopoverTrigger asChild>
                             <Button variant="outline" className="w-full justify-start font-normal">
                               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1413,6 +1413,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                   setPodioFrom(d);
                                   setPodioTo(d);
                                   setPodioRange('custom');
+                                  setIsPodioCalendarOpen(false);
                                 }
                               }}
                               locale={ptBR}
@@ -1425,7 +1426,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 
                       <div className="space-y-2">
                         <Label>Dias para Detalhamento (Semana)</Label>
-                        <div className="border rounded-md p-2 max-h-[200px] overflow-y-auto space-y-1">
+                        <div className="border rounded-md p-1 overflow-visible">
                           <Calendar
                             mode="multiple"
                             selected={podioSelectedDates}
@@ -1435,6 +1436,17 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                           />
                         </div>
                         <p className="text-[10px] text-muted-foreground">Estes dias serão somados no Resumo Geral e Desempenho por Turno.</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Eficiência Exigida (%)</Label>
+                        <Input 
+                          type="number" 
+                          value={exportEficienciaExigida} 
+                          onChange={(e) => setExportEficienciaExigida(e.target.value)}
+                          placeholder="Ex: 80"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Usada como base para o cálculo de metas no PDF.</p>
                       </div>
                     </div>
 
