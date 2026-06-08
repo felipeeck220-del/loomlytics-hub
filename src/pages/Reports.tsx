@@ -213,7 +213,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
         const artIds = Array.from(m.articleIds);
         const artObjs = artIds.map(id => articles.find(a => a.id === id)).filter(Boolean);
         const avgTargetEff = artObjs.length > 0 
-          ? artObjs.reduce((acc, a) => acc + (a?.targetEfficiency || 80), 0) / artObjs.length 
+          ? artObjs.reduce((acc, a) => acc + (a?.target_efficiency || 80), 0) / artObjs.length 
           : 80;
 
         return {
