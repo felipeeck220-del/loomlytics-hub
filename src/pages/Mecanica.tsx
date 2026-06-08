@@ -32,10 +32,14 @@ export default function MecanicaPage() {
      getMachines, getMachineLogs, getProductions, saveMachineLogs, 
      getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
      updateNeedleTransaction, deleteNeedleTransaction,
+     getSinkers, saveSinkers, getSinkerTransactions, addSinkerTransaction,
+     updateSinkerTransaction, deleteSinkerTransaction,
      loading 
    } = useSharedCompanyData();
    const needles = getNeedles();
    const needleTransactions = getNeedleTransactions();
+   const sinkers = getSinkers();
+   const sinkerTransactions = getSinkerTransactions();
    // Needle Management State
    const [needleSearch, setNeedleSearch] = useState('');
    const [showNeedleModal, setShowNeedleModal] = useState(false);
@@ -47,10 +51,24 @@ export default function MecanicaPage() {
    const [needleEntrySearch, setNeedleEntrySearch] = useState('');
    const [needleExitSearch, setNeedleExitSearch] = useState('');
    const [editTxn, setEditTxn] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_agulheiro' });
+   const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_agulheiro' });
    const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
    const [needleHistoryPage, setNeedleHistoryPage] = useState(1);
    const NEEDLE_HISTORY_PER_PAGE = 15;
+
+   // Sinker Management State (Platinas)
+   const [sinkerSearch, setSinkerSearch] = useState('');
+   const [showSinkerModal, setShowSinkerModal] = useState(false);
+   const [showSinkerEntryModal, setShowSinkerEntryModal] = useState(false);
+   const [showSinkerExitModal, setShowSinkerExitModal] = useState(false);
+   const [sinkerForm, setSinkerForm] = useState({ provider: '', brand: '', reference_code: '' });
+   const [sinkerEntryForm, setSinkerEntryForm] = useState({ sinker_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+   const [sinkerExitForm, setSinkerExitForm] = useState({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_platinas', date: format(new Date(), 'yyyy-MM-dd') });
+   const [sinkerEditTxn, setSinkerEditTxn] = useState<any>(null);
+   const [sinkerEditForm, setSinkerEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_platinas' });
+   const [deleteSinkerTxnId, setDeleteSinkerTxnId] = useState<string | null>(null);
+   const [sinkerHistoryPage, setSinkerHistoryPage] = useState(1);
+   const SINKER_HISTORY_PER_PAGE = 15;
  
   const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
@@ -111,6 +129,13 @@ export default function MecanicaPage() {
     if (selectedMachineId === 'all') return null;
     return getLastLogByStatus(selectedMachineId, 'troca_agulhas');
   }, [machineLogs, selectedMachineId]);
+
+  const lastSinkerChange = useMemo(() => {
+    if (selectedMachineId === 'all') return null;
+    const m = machines.find(m => m.id === selectedMachineId);
+    if (m?.last_sinker_change_at) return { started_at: m.last_sinker_change_at };
+    return null;
+  }, [machines, selectedMachineId]);
 
   // Calendar
   const monthStart = startOfMonth(currentMonth);
@@ -326,7 +351,91 @@ export default function MecanicaPage() {
         toast.success('Baixa registrada!');
        setShowExitModal(false);
        setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
-     } catch (e) { toast.error('Erro ao registrar baixa.'); }
+      } catch (e) { toast.error('Erro ao registrar baixa.'); }
+    };
+
+    const handleSaveSinker = async () => {
+      if (!sinkerForm.provider || !sinkerForm.brand || !sinkerForm.reference_code) {
+        toast.error('Preencha todos os campos.');
+        return;
+      }
+      try {
+        const newSinker = {
+          id: crypto.randomUUID(),
+          company_id: '',
+          ...sinkerForm,
+          current_quantity: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+         await saveSinkers([...sinkers, { ...newSinker, company_id: '' }]);
+         logAction('sinker_create', { brand: newSinker.brand, code: newSinker.reference_code });
+        toast.success('Platina cadastrada!');
+        setShowSinkerModal(false);
+        setSinkerForm({ provider: '', brand: '', reference_code: '' });
+      } catch (e) { toast.error('Erro ao cadastrar.'); }
+    };
+  
+    const handleSinkerEntry = async () => {
+      if (!sinkerEntryForm.sinker_id || !sinkerEntryForm.quantity || !sinkerEntryForm.date) {
+        toast.error('Preencha todos os campos.');
+        return;
+      }
+      try {
+         const sinker = sinkers.find(s => s.id === sinkerEntryForm.sinker_id);
+         await addSinkerTransaction({
+          id: crypto.randomUUID(),
+          company_id: '',
+          sinker_id: sinkerEntryForm.sinker_id,
+          type: 'entry',
+          quantity: Number(sinkerEntryForm.quantity),
+          date: sinkerEntryForm.date,
+          created_at: new Date().toISOString(),
+          created_by_name: userName || undefined
+        });
+         logAction('sinker_entry', { brand: sinker?.brand, code: sinker?.reference_code, quantity: sinkerEntryForm.quantity });
+         toast.success('Entrada registrada!');
+        setShowSinkerEntryModal(false);
+        setSinkerEntryForm({ sinker_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+      } catch (e) { toast.error('Erro ao registrar entrada.'); }
+    };
+  
+    const handleSinkerExit = async () => {
+      if (!sinkerExitForm.sinker_id || !sinkerExitForm.quantity || !sinkerExitForm.machine_id || !sinkerExitForm.date) {
+        toast.error('Preencha todos os campos.');
+        return;
+      }
+       const targetSinker = sinkers.find(s => s.id === sinkerExitForm.sinker_id);
+       if (targetSinker && targetSinker.current_quantity < Number(sinkerExitForm.quantity)) {
+        toast.error('Saldo insuficiente em estoque.');
+        return;
+      }
+       const machine = machines.find(m => m.id === sinkerExitForm.machine_id);
+       try {
+         await addSinkerTransaction({
+          id: crypto.randomUUID(),
+          company_id: '',
+          sinker_id: sinkerExitForm.sinker_id,
+          machine_id: sinkerExitForm.machine_id,
+          type: 'exit',
+          exit_mode: sinkerExitForm.mode,
+          quantity: Number(sinkerExitForm.quantity),
+          date: sinkerExitForm.date,
+          created_at: new Date().toISOString(),
+          created_by_name: userName || undefined
+        });
+         logAction('sinker_exit', { 
+           brand: targetSinker?.brand, 
+           code: targetSinker?.reference_code, 
+           quantity: sinkerExitForm.quantity, 
+           machine: machine?.name,
+           mode: sinkerExitForm.mode 
+         });
+         toast.success('Baixa registrada!');
+        setShowSinkerExitModal(false);
+        setSinkerExitForm({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
+      } catch (e) { toast.error('Erro ao registrar baixa.'); }
+    };
    };
 
   return (
@@ -378,6 +487,14 @@ export default function MecanicaPage() {
                       : 'Nenhum registro'}
                   </p>
                 </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground font-medium">Última Troca de Platinas</span>
+                  <p className="text-sm font-semibold text-foreground">
+                    {lastSinkerChange
+                      ? format(new Date(lastSinkerChange.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      : 'Nenhum registro'}
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -390,7 +507,235 @@ export default function MecanicaPage() {
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
            <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
+           <TabsTrigger value="platinas">Platinas</TabsTrigger>
          </TabsList>
+         
+         {/* Platinas Tab */}
+         <TabsContent value="platinas">
+           <Tabs defaultValue="estoque" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="estoque">
+                  <Package className="h-4 w-4 mr-1.5" />
+                  Estoque
+                </TabsTrigger>
+                <TabsTrigger value="movimentacoes">
+                  <History className="h-4 w-4 mr-1.5" />
+                  Movimentações
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Estoque Sub-Tab */}
+              <TabsContent value="estoque">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Tipos de Platina</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{sinkers.length}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Total em Estoque</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{sinkers.reduce((sum, s) => sum + s.current_quantity, 0)}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Total Movimentações</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{sinkerTransactions.length}</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                    <div className="relative w-full sm:w-72">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Pesquisar platina..." 
+                        value={sinkerSearch} 
+                        onChange={e => setSinkerSearch(e.target.value)} 
+                        className="pl-9" 
+                      />
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button onClick={() => setShowSinkerModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                        <Plus className="h-4 w-4 mr-2" /> Cadastrar
+                      </Button>
+                      <Button onClick={() => setShowSinkerEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                        <Plus className="h-4 w-4 mr-2" /> Entrada
+                      </Button>
+                      <Button onClick={() => setShowSinkerExitModal(true)} variant="default" className="flex-1 sm:flex-none">
+                        <Wrench className="h-4 w-4 mr-2" /> Baixa
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Card>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/50">
+                              <th className="text-left p-4 font-medium">Fornecedor</th>
+                              <th className="text-left p-4 font-medium">Marca</th>
+                              <th className="text-left p-4 font-medium">Ref. Código</th>
+                              <th className="text-right p-4 font-medium">Estoque</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[...sinkers]
+                              .sort((a, b) => a.brand.localeCompare(b.brand))
+                              .filter(s => 
+                                s.brand.toLowerCase().includes(sinkerSearch.toLowerCase()) || 
+                                s.provider.toLowerCase().includes(sinkerSearch.toLowerCase()) || 
+                                s.reference_code.toLowerCase().includes(sinkerSearch.toLowerCase())
+                              )
+                              .map(s => (
+                              <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
+                                <td className="p-4">{s.provider}</td>
+                                <td className="p-4">{s.brand}</td>
+                                <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s.reference_code}</code></td>
+                                <td className="p-4 text-right font-bold">{s.current_quantity}</td>
+                              </tr>
+                            ))}
+                            {sinkers.length === 0 && (
+                              <tr>
+                                <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Movimentações Sub-Tab */}
+              <TabsContent value="movimentacoes">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Histórico de Movimentações (Platinas)</h3>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {sinkerTransactions.length} registro{sinkerTransactions.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <Card>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/50 text-muted-foreground">
+                              <th className="text-left p-4 font-medium">Data</th>
+                              <th className="text-left p-4 font-medium">Tipo</th>
+                              <th className="text-left p-4 font-medium">Platina</th>
+                              <th className="text-left p-4 font-medium">Destino</th>
+                              <th className="text-right p-4 font-medium">Quantidade</th>
+                              <th className="text-right p-4 font-medium">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const sorted = [...sinkerTransactions].sort((a, b) => new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime());
+                              const totalPages = Math.max(1, Math.ceil(sorted.length / SINKER_HISTORY_PER_PAGE));
+                              const start = (sinkerHistoryPage - 1) * SINKER_HISTORY_PER_PAGE;
+                              const pageItems = sorted.slice(start, start + SINKER_HISTORY_PER_PAGE);
+                              return (
+                                <>
+                                  {pageItems.map(t => {
+                                    const sinker = sinkers.find(s => s.id === t.sinker_id);
+                                    const machine = machines.find(m => m.id === t.machine_id);
+                                    return (
+                                      <tr key={t.id} className="border-b">
+                                        <td className="p-4 align-top">
+                                          <div className="flex flex-col">
+                                            <span className="text-sm font-medium">{format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}</span>
+                                            {(t.created_by_name || t.created_at) && (
+                                              <span className="text-[10px] text-muted-foreground leading-tight whitespace-pre-line">
+                                                {t.created_by_name || '—'} - {'\n'}{t.created_at ? format(new Date(t.created_at), 'dd/MM/yyyy HH:mm') : ''}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="p-4">
+                                          <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">
+                                            {t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_platinas' ? 'Troca' : 'Reposição'}
+                                          </Badge>
+                                        </td>
+                                        <td className="p-4">{sinker?.brand} ({sinker?.reference_code})</td>
+                                        <td className="p-4">{machine?.name || '—'}</td>
+                                        <td className="p-4 text-right font-medium">{t.quantity}</td>
+                                        <td className="p-4 text-right">
+                                          <div className="flex justify-end gap-1">
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                              setSinkerEditTxn(t);
+                                              const kind: 'entry' | 'reposicao' | 'troca_platinas' =
+                                                t.type === 'entry' ? 'entry' : (t.exit_mode === 'troca_platinas' ? 'troca_platinas' : 'reposicao');
+                                              setSinkerEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
+                                            }}>
+                                              <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteSinkerTxnId(t.id)}>
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                  {sinkerTransactions.length === 0 && (
+                                    <tr>
+                                      <td colSpan={6} className="p-8 text-center text-muted-foreground">Sem movimentações registradas</td>
+                                    </tr>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Pagination */}
+                      {(() => {
+                        const sorted = [...sinkerTransactions].sort((a, b) => new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime());
+                        const totalPages = Math.max(1, Math.ceil(sorted.length / SINKER_HISTORY_PER_PAGE));
+                        if (totalPages <= 1) return null;
+                        const windowSize = 3;
+                        let startPage = Math.max(1, sinkerHistoryPage - Math.floor(windowSize / 2));
+                        let endPage = Math.min(totalPages, startPage + windowSize - 1);
+                        if (endPage - startPage + 1 < windowSize) {
+                          startPage = Math.max(1, endPage - windowSize + 1);
+                        }
+                        const pages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+                        return (
+                          <div className="flex items-center justify-center gap-1 py-3 border-t">
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setSinkerHistoryPage(p => Math.max(1, p - 1))} disabled={sinkerHistoryPage === 1}>
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            {pages.map(p => (
+                              <Button key={p} variant={sinkerHistoryPage === p ? 'default' : 'outline'} size="sm" className="h-8 w-8 p-0 text-xs" onClick={() => setSinkerHistoryPage(p)}>
+                                {p}
+                              </Button>
+                            ))}
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setSinkerHistoryPage(p => Math.min(totalPages, p + 1))} disabled={sinkerHistoryPage === totalPages}>
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+           </Tabs>
+         </TabsContent>
           <TabsContent value="agulhas">
             <Tabs defaultValue="estoque" className="w-full">
               <TabsList className="mb-4">
