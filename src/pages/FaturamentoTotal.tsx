@@ -74,21 +74,37 @@ export default function FaturamentoTotal() {
    const [isLoading, setIsLoading] = useState(true);
    const [availableMonthsList, setAvailableMonthsList] = useState<string[]>([]);
    // Load available months only once
-   useEffect(() => {
-     const loadMonths = async () => {
-       if (!companyId) return;
-       try {
-         const { data: prodData } = await supabase.from('productions').select('date').eq('company_id', companyId).order('date', { ascending: false }).limit(100);
-         const months = new Set<string>();
-         prodData?.forEach(p => months.add(p.date.substring(0, 7)));
-         months.add(format(new Date(), 'yyyy-MM'));
-         setAvailableMonthsList(Array.from(months).sort().reverse());
-       } catch (err) {
-         console.error('Error loading months:', err);
-       }
-     };
-     loadMonths();
-   }, [companyId]);
+    useEffect(() => {
+      const loadMonths = async () => {
+        if (!companyId) return;
+        try {
+          const { data, error } = await supabase.rpc('get_faturamento_available_months', { p_company_id: companyId });
+          
+          if (error) {
+            console.error('Error loading months via RPC:', error);
+            // Fallback to basic production loading if RPC fails
+            const { data: prodData } = await supabase.from('productions')
+              .select('date')
+              .eq('company_id', companyId)
+              .order('date', { ascending: false })
+              .limit(1000);
+            
+            const months = new Set<string>();
+            prodData?.forEach(p => months.add(p.date.substring(0, 7)));
+            months.add(format(new Date(), 'yyyy-MM'));
+            setAvailableMonthsList(Array.from(months).sort().reverse());
+            return;
+          }
+
+          const months = new Set<string>(data?.map((m: any) => m.month_str) || []);
+          months.add(format(new Date(), 'yyyy-MM'));
+          setAvailableMonthsList(Array.from(months).sort().reverse());
+        } catch (err) {
+          console.error('Unexpected error loading months:', err);
+        }
+      };
+      loadMonths();
+    }, [companyId]);
    // Compute current and previous period ranges
    const currentPeriod = useMemo(() => {
      const today = new Date();
