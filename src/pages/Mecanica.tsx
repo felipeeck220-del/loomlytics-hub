@@ -459,6 +459,7 @@ export default function MecanicaPage() {
       try {
         const newCyl = {
           id: editingCylinder ? editingCylinder.id : crypto.randomUUID(),
+          company_id: editingCylinder ? editingCylinder.company_id : '',
           brand: cylinderForm.brand,
           model: cylinderForm.model,
           diameter: cylinderForm.diameter,
@@ -468,7 +469,6 @@ export default function MecanicaPage() {
           observations: cylinderForm.observations,
           created_at: editingCylinder ? editingCylinder.created_at : new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          company_id: ''
         };
 
         const updatedCylinders = editingCylinder 
@@ -568,9 +568,10 @@ export default function MecanicaPage() {
          <TabsList>
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-           <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
-           <TabsTrigger value="platinas">Platinas</TabsTrigger>
-         </TabsList>
+            <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
+            <TabsTrigger value="platinas">Platinas</TabsTrigger>
+            <TabsTrigger value="cilindros">Cilindros</TabsTrigger>
+          </TabsList>
          
          {/* Platinas Tab */}
          <TabsContent value="platinas">
@@ -1182,6 +1183,82 @@ export default function MecanicaPage() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Since last sinker change */}
+                      <div className="rounded-lg border border-border p-3 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Desde última Troca de Platinas
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {machine.last_sinker_change_at 
+                            ? format(new Date(machine.last_sinker_change_at), "dd/MM/yyyy", { locale: ptBR })
+                            : 'Sem registro'}
+                        </p>
+                        <div className="flex items-center gap-4">
+                          {canSeeFinancial && (
+                          <div>
+                            {/* For now reusing weight/revenue from generic calc if needed, 
+                                but machine typically doesn't have a separate calc for sinkers yet in this code.
+                                I'll add a calc logic here to be consistent. */}
+                            <p className="text-lg font-bold text-foreground">
+                              {formatCurrency(calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).revenue)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Faturamento</p>
+                          </div>
+                          )}
+                          <div>
+                            <p className="text-lg font-bold text-foreground">
+                              {formatWeight(calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).weight)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Peso produzido</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                      {machine.cylinder_id ? (
+                        (() => {
+                          const cyl = cylinders.find(c => c.id === machine.cylinder_id);
+                          return (
+                            <div className="col-span-full rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
+                                  <Package className="h-4 w-4 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] uppercase font-bold text-primary">Cilindro em uso</p>
+                                  <p className="text-sm font-semibold">{cyl?.brand} {cyl?.model} (Ø:{cyl?.diameter} F:{cyl?.fineness})</p>
+                                </div>
+                              </div>
+                              <Button variant="ghost" size="sm" className="h-7 text-[10px]" onClick={() => {
+                                setEditingCylinder(cyl);
+                                setCylinderForm({
+                                  brand: cyl?.brand || '',
+                                  model: cyl?.model || '',
+                                  diameter: cyl?.diameter || '',
+                                  fineness: cyl?.fineness || '',
+                                  needle_quantity: String(cyl?.needle_quantity || ''),
+                                  feeder_quantity: String(cyl?.feeder_quantity || ''),
+                                  observations: cyl?.observations || ''
+                                });
+                                setShowCylinderModal(true);
+                              }}>
+                                Detalhes
+                              </Button>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div className="col-span-full rounded-lg border border-dashed p-3 text-center">
+                          <p className="text-xs text-muted-foreground">Nenhum cilindro atribuído</p>
+                          <Button variant="link" size="sm" className="h-auto p-0 text-[10px]" onClick={() => {
+                            setAssignForm({ ...assignForm, machine_id: machine.id });
+                            setShowAssignModal(true);
+                          }}>
+                            Atribuir agora
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="outline"
@@ -1663,9 +1740,18 @@ export default function MecanicaPage() {
                   </div>
                   <div className="max-h-[200px] overflow-y-auto">
                     {sinkers
+                      .filter(s => 
+                        s.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
+                        s.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
+                        s.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
+                      )
                       .map(s => <SelectItem key={s.id} value={s.id}>{s.brand} ({s.reference_code})</SelectItem>)
                     }
-                    {sinkers.length === 0 && (
+                    {sinkers.filter(s => 
+                      s.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
+                      s.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
+                      s.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
+                    ).length === 0 && (
                       <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma platina encontrada</div>
                     )}
                   </div>
@@ -1719,13 +1805,22 @@ export default function MecanicaPage() {
                 <SelectContent>
                   <div className="max-h-[200px] overflow-y-auto">
                     {sinkers
+                      .filter(s => 
+                        s.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
+                        s.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
+                        s.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
+                      )
                       .map(s => (
                         <SelectItem key={s.id} value={s.id}>
                           {s.brand} ({s.reference_code}) - Saldo: {s.current_quantity}
                         </SelectItem>
                       ))
                     }
-                    {sinkers.length === 0 && (
+                    {sinkers.filter(s => 
+                      s.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
+                      s.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
+                      s.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
+                    ).length === 0 && (
                       <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma platina encontrada</div>
                     )}
                   </div>

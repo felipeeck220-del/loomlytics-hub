@@ -217,8 +217,8 @@ export function useCompanyData() {
        setNeedles(nData.map(mapNeedle));
         setNeedleTransactions(ntData.map(mapNeedleTransaction));
         setSinkers(sData.map(mapSinker));
-         setSinkerTransactions(stData.map(mapSinkerTransaction));
-         setCylinders(cylData.map(mapCylinder));
+        setSinkerTransactions(stData.map(mapSinkerTransaction));
+        setCylinders(cylData.map(mapCylinder));
        
        if (csRes.data) {
          setShiftSettings({
@@ -255,8 +255,8 @@ export function useCompanyData() {
    const getNeedles = useCallback(() => needles, [needles]);
     const getNeedleTransactions = useCallback(() => needleTransactions, [needleTransactions]);
     const getSinkers = useCallback(() => sinkers, [sinkers]);
-     const getSinkerTransactions = useCallback(() => sinkerTransactions, [sinkerTransactions]);
-     const getCylinders = useCallback(() => cylinders, [cylinders]);
+    const getSinkerTransactions = useCallback(() => sinkerTransactions, [sinkerTransactions]);
+    const getCylinders = useCallback(() => cylinders, [cylinders]);
 
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {
@@ -270,16 +270,26 @@ export function useCompanyData() {
     }
     if (data.length > 0) {
       const rows = data.map(m => ({
-        id: m.id, company_id: companyId, number: m.number, name: m.name,
-        rpm: m.rpm, status: m.status, article_id: m.article_id || null,
-         observations: m.observations || null, production_mode: m.production_mode || 'rolos',
-         created_at: m.created_at,
-         model: m.model || null, diameter: m.diameter || null, fineness: m.fineness || null,
-         needle_quantity: m.needle_quantity || null, feeder_quantity: m.feeder_quantity || null,
-         serial_number: m.serial_number || null, last_needle_change_at: m.last_needle_change_at || null,
-          last_sinker_change_at: m.last_sinker_change_at || null,
-          cylinder_id: m.cylinder_id || null,
-        }));
+        id: m.id,
+        company_id: companyId,
+        number: m.number,
+        name: m.name,
+        rpm: m.rpm,
+        status: m.status,
+        article_id: m.article_id || null,
+        observations: m.observations || null,
+        production_mode: m.production_mode || 'rolos',
+        created_at: m.created_at,
+        model: m.model || null,
+        diameter: m.diameter || null,
+        fineness: m.fineness || null,
+        needle_quantity: m.needle_quantity || null,
+        feeder_quantity: m.feeder_quantity || null,
+        serial_number: m.serial_number || null,
+        last_needle_change_at: m.last_needle_change_at || null,
+        last_sinker_change_at: m.last_sinker_change_at || null,
+        cylinder_id: m.cylinder_id || null,
+      }));
       const { error } = await sb('machines').upsert(rows);
       if (error) { console.error('Error saving machines:', error); throw error; }
     }
