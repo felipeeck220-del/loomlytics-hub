@@ -2061,6 +2061,7 @@ async function handlePodioExport(
     pdf.text('RANKING DO PERÍODO (QUEM ESTÁ GANHANDO)', margin, y);
     y += 4;
 
+    const numDays = podio.daily.length;
     const rankingRows = generalRanking.map((item, idx) => {
       const baseRow = [
         `${idx + 1}º`,
@@ -2069,14 +2070,15 @@ async function handlePodioExport(
         `${formatNumber(item.eficiencia, 1)}%`
       ];
 
-      if (idx > 0 && generalRanking[0]) {
-        const diff = generalRanking[0].eficiencia - item.eficiencia;
-        if (diff > 0) {
-          // If we want to reach first place, we need to average more than first place's current average
-          // to pull our own average up. 
-          // Simplified logic: show how much more efficiency is needed relative to current state
-          baseRow[3] = `${formatNumber(item.eficiencia, 1)}% (+${formatNumber(diff, 1)}%)`;
-        }
+      if (idx > 0 && generalRanking[0] && numDays > 0) {
+        // Target: next average must equal or exceed first place's current average
+        // (Current_Avg * NumDays + NextDay_Eff) / (NumDays + 1) = FirstPlace_Avg
+        // NextDay_Eff = (FirstPlace_Avg * (NumDays + 1)) - (Current_Avg * NumDays)
+        const targetEff = (generalRanking[0].eficiencia * (numDays + 1)) - (item.eficiencia * numDays);
+        
+        // Ensure it's not showing a negative or impossible efficiency (though unlikely in this context)
+        const displayTarget = targetEff > 0 ? formatNumber(targetEff, 1) : '-';
+        baseRow[3] = `${formatNumber(item.eficiencia, 1)}% (Proj. Amanhã: ${displayTarget}%)`;
       }
 
       return baseRow;
