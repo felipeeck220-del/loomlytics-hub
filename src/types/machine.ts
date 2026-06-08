@@ -35,16 +35,45 @@ export interface Machine {
   status: MachineStatus;
   article_id?: string;
   observations?: string;
-   production_mode: ProductionMode;
-   created_at: string;
-   model?: string;
-   diameter?: string;
-   fineness?: string;
-   needle_quantity?: number;
-   feeder_quantity?: number;
-   serial_number?: string;
-   last_needle_change_at?: string;
- }
+  production_mode: ProductionMode;
+  created_at: string;
+  model?: string;
+  diameter?: string;
+  fineness?: string;
+  needle_quantity?: number;
+  feeder_quantity?: number;
+  serial_number?: string;
+  last_needle_change_at?: string;
+  last_sinker_change_at?: string;
+}
+
+export interface SinkerInventory {
+  id: string;
+  company_id: string;
+  provider: string;
+  brand: string;
+  reference_code: string;
+  current_quantity: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SinkerTransactionType = 'entry' | 'exit';
+export type SinkerExitMode = 'troca_platinas' | 'reposicao';
+
+export interface SinkerTransaction {
+  id: string;
+  company_id: string;
+  sinker_id: string;
+  type: SinkerTransactionType;
+  exit_mode?: SinkerExitMode;
+  quantity: number;
+  date: string;
+  machine_id?: string;
+  created_at: string;
+  created_by_id?: string;
+  created_by_name?: string;
+}
  
  export interface NeedleInventory {
    id: string;
