@@ -1493,7 +1493,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 
                           const label = `Pódio: ${format(podioFrom, 'dd/MM/yyyy')} | Período: ${format(new Date(pFrom + 'T12:00:00'), 'dd/MM')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
 
-                          handlePodioExport({ ranking, daily, periodLabel: label, from: pFrom, to: pTo }, companyLogoUrl, companyName);
+                          handlePodioExport({ ranking, daily, periodLabel: label, from: pFrom, to: pTo }, companyLogoUrl, companyName, parseFloat(exportEficienciaExigida) || 0);
                           setIsDailyModalOpen(false);
                         }}
                         disabled={!podioFrom}
