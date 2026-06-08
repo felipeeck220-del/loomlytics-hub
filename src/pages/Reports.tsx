@@ -2617,15 +2617,14 @@ async function handlePodioExport(
             pdf.setFontSize(9);
           }
 
-          pdf.setTextColor(...colors.textDark);
           row.forEach((cell, ci) => {
             const text = String(cell);
+            const xPos = margin + ci * colW;
+            const header = sec.headers[ci];
             
             // Apply conditional colors for 'Por Máquina' report
             if (sec.title === 'Por Máquina' && !isTotal) {
-              const header = sec.headers[ci];
               if (header === 'Rolos' || header === 'Peso (kg)' || header === 'Eficiência (%)') {
-                // Find total row to get average/sum for comparison
                 const totalRow = sec.rows[sec.rows.length - 1];
                 const totalValStr = String(totalRow[ci]).replace(/\./g, '').replace(',', '.').replace('%', '').trim();
                 const totalVal = parseFloat(totalValStr) || 0;
@@ -2634,26 +2633,39 @@ async function handlePodioExport(
                 const currentVal = parseFloat(currentValStr) || 0;
 
                 if (currentVal < totalVal) {
-                  pdf.setFillColor(254, 226, 226); // Light red background
-                  pdf.rect(margin + ci * colW, y, colW, rowH, 'F');
-                  pdf.setTextColor(185, 28, 28); // Red text
+                  pdf.setFillColor(254, 226, 226); // Light red
+                  pdf.rect(xPos, y, colW, rowH, 'F');
+                  pdf.setTextColor(185, 28, 28);
                 } else if (currentVal >= totalVal && totalVal > 0) {
-                  pdf.setFillColor(220, 252, 231); // Light green background
-                  pdf.rect(margin + ci * colW, y, colW, rowH, 'F');
-                  pdf.setTextColor(21, 128, 61); // Green text
+                  pdf.setFillColor(220, 252, 231); // Light green
+                  pdf.rect(xPos, y, colW, rowH, 'F');
+                  pdf.setTextColor(21, 128, 61);
                 }
               }
             }
 
-            // Adjust font size for Por Máquina to fit more columns
+            // Draw text with overflow handling and alternate alignment for Máquina/Artigo
             if (sec.title === 'Por Máquina') {
-              pdf.setFontSize(7);
+              pdf.setFontSize(6.5);
+              const padding = 1.5;
+              const textW = colW - (padding * 2);
+              
+              if (header === 'Máquina' || header === 'Artigo') {
+                // Alternate vertical alignment: ri % 2 === 0 ? Top : Bottom
+                // rowH is 8. middle is 4.
+                const yOffset = ri % 2 === 0 ? 3.5 : 6.5;
+                const truncated = pdf.getTextWidth(text) > textW ? text.substring(0, 15) + '…' : text;
+                pdf.text(truncated, xPos + padding, y + yOffset);
+              } else {
+                const truncated = pdf.getTextWidth(text) > textW ? text.substring(0, 10) + '…' : text;
+                pdf.text(truncated, xPos + padding, y + 5);
+              }
+            } else {
+              pdf.setFontSize(8);
+              const truncated = text.length > 25 ? text.substring(0, 24) + '…' : text;
+              pdf.text(truncated, xPos + 2, y + 5.5);
             }
-
-            const truncated = text.length > 25 ? text.substring(0, 24) + '…' : text;
-            pdf.text(truncated, margin + ci * colW + 2, y + 5.5);
             
-            // Reset text color and font size for next cell
             pdf.setTextColor(...colors.textDark);
             pdf.setFontSize(8);
           });
