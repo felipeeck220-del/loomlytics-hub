@@ -2285,17 +2285,19 @@ async function handlePodioExport(
         const eff = ma.weightForEff > 0 ? ma.efficiencySum / ma.weightForEff : 0;
         
         // Find article data for half values
-        // Important: Use target_efficiency from the article itself
-        const articleObj = articles.find(a => a.id === aId || a.name === ma.articleName);
+        // Use byArticle list which contains the articles found in the filtered records
+        const articleObj = byArticle.find(a => a.id === aId || a.name === ma.articleName);
         
         // --- ALERTA DE REGRA DE NEGÓCIO ---
         // As colunas MetadeRolo, metadePeso e metadeefciencia utilizam EXCLUSIVAMENTE a eficiência
-        // exigida cadastrada no ARTIGO (target_efficiency).
-        // A eficiência definida no modal do Pódio NÃO deve ser usada aqui.
+        // exigida cadastrada no ARTIGO. A eficiência definida no modal do Pódio NÃO deve ser usada aqui.
         
         // Efficiency calculation for "Half" columns:
-        // metadeefciencia = target_efficiency of the article
-        const halfEff = articleObj?.target_efficiency || 80;
+        // metadeefciencia = target_efficiency of the article (not half of it)
+        // Note: byArticle items are mapped above with efficiency data
+        // We look for the actual article object from the main 'articles' state if needed, 
+        // but byArticle should have what we need if mapped correctly.
+        const halfEff = articleObj?.targetEfficiency || 80;
         
         // MetadeRolo and metadePeso: 50% of the totals produced for this machine/article in the period
         const halfRolls = ma.rolos / 2;
