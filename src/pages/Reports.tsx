@@ -2241,8 +2241,8 @@ async function handlePodioExport(
 
   if (type === 'completo' || type === 'maquina') {
     const headers = isAdmin 
-      ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'RPM Padrão', 'Faturamento'] 
-      : ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'RPM Padrão'];
+      ? ['Máquina', 'Artigo', 'Rolos', 'MetadeRolo', 'Peso (kg)', 'metadePeso (kg)', 'Eficiência (%)', 'metadeefciencia', 'RPM Padrão', 'Faturamento'] 
+      : ['Máquina', 'Artigo', 'Rolos', 'MetadeRolo', 'Peso (kg)', 'metadePeso (kg)', 'Eficiência (%)', 'metadeefciencia', 'RPM Padrão'];
     
     // Use 'filtered' (productions) to list machines with articles for the period
     const machineArticleRows: (string | number)[][] = [];
@@ -2284,9 +2284,15 @@ async function handlePodioExport(
         const ma = machineArticles[aId];
         const eff = ma.weightForEff > 0 ? ma.efficiencySum / ma.weightForEff : 0;
         
+        // Find article data for half values
+        const articleObj = byArticle.find(a => a.id === aId || a.name === ma.articleName);
+        const halfRolls = articleObj?.turns_per_roll ? Math.round(articleObj.turns_per_roll / 2) : 0;
+        const halfWeight = articleObj?.weight_per_roll ? articleObj.weight_per_roll / 2 : 0;
+        const halfEff = articleObj?.target_efficiency ? articleObj.target_efficiency / 2 : 0;
+
         machineArticleRows.push(isAdmin 
-          ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtK(ma.kg), fmtE(eff), rpmPadrao, fmtR(ma.revenue)]
-          : [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtK(ma.kg), fmtE(eff), rpmPadrao]
+          ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao, fmtR(ma.revenue)]
+          : [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao]
         );
       });
     });
@@ -2307,8 +2313,8 @@ async function handlePodioExport(
     
     // Header for Total row needs to match column count
     const totalRow = isAdmin 
-      ? ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), '', fmtR(tF)] 
-      : ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), ''];
+      ? ['TOTAL', '', fmtN(tR), '', fmtK(tK), '', fmtE(avgE), '', '', fmtR(tF)] 
+      : ['TOTAL', '', fmtN(tR), '', fmtK(tK), '', fmtE(avgE), '', ''];
     
     machineArticleRows.push(totalRow);
     sections.push({ title: 'Por Máquina', headers, rows: machineArticleRows });
