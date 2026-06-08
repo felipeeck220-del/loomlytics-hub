@@ -2547,9 +2547,32 @@ async function handlePodioExport(
         const getColWidth = (index: number) => {
           if (sec.title !== 'Por Máquina') return availW / colCount;
           
-          // Total de colunas: 4 ou 5 (se admin)
-          // ["Máquina", "Rolos", "Peso (kg)", "Eficiência (%)", "Faturamento"]
-          return availW / colCount;
+          // isSingleDay check: if headers[1] === 'Artigo'
+          const isSingleDay = sec.headers[1] === 'Artigo';
+          
+          if (isAdmin) {
+            // ['Máquina', 'Artigo'?, 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
+            if (isSingleDay) {
+              const widths = [18, 45, 14, 20, 20, 20, 20];
+              const scale = availW / widths.reduce((a, b) => a + b, 0);
+              return widths[index] * scale;
+            } else {
+              const widths = [25, 15, 22, 22, 22, 25];
+              const scale = availW / widths.reduce((a, b) => a + b, 0);
+              return widths[index] * scale;
+            }
+          } else {
+            // ['Máquina', 'Artigo'?, 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)']
+            if (isSingleDay) {
+              const widths = [18, 45, 15, 22, 22, 22];
+              const scale = availW / widths.reduce((a, b) => a + b, 0);
+              return widths[index] * scale;
+            } else {
+              const widths = [30, 18, 25, 25, 25];
+              const scale = availW / widths.reduce((a, b) => a + b, 0);
+              return widths[index] * scale;
+            }
+          }
         };
 
         const rowH = 8;
@@ -2627,10 +2650,28 @@ async function handlePodioExport(
             const cw = getColWidth(ci);
             const header = sec.headers[ci];
             
+            // Apply conditional colors for 'Eficiência (%)' column in 'Por Máquina' report
+            if (sec.title === 'Por Máquina' && !isTotal && header === 'Eficiência (%)') {
+              const metaColIdx = sec.headers.indexOf('M. Eficiência (%)');
+              if (metaColIdx !== -1) {
+                const effVal = parseFloat(text.replace(',', '.').replace('%', '')) || 0;
+                const metaVal = parseFloat(String(row[metaColIdx]).replace(',', '.').replace('%', '')) || 0;
+
+                if (effVal < metaVal) {
+                  pdf.setFillColor(254, 226, 226); // Light red
+                  pdf.rect(currentX, y, cw, rowH, 'F');
+                  pdf.setTextColor(185, 28, 28);
+                } else if (metaVal > 0) {
+                  pdf.setFillColor(220, 252, 231); // Light green
+                  pdf.rect(currentX, y, cw, rowH, 'F');
+                  pdf.setTextColor(21, 128, 61);
+                }
+              }
+            }
 
             // Draw text with overflow handling
-            pdf.setFontSize(8);
-            const truncated = text.length > 25 ? text.substring(0, 24) + '…' : text;
+            pdf.setFontSize(header === 'Artigo' ? 6.5 : 8);
+            const truncated = pdf.getTextWidth(text) > (cw - 4) ? text.substring(0, header === 'Artigo' ? 25 : 15) + '…' : text;
             pdf.text(truncated, currentX + 2, y + 5.5);
             
             pdf.setTextColor(...colors.textDark);
