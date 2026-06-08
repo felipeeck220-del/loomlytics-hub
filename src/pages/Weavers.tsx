@@ -754,7 +754,7 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
                   <SelectItem value="all">Todo período</SelectItem>
                   {availableMonths.map(m => (
                     <SelectItem key={m} value={m}>
-                      {format(new Date(m + '-01'), 'MMMM yyyy', { locale: ptBR })}
+                      {format(new Date(m + '-15'), 'MMMM yyyy', { locale: ptBR })}
                     </SelectItem>
                   ))}
                 </SelectContent>
