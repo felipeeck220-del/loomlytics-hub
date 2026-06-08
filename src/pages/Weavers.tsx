@@ -647,7 +647,7 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
     doc.setFontSize(16);
     doc.text(sanitizePdfText(`Falhas - ${selectedWeaver.name} ${selectedWeaver.code}`), pageW / 2, 12, { align: 'center' });
     doc.setFontSize(10);
-    const periodLabel = filterMonth === 'all' ? 'Todo periodo' : format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
+    const periodLabel = filterMonth === 'all' ? 'Todo periodo' : format(new Date(filterMonth + '-15'), 'MMMM yyyy', { locale: ptBR });
     doc.text(sanitizePdfText(`Periodo: ${periodLabel}`), pageW / 2, 20, { align: 'center' });
     y = 36;
 
