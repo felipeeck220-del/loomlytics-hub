@@ -1314,35 +1314,44 @@ export default function MecanicaPage() {
                       </div>
 
                       {/* Since last sinker change */}
-                      <div className="rounded-lg border border-border p-3 space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          Desde última Troca de Platinas
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {machine.last_sinker_change_at 
-                            ? format(new Date(machine.last_sinker_change_at), "dd/MM/yyyy", { locale: ptBR })
-                            : 'Sem registro'}
-                        </p>
-                        <div className="flex items-center gap-4">
-                          {canSeeFinancial && (
-                          <div>
-                            {/* For now reusing weight/revenue from generic calc if needed, 
-                                but machine typically doesn't have a separate calc for sinkers yet in this code.
-                                I'll add a calc logic here to be consistent. */}
-                            <p className="text-lg font-bold text-foreground">
-                              {formatCurrency(calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).revenue)}
+                      {(() => {
+                        const cyl = cylinders.find(c => c.id === machine.cylinder_id);
+                        const hasSinkers = cyl && (cyl.sinker_quantity && cyl.sinker_quantity > 0);
+                        
+                        if (!hasSinkers) return null;
+                        
+                        const revenue = calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).revenue;
+                        const weight = calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).weight;
+
+                        return (
+                          <div className="rounded-lg border border-border p-3 space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              Desde última Troca de Platinas
                             </p>
-                            <p className="text-[10px] text-muted-foreground">Faturamento</p>
-                          </div>
-                          )}
-                          <div>
-                            <p className="text-lg font-bold text-foreground">
-                              {formatWeight(calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).weight)}
+                            <p className="text-[10px] text-muted-foreground">
+                              {machine.last_sinker_change_at 
+                                ? format(new Date(machine.last_sinker_change_at), "dd/MM/yyyy", { locale: ptBR })
+                                : 'Sem registro'}
                             </p>
-                            <p className="text-[10px] text-muted-foreground">Peso produzido</p>
+                            <div className="flex items-center gap-4">
+                              {canSeeFinancial && (
+                              <div>
+                                <p className="text-lg font-bold text-foreground">
+                                  {formatCurrency(revenue)}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Faturamento</p>
+                              </div>
+                              )}
+                              <div>
+                                <p className="text-lg font-bold text-foreground">
+                                  {formatWeight(weight)}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Peso produzido</p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })()}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
                       {machine.cylinder_id ? (
