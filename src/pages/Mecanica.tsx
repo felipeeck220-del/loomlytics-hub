@@ -76,10 +76,10 @@ export default function MecanicaPage() {
    const [cylinderSearch, setCylinderSearch] = useState('');
    const [showCylinderModal, setShowCylinderModal] = useState(false);
    const [editingCylinder, setEditingCylinder] = useState<any>(null);
-   const [cylinderForm, setCylinderForm] = useState({ 
-     brand: '', model: '', diameter: '', fineness: '', 
-     needle_quantity: '', feeder_quantity: '', observations: '' 
-   });
+    const [cylinderForm, setCylinderForm] = useState({ 
+      brand: '', model: '', diameter: '', fineness: '', 
+      needle_quantity: '', feeder_quantity: '', sinker_quantity: '', observations: '' 
+    });
    const [showAssignModal, setShowAssignModal] = useState(false);
    const [assignForm, setAssignForm] = useState({ machine_id: '', cylinder_id: '' });
   
