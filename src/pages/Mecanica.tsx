@@ -457,7 +457,7 @@ export default function MecanicaPage() {
         return;
       }
       try {
-        const newCyl = {
+        const newCyl: any = {
           id: editingCylinder ? editingCylinder.id : crypto.randomUUID(),
           company_id: editingCylinder ? editingCylinder.company_id : '',
           brand: cylinderForm.brand,
@@ -466,6 +466,7 @@ export default function MecanicaPage() {
           fineness: cylinderForm.fineness,
           needle_quantity: cylinderForm.needle_quantity ? Number(cylinderForm.needle_quantity) : undefined,
           feeder_quantity: cylinderForm.feeder_quantity ? Number(cylinderForm.feeder_quantity) : undefined,
+          sinker_quantity: cylinderForm.sinker_quantity ? Number(cylinderForm.sinker_quantity) : undefined,
           observations: cylinderForm.observations,
           created_at: editingCylinder ? editingCylinder.created_at : new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -480,7 +481,7 @@ export default function MecanicaPage() {
         toast.success(editingCylinder ? 'Cilindro atualizado!' : 'Cilindro cadastrado!');
         setShowCylinderModal(false);
         setEditingCylinder(null);
-        setCylinderForm({ brand: '', model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', observations: '' });
+        setCylinderForm({ brand: '', model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', sinker_quantity: '', observations: '' });
       } catch (e) { toast.error('Erro ao salvar cilindro.'); }
     };
 
