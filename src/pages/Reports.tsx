@@ -1923,8 +1923,8 @@ async function handlePodioExport(
         if (!item) return '-';
         const firstEff = d.ranking[0]?.eficiencia || 0;
         const diffStr = (rankIdx > 0 && firstEff > item.eficiencia) ? ` (+${formatNumber(firstEff - item.eficiencia, 1)}%)` : '';
-        // Dados em negrito conforme solicitado: 01/06/2026 Manhã - 6.343,0kg - 73,1%
-        return `${item.name} - ${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%${diffStr}`;
+        // Dados em negrito conforme solicitado: 5.362,0kg - 72,7% (+0,3%) EFICIÊNCIA MÉDIA
+        return `${item.name.toUpperCase()}\n${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%${diffStr}\nEFICIÊNCIA MÉDIA`;
       };
       
       return [
