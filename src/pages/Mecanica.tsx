@@ -436,7 +436,6 @@ export default function MecanicaPage() {
         setSinkerExitForm({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
       } catch (e) { toast.error('Erro ao registrar baixa.'); }
     };
-   };
 
   return (
     <div className="space-y-6">
