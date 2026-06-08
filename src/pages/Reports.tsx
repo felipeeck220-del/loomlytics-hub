@@ -1714,6 +1714,7 @@ async function handlePodioExport(
   podio: { ranking: any[]; daily: { date: string; ranking: any[] }[]; periodLabel: string; from?: string; to?: string },
   logoUrl?: string | null,
   companyName?: string,
+  eficienciaExigida: number = 0,
 ) {
   const { toast } = await import('sonner');
   toast.info('Gerando PDF do pódio...');
