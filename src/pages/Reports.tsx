@@ -2497,14 +2497,9 @@ async function handlePodioExport(
         const getColWidth = (index: number) => {
           if (sec.title !== 'Por Máquina') return availW / colCount;
           
-          // Total de colunas: 9 ou 10 (se admin)
-          // ["Máquina", "Artigo", "Rolos", "Meta Rolos", "Peso (kg)", "Meta Peso (kg)", "Eficiência (%)", "Meta Eficiência (%)", "RPM Padrão"]
-          const widths = isAdmin 
-            ? [16, 32, 14, 18, 18, 18, 18, 22, 16, 18] // Admin (10 colunas)
-            : [18, 35, 16, 20, 20, 20, 20, 24, 18];     // Equipe (9 colunas)
-            
-          const scale = availW / widths.reduce((a, b) => a + b, 0);
-          return widths[index] * scale;
+          // Total de colunas: 4 ou 5 (se admin)
+          // ["Máquina", "Rolos", "Peso (kg)", "Eficiência (%)", "Faturamento"]
+          return availW / colCount;
         };
 
         const rowH = 8;
