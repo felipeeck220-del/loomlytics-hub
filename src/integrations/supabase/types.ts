@@ -428,6 +428,7 @@ export type Database = {
           model: string | null
           needle_quantity: number | null
           observations: string | null
+          sinker_quantity: number | null
           updated_at: string
         }
         Insert: {
@@ -442,6 +443,7 @@ export type Database = {
           model?: string | null
           needle_quantity?: number | null
           observations?: string | null
+          sinker_quantity?: number | null
           updated_at?: string
         }
         Update: {
@@ -456,6 +458,7 @@ export type Database = {
           model?: string | null
           needle_quantity?: number | null
           observations?: string | null
+          sinker_quantity?: number | null
           updated_at?: string
         }
         Relationships: [
