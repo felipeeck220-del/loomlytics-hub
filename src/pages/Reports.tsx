@@ -195,25 +195,36 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
           efficiencySum: 0, 
           weightForEff: 0, 
           records: 0,
-          articles: new Set()
+          articles: new Set(),
+          articleIds: new Set()
         };
         machineMap[key].rolos += p.rolls_produced;
         machineMap[key].kg += p.weight_kg;
         machineMap[key].faturamento += p.revenue;
         machineMap[key].records += 1;
         if (p.article_name) machineMap[key].articles.add(p.article_name);
+        if (p.article_id) machineMap[key].articleIds.add(p.article_id);
         if (p.rolls_produced > 0) {
           machineMap[key].efficiencySum += (p.efficiency * p.weight_kg);
           machineMap[key].weightForEff += p.weight_kg;
         }
       });
-      setByMachine(Object.values(machineMap).map((m: any) => ({
-        ...m,
-        eficiencia: m.weightForEff > 0 ? m.efficiencySum / m.weightForEff : 0,
-        pct_rolls: total_rolls > 0 ? (m.rolos / total_rolls) * 100 : 0,
-        pct_revenue: total_revenue > 0 ? (m.faturamento / total_revenue) * 100 : 0,
-        articleNames: Array.from(m.articles).join(', ')
-      })).sort((a, b) => {
+      setByMachine(Object.values(machineMap).map((m: any) => {
+        const artIds = Array.from(m.articleIds);
+        const artObjs = artIds.map(id => articles.find(a => a.id === id)).filter(Boolean);
+        const avgTargetEff = artObjs.length > 0 
+          ? artObjs.reduce((acc, a) => acc + (a?.targetEfficiency || 80), 0) / artObjs.length 
+          : 80;
+
+        return {
+          ...m,
+          eficiencia: m.weightForEff > 0 ? m.efficiencySum / m.weightForEff : 0,
+          targetEfficiency: avgTargetEff,
+          pct_rolls: total_rolls > 0 ? (m.rolos / total_rolls) * 100 : 0,
+          pct_revenue: total_revenue > 0 ? (m.faturamento / total_revenue) * 100 : 0,
+          articleNames: Array.from(m.articles).join(', ')
+        };
+      }).sort((a, b) => {
         // Sort by machine number if possible, then by name
         const numA = parseInt(a.name.replace(/\D/g, ''));
         const numB = parseInt(b.name.replace(/\D/g, ''));
@@ -1175,7 +1186,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                    <ExportButton
                      label="Relatório Completo"
                      description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
-                     onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                     onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles, filterShift)}
                    />
                     </div>
 
@@ -1185,22 +1196,22 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                          <ExportButton
                            label="Por Artigo"
                            description="Rolos, Kg, Valor"
-                           onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                           onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles, filterShift)}
                          />
                          <ExportButton
                            label="Por Máquina"
                            description="Performance individual"
-                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : productions, byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : productions, byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles, filterShift)}
                          />
                          <ExportButton
                            label="Por Turno"
                            description="Análise comparativa"
-                           onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                           onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles, filterShift)}
                          />
                          <ExportButton
                            label="Por Cliente"
                            description="Produção por cliente"
-                           onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                           onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles, filterShift)}
                          />
                       </div>
                     </div>
@@ -2228,6 +2239,7 @@ async function handlePodioExport(
      companyName?: string,
      machines: any[] = [],
      articles: any[] = [],
+     shiftFilter?: string,
   ) {
   const isAdmin = mode === 'admin';
 
@@ -2258,19 +2270,19 @@ async function handlePodioExport(
     let headers: string[];
     if (isAdmin) {
       headers = isSingleDay 
-        ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento']
-        : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento'];
+        ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
+        : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento'];
     } else {
       headers = isSingleDay
-        ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)']
-        : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)'];
+        ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)']
+        : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)'];
     }
     
     const rows = byMachine.map(m => {
       const baseData = [m.name];
       if (isSingleDay) baseData.push(m.articleNames || '-');
       
-      baseData.push(fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia));
+      baseData.push(fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia), fmtE(m.targetEfficiency || 80));
       if (isAdmin) baseData.push(fmtR(m.faturamento));
       
       return baseData;
@@ -2278,11 +2290,12 @@ async function handlePodioExport(
 
     const tR = byMachine.reduce((a, m) => a + m.rolos, 0), tK = byMachine.reduce((a, m) => a + m.kg, 0);
     const avgE = byMachine.length ? byMachine.reduce((a, m) => a + m.eficiencia, 0) / byMachine.length : 0;
+    const avgTargetE = byMachine.length ? byMachine.reduce((a, m) => a + (m.targetEfficiency || 80), 0) / byMachine.length : 80;
     const tF = byMachine.reduce((a, m) => a + m.faturamento, 0);
     
     const totalRow = isSingleDay
-      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE)])
-      : (isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE)]);
+      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE)])
+      : (isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE)]);
     
     rows.push(totalRow);
     sections.push({ title: 'Por Máquina', headers, rows });
@@ -2453,6 +2466,17 @@ async function handlePodioExport(
           pdf.text(line, (pageWidth - titleW) / 2, titleY);
           titleY += 6;
         });
+
+        // Add shift filter below title if present
+        if (shiftFilter && shiftFilter !== 'all') {
+          const shiftLabel = shiftFilter === 'manha' ? 'TURNO DA MANHÃ' : shiftFilter === 'tarde' ? 'TURNO DA TARDE' : 'TURNO DA NOITE';
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...colors.textDark);
+          const shiftW = pdf.getTextWidth(shiftLabel);
+          pdf.text(shiftLabel, (pageWidth - shiftW) / 2, titleY);
+          titleY += 6;
+        }
 
         // Right side: filter period (aligned with date/time at bottom)
         pdf.setFontSize(8);
