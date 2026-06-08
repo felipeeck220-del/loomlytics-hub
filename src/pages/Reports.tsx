@@ -2577,27 +2577,6 @@ async function handlePodioExport(
             const cw = getColWidth(ci);
             const header = sec.headers[ci];
             
-            // Apply conditional colors for 'Por Máquina' report
-            if (sec.title === 'Por Máquina' && !isTotal) {
-              if (header === 'Rolos' || header === 'Peso (kg)' || header === 'Eficiência (%)') {
-                const totalRow = sec.rows[sec.rows.length - 1];
-                const totalValStr = String(totalRow[ci]).replace(/\./g, '').replace(',', '.').replace('%', '').trim();
-                const totalVal = parseFloat(totalValStr) || 0;
-                
-                const currentValStr = text.replace(/\./g, '').replace(',', '.').replace('%', '').trim();
-                const currentVal = parseFloat(currentValStr) || 0;
-
-                if (currentVal < totalVal) {
-                  pdf.setFillColor(254, 226, 226); // Light red
-                  pdf.rect(currentX, y, cw, rowH, 'F');
-                  pdf.setTextColor(185, 28, 28);
-                } else if (currentVal >= totalVal && totalVal > 0) {
-                  pdf.setFillColor(220, 252, 231); // Light green
-                  pdf.rect(currentX, y, cw, rowH, 'F');
-                  pdf.setTextColor(21, 128, 61);
-                }
-              }
-            }
 
             // Draw text with overflow handling
             pdf.setFontSize(8);
