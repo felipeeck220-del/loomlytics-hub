@@ -270,25 +270,26 @@ export function useCompanyData() {
     }
     if (data.length > 0) {
       const rows = data.map(m => ({
-        id: m.id, company_id: companyId, number: m.number, name: m.name,
-        rpm: m.rpm, status: m.status, article_id: m.article_id || null,
-         observations: m.observations || null, production_mode: m.production_mode || 'rolos',
-         created_at: m.created_at,
-         model: m.model || null, diameter: m.diameter || null, fineness: m.fineness || null,
-         needle_quantity: m.needle_quantity || null, feeder_quantity: m.feeder_quantity || null,
-         serial_number: m.serial_number || null, last_needle_change_at: m.last_needle_change_at || null,
-          last_sinker_change_at: m.last_sinker_change_at || null,
-          cylinder_id: m.cylinder_id || null,
-          observations: m.observations || null,
-          production_mode: m.production_mode || 'rolos',
-          created_at: m.created_at,
-          model: m.model || null,
-          diameter: m.diameter || null,
-          fineness: m.fineness || null,
-          needle_quantity: m.needle_quantity || null,
-          feeder_quantity: m.feeder_quantity || null,
-          serial_number: m.serial_number || null,
-        }));
+        id: m.id,
+        company_id: companyId,
+        number: m.number,
+        name: m.name,
+        rpm: m.rpm,
+        status: m.status,
+        article_id: m.article_id || null,
+        observations: m.observations || null,
+        production_mode: m.production_mode || 'rolos',
+        created_at: m.created_at,
+        model: m.model || null,
+        diameter: m.diameter || null,
+        fineness: m.fineness || null,
+        needle_quantity: m.needle_quantity || null,
+        feeder_quantity: m.feeder_quantity || null,
+        serial_number: m.serial_number || null,
+        last_needle_change_at: m.last_needle_change_at || null,
+        last_sinker_change_at: m.last_sinker_change_at || null,
+        cylinder_id: m.cylinder_id || null,
+      }));
       const { error } = await sb('machines').upsert(rows);
       if (error) { console.error('Error saving machines:', error); throw error; }
     }
