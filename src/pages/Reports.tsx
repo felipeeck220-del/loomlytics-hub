@@ -1164,7 +1164,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                    <ExportButton
                      label="Relatório Completo"
                      description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
-                     onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                     onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, parseFloat(exportEficienciaExigida))}
                    />
                     </div>
 
@@ -1174,22 +1174,22 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                          <ExportButton
                            label="Por Artigo"
                            description="Rolos, Kg, Valor"
-                           onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                           onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, parseFloat(exportEficienciaExigida))}
                          />
                          <ExportButton
                            label="Por Máquina"
                            description="Performance individual"
-                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, productions, byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines)}
+                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, productions, byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, parseFloat(exportEficienciaExigida))}
                          />
                          <ExportButton
                            label="Por Turno"
                            description="Análise comparativa"
-                           onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                           onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, parseFloat(exportEficienciaExigida))}
                          />
                          <ExportButton
                            label="Por Cliente"
                            description="Produção por cliente"
-                           onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                           onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, parseFloat(exportEficienciaExigida))}
                          />
                       </div>
                     </div>
@@ -2212,11 +2212,12 @@ async function handlePodioExport(
    byMachine: any[],
    byClient: any[],
    byArticle: any[],
-   periodLabel: string,
-   logoUrl?: string | null,
-   companyName?: string,
-   machines: any[] = [],
- ) {
+    periodLabel: string,
+    logoUrl?: string | null,
+    companyName?: string,
+    machines: any[] = [],
+    podioEficienciaExigida?: number,
+  ) {
   const isAdmin = mode === 'admin';
 
    const fmtN = (v: number | undefined | null, d = 0) => {
@@ -2286,9 +2287,19 @@ async function handlePodioExport(
         
         // Find article data for half values
         const articleObj = byArticle.find(a => a.id === aId || a.name === ma.articleName);
+        
+        // Base de cálculo para MetadeRolo, metadePeso e metadeefciencia:
+        // Se houver uma eficiência exigida definida (podioEficienciaExigida), usamos ela como meta de 100%.
+        // Como o PDF pede "MetadeRolo", "metadePeso" e "metadeefciencia", calculamos 50% da meta de produção teórica.
+        // A meta teórica depende das horas de trabalho no filtro. 
+        // Vamos assumir turnos de 8h (padrão) se não for possível calcular o tempo exato das produções filtradas.
+        
+        const efficiencyRequired = podioEficienciaExigida || articleObj?.target_efficiency || 80;
+        const halfEff = efficiencyRequired / 2;
+        
+        // Cálculo simplificado de produção teórica (50%) baseado nos dados do artigo
         const halfRolls = articleObj?.turns_per_roll ? Math.round(articleObj.turns_per_roll / 2) : 0;
         const halfWeight = articleObj?.weight_per_roll ? articleObj.weight_per_roll / 2 : 0;
-        const halfEff = articleObj?.target_efficiency ? articleObj.target_efficiency / 2 : 0;
 
         machineArticleRows.push(isAdmin 
           ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao, fmtR(ma.revenue)]
