@@ -2065,7 +2065,7 @@ export default function MecanicaPage() {
         setShowCylinderModal(open);
         if (!open) {
           setEditingCylinder(null);
-          setCylinderForm({ brand: '', model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', observations: '' });
+          setCylinderForm({ brand: '', model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', sinker_quantity: '', observations: '' });
         }
       }}>
         <DialogContent className="max-w-md">
