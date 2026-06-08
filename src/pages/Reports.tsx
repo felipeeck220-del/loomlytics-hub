@@ -2295,8 +2295,10 @@ async function handlePodioExport(
         const efficiencyRequired = articleObj?.target_efficiency || 80;
         const halfEff = efficiencyRequired / 2;
         
-        const halfRolls = articleObj?.turns_per_roll ? Math.round(articleObj.turns_per_roll / 2) : 0;
-        const halfWeight = articleObj?.weight_per_roll ? articleObj.weight_per_roll / 2 : 0;
+        // MetadeRolo e metadePeso: Se for o ganhador do dia, os valores de rolos e kg são divididos por 2
+        // Se não houver lógica de "ganhador", usamos 50% dos totais da máquina/artigo no período
+        const halfRolls = Math.round(ma.rolos / 2);
+        const halfWeight = ma.kg / 2;
 
         machineArticleRows.push(isAdmin 
           ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao, fmtR(ma.revenue)]
@@ -2558,7 +2560,21 @@ async function handlePodioExport(
       const drawTable = (sec: { title: string; headers: string[]; rows: (string | number)[][] }) => {
         const colCount = sec.headers.length;
         const availW = pageWidth - 2 * margin;
-        const colW = availW / colCount;
+        
+        // Larguras customizadas para o relatório Por Máquina para evitar sobreposição
+        const getColWidth = (index: number) => {
+          if (sec.title !== 'Por Máquina') return availW / colCount;
+          
+          // Total de colunas: 9 ou 10 (se admin)
+          // ["Máquina", "Artigo", "Rolos", "MetadeRolo", "Peso (kg)", "metadePeso (kg)", "Eficiência (%)", "metadeefciencia", "RPM Padrão"]
+          const widths = isAdmin 
+            ? [16, 32, 14, 18, 18, 18, 18, 18, 16, 18] // Admin (10 colunas)
+            : [18, 35, 16, 20, 20, 20, 20, 20, 18];     // Equipe (9 colunas)
+            
+          const scale = availW / widths.reduce((a, b) => a + b, 0);
+          return widths[index] * scale;
+        };
+
         const rowH = 8;
         const headerH = 10;
 
@@ -2580,8 +2596,11 @@ async function handlePodioExport(
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(...colors.textDark);
 
+          let currentX = margin;
           sec.headers.forEach((h, i) => {
-            pdf.text(h, margin + i * colW + 3, y + 7);
+            const cw = getColWidth(i);
+            pdf.text(h, currentX + 2, y + 7);
+            currentX += cw;
           });
           y += headerH;
         };
@@ -2625,9 +2644,10 @@ async function handlePodioExport(
             pdf.setFontSize(9);
           }
 
+          let currentX = margin;
           row.forEach((cell, ci) => {
             const text = String(cell);
-            const xPos = margin + ci * colW;
+            const cw = getColWidth(ci);
             const header = sec.headers[ci];
             
             // Apply conditional colors for 'Por Máquina' report
@@ -2642,11 +2662,11 @@ async function handlePodioExport(
 
                 if (currentVal < totalVal) {
                   pdf.setFillColor(254, 226, 226); // Light red
-                  pdf.rect(xPos, y, colW, rowH, 'F');
+                  pdf.rect(currentX, y, cw, rowH, 'F');
                   pdf.setTextColor(185, 28, 28);
                 } else if (currentVal >= totalVal && totalVal > 0) {
                   pdf.setFillColor(220, 252, 231); // Light green
-                  pdf.rect(xPos, y, colW, rowH, 'F');
+                  pdf.rect(currentX, y, cw, rowH, 'F');
                   pdf.setTextColor(21, 128, 61);
                 }
               }
@@ -2656,26 +2676,25 @@ async function handlePodioExport(
             if (sec.title === 'Por Máquina') {
               pdf.setFontSize(6.5);
               const padding = 1.5;
-              const textW = colW - (padding * 2);
+              const textW = cw - (padding * 2);
               
               if (header === 'Máquina' || header === 'Artigo') {
-                // Alternate vertical alignment: ri % 2 === 0 ? Top : Bottom
-                // rowH is 8. middle is 4.
                 const yOffset = ri % 2 === 0 ? 3.5 : 6.5;
-                const truncated = pdf.getTextWidth(text) > textW ? text.substring(0, 15) + '…' : text;
-                pdf.text(truncated, xPos + padding, y + yOffset);
+                const truncated = pdf.getTextWidth(text) > textW ? text.substring(0, 18) + '…' : text;
+                pdf.text(truncated, currentX + padding, y + yOffset);
               } else {
-                const truncated = pdf.getTextWidth(text) > textW ? text.substring(0, 10) + '…' : text;
-                pdf.text(truncated, xPos + padding, y + 5);
+                const truncated = pdf.getTextWidth(text) > textW ? text.substring(0, 12) + '…' : text;
+                pdf.text(truncated, currentX + padding, y + 5);
               }
             } else {
               pdf.setFontSize(8);
               const truncated = text.length > 25 ? text.substring(0, 24) + '…' : text;
-              pdf.text(truncated, xPos + 2, y + 5.5);
+              pdf.text(truncated, currentX + 2, y + 5.5);
             }
             
             pdf.setTextColor(...colors.textDark);
             pdf.setFontSize(8);
+            currentX += cw;
           });
 
           if (isTotal) {
