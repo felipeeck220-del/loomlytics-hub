@@ -664,13 +664,15 @@ export function useCompanyData() {
        await sb('cylinders').delete().in('id', idsToDelete);
      }
      if (data.length > 0) {
-       const rows = data.map(c => ({
-         id: c.id, company_id: companyId, brand: c.brand,
-         model: c.model || null, diameter: c.diameter || null,
-         fineness: c.fineness || null, needle_quantity: c.needle_quantity || null,
-         feeder_quantity: c.feeder_quantity || null, observations: c.observations || null,
-         machine_id: c.machine_id || null,
-       }));
+      const rows = data.map(c => ({
+        id: c.id, company_id: companyId, brand: c.brand,
+        model: c.model || null, diameter: c.diameter || null,
+        fineness: c.fineness || null, needle_quantity: c.needle_quantity || null,
+        feeder_quantity: c.feeder_quantity || null, 
+        sinker_quantity: c.sinker_quantity || null,
+        observations: c.observations || null,
+        machine_id: c.machine_id || null,
+      }));
        const { error } = await sb('cylinders').upsert(rows);
        if (error) throw error;
      }
