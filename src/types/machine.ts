@@ -45,6 +45,22 @@ export interface Machine {
   serial_number?: string;
   last_needle_change_at?: string;
   last_sinker_change_at?: string;
+  cylinder_id?: string;
+}
+
+export interface Cylinder {
+  id: string;
+  company_id: string;
+  brand: string;
+  model?: string;
+  diameter?: string;
+  fineness?: string;
+  needle_quantity?: number;
+  feeder_quantity?: number;
+  observations?: string;
+  machine_id?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SinkerInventory {
