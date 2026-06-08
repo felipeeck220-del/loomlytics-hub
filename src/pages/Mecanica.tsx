@@ -1368,6 +1368,7 @@ export default function MecanicaPage() {
                                   fineness: cyl?.fineness || '',
                                   needle_quantity: String(cyl?.needle_quantity || ''),
                                   feeder_quantity: String(cyl?.feeder_quantity || ''),
+                                  sinker_quantity: String(cyl?.sinker_quantity || ''),
                                   observations: cyl?.observations || ''
                                 });
                                 setShowCylinderModal(true);
