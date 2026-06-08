@@ -797,9 +797,136 @@ export default function MecanicaPage() {
                   </Card>
                 </div>
               </TabsContent>
-           </Tabs>
+            </Tabs>
          </TabsContent>
-          <TabsContent value="agulhas">
+
+         {/* Cilindros Tab */}
+         <TabsContent value="cilindros">
+           <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Cilindros em Uso</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{cylinders.filter(c => !!c.machine_id).length}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Cilindros em Estoque</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{cylinders.filter(c => !c.machine_id).length}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Total de Cilindros</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{cylinders.length}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Pesquisar cilindro..." 
+                    value={cylinderSearch} 
+                    onChange={e => setCylinderSearch(e.target.value)} 
+                    className="pl-9" 
+                  />
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button onClick={() => setShowCylinderModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                    <Plus className="h-4 w-4 mr-2" /> Cadastrar Cilindro
+                  </Button>
+                  <Button onClick={() => setShowAssignModal(true)} variant="default" className="flex-1 sm:flex-none">
+                    <Wrench className="h-4 w-4 mr-2" /> Atribuir à Máquina
+                  </Button>
+                </div>
+              </div>
+
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left p-4 font-medium">Marca / Modelo</th>
+                          <th className="text-left p-4 font-medium">Dados Técnicos</th>
+                          <th className="text-left p-4 font-medium">Status / Máquina</th>
+                          <th className="text-right p-4 font-medium">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...cylinders]
+                          .filter(c => 
+                            c.brand.toLowerCase().includes(cylinderSearch.toLowerCase()) || 
+                            c.model?.toLowerCase().includes(cylinderSearch.toLowerCase())
+                          )
+                          .map(c => {
+                            const machine = machines.find(m => m.id === c.machine_id);
+                            return (
+                              <tr key={c.id} className="border-b hover:bg-muted/30 transition-colors">
+                                <td className="p-4">
+                                  <div className="font-medium">{c.brand}</div>
+                                  <div className="text-xs text-muted-foreground">{c.model || '—'}</div>
+                                </td>
+                                <td className="p-4">
+                                  <div className="text-xs space-y-0.5">
+                                    <p>Ø: {c.diameter || '—'} | F: {c.fineness || '—'}</p>
+                                    <p>Agulhas: {c.needle_quantity || '—'} | Alim: {c.feeder_quantity || '—'}</p>
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  {machine ? (
+                                    <Badge variant="default" className="bg-success/10 text-success hover:bg-success/20 border-none">
+                                      Em Uso: {machine.name}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-muted-foreground">
+                                      Disponível em Estoque
+                                    </Badge>
+                                  )}
+                                </td>
+                                <td className="p-4 text-right">
+                                  <Button size="icon" variant="ghost" onClick={() => {
+                                    setEditingCylinder(c);
+                                    setCylinderForm({
+                                      brand: c.brand,
+                                      model: c.model || '',
+                                      diameter: c.diameter || '',
+                                      fineness: c.fineness || '',
+                                      needle_quantity: String(c.needle_quantity || ''),
+                                      feeder_quantity: String(c.feeder_quantity || ''),
+                                      observations: c.observations || ''
+                                    });
+                                    setShowCylinderModal(true);
+                                  }}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        {cylinders.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhum cilindro cadastrado</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+           </div>
+         </TabsContent>
+
+         <TabsContent value="agulhas">
             <Tabs defaultValue="estoque" className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="estoque">
