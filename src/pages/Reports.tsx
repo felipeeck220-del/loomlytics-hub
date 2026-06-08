@@ -2278,19 +2278,24 @@ async function handlePodioExport(
     let headers: string[];
     if (isAdmin) {
       headers = isSingleDay 
-        ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
-        : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento'];
+        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
+        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento'];
     } else {
       headers = isSingleDay
-        ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)']
-        : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)'];
+        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)']
+        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)'];
     }
     
     const rows = byMachine.map(m => {
       const baseData = [m.name];
       if (isSingleDay) baseData.push(m.articleNames || '-');
       
-      baseData.push(fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia), fmtE(m.targetEfficiency || 80));
+      const targetEff = m.targetEfficiency || 80;
+      // Calculate Goal Rolls: if current efficiency is > 0, we can estimate needed rolls to reach targetEff
+      // Goal Rolls = (Target Efficiency * Current Rolls) / Current Efficiency
+      const goalRolls = m.eficiencia > 0 ? (targetEff * m.rolos) / m.eficiencia : 0;
+
+      baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtE(m.eficiencia), fmtE(targetEff));
       if (isAdmin) baseData.push(fmtR(m.faturamento));
       
       return baseData;
@@ -2300,10 +2305,15 @@ async function handlePodioExport(
     const avgE = byMachine.length ? byMachine.reduce((a, m) => a + m.eficiencia, 0) / byMachine.length : 0;
     const avgTargetE = byMachine.length ? byMachine.reduce((a, m) => a + (m.targetEfficiency || 80), 0) / byMachine.length : 80;
     const tF = byMachine.reduce((a, m) => a + m.faturamento, 0);
+    const tGoalR = byMachine.reduce((a, m) => {
+      const targetEff = m.targetEfficiency || 80;
+      const goalRolls = m.eficiencia > 0 ? (targetEff * m.rolos) / m.eficiencia : 0;
+      return a + goalRolls;
+    }, 0);
     
     const totalRow = isSingleDay
-      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE)])
-      : (isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE)]);
+      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE)])
+      : (isAdmin ? ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtN(tGoalR), fmtE(avgE), fmtE(avgTargetE)]);
     
     rows.push(totalRow);
     sections.push({ title: 'Por Máquina', headers, rows });
