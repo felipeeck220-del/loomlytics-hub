@@ -2020,7 +2020,7 @@ async function handlePodioExport(
 
     // --- RANKING DO PERÍODO Section ---
     y = tableY;
-    const rankingTitle = 'RANKING DO PERÍODO (QUEM ESTÁ GANHANDO)';
+    const rankingTitle = 'RANKING DO PERÍODO (DESEMPENHO ACUMULADO)';
     const rankingNeededH = 10 + (generalRanking.length * 8); // Estimated height for title + table
     
     if (y + rankingNeededH > pageHeight - margin) {
@@ -2213,6 +2213,14 @@ async function handlePodioExport(
     });
 
     y = (pdf as any).lastAutoTable.finalY + 10;
+    
+    // Footer message
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'italic');
+    pdf.setTextColor(...colors.muted);
+    const footerText = 'Este painel tem caráter exclusivamente gerencial e motivacional, visando acompanhar indicadores operacionais e promover a melhoria contínua dos processos';
+    const textWidth = pdf.getTextWidth(footerText);
+    pdf.text(footerText, pageWidth / 2, y, { align: 'center' });
 
     pdf.save(`podio-performance-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast.success('PDF gerado com sucesso!');
