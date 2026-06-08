@@ -568,9 +568,10 @@ export default function MecanicaPage() {
          <TabsList>
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-           <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
-           <TabsTrigger value="platinas">Platinas</TabsTrigger>
-         </TabsList>
+            <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
+            <TabsTrigger value="platinas">Platinas</TabsTrigger>
+            <TabsTrigger value="cilindros">Cilindros</TabsTrigger>
+          </TabsList>
          
          {/* Platinas Tab */}
          <TabsContent value="platinas">
@@ -1663,9 +1664,18 @@ export default function MecanicaPage() {
                   </div>
                   <div className="max-h-[200px] overflow-y-auto">
                     {sinkers
+                      .filter(s => 
+                        s.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
+                        s.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
+                        s.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
+                      )
                       .map(s => <SelectItem key={s.id} value={s.id}>{s.brand} ({s.reference_code})</SelectItem>)
                     }
-                    {sinkers.length === 0 && (
+                    {sinkers.filter(s => 
+                      s.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
+                      s.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
+                      s.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
+                    ).length === 0 && (
                       <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma platina encontrada</div>
                     )}
                   </div>
@@ -1719,13 +1729,22 @@ export default function MecanicaPage() {
                 <SelectContent>
                   <div className="max-h-[200px] overflow-y-auto">
                     {sinkers
+                      .filter(s => 
+                        s.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
+                        s.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
+                        s.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
+                      )
                       .map(s => (
                         <SelectItem key={s.id} value={s.id}>
                           {s.brand} ({s.reference_code}) - Saldo: {s.current_quantity}
                         </SelectItem>
                       ))
                     }
-                    {sinkers.length === 0 && (
+                    {sinkers.filter(s => 
+                      s.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
+                      s.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
+                      s.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
+                    ).length === 0 && (
                       <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma platina encontrada</div>
                     )}
                   </div>
