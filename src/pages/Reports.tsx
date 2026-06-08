@@ -2036,7 +2036,45 @@ async function handlePodioExport(
         0: { cellWidth: 15, fontStyle: 'bold' },
         1: { halign: 'left', fontStyle: 'bold' },
         2: { cellWidth: 40 },
-        3: { cellWidth: 50, fontStyle: 'bold' },
+        3: { cellWidth: 60, fontStyle: 'bold' },
+      },
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 3) {
+          const rowIndex = data.row.index;
+          if (rowIndex === 0) {
+            // First place: Green background
+            pdf.setFillColor(220, 252, 231); // light green
+            pdf.rect(data.cell.x + 0.5, data.cell.y + 0.5, data.cell.width - 1, data.cell.height - 1, 'F');
+            pdf.setTextColor(21, 128, 61); // dark green
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(data.cell.text, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 2, { align: 'center' });
+          } else if (rowIndex === 1 || rowIndex === 2) {
+            // Second/Third place: Red for current, Green for projection
+            const text = data.cell.raw as string;
+            const parts = text.split(' (Proj. Amanhã: ');
+            if (parts.length === 2) {
+              const currentEff = parts[0];
+              const projEff = parts[1].replace(')', '');
+              
+              const halfW = data.cell.width / 2;
+              
+              // Current Eff: Red background
+              pdf.setFillColor(254, 226, 226); // light red
+              pdf.rect(data.cell.x + 0.5, data.cell.y + 0.5, halfW - 0.5, data.cell.height - 1, 'F');
+              pdf.setTextColor(185, 28, 28); // dark red
+              pdf.setFontSize(7);
+              pdf.text(currentEff, data.cell.x + halfW / 2, data.cell.y + data.cell.height / 2 + 2, { align: 'center' });
+              
+              // Projection: Green background
+              pdf.setFillColor(220, 252, 231); // light green
+              pdf.rect(data.cell.x + halfW, data.cell.y + 0.5, halfW - 0.5, data.cell.height - 1, 'F');
+              pdf.setTextColor(21, 128, 61); // dark green
+              pdf.text(`Proj: ${projEff}`, data.cell.x + halfW + halfW / 2, data.cell.y + data.cell.height / 2 + 2, { align: 'center' });
+              
+              data.cell.text = []; // Clear original text
+            }
+          }
+        }
       }
     });
 
