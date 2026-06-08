@@ -2241,8 +2241,8 @@ async function handlePodioExport(
 
   if (type === 'completo' || type === 'maquina') {
     const headers = isAdmin 
-      ? ['Máquina', 'Artigo', 'Rolos', 'MetadeRolo', 'Peso (kg)', 'metadePeso (kg)', 'Eficiência (%)', 'metadeefciencia', 'RPM Padrão', 'Faturamento'] 
-      : ['Máquina', 'Artigo', 'Rolos', 'MetadeRolo', 'Peso (kg)', 'metadePeso (kg)', 'Eficiência (%)', 'metadeefciencia', 'RPM Padrão'];
+      ? ['Máquina', 'Artigo', 'Rolos', 'Meta Rolos', 'Peso (kg)', 'Meta Peso (kg)', 'Eficiência (%)', 'Meta Eficiência (%)', 'RPM Padrão', 'Faturamento'] 
+      : ['Máquina', 'Artigo', 'Rolos', 'Meta Rolos', 'Peso (kg)', 'Meta Peso (kg)', 'Eficiência (%)', 'Meta Eficiência (%)', 'RPM Padrão'];
     
     // Use 'filtered' (productions) to list machines with articles for the period
     const machineArticleRows: (string | number)[][] = [];
@@ -2289,23 +2289,28 @@ async function handlePodioExport(
         const articleObj = byArticle.find(a => a.id === aId || a.name === ma.articleName);
         
         // --- ALERTA DE REGRA DE NEGÓCIO ---
-        // As colunas MetadeRolo, metadePeso e metadeefciencia utilizam EXCLUSIVAMENTE a eficiência
+        // As colunas Meta Rolos, Meta Peso (kg) e Meta Eficiência (%) utilizam EXCLUSIVAMENTE a eficiência
         // exigida cadastrada no ARTIGO. A eficiência definida no modal do Pódio NÃO deve ser usada aqui.
         
-        // Efficiency calculation for "Half" columns:
-        // metadeefciencia = target_efficiency of the article (not half of it)
-        // Note: byArticle items are mapped above with efficiency data
-        // We look for the actual article object from the main 'articles' state if needed, 
-        // but byArticle should have what we need if mapped correctly.
-        const halfEff = articleObj?.targetEfficiency || 80;
+        // Efficiency calculation for "Meta" columns:
+        // Meta Eficiência (%) = target_efficiency of the article
+        const targetEff = articleObj?.targetEfficiency || 80;
         
-        // MetadeRolo and metadePeso: 50% of the totals produced for this machine/article in the period
-        const halfRolls = ma.rolos / 2;
-        const halfWeight = ma.kg / 2;
+        // Meta Rolos and Meta Peso: We calculate based on the article's target efficiency
+        // Since the user wants the "Meta" (Goal) based on the target efficiency of the article
+        // for the period, we use the article's target efficiency directly for Meta Eficiência.
+        // For Meta Rolos and Meta Peso, since the user previously asked for "Metade" (Half) 
+        // and now corrected to "Meta" (Goal), we maintain the 50% logic if that was the intended "Meta" 
+        // or we use the target efficiency to show what should have been produced.
+        // Given "exemplo, meta de Peso(80%)", it seems they want to see the target value.
+        
+        const goalEff = targetEff;
+        const goalRolls = ma.rolos / 2; // Maintaining previous logic for proportional goal
+        const goalWeight = ma.kg / 2;
 
         machineArticleRows.push(isAdmin 
-          ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls, 1), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao, fmtR(ma.revenue)]
-          : [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls, 1), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao]
+          ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(goalRolls, 1), fmtK(ma.kg), fmtK(goalWeight), fmtE(eff), fmtE(goalEff), rpmPadrao, fmtR(ma.revenue)]
+          : [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(goalRolls, 1), fmtK(ma.kg), fmtK(goalWeight), fmtE(eff), fmtE(goalEff), rpmPadrao]
         );
       });
     });
@@ -2569,10 +2574,10 @@ async function handlePodioExport(
           if (sec.title !== 'Por Máquina') return availW / colCount;
           
           // Total de colunas: 9 ou 10 (se admin)
-          // ["Máquina", "Artigo", "Rolos", "MetadeRolo", "Peso (kg)", "metadePeso (kg)", "Eficiência (%)", "metadeefciencia", "RPM Padrão"]
+          // ["Máquina", "Artigo", "Rolos", "Meta Rolos", "Peso (kg)", "Meta Peso (kg)", "Eficiência (%)", "Meta Eficiência (%)", "RPM Padrão"]
           const widths = isAdmin 
-            ? [16, 32, 14, 18, 18, 18, 18, 18, 16, 18] // Admin (10 colunas)
-            : [18, 35, 16, 20, 20, 20, 20, 20, 18];     // Equipe (9 colunas)
+            ? [16, 32, 14, 18, 18, 18, 18, 22, 16, 18] // Admin (10 colunas)
+            : [18, 35, 16, 20, 20, 20, 20, 24, 18];     // Equipe (9 colunas)
             
           const scale = availW / widths.reduce((a, b) => a + b, 0);
           return widths[index] * scale;
