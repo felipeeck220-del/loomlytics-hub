@@ -1874,7 +1874,7 @@ async function handlePodioExport(
       pdf.setTextColor(...colors.muted);
       pdf.text('EFICIÊNCIA MÉDIA', x + width / 2, yPos + 33, { align: 'center' });
 
-      if (rank > 1 && podio.ranking[0]) {
+      if (rank > 1 && podio.ranking[0] && false) { // Removed as requested
         const diff = podio.ranking[0].eficiencia - item.eficiencia;
         pdf.setFontSize(7);
         pdf.setFont('helvetica', 'bold');
@@ -1934,7 +1934,7 @@ async function handlePodioExport(
       body: tableRows,
       theme: 'grid',
       headStyles: { fillColor: colors.dark, textColor: colors.white, fontSize: 8, halign: 'center' },
-      styles: { fontSize: 7, fontStyle: 'bold' },
+      styles: { fontSize: 7, fontStyle: 'bold', textColor: [0, 0, 0] },
       columnStyles: {
         0: { cellWidth: 25, fontStyle: 'normal' },
         1: { halign: 'left', cellWidth: 50 },
@@ -1957,21 +1957,13 @@ async function handlePodioExport(
       }
     });
 
-    const finalY = (pdf as any).lastAutoTable.finalY + 8;
+    const tableY = (pdf as any).lastAutoTable.finalY + 8;
 
-    // --- Resumo Geral & Desempenho por Turno Section ---
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(20, 20, 20);
-    pdf.text('RESUMO GERAL', margin, finalY);
-
-    // Calculate Totals and General Podium
+    // Calculate Totals and General Ranking data first
     let totalPieces = 0;
     let totalKg = 0;
     let avgEf = 0;
     let count = 0;
-    
-    // For General Podium calculation
     const generalMap: Record<string, { name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
     const shiftPerformance: Record<string, { rank1: number; rank2: number; rank3: number }> = {};
 
@@ -1981,7 +1973,6 @@ async function handlePodioExport(
         totalKg += item.kg;
         avgEf += item.eficiencia;
         count++;
-
         const key = item.id;
         if (!generalMap[key]) {
           generalMap[key] = { name: item.name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
@@ -1992,7 +1983,6 @@ async function handlePodioExport(
           generalMap[key].effSum += item.eficiencia * item.kg;
           generalMap[key].effW += item.kg;
         }
-
         if (index < 3) {
           const shiftName = item.name.toUpperCase();
           if (!shiftPerformance[shiftName]) {
@@ -2010,51 +2000,8 @@ async function handlePodioExport(
       eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
     })).sort((a, b) => b.eficiencia - a.eficiencia);
 
-    const resumoY = finalY + 5;
-    const resumoH = 25;
-    
-    // Background card for Resumo Geral
-    pdf.setFillColor(245, 247, 250);
-    pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'F');
-    pdf.setDrawColor(220, 225, 230);
-    pdf.setLineWidth(0.2);
-    pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'S');
-
-    const colW = (pageWidth - (margin * 2)) / 3;
-    const statCenterY = resumoY + (resumoH / 2);
-
-    // KPI 1: Peças Totais
-    pdf.setFontSize(7);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(100, 100, 100);
-    pdf.text('PEÇAS TOTAIS', margin + 10, statCenterY - 2);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(20, 20, 20);
-    pdf.text(`${formatNumber(totalPieces)} pcs`, margin + 10, statCenterY + 4);
-
-    // KPI 2: Peso Total
-    pdf.setFontSize(7);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(100, 100, 100);
-    pdf.text('PESO TOTAL', margin + colW + 10, statCenterY - 2);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(20, 20, 20);
-    pdf.text(`${formatNumber(totalKg, 2)} kg`, margin + colW + 10, statCenterY + 4);
-
-    // KPI 3: Eficiência Média
-    pdf.setFontSize(7);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(100, 100, 100);
-    pdf.text('EFICIÊNCIA MÉDIA', margin + (colW * 2) + 10, statCenterY - 2);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(20, 20, 20);
-    pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 10, statCenterY + 4);
-
-    // --- General Ranking Table (Ranking for all days) ---
-    y = resumoY + resumoH + 6;
+    // --- RANKING DO PERÍODO Section ---
+    y = tableY;
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
@@ -2069,18 +2016,11 @@ async function handlePodioExport(
         `${formatNumber(item.kg, 1)} kg`,
         `${formatNumber(item.eficiencia, 1)}%`
       ];
-
       if (idx > 0 && generalRanking[0] && numDays > 0) {
-        // Target: next average must equal or exceed first place's current average
-        // (Current_Avg * NumDays + NextDay_Eff) / (NumDays + 1) = FirstPlace_Avg
-        // NextDay_Eff = (FirstPlace_Avg * (NumDays + 1)) - (Current_Avg * NumDays)
         const targetEff = (generalRanking[0].eficiencia * (numDays + 1)) - (item.eficiencia * numDays);
-        
-        // Ensure it's not showing a negative or impossible efficiency (though unlikely in this context)
         const displayTarget = targetEff > 0 ? formatNumber(targetEff, 1) : '-';
         baseRow[3] = `${formatNumber(item.eficiencia, 1)}% (Proj. Amanhã: ${displayTarget}%)`;
       }
-
       return baseRow;
     });
 
@@ -2102,7 +2042,7 @@ async function handlePodioExport(
 
     y = (pdf as any).lastAutoTable.finalY + 8;
 
-    // --- Desempenho por Turno Table ---
+    // --- DESEMPENHO POR TURNO Table ---
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
@@ -2114,7 +2054,7 @@ async function handlePodioExport(
       perf.rank1.toString(),
       perf.rank2.toString(),
       perf.rank3.toString(),
-      (perf.rank1 + perf.rank2 + perf.rank3).toString()
+      `${perf.rank1 + perf.rank2 + perf.rank3} Pódios`
     ]);
 
     autoTable(pdf, {
@@ -2126,7 +2066,8 @@ async function handlePodioExport(
       headStyles: { fillColor: [40, 40, 40], textColor: colors.white, fontSize: 8, halign: 'center' },
       styles: { fontSize: 8, halign: 'center' },
       columnStyles: {
-        0: { halign: 'left', fontStyle: 'bold' }
+        0: { halign: 'left', fontStyle: 'bold' },
+        4: { fontStyle: 'bold' }
       },
       didDrawCell: (data) => {
         if (data.section === 'head' && data.column.index >= 1 && data.column.index <= 3) {
@@ -2137,12 +2078,57 @@ async function handlePodioExport(
             const x = data.cell.x + (data.cell.width / 2) - (medalSize / 2);
             const yPos = data.cell.y + (data.cell.height / 2) - (medalSize / 2);
             pdf.addImage(medal.data, 'PNG', x, yPos, medalSize, medalSize);
-            // Clear text
             data.cell.text = [];
           }
         }
       }
     });
+
+    y = (pdf as any).lastAutoTable.finalY + 8;
+
+    // --- RESUMO GERAL Section (Moved to the end) ---
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(20, 20, 20);
+    pdf.text('RESUMO GERAL', margin, y);
+
+    const resumoY = y + 5;
+    const resumoH = 25;
+    pdf.setFillColor(245, 247, 250);
+    pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'F');
+    pdf.setDrawColor(220, 225, 230);
+    pdf.setLineWidth(0.2);
+    pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'S');
+
+    const colW = (pageWidth - (margin * 2)) / 3;
+    const statCenterY = resumoY + (resumoH / 2);
+
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('PEÇAS TOTAIS', margin + 10, statCenterY - 2);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(20, 20, 20);
+    pdf.text(`${formatNumber(totalPieces)} pcs`, margin + 10, statCenterY + 4);
+
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('PESO TOTAL', margin + colW + 10, statCenterY - 2);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(20, 20, 20);
+    pdf.text(`${formatNumber(totalKg, 2)} kg`, margin + colW + 10, statCenterY + 4);
+
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('EFICIÊNCIA MÉDIA', margin + (colW * 2) + 10, statCenterY - 2);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(20, 20, 20);
+    pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 10, statCenterY + 4);
 
     y = (pdf as any).lastAutoTable.finalY + 10;
 
