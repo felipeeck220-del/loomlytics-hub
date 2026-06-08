@@ -1353,17 +1353,21 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                           {w ? (
                                             <div className="space-y-0.5">
                                               <div className="font-medium text-foreground">{w.name}</div>
-                                              <div className="text-xs flex flex-wrap items-center gap-1">
-                                                <span>{formatNumber(w.rolos)} pç</span>
-                                                <span>·</span>
-                                                <span>{formatNumber(w.kg, 1)} kg</span>
-                                                <span>·</span>
-                                                <span className="font-bold">{formatNumber(w.eficiencia, 1)}%</span>
-                                                {i > 0 && firstEff > w.eficiencia && (
-                                                  <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 border-amber-200 bg-amber-50 text-amber-700 font-bold">
-                                                    +{formatNumber(firstEff - w.eficiencia, 1)}%
-                                                  </Badge>
-                                                )}
+                                              <div className="text-xs flex flex-col gap-0.5">
+                                                <div className="flex flex-wrap items-center gap-1">
+                                                  <span>{formatNumber(w.rolos)} pç</span>
+                                                  <span>·</span>
+                                                  <span>{formatNumber(w.kg, 1)} kg</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 font-bold text-foreground">
+                                                  <span>{formatNumber(w.eficiencia, 1)}%</span>
+                                                  <span className="text-[9px] text-muted-foreground font-normal uppercase italic">Eficiência Média</span>
+                                                  {i > 0 && firstEff > w.eficiencia && (
+                                                    <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 border-amber-200 bg-amber-50 text-amber-700 font-bold ml-1">
+                                                      +{formatNumber(firstEff - w.eficiencia, 1)}%
+                                                    </Badge>
+                                                  )}
+                                                </div>
                                               </div>
                                             </div>
                                           ) : <span className="text-xs">—</span>}
