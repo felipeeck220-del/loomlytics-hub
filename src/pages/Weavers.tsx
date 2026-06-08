@@ -848,7 +848,7 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
               Falhas — {selectedWeaver?.name} <Badge variant="outline" className="font-mono text-xs">{selectedWeaver?.code}</Badge>
             </DialogTitle>
             <DialogDescription>
-              {filterMonth === 'all' ? 'Todo período' : format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR })}
+              {filterMonth === 'all' ? 'Todo período' : format(new Date(filterMonth + '-15'), 'MMMM yyyy', { locale: ptBR })}
             </DialogDescription>
           </DialogHeader>
 
