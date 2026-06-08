@@ -1183,6 +1183,37 @@ export default function MecanicaPage() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Since last sinker change */}
+                      <div className="rounded-lg border border-border p-3 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Desde última Troca de Platinas
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {machine.last_sinker_change_at 
+                            ? format(new Date(machine.last_sinker_change_at), "dd/MM/yyyy", { locale: ptBR })
+                            : 'Sem registro'}
+                        </p>
+                        <div className="flex items-center gap-4">
+                          {canSeeFinancial && (
+                          <div>
+                            {/* For now reusing weight/revenue from generic calc if needed, 
+                                but machine typically doesn't have a separate calc for sinkers yet in this code.
+                                I'll add a calc logic here to be consistent. */}
+                            <p className="text-lg font-bold text-foreground">
+                              {formatCurrency(calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).revenue)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Faturamento</p>
+                          </div>
+                          )}
+                          <div>
+                            <p className="text-lg font-bold text-foreground">
+                              {formatWeight(calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).weight)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Peso produzido</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <Button
                       variant="outline"
