@@ -2285,24 +2285,27 @@ async function handlePodioExport(
         const eff = ma.weightForEff > 0 ? ma.efficiencySum / ma.weightForEff : 0;
         
         // Find article data for half values
+        // Use byArticle list which contains the articles found in the filtered records
         const articleObj = byArticle.find(a => a.id === aId || a.name === ma.articleName);
         
         // --- ALERTA DE REGRA DE NEGÓCIO ---
         // As colunas MetadeRolo, metadePeso e metadeefciencia utilizam EXCLUSIVAMENTE a eficiência
         // exigida cadastrada no ARTIGO. A eficiência definida no modal do Pódio NÃO deve ser usada aqui.
-        // A base de cálculo (50%) considera a meta teórica do artigo e o RPM Padrão da máquina.
         
-        const efficiencyRequired = articleObj?.target_efficiency || 80;
-        const halfEff = efficiencyRequired / 2;
+        // Efficiency calculation for "Half" columns:
+        // metadeefciencia = target_efficiency of the article (not half of it)
+        // Note: byArticle items are mapped above with efficiency data
+        // We look for the actual article object from the main 'articles' state if needed, 
+        // but byArticle should have what we need if mapped correctly.
+        const halfEff = articleObj?.targetEfficiency || 80;
         
-        // MetadeRolo e metadePeso: Se for o ganhador do dia, os valores de rolos e kg são divididos por 2
-        // Se não houver lógica de "ganhador", usamos 50% dos totais da máquina/artigo no período
-        const halfRolls = Math.round(ma.rolos / 2);
+        // MetadeRolo and metadePeso: 50% of the totals produced for this machine/article in the period
+        const halfRolls = ma.rolos / 2;
         const halfWeight = ma.kg / 2;
 
         machineArticleRows.push(isAdmin 
-          ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao, fmtR(ma.revenue)]
-          : [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao]
+          ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls, 1), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao, fmtR(ma.revenue)]
+          : [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(halfRolls, 1), fmtK(ma.kg), fmtK(halfWeight), fmtE(eff), fmtE(halfEff), rpmPadrao]
         );
       });
     });
