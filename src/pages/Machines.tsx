@@ -68,14 +68,14 @@ export default function Machines() {
   const [maintenanceViewMachine, setMaintenanceViewMachine] = useState<Machine | null>(null);
   const isMobile = useIsMobile();
    const [form, setForm] = useState({ 
-     number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: '', observations: '',
+     number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
      model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: ''
    });
 
   const openNew = () => {
     setEditing(null);
      setForm({ 
-       number: '', rpm: '', status: 'ativa', article_id: '', observations: '',
+       number: '', rpm: '', status: 'ativa', article_id: 'none', observations: '',
        model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: ''
      });
     setShowModal(true);
@@ -84,7 +84,7 @@ export default function Machines() {
   const openEdit = (m: Machine) => {
     setEditing(m);
      setForm({ 
-       number: String(m.number), rpm: String(m.rpm), status: m.status, article_id: m.article_id || '', 
+       number: String(m.number), rpm: String(m.rpm), status: m.status, article_id: m.article_id || 'none', 
        observations: m.observations || '',
        model: m.model || '', diameter: m.diameter || '', fineness: m.fineness || '',
        needle_quantity: m.needle_quantity ? String(m.needle_quantity) : '',
@@ -103,7 +103,8 @@ export default function Machines() {
       const oldStatus = all[idx].status;
        all[idx] = { 
          ...all[idx], number: Number(form.number), name: `TEAR ${form.number.padStart(2, '0')}`, 
-         rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined, 
+          rpm: Number(form.rpm), status: form.status, article_id: (form.article_id && form.article_id !== 'none') ? form.article_id : undefined, 
+
          observations: form.observations || undefined,
          model: form.model || undefined, diameter: form.diameter || undefined, 
          fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
@@ -136,7 +137,7 @@ export default function Machines() {
      } else {
        const newMachine: Machine = {
          id: crypto.randomUUID(), company_id: '', number: Number(form.number), name: `TEAR ${form.number.padStart(2, '0')}`,
-         rpm: Number(form.rpm), status: form.status, article_id: form.article_id || undefined,
+         rpm: Number(form.rpm), status: form.status, article_id: (form.article_id && form.article_id !== 'none') ? form.article_id : undefined,
          observations: form.observations || undefined, production_mode: 'rolos', created_at: new Date().toISOString(),
          model: form.model || undefined, diameter: form.diameter || undefined, 
          fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
@@ -374,10 +375,13 @@ export default function Machines() {
                 <Label className="font-semibold">Artigo Atual</Label>
                 <Select value={form.article_id} onValueChange={v => setForm(p => ({ ...p, article_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione um artigo" /></SelectTrigger>
-                  <SelectContent>{articles.map(a => {
-                    const client = a.client_name ? ` (${a.client_name})` : '';
-                    return <SelectItem key={a.id} value={a.id}>{a.name}{client}</SelectItem>;
-                  })}</SelectContent>
+                  <SelectContent>
+                    <SelectItem value="none" className="text-destructive font-medium uppercase italic">NENHUM ARTIGO</SelectItem>
+                    {articles.map(a => {
+                      const client = a.client_name ? ` (${a.client_name})` : '';
+                      return <SelectItem key={a.id} value={a.id}>{a.name}{client}</SelectItem>;
+                    })}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
@@ -419,7 +423,7 @@ export default function Machines() {
              </div>
  
             {(() => {
-              const selectedArticle = articles.find(a => a.id === form.article_id);
+              const selectedArticle = form.article_id && form.article_id !== 'none' ? articles.find(a => a.id === form.article_id) : null;
               if (!selectedArticle) return null;
               return (
                 <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
