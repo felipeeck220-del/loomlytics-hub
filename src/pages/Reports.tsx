@@ -1361,12 +1361,6 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                                 </div>
                                                 <div className="flex items-center gap-1 font-bold text-foreground">
                                                   <span>{formatNumber(w.eficiencia, 1)}%</span>
-                                                  <span className="text-[9px] text-muted-foreground font-normal uppercase italic">Eficiência Média</span>
-                                                  {i > 0 && firstEff > w.eficiencia && (
-                                                    <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 border-amber-200 bg-amber-50 text-amber-700 font-bold ml-1">
-                                                      +{formatNumber(firstEff - w.eficiencia, 1)}%
-                                                    </Badge>
-                                                  )}
                                                 </div>
                                               </div>
                                             </div>
@@ -1922,9 +1916,7 @@ async function handlePodioExport(
         const item = d.ranking[rankIdx];
         if (!item) return '-';
         const firstEff = d.ranking[0]?.eficiencia || 0;
-        const diffStr = (rankIdx > 0 && firstEff > item.eficiencia) ? ` (+${formatNumber(firstEff - item.eficiencia, 1)}%)` : '';
-        // Dados em negrito conforme solicitado: 5.362,0kg - 72,7% (+0,3%) EFICIÊNCIA MÉDIA
-        return `${item.name.toUpperCase()}\n${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%${diffStr}\nEFICIÊNCIA MÉDIA`;
+        return `${item.name.toUpperCase()}\n${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%`;
       };
       
       return [
@@ -1974,31 +1966,39 @@ async function handlePodioExport(
     pdf.setTextColor(20, 20, 20);
     pdf.text('RESUMO GERAL', margin, finalY);
 
-    // Calculate Totals and Shift Performance
+    // Calculate Totals and General Podium
     let totalPieces = 0;
     let totalKg = 0;
     let avgEf = 0;
     let count = 0;
-    const shiftPerformance: Record<string, { rank1: number; rank2: number; rank3: number }> = {};
+    
+    // For General Podium calculation
+    const generalMap: Record<string, { name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
 
     podio.daily.forEach(d => {
-      d.ranking.forEach((item, index) => {
+      d.ranking.forEach((item) => {
         totalPieces += item.rolos;
         totalKg += item.kg;
         avgEf += item.eficiencia;
         count++;
 
-        if (index < 3) {
-          const shiftName = item.name.toUpperCase();
-          if (!shiftPerformance[shiftName]) {
-            shiftPerformance[shiftName] = { rank1: 0, rank2: 0, rank3: 0 };
-          }
-          if (index === 0) shiftPerformance[shiftName].rank1++;
-          else if (index === 1) shiftPerformance[shiftName].rank2++;
-          else if (index === 2) shiftPerformance[shiftName].rank3++;
+        const key = item.id;
+        if (!generalMap[key]) {
+          generalMap[key] = { name: item.name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
+        }
+        generalMap[key].rolos += item.rolos;
+        generalMap[key].kg += item.kg;
+        if (item.rolos > 0) {
+          generalMap[key].effSum += item.eficiencia * item.kg;
+          generalMap[key].effW += item.kg;
         }
       });
     });
+
+    const generalRanking = Object.values(generalMap).map(w => ({
+      ...w,
+      eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
+    })).sort((a, b) => b.eficiencia - a.eficiencia);
 
     const resumoY = finalY + 5;
     const resumoH = 25;
@@ -2043,8 +2043,72 @@ async function handlePodioExport(
     pdf.setTextColor(20, 20, 20);
     pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 10, statCenterY + 4);
 
+    // --- General Podium (Podium logic for all days) ---
+    y = resumoY + resumoH + 10;
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(20, 20, 20);
+    pdf.text('PÓDIO GERAL (RANKING DO PERÍODO)', margin, y);
+    y += 8;
+
+    const drawGeneralPodiumCard = (x: number, yPos: number, width: number, height: number, item: any, position: number) => {
+      const medal = medalInfos[position as 1|2|3];
+      
+      // Card background
+      pdf.setFillColor(255, 255, 255);
+      pdf.roundedRect(x, yPos, width, height, 2, 2, 'F');
+      pdf.setDrawColor(220, 225, 230);
+      pdf.setLineWidth(0.2);
+      pdf.roundedRect(x, yPos, width, height, 2, 2, 'S');
+
+      // Medal icon
+      if (medal) {
+        pdf.addImage(medal.data, 'PNG', x + (width/2) - 4, yPos + 4, 8, 8);
+      }
+
+      // Position text
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`${position}º LUGAR`, x + (width/2), yPos + 18, { align: 'center' });
+
+      // Name
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(20, 20, 20);
+      pdf.text(item.name.toUpperCase(), x + (width/2), yPos + 25, { align: 'center' });
+
+      // Stats
+      pdf.setDrawColor(240, 240, 240);
+      pdf.line(x + 5, yPos + 28, x + width - 5, yPos + 28);
+
+      const statY = yPos + 34;
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(100, 100, 100);
+      
+      pdf.text('Eficiência:', x + 5, statY);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(20, 20, 20);
+      pdf.text(`${formatNumber(item.eficiencia, 1)}%`, x + width - 5, statY, { align: 'right' });
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Peso:', x + 5, statY + 5);
+      pdf.setTextColor(20, 20, 20);
+      pdf.text(`${formatNumber(item.kg, 1)} kg`, x + width - 5, statY + 5, { align: 'right' });
+    };
+
+    const genCardW = (pageWidth - (margin * 2) - 10) / 3;
+    const genCardH = 45;
+    
+    if (generalRanking[1]) drawGeneralPodiumCard(margin, y, genCardW, genCardH, generalRanking[1], 2);
+    if (generalRanking[0]) drawGeneralPodiumCard(margin + genCardW + 5, y - 2, genCardW, genCardH + 4, generalRanking[0], 1);
+    if (generalRanking[2]) drawGeneralPodiumCard(margin + (genCardW + 5) * 2, y, genCardW, genCardH, generalRanking[2], 3);
+
+    y += genCardH + 15;
+
     // --- Desempenho por Turno Table ---
-    y = resumoY + resumoH + 6;
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
