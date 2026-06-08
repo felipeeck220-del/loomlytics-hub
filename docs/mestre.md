@@ -1139,6 +1139,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 > Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
 
+- **08/06/2026 13:40 (Brasília)** — Relatórios > Pódio: Implementada métrica de "Meta para 1º Lugar" para os turnos que ficaram em 2º e 3º. Tanto no pódio visual da página quanto na exportação "PDF Diário", agora é exibido o percentual exato de eficiência que o turno precisaria ter alcançado para igualar o primeiro lugar. O detalhamento diário no PDF também foi atualizado para incluir essa comparação, incentivando a competitividade saudável entre as equipes.
+
 - **10/05/2026 16:45 (Brasília)** — Adicionada paginação numérica na aba de Artigos dentro de Clientes & Artigos, exibindo 18 itens por página e limitando os botões de página a uma janela de 3 números.
 - **10/05/2026 16:40 (Brasília)** — Ajustada a visualização da paginação na página de Produção para exibir apenas 3 números de página por vez, criando um efeito de "janela deslizante" conforme o usuário navega.
 - **10/05/2026 16:35 (Brasília)** — Implementação de paginação numérica na página de Produção (Production.tsx), limitando a visualização a 10 registros por página (conforme padrão do módulo terceirizado). A paginação é independente por turno e reinicia ao aplicar filtros.
