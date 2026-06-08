@@ -1164,7 +1164,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                    <ExportButton
                      label="Relatório Completo"
                      description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
-                     onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines)}
+                     onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                    />
                     </div>
 
@@ -1174,22 +1174,22 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                          <ExportButton
                            label="Por Artigo"
                            description="Rolos, Kg, Valor"
-                           onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines)}
+                           onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                          />
                          <ExportButton
                            label="Por Máquina"
                            description="Performance individual"
-                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, productions, byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines)}
+                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, productions, byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                          />
                          <ExportButton
                            label="Por Turno"
                            description="Análise comparativa"
-                           onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines)}
+                           onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                          />
                          <ExportButton
                            label="Por Cliente"
                            description="Produção por cliente"
-                           onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines)}
+                           onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                          />
                       </div>
                     </div>
@@ -2211,11 +2211,12 @@ async function handlePodioExport(
    byShift: any[],
    byMachine: any[],
    byClient: any[],
-   byArticle: any[],
-    periodLabel: string,
-    logoUrl?: string | null,
-    companyName?: string,
-    machines: any[] = [],
+    byArticle: any[],
+     periodLabel: string,
+     logoUrl?: string | null,
+     companyName?: string,
+     machines: any[] = [],
+     articles: any[] = [],
   ) {
   const isAdmin = mode === 'admin';
 
