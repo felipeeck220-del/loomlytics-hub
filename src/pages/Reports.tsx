@@ -306,6 +306,25 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      return 'Todo período';
    }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
+  const aggregatePodio = useCallback((rows: Production[]) => {
+    const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
+    rows.forEach(p => {
+      const key = p.shift || 'sem';
+      const name = companyShiftLabels[p.shift as ShiftType]?.split(' (')[0] || p.shift || 'Sem turno';
+      if (!map[key]) map[key] = { id: key, name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
+      map[key].rolos += p.rolls_produced;
+      map[key].kg += p.weight_kg;
+      if (p.rolls_produced > 0) {
+        map[key].effSum += p.efficiency * p.weight_kg;
+        map[key].effW += p.weight_kg;
+      }
+    });
+    return Object.values(map).map(w => ({
+      ...w,
+      eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
+    })).sort((a, b) => b.eficiencia - a.eficiencia);
+  }, [companyShiftLabels]);
+
   // ---- PÓDIO: cálculo de ranking por turno ----
   const podioComputed = useMemo(() => {
     const today = new Date();
@@ -322,26 +341,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
     }
     const list = productions.filter(p => p.date >= pFrom && p.date <= pTo);
 
-    const aggregate = (rows: Production[]) => {
-      const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
-      rows.forEach(p => {
-        const key = p.shift || 'sem';
-        const name = companyShiftLabels[p.shift as ShiftType]?.split(' (')[0] || p.shift || 'Sem turno';
-        if (!map[key]) map[key] = { id: key, name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
-        map[key].rolos += p.rolls_produced;
-        map[key].kg += p.weight_kg;
-        if (p.rolls_produced > 0) {
-          map[key].effSum += p.efficiency * p.weight_kg;
-          map[key].effW += p.weight_kg;
-        }
-      });
-      return Object.values(map).map(w => ({
-        ...w,
-        eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
-      })).sort((a, b) => b.eficiencia - a.eficiencia);
-    };
-
-    const ranking = aggregate(list);
+    const ranking = aggregatePodio(list);
 
     // dias do período
     const dates: string[] = [];
@@ -354,7 +354,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
     }
     const daily = dates.map(date => ({
       date,
-      ranking: aggregate(list.filter(p => p.date === date)),
+      ranking: aggregatePodio(list.filter(p => p.date === date)),
     }));
 
     const label = pFrom === pTo
@@ -362,7 +362,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       : `${format(new Date(pFrom + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
 
     return { ranking, daily, periodLabel: label, from: pFrom, to: pTo };
-  }, [productions, podioRange, podioFrom, podioTo, companyShiftLabels]);
+  }, [productions, podioRange, podioFrom, podioTo, aggregatePodio]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -1466,29 +1466,10 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                           
                           const podiumList = productions.filter(p => p.date === podiumDayStr);
 
-                          const aggregate = (rows: Production[]) => {
-                            const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
-                            rows.forEach(p => {
-                              const key = p.shift || 'sem';
-                              const name = companyShiftLabels[p.shift as ShiftType]?.split(' (')[0] || p.shift || 'Sem turno';
-                              if (!map[key]) map[key] = { id: key, name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
-                              map[key].rolos += p.rolls_produced;
-                              map[key].kg += p.weight_kg;
-                              if (p.rolls_produced > 0) {
-                                map[key].effSum += p.efficiency * p.weight_kg;
-                                map[key].effW += p.weight_kg;
-                              }
-                            });
-                            return Object.values(map).map(w => ({
-                              ...w,
-                              eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
-                            })).sort((a, b) => b.eficiencia - a.eficiencia);
-                          };
-
-                          const ranking = aggregate(podiumList); // Ranking apenas do dia do pódio
+                          const ranking = aggregatePodio(podiumList); // Ranking apenas do dia do pódio
                           const daily = allDates.map(date => ({
                             date,
-                            ranking: aggregate(productions.filter(p => p.date === date)),
+                            ranking: aggregatePodio(productions.filter(p => p.date === date)),
                           }));
 
                           const label = `Pódio: ${format(podioFrom, 'dd/MM/yyyy')} | Período: ${format(new Date(pFrom + 'T12:00:00'), 'dd/MM')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
@@ -1952,9 +1933,9 @@ async function handlePodioExport(
       styles: { fontSize: 7, fontStyle: 'bold', textColor: [0, 0, 0] },
       columnStyles: {
         0: { cellWidth: 25, fontStyle: 'normal' },
-        1: { halign: 'left', cellWidth: 50 },
-        2: { halign: 'left', cellWidth: 50 },
-        3: { halign: 'left', cellWidth: 50 },
+        1: { halign: 'left' },
+        2: { halign: 'left' },
+        3: { halign: 'left' },
       },
       didDrawCell: (data) => {
         if (data.section === 'head' && data.column.index >= 1) {
