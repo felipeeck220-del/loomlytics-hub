@@ -2251,9 +2251,12 @@ async function handlePodioExport(
     const productionsByMachine = filtered.reduce((acc: any, p) => {
       const machineId = p.machine_id;
       if (!acc[machineId]) acc[machineId] = {};
-      const articleId = p.article_id;
-      if (!acc[machineId][articleId]) {
-        acc[machineId][articleId] = {
+      
+      // Use article_id or name to group, but we also need to keep the actual name from the production
+      const articleKey = p.article_id || p.article_name;
+      
+      if (!acc[machineId][articleKey]) {
+        acc[machineId][articleKey] = {
           machineName: p.machine_name,
           articleName: p.article_name,
           rolos: 0,
@@ -2261,15 +2264,16 @@ async function handlePodioExport(
           efficiencySum: 0,
           weightForEff: 0,
           revenue: 0,
-          machineId: p.machine_id
+          machineId: p.machine_id,
+          articleId: p.article_id
         };
       }
-      acc[machineId][articleId].rolos += p.rolls_produced;
-      acc[machineId][articleId].kg += p.weight_kg;
-      acc[machineId][articleId].revenue += p.revenue;
+      acc[machineId][articleKey].rolos += p.rolls_produced;
+      acc[machineId][articleKey].kg += p.weight_kg;
+      acc[machineId][articleKey].revenue += p.revenue;
       if (p.rolls_produced > 0) {
-        acc[machineId][articleId].efficiencySum += (p.efficiency * p.weight_kg);
-        acc[machineId][articleId].weightForEff += p.weight_kg;
+        acc[machineId][articleKey].efficiencySum += (p.efficiency * p.weight_kg);
+        acc[machineId][articleKey].weightForEff += p.weight_kg;
       }
       return acc;
     }, {});
