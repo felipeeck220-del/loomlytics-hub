@@ -479,17 +479,19 @@ function WeaverReportsTab({ weavers, productions }: { weavers: Weaver[]; product
 // ─── Weaver Defects Tab ──────────────────────────────────────
 function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weavers: Weaver[]; defectRecords: DefectRecord[]; articles: Article[]; machines: any[] }) {
   const { user } = useAuth();
-  const currentMonth = format(new Date(), 'yyyy-MM');
-  const [filterMonth, setFilterMonth] = useState(currentMonth);
+  const [filterMonth, setFilterMonth] = useState('all');
   const [selectedWeaverId, setSelectedWeaverId] = useState<string | null>(null);
 
   // Available months from defect records
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
-    months.add(currentMonth);
-    defectRecords.forEach(d => months.add(d.date.substring(0, 7)));
+    defectRecords.forEach(d => {
+      if (d.date && d.date.length >= 7) {
+        months.add(d.date.substring(0, 7));
+      }
+    });
     return Array.from(months).sort().reverse();
-  }, [defectRecords, currentMonth]);
+  }, [defectRecords]);
 
   // Filtered records by month
   const filtered = useMemo(() => {
