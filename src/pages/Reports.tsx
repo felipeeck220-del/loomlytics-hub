@@ -1179,7 +1179,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                          <ExportButton
                            label="Por Máquina"
                            description="Performance individual"
-                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName)}
+                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, productions, byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines)}
                          />
                          <ExportButton
                            label="Por Turno"
@@ -2215,6 +2215,7 @@ async function handlePodioExport(
    periodLabel: string,
    logoUrl?: string | null,
    companyName?: string,
+   machines: any[] = [],
  ) {
   const isAdmin = mode === 'admin';
 
@@ -2239,13 +2240,78 @@ async function handlePodioExport(
   }
 
   if (type === 'completo' || type === 'maquina') {
-    const headers = isAdmin ? ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento'] : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)'];
-    const rows = byMachine.map(m => isAdmin ? [m.name, fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia), fmtR(m.faturamento)] : [m.name, fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia)]);
+    const headers = isAdmin 
+      ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'RPM Padrão', 'Faturamento'] 
+      : ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'RPM Padrão'];
+    
+    // Use 'filtered' (productions) to list machines with articles for the period
+    const machineArticleRows: (string | number)[][] = [];
+    
+    // Group productions by machine and article to show multiple articles if they occurred
+    const productionsByMachine = filtered.reduce((acc: any, p) => {
+      const machineId = p.machine_id;
+      if (!acc[machineId]) acc[machineId] = {};
+      const articleId = p.article_id;
+      if (!acc[machineId][articleId]) {
+        acc[machineId][articleId] = {
+          machineName: p.machine_name,
+          articleName: p.article_name,
+          rolos: 0,
+          kg: 0,
+          efficiencySum: 0,
+          weightForEff: 0,
+          revenue: 0,
+          machineId: p.machine_id
+        };
+      }
+      acc[machineId][articleId].rolos += p.rolls_produced;
+      acc[machineId][articleId].kg += p.weight_kg;
+      acc[machineId][articleId].revenue += p.revenue;
+      if (p.rolls_produced > 0) {
+        acc[machineId][articleId].efficiencySum += (p.efficiency * p.weight_kg);
+        acc[machineId][articleId].weightForEff += p.weight_kg;
+      }
+      return acc;
+    }, {});
+
+    // For "Por Máquina", we want to show all machines in the period
+    Object.keys(productionsByMachine).forEach(mId => {
+      const machineArticles = productionsByMachine[mId];
+      const machineObj = machines.find(m => m.id === mId);
+      const rpmPadrao = machineObj?.rpm || 0;
+
+      Object.keys(machineArticles).forEach(aId => {
+        const ma = machineArticles[aId];
+        const eff = ma.weightForEff > 0 ? ma.efficiencySum / ma.weightForEff : 0;
+        
+        machineArticleRows.push(isAdmin 
+          ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtK(ma.kg), fmtE(eff), rpmPadrao, fmtR(ma.revenue)]
+          : [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtK(ma.kg), fmtE(eff), rpmPadrao]
+        );
+      });
+    });
+
+    // Sort by machine name
+    machineArticleRows.sort((a, b) => {
+      const nameA = String(a[0]);
+      const nameB = String(b[0]);
+      const numA = parseInt(nameA.replace(/\D/g, ''));
+      const numB = parseInt(nameB.replace(/\D/g, ''));
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
     const tR = byMachine.reduce((a, m) => a + m.rolos, 0), tK = byMachine.reduce((a, m) => a + m.kg, 0);
     const avgE = byMachine.length ? byMachine.reduce((a, m) => a + m.eficiencia, 0) / byMachine.length : 0;
     const tF = byMachine.reduce((a, m) => a + m.faturamento, 0);
-    rows.push(isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE)]);
-    sections.push({ title: 'Por Máquina', headers, rows });
+    
+    // Header for Total row needs to match column count
+    const totalRow = isAdmin 
+      ? ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), '', fmtR(tF)] 
+      : ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), ''];
+    
+    machineArticleRows.push(totalRow);
+    sections.push({ title: 'Por Máquina', headers, rows: machineArticleRows });
   }
 
   if (type === 'completo' || type === 'cliente') {
@@ -2548,8 +2614,36 @@ async function handlePodioExport(
           pdf.setTextColor(...colors.textDark);
           row.forEach((cell, ci) => {
             const text = String(cell);
+            
+            // Apply conditional colors for 'Por Máquina' report
+            if (sec.title === 'Por Máquina' && !isTotal) {
+              const header = sec.headers[ci];
+              if (header === 'Rolos' || header === 'Peso (kg)' || header === 'Eficiência (%)') {
+                // Find total row to get average/sum for comparison
+                const totalRow = sec.rows[sec.rows.length - 1];
+                const totalValStr = String(totalRow[ci]).replace(/\./g, '').replace(',', '.').replace('%', '').trim();
+                const totalVal = parseFloat(totalValStr) || 0;
+                
+                const currentValStr = text.replace(/\./g, '').replace(',', '.').replace('%', '').trim();
+                const currentVal = parseFloat(currentValStr) || 0;
+
+                if (currentVal < totalVal) {
+                  pdf.setFillColor(254, 226, 226); // Light red background
+                  pdf.rect(margin + ci * colW, y, colW, rowH, 'F');
+                  pdf.setTextColor(185, 28, 28); // Red text
+                } else if (currentVal >= totalVal && totalVal > 0) {
+                  pdf.setFillColor(220, 252, 231); // Light green background
+                  pdf.rect(margin + ci * colW, y, colW, rowH, 'F');
+                  pdf.setTextColor(21, 128, 61); // Green text
+                }
+              }
+            }
+
             const truncated = text.length > 25 ? text.substring(0, 24) + '…' : text;
             pdf.text(truncated, margin + ci * colW + 3, y + 5.5);
+            
+            // Reset text color for next cell
+            pdf.setTextColor(...colors.textDark);
           });
 
           if (isTotal) {
