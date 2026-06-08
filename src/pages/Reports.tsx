@@ -2054,70 +2054,38 @@ async function handlePodioExport(
     pdf.setTextColor(20, 20, 20);
     pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 10, statCenterY + 4);
 
-    // --- General Podium (Podium logic for all days) ---
-    y = resumoY + resumoH + 10;
+    // --- General Ranking Table (Ranking for all days) ---
+    y = resumoY + resumoH + 6;
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
-    pdf.text('PÓDIO GERAL (RANKING DO PERÍODO)', margin, y);
-    y += 8;
+    pdf.text('RANKING DO PERÍODO', margin, y);
+    y += 4;
 
-    const drawGeneralPodiumCard = (x: number, yPos: number, width: number, height: number, item: any, position: number) => {
-      const medal = medalInfos[position as 1|2|3];
-      
-      // Card background
-      pdf.setFillColor(255, 255, 255);
-      pdf.roundedRect(x, yPos, width, height, 2, 2, 'F');
-      pdf.setDrawColor(220, 225, 230);
-      pdf.setLineWidth(0.2);
-      pdf.roundedRect(x, yPos, width, height, 2, 2, 'S');
+    const rankingRows = generalRanking.map((item, idx) => [
+      `${idx + 1}º`,
+      item.name.toUpperCase(),
+      `${formatNumber(item.kg, 1)} kg`,
+      `${formatNumber(item.eficiencia, 1)}%`
+    ]);
 
-      // Medal icon
-      if (medal) {
-        pdf.addImage(medal.data, 'PNG', x + (width/2) - 4, yPos + 4, 8, 8);
+    autoTable(pdf, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Pos', 'Turno', 'Produção Total', 'Eficiência Média']],
+      body: rankingRows,
+      theme: 'grid',
+      headStyles: { fillColor: [60, 60, 60], textColor: colors.white, fontSize: 8, halign: 'center' },
+      styles: { fontSize: 8, halign: 'center' },
+      columnStyles: {
+        0: { cellWidth: 15, fontStyle: 'bold' },
+        1: { halign: 'left', fontStyle: 'bold' },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 40, fontStyle: 'bold' },
       }
+    });
 
-      // Position text
-      pdf.setFontSize(7);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(150, 150, 150);
-      pdf.text(`${position}º LUGAR`, x + (width/2), yPos + 18, { align: 'center' });
-
-      // Name
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(20, 20, 20);
-      pdf.text(item.name.toUpperCase(), x + (width/2), yPos + 25, { align: 'center' });
-
-      // Stats
-      pdf.setDrawColor(240, 240, 240);
-      pdf.line(x + 5, yPos + 28, x + width - 5, yPos + 28);
-
-      const statY = yPos + 34;
-      pdf.setFontSize(7);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(100, 100, 100);
-      
-      pdf.text('Eficiência:', x + 5, statY);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(20, 20, 20);
-      pdf.text(`${formatNumber(item.eficiencia, 1)}%`, x + width - 5, statY, { align: 'right' });
-
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('Peso:', x + 5, statY + 5);
-      pdf.setTextColor(20, 20, 20);
-      pdf.text(`${formatNumber(item.kg, 1)} kg`, x + width - 5, statY + 5, { align: 'right' });
-    };
-
-    const genCardW = (pageWidth - (margin * 2) - 10) / 3;
-    const genCardH = 45;
-    
-    if (generalRanking[1]) drawGeneralPodiumCard(margin, y, genCardW, genCardH, generalRanking[1], 2);
-    if (generalRanking[0]) drawGeneralPodiumCard(margin + genCardW + 5, y - 2, genCardW, genCardH + 4, generalRanking[0], 1);
-    if (generalRanking[2]) drawGeneralPodiumCard(margin + (genCardW + 5) * 2, y, genCardW, genCardH, generalRanking[2], 3);
-
-    y += genCardH + 15;
+    y = (pdf as any).lastAutoTable.finalY + 8;
 
     // --- Desempenho por Turno Table ---
     pdf.setFontSize(10);
