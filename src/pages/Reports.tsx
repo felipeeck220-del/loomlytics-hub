@@ -2294,19 +2294,15 @@ async function handlePodioExport(
         
         // Efficiency calculation for "Meta" columns:
         // Meta Eficiência (%) = target_efficiency of the article
-        const targetEff = articleObj?.targetEfficiency || 80;
+        const goalEff = articleObj?.targetEfficiency || 80;
         
-        // Meta Rolos and Meta Peso: We calculate based on the article's target efficiency
-        // Since the user wants the "Meta" (Goal) based on the target efficiency of the article
-        // for the period, we use the article's target efficiency directly for Meta Eficiência.
-        // For Meta Rolos and Meta Peso, since the user previously asked for "Metade" (Half) 
-        // and now corrected to "Meta" (Goal), we maintain the 50% logic if that was the intended "Meta" 
-        // or we use the target efficiency to show what should have been produced.
-        // Given "exemplo, meta de Peso(80%)", it seems they want to see the target value.
-        
-        const goalEff = targetEff;
-        const goalRolls = ma.rolos / 2; // Maintaining previous logic for proportional goal
-        const goalWeight = ma.kg / 2;
+        // Meta Rolos and Meta Peso:
+        // We calculate the goal by projecting the current production to the target efficiency.
+        // Formula: Goal = (Actual Production / Actual Efficiency) * Target Efficiency
+        // This shows what the production SHOULD have been to reach the target efficiency
+        // based on the time/resources used.
+        const goalRolls = eff > 0 ? (ma.rolos / eff) * goalEff : ma.rolos;
+        const goalWeight = eff > 0 ? (ma.kg / eff) * goalEff : ma.kg;
 
         machineArticleRows.push(isAdmin 
           ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(goalRolls, 1), fmtK(ma.kg), fmtK(goalWeight), fmtE(eff), fmtE(goalEff), rpmPadrao, fmtR(ma.revenue)]
