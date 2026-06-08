@@ -2599,25 +2599,10 @@ async function handlePodioExport(
               }
             }
 
-            // Draw text with overflow handling and alternate alignment for Máquina/Artigo
-            if (sec.title === 'Por Máquina') {
-              pdf.setFontSize(6.5);
-              const padding = 1.5;
-              const textW = cw - (padding * 2);
-              
-              if (header === 'Máquina' || header === 'Artigo') {
-                const yOffset = ri % 2 === 0 ? 3.5 : 6.5;
-                const truncated = pdf.getTextWidth(text) > textW ? text.substring(0, 18) + '…' : text;
-                pdf.text(truncated, currentX + padding, y + yOffset);
-              } else {
-                const truncated = pdf.getTextWidth(text) > textW ? text.substring(0, 12) + '…' : text;
-                pdf.text(truncated, currentX + padding, y + 5);
-              }
-            } else {
-              pdf.setFontSize(8);
-              const truncated = text.length > 25 ? text.substring(0, 24) + '…' : text;
-              pdf.text(truncated, currentX + 2, y + 5.5);
-            }
+            // Draw text with overflow handling
+            pdf.setFontSize(8);
+            const truncated = text.length > 25 ? text.substring(0, 24) + '…' : text;
+            pdf.text(truncated, currentX + 2, y + 5.5);
             
             pdf.setTextColor(...colors.textDark);
             pdf.setFontSize(8);
