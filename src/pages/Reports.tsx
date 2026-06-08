@@ -2241,8 +2241,8 @@ async function handlePodioExport(
 
   if (type === 'completo' || type === 'maquina') {
     const headers = isAdmin 
-      ? ['Máquina', 'Artigo', 'Rolos', 'MetadeRolo', 'Peso (kg)', 'metadePeso (kg)', 'Eficiência (%)', 'metadeefciencia', 'RPM Padrão', 'Faturamento'] 
-      : ['Máquina', 'Artigo', 'Rolos', 'MetadeRolo', 'Peso (kg)', 'metadePeso (kg)', 'Eficiência (%)', 'metadeefciencia', 'RPM Padrão'];
+      ? ['Máquina', 'Artigo', 'Rolos', 'Meta Rolos', 'Peso (kg)', 'Meta Peso (kg)', 'Eficiência (%)', 'Meta Eficiência (%)', 'RPM Padrão', 'Faturamento'] 
+      : ['Máquina', 'Artigo', 'Rolos', 'Meta Rolos', 'Peso (kg)', 'Meta Peso (kg)', 'Eficiência (%)', 'Meta Eficiência (%)', 'RPM Padrão'];
     
     // Use 'filtered' (productions) to list machines with articles for the period
     const machineArticleRows: (string | number)[][] = [];
