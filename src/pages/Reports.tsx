@@ -2668,18 +2668,39 @@ async function handlePodioExport(
             const cw = getColWidth(ci);
             const header = sec.headers[ci];
             
-            // Apply conditional colors for 'Eficiência (%)' column in 'Por Máquina' report
-            if (sec.title === 'Por Máquina' && !isTotal && header === 'Eficiência (%)') {
-              const metaColIdx = sec.headers.indexOf('M. Eficiência (%)');
-              if (metaColIdx !== -1) {
+            // Apply conditional colors for 'Eficiência (%)' and 'Rolos' columns in 'Por Máquina' report
+            if (sec.title === 'Por Máquina' && !isTotal) {
+              const metaEffIdx = sec.headers.indexOf('M. Eficiência (%)');
+              const metaRolosIdx = sec.headers.indexOf('M. Rolos');
+              const rolosIdx = sec.headers.indexOf('Rolos');
+              const effIdx = sec.headers.indexOf('Eficiência (%)');
+
+              // Conditional for Eficiência (%)
+              if (ci === effIdx && metaEffIdx !== -1) {
                 const effVal = parseFloat(text.replace(',', '.').replace('%', '')) || 0;
-                const metaVal = parseFloat(String(row[metaColIdx]).replace(',', '.').replace('%', '')) || 0;
+                const metaVal = parseFloat(String(row[metaEffIdx]).replace(',', '.').replace('%', '')) || 0;
 
                 if (effVal < metaVal) {
                   pdf.setFillColor(254, 226, 226); // Light red
                   pdf.rect(currentX, y, cw, rowH, 'F');
                   pdf.setTextColor(185, 28, 28);
                 } else if (metaVal > 0) {
+                  pdf.setFillColor(220, 252, 231); // Light green
+                  pdf.rect(currentX, y, cw, rowH, 'F');
+                  pdf.setTextColor(21, 128, 61);
+                }
+              }
+
+              // Conditional for Rolos (current produced vs goal)
+              if (ci === rolosIdx && metaRolosIdx !== -1) {
+                const rolosVal = parseFloat(text.replace('.', '').replace(',', '.')) || 0;
+                const metaRolosVal = parseFloat(String(row[metaRolosIdx]).replace('.', '').replace(',', '.')) || 0;
+
+                if (rolosVal < metaRolosVal) {
+                  pdf.setFillColor(254, 226, 226); // Light red
+                  pdf.rect(currentX, y, cw, rowH, 'F');
+                  pdf.setTextColor(185, 28, 28);
+                } else if (metaRolosVal > 0) {
                   pdf.setFillColor(220, 252, 231); // Light green
                   pdf.rect(currentX, y, cw, rowH, 'F');
                   pdf.setTextColor(21, 128, 61);
