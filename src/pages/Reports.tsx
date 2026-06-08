@@ -1876,7 +1876,15 @@ async function handlePodioExport(
       pdf.setTextColor(...colors.muted);
       pdf.text('EFICIÊNCIA MÉDIA', x + width / 2, yPos + 33, { align: 'center' });
 
-      const statY = yPos + 42;
+      if (rank > 1 && podio.ranking[0]) {
+        const diff = podio.ranking[0].eficiencia - item.eficiencia;
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(180, 83, 9); // bronze
+        pdf.text(`+${formatNumber(diff, 1)}% PARA O 1º LUGAR`, x + width / 2, yPos + 38, { align: 'center' });
+      }
+
+      const statY = yPos + (rank > 1 ? 46 : 42);
       pdf.setDrawColor(...colors.border);
       pdf.setLineWidth(0.1);
       pdf.line(x + 5, statY, x + width - 5, statY);
