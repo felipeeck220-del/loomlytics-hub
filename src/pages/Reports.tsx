@@ -97,6 +97,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   const [podioTo, setPodioTo] = useState<Date>();
   const [podioSelectedDates, setPodioSelectedDates] = useState<Date[]>([]);
   const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
+  const [exportEficienciaExigida, setExportEficienciaExigida] = useState<string>('80');
+  const [isPodioCalendarOpen, setIsPodioCalendarOpen] = useState(false);
 
    const avgTargetEfficiency = 80;
    const [loading, setLoading] = useState(true);
@@ -1395,7 +1397,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label>Dia do Pódio (Ganhador Diário)</Label>
-                        <Popover>
+                        <Popover open={isPodioCalendarOpen} onOpenChange={setIsPodioCalendarOpen}>
                           <PopoverTrigger asChild>
                             <Button variant="outline" className="w-full justify-start font-normal">
                               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1411,6 +1413,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                   setPodioFrom(d);
                                   setPodioTo(d);
                                   setPodioRange('custom');
+                                  setIsPodioCalendarOpen(false);
                                 }
                               }}
                               locale={ptBR}
@@ -1423,7 +1426,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 
                       <div className="space-y-2">
                         <Label>Dias para Detalhamento (Semana)</Label>
-                        <div className="border rounded-md p-2 max-h-[200px] overflow-y-auto space-y-1">
+                        <div className="border rounded-md p-1 overflow-visible">
                           <Calendar
                             mode="multiple"
                             selected={podioSelectedDates}
@@ -1433,6 +1436,17 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                           />
                         </div>
                         <p className="text-[10px] text-muted-foreground">Estes dias serão somados no Resumo Geral e Desempenho por Turno.</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Eficiência Exigida (%)</Label>
+                        <Input 
+                          type="number" 
+                          value={exportEficienciaExigida} 
+                          onChange={(e) => setExportEficienciaExigida(e.target.value)}
+                          placeholder="Ex: 80"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Usada como base para o cálculo de metas no PDF.</p>
                       </div>
                     </div>
 
@@ -1479,7 +1493,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
 
                           const label = `Pódio: ${format(podioFrom, 'dd/MM/yyyy')} | Período: ${format(new Date(pFrom + 'T12:00:00'), 'dd/MM')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
 
-                          handlePodioExport({ ranking, daily, periodLabel: label, from: pFrom, to: pTo }, companyLogoUrl, companyName);
+                          handlePodioExport({ ranking, daily, periodLabel: label, from: pFrom, to: pTo }, companyLogoUrl, companyName, parseFloat(exportEficienciaExigida) || 0);
                           setIsDailyModalOpen(false);
                         }}
                         disabled={!podioFrom}
@@ -1700,6 +1714,7 @@ async function handlePodioExport(
   podio: { ranking: any[]; daily: { date: string; ranking: any[] }[]; periodLabel: string; from?: string; to?: string },
   logoUrl?: string | null,
   companyName?: string,
+  eficienciaExigida: number = 0,
 ) {
   const { toast } = await import('sonner');
   toast.info('Gerando PDF do pódio...');
@@ -2129,44 +2144,45 @@ async function handlePodioExport(
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
     pdf.text('RESUMO GERAL', margin, y);
+    y += 4;
 
-    const resumoY = y + 5;
-    const resumoH = 25;
-    pdf.setFillColor(245, 247, 250);
-    pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'F');
-    pdf.setDrawColor(220, 225, 230);
-    pdf.setLineWidth(0.2);
-    pdf.roundedRect(margin, resumoY, pageWidth - (margin * 2), resumoH, 2, 2, 'S');
+    const avgEfGeral = count > 0 ? avgEf / count : 0;
+    const resumoRows = [[
+      `${formatNumber(totalPieces)} pcs`,
+      `${formatNumber(totalKg, 2)} kg`,
+      `${formatNumber(avgEfGeral, 1)}%`,
+      `${formatNumber(eficienciaExigida, 1)}%`
+    ]];
 
-    const colW = (pageWidth - (margin * 2)) / 3;
-    const statCenterY = resumoY + (resumoH / 2);
-
-    pdf.setFontSize(7);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(100, 100, 100);
-    pdf.text('PEÇAS TOTAIS', margin + 10, statCenterY - 2);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(20, 20, 20);
-    pdf.text(`${formatNumber(totalPieces)} pcs`, margin + 10, statCenterY + 4);
-
-    pdf.setFontSize(7);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(100, 100, 100);
-    pdf.text('PESO TOTAL', margin + colW + 10, statCenterY - 2);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(20, 20, 20);
-    pdf.text(`${formatNumber(totalKg, 2)} kg`, margin + colW + 10, statCenterY + 4);
-
-    pdf.setFontSize(7);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(100, 100, 100);
-    pdf.text('EFICIÊNCIA MÉDIA', margin + (colW * 2) + 10, statCenterY - 2);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(20, 20, 20);
-    pdf.text(`${formatNumber(count > 0 ? avgEf / count : 0, 1)}%`, margin + (colW * 2) + 10, statCenterY + 4);
+    autoTable(pdf, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Peças Totais', 'Peso Total', 'Eficiência Média', 'Eficiência Exigida']],
+      body: resumoRows,
+      theme: 'grid',
+      headStyles: { fillColor: [80, 80, 80], textColor: colors.white, fontSize: 8, halign: 'center' },
+      styles: { fontSize: 9, halign: 'center', fontStyle: 'bold' },
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 2) {
+          const val = avgEfGeral;
+          const target = eficienciaExigida;
+          
+          if (val >= target) {
+            pdf.setFillColor(220, 252, 231); // green
+            pdf.setTextColor(21, 128, 61);
+          } else if (val >= target - 5) {
+            pdf.setFillColor(254, 243, 199); // yellow
+            pdf.setTextColor(180, 83, 9);
+          } else {
+            pdf.setFillColor(254, 226, 226); // red
+            pdf.setTextColor(185, 28, 28);
+          }
+          
+          pdf.rect(data.cell.x + 0.5, data.cell.y + 0.5, data.cell.width - 1, data.cell.height - 1, 'F');
+          pdf.text(data.cell.text, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 2, { align: 'center' });
+        }
+      }
+    });
 
     y = (pdf as any).lastAutoTable.finalY + 10;
 
