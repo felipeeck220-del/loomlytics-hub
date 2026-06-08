@@ -77,6 +77,7 @@ export function useCompanyData() {
       model: r.model || undefined, diameter: r.diameter || undefined,
       fineness: r.fineness || undefined, needle_quantity: r.needle_quantity ? Number(r.needle_quantity) : undefined,
       feeder_quantity: r.feeder_quantity ? Number(r.feeder_quantity) : undefined,
+      sinker_quantity: r.sinker_quantity ? Number(r.sinker_quantity) : undefined,
       observations: r.observations || undefined, machine_id: r.machine_id || undefined,
       created_at: r.created_at, updated_at: r.updated_at,
     });
@@ -663,13 +664,15 @@ export function useCompanyData() {
        await sb('cylinders').delete().in('id', idsToDelete);
      }
      if (data.length > 0) {
-       const rows = data.map(c => ({
-         id: c.id, company_id: companyId, brand: c.brand,
-         model: c.model || null, diameter: c.diameter || null,
-         fineness: c.fineness || null, needle_quantity: c.needle_quantity || null,
-         feeder_quantity: c.feeder_quantity || null, observations: c.observations || null,
-         machine_id: c.machine_id || null,
-       }));
+      const rows = data.map(c => ({
+        id: c.id, company_id: companyId, brand: c.brand,
+        model: c.model || null, diameter: c.diameter || null,
+        fineness: c.fineness || null, needle_quantity: c.needle_quantity || null,
+        feeder_quantity: c.feeder_quantity || null, 
+        sinker_quantity: c.sinker_quantity || null,
+        observations: c.observations || null,
+        machine_id: c.machine_id || null,
+      }));
        const { error } = await sb('cylinders').upsert(rows);
        if (error) throw error;
      }
