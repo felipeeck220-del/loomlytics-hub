@@ -1303,11 +1303,18 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                       </p>
                                     </div>
                                   </div>
-                                  <div className="text-right">
+                                  <div className="text-right flex flex-col items-end">
                                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Eficiência</p>
                                     <p className={cn("text-2xl font-black italic", colors.text)}>
                                       {formatPercent(w.eficiencia)}
                                     </p>
+                                    {i > 0 && podioComputed.ranking[0] && (
+                                      <div className="mt-1 flex flex-col items-end">
+                                        <Badge variant="outline" className="text-[9px] h-4 px-1 font-bold border-muted-foreground/30 text-muted-foreground uppercase italic bg-muted/5">
+                                          +{formatPercent(podioComputed.ranking[0].eficiencia - w.eficiencia)} para o 1º
+                                        </Badge>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               );
