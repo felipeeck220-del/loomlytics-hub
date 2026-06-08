@@ -1915,8 +1915,7 @@ async function handlePodioExport(
       const getShiftData = (rankIdx: number) => {
         const item = d.ranking[rankIdx];
         if (!item) return '-';
-        const firstEff = d.ranking[0]?.eficiencia || 0;
-        return `${item.name.toUpperCase()}\n${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%`;
+        return `${item.name.toUpperCase()}: ${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%`;
       };
       
       return [
@@ -2059,15 +2058,29 @@ async function handlePodioExport(
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
-    pdf.text('RANKING DO PERÍODO', margin, y);
+    pdf.text('RANKING DO PERÍODO (QUEM ESTÁ GANHANDO)', margin, y);
     y += 4;
 
-    const rankingRows = generalRanking.map((item, idx) => [
-      `${idx + 1}º`,
-      item.name.toUpperCase(),
-      `${formatNumber(item.kg, 1)} kg`,
-      `${formatNumber(item.eficiencia, 1)}%`
-    ]);
+    const rankingRows = generalRanking.map((item, idx) => {
+      const baseRow = [
+        `${idx + 1}º`,
+        item.name.toUpperCase(),
+        `${formatNumber(item.kg, 1)} kg`,
+        `${formatNumber(item.eficiencia, 1)}%`
+      ];
+
+      if (idx > 0 && generalRanking[0]) {
+        const diff = generalRanking[0].eficiencia - item.eficiencia;
+        if (diff > 0) {
+          // If we want to reach first place, we need to average more than first place's current average
+          // to pull our own average up. 
+          // Simplified logic: show how much more efficiency is needed relative to current state
+          baseRow[3] = `${formatNumber(item.eficiencia, 1)}% (+${formatNumber(diff, 1)}%)`;
+        }
+      }
+
+      return baseRow;
+    });
 
     autoTable(pdf, {
       startY: y,
@@ -2081,7 +2094,7 @@ async function handlePodioExport(
         0: { cellWidth: 15, fontStyle: 'bold' },
         1: { halign: 'left', fontStyle: 'bold' },
         2: { cellWidth: 40 },
-        3: { cellWidth: 40, fontStyle: 'bold' },
+        3: { cellWidth: 50, fontStyle: 'bold' },
       }
     });
 
