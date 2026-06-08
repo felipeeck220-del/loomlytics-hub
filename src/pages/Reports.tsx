@@ -1353,17 +1353,21 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                           {w ? (
                                             <div className="space-y-0.5">
                                               <div className="font-medium text-foreground">{w.name}</div>
-                                              <div className="text-xs flex flex-wrap items-center gap-1">
-                                                <span>{formatNumber(w.rolos)} pç</span>
-                                                <span>·</span>
-                                                <span>{formatNumber(w.kg, 1)} kg</span>
-                                                <span>·</span>
-                                                <span className="font-bold">{formatNumber(w.eficiencia, 1)}%</span>
-                                                {i > 0 && firstEff > w.eficiencia && (
-                                                  <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 border-amber-200 bg-amber-50 text-amber-700 font-bold">
-                                                    +{formatNumber(firstEff - w.eficiencia, 1)}%
-                                                  </Badge>
-                                                )}
+                                              <div className="text-xs flex flex-col gap-0.5">
+                                                <div className="flex flex-wrap items-center gap-1">
+                                                  <span>{formatNumber(w.rolos)} pç</span>
+                                                  <span>·</span>
+                                                  <span>{formatNumber(w.kg, 1)} kg</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 font-bold text-foreground">
+                                                  <span>{formatNumber(w.eficiencia, 1)}%</span>
+                                                  <span className="text-[9px] text-muted-foreground font-normal uppercase italic">Eficiência Média</span>
+                                                  {i > 0 && firstEff > w.eficiencia && (
+                                                    <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 border-amber-200 bg-amber-50 text-amber-700 font-bold ml-1">
+                                                      +{formatNumber(firstEff - w.eficiencia, 1)}%
+                                                    </Badge>
+                                                  )}
+                                                </div>
                                               </div>
                                             </div>
                                           ) : <span className="text-xs">—</span>}
@@ -1919,8 +1923,8 @@ async function handlePodioExport(
         if (!item) return '-';
         const firstEff = d.ranking[0]?.eficiencia || 0;
         const diffStr = (rankIdx > 0 && firstEff > item.eficiencia) ? ` (+${formatNumber(firstEff - item.eficiencia, 1)}%)` : '';
-        // Dados em negrito conforme solicitado: 01/06/2026 Manhã - 6.343,0kg - 73,1%
-        return `${item.name} - ${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%${diffStr}`;
+        // Dados em negrito conforme solicitado: 5.362,0kg - 72,7% (+0,3%) EFICIÊNCIA MÉDIA
+        return `${item.name.toUpperCase()}\n${formatNumber(item.kg, 1)}kg - ${formatNumber(item.eficiencia, 1)}%${diffStr}\nEFICIÊNCIA MÉDIA`;
       };
       
       return [
