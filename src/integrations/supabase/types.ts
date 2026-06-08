@@ -2233,6 +2233,12 @@ export type Database = {
           total_records: number
         }[]
       }
+      get_faturamento_available_months: {
+        Args: { p_company_id: string }
+        Returns: {
+          month_str: string
+        }[]
+      }
       get_faturamento_total_metrics: {
         Args: {
           p_company_id: string
