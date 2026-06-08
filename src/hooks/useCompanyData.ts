@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
  import type { 
    Machine, Client, Article, Weaver, Production, MachineLog, 
    ArticleMachineTurns, CompanyShiftSettings, ShiftType, DefectRecord,
-   NeedleInventory, NeedleTransaction
+   NeedleInventory, NeedleTransaction,
+   SinkerInventory, SinkerTransaction
  } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
@@ -22,8 +23,10 @@ export function useCompanyData() {
   const [productions, setProductions] = useState<Production[]>([]);
   const [articleMachineTurns, setArticleMachineTurns] = useState<ArticleMachineTurns[]>([]);
    const [defectRecords, setDefectRecords] = useState<DefectRecord[]>([]);
-   const [needles, setNeedles] = useState<NeedleInventory[]>([]);
-   const [needleTransactions, setNeedleTransactions] = useState<NeedleTransaction[]>([]);
+    const [needles, setNeedles] = useState<NeedleInventory[]>([]);
+    const [needleTransactions, setNeedleTransactions] = useState<NeedleTransaction[]>([]);
+    const [sinkers, setSinkers] = useState<SinkerInventory[]>([]);
+    const [sinkerTransactions, setSinkerTransactions] = useState<SinkerTransaction[]>([]);
   const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
    const [loadingProgress, setLoadingProgress] = useState(0);
@@ -64,6 +67,21 @@ export function useCompanyData() {
      feeder_quantity: r.feeder_quantity ? Number(r.feeder_quantity) : undefined,
      serial_number: r.serial_number || undefined,
      last_needle_change_at: r.last_needle_change_at || undefined,
+     last_sinker_change_at: r.last_sinker_change_at || undefined,
+   });
+   const mapSinker = (r: any): SinkerInventory => ({
+     id: r.id, company_id: r.company_id, provider: r.provider,
+     brand: r.brand, reference_code: r.reference_code,
+     current_quantity: Number(r.current_quantity),
+     created_at: r.created_at, updated_at: r.updated_at,
+   });
+   const mapSinkerTransaction = (r: any): SinkerTransaction => ({
+     id: r.id, company_id: r.company_id, sinker_id: r.sinker_id,
+     type: r.type, exit_mode: r.exit_mode || undefined,
+     quantity: Number(r.quantity), date: r.date,
+     machine_id: r.machine_id || undefined,
+     created_at: r.created_at, created_by_id: r.created_by_id || undefined,
+     created_by_name: r.created_by_name || undefined,
    });
    const mapNeedle = (r: any): NeedleInventory => ({
      id: r.id, company_id: r.company_id, provider: r.provider,
@@ -161,8 +179,10 @@ export function useCompanyData() {
          { name: 'company_settings', fn: () => sb('company_settings').select('*').eq('company_id', companyId).maybeSingle() },
          { name: 'defect_records', fn: () => fetchAll('defect_records', { column: 'company_id', value: companyId }, 'date', false) },
          { name: 'needle_inventory', fn: () => fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
-         { name: 'needle_transactions', fn: () => fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false) },
-       ];
+          { name: 'needle_transactions', fn: () => fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false) },
+          { name: 'sinker_inventory', fn: () => fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
+          { name: 'sinker_transactions', fn: () => fetchAll('sinker_transactions', { column: 'company_id', value: companyId }, 'date', false) },
+        ];
  
        let completed = 0;
        const results = await Promise.all(tasks.map(async (task) => {
@@ -172,7 +192,7 @@ export function useCompanyData() {
          return result;
        }));
  
-       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData] = results;
+       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData] = results;
  
        setMachines(mData.map(mapMachine));
        setMachineLogs(mlRes.map(mapMachineLog));
@@ -183,7 +203,9 @@ export function useCompanyData() {
        setArticleMachineTurns(amtData.map(mapArticleMachineTurns));
        setDefectRecords(drRes.map(mapDefectRecord));
        setNeedles(nData.map(mapNeedle));
-       setNeedleTransactions(ntData.map(mapNeedleTransaction));
+        setNeedleTransactions(ntData.map(mapNeedleTransaction));
+        setSinkers(sData.map(mapSinker));
+        setSinkerTransactions(stData.map(mapSinkerTransaction));
        
        if (csRes.data) {
          setShiftSettings({
@@ -218,7 +240,9 @@ export function useCompanyData() {
   const getArticleMachineTurns = useCallback(() => articleMachineTurns, [articleMachineTurns]);
    const getDefectRecords = useCallback(() => defectRecords, [defectRecords]);
    const getNeedles = useCallback(() => needles, [needles]);
-   const getNeedleTransactions = useCallback(() => needleTransactions, [needleTransactions]);
+    const getNeedleTransactions = useCallback(() => needleTransactions, [needleTransactions]);
+    const getSinkers = useCallback(() => sinkers, [sinkers]);
+    const getSinkerTransactions = useCallback(() => sinkerTransactions, [sinkerTransactions]);
 
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {
@@ -239,6 +263,7 @@ export function useCompanyData() {
          model: m.model || null, diameter: m.diameter || null, fineness: m.fineness || null,
          needle_quantity: m.needle_quantity || null, feeder_quantity: m.feeder_quantity || null,
          serial_number: m.serial_number || null, last_needle_change_at: m.last_needle_change_at || null,
+         last_sinker_change_at: m.last_sinker_change_at || null,
        }));
       const { error } = await sb('machines').upsert(rows);
       if (error) { console.error('Error saving machines:', error); throw error; }
@@ -533,6 +558,76 @@ export function useCompanyData() {
     const nData = await fetchAll('needle_inventory', { column: 'company_id', value: companyId }, 'reference_code');
     setNeedles(nData.map(mapNeedle));
   }, [companyId]);
+ 
+   const saveSinkers = useCallback(async (data: SinkerInventory[]) => {
+     if (!companyId) return;
+     const currentIds = sinkers.map(n => n.id);
+     const newIds = data.map(n => n.id);
+     const idsToDelete = currentIds.filter(id => !newIds.includes(id));
+     if (idsToDelete.length > 0) {
+       await sb('sinker_inventory').delete().in('id', idsToDelete);
+     }
+     if (data.length > 0) {
+       const rows = data.map(n => ({
+         id: n.id, company_id: companyId, provider: n.provider,
+         brand: n.brand, reference_code: n.reference_code,
+         current_quantity: n.current_quantity,
+       }));
+       const { error } = await sb('sinker_inventory').upsert(rows);
+       if (error) throw error;
+     }
+      setSinkers(data.map(n => ({ ...n, company_id: companyId })));
+   }, [companyId, sinkers]);
+ 
+   const addSinkerTransaction = useCallback(async (newRecord: SinkerTransaction) => {
+     if (!companyId) return;
+     const row = {
+       id: newRecord.id, company_id: companyId, sinker_id: newRecord.sinker_id,
+       type: newRecord.type, exit_mode: newRecord.exit_mode || null,
+       quantity: newRecord.quantity, date: newRecord.date,
+       machine_id: newRecord.machine_id || null,
+       created_by_id: user?.id || null,
+       created_by_name: newRecord.created_by_name || null,
+     };
+     const { error } = await sb('sinker_transactions').insert(row);
+     if (error) throw error;
+      setSinkerTransactions(prev => [{ ...newRecord, company_id: companyId }, ...prev]);
+ 
+     // Refresh inventory
+     const sData = await fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code');
+     setSinkers(sData.map(mapSinker));
+ 
+     // If it was a sinker change, refresh machines too
+     if (newRecord.exit_mode === 'troca_platinas') {
+       const mData = await fetchAll('machines', { column: 'company_id', value: companyId }, 'number');
+       setMachines(mData.map(mapMachine));
+     }
+   }, [companyId, user?.id]);
+ 
+  const updateSinkerTransaction = useCallback(async (id: string, updates: Partial<SinkerTransaction>) => {
+    if (!companyId) return;
+    const row: any = {};
+    if (updates.quantity !== undefined) row.quantity = updates.quantity;
+    if (updates.date !== undefined) row.date = updates.date;
+    if ('machine_id' in updates) row.machine_id = updates.machine_id || null;
+    if (updates.sinker_id !== undefined) row.sinker_id = updates.sinker_id;
+    if (updates.type !== undefined) row.type = updates.type;
+    if ('exit_mode' in updates) row.exit_mode = updates.exit_mode || null;
+    const { error } = await sb('sinker_transactions').update(row).eq('id', id);
+    if (error) throw error;
+    setSinkerTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    const sData = await fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code');
+    setSinkers(sData.map(mapSinker));
+  }, [companyId]);
+ 
+  const deleteSinkerTransaction = useCallback(async (id: string) => {
+    if (!companyId) return;
+    const { error } = await sb('sinker_transactions').delete().eq('id', id);
+    if (error) throw error;
+    setSinkerTransactions(prev => prev.filter(t => t.id !== id));
+    const sData = await fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code');
+    setSinkers(sData.map(mapSinker));
+  }, [companyId]);
 
     return {
      loading,
@@ -549,8 +644,10 @@ export function useCompanyData() {
     getArticleMachineTurns, saveArticleMachineTurns,
      getDefectRecords, addDefectRecords, updateDefectRecords, deleteDefectRecords,
      getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
-     updateNeedleTransaction, deleteNeedleTransaction,
-      saveShiftSettings,
+      updateNeedleTransaction, deleteNeedleTransaction,
+      getSinkers, saveSinkers, getSinkerTransactions, addSinkerTransaction,
+      updateSinkerTransaction, deleteSinkerTransaction,
+       saveShiftSettings,
      getProductionFilterMonths: useCallback(async () => {
        if (!companyId) return [];
        const { data, error } = await supabase.rpc('get_production_filter_months', { p_company_id: companyId });
