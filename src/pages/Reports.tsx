@@ -187,11 +187,21 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       const machineMap: Record<string, any> = {};
       filtered.forEach(p => {
         const key = p.machine_id || p.machine_name;
-        if (!machineMap[key]) machineMap[key] = { name: p.machine_name, rolos: 0, kg: 0, faturamento: 0, efficiencySum: 0, weightForEff: 0, records: 0 };
+        if (!machineMap[key]) machineMap[key] = { 
+          name: p.machine_name, 
+          rolos: 0, 
+          kg: 0, 
+          faturamento: 0, 
+          efficiencySum: 0, 
+          weightForEff: 0, 
+          records: 0,
+          articles: new Set()
+        };
         machineMap[key].rolos += p.rolls_produced;
         machineMap[key].kg += p.weight_kg;
         machineMap[key].faturamento += p.revenue;
         machineMap[key].records += 1;
+        if (p.article_name) machineMap[key].articles.add(p.article_name);
         if (p.rolls_produced > 0) {
           machineMap[key].efficiencySum += (p.efficiency * p.weight_kg);
           machineMap[key].weightForEff += p.weight_kg;
@@ -202,6 +212,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
         eficiencia: m.weightForEff > 0 ? m.efficiencySum / m.weightForEff : 0,
         pct_rolls: total_rolls > 0 ? (m.rolos / total_rolls) * 100 : 0,
         pct_revenue: total_revenue > 0 ? (m.faturamento / total_revenue) * 100 : 0,
+        articleNames: Array.from(m.articles).join(', ')
       })).sort((a, b) => {
         // Sort by machine number if possible, then by name
         const numA = parseInt(a.name.replace(/\D/g, ''));
@@ -2241,22 +2252,37 @@ async function handlePodioExport(
   }
 
   if (type === 'completo' || type === 'maquina') {
-    const headers = isAdmin 
-      ? ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento'] 
-      : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)'];
+    // Check if it's a single day filter to show Article column
+    const isSingleDay = periodLabel.length <= 10 && periodLabel.includes('/');
     
-    const rows = byMachine.map(m => isAdmin 
-      ? [m.name, fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia), fmtR(m.faturamento)] 
-      : [m.name, fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia)]
-    );
+    let headers: string[];
+    if (isAdmin) {
+      headers = isSingleDay 
+        ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento']
+        : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento'];
+    } else {
+      headers = isSingleDay
+        ? ['Máquina', 'Artigo', 'Rolos', 'Peso (kg)', 'Eficiência (%)']
+        : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)'];
+    }
+    
+    const rows = byMachine.map(m => {
+      const baseData = [m.name];
+      if (isSingleDay) baseData.push(m.articleNames || '-');
+      
+      baseData.push(fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia));
+      if (isAdmin) baseData.push(fmtR(m.faturamento));
+      
+      return baseData;
+    });
 
     const tR = byMachine.reduce((a, m) => a + m.rolos, 0), tK = byMachine.reduce((a, m) => a + m.kg, 0);
     const avgE = byMachine.length ? byMachine.reduce((a, m) => a + m.eficiencia, 0) / byMachine.length : 0;
     const tF = byMachine.reduce((a, m) => a + m.faturamento, 0);
     
-    const totalRow = isAdmin 
-      ? ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtR(tF)] 
-      : ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE)];
+    const totalRow = isSingleDay
+      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtK(tK), fmtE(avgE)])
+      : (isAdmin ? ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE)]);
     
     rows.push(totalRow);
     sections.push({ title: 'Por Máquina', headers, rows });
