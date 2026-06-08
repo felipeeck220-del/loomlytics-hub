@@ -34,12 +34,14 @@ export default function MecanicaPage() {
      updateNeedleTransaction, deleteNeedleTransaction,
      getSinkers, saveSinkers, getSinkerTransactions, addSinkerTransaction,
      updateSinkerTransaction, deleteSinkerTransaction,
+     getCylinders, saveCylinders, assignCylinderToMachine,
      loading 
    } = useSharedCompanyData();
    const needles = getNeedles();
    const needleTransactions = getNeedleTransactions();
    const sinkers = getSinkers();
    const sinkerTransactions = getSinkerTransactions();
+   const cylinders = getCylinders();
    // Needle Management State
    const [needleSearch, setNeedleSearch] = useState('');
    const [showNeedleModal, setShowNeedleModal] = useState(false);
@@ -69,6 +71,18 @@ export default function MecanicaPage() {
    const [deleteSinkerTxnId, setDeleteSinkerTxnId] = useState<string | null>(null);
    const [sinkerHistoryPage, setSinkerHistoryPage] = useState(1);
    const SINKER_HISTORY_PER_PAGE = 15;
+
+   // Cylinder Management State
+   const [cylinderSearch, setCylinderSearch] = useState('');
+   const [showCylinderModal, setShowCylinderModal] = useState(false);
+   const [editingCylinder, setEditingCylinder] = useState<any>(null);
+   const [cylinderForm, setCylinderForm] = useState({ 
+     brand: '', model: '', diameter: '', fineness: '', 
+     needle_quantity: '', feeder_quantity: '', observations: '' 
+   });
+   const [showAssignModal, setShowAssignModal] = useState(false);
+   const [assignForm, setAssignForm] = useState({ machine_id: '', cylinder_id: '' });
+  
  
   const { canSeeFinancial } = usePermissions();
   const machines = getMachines();
@@ -436,6 +450,55 @@ export default function MecanicaPage() {
         setSinkerExitForm({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
       } catch (e) { toast.error('Erro ao registrar baixa.'); }
     };
+
+    const handleSaveCylinder = async () => {
+      if (!cylinderForm.brand) {
+        toast.error('Informe ao menos a marca do cilindro.');
+        return;
+      }
+      try {
+        const newCyl = {
+          id: editingCylinder ? editingCylinder.id : crypto.randomUUID(),
+          brand: cylinderForm.brand,
+          model: cylinderForm.model,
+          diameter: cylinderForm.diameter,
+          fineness: cylinderForm.fineness,
+          needle_quantity: cylinderForm.needle_quantity ? Number(cylinderForm.needle_quantity) : undefined,
+          feeder_quantity: cylinderForm.feeder_quantity ? Number(cylinderForm.feeder_quantity) : undefined,
+          observations: cylinderForm.observations,
+          created_at: editingCylinder ? editingCylinder.created_at : new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          company_id: ''
+        };
+
+        const updatedCylinders = editingCylinder 
+          ? cylinders.map(c => c.id === editingCylinder.id ? newCyl : c)
+          : [...cylinders, newCyl];
+
+        await saveCylinders(updatedCylinders);
+        logAction(editingCylinder ? 'cylinder_update' : 'cylinder_create', { brand: newCyl.brand });
+        toast.success(editingCylinder ? 'Cilindro atualizado!' : 'Cilindro cadastrado!');
+        setShowCylinderModal(false);
+        setEditingCylinder(null);
+        setCylinderForm({ brand: '', model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', observations: '' });
+      } catch (e) { toast.error('Erro ao salvar cilindro.'); }
+    };
+
+    const handleAssignCylinder = async () => {
+      if (!assignForm.machine_id) {
+        toast.error('Selecione uma máquina.');
+        return;
+      }
+      try {
+        await assignCylinderToMachine(assignForm.cylinder_id || null, assignForm.machine_id);
+        const m = machines.find(m => m.id === assignForm.machine_id);
+        const c = cylinders.find(c => c.id === assignForm.cylinder_id);
+        logAction('cylinder_assign', { machine: m?.name, cylinder: c?.brand });
+        toast.success('Cilindro atribuído com sucesso!');
+        setShowAssignModal(false);
+      } catch (e) { toast.error('Erro ao atribuir cilindro.'); }
+    };
+
 
   return (
     <div className="space-y-6">
@@ -1753,24 +1816,120 @@ export default function MecanicaPage() {
        </DialogContent>
      </Dialog>
 
-     <DeleteConfirmDialog
-       open={!!deleteSinkerTxnId}
-       onOpenChange={(o) => !o && setDeleteSinkerTxnId(null)}
-       title="Excluir movimentação de platina"
-       description="Esta ação irá reverter o saldo de estoque e não pode ser desfeita."
-       onConfirm={async () => {
-         if (!deleteSinkerTxnId) return;
-         try {
-           await deleteSinkerTransaction(deleteSinkerTxnId);
-           await logAction('sinker_transaction_delete', { id: deleteSinkerTxnId });
-           toast.success('Movimentação excluída');
-         } catch (e: any) {
-           toast.error('Erro ao excluir: ' + (e?.message || ''));
-         } finally {
-           setDeleteSinkerTxnId(null);
-         }
-       }}
-     />
+      <DeleteConfirmDialog
+        open={!!deleteSinkerTxnId}
+        onOpenChange={(o) => !o && setDeleteSinkerTxnId(null)}
+        title="Excluir movimentação de platina"
+        description="Esta ação irá reverter o saldo de estoque e não pode ser desfeita."
+        onConfirm={async () => {
+          if (!deleteSinkerTxnId) return;
+          try {
+            await deleteSinkerTransaction(deleteSinkerTxnId);
+            await logAction('sinker_transaction_delete', { id: deleteSinkerTxnId });
+            toast.success('Movimentação excluída');
+          } catch (e: any) {
+            toast.error('Erro ao excluir: ' + (e?.message || ''));
+          } finally {
+            setDeleteSinkerTxnId(null);
+          }
+        }}
+      />
+
+      {/* Cadastrar/Editar Cilindro */}
+      <Dialog open={showCylinderModal} onOpenChange={(open) => {
+        setShowCylinderModal(open);
+        if (!open) {
+          setEditingCylinder(null);
+          setCylinderForm({ brand: '', model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', observations: '' });
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingCylinder ? 'Editar Cilindro' : 'Cadastrar Novo Cilindro'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Marca</Label>
+                <Input value={cylinderForm.brand} onChange={e => setCylinderForm({...cylinderForm, brand: e.target.value})} placeholder="Ex: Mayer" />
+              </div>
+              <div className="space-y-1">
+                <Label>Modelo</Label>
+                <Input value={cylinderForm.model} onChange={e => setCylinderForm({...cylinderForm, model: e.target.value})} placeholder="Ex: Relanit" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Diâmetro (Ø)</Label>
+                <Input value={cylinderForm.diameter} onChange={e => setCylinderForm({...cylinderForm, diameter: e.target.value})} placeholder="Ex: 30" />
+              </div>
+              <div className="space-y-1">
+                <Label>Fineza (F)</Label>
+                <Input value={cylinderForm.fineness} onChange={e => setCylinderForm({...cylinderForm, fineness: e.target.value})} placeholder="Ex: 24" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Qtd Agulhas</Label>
+                <Input type="number" value={cylinderForm.needle_quantity} onChange={e => setCylinderForm({...cylinderForm, needle_quantity: e.target.value})} placeholder="Ex: 2280" />
+              </div>
+              <div className="space-y-1">
+                <Label>Qtd Alimentadores</Label>
+                <Input type="number" value={cylinderForm.feeder_quantity} onChange={e => setCylinderForm({...cylinderForm, feeder_quantity: e.target.value})} placeholder="Ex: 96" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Observações</Label>
+              <Input value={cylinderForm.observations} onChange={e => setCylinderForm({...cylinderForm, observations: e.target.value})} placeholder="Informações adicionais" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCylinderModal(false)}>Cancelar</Button>
+            <Button onClick={handleSaveCylinder}>{editingCylinder ? 'Salvar Alterações' : 'Cadastrar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Atribuir Cilindro à Máquina */}
+      <Dialog open={showAssignModal} onOpenChange={setShowAssignModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Atribuir Cilindro à Máquina</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Label>Máquina Destino</Label>
+              <Select value={assignForm.machine_id} onValueChange={v => setAssignForm({...assignForm, machine_id: v})}>
+                <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
+                <SelectContent>
+                  {activeMachines.map(m => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name} {m.cylinder_id ? '(Já possui cilindro)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Cilindro</Label>
+              <Select value={assignForm.cylinder_id} onValueChange={v => setAssignForm({...assignForm, cylinder_id: v === 'none' ? '' : v})}>
+                <SelectTrigger><SelectValue placeholder="Selecione o cilindro (vazio para desatribuir)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">NENHUM CILINDRO (Desatribuir)</SelectItem>
+                  {cylinders.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.brand} {c.model} - Ø:{c.diameter} F:{c.fineness} {c.machine_id ? '(Em uso)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                * Atribuir um cilindro a uma máquina irá automaticamente remover o cilindro anterior da mesma.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignModal(false)}>Cancelar</Button>
+            <Button onClick={handleAssignCylinder}>Confirmar Atribuição</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

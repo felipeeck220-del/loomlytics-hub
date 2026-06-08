@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
    Machine, Client, Article, Weaver, Production, MachineLog, 
    ArticleMachineTurns, CompanyShiftSettings, ShiftType, DefectRecord,
    NeedleInventory, NeedleTransaction,
-   SinkerInventory, SinkerTransaction
+   SinkerInventory, SinkerTransaction,
+   Cylinder
  } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
@@ -27,6 +28,7 @@ export function useCompanyData() {
     const [needleTransactions, setNeedleTransactions] = useState<NeedleTransaction[]>([]);
     const [sinkers, setSinkers] = useState<SinkerInventory[]>([]);
     const [sinkerTransactions, setSinkerTransactions] = useState<SinkerTransaction[]>([]);
+    const [cylinders, setCylinders] = useState<Cylinder[]>([]);
   const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
    const [loadingProgress, setLoadingProgress] = useState(0);
@@ -66,9 +68,18 @@ export function useCompanyData() {
      needle_quantity: r.needle_quantity ? Number(r.needle_quantity) : undefined,
      feeder_quantity: r.feeder_quantity ? Number(r.feeder_quantity) : undefined,
      serial_number: r.serial_number || undefined,
-     last_needle_change_at: r.last_needle_change_at || undefined,
-     last_sinker_change_at: r.last_sinker_change_at || undefined,
-   });
+      last_needle_change_at: r.last_needle_change_at || undefined,
+      last_sinker_change_at: r.last_sinker_change_at || undefined,
+      cylinder_id: r.cylinder_id || undefined,
+    });
+    const mapCylinder = (r: any): Cylinder => ({
+      id: r.id, company_id: r.company_id, brand: r.brand,
+      model: r.model || undefined, diameter: r.diameter || undefined,
+      fineness: r.fineness || undefined, needle_quantity: r.needle_quantity ? Number(r.needle_quantity) : undefined,
+      feeder_quantity: r.feeder_quantity ? Number(r.feeder_quantity) : undefined,
+      observations: r.observations || undefined, machine_id: r.machine_id || undefined,
+      created_at: r.created_at, updated_at: r.updated_at,
+    });
    const mapSinker = (r: any): SinkerInventory => ({
      id: r.id, company_id: r.company_id, provider: r.provider,
      brand: r.brand, reference_code: r.reference_code,
@@ -182,6 +193,7 @@ export function useCompanyData() {
           { name: 'needle_transactions', fn: () => fetchAll('needle_transactions', { column: 'company_id', value: companyId }, 'date', false) },
           { name: 'sinker_inventory', fn: () => fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
           { name: 'sinker_transactions', fn: () => fetchAll('sinker_transactions', { column: 'company_id', value: companyId }, 'date', false) },
+          { name: 'cylinders', fn: () => fetchAll('cylinders', { column: 'company_id', value: companyId }, 'brand') },
         ];
  
        let completed = 0;
@@ -192,7 +204,7 @@ export function useCompanyData() {
          return result;
        }));
  
-       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData] = results;
+       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData] = results;
  
        setMachines(mData.map(mapMachine));
        setMachineLogs(mlRes.map(mapMachineLog));
@@ -205,7 +217,8 @@ export function useCompanyData() {
        setNeedles(nData.map(mapNeedle));
         setNeedleTransactions(ntData.map(mapNeedleTransaction));
         setSinkers(sData.map(mapSinker));
-        setSinkerTransactions(stData.map(mapSinkerTransaction));
+         setSinkerTransactions(stData.map(mapSinkerTransaction));
+         setCylinders(cylData.map(mapCylinder));
        
        if (csRes.data) {
          setShiftSettings({
@@ -242,7 +255,8 @@ export function useCompanyData() {
    const getNeedles = useCallback(() => needles, [needles]);
     const getNeedleTransactions = useCallback(() => needleTransactions, [needleTransactions]);
     const getSinkers = useCallback(() => sinkers, [sinkers]);
-    const getSinkerTransactions = useCallback(() => sinkerTransactions, [sinkerTransactions]);
+     const getSinkerTransactions = useCallback(() => sinkerTransactions, [sinkerTransactions]);
+     const getCylinders = useCallback(() => cylinders, [cylinders]);
 
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {
@@ -263,8 +277,9 @@ export function useCompanyData() {
          model: m.model || null, diameter: m.diameter || null, fineness: m.fineness || null,
          needle_quantity: m.needle_quantity || null, feeder_quantity: m.feeder_quantity || null,
          serial_number: m.serial_number || null, last_needle_change_at: m.last_needle_change_at || null,
-         last_sinker_change_at: m.last_sinker_change_at || null,
-       }));
+          last_sinker_change_at: m.last_sinker_change_at || null,
+          cylinder_id: m.cylinder_id || null,
+        }));
       const { error } = await sb('machines').upsert(rows);
       if (error) { console.error('Error saving machines:', error); throw error; }
     }
@@ -627,7 +642,57 @@ export function useCompanyData() {
     setSinkerTransactions(prev => prev.filter(t => t.id !== id));
     const sData = await fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code');
     setSinkers(sData.map(mapSinker));
-  }, [companyId]);
+    }, [companyId]);
+ 
+   const saveCylinders = useCallback(async (data: Cylinder[]) => {
+     if (!companyId) return;
+     const currentIds = cylinders.map(c => c.id);
+     const newIds = data.map(c => c.id);
+     const idsToDelete = currentIds.filter(id => !newIds.includes(id));
+     if (idsToDelete.length > 0) {
+       await sb('cylinders').delete().in('id', idsToDelete);
+     }
+     if (data.length > 0) {
+       const rows = data.map(c => ({
+         id: c.id, company_id: companyId, brand: c.brand,
+         model: c.model || null, diameter: c.diameter || null,
+         fineness: c.fineness || null, needle_quantity: c.needle_quantity || null,
+         feeder_quantity: c.feeder_quantity || null, observations: c.observations || null,
+         machine_id: c.machine_id || null,
+       }));
+       const { error } = await sb('cylinders').upsert(rows);
+       if (error) throw error;
+     }
+      setCylinders(data.map(c => ({ ...c, company_id: companyId })));
+   }, [companyId, cylinders]);
+
+   const assignCylinderToMachine = useCallback(async (cylinderId: string | null, machineId: string) => {
+     if (!companyId) return;
+     try {
+       // 1. If a cylinder was previously on this machine, unassign it
+       const prevMachine = machines.find(m => m.id === machineId);
+       if (prevMachine?.cylinder_id) {
+          await sb('cylinders').update({ machine_id: null }).eq('id', prevMachine.cylinder_id);
+       }
+
+       // 2. Update machine with new cylinder
+       await sb('machines').update({ cylinder_id: cylinderId }).eq('id', machineId);
+
+       // 3. Update cylinder with new machine
+       if (cylinderId) {
+         await sb('cylinders').update({ machine_id: machineId }).eq('id', cylinderId);
+       }
+
+       // Refresh data
+       const mData = await fetchAll('machines', { column: 'company_id', value: companyId }, 'number');
+       const cylData = await fetchAll('cylinders', { column: 'company_id', value: companyId }, 'brand');
+       setMachines(mData.map(mapMachine));
+       setCylinders(cylData.map(mapCylinder));
+     } catch (err) {
+       console.error('Error assigning cylinder:', err);
+       throw err;
+     }
+   }, [companyId, machines, fetchAll]);
 
     return {
      loading,
@@ -647,6 +712,7 @@ export function useCompanyData() {
       updateNeedleTransaction, deleteNeedleTransaction,
       getSinkers, saveSinkers, getSinkerTransactions, addSinkerTransaction,
       updateSinkerTransaction, deleteSinkerTransaction,
+      getCylinders, saveCylinders, assignCylinderToMachine,
        saveShiftSettings,
      getProductionFilterMonths: useCallback(async () => {
        if (!companyId) return [];

@@ -415,6 +415,59 @@ export type Database = {
           },
         ]
       }
+      cylinders: {
+        Row: {
+          brand: string
+          company_id: string
+          created_at: string
+          diameter: string | null
+          feeder_quantity: number | null
+          fineness: string | null
+          id: string
+          machine_id: string | null
+          model: string | null
+          needle_quantity: number | null
+          observations: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          company_id: string
+          created_at?: string
+          diameter?: string | null
+          feeder_quantity?: number | null
+          fineness?: string | null
+          id?: string
+          machine_id?: string | null
+          model?: string | null
+          needle_quantity?: number | null
+          observations?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          company_id?: string
+          created_at?: string
+          diameter?: string | null
+          feeder_quantity?: number | null
+          fineness?: string | null
+          id?: string
+          machine_id?: string | null
+          model?: string | null
+          needle_quantity?: number | null
+          observations?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cylinders_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       defect_records: {
         Row: {
           article_id: string | null
@@ -1126,6 +1179,7 @@ export type Database = {
           article_id: string | null
           company_id: string
           created_at: string
+          cylinder_id: string | null
           diameter: string | null
           feeder_quantity: number | null
           fineness: string | null
@@ -1146,6 +1200,7 @@ export type Database = {
           article_id?: string | null
           company_id: string
           created_at?: string
+          cylinder_id?: string | null
           diameter?: string | null
           feeder_quantity?: number | null
           fineness?: string | null
@@ -1166,6 +1221,7 @@ export type Database = {
           article_id?: string | null
           company_id?: string
           created_at?: string
+          cylinder_id?: string | null
           diameter?: string | null
           feeder_quantity?: number | null
           fineness?: string | null
@@ -1195,6 +1251,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machines_cylinder_id_fkey"
+            columns: ["cylinder_id"]
+            isOneToOne: false
+            referencedRelation: "cylinders"
             referencedColumns: ["id"]
           },
         ]
