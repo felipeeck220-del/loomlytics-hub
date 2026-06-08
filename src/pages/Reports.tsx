@@ -1831,18 +1831,18 @@ async function handlePodioExport(
     const pW = pdf.getTextWidth(podio.periodLabel);
     pdf.text(podio.periodLabel, rightX - pW, y + 22);
 
-    y += headerH + 10;
+    y += headerH + 5;
 
     // --- Winner Message (Clean Text) ---
     const first = podio.ranking[0];
     if (first) {
       const msg = `FOCO, DISCIPLINA E CONSTÂNCIA GERAM RESULTADOS. PARABÉNS AO TURNO ${first.name.toUpperCase()} PELO DESEMPENHO!`;
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(...colors.dark);
       const splitMsg = pdf.splitTextToSize(msg, pageWidth - (margin * 2) - 10);
       pdf.text(splitMsg, pageWidth / 2, y, { align: 'center' });
-      y += 15;
+      y += 10;
     }
 
     // --- Podium Cards ---
@@ -1917,14 +1917,14 @@ async function handlePodioExport(
     if (podio.ranking[0]) drawPodiumCard(margin + cardW + 5, y, cardW, cardH + 5, podio.ranking[0], 1);
     if (podio.ranking[2]) drawPodiumCard(margin + (cardW + 5) * 2, y + 5, cardW, cardH, podio.ranking[2], 3);
 
-    y += cardH + 20;
+    y += cardH + 12;
 
     // --- Daily Detailing Table ---
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(...colors.dark);
     pdf.text('DETALHAMENTO DIÁRIO', margin, y);
-    y += 5;
+    y += 4;
 
     const tableRows = podio.daily.map(d => {
       const getShiftData = (rankIdx: number) => {
@@ -2017,10 +2017,18 @@ async function handlePodioExport(
 
     // --- RANKING DO PERÍODO Section ---
     y = tableY;
+    const rankingTitle = 'RANKING DO PERÍODO (QUEM ESTÁ GANHANDO)';
+    const rankingNeededH = 10 + (generalRanking.length * 8); // Estimated height for title + table
+    
+    if (y + rankingNeededH > pageHeight - margin) {
+      pdf.addPage();
+      y = margin;
+    }
+
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
-    pdf.text('RANKING DO PERÍODO (QUEM ESTÁ GANHANDO)', margin, y);
+    pdf.text(rankingTitle, margin, y);
     y += 4;
 
     const numDays = podio.daily.length;
@@ -2093,13 +2101,22 @@ async function handlePodioExport(
       }
     });
 
-    y = (pdf as any).lastAutoTable.finalY + 8;
+    y = (pdf as any).lastAutoTable.finalY + 6;
 
     // --- DESEMPENHO POR TURNO Table ---
+    const desempenhoTitle = 'DESEMPENHO POR TURNO (PÓDIOS)';
+    const perfRowsCount = Object.keys(shiftPerformance).length;
+    const desempenhoNeededH = 10 + (perfRowsCount * 8);
+
+    if (y + desempenhoNeededH > pageHeight - margin) {
+      pdf.addPage();
+      y = margin;
+    }
+
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
-    pdf.text('DESEMPENHO POR TURNO (PÓDIOS)', margin, y);
+    pdf.text(desempenhoTitle, margin, y);
     y += 4;
 
     const perfRows = Object.entries(shiftPerformance).map(([name, perf]) => [
@@ -2137,13 +2154,21 @@ async function handlePodioExport(
       }
     });
 
-    y = (pdf as any).lastAutoTable.finalY + 8;
+    y = (pdf as any).lastAutoTable.finalY + 6;
 
     // --- RESUMO GERAL Section (Moved to the end) ---
+    const resumoTitle = 'RESUMO GERAL';
+    const resumoNeededH = 15; // Small table
+
+    if (y + resumoNeededH > pageHeight - margin) {
+      pdf.addPage();
+      y = margin;
+    }
+
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(20, 20, 20);
-    pdf.text('RESUMO GERAL', margin, y);
+    pdf.text(resumoTitle, margin, y);
     y += 4;
 
     const avgEfGeral = count > 0 ? avgEf / count : 0;
