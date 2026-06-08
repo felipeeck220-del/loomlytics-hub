@@ -1974,9 +1974,10 @@ async function handlePodioExport(
     
     // For General Podium calculation
     const generalMap: Record<string, { name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
+    const shiftPerformance: Record<string, { rank1: number; rank2: number; rank3: number }> = {};
 
     podio.daily.forEach(d => {
-      d.ranking.forEach((item) => {
+      d.ranking.forEach((item, index) => {
         totalPieces += item.rolos;
         totalKg += item.kg;
         avgEf += item.eficiencia;
@@ -1991,6 +1992,16 @@ async function handlePodioExport(
         if (item.rolos > 0) {
           generalMap[key].effSum += item.eficiencia * item.kg;
           generalMap[key].effW += item.kg;
+        }
+
+        if (index < 3) {
+          const shiftName = item.name.toUpperCase();
+          if (!shiftPerformance[shiftName]) {
+            shiftPerformance[shiftName] = { rank1: 0, rank2: 0, rank3: 0 };
+          }
+          if (index === 0) shiftPerformance[shiftName].rank1++;
+          else if (index === 1) shiftPerformance[shiftName].rank2++;
+          else if (index === 2) shiftPerformance[shiftName].rank3++;
         }
       });
     });
