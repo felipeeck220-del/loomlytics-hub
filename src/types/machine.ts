@@ -57,6 +57,7 @@ export interface Cylinder {
   fineness?: string;
   needle_quantity?: number;
   feeder_quantity?: number;
+  sinker_quantity?: number;
   observations?: string;
   machine_id?: string;
   created_at: string;
