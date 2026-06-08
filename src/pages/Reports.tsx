@@ -161,7 +161,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
         ? nonZeroEff.reduce((acc, p) => acc + (p.efficiency * p.weight_kg), 0) / totalWeightForEff
         : 0;
 
-      setKpis({ total_rolls, total_weight, total_revenue, active_days, avg_efficiency });
+      setKpis({ total_rolls, total_weight, total_revenue, active_days, avg_efficiency, filteredProductions: filtered });
 
       const shiftMap: Record<string, any> = {};
       ['manha', 'tarde', 'noite'].forEach(s => {
@@ -1164,7 +1164,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                    <ExportButton
                      label="Relatório Completo"
                      description={`${exportMode === 'admin' ? 'Todos os dados' : 'Dados de produção'} em ${exportFormat === 'pdf' ? 'PDF estilizado' : 'CSV'}`}
-                     onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                     onClick={() => handleExport('completo', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                    />
                     </div>
 
@@ -1174,22 +1174,22 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                          <ExportButton
                            label="Por Artigo"
                            description="Rolos, Kg, Valor"
-                           onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                           onClick={() => handleExport('artigo', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                          />
                          <ExportButton
                            label="Por Máquina"
                            description="Performance individual"
-                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, productions, byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                           onClick={() => handleExport('maquina', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : productions, byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                          />
                          <ExportButton
                            label="Por Turno"
                            description="Análise comparativa"
-                           onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                           onClick={() => handleExport('turno', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                          />
                          <ExportButton
                            label="Por Cliente"
                            description="Produção por cliente"
-                           onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
+                           onClick={() => handleExport('cliente', exportMode, includeCharts, exportFormat, (filterShift !== 'all' || filterMachine !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || !!dateFrom || !!dateTo || !!customDate) ? kpis?.filteredProductions || [] : [], byShift, byMachine, byClient, byArticle, periodLabel, companyLogoUrl, companyName, machines, articles)}
                          />
                       </div>
                     </div>
