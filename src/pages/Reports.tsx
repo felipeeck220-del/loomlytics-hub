@@ -2252,7 +2252,10 @@ async function handlePodioExport(
       const machineId = p.machine_id;
       if (!acc[machineId]) acc[machineId] = {};
       
-      // Use article_id or name to group, but we also need to keep the actual name from the production
+      // Use article_id to group. 
+      // CRITICAL: We MUST use the id to ensure that even if two articles have similar names,
+      // they are grouped separately. However, the UI expects one row per machine-article pair.
+      // If article_id is missing, fallback to name.
       const articleKey = p.article_id || p.article_name;
       
       if (!acc[machineId][articleKey]) {
@@ -2288,9 +2291,9 @@ async function handlePodioExport(
         const ma = machineArticles[aId];
         const eff = ma.weightForEff > 0 ? ma.efficiencySum / ma.weightForEff : 0;
         
-        // Find article data for half values
-        // Use byArticle list which contains the articles found in the filtered records
-        const articleObj = byArticle.find(a => a.id === aId || a.name === ma.articleName);
+        // Find article data for Meta calculations
+        // We look for the article in the full articles list to get the targetEfficiency
+        const articleObj = articles.find(a => a.id === ma.articleId || a.name === ma.articleName);
         
         // --- ALERTA DE REGRA DE NEGÓCIO ---
         // As colunas Meta Rolos, Meta Peso (kg) e Meta Eficiência (%) utilizam EXCLUSIVAMENTE a eficiência
