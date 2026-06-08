@@ -2242,104 +2242,24 @@ async function handlePodioExport(
 
   if (type === 'completo' || type === 'maquina') {
     const headers = isAdmin 
-      ? ['Máquina', 'Artigo', 'Rolos', 'Meta Rolos', 'Peso (kg)', 'Meta Peso (kg)', 'Eficiência (%)', 'Meta Eficiência (%)', 'RPM Padrão', 'Faturamento'] 
-      : ['Máquina', 'Artigo', 'Rolos', 'Meta Rolos', 'Peso (kg)', 'Meta Peso (kg)', 'Eficiência (%)', 'Meta Eficiência (%)', 'RPM Padrão'];
+      ? ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)', 'Faturamento'] 
+      : ['Máquina', 'Rolos', 'Peso (kg)', 'Eficiência (%)'];
     
-    // Use 'filtered' (productions) to list machines with articles for the period
-    const machineArticleRows: (string | number)[][] = [];
-    
-    // Group productions by machine and article to show multiple articles if they occurred
-    const productionsByMachine = filtered.reduce((acc: any, p) => {
-      const machineId = p.machine_id;
-      if (!acc[machineId]) acc[machineId] = {};
-      
-      // Use article_id to group. 
-      // CRITICAL: We MUST use the id to ensure that even if two articles have similar names,
-      // they are grouped separately. However, the UI expects one row per machine-article pair.
-      // If article_id is missing, fallback to name.
-      const articleKey = p.article_id || p.article_name;
-      
-      if (!acc[machineId][articleKey]) {
-        acc[machineId][articleKey] = {
-          machineName: p.machine_name,
-          articleName: p.article_name,
-          rolos: 0,
-          kg: 0,
-          efficiencySum: 0,
-          weightForEff: 0,
-          revenue: 0,
-          machineId: p.machine_id,
-          articleId: p.article_id
-        };
-      }
-      acc[machineId][articleKey].rolos += p.rolls_produced;
-      acc[machineId][articleKey].kg += p.weight_kg;
-      acc[machineId][articleKey].revenue += p.revenue;
-      if (p.rolls_produced > 0) {
-        acc[machineId][articleKey].efficiencySum += (p.efficiency * p.weight_kg);
-        acc[machineId][articleKey].weightForEff += p.weight_kg;
-      }
-      return acc;
-    }, {});
-
-    // For "Por Máquina", we want to show all machines in the period
-    Object.keys(productionsByMachine).forEach(mId => {
-      const machineArticles = productionsByMachine[mId];
-      const machineObj = machines.find(m => m.id === mId);
-      const rpmPadrao = machineObj?.rpm || 0;
-
-      Object.keys(machineArticles).forEach(aId => {
-        const ma = machineArticles[aId];
-        const eff = ma.weightForEff > 0 ? ma.efficiencySum / ma.weightForEff : 0;
-        
-        // Find article data for Meta calculations
-        // We look for the article in the full articles list to get the targetEfficiency
-        const articleObj = articles.find(a => a.id === ma.articleId || a.name === ma.articleName);
-        
-        // --- ALERTA DE REGRA DE NEGÓCIO ---
-        // As colunas Meta Rolos, Meta Peso (kg) e Meta Eficiência (%) utilizam EXCLUSIVAMENTE a eficiência
-        // exigida cadastrada no ARTIGO. A eficiência definida no modal do Pódio NÃO deve ser usada aqui.
-        
-        // Efficiency calculation for "Meta" columns:
-        // Meta Eficiência (%) = target_efficiency of the article
-        const goalEff = articleObj?.targetEfficiency || 80;
-        
-        // Meta Rolos and Meta Peso:
-        // We calculate the goal by projecting the current production to the target efficiency.
-        // Formula: Goal = (Actual Production / Actual Efficiency) * Target Efficiency
-        // This shows what the production SHOULD have been to reach the target efficiency
-        // based on the time/resources used.
-        const goalRolls = eff > 0 ? (ma.rolos / eff) * goalEff : ma.rolos;
-        const goalWeight = eff > 0 ? (ma.kg / eff) * goalEff : ma.kg;
-
-        machineArticleRows.push(isAdmin 
-          ? [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(goalRolls, 1), fmtK(ma.kg), fmtK(goalWeight), fmtE(eff), fmtE(goalEff), rpmPadrao, fmtR(ma.revenue)]
-          : [ma.machineName, ma.articleName, fmtN(ma.rolos), fmtN(goalRolls, 1), fmtK(ma.kg), fmtK(goalWeight), fmtE(eff), fmtE(goalEff), rpmPadrao]
-        );
-      });
-    });
-
-    // Sort by machine name
-    machineArticleRows.sort((a, b) => {
-      const nameA = String(a[0]);
-      const nameB = String(b[0]);
-      const numA = parseInt(nameA.replace(/\D/g, ''));
-      const numB = parseInt(nameB.replace(/\D/g, ''));
-      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
-    });
+    const rows = byMachine.map(m => isAdmin 
+      ? [m.name, fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia), fmtR(m.faturamento)] 
+      : [m.name, fmtN(m.rolos), fmtK(m.kg), fmtE(m.eficiencia)]
+    );
 
     const tR = byMachine.reduce((a, m) => a + m.rolos, 0), tK = byMachine.reduce((a, m) => a + m.kg, 0);
     const avgE = byMachine.length ? byMachine.reduce((a, m) => a + m.eficiencia, 0) / byMachine.length : 0;
     const tF = byMachine.reduce((a, m) => a + m.faturamento, 0);
     
-    // Header for Total row needs to match column count
     const totalRow = isAdmin 
-      ? ['TOTAL', '', fmtN(tR), '', fmtK(tK), '', fmtE(avgE), '', '', fmtR(tF)] 
-      : ['TOTAL', '', fmtN(tR), '', fmtK(tK), '', fmtE(avgE), '', ''];
+      ? ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE), fmtR(tF)] 
+      : ['TOTAL', fmtN(tR), fmtK(tK), fmtE(avgE)];
     
-    machineArticleRows.push(totalRow);
-    sections.push({ title: 'Por Máquina', headers, rows: machineArticleRows });
+    rows.push(totalRow);
+    sections.push({ title: 'Por Máquina', headers, rows });
   }
 
   if (type === 'completo' || type === 'cliente') {
