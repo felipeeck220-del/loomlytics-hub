@@ -1347,13 +1347,23 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                                     </td>
                                     {[0, 1, 2].map(i => {
                                       const w = d.ranking[i];
+                                      const firstEff = d.ranking[0]?.eficiencia || 0;
                                       return (
                                         <td key={i} className="px-3 py-2 text-muted-foreground">
                                           {w ? (
                                             <div className="space-y-0.5">
                                               <div className="font-medium text-foreground">{w.name}</div>
-                                              <div className="text-xs">
-                                                {formatNumber(w.rolos)} pç · {formatNumber(w.kg, 2)} kg · {formatNumber(w.eficiencia, 1)}%
+                                              <div className="text-xs flex flex-wrap items-center gap-1">
+                                                <span>{formatNumber(w.rolos)} pç</span>
+                                                <span>·</span>
+                                                <span>{formatNumber(w.kg, 1)} kg</span>
+                                                <span>·</span>
+                                                <span className="font-bold">{formatNumber(w.eficiencia, 1)}%</span>
+                                                {i > 0 && firstEff > w.eficiencia && (
+                                                  <Badge variant="outline" className="text-[9px] h-3.5 px-1 py-0 border-amber-200 bg-amber-50 text-amber-700 font-bold">
+                                                    +{formatNumber(firstEff - w.eficiencia, 1)}%
+                                                  </Badge>
+                                                )}
                                               </div>
                                             </div>
                                           ) : <span className="text-xs">—</span>}
