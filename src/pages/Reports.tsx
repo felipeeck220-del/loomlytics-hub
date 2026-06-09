@@ -2278,12 +2278,12 @@ async function handlePodioExport(
     let headers: string[];
     if (isAdmin) {
       headers = isSingleDay 
-        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
-        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento'];
+        ? ['Máquina', 'Artigo', 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM', 'Faturam.']
+        : ['Máquina', 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM', 'Faturam.'];
     } else {
       headers = isSingleDay
-        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)']
-        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)'];
+        ? ['Máquina', 'Artigo', 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM']
+        : ['Máquina', 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM'];
     }
     
     const rows = byMachine.map(m => {
@@ -2295,8 +2295,12 @@ async function handlePodioExport(
       const goalRatio = (m.eficiencia > 0) ? (targetEff / m.eficiencia) : 0;
       const goalRolls = goalRatio > 0 ? m.rolos * goalRatio : 0;
       const goalWeight = goalRatio > 0 ? m.kg * goalRatio : 0;
+      
+      // Get RPM from machine object (find machine by name)
+      const machObj = machines.find(ma => ma.name === m.name);
+      const rpm = machObj?.standard_rpm || 0;
 
-      baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtK(goalWeight), fmtE(m.eficiencia), fmtE(targetEff));
+      baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtK(goalWeight), fmtE(m.eficiencia), fmtE(targetEff), fmtN(rpm));
       if (isAdmin) baseData.push(fmtR(m.faturamento));
       
       return baseData;
@@ -2318,8 +2322,8 @@ async function handlePodioExport(
     }, 0);
     
     const totalRow = isSingleDay
-      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE)])
-      : (isAdmin ? ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE)]);
+      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), '', fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), ''])
+      : (isAdmin ? ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), '', fmtR(tF)] : ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), '']);
     
     rows.push(totalRow);
     sections.push({ title: 'Por Máquina', headers, rows });
