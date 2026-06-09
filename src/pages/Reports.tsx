@@ -188,6 +188,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       filtered.forEach(p => {
         const key = p.machine_id || p.machine_name;
         if (!machineMap[key]) machineMap[key] = { 
+          machineId: p.machine_id,
           name: p.machine_name, 
           rolos: 0, 
           kg: 0, 
@@ -2296,8 +2297,9 @@ async function handlePodioExport(
       const goalRolls = goalRatio > 0 ? m.rolos * goalRatio : 0;
       const goalWeight = goalRatio > 0 ? m.kg * goalRatio : 0;
       
-      // Get RPM from machine object (find machine by name)
-      const machObj = machines.find(ma => ma.name === m.name);
+      // Get RPM from machine object (find machine by id)
+      // byMachine entries created at line 187 use p.machine_id if available
+      const machObj = machines.find(ma => ma.id === m.machineId || ma.name === m.name);
       const rpm = machObj?.standard_rpm || 0;
 
       baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtK(goalWeight), fmtE(m.eficiencia), fmtE(targetEff), fmtN(rpm));
