@@ -2579,24 +2579,24 @@ async function handlePodioExport(
           const isSingleDay = sec.headers[1] === 'Artigo';
           
           if (isAdmin) {
-            // ['Máquina', 'Artigo'?, 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
+            // ['Máquina', 'Artigo'?, 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM', 'Faturam.']
             if (isSingleDay) {
-              const widths = [18, 45, 11, 11, 15, 15, 15, 15, 18];
+              const widths = [18, 38, 10, 10, 14, 14, 15, 15, 10, 18];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             } else {
-              const widths = [25, 12, 12, 18, 18, 20, 20, 25];
+              const widths = [25, 12, 12, 18, 18, 20, 20, 12, 25];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             }
           } else {
-            // ['Máquina', 'Artigo'?, 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)']
+            // ['Máquina', 'Artigo'?, 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM']
             if (isSingleDay) {
-              const widths = [18, 45, 12, 12, 18, 18, 18, 18];
+              const widths = [18, 45, 12, 12, 18, 18, 18, 18, 12];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             } else {
-              const widths = [30, 12, 12, 22, 22, 22, 22];
+              const widths = [30, 12, 12, 22, 22, 22, 22, 15];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             }
