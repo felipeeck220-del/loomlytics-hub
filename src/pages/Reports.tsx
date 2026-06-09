@@ -2674,11 +2674,13 @@ async function handlePodioExport(
             const cw = getColWidth(ci);
             const header = sec.headers[ci];
             
-            // Apply conditional colors for 'Eficiência (%)' and 'Rolos' columns in 'Por Máquina' report
+            // Apply conditional colors for 'Eficiência (%)', 'Rolos' and 'Peso (kg)' columns in 'Por Máquina' report
             if (sec.title === 'Por Máquina' && !isTotal) {
               const metaEffIdx = sec.headers.indexOf('M. Eficiência (%)');
               const metaRolosIdx = sec.headers.indexOf('M. Rolos');
+              const metaPesoIdx = sec.headers.indexOf('M. Peso');
               const rolosIdx = sec.headers.indexOf('Rolos');
+              const pesoIdx = sec.headers.indexOf('Peso (kg)');
               const effIdx = sec.headers.indexOf('Eficiência (%)');
 
               // Conditional for Eficiência (%)
@@ -2707,6 +2709,22 @@ async function handlePodioExport(
                   pdf.rect(currentX, y, cw, rowH, 'F');
                   pdf.setTextColor(185, 28, 28);
                 } else if (metaRolosVal > 0) {
+                  pdf.setFillColor(220, 252, 231); // Light green
+                  pdf.rect(currentX, y, cw, rowH, 'F');
+                  pdf.setTextColor(21, 128, 61);
+                }
+              }
+
+              // Conditional for Peso (kg) (current vs goal)
+              if (ci === pesoIdx && metaPesoIdx !== -1) {
+                const pesoVal = parseFloat(text.replace('.', '').replace(',', '.')) || 0;
+                const metaPesoVal = parseFloat(String(row[metaPesoIdx]).replace('.', '').replace(',', '.')) || 0;
+
+                if (pesoVal < metaPesoVal) {
+                  pdf.setFillColor(254, 226, 226); // Light red
+                  pdf.rect(currentX, y, cw, rowH, 'F');
+                  pdf.setTextColor(185, 28, 28);
+                } else if (metaPesoVal > 0) {
                   pdf.setFillColor(220, 252, 231); // Light green
                   pdf.rect(currentX, y, cw, rowH, 'F');
                   pdf.setTextColor(21, 128, 61);
