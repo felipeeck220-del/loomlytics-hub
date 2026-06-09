@@ -2278,12 +2278,12 @@ async function handlePodioExport(
     let headers: string[];
     if (isAdmin) {
       headers = isSingleDay 
-        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
-        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento'];
+        ? ['Máquina', 'Artigo', 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM', 'Faturam.']
+        : ['Máquina', 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM', 'Faturam.'];
     } else {
       headers = isSingleDay
-        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)']
-        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)'];
+        ? ['Máquina', 'Artigo', 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM']
+        : ['Máquina', 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM'];
     }
     
     const rows = byMachine.map(m => {
@@ -2295,8 +2295,12 @@ async function handlePodioExport(
       const goalRatio = (m.eficiencia > 0) ? (targetEff / m.eficiencia) : 0;
       const goalRolls = goalRatio > 0 ? m.rolos * goalRatio : 0;
       const goalWeight = goalRatio > 0 ? m.kg * goalRatio : 0;
+      
+      // Get RPM from machine object (find machine by name)
+      const machObj = machines.find(ma => ma.name === m.name);
+      const rpm = machObj?.standard_rpm || 0;
 
-      baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtK(goalWeight), fmtE(m.eficiencia), fmtE(targetEff));
+      baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtK(goalWeight), fmtE(m.eficiencia), fmtE(targetEff), fmtN(rpm));
       if (isAdmin) baseData.push(fmtR(m.faturamento));
       
       return baseData;
@@ -2318,8 +2322,8 @@ async function handlePodioExport(
     }, 0);
     
     const totalRow = isSingleDay
-      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE)])
-      : (isAdmin ? ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE)]);
+      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), '', fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), ''])
+      : (isAdmin ? ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), '', fmtR(tF)] : ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), '']);
     
     rows.push(totalRow);
     sections.push({ title: 'Por Máquina', headers, rows });
@@ -2575,24 +2579,24 @@ async function handlePodioExport(
           const isSingleDay = sec.headers[1] === 'Artigo';
           
           if (isAdmin) {
-            // ['Máquina', 'Artigo'?, 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
+            // ['Máquina', 'Artigo'?, 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM', 'Faturam.']
             if (isSingleDay) {
-              const widths = [18, 45, 11, 11, 15, 15, 15, 15, 18];
+              const widths = [18, 38, 10, 10, 14, 14, 15, 15, 10, 18];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             } else {
-              const widths = [25, 12, 12, 18, 18, 20, 20, 25];
+              const widths = [25, 12, 12, 18, 18, 20, 20, 12, 25];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             }
           } else {
-            // ['Máquina', 'Artigo'?, 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)']
+            // ['Máquina', 'Artigo'?, 'Rol.', 'M.Rol.', 'Peso', 'M.Peso', 'Eficiência', 'M.Efic.', 'RPM']
             if (isSingleDay) {
-              const widths = [18, 45, 12, 12, 18, 18, 18, 18];
+              const widths = [18, 45, 12, 12, 18, 18, 18, 18, 12];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             } else {
-              const widths = [30, 12, 12, 22, 22, 22, 22];
+              const widths = [30, 12, 12, 22, 22, 22, 22, 15];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             }
@@ -2676,14 +2680,14 @@ async function handlePodioExport(
             
             // Apply conditional colors for 'Eficiência (%)', 'Rolos' and 'Peso (kg)' columns in 'Por Máquina' report
             if (sec.title === 'Por Máquina' && !isTotal) {
-              const metaEffIdx = sec.headers.indexOf('M. Eficiência (%)');
-              const metaRolosIdx = sec.headers.indexOf('M. Rolos');
-              const metaPesoIdx = sec.headers.indexOf('M. Peso');
-              const rolosIdx = sec.headers.indexOf('Rolos');
-              const pesoIdx = sec.headers.indexOf('Peso (kg)');
-              const effIdx = sec.headers.indexOf('Eficiência (%)');
+              const metaEffIdx = sec.headers.indexOf('M.Efic.');
+              const metaRolosIdx = sec.headers.indexOf('M.Rol.');
+              const metaPesoIdx = sec.headers.indexOf('M.Peso');
+              const rolosIdx = sec.headers.indexOf('Rol.');
+              const pesoIdx = sec.headers.indexOf('Peso');
+              const effIdx = sec.headers.indexOf('Eficiência');
 
-              // Conditional for Eficiência (%)
+              // Conditional for Eficiência
               if (ci === effIdx && metaEffIdx !== -1) {
                 const effVal = parseFloat(text.replace(',', '.').replace('%', '')) || 0;
                 const metaVal = parseFloat(String(row[metaEffIdx]).replace(',', '.').replace('%', '')) || 0;
@@ -2715,7 +2719,7 @@ async function handlePodioExport(
                 }
               }
 
-              // Conditional for Peso (kg) (current vs goal)
+              // Conditional for Peso (current vs goal)
               if (ci === pesoIdx && metaPesoIdx !== -1) {
                 const pesoVal = parseFloat(text.replace('.', '').replace(',', '.')) || 0;
                 const metaPesoVal = parseFloat(String(row[metaPesoIdx]).replace('.', '').replace(',', '.')) || 0;
