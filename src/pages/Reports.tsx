@@ -2278,12 +2278,12 @@ async function handlePodioExport(
     let headers: string[];
     if (isAdmin) {
       headers = isSingleDay 
-        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
-        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento'];
+        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
+        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento'];
     } else {
       headers = isSingleDay
-        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)']
-        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)'];
+        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)']
+        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)'];
     }
     
     const rows = byMachine.map(m => {
@@ -2291,11 +2291,12 @@ async function handlePodioExport(
       if (isSingleDay) baseData.push(m.articleNames || '-');
       
       const targetEff = m.targetEfficiency || 80;
-      // Calculate Goal Rolls: if current efficiency is > 0, we can estimate needed rolls to reach targetEff
-      // Goal Rolls = (Target Efficiency * Current Rolls) / Current Efficiency
-      const goalRolls = m.eficiencia > 0 ? (targetEff * m.rolos) / m.eficiencia : 0;
+      // Goal calculation based on efficiency ratio
+      const goalRatio = (m.eficiencia > 0) ? (targetEff / m.eficiencia) : 0;
+      const goalRolls = goalRatio > 0 ? m.rolos * goalRatio : 0;
+      const goalWeight = goalRatio > 0 ? m.kg * goalRatio : 0;
 
-      baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtE(m.eficiencia), fmtE(targetEff));
+      baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtK(goalWeight), fmtE(m.eficiencia), fmtE(targetEff));
       if (isAdmin) baseData.push(fmtR(m.faturamento));
       
       return baseData;
@@ -2310,10 +2311,15 @@ async function handlePodioExport(
       const goalRolls = m.eficiencia > 0 ? (targetEff * m.rolos) / m.eficiencia : 0;
       return a + goalRolls;
     }, 0);
+    const tGoalK = byMachine.reduce((a, m) => {
+      const targetEff = m.targetEfficiency || 80;
+      const goalWeight = m.eficiencia > 0 ? (targetEff * m.kg) / m.eficiencia : 0;
+      return a + goalWeight;
+    }, 0);
     
     const totalRow = isSingleDay
-      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE)])
-      : (isAdmin ? ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtN(tGoalR), fmtE(avgE), fmtE(avgTargetE)]);
+      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE)])
+      : (isAdmin ? ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE)]);
     
     rows.push(totalRow);
     sections.push({ title: 'Por Máquina', headers, rows });
