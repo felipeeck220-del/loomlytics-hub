@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 09/06/2026 14:15 (Brasília)*
+*Última atualização: 09/06/2026 14:25 (Brasília)*
+- 09/06/2026 14:25 - Relatórios > Exportar: Alterado o padrão inicial para "Modo Equipe" e "Incluir gráficos" desativado, conforme solicitado para otimizar o fluxo de exportação.
 - 09/06/2026 14:15 - Relatórios > Pódio: Alterado o título "(QUEM ESTÁ GANHANDO)" para "(DESEMPENHO ACUMULADO)" no PDF e adicionado rodapé informativo sobre o caráter gerencial/motivacional do painel.
 - 09/06/2026 14:10 - Relatórios > Exportar Por Máquina: Implementadas colunas "M. Rolos" e "M. Peso" (metas calculadas com base na eficiência do artigo) e coluna "RPM" (buscada diretamente do cadastro de máquinas). Adicionada lógica de cores (verde/vermelho) para Rolos e Peso comparados com suas respectivas metas. Abreviados cabeçalhos para evitar sobreposição no PDF. Corrigido bug onde RPM aparecia como zero devido a mapeamento incorreto de ID/Nome.
 - 08/06/2026 13:50 - Relatórios > Pódio: Reforçada a visibilidade dos dados de eficiência no PDF e na interface. Adicionado o rótulo "EFICIÊNCIA MÉDIA" em negrito junto aos dados de peso e percentual no detalhamento diário, garantindo clareza total sobre as métricas exibidas.
