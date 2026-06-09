@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 09/06/2026 14:25 (Brasília)*
+*Última atualização: 09/06/2026 15:20 (Brasília)*
+- 09/06/2026 15:20 - Relatórios > Pódio > Exportar PDF Diário: Alterado o rótulo "Eficiência Exigida" para "Meta de Eficiência" no modal de exportação e no cabeçalho da tabela de Resumo Geral do PDF.
 - 09/06/2026 14:25 - Relatórios > Exportar: Alterado o padrão inicial para "Modo Equipe" e "Incluir gráficos" desativado, conforme solicitado para otimizar o fluxo de exportação.
 - 09/06/2026 14:15 - Relatórios > Pódio: Alterado o título "(QUEM ESTÁ GANHANDO)" para "(DESEMPENHO ACUMULADO)" no PDF e adicionado rodapé informativo sobre o caráter gerencial/motivacional do painel.
 - 09/06/2026 14:10 - Relatórios > Exportar Por Máquina: Implementadas colunas "M. Rolos" e "M. Peso" (metas calculadas com base na eficiência do artigo) e coluna "RPM" (buscada diretamente do cadastro de máquinas). Adicionada lógica de cores (verde/vermelho) para Rolos e Peso comparados com suas respectivas metas. Abreviados cabeçalhos para evitar sobreposição no PDF. Corrigido bug onde RPM aparecia como zero devido a mapeamento incorreto de ID/Nome.
@@ -1143,6 +1144,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 ## 📅 Histórico de Alterações
 
 > Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
+
+- **09/06/2026 15:20 (Brasília)** — Relatórios > Pódio > Exportar PDF Diário: Alterado o rótulo "Eficiência Exigida" para "Meta de Eficiência" no modal de exportação e no cabeçalho da tabela de Resumo Geral do PDF.
 
 - **08/06/2026 13:50 (Brasília)** — Relatórios > Pódio: Refinado o layout da tabela de detalhamento no PDF Diário e na UI. Agora os dados de produção (kg e eficiência) são exibidos com maior visibilidade, incluindo o rótulo "EFICIÊNCIA MÉDIA" em negrito para cada entrada, conforme solicitado pelo usuário, facilitando a leitura rápida dos resultados.
 - **08/06/2026 13:40 (Brasília)** — Relatórios > Pódio: Implementada métrica de "Meta para 1º Lugar" para os turnos que ficaram em 2º e 3º. Tanto no pódio visual da página quanto na exportação "PDF Diário", agora é exibido o percentual exato de eficiência que o turno precisaria ter alcançado para igualar o primeiro lugar. O detalhamento diário no PDF também foi atualizado para incluir essa comparação, incentivando a competitividade saudável entre as equipes.

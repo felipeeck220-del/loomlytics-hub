@@ -1462,7 +1462,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Eficiência Exigida (%)</Label>
+                        <Label>Meta de Eficiência (%)</Label>
                         <Input 
                           type="number" 
                           value={exportEficienciaExigida} 
@@ -2186,7 +2186,7 @@ async function handlePodioExport(
     autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Peças Totais', 'Peso Total', 'Eficiência Média', 'Eficiência Exigida']],
+      head: [['Peças Totais', 'Peso Total', 'Eficiência Média', 'Meta de Eficiência']],
       body: resumoRows,
       theme: 'grid',
       headStyles: { fillColor: [80, 80, 80], textColor: colors.white, fontSize: 8, halign: 'center' },
