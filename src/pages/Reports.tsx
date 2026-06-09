@@ -2680,14 +2680,14 @@ async function handlePodioExport(
             
             // Apply conditional colors for 'Eficiência (%)', 'Rolos' and 'Peso (kg)' columns in 'Por Máquina' report
             if (sec.title === 'Por Máquina' && !isTotal) {
-              const metaEffIdx = sec.headers.indexOf('M. Eficiência (%)');
-              const metaRolosIdx = sec.headers.indexOf('M. Rolos');
-              const metaPesoIdx = sec.headers.indexOf('M. Peso');
-              const rolosIdx = sec.headers.indexOf('Rolos');
-              const pesoIdx = sec.headers.indexOf('Peso (kg)');
-              const effIdx = sec.headers.indexOf('Eficiência (%)');
+              const metaEffIdx = sec.headers.indexOf('M.Efic.');
+              const metaRolosIdx = sec.headers.indexOf('M.Rol.');
+              const metaPesoIdx = sec.headers.indexOf('M.Peso');
+              const rolosIdx = sec.headers.indexOf('Rol.');
+              const pesoIdx = sec.headers.indexOf('Peso');
+              const effIdx = sec.headers.indexOf('Eficiência');
 
-              // Conditional for Eficiência (%)
+              // Conditional for Eficiência
               if (ci === effIdx && metaEffIdx !== -1) {
                 const effVal = parseFloat(text.replace(',', '.').replace('%', '')) || 0;
                 const metaVal = parseFloat(String(row[metaEffIdx]).replace(',', '.').replace('%', '')) || 0;
@@ -2719,7 +2719,7 @@ async function handlePodioExport(
                 }
               }
 
-              // Conditional for Peso (kg) (current vs goal)
+              // Conditional for Peso (current vs goal)
               if (ci === pesoIdx && metaPesoIdx !== -1) {
                 const pesoVal = parseFloat(text.replace('.', '').replace(',', '.')) || 0;
                 const metaPesoVal = parseFloat(String(row[metaPesoIdx]).replace('.', '').replace(',', '.')) || 0;
