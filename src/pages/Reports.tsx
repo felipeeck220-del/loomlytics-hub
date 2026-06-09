@@ -2278,12 +2278,12 @@ async function handlePodioExport(
     let headers: string[];
     if (isAdmin) {
       headers = isSingleDay 
-        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
-        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento'];
+        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
+        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento'];
     } else {
       headers = isSingleDay
-        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)']
-        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)'];
+        ? ['Máquina', 'Artigo', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)']
+        : ['Máquina', 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)'];
     }
     
     const rows = byMachine.map(m => {
@@ -2291,11 +2291,12 @@ async function handlePodioExport(
       if (isSingleDay) baseData.push(m.articleNames || '-');
       
       const targetEff = m.targetEfficiency || 80;
-      // Calculate Goal Rolls: if current efficiency is > 0, we can estimate needed rolls to reach targetEff
-      // Goal Rolls = (Target Efficiency * Current Rolls) / Current Efficiency
-      const goalRolls = m.eficiencia > 0 ? (targetEff * m.rolos) / m.eficiencia : 0;
+      // Goal calculation based on efficiency ratio
+      const goalRatio = (m.eficiencia > 0) ? (targetEff / m.eficiencia) : 0;
+      const goalRolls = goalRatio > 0 ? m.rolos * goalRatio : 0;
+      const goalWeight = goalRatio > 0 ? m.kg * goalRatio : 0;
 
-      baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtE(m.eficiencia), fmtE(targetEff));
+      baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtK(goalWeight), fmtE(m.eficiencia), fmtE(targetEff));
       if (isAdmin) baseData.push(fmtR(m.faturamento));
       
       return baseData;
@@ -2310,10 +2311,15 @@ async function handlePodioExport(
       const goalRolls = m.eficiencia > 0 ? (targetEff * m.rolos) / m.eficiencia : 0;
       return a + goalRolls;
     }, 0);
+    const tGoalK = byMachine.reduce((a, m) => {
+      const targetEff = m.targetEfficiency || 80;
+      const goalWeight = m.eficiencia > 0 ? (targetEff * m.kg) / m.eficiencia : 0;
+      return a + goalWeight;
+    }, 0);
     
     const totalRow = isSingleDay
-      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE)])
-      : (isAdmin ? ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtK(tK), fmtN(tGoalR), fmtE(avgE), fmtE(avgTargetE)]);
+      ? (isAdmin ? ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', '', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE)])
+      : (isAdmin ? ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE), fmtR(tF)] : ['TOTAL', fmtN(tR), fmtN(tGoalR), fmtK(tK), fmtK(tGoalK), fmtE(avgE), fmtE(avgTargetE)]);
     
     rows.push(totalRow);
     sections.push({ title: 'Por Máquina', headers, rows });
@@ -2569,24 +2575,24 @@ async function handlePodioExport(
           const isSingleDay = sec.headers[1] === 'Artigo';
           
           if (isAdmin) {
-            // ['Máquina', 'Artigo'?, 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
+            // ['Máquina', 'Artigo'?, 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)', 'Faturamento']
             if (isSingleDay) {
-              const widths = [18, 45, 12, 12, 20, 20, 20, 20];
+              const widths = [18, 45, 11, 11, 15, 15, 15, 15, 18];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             } else {
-              const widths = [25, 12, 12, 22, 22, 22, 25];
+              const widths = [25, 12, 12, 18, 18, 20, 20, 25];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             }
           } else {
-            // ['Máquina', 'Artigo'?, 'Rolos', 'M. Rolos', 'Peso (kg)', 'Eficiência (%)', 'M. Eficiência (%)']
+            // ['Máquina', 'Artigo'?, 'Rolos', 'M. Rolos', 'Peso (kg)', 'M. Peso', 'Eficiência (%)', 'M. Eficiência (%)']
             if (isSingleDay) {
-              const widths = [18, 45, 12, 12, 22, 22, 22];
+              const widths = [18, 45, 12, 12, 18, 18, 18, 18];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             } else {
-              const widths = [30, 12, 12, 25, 25, 25];
+              const widths = [30, 12, 12, 22, 22, 22, 22];
               const scale = availW / widths.reduce((a, b) => a + b, 0);
               return widths[index] * scale;
             }
@@ -2668,11 +2674,13 @@ async function handlePodioExport(
             const cw = getColWidth(ci);
             const header = sec.headers[ci];
             
-            // Apply conditional colors for 'Eficiência (%)' and 'Rolos' columns in 'Por Máquina' report
+            // Apply conditional colors for 'Eficiência (%)', 'Rolos' and 'Peso (kg)' columns in 'Por Máquina' report
             if (sec.title === 'Por Máquina' && !isTotal) {
               const metaEffIdx = sec.headers.indexOf('M. Eficiência (%)');
               const metaRolosIdx = sec.headers.indexOf('M. Rolos');
+              const metaPesoIdx = sec.headers.indexOf('M. Peso');
               const rolosIdx = sec.headers.indexOf('Rolos');
+              const pesoIdx = sec.headers.indexOf('Peso (kg)');
               const effIdx = sec.headers.indexOf('Eficiência (%)');
 
               // Conditional for Eficiência (%)
@@ -2701,6 +2709,22 @@ async function handlePodioExport(
                   pdf.rect(currentX, y, cw, rowH, 'F');
                   pdf.setTextColor(185, 28, 28);
                 } else if (metaRolosVal > 0) {
+                  pdf.setFillColor(220, 252, 231); // Light green
+                  pdf.rect(currentX, y, cw, rowH, 'F');
+                  pdf.setTextColor(21, 128, 61);
+                }
+              }
+
+              // Conditional for Peso (kg) (current vs goal)
+              if (ci === pesoIdx && metaPesoIdx !== -1) {
+                const pesoVal = parseFloat(text.replace('.', '').replace(',', '.')) || 0;
+                const metaPesoVal = parseFloat(String(row[metaPesoIdx]).replace('.', '').replace(',', '.')) || 0;
+
+                if (pesoVal < metaPesoVal) {
+                  pdf.setFillColor(254, 226, 226); // Light red
+                  pdf.rect(currentX, y, cw, rowH, 'F');
+                  pdf.setTextColor(185, 28, 28);
+                } else if (metaPesoVal > 0) {
                   pdf.setFillColor(220, 252, 231); // Light green
                   pdf.rect(currentX, y, cw, rowH, 'F');
                   pdf.setTextColor(21, 128, 61);
