@@ -81,8 +81,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
   const [filterMachine, setFilterMachine] = useState<string>('all');
 
   // Export settings
-  const [exportMode, setExportMode] = useState<'admin' | 'employee'>('admin');
-  const [includeCharts, setIncludeCharts] = useState(true);
+  const [exportMode, setExportMode] = useState<'admin' | 'employee'>('employee');
+  const [includeCharts, setIncludeCharts] = useState(false);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'csv'>('pdf');
 
   // Active analysis tab
