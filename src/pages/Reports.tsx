@@ -188,6 +188,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
       filtered.forEach(p => {
         const key = p.machine_id || p.machine_name;
         if (!machineMap[key]) machineMap[key] = { 
+          machineId: p.machine_id,
           name: p.machine_name, 
           rolos: 0, 
           kg: 0, 
