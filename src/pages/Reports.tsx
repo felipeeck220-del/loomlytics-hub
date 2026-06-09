@@ -2297,10 +2297,10 @@ async function handlePodioExport(
       const goalRolls = goalRatio > 0 ? m.rolos * goalRatio : 0;
       const goalWeight = goalRatio > 0 ? m.kg * goalRatio : 0;
       
-      // Get RPM from machine object (find machine by id)
-      // byMachine entries created at line 187 use p.machine_id if available
+      // Get RPM from machine object (find machine by id or name)
+      // Standard RPM is mapped as 'rpm' in our Machine type from the DB column 'rpm'
       const machObj = machines.find(ma => ma.id === m.machineId || ma.name === m.name);
-      const rpm = machObj?.standard_rpm || 0;
+      const rpm = machObj?.rpm || 0;
 
       baseData.push(fmtN(m.rolos), fmtN(goalRolls), fmtK(m.kg), fmtK(goalWeight), fmtE(m.eficiencia), fmtE(targetEff), fmtN(rpm));
       if (isAdmin) baseData.push(fmtR(m.faturamento));
