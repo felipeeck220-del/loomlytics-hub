@@ -256,9 +256,6 @@ export default function ClientInvoices() {
               placeholder="Pesquisar cliente..."
             />
           </div>
-          <Button onClick={() => { setFormType('entrada'); setDialogOpen(true); }} className="gap-2">
-            <Plus className="h-4 w-4" /> Nova Nota
-          </Button>
         </div>
       </div>
 
