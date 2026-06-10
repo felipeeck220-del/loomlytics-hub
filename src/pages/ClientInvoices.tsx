@@ -268,15 +268,17 @@ export default function ClientInvoices() {
                   })
                   .map(inv => (
                   <TableRow key={inv.id}>
-                     <TableCell>
+                    <TableCell>
                       <div className="flex flex-col">
-                        <span>{format(new Date(inv.issue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                        <span className="font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
                         {inv.created_by_code && (
-                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic">
-                            <User className="h-3 w-3" />
-                            {inv.created_by_name} ({inv.created_by_code})
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic mt-0.5">
+                            {inv.created_by_name} #{inv.created_by_code}
                           </div>
                         )}
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{inv.invoice_number}</TableCell>
