@@ -15,11 +15,12 @@ import { toast } from 'sonner';
 import { formatWeight, getDateLimits } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import {
-  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2
+  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface ClientTab {
   id: string;
@@ -31,6 +32,7 @@ export default function ClientInvoices() {
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
   const { getClients, getArticles, getYarnTypes } = useSharedCompanyData();
+  const { logAction, userTrackingInfo } = useAuditLog();
   const allClients = getClients();
   const allArticles = getArticles();
   const yarnTypes = getYarnTypes();
@@ -108,7 +110,9 @@ export default function ClientInvoices() {
           type: formType,
           invoice_number: invoiceNumber,
           issue_date: issueDate,
-          observations: observations || null
+          observations: observations || null,
+          created_by_name: userTrackingInfo.created_by_name,
+          created_by_code: userTrackingInfo.created_by_code
         })
         .select()
         .single();
@@ -137,6 +141,7 @@ export default function ClientInvoices() {
       }
     },
     onSuccess: () => {
+      logAction('NF CLIENTES: Criou nota', { invoice_number: invoiceNumber, type: formType });
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
       toast.success('Nota registrada com sucesso!');
       setDialogOpen(false);
@@ -158,6 +163,7 @@ export default function ClientInvoices() {
     const { error } = await supabase.from('client_invoices').delete().eq('id', id);
     if (error) toast.error('Erro ao excluir');
     else {
+      logAction('NF CLIENTES: Excluiu nota', { id });
       toast.success('Nota excluída');
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
     }
@@ -262,7 +268,17 @@ export default function ClientInvoices() {
                   })
                   .map(inv => (
                   <TableRow key={inv.id}>
-                    <TableCell>{format(new Date(inv.issue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                     <TableCell>
+                      <div className="flex flex-col">
+                        <span>{format(new Date(inv.issue_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                        {inv.created_by_code && (
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic">
+                            <User className="h-3 w-3" />
+                            {inv.created_by_name} ({inv.created_by_code})
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                     <TableCell>
                       <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className={inv.type === 'entrada' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}>
