@@ -614,9 +614,14 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                 </TableCell>
                 <TableCell className="text-right font-medium">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => onDelete(inv.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => onEdit(inv)}>
+                      <Edit2 className="h-4 w-4 text-primary" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => onDelete(inv.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
