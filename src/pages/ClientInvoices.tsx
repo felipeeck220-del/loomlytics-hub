@@ -52,6 +52,10 @@ export default function ClientInvoices() {
   
   // Modal State
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
+
   const [formType, setFormType] = useState<'entrada' | 'saida'>('entrada');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -60,7 +64,7 @@ export default function ClientInvoices() {
   const [yarnTypeId, setYarnTypeId] = useState('');
   const [articleId, setArticleId] = useState('');
   const [observations, setObservations] = useState('');
-
+  
   // Search/Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMonth, setFilterMonth] = useState('all');
