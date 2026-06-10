@@ -246,6 +246,116 @@ export type Database = {
         }
         Relationships: []
       }
+      client_invoice_items: {
+        Row: {
+          article_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          invoice_id: string
+          weight_kg: number
+          yarn_type_id: string | null
+        }
+        Insert: {
+          article_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          invoice_id: string
+          weight_kg?: number
+          yarn_type_id?: string | null
+        }
+        Update: {
+          article_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          weight_kg?: number
+          yarn_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invoice_items_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invoice_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "client_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invoice_items_yarn_type_id_fkey"
+            columns: ["yarn_type_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_invoices: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          invoice_number: string
+          issue_date: string
+          observations: string | null
+          type: Database["public"]["Enums"]["client_invoice_type"]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          invoice_number: string
+          issue_date: string
+          observations?: string | null
+          type: Database["public"]["Enums"]["client_invoice_type"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          observations?: string | null
+          type?: Database["public"]["Enums"]["client_invoice_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           company_id: string
@@ -2661,6 +2771,7 @@ export type Database = {
       set_active_company: { Args: { _company_id: string }; Returns: undefined }
     }
     Enums: {
+      client_invoice_type: "entrada" | "saida"
       machine_status:
         | "ativa"
         | "manutencao_preventiva"
@@ -2797,6 +2908,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      client_invoice_type: ["entrada", "saida"],
       machine_status: [
         "ativa",
         "manutencao_preventiva",
