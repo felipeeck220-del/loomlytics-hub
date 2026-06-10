@@ -188,21 +188,50 @@ export default function ClientInvoices() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: (error: any) => {
-      console.error('Erro completo na mutation:', error);
-      toast.error(error.message || 'Erro ao salvar nota');
     }
   });
 
+  const resetForm = () => {
+    setEditingInvoice(null);
+    setInvoiceNumber('');
+    setWeightKg('');
+    setObservations('');
+    setYarnTypeId('');
+    setArticleId('');
+    setIssueDate(format(new Date(), 'yyyy-MM-dd'));
+  };
+
+  const handleEditInvoice = (inv: any) => {
+    setEditingInvoice(inv);
+    setFormType(inv.type);
+    setSelectedClientId(inv.client_id);
+    setInvoiceNumber(inv.invoice_number);
+    setIssueDate(inv.issue_date);
+    setObservations(inv.observations || '');
+    if (inv.items?.[0]) {
+      setWeightKg(inv.items[0].weight_kg.toString());
+      setYarnTypeId(inv.items[0].yarn_type_id || '');
+      setArticleId(inv.items[0].article_id || '');
+    }
+    setDialogOpen(true);
+  };
+
   const handleDeleteInvoice = async (id: string) => {
-    if (!confirm('Deseja excluir esta nota?')) return;
-    const { error } = await supabase.from('client_invoices').delete().eq('id', id);
+    setInvoiceToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!invoiceToDelete) return;
+    const { error } = await supabase.from('client_invoices').delete().eq('id', invoiceToDelete);
     if (error) toast.error('Erro ao excluir');
     else {
-      logAction('NF CLIENTES: Excluiu nota', { id });
+      logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete });
       toast.success('Nota excluída');
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
     }
+    setDeleteDialogOpen(false);
+    setInvoiceToDelete(null);
   };
 
   return (
