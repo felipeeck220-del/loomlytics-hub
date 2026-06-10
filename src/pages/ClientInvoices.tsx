@@ -390,6 +390,7 @@ export default function ClientInvoices() {
               allArticles={allArticles}
               yarnTypes={yarnTypes}
               onDelete={handleDeleteInvoice}
+              onEdit={handleEditInvoice}
               onAdd={() => { setSelectedClientId(tab.id); setDialogOpen(true); }}
             />
           </TabsContent>
