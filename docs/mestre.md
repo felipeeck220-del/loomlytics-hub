@@ -4,8 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 10/06/2026 11:35 (Brasília)*
-- 10/06/2026 11:35 - Notas Fiscais (Clientes): Ajustada a formatação da coluna de data para incluir a data de emissão (dd-MM-yyyy), nome e código do usuário com prefixo #, e data/hora de criação do registro.
+*Última atualização: 10/06/2026 11:40 (Brasília)*
+- 10/06/2026 11:40 - Notas Fiscais (Clientes): Padronizada a formatação da coluna de data (emissão, auditoria e registro) em todas as abas, incluindo as abas individuais de clientes.
 - 10/06/2026 11:00 - Notas Fiscais (Clientes): Corrigido erro de RLS "new row violates row-level security policy" ao salvar novas notas, reforçando as políticas de segurança no banco de dados.
 - 10/06/2026 10:50 - Notas Fiscais (Clientes): Otimização de performance utilizando `getYarnTypes` do contexto global, correção de filtros de data e melhoria na geração dinâmica de meses.
 - 10/06/2026 10:40 - Notas Fiscais (Clientes): Corrigida visibilidade no sidebar para usuários existentes através da atualização da coluna `enabled_nav_items` na tabela `company_settings` no banco de dados.

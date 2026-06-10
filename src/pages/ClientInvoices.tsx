@@ -512,7 +512,19 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
               })
               .map((inv: any) => (
               <TableRow key={inv.id}>
-                <TableCell>{format(new Date(inv.issue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
+                    {inv.created_by_code && (
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic mt-0.5">
+                        {inv.created_by_name} #{inv.created_by_code}
+                      </div>
+                    )}
+                    <span className="text-[10px] text-muted-foreground">
+                      {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}
+                    </span>
+                  </div>
+                </TableCell>
                 <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                 <TableCell>
                   <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className={inv.type === 'entrada' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}>
