@@ -15,12 +15,22 @@ import { toast } from 'sonner';
 import { formatWeight, getDateLimits } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import {
-  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User
+  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ClientTab {
   id: string;
