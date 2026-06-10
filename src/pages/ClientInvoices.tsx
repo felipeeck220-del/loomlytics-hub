@@ -410,14 +410,14 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
             <div className="text-2xl font-bold text-amber-700">{formatWeight(stats.saida)}</div>
           </CardContent>
         </Card>
-        <Card className={cn("bg-primary/5 border-primary/10", stats.saldo < 0 && "bg-destructive/5 border-destructive/10")}>
+        <Card className={cn("bg-primary/5 border-primary/10", stats.saldo > 0 && "bg-amber-500/5 border-amber-500/10", stats.saldo < 0 && "bg-destructive/5 border-destructive/10")}>
           <CardHeader className="py-4">
-            <CardTitle className="text-sm font-medium text-primary flex items-center gap-2">
+            <CardTitle className={cn("text-sm font-medium text-primary flex items-center gap-2", stats.saldo > 0 && "text-amber-600")}>
               <Search className="h-4 w-4" /> Saldo a Enviar
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cn("text-2xl font-bold text-primary", stats.saldo < 0 && "text-destructive")}>
+            <div className={cn("text-2xl font-bold text-primary", stats.saldo > 0 && "text-amber-700", stats.saldo < 0 && "text-destructive")}>
               {formatWeight(stats.saldo)}
             </div>
           </CardContent>
