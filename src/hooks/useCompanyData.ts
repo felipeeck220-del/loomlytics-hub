@@ -730,6 +730,7 @@ export function useCompanyData() {
       getSinkers, saveSinkers, getSinkerTransactions, addSinkerTransaction,
       updateSinkerTransaction, deleteSinkerTransaction,
       getCylinders, saveCylinders, assignCylinderToMachine,
+      getYarnTypes,
        saveShiftSettings,
      getProductionFilterMonths: useCallback(async () => {
        if (!companyId) return [];
