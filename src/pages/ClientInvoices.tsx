@@ -89,10 +89,17 @@ export default function ClientInvoices() {
 
   const saveInvoiceMutation = useMutation({
     mutationFn: async () => {
+      if (!companyId) {
+        throw new Error('Empresa não identificada. Por favor, recarregue a página.');
+      }
+      
       if (!selectedClientId || !invoiceNumber || !weightKg || (!yarnTypeId && !articleId)) {
         throw new Error('Preencha os campos obrigatórios');
       }
 
+      console.log('Iniciando salvamento de nota...', { companyId, formType, invoiceNumber });
+
+      // Inserir o cabeçalho da nota
       const { data: invoice, error: invError } = await supabase
         .from('client_invoices')
         .insert({
@@ -101,24 +108,33 @@ export default function ClientInvoices() {
           type: formType,
           invoice_number: invoiceNumber,
           issue_date: issueDate,
-          observations: observations
+          observations: observations || null
         })
         .select()
         .single();
 
-      if (invError) throw invError;
+      if (invError) {
+        console.error('Erro ao inserir client_invoices:', invError);
+        throw invError;
+      }
 
+      // Inserir o item da nota
       const { error: itemError } = await supabase
         .from('client_invoice_items')
         .insert({
           invoice_id: invoice.id,
           company_id: companyId,
-          yarn_type_id: formType === 'entrada' ? yarnTypeId : null,
-          article_id: formType === 'saida' ? articleId : null,
+          yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
+          article_id: formType === 'saida' ? (articleId || null) : null,
           weight_kg: parseFloat(weightKg)
         });
 
-      if (itemError) throw itemError;
+      if (itemError) {
+        console.error('Erro ao inserir client_invoice_items:', itemError);
+        // Tentar deletar o cabeçalho órfão em caso de erro no item
+        await supabase.from('client_invoices').delete().eq('id', invoice.id);
+        throw itemError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
@@ -128,8 +144,11 @@ export default function ClientInvoices() {
       setInvoiceNumber('');
       setWeightKg('');
       setObservations('');
+      setYarnTypeId('');
+      setArticleId('');
     },
     onError: (error: any) => {
+      console.error('Erro completo na mutation:', error);
       toast.error(error.message || 'Erro ao salvar nota');
     }
   });
