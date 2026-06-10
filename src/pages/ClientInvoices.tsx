@@ -476,7 +476,7 @@ export default function ClientInvoices() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
             <Button onClick={() => saveInvoiceMutation.mutate()} disabled={saveInvoiceMutation.isPending}>
               {saveInvoiceMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Salvar Nota
