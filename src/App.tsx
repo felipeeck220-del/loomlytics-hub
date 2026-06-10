@@ -30,6 +30,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import AccountsPayable from "./pages/AccountsPayable";
 import ResidueSales from "./pages/ResidueSales";
 import Invoices from "./pages/Invoices";
+import ClientInvoices from "./pages/ClientInvoices";
 import TvCodeEntry from "./pages/TvCodeEntry";
 import TvPanel from "./pages/TvPanel";
 import Fechamento from "./pages/Fechamento";
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="contas-pagar" element={<ProtectedRoute routeKey="contas-pagar"><AccountsPayable /></ProtectedRoute>} />
                 <Route path="residuos" element={<ProtectedRoute routeKey="residuos"><ResidueSales /></ProtectedRoute>} />
                 <Route path="invoices" element={<ProtectedRoute routeKey="invoices"><Invoices /></ProtectedRoute>} />
+                <Route path="client-invoices" element={<ProtectedRoute routeKey="client-invoices"><ClientInvoices /></ProtectedRoute>} />
                 <Route path="fechamento" element={<ProtectedRoute routeKey="fechamento"><Fechamento /></ProtectedRoute>} />
               </Route>
               <Route path="/" element={<RootRedirect />} />
