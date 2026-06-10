@@ -30,9 +30,10 @@ export default function ClientInvoices() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const queryClient = useQueryClient();
-  const { getClients, getArticles, getProductions } = useSharedCompanyData();
+  const { getClients, getArticles, getYarnTypes } = useSharedCompanyData();
   const allClients = getClients();
   const allArticles = getArticles();
+  const yarnTypes = getYarnTypes();
 
   const [openTabs, setOpenTabs] = useState<ClientTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string>('search');
@@ -52,16 +53,6 @@ export default function ClientInvoices() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMonth, setFilterMonth] = useState('all');
 
-  // Fetch Yarn Types
-  const { data: yarnTypes = [] } = useQuery({
-    queryKey: ['yarn_types', companyId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('yarn_types').select('*').eq('company_id', companyId).order('name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!companyId,
-  });
 
   // Fetch Client Invoices
   const { data: clientInvoices = [], isLoading: loadingInvoices } = useQuery({
@@ -222,7 +213,9 @@ export default function ClientInvoices() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todo período</SelectItem>
-                {/* Months would be dynamically generated here */}
+                {Array.from(new Set(clientInvoices.map(inv => inv.issue_date.substring(0, 7)))).sort().reverse().map(month => (
+                  <SelectItem key={month} value={month}>{format(new Date(month + '-02T12:00:00'), 'MMMM yyyy')}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

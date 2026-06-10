@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 10/06/2026 10:40 (Brasília)*
+*Última atualização: 10/06/2026 10:50 (Brasília)*
+- 10/06/2026 10:50 - Notas Fiscais (Clientes): Otimização de performance utilizando `getYarnTypes` do contexto global, correção de filtros de data e melhoria na geração dinâmica de meses.
 - 10/06/2026 10:40 - Notas Fiscais (Clientes): Corrigida visibilidade no sidebar para usuários existentes através da atualização da coluna `enabled_nav_items` na tabela `company_settings` no banco de dados.
 - 10/06/2026 10:35 - Notas Fiscais (Clientes): Corrigida visibilidade no sidebar adicionando a chave `client-invoices` às permissões e ao mapeamento de rotas em `usePermissions.ts`.
 - 10/06/2026 10:30 - Criação do módulo "Notas Fiscais (Clientes)": Implementada nova página `ClientInvoices.tsx` para controle independente de entrada de fio e saída de malha por cliente, com sistema de abas dinâmicas, cards de saldo e filtros. Adicionado item no sidebar e rotas.
