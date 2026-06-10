@@ -338,7 +338,11 @@ export default function ClientInvoices() {
                 value={selectedClientId}
                 onValueChange={setSelectedClientId}
                 placeholder="Selecione o cliente..."
+                disabled={activeTabId !== 'search'}
               />
+              {activeTabId !== 'search' && (
+                <p className="text-[10px] text-muted-foreground italic">Cliente fixado pela aba ativa</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
