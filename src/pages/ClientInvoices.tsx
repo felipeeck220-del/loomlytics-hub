@@ -115,56 +115,78 @@ export default function ClientInvoices() {
 
       console.log('Iniciando salvamento de nota...', { companyId, formType, invoiceNumber });
 
-      // Inserir o cabeçalho da nota
-      const { data: invoice, error: invError } = await supabase
-        .from('client_invoices')
-        .insert({
-          company_id: companyId,
-          client_id: selectedClientId,
-          type: formType,
-          invoice_number: invoiceNumber,
-          issue_date: issueDate,
-          observations: observations || null,
-          created_by_name: userTrackingInfo.created_by_name,
-          created_by_code: userTrackingInfo.created_by_code
-        })
-        .select()
-        .single();
+      if (editingInvoice) {
+        // Atualizar cabeçalho
+        const { error: invError } = await supabase
+          .from('client_invoices')
+          .update({
+            client_id: selectedClientId,
+            type: formType,
+            invoice_number: invoiceNumber,
+            issue_date: issueDate,
+            observations: observations || null
+          })
+          .eq('id', editingInvoice.id);
 
-      if (invError) {
-        console.error('Erro ao inserir client_invoices:', invError);
-        throw invError;
-      }
+        if (invError) throw invError;
 
-      // Inserir o item da nota
-      const { error: itemError } = await supabase
-        .from('client_invoice_items')
-        .insert({
-          invoice_id: invoice.id,
-          company_id: companyId,
-          yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
-          article_id: formType === 'saida' ? (articleId || null) : null,
-          weight_kg: parseFloat(weightKg)
-        });
+        // Atualizar item (assumindo apenas um item por nota no momento)
+        const { error: itemError } = await supabase
+          .from('client_invoice_items')
+          .update({
+            yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
+            article_id: formType === 'saida' ? (articleId || null) : null,
+            weight_kg: parseFloat(weightKg)
+          })
+          .eq('invoice_id', editingInvoice.id);
 
-      if (itemError) {
-        console.error('Erro ao inserir client_invoice_items:', itemError);
-        // Tentar deletar o cabeçalho órfão em caso de erro no item
-        await supabase.from('client_invoices').delete().eq('id', invoice.id);
-        throw itemError;
+        if (itemError) throw itemError;
+        
+        return { action: 'updated', id: editingInvoice.id };
+      } else {
+        // Inserir o cabeçalho da nota
+        const { data: invoice, error: invError } = await supabase
+          .from('client_invoices')
+          .insert({
+            company_id: companyId,
+            client_id: selectedClientId,
+            type: formType,
+            invoice_number: invoiceNumber,
+            issue_date: issueDate,
+            observations: observations || null,
+            created_by_name: userTrackingInfo.created_by_name,
+            created_by_code: userTrackingInfo.created_by_code
+          })
+          .select()
+          .single();
+
+        if (invError) throw invError;
+
+        // Inserir o item da nota
+        const { error: itemError } = await supabase
+          .from('client_invoice_items')
+          .insert({
+            invoice_id: invoice.id,
+            company_id: companyId,
+            yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
+            article_id: formType === 'saida' ? (articleId || null) : null,
+            weight_kg: parseFloat(weightKg)
+          });
+
+        if (itemError) {
+          await supabase.from('client_invoices').delete().eq('id', invoice.id);
+          throw itemError;
+        }
+        
+        return { action: 'created', id: invoice.id };
       }
     },
-    onSuccess: () => {
-      logAction('NF CLIENTES: Criou nota', { invoice_number: invoiceNumber, type: formType });
+    onSuccess: (data) => {
+      logAction(`NF CLIENTES: ${data.action === 'updated' ? 'Editou' : 'Criou'} nota`, { invoice_number: invoiceNumber, type: formType });
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
-      toast.success('Nota registrada com sucesso!');
+      toast.success(`Nota ${data.action === 'updated' ? 'atualizada' : 'registrada'} com sucesso!`);
       setDialogOpen(false);
-      // Reset form
-      setInvoiceNumber('');
-      setWeightKg('');
-      setObservations('');
-      setYarnTypeId('');
-      setArticleId('');
+      resetForm();
     },
     onError: (error: any) => {
       console.error('Erro completo na mutation:', error);
