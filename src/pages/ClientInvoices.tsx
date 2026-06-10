@@ -15,12 +15,22 @@ import { toast } from 'sonner';
 import { formatWeight, getDateLimits } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import {
-  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User
+  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ClientTab {
   id: string;
@@ -42,6 +52,10 @@ export default function ClientInvoices() {
   
   // Modal State
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
+
   const [formType, setFormType] = useState<'entrada' | 'saida'>('entrada');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -50,7 +64,7 @@ export default function ClientInvoices() {
   const [yarnTypeId, setYarnTypeId] = useState('');
   const [articleId, setArticleId] = useState('');
   const [observations, setObservations] = useState('');
-
+  
   // Search/Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMonth, setFilterMonth] = useState('all');
@@ -101,56 +115,78 @@ export default function ClientInvoices() {
 
       console.log('Iniciando salvamento de nota...', { companyId, formType, invoiceNumber });
 
-      // Inserir o cabeçalho da nota
-      const { data: invoice, error: invError } = await supabase
-        .from('client_invoices')
-        .insert({
-          company_id: companyId,
-          client_id: selectedClientId,
-          type: formType,
-          invoice_number: invoiceNumber,
-          issue_date: issueDate,
-          observations: observations || null,
-          created_by_name: userTrackingInfo.created_by_name,
-          created_by_code: userTrackingInfo.created_by_code
-        })
-        .select()
-        .single();
+      if (editingInvoice) {
+        // Atualizar cabeçalho
+        const { error: invError } = await supabase
+          .from('client_invoices')
+          .update({
+            client_id: selectedClientId,
+            type: formType,
+            invoice_number: invoiceNumber,
+            issue_date: issueDate,
+            observations: observations || null
+          })
+          .eq('id', editingInvoice.id);
 
-      if (invError) {
-        console.error('Erro ao inserir client_invoices:', invError);
-        throw invError;
-      }
+        if (invError) throw invError;
 
-      // Inserir o item da nota
-      const { error: itemError } = await supabase
-        .from('client_invoice_items')
-        .insert({
-          invoice_id: invoice.id,
-          company_id: companyId,
-          yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
-          article_id: formType === 'saida' ? (articleId || null) : null,
-          weight_kg: parseFloat(weightKg)
-        });
+        // Atualizar item (assumindo apenas um item por nota no momento)
+        const { error: itemError } = await supabase
+          .from('client_invoice_items')
+          .update({
+            yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
+            article_id: formType === 'saida' ? (articleId || null) : null,
+            weight_kg: parseFloat(weightKg)
+          })
+          .eq('invoice_id', editingInvoice.id);
 
-      if (itemError) {
-        console.error('Erro ao inserir client_invoice_items:', itemError);
-        // Tentar deletar o cabeçalho órfão em caso de erro no item
-        await supabase.from('client_invoices').delete().eq('id', invoice.id);
-        throw itemError;
+        if (itemError) throw itemError;
+        
+        return { action: 'updated', id: editingInvoice.id };
+      } else {
+        // Inserir o cabeçalho da nota
+        const { data: invoice, error: invError } = await supabase
+          .from('client_invoices')
+          .insert({
+            company_id: companyId,
+            client_id: selectedClientId,
+            type: formType,
+            invoice_number: invoiceNumber,
+            issue_date: issueDate,
+            observations: observations || null,
+            created_by_name: userTrackingInfo.created_by_name,
+            created_by_code: userTrackingInfo.created_by_code
+          })
+          .select()
+          .single();
+
+        if (invError) throw invError;
+
+        // Inserir o item da nota
+        const { error: itemError } = await supabase
+          .from('client_invoice_items')
+          .insert({
+            invoice_id: invoice.id,
+            company_id: companyId,
+            yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
+            article_id: formType === 'saida' ? (articleId || null) : null,
+            weight_kg: parseFloat(weightKg)
+          });
+
+        if (itemError) {
+          await supabase.from('client_invoices').delete().eq('id', invoice.id);
+          throw itemError;
+        }
+        
+        return { action: 'created', id: invoice.id };
       }
     },
-    onSuccess: () => {
-      logAction('NF CLIENTES: Criou nota', { invoice_number: invoiceNumber, type: formType });
+    onSuccess: (data) => {
+      logAction(`NF CLIENTES: ${data.action === 'updated' ? 'Editou' : 'Criou'} nota`, { invoice_number: invoiceNumber, type: formType });
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
-      toast.success('Nota registrada com sucesso!');
+      toast.success(`Nota ${data.action === 'updated' ? 'atualizada' : 'registrada'} com sucesso!`);
       setDialogOpen(false);
-      // Reset form
-      setInvoiceNumber('');
-      setWeightKg('');
-      setObservations('');
-      setYarnTypeId('');
-      setArticleId('');
+      resetForm();
     },
     onError: (error: any) => {
       console.error('Erro completo na mutation:', error);
@@ -158,15 +194,47 @@ export default function ClientInvoices() {
     }
   });
 
+  const resetForm = () => {
+    setEditingInvoice(null);
+    setInvoiceNumber('');
+    setWeightKg('');
+    setObservations('');
+    setYarnTypeId('');
+    setArticleId('');
+    setIssueDate(format(new Date(), 'yyyy-MM-dd'));
+  };
+
+  const handleEditInvoice = (inv: any) => {
+    setEditingInvoice(inv);
+    setFormType(inv.type);
+    setSelectedClientId(inv.client_id);
+    setInvoiceNumber(inv.invoice_number);
+    setIssueDate(inv.issue_date);
+    setObservations(inv.observations || '');
+    if (inv.items?.[0]) {
+      setWeightKg(inv.items[0].weight_kg.toString());
+      setYarnTypeId(inv.items[0].yarn_type_id || '');
+      setArticleId(inv.items[0].article_id || '');
+    }
+    setDialogOpen(true);
+  };
+
   const handleDeleteInvoice = async (id: string) => {
-    if (!confirm('Deseja excluir esta nota?')) return;
-    const { error } = await supabase.from('client_invoices').delete().eq('id', id);
+    setInvoiceToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!invoiceToDelete) return;
+    const { error } = await supabase.from('client_invoices').delete().eq('id', invoiceToDelete);
     if (error) toast.error('Erro ao excluir');
     else {
-      logAction('NF CLIENTES: Excluiu nota', { id });
+      logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete });
       toast.success('Nota excluída');
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
     }
+    setDeleteDialogOpen(false);
+    setInvoiceToDelete(null);
   };
 
   return (
@@ -297,9 +365,14 @@ export default function ClientInvoices() {
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(inv.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => handleEditInvoice(inv)}>
+                          <Edit2 className="h-4 w-4 text-primary" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(inv.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -317,6 +390,7 @@ export default function ClientInvoices() {
               allArticles={allArticles}
               yarnTypes={yarnTypes}
               onDelete={handleDeleteInvoice}
+              onEdit={handleEditInvoice}
               onAdd={() => { setSelectedClientId(tab.id); setDialogOpen(true); }}
             />
           </TabsContent>
@@ -402,7 +476,7 @@ export default function ClientInvoices() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
             <Button onClick={() => saveInvoiceMutation.mutate()} disabled={saveInvoiceMutation.isPending}>
               {saveInvoiceMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Salvar Nota
@@ -410,11 +484,36 @@ export default function ClientInvoices() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 text-destructive mb-2">
+              <div className="p-2 bg-destructive/10 rounded-full">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta nota fiscal? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setInvoiceToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir Nota
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTypes, onDelete, onAdd }: any) {
+function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd }: any) {
   const stats = useMemo(() => {
     const entrada = invoices.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
     const saida = invoices.filter((i: any) => i.type === 'saida').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
@@ -540,9 +639,14 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                 </TableCell>
                 <TableCell className="text-right font-medium">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => onDelete(inv.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => onEdit(inv)}>
+                      <Edit2 className="h-4 w-4 text-primary" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => onDelete(inv.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
