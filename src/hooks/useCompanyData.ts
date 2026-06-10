@@ -28,8 +28,9 @@ export function useCompanyData() {
     const [needleTransactions, setNeedleTransactions] = useState<NeedleTransaction[]>([]);
     const [sinkers, setSinkers] = useState<SinkerInventory[]>([]);
     const [sinkerTransactions, setSinkerTransactions] = useState<SinkerTransaction[]>([]);
-    const [cylinders, setCylinders] = useState<Cylinder[]>([]);
-  const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
+     const [cylinders, setCylinders] = useState<Cylinder[]>([]);
+     const [yarnTypes, setYarnTypes] = useState<{ id: string; name: string; company_id: string }[]>([]);
+   const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
    const [loadingProgress, setLoadingProgress] = useState(0);
 
@@ -195,7 +196,8 @@ export function useCompanyData() {
           { name: 'sinker_inventory', fn: () => fetchAll('sinker_inventory', { column: 'company_id', value: companyId }, 'reference_code') },
           { name: 'sinker_transactions', fn: () => fetchAll('sinker_transactions', { column: 'company_id', value: companyId }, 'date', false) },
           { name: 'cylinders', fn: () => fetchAll('cylinders', { column: 'company_id', value: companyId }, 'brand') },
-        ];
+          { name: 'yarn_types', fn: () => fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name') },
+         ];
  
        let completed = 0;
        const results = await Promise.all(tasks.map(async (task) => {
@@ -205,7 +207,7 @@ export function useCompanyData() {
          return result;
        }));
  
-       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData] = results;
+       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData] = results;
  
        setMachines(mData.map(mapMachine));
        setMachineLogs(mlRes.map(mapMachineLog));
@@ -219,7 +221,8 @@ export function useCompanyData() {
         setNeedleTransactions(ntData.map(mapNeedleTransaction));
         setSinkers(sData.map(mapSinker));
         setSinkerTransactions(stData.map(mapSinkerTransaction));
-        setCylinders(cylData.map(mapCylinder));
+         setCylinders(cylData.map(mapCylinder));
+         setYarnTypes(ytData);
        
        if (csRes.data) {
          setShiftSettings({
@@ -257,7 +260,8 @@ export function useCompanyData() {
     const getNeedleTransactions = useCallback(() => needleTransactions, [needleTransactions]);
     const getSinkers = useCallback(() => sinkers, [sinkers]);
     const getSinkerTransactions = useCallback(() => sinkerTransactions, [sinkerTransactions]);
-    const getCylinders = useCallback(() => cylinders, [cylinders]);
+     const getCylinders = useCallback(() => cylinders, [cylinders]);
+     const getYarnTypes = useCallback(() => yarnTypes, [yarnTypes]);
 
   // Savers (write to DB and update state)
   const saveMachines = useCallback(async (data: Machine[]) => {
