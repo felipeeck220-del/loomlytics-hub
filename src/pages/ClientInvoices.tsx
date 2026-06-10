@@ -488,7 +488,7 @@ export default function ClientInvoices() {
   );
 }
 
-function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTypes, onDelete, onAdd }: any) {
+function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd }: any) {
   const stats = useMemo(() => {
     const entrada = invoices.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
     const saida = invoices.filter((i: any) => i.type === 'saida').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
