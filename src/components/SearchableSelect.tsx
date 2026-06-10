@@ -22,6 +22,7 @@ interface SearchableSelectProps {
   filterFn?: (option: SearchableSelectOption, search: string) => boolean;
   /** Optional icon to display in the trigger button */
   icon?: ReactNode;
+  disabled?: boolean;
 }
 
 export function SearchableSelect({
@@ -34,6 +35,7 @@ export function SearchableSelect({
   triggerClassName,
   filterFn,
   icon,
+  disabled = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -69,25 +71,27 @@ export function SearchableSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild disabled={disabled}>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={disabled}
           className={cn(
             'h-9 w-full justify-between font-normal',
             !value && 'text-muted-foreground',
-          triggerClassName
-        )}
-      >
-        <div className="flex items-center gap-2 truncate text-left">
-          {icon}
-          <span className="truncate">
-            {selectedLabel || placeholder}
-          </span>
-        </div>
-        <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
-      </Button>
+            disabled && 'opacity-50 cursor-not-allowed bg-muted',
+            triggerClassName
+          )}
+        >
+          <div className="flex items-center gap-2 truncate text-left">
+            {icon}
+            <span className="truncate">
+              {selectedLabel || placeholder}
+            </span>
+          </div>
+          {!disabled && <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />}
+        </Button>
       </PopoverTrigger>
       <PopoverContent
         className={cn('w-auto min-w-[--radix-popover-trigger-width] p-0', className)}
