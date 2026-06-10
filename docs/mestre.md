@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 10/06/2026 10:30 (Brasília)*
+*Última atualização: 10/06/2026 10:35 (Brasília)*
+- 10/06/2026 10:35 - Notas Fiscais (Clientes): Corrigida visibilidade no sidebar adicionando a chave `client-invoices` às permissões e ao mapeamento de rotas em `usePermissions.ts`.
 - 10/06/2026 10:30 - Criação do módulo "Notas Fiscais (Clientes)": Implementada nova página `ClientInvoices.tsx` para controle independente de entrada de fio e saída de malha por cliente, com sistema de abas dinâmicas, cards de saldo e filtros. Adicionado item no sidebar e rotas.
 - 09/06/2026 15:20 - Relatórios > Pódio > Exportar PDF Diário: Alterado o rótulo "Eficiência Exigida" para "Meta de Eficiência" no modal de exportação e no cabeçalho da tabela de Resumo Geral do PDF.
 - 09/06/2026 14:25 - Relatórios > Exportar: Alterado o padrão inicial para "Modo Equipe" e "Incluir gráficos" desativado, conforme solicitado para otimizar o fluxo de exportação.
