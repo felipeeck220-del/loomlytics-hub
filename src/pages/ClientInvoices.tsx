@@ -462,8 +462,12 @@ export default function ClientInvoices() {
                   options={allArticles.filter(a => a.client_id === selectedClientId).map(a => ({ value: a.id, label: a.name }))}
                   value={articleId}
                   onValueChange={setArticleId}
-                  placeholder="Selecione o artigo..."
+                  placeholder={allArticles.filter(a => a.client_id === selectedClientId).length === 0 ? "Nenhum artigo cadastrado para este cliente" : "Selecione o artigo..."}
+                  disabled={allArticles.filter(a => a.client_id === selectedClientId).length === 0}
                 />
+                {allArticles.filter(a => a.client_id === selectedClientId).length === 0 && (
+                  <p className="text-[10px] text-destructive italic">Cadastre artigos para este cliente no menu Artigos</p>
+                )}
               </div>
             )}
 
@@ -474,7 +478,7 @@ export default function ClientInvoices() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button onClick={() => saveInvoiceMutation.mutate()} disabled={saveInvoiceMutation.isPending}>
+            <Button onClick={() => saveInvoiceMutation.mutate()} disabled={saveInvoiceMutation.isPending || (formType === 'saida' && allArticles.filter(a => a.client_id === selectedClientId).length === 0)}>
               {saveInvoiceMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Salvar Nota
             </Button>
