@@ -188,6 +188,9 @@ export default function ClientInvoices() {
       setDialogOpen(false);
       resetForm();
     },
+    onError: (error: any) => {
+      console.error('Erro completo na mutation:', error);
+      toast.error(error.message || 'Erro ao salvar nota');
     }
   });
 
