@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { formatWeight, getDateLimits } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import {
-  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid
+  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { SearchableSelect } from '@/components/SearchableSelect';
@@ -168,7 +168,7 @@ export default function ClientInvoices() {
              <SearchableSelect
               options={allClients.map(c => ({ value: c.id, label: c.name }))}
               value=""
-              onChange={handleAddTab}
+              onValueChange={handleAddTab}
               placeholder="Pesquisar cliente..."
             />
           </div>
@@ -324,7 +324,7 @@ export default function ClientInvoices() {
               <SearchableSelect
                 options={allClients.map(c => ({ value: c.id, label: c.name }))}
                 value={selectedClientId}
-                onChange={setSelectedClientId}
+                onValueChange={setSelectedClientId}
                 placeholder="Selecione o cliente..."
               />
             </div>
@@ -346,7 +346,7 @@ export default function ClientInvoices() {
                 <SearchableSelect
                   options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
                   value={yarnTypeId}
-                  onChange={setYarnTypeId}
+                  onValueChange={setYarnTypeId}
                   placeholder="Selecione o fio..."
                 />
               </div>
@@ -356,7 +356,7 @@ export default function ClientInvoices() {
                 <SearchableSelect
                   options={allArticles.filter(a => a.client_id === selectedClientId).map(a => ({ value: a.id, label: a.name }))}
                   value={articleId}
-                  onChange={setArticleId}
+                  onValueChange={setArticleId}
                   placeholder="Selecione o artigo..."
                 />
               </div>
