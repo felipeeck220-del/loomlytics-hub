@@ -582,7 +582,10 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
   const filteredInvoices = useMemo(() => {
     const base = activeSubTab === 'aberto' 
       ? invoicesWithBalance.filter((i: any) => !i.isEncerrada)
-      : invoicesWithBalance.filter((i: any) => i.isEncerrada);
+      : activeSubTab === 'encerrada'
+        ? invoicesWithBalance.filter((i: any) => i.isEncerrada)
+        : invoices; // 'historico' base
+
     
     if (!localSearch) return base;
     const q = localSearch.toLowerCase();
@@ -632,22 +635,27 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full sm:w-auto">
           <TabsList>
-            <TabsTrigger value="aberto" className="gap-2">
-              <Clock className="h-4 w-4" /> Em Aberto
-            </TabsTrigger>
-            <TabsTrigger value="encerrada" className="gap-2">
-              <CheckCircle2 className="h-4 w-4" /> Encerradas
-            </TabsTrigger>
+              <TabsTrigger value="aberto" className="gap-2">
+                <Clock className="h-4 w-4" /> Em Aberto
+              </TabsTrigger>
+              <TabsTrigger value="encerrada" className="gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Encerradas
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="gap-2">
+                <History className="h-4 w-4" /> Histórico
+              </TabsTrigger>
+
           </TabsList>
         </Tabs>
         
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex gap-2 w-full sm:w-auto items-center">
           <Input 
-            placeholder="Buscar nota ou fio..." 
+            placeholder={activeSubTab === 'historico' ? "Buscar por número da NF..." : "Buscar nota ou fio..."} 
             className="w-full sm:w-64"
             value={localSearch}
             onChange={e => setLocalSearch(e.target.value)}
           />
+
           <Button onClick={() => onAdd('entrada')} className="gap-2">
             <Plus className="h-4 w-4" /> Adicionar Nota
           </Button>
@@ -684,20 +692,34 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="font-medium">{inv.invoice_number}</TableCell>
+                <TableCell className="font-medium">
+                  {inv.invoice_number}
+                  {activeSubTab === 'historico' && (
+                    <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className="ml-2 text-[10px]">
+                      {inv.type === 'entrada' ? 'Entrada' : 'Saída'}
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell>
-                  {yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '-'}
+                  {inv.items?.[0] ? (
+                    inv.type === 'entrada' 
+                      ? yarnTypes.find((y: any) => y.id === inv.items[0].yarn_type_id)?.name 
+                      : allArticles.find((a: any) => a.id === inv.items[0].article_id)?.name
+                  ) : '-'}
                 </TableCell>
-                <TableCell className="text-right font-medium">{formatWeight(inv.weightEntrada)}</TableCell>
-                <TableCell className="text-right text-emerald-600 font-medium">{formatWeight(inv.weightSaida)}</TableCell>
+                <TableCell className="text-right font-medium">
+                  {activeSubTab === 'historico' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : formatWeight(inv.weightEntrada)}
+                </TableCell>
+                <TableCell className="text-right text-emerald-600 font-medium">
+                  {activeSubTab === 'historico' ? '-' : formatWeight(inv.weightSaida)}
+                </TableCell>
                 <TableCell className={cn("text-right font-bold", inv.saldo > 0 ? "text-red-400" : "text-muted-foreground")}>
-                  {formatWeight(inv.saldo)}
+                  {activeSubTab === 'historico' ? '-' : formatWeight(inv.saldo)}
                 </TableCell>
-
 
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    {!inv.isEncerrada && (
+                    {activeSubTab !== 'historico' && !inv.isEncerrada && (
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -717,6 +739,7 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                 </TableCell>
               </TableRow>
             ))}
+
             {filteredInvoices.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
