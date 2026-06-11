@@ -3,7 +3,6 @@ import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -13,8 +12,11 @@ import { cn } from '@/lib/utils';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  Package, Scale, Warehouse, Truck, Layers, ChevronDown, Filter, Search
+  Package, Scale, Warehouse, Truck, Layers, ChevronDown
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function StockMalha() {
   const { 
@@ -39,10 +41,7 @@ export default function StockMalha() {
   const [estoqueArticle, setEstoqueArticle] = useState('all');
   const [estoqueMonth, setEstoqueMonth] = useState('all');
 
-  // I'll fetch invoices and invoiceItems via useQuery to get the data needed for calculation
-  const { useQuery } = require('@tanstack/react-query');
-  const { useAuth } = require('@/contexts/AuthContext');
-  const { supabase } = require('@/integrations/supabase/client');
+  // Hooks for data calculation
   const { user } = useAuth();
   const companyId = user?.company_id || '';
 
