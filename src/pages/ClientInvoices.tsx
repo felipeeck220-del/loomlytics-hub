@@ -588,15 +588,17 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
       : activeSubTab === 'encerrada'
         ? invoicesWithBalance.filter((i: any) => i.isEncerrada)
         : invoices; // 'historico' base
-
     
     if (!localSearch) return base;
     const q = localSearch.toLowerCase();
     return base.filter((inv: any) => {
-      const item = yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '';
-      return inv.invoice_number.includes(q) || item.toLowerCase().includes(q);
+      const itemName = inv.type === 'entrada' 
+        ? (yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '')
+        : (allArticles.find((a: any) => a.id === inv.items?.[0]?.article_id)?.name || '');
+      return inv.invoice_number.toLowerCase().includes(q) || itemName.toLowerCase().includes(q);
     });
-  }, [invoicesWithBalance, activeSubTab, localSearch, yarnTypes]);
+  }, [invoicesWithBalance, activeSubTab, localSearch, yarnTypes, allArticles, invoices]);
+
 
   return (
     <div className="space-y-6">
