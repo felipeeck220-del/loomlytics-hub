@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { formatWeight, getDateLimits } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import {
-  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle
+  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle, ArrowUpRight, CheckCircle2, Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { SearchableSelect } from '@/components/SearchableSelect';
@@ -55,6 +55,7 @@ export default function ClientInvoices() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
+  const [parentInvoiceId, setParentInvoiceId] = useState<string | null>(null);
 
   const [formType, setFormType] = useState<'entrada' | 'saida'>('entrada');
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -124,7 +125,8 @@ export default function ClientInvoices() {
             type: formType,
             invoice_number: invoiceNumber,
             issue_date: issueDate,
-            observations: observations || null
+            observations: observations || null,
+            parent_invoice_id: parentInvoiceId
           })
           .eq('id', editingInvoice.id);
 
@@ -154,6 +156,7 @@ export default function ClientInvoices() {
             invoice_number: invoiceNumber,
             issue_date: issueDate,
             observations: observations || null,
+            parent_invoice_id: parentInvoiceId,
             created_by_name: userTrackingInfo.created_by_name,
             created_by_code: userTrackingInfo.created_by_code
           })
@@ -196,6 +199,7 @@ export default function ClientInvoices() {
 
   const resetForm = () => {
     setEditingInvoice(null);
+    setParentInvoiceId(null);
     setInvoiceNumber('');
     setWeightKg('');
     setObservations('');
@@ -211,6 +215,7 @@ export default function ClientInvoices() {
     setInvoiceNumber(inv.invoice_number);
     setIssueDate(inv.issue_date);
     setObservations(inv.observations || '');
+    setParentInvoiceId(inv.parent_invoice_id || null);
     if (inv.items?.[0]) {
       setWeightKg(inv.items[0].weight_kg.toString());
       setYarnTypeId(inv.items[0].yarn_type_id || '');
@@ -388,7 +393,12 @@ export default function ClientInvoices() {
               yarnTypes={yarnTypes}
               onDelete={handleDeleteInvoice}
               onEdit={handleEditInvoice}
-              onAdd={() => { setSelectedClientId(tab.id); setDialogOpen(true); }}
+              onAdd={(type: 'entrada' | 'saida' = 'entrada', parentId: string | null = null) => { 
+                setSelectedClientId(tab.id); 
+                setFormType(type);
+                setParentInvoiceId(parentId);
+                setDialogOpen(true); 
+              }}
             />
           </TabsContent>
         ))}
@@ -398,7 +408,10 @@ export default function ClientInvoices() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{formType === 'entrada' ? 'Nova Entrada de Fio' : 'Nova Saída de Malha'}</DialogTitle>
+            <DialogTitle>
+              {editingInvoice ? 'Editar Nota' : (formType === 'entrada' ? 'Nova Entrada de Fio' : 'Nova Saída de Malha')}
+              {parentInvoiceId && <span className="text-xs font-normal text-muted-foreground block">Vinculada à NF de entrada: {clientInvoices.find(i => i.id === parentInvoiceId)?.invoice_number}</span>}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -515,6 +528,8 @@ export default function ClientInvoices() {
 }
 
 function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd }: any) {
+  const [activeSubTab, setActiveSubTab] = useState('aberto');
+  
   const stats = useMemo(() => {
     const entrada = invoices.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
     const saida = invoices.filter((i: any) => i.type === 'saida').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
@@ -525,8 +540,38 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
     };
   }, [invoices]);
 
+  const invoicesWithBalance = useMemo(() => {
+    return invoices
+      .filter((inv: any) => inv.type === 'entrada')
+      .map((inv: any) => {
+        const relatedSaidas = invoices.filter((i: any) => i.type === 'saida' && i.parent_invoice_id === inv.id);
+        const weightSaida = relatedSaidas.reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
+        const weightEntrada = inv.items?.[0]?.weight_kg || 0;
+        const saldo = weightEntrada - weightSaida;
+        return {
+          ...inv,
+          weightEntrada,
+          weightSaida,
+          saldo,
+          isEncerrada: saldo <= 0
+        };
+      });
+  }, [invoices]);
+
   const [localSearch, setLocalSearch] = useState('');
-  const [localType, setLocalType] = useState('all');
+
+  const filteredInvoices = useMemo(() => {
+    const base = activeSubTab === 'aberto' 
+      ? invoicesWithBalance.filter((i: any) => !i.isEncerrada)
+      : invoicesWithBalance.filter((i: any) => i.isEncerrada);
+    
+    if (!localSearch) return base;
+    const q = localSearch.toLowerCase();
+    return base.filter((inv: any) => {
+      const item = yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '';
+      return inv.invoice_number.includes(q) || item.toLowerCase().includes(q);
+    });
+  }, [invoicesWithBalance, activeSubTab, localSearch, yarnTypes]);
 
   return (
     <div className="space-y-6">
@@ -566,27 +611,28 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full sm:w-auto">
+          <TabsList>
+            <TabsTrigger value="aberto" className="gap-2">
+              <Clock className="h-4 w-4" /> Em Aberto
+            </TabsTrigger>
+            <TabsTrigger value="encerrada" className="gap-2">
+              <CheckCircle2 className="h-4 w-4" /> Encerradas
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
         <div className="flex gap-2 w-full sm:w-auto">
           <Input 
-            placeholder="Buscar nota ou item..." 
+            placeholder="Buscar nota ou fio..." 
             className="w-full sm:w-64"
             value={localSearch}
             onChange={e => setLocalSearch(e.target.value)}
           />
-          <Select value={localType} onValueChange={setLocalType}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="entrada">Entradas</SelectItem>
-              <SelectItem value="saida">Saídas</SelectItem>
-            </SelectContent>
-          </Select>
+          <Button onClick={onAdd} className="gap-2">
+            <Plus className="h-4 w-4" /> Adicionar Nota
+          </Button>
         </div>
-        <Button onClick={onAdd} variant="outline" className="w-full sm:w-auto gap-2">
-          <Plus className="h-4 w-4" /> Nova Movimentação
-        </Button>
       </div>
 
       <Card>
@@ -595,31 +641,19 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
             <TableRow>
               <TableHead>Data</TableHead>
               <TableHead>NF</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Item</TableHead>
-              <TableHead className="text-right">Peso (kg)</TableHead>
+              <TableHead>Fio</TableHead>
+              <TableHead className="text-right">Peso Entrada</TableHead>
+              <TableHead className="text-right">Peso Saída</TableHead>
+              <TableHead className="text-right">Saldo</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices
-              .filter((inv: any) => {
-                const q = localSearch.toLowerCase();
-                const item = inv.items?.[0] ? (inv.type === 'entrada' ? yarnTypes.find((y: any) => y.id === inv.items[0].yarn_type_id)?.name : allArticles.find((a: any) => a.id === inv.items[0].article_id)?.name) : '';
-                const matchSearch = inv.invoice_number.includes(q) || (item || '').toLowerCase().includes(q);
-                const matchType = localType === 'all' || inv.type === localType;
-                return matchSearch && matchType;
-              })
-              .map((inv: any) => (
+            {filteredInvoices.map((inv: any) => (
               <TableRow key={inv.id}>
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
-                    {inv.created_by_code && (
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic mt-0.5">
-                        {inv.created_by_name} #{inv.created_by_code}
-                      </div>
-                    )}
                     <span className="text-[10px] text-muted-foreground">
                       {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}
                     </span>
@@ -627,20 +661,25 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                 </TableCell>
                 <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                 <TableCell>
-                  <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className={inv.type === 'entrada' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}>
-                    {inv.type === 'entrada' ? 'Entrada Fio' : 'Saída Malha'}
-                  </Badge>
+                  {yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '-'}
                 </TableCell>
-                <TableCell>
-                  {inv.items?.[0] ? (
-                    inv.type === 'entrada' 
-                      ? yarnTypes.find((y: any) => y.id === inv.items[0].yarn_type_id)?.name 
-                      : allArticles.find((a: any) => a.id === inv.items[0].article_id)?.name
-                  ) : '-'}
+                <TableCell className="text-right font-medium">{formatWeight(inv.weightEntrada)}</TableCell>
+                <TableCell className="text-right text-amber-600">{formatWeight(inv.weightSaida)}</TableCell>
+                <TableCell className={cn("text-right font-bold", inv.saldo > 0 ? "text-primary" : "text-muted-foreground")}>
+                  {formatWeight(inv.saldo)}
                 </TableCell>
-                <TableCell className="text-right font-medium">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    {!inv.isEncerrada && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        title="Registrar Saída"
+                        onClick={() => onAdd('saida', inv.id)}
+                      >
+                        <ArrowUpRight className="h-4 w-4 text-amber-600" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => onEdit(inv)}>
                       <Edit2 className="h-4 w-4 text-primary" />
                     </Button>
@@ -651,10 +690,10 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                 </TableCell>
               </TableRow>
             ))}
-            {invoices.length === 0 && (
+            {filteredInvoices.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Nenhuma nota registrada para este cliente.
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  Nenhuma nota {activeSubTab === 'aberto' ? 'em aberto' : 'encerrada'} para este cliente.
                 </TableCell>
               </TableRow>
             )}
