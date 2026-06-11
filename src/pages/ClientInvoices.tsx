@@ -15,8 +15,9 @@ import { toast } from 'sonner';
 import { formatWeight, getDateLimits } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import {
-  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle, ArrowUpRight, CheckCircle2, Clock
+  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle, ArrowUpRight, CheckCircle2, Clock, History
 } from 'lucide-react';
+
 import { format } from 'date-fns';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
@@ -364,6 +365,7 @@ export default function ClientInvoices() {
                         </span>
                       </div>
                     </TableCell>
+
                     <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                     <TableCell>
                       <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className={inv.type === 'entrada' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}>
@@ -543,6 +545,9 @@ export default function ClientInvoices() {
 
 function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd }: any) {
   const [activeSubTab, setActiveSubTab] = useState('aberto');
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+
   
   const stats = useMemo(() => {
     const entrada = invoices.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
@@ -668,7 +673,12 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
               <TableRow key={inv.id}>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
+                    <span className="font-medium text-primary">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
+                    {inv.created_by_code && (
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic mt-0.5">
+                        {inv.created_by_name} #{inv.created_by_code}
+                      </div>
+                    )}
                     <span className="text-[10px] text-muted-foreground">
                       {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}
                     </span>
@@ -679,10 +689,12 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                   {yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '-'}
                 </TableCell>
                 <TableCell className="text-right font-medium">{formatWeight(inv.weightEntrada)}</TableCell>
-                <TableCell className="text-right text-amber-600">{formatWeight(inv.weightSaida)}</TableCell>
-                <TableCell className={cn("text-right font-bold", inv.saldo > 0 ? "text-primary" : "text-muted-foreground")}>
+                <TableCell className="text-right text-emerald-600 font-medium">{formatWeight(inv.weightSaida)}</TableCell>
+                <TableCell className={cn("text-right font-bold", inv.saldo > 0 ? "text-red-400" : "text-muted-foreground")}>
                   {formatWeight(inv.saldo)}
                 </TableCell>
+
+
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     {!inv.isEncerrada && (
@@ -715,6 +727,83 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
           </TableBody>
         </Table>
       </Card>
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              Histórico por Nota
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Digite o número da NF para ver o histórico..."
+                className="pl-9"
+                value={historySearch}
+                onChange={e => setHistorySearch(e.target.value)}
+              />
+            </div>
+
+            {historySearch && (
+              <div className="border rounded-md overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead className="text-right">Peso (kg)</TableHead>
+                      <TableHead>Auditoria</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invoices
+                      .filter((inv: any) => inv.invoice_number.includes(historySearch))
+                      .sort((a: any, b: any) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime())
+                      .map((inv: any) => (
+                        <TableRow key={inv.id}>
+                          <TableCell className="text-xs">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</TableCell>
+                          <TableCell>
+                            <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className="text-[10px]">
+                              {inv.type === 'entrada' ? 'Entrada' : 'Saída'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs truncate max-w-[120px]">
+                            {inv.items?.[0] ? (
+                              inv.type === 'entrada' 
+                                ? yarnTypes.find((y: any) => y.id === inv.items[0].yarn_type_id)?.name 
+                                : allArticles.find((a: any) => a.id === inv.items[0].article_id)?.name
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell className="text-right text-xs font-medium">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col text-[9px] leading-tight">
+                              <span className="text-muted-foreground italic">{inv.created_by_name} #{inv.created_by_code}</span>
+                              <span className="text-[8px] opacity-70">{format(new Date(inv.created_at), 'dd/MM HH:mm')}</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    {invoices.filter((inv: any) => inv.invoice_number.includes(historySearch)).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-4 text-muted-foreground text-xs">
+                          Nenhum registro encontrado para esta nota.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryDialogOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
