@@ -582,7 +582,10 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
   const filteredInvoices = useMemo(() => {
     const base = activeSubTab === 'aberto' 
       ? invoicesWithBalance.filter((i: any) => !i.isEncerrada)
-      : invoicesWithBalance.filter((i: any) => i.isEncerrada);
+      : activeSubTab === 'encerrada'
+        ? invoicesWithBalance.filter((i: any) => i.isEncerrada)
+        : invoices; // 'historico' base
+
     
     if (!localSearch) return base;
     const q = localSearch.toLowerCase();
