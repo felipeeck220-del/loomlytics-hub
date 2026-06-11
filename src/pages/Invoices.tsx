@@ -195,7 +195,7 @@ export default function Invoices() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab && ['entrada', 'saida_malha', 'venda_fio', 'saldo', 'saldoGlobal', 'estoque', 'efterceiro', 'fios'].includes(tab)) {
+    if (tab && ['entrada', 'saida_malha', 'venda_fio', 'saldo', 'saldoGlobal', 'efterceiro', 'fios'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [window.location.search]);
@@ -955,7 +955,6 @@ export default function Invoices() {
           <TabsTrigger value="entrada" className="text-xs">Entrada de Fio</TabsTrigger>
           <TabsTrigger value="venda_fio" className="text-xs">Venda de Fio</TabsTrigger>
           <TabsTrigger value="saida_malha" className="text-xs">Saída Malha</TabsTrigger>
-          <TabsTrigger value="estoque" className="text-xs">Estoque Malha</TabsTrigger>
           <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
           <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
           <TabsTrigger value="efterceiro" className="text-xs">Fio Terceiros</TabsTrigger>
@@ -1362,137 +1361,6 @@ export default function Invoices() {
         </TabsContent>
 
         {/* ===== ESTOQUE DE MALHA TAB ===== */}
-        <TabsContent value="estoque" className="space-y-4">
-          {/* KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Produzido</div>
-              <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.producedKg)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Entregue</div>
-              <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.deliveredKg)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Em Estoque</div>
-              <p className={cn('text-xl font-bold', estoqueKpis.stockKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(estoqueKpis.stockKg)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Layers className="h-3.5 w-3.5" />Rolos em Estoque</div>
-              <p className={cn('text-xl font-bold', estoqueKpis.stockRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(estoqueKpis.stockRolls)}</p>
-            </CardContent></Card>
-          </div>
-
-          {/* Filters */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Select value={estoqueMonth} onValueChange={setEstoqueMonth}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todo período</SelectItem>
-                    {availableMonths.map(m => (
-                      <SelectItem key={m} value={m}>
-                        {format(parse(m, 'yyyy-MM', new Date()), 'MMMM yyyy', { locale: ptBR })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <SearchableSelect
-                  value={estoqueClient === 'all' ? '' : estoqueClient}
-                  onValueChange={v => setEstoqueClient(v || 'all')}
-                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                  placeholder="Todos clientes"
-                  searchPlaceholder="Buscar cliente..."
-                  triggerClassName="w-[220px] h-8 text-xs"
-                />
-                <SearchableSelect
-                  value={estoqueArticle === 'all' ? '' : estoqueArticle}
-                  onValueChange={v => setEstoqueArticle(v || 'all')}
-                  options={[{ value: 'all', label: 'Todos artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
-                  placeholder="Todos artigos"
-                  searchPlaceholder="Buscar artigo..."
-                  triggerClassName="w-[220px] h-8 text-xs"
-                />
-                {(estoqueClient !== 'all' || estoqueArticle !== 'all' || estoqueMonth !== 'all') && (
-                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEstoqueClient('all'); setEstoqueArticle('all'); setEstoqueMonth('all'); }}>Limpar</Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Grouped by client */}
-          {malhaEstoque.length === 0 ? (
-            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
-              Nenhum dado de estoque encontrado. Registre produção e NFs de saída para ver o estoque de malha.
-            </CardContent></Card>
-          ) : (
-            <div className="space-y-3">
-              {malhaEstoque.map(group => (
-                <Collapsible key={group.clientId}>
-                  <Card>
-                    <CollapsibleTrigger className="w-full">
-                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:rotate-[-90deg]" />
-                          <CardTitle className="text-sm font-semibold">{group.clientName}</CardTitle>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>Produzido: <span className="font-semibold text-foreground">{formatWeight(group.totalProducedKg)}</span></span>
-                          <span>Estoque: <span className={cn('font-semibold', group.totalStockKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalStockKg)}</span></span>
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent className="p-0">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="text-xs">Artigo</TableHead>
-                              <TableHead className="text-xs text-right">Produzido kg</TableHead>
-                              <TableHead className="text-xs text-right">Rolos</TableHead>
-                              <TableHead className="text-xs text-right">Entregue kg</TableHead>
-                              <TableHead className="text-xs text-right">Rolos</TableHead>
-                              <TableHead className="text-xs text-right font-bold">Estoque kg</TableHead>
-                              <TableHead className="text-xs text-right font-bold">Rolos</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {group.articles.map(a => (
-                              <TableRow key={a.articleId}>
-                                <TableCell className="text-xs">{a.articleName}</TableCell>
-                                <TableCell className="text-xs text-right">{formatWeight(a.producedKg)}</TableCell>
-                                <TableCell className="text-xs text-right">{formatNumber(a.producedRolls)}</TableCell>
-                                <TableCell className="text-xs text-right">{formatWeight(a.deliveredKg)}</TableCell>
-                                <TableCell className="text-xs text-right">{formatNumber(a.deliveredRolls)}</TableCell>
-                                <TableCell className={cn('text-xs text-right font-bold', a.stockKg < 0 ? 'text-destructive' : a.stockKg === 0 ? 'text-muted-foreground' : 'text-success')}>
-                                  {formatWeight(a.stockKg)}
-                                  {a.stockKg < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
-                                </TableCell>
-                                <TableCell className={cn('text-xs text-right font-bold', a.stockRolls < 0 ? 'text-destructive' : a.stockRolls === 0 ? 'text-muted-foreground' : 'text-success')}>
-                                  {formatNumber(a.stockRolls)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                            <TableRow className="bg-muted/30 font-semibold">
-                              <TableCell className="text-xs">TOTAL</TableCell>
-                              <TableCell className="text-xs text-right">{formatWeight(group.totalProducedKg)}</TableCell>
-                              <TableCell className="text-xs text-right">{formatNumber(group.totalProducedRolls)}</TableCell>
-                              <TableCell className="text-xs text-right">{formatWeight(group.totalDeliveredKg)}</TableCell>
-                              <TableCell className="text-xs text-right">{formatNumber(group.totalDeliveredRolls)}</TableCell>
-                              <TableCell className={cn('text-xs text-right', group.totalStockKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalStockKg)}</TableCell>
-                              <TableCell className={cn('text-xs text-right', group.totalStockRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(group.totalStockRolls)}</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              ))}
-            </div>
-          )}
-        </TabsContent>
 
         {/* ===== ESTOQUE FIO TERCEIROS TAB ===== */}
         <TabsContent value="efterceiro" className="space-y-4">
