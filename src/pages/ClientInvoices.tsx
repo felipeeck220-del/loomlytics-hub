@@ -709,14 +709,19 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                   ) : '-'}
                 </TableCell>
                 <TableCell className="text-right font-medium">
-                  {activeSubTab === 'historico' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : formatWeight(inv.weightEntrada)}
+                  {activeSubTab === 'historico' 
+                    ? (inv.type === 'entrada' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : '-') 
+                    : formatWeight(inv.weightEntrada)}
                 </TableCell>
                 <TableCell className="text-right text-emerald-600 font-medium">
-                  {activeSubTab === 'historico' ? '-' : formatWeight(inv.weightSaida)}
+                  {activeSubTab === 'historico' 
+                    ? (inv.type === 'saida' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : '-') 
+                    : formatWeight(inv.weightSaida)}
                 </TableCell>
                 <TableCell className={cn("text-right font-bold", inv.saldo > 0 ? "text-red-400" : "text-muted-foreground")}>
                   {activeSubTab === 'historico' ? '-' : formatWeight(inv.saldo)}
                 </TableCell>
+
 
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
