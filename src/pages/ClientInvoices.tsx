@@ -245,16 +245,22 @@ export default function ClientInvoices() {
 
   const confirmDelete = async () => {
     if (!invoiceToDelete) return;
+    
+    // Check if it's an entrance with linked outputs
+    const invoice = clientInvoices.find(i => i.id === invoiceToDelete);
+    const hasLinked = invoice?.type === 'entrada' && clientInvoices.some(i => i.parent_invoice_id === invoiceToDelete);
+    
     const { error } = await supabase.from('client_invoices').delete().eq('id', invoiceToDelete);
     if (error) toast.error('Erro ao excluir');
     else {
-      logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete });
-      toast.success('Nota excluída');
+      logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete, was_parent: hasLinked });
+      toast.success(hasLinked ? 'Nota e saídas vinculadas excluídas' : 'Nota excluída');
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
     }
     setDeleteDialogOpen(false);
     setInvoiceToDelete(null);
   };
+
 
   return (
     <div className="space-y-6">
