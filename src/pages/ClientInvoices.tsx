@@ -643,9 +643,10 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
             value={localSearch}
             onChange={e => setLocalSearch(e.target.value)}
           />
-          <Button onClick={onAdd} className="gap-2">
+          <Button onClick={() => onAdd('entrada')} className="gap-2">
             <Plus className="h-4 w-4" /> Adicionar Nota
           </Button>
+
         </div>
       </div>
 
