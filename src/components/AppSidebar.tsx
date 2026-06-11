@@ -40,6 +40,7 @@ const allItems = [
   { title: 'Relatórios', path: 'reports', icon: FileText, key: 'reports' },
   { title: 'Contas a Pagar', path: 'contas-pagar', icon: Receipt, key: 'contas-pagar' },
   { title: 'Vendas de Resíduos', path: 'residuos', icon: Recycle, key: 'residuos' },
+  { title: 'Estoque Malha', path: 'estoque-malha', icon: Warehouse, key: 'estoque-malha' },
   { title: 'Notas Fiscais', path: 'invoices', icon: FileText, key: 'invoices' },
   { title: 'Notas Fiscais (Clientes)', path: 'client-invoices', icon: FileText, key: 'client-invoices' },
   { title: 'Fechamento', path: 'fechamento', icon: FileSpreadsheet, key: 'fechamento' },
