@@ -818,11 +818,13 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                             ) : '-'}
                           </TableCell>
                           <TableCell className="text-right text-xs font-medium">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col text-[9px] leading-tight">
-                              <span className="text-muted-foreground italic">{inv.created_by_name} #{inv.created_by_code}</span>
-                              <span className="text-[8px] opacity-70">{format(new Date(inv.created_at), 'dd/MM HH:mm')}</span>
+                          <TableCell className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            <div className="font-medium text-emerald-600">
+                              {inv.created_by_name ? `${inv.created_by_name} #${inv.created_by_code || '?'}` : '—'}
                             </div>
+                            {inv.created_at && (
+                              <div>{format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
