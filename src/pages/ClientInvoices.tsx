@@ -224,6 +224,19 @@ export default function ClientInvoices() {
     setDialogOpen(true);
   };
 
+  const onAddFromClient = (type: 'entrada' | 'saida' = 'entrada', parentId: string | null = null, clientId: string) => {
+    resetForm();
+    setSelectedClientId(clientId);
+    setFormType(type);
+    setParentInvoiceId(parentId);
+    if (parentId) {
+      const parent = clientInvoices.find(i => i.id === parentId);
+      if (parent) setInvoiceNumber(parent.invoice_number);
+    }
+    setDialogOpen(true);
+  };
+
+
   const handleDeleteInvoice = async (id: string) => {
     setInvoiceToDelete(id);
     setDeleteDialogOpen(true);
@@ -393,12 +406,10 @@ export default function ClientInvoices() {
               yarnTypes={yarnTypes}
               onDelete={handleDeleteInvoice}
               onEdit={handleEditInvoice}
-              onAdd={(type: 'entrada' | 'saida' = 'entrada', parentId: string | null = null) => { 
-                setSelectedClientId(tab.id); 
-                setFormType(type);
-                setParentInvoiceId(parentId);
-                setDialogOpen(true); 
-              }}
+              onAdd={(type: 'entrada' | 'saida' = 'entrada', parentId: string | null = null) => 
+                onAddFromClient(type, parentId, tab.id)
+              }
+
             />
           </TabsContent>
         ))}
@@ -417,15 +428,10 @@ export default function ClientInvoices() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Nota</Label>
-                <Select value={formType} onValueChange={(v: any) => setFormType(v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="entrada">Entrada de Fio</SelectItem>
-                    <SelectItem value="saida">Saída de Malha</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="p-2 border rounded-md bg-muted/50 text-sm font-medium">
+                  {formType === 'entrada' ? 'Entrada de Fio' : 'Saída de Malha'}
+                </div>
+
               </div>
               <div className="space-y-2">
                 <Label>Data de Emissão</Label>
@@ -450,8 +456,16 @@ export default function ClientInvoices() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Número da NF</Label>
-                <Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} />
+                {parentInvoiceId ? (
+                  <div className="p-2 border rounded-md bg-muted/50 text-sm font-medium flex justify-between items-center">
+                    <span>{invoiceNumber}</span>
+                    <span className="text-[10px] text-amber-600 font-bold uppercase">Trava Ativa</span>
+                  </div>
+                ) : (
+                  <Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} />
+                )}
               </div>
+
               <div className="space-y-2">
                 <Label>Peso Total (kg)</Label>
                 <Input type="number" step="0.001" value={weightKg} onChange={e => setWeightKg(e.target.value)} />
