@@ -669,10 +669,11 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
             <TableRow>
               <TableHead>Data</TableHead>
               <TableHead>NF</TableHead>
-              <TableHead>Fio</TableHead>
+              <TableHead>{activeSubTab === 'historico' ? 'Item' : 'Fio'}</TableHead>
               <TableHead className="text-right">Peso Entrada</TableHead>
               <TableHead className="text-right">Peso Saída</TableHead>
               <TableHead className="text-right">Saldo</TableHead>
+
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
