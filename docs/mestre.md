@@ -4,8 +4,10 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 11/06/2026 12:30 (Brasília)*
+*Última atualização: 11/06/2026 12:45 (Brasília)*
+- 11/06/2026 12:45 - Notas Fiscais (Clientes): Refinada a interface de lançamento. Agora o tipo de nota é fixo no modal conforme o botão clicado (Entrada de Fio ou Saída de Malha). Ao registrar saída vinculada, o número da NF de entrada é automaticamente preenchido e travado para garantir a integridade do vínculo.
 - 11/06/2026 12:30 - Notas Fiscais (Clientes): Implementadas abas "Em Aberto" e "Encerradas" na visão individual do cliente. As notas de entrada agora controlam seu próprio saldo, e as saídas podem ser vinculadas a uma nota específica através de um novo botão de saída em cada linha. Botão "Nova Movimentação" renomeado para "Adicionar Nota".
+
 - 10/06/2026 12:00 - Notas Fiscais (Clientes): Realizado pente fino no módulo. Adicionada trava de segurança no botão salvar para saídas de malha sem artigos cadastrados e aviso visual no modal de cadastro quando o cliente não possui artigos vinculados.
 - 10/06/2026 11:00 - Notas Fiscais (Clientes): Corrigido erro de RLS "new row violates row-level security policy" ao salvar novas notas, reforçando as políticas de segurança no banco de dados.
 - 10/06/2026 10:50 - Notas Fiscais (Clientes): Otimização de performance utilizando `getYarnTypes` do contexto global, correção de filtros de data e melhoria na geração dinâmica de meses.
