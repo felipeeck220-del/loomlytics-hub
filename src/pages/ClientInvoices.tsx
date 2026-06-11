@@ -692,20 +692,34 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="font-medium">{inv.invoice_number}</TableCell>
+                <TableCell className="font-medium">
+                  {inv.invoice_number}
+                  {activeSubTab === 'historico' && (
+                    <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className="ml-2 text-[10px]">
+                      {inv.type === 'entrada' ? 'Entrada' : 'Saída'}
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell>
-                  {yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '-'}
+                  {inv.items?.[0] ? (
+                    inv.type === 'entrada' 
+                      ? yarnTypes.find((y: any) => y.id === inv.items[0].yarn_type_id)?.name 
+                      : allArticles.find((a: any) => a.id === inv.items[0].article_id)?.name
+                  ) : '-'}
                 </TableCell>
-                <TableCell className="text-right font-medium">{formatWeight(inv.weightEntrada)}</TableCell>
-                <TableCell className="text-right text-emerald-600 font-medium">{formatWeight(inv.weightSaida)}</TableCell>
+                <TableCell className="text-right font-medium">
+                  {activeSubTab === 'historico' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : formatWeight(inv.weightEntrada)}
+                </TableCell>
+                <TableCell className="text-right text-emerald-600 font-medium">
+                  {activeSubTab === 'historico' ? '-' : formatWeight(inv.weightSaida)}
+                </TableCell>
                 <TableCell className={cn("text-right font-bold", inv.saldo > 0 ? "text-red-400" : "text-muted-foreground")}>
-                  {formatWeight(inv.saldo)}
+                  {activeSubTab === 'historico' ? '-' : formatWeight(inv.saldo)}
                 </TableCell>
-
 
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    {!inv.isEncerrada && (
+                    {activeSubTab !== 'historico' && !inv.isEncerrada && (
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -725,6 +739,7 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                 </TableCell>
               </TableRow>
             ))}
+
             {filteredInvoices.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
