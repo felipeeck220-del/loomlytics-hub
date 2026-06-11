@@ -648,13 +648,14 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
           </TabsList>
         </Tabs>
         
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex gap-2 w-full sm:w-auto items-center">
           <Input 
-            placeholder="Buscar nota ou fio..." 
+            placeholder={activeSubTab === 'historico' ? "Buscar por número da NF..." : "Buscar nota ou fio..."} 
             className="w-full sm:w-64"
             value={localSearch}
             onChange={e => setLocalSearch(e.target.value)}
           />
+
           <Button onClick={() => onAdd('entrada')} className="gap-2">
             <Plus className="h-4 w-4" /> Adicionar Nota
           </Button>
