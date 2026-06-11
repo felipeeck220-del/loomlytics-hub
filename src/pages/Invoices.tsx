@@ -189,14 +189,20 @@ export default function Invoices() {
   // ===== State =====
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('tab') || 'entrada';
+    const tab = params.get('tab');
+    if (tab === 'estoque') return 'saida_malha_estoque';
+    return tab || 'entrada';
   });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab && (tab === 'entrada' || tab === 'saida_malha' || tab === 'venda_fio' || tab === 'saldo' || tab === 'saldoGlobal' || tab === 'eft' || tab === 'fios')) {
-      setActiveTab(tab);
+    if (tab) {
+      if (tab === 'estoque') {
+        setActiveTab('saida_malha_estoque');
+      } else if (['entrada', 'saida_malha', 'venda_fio', 'saldo', 'saldoGlobal', 'efterceiro', 'fios'].includes(tab)) {
+        setActiveTab(tab);
+      }
     }
   }, [window.location.search]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -954,10 +960,9 @@ export default function Invoices() {
         <TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
           <TabsTrigger value="entrada" className="text-xs">Entrada de Fio</TabsTrigger>
           <TabsTrigger value="venda_fio" className="text-xs">Venda de Fio</TabsTrigger>
-          <TabsTrigger value="saida_malha" className="text-xs">Estoque Malha</TabsTrigger>
+          <TabsTrigger value="saida_malha" className="text-xs">Saída Malha</TabsTrigger>
           <TabsTrigger value="saldo" className="text-xs">Saldo Fios</TabsTrigger>
           <TabsTrigger value="saldoGlobal" className="text-xs">Saldo Global</TabsTrigger>
-          <TabsTrigger value="estoque" className="text-xs">Estoque Malha</TabsTrigger>
           <TabsTrigger value="efterceiro" className="text-xs">Fio Terceiros</TabsTrigger>
           <TabsTrigger value="fios" className="text-xs">Tipos de Fio</TabsTrigger>
         </TabsList>
@@ -1361,8 +1366,8 @@ export default function Invoices() {
           )}
         </TabsContent>
 
-        {/* ===== ESTOQUE DE MALHA TAB ===== */}
-        <TabsContent value="estoque" className="space-y-4">
+        {/* ===== ESTOQUE DE MALHA TAB (MOVEMOS PARA O SIDEBAR, MAS MANTEMOS A ROTA PARA QUEM CLICAR LÁ) ===== */}
+        <TabsContent value="saida_malha_estoque" className="space-y-4">
           {/* KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Card><CardContent className="p-4">
