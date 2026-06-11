@@ -4,7 +4,9 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 11/06/2026 12:50 (Brasília)*
+*Última atualização: 11/06/2026 13:00 (Brasília)*
+- 11/06/2026 13:00 - Notas Fiscais (Clientes): Atualizado o layout da listagem individual. Cores ajustadas: "Peso Saída" em verde e "Saldo" em vermelho claro. Adicionada auditoria completa nas células de data (Nome + #Código + Data/Hora). Implementado o novo modal "Histórico por Nota" que permite pesquisar e visualizar todas as movimentações (entrada/saída) de uma NF específica em um único lugar.
+
 - 11/06/2026 12:50 - Notas Fiscais (Clientes): Corrigido o botão "Adicionar Nota" na visão do cliente para abrir corretamente o modal de "Entrada de Fio" por padrão.
 
 - 11/06/2026 12:45 - Notas Fiscais (Clientes): Refinada a interface de lançamento. Agora o tipo de nota é fixo no modal conforme o botão clicado (Entrada de Fio ou Saída de Malha). Ao registrar saída vinculada, o número da NF de entrada é automaticamente preenchido e travado para garantir a integridade do vínculo.
