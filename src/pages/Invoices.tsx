@@ -195,7 +195,7 @@ export default function Invoices() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab && ['entrada', 'saida_malha', 'venda_fio', 'saldo', 'saldoGlobal', 'estoque', 'efterceiro', 'fios'].includes(tab)) {
+    if (tab && ['entrada', 'saida_malha', 'venda_fio', 'saldo', 'saldoGlobal', 'efterceiro', 'fios'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [window.location.search]);
