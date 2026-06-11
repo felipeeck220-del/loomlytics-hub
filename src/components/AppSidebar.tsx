@@ -98,11 +98,17 @@ export function AppSidebar() {
 
     const firstName = companyName.split(' ')[0];
 
-    return finalItems.map(item => ({
-      ...item,
-      title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
-      url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
-    }));
+    return finalItems.map(item => {
+      const url = item.path.includes('?') 
+        ? `${slugPrefix}/${item.path}` 
+        : (item.path ? `${slugPrefix}/${item.path}` : slugPrefix);
+      
+      return {
+        ...item,
+        title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
+        url: url,
+      };
+    });
   }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName]);
 
   return (
