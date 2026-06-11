@@ -354,7 +354,7 @@ export default function ClientInvoices() {
                   <TableRow key={inv.id}>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
+                        <span className="font-medium text-primary">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
                         {inv.created_by_code && (
                           <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic mt-0.5">
                             {inv.created_by_name} #{inv.created_by_code}
@@ -365,6 +365,7 @@ export default function ClientInvoices() {
                         </span>
                       </div>
                     </TableCell>
+
 
                     <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                     <TableCell>
@@ -566,15 +567,17 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
         const relatedSaidas = invoices.filter((i: any) => i.type === 'saida' && i.parent_invoice_id === inv.id);
         const weightSaida = relatedSaidas.reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
         const weightEntrada = inv.items?.[0]?.weight_kg || 0;
-        const saldo = weightEntrada - weightSaida;
+        const saldo = Math.max(0, Number((weightEntrada - weightSaida).toFixed(3)));
         return {
           ...inv,
           weightEntrada,
           weightSaida,
           saldo,
-          isEncerrada: saldo <= 0
+          isEncerrada: saldo <= 0.001,
+          hasLinkedOutputs: relatedSaidas.length > 0
         };
       });
+
   }, [invoices]);
 
   const [localSearch, setLocalSearch] = useState('');
