@@ -635,12 +635,16 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full sm:w-auto">
           <TabsList>
-            <TabsTrigger value="aberto" className="gap-2">
-              <Clock className="h-4 w-4" /> Em Aberto
-            </TabsTrigger>
-            <TabsTrigger value="encerrada" className="gap-2">
-              <CheckCircle2 className="h-4 w-4" /> Encerradas
-            </TabsTrigger>
+              <TabsTrigger value="aberto" className="gap-2">
+                <Clock className="h-4 w-4" /> Em Aberto
+              </TabsTrigger>
+              <TabsTrigger value="encerrada" className="gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Encerradas
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="gap-2">
+                <History className="h-4 w-4" /> Histórico
+              </TabsTrigger>
+
           </TabsList>
         </Tabs>
         
