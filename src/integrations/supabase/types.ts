@@ -316,6 +316,7 @@ export type Database = {
           invoice_number: string
           issue_date: string
           observations: string | null
+          parent_invoice_id: string | null
           type: Database["public"]["Enums"]["client_invoice_type"]
           updated_at: string
         }
@@ -329,6 +330,7 @@ export type Database = {
           invoice_number: string
           issue_date: string
           observations?: string | null
+          parent_invoice_id?: string | null
           type: Database["public"]["Enums"]["client_invoice_type"]
           updated_at?: string
         }
@@ -342,6 +344,7 @@ export type Database = {
           invoice_number?: string
           issue_date?: string
           observations?: string | null
+          parent_invoice_id?: string | null
           type?: Database["public"]["Enums"]["client_invoice_type"]
           updated_at?: string
         }
@@ -358,6 +361,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invoices_parent_invoice_id_fkey"
+            columns: ["parent_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "client_invoices"
             referencedColumns: ["id"]
           },
         ]
