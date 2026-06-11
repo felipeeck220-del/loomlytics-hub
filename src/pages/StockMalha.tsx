@@ -249,6 +249,7 @@ export default function StockMalha() {
                             <TableCell className="text-xs text-right">{formatNumber(a.deliveredRolls)}</TableCell>
                             <TableCell className={cn('text-xs text-right font-bold', a.stockKg < 0 ? 'text-destructive' : a.stockKg === 0 ? 'text-muted-foreground' : 'text-success')}>
                               {formatWeight(a.stockKg)}
+                              {a.stockKg < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
                             </TableCell>
                             <TableCell className={cn('text-xs text-right font-bold', a.stockRolls < 0 ? 'text-destructive' : a.stockRolls === 0 ? 'text-muted-foreground' : 'text-success')}>
                               {formatNumber(a.stockRolls)}
