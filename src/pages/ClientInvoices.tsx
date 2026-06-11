@@ -694,6 +694,7 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                   {formatWeight(inv.saldo)}
                 </TableCell>
 
+
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     {!inv.isEncerrada && (
