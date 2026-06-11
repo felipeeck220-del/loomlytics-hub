@@ -245,16 +245,22 @@ export default function ClientInvoices() {
 
   const confirmDelete = async () => {
     if (!invoiceToDelete) return;
+    
+    // Check if it's an entrance with linked outputs
+    const invoice = clientInvoices.find(i => i.id === invoiceToDelete);
+    const hasLinked = invoice?.type === 'entrada' && clientInvoices.some(i => i.parent_invoice_id === invoiceToDelete);
+    
     const { error } = await supabase.from('client_invoices').delete().eq('id', invoiceToDelete);
     if (error) toast.error('Erro ao excluir');
     else {
-      logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete });
-      toast.success('Nota excluída');
+      logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete, was_parent: hasLinked });
+      toast.success(hasLinked ? 'Nota e saídas vinculadas excluídas' : 'Nota excluída');
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
     }
     setDeleteDialogOpen(false);
     setInvoiceToDelete(null);
   };
+
 
   return (
     <div className="space-y-6">
@@ -354,7 +360,7 @@ export default function ClientInvoices() {
                   <TableRow key={inv.id}>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
+                        <span className="font-medium text-primary">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
                         {inv.created_by_code && (
                           <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic mt-0.5">
                             {inv.created_by_name} #{inv.created_by_code}
@@ -365,6 +371,7 @@ export default function ClientInvoices() {
                         </span>
                       </div>
                     </TableCell>
+
 
                     <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                     <TableCell>
@@ -566,15 +573,17 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
         const relatedSaidas = invoices.filter((i: any) => i.type === 'saida' && i.parent_invoice_id === inv.id);
         const weightSaida = relatedSaidas.reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
         const weightEntrada = inv.items?.[0]?.weight_kg || 0;
-        const saldo = weightEntrada - weightSaida;
+        const saldo = Math.max(0, Number((weightEntrada - weightSaida).toFixed(3)));
         return {
           ...inv,
           weightEntrada,
           weightSaida,
           saldo,
-          isEncerrada: saldo <= 0
+          isEncerrada: saldo <= 0.001,
+          hasLinkedOutputs: relatedSaidas.length > 0
         };
       });
+
   }, [invoices]);
 
   const [localSearch, setLocalSearch] = useState('');
@@ -585,15 +594,17 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
       : activeSubTab === 'encerrada'
         ? invoicesWithBalance.filter((i: any) => i.isEncerrada)
         : invoices; // 'historico' base
-
     
     if (!localSearch) return base;
     const q = localSearch.toLowerCase();
     return base.filter((inv: any) => {
-      const item = yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '';
-      return inv.invoice_number.includes(q) || item.toLowerCase().includes(q);
+      const itemName = inv.type === 'entrada' 
+        ? (yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '')
+        : (allArticles.find((a: any) => a.id === inv.items?.[0]?.article_id)?.name || '');
+      return inv.invoice_number.toLowerCase().includes(q) || itemName.toLowerCase().includes(q);
     });
-  }, [invoicesWithBalance, activeSubTab, localSearch, yarnTypes]);
+  }, [invoicesWithBalance, activeSubTab, localSearch, yarnTypes, allArticles, invoices]);
+
 
   return (
     <div className="space-y-6">
