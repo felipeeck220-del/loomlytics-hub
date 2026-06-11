@@ -40,7 +40,6 @@ const allItems = [
   { title: 'Relatórios', path: 'reports', icon: FileText, key: 'reports' },
   { title: 'Contas a Pagar', path: 'contas-pagar', icon: Receipt, key: 'contas-pagar' },
   { title: 'Vendas de Resíduos', path: 'residuos', icon: Recycle, key: 'residuos' },
-  { title: 'Estoque Malha', path: 'invoices?tab=saida_malha', icon: Warehouse, key: 'estoque-malha' },
   { title: 'Notas Fiscais', path: 'invoices', icon: FileText, key: 'invoices' },
   { title: 'Notas Fiscais (Clientes)', path: 'client-invoices', icon: FileText, key: 'client-invoices' },
   { title: 'Fechamento', path: 'fechamento', icon: FileSpreadsheet, key: 'fechamento' },
@@ -98,17 +97,11 @@ export function AppSidebar() {
 
     const firstName = companyName.split(' ')[0];
 
-    return finalItems.map(item => {
-      const url = item.path.includes('?') 
-        ? `${slugPrefix}/${item.path}` 
-        : (item.path ? `${slugPrefix}/${item.path}` : slugPrefix);
-      
-      return {
-        ...item,
-        title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
-        url: url,
-      };
-    });
+    return finalItems.map(item => ({
+      ...item,
+      title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
+      url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
+    }));
   }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName]);
 
   return (
