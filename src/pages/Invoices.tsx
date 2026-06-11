@@ -187,7 +187,18 @@ export default function Invoices() {
   });
 
   // ===== State =====
-  const [activeTab, setActiveTab] = useState('entrada');
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') || 'entrada';
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab && (tab === 'entrada' || tab === 'saida_malha' || tab === 'venda_fio' || tab === 'saldo' || tab === 'saldoGlobal' || tab === 'eft' || tab === 'fios')) {
+      setActiveTab(tab);
+    }
+  }, [window.location.search]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [yarnDialogOpen, setYarnDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
