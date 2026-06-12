@@ -37,25 +37,28 @@ async function fetchUserCompanies(): Promise<UserCompany[]> {
   return data;
 }
 
-async function fetchProfile(supabaseUser: SupabaseUser): Promise<AppUser | null> {
+async function fetchProfile(supabaseUser: SupabaseUser): Promise<{ appUser: AppUser | null, rawProfile: any | null }> {
   // RLS will filter by active company via get_user_company_id()
   const { data: profile } = await (supabase.from as any)('profiles')
     .select('*, companies:company_id(name, slug)')
     .eq('user_id', supabaseUser.id)
     .maybeSingle();
 
-  if (!profile) return null;
+  if (!profile) return { appUser: null, rawProfile: null };
 
   return {
-    id: supabaseUser.id,
-    email: profile.email,
-    name: profile.name,
-    company_id: profile.company_id,
-    company_name: profile.companies?.name || '',
-    company_slug: profile.companies?.slug || '',
-    role: profile.role || 'admin',
-    status: profile.status || 'active',
-    permission_overrides: Array.isArray(profile.permission_overrides) ? profile.permission_overrides : [],
+    appUser: {
+      id: supabaseUser.id,
+      email: profile.email,
+      name: profile.name,
+      company_id: profile.company_id,
+      company_name: profile.companies?.name || '',
+      company_slug: profile.companies?.slug || '',
+      role: profile.role || 'admin',
+      status: profile.status || 'active',
+      permission_overrides: Array.isArray(profile.permission_overrides) ? profile.permission_overrides : [],
+    },
+    rawProfile: profile
   };
 }
 
