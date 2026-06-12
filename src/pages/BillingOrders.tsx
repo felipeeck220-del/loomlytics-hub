@@ -73,8 +73,12 @@ const BillingOrders = () => {
       if (activeTab === 'all') return matchesSearch;
       
       if (activeTab === 'priority_tab') {
-        if (!order.priority || order.status === 'collected') return false;
-        return matchesSearch;
+        return order.priority && order.status !== 'collected' && matchesSearch;
+      }
+
+      // Se for a aba Aberto, garantir que mostre apenas o que não é prioridade e tem status open
+      if (activeTab === 'open') {
+        return order.status === 'open' && !order.priority && matchesSearch;
       }
 
       if (order.status !== activeTab) return false;
