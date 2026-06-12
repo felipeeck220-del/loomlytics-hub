@@ -104,7 +104,12 @@ export function useBillingOrders() {
   const updateStatus = useMutation({
     mutationFn: async ({ id, status, data = {} }: { id: string, status: BillingOrderStatus | 'priority', data?: any }) => {
       let updatePayload: any = { ...data };
-      if (status !== 'priority') updatePayload.status = status;
+      if (status !== 'priority') {
+        updatePayload.status = status;
+        // Se mudar para qualquer status diferente de priority, removemos a prioridade
+        updatePayload.priority = false;
+        updatePayload.priority_reason = null;
+      }
       
       if (status === 'separating') updatePayload.separated_by = profile?.id;
       if (status === 'collected') updatePayload.collected_by = profile?.id;
