@@ -90,7 +90,9 @@ export default function AppLayout() {
 
   const currentShift = useMemo(() => getCurrentShift(), [now]);
 
-   if (companyLoading && !isRefreshing) {
+   const isExpedition = user?.role === 'expedicao';
+
+   if (companyLoading && !isRefreshing && !isExpedition) {
      return <LoadingScreen progress={loadingProgress} />;
    }
  
