@@ -151,17 +151,17 @@ const BillingOrders = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="flex w-full overflow-x-auto h-auto p-1 bg-muted/50 scrollbar-none justify-start md:grid md:grid-cols-4 lg:w-[600px]">
-          <TabsTrigger value="open" className="flex-shrink-0 gap-1 px-3 py-2 min-w-[100px] md:min-w-0">
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full h-auto p-1 bg-muted/50 gap-1 lg:w-[600px]">
+          <TabsTrigger value="open" className="gap-1 py-2 text-xs sm:text-sm">
             Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.open}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="separating" className="flex-shrink-0 gap-1 px-3 py-2 min-w-[100px] md:min-w-0">
+          <TabsTrigger value="separating" className="gap-1 py-2 text-xs sm:text-sm">
             Separando <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.separating}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="ready" className="flex-shrink-0 gap-1 px-3 py-2 min-w-[100px] md:min-w-0">
+          <TabsTrigger value="ready" className="gap-1 py-2 text-xs sm:text-sm">
             Pronto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.ready}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="collected" className="flex-shrink-0 gap-1 px-3 py-2 min-w-[100px] md:min-w-0">
+          <TabsTrigger value="collected" className="gap-1 py-2 text-xs sm:text-sm">
             Coletadas
           </TabsTrigger>
         </TabsList>
