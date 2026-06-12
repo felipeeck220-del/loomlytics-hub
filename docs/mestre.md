@@ -4,8 +4,10 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 12/06/2026 10:45 (Brasília)*
-- 12/06/2026 10:45 - Planejamento e Documentação OF: Criado o arquivo `docs/of.md` com o detalhamento técnico completo para o novo sistema de Ordem de Faturamento, incluindo novo perfil de "Expedição Malha", fluxos de status em tempo real (Aberto/Separando/Pronto/Coletado) e regras de auditoria estritas.
+*Última atualização: 12/06/2026 11:30 (Brasília)*
+- 12/06/2026 11:30 - Implementação OF: Criada a tabela `billing_orders` no banco de dados, configuradas as permissões para o novo perfil `expedicao` e implementada a interface base em `src/pages/BillingOrders.tsx` com suporte a abas dinâmicas, cores de status e auditoria.
+- 12/06/2026 10:45 - Planejamento e Documentação OF: Criado o arquivo `docs/of.md` com o detalhamento técnico completo para o novo sistema de Ordem de Faturamento.
+
 
 - 11/06/2026 13:20 - Notas Fiscais (Clientes): Corrigida a exibição de pesos na aba Histórico. Agora os pesos de saída aparecem corretamente na coluna "Peso Saída" e os de entrada na coluna "Peso Entrada". Atualizado o cabeçalho da tabela para mostrar "Item" (Fio/Artigo) quando em modo histórico.
 
