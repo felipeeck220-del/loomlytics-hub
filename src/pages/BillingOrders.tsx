@@ -8,13 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Play, CheckCircle2, Truck, History, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { Search, Plus, Play, CheckCircle2, Truck, History, Loader2, Calendar, Filter } from 'lucide-react';
+import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/SearchableSelect';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const BillingOrders = () => {
   const { user } = useAuth();
