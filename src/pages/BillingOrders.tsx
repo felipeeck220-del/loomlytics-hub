@@ -3,22 +3,21 @@ import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useBillingOrders, type BillingOrderStatus } from '@/hooks/useBillingOrders';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Play, CheckCircle2, Truck, History, Loader2, Calendar, Filter } from 'lucide-react';
+import { Search, Plus, Play, CheckCircle2, Truck, Loader2 } from 'lucide-react';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/SearchableSelect';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const BillingOrders = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { role } = usePermissions();
   const { toast } = useToast();
   const { getClients, getArticles, getMachines } = useSharedCompanyData();
@@ -30,7 +29,6 @@ const BillingOrders = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
 
-  // Filtros para aba Coletadas
   // Filtros para aba Coletadas
   const [filterDateRange, setFilterDateRange] = useState<{from: string, to: string}>({
     from: '',
@@ -66,8 +64,6 @@ const BillingOrders = () => {
 
       // Filtros específicos para "Coletadas"
       if (activeTab === 'collected') {
-        if (filterClient !== 'all' && order.client_id !== filterClient) return false;
-        
         const orderDate = new Date(order.created_at);
         const today = new Date();
 
@@ -89,7 +85,7 @@ const BillingOrders = () => {
 
       return true;
     });
-  }, [orders, searchTerm, activeTab, filterClient, filterDateRange, datePreset]);
+  }, [orders, searchTerm, activeTab, filterDateRange, datePreset]);
 
   const stats = useMemo(() => {
     return {
@@ -204,64 +200,46 @@ const BillingOrders = () => {
         {activeTab === 'collected' && (
           <Card className="mt-4 border-dashed bg-muted/30">
             <CardContent className="p-4 space-y-4">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 space-y-1.5">
-                  <Label className="text-xs uppercase text-muted-foreground font-bold">Cliente</Label>
-                  <SearchableSelect 
-                    value={filterClient}
-                    onValueChange={setFilterClient}
-                    options={[
-                      { value: 'all', label: 'TODOS OS CLIENTES' },
-                      ...getClients().map(c => ({ value: c.id, label: c.name }))
-                    ]}
-                    placeholder="Filtrar por cliente"
-                  />
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  <Label className="text-xs uppercase text-muted-foreground font-bold">Período</Label>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant={datePreset === 'all' ? 'default' : 'outline'} 
-                      size="sm" 
-                      onClick={() => setDatePreset('all')}
-                      className="flex-1 h-10"
-                    >Tudo</Button>
-                    <Button 
-                      variant={datePreset === '7d' ? 'default' : 'outline'} 
-                      size="sm" 
-                      onClick={() => setDatePreset('7d')}
-                      className="flex-1 h-10"
-                    >7 dias</Button>
-                    <Button 
-                      variant={datePreset === '30d' ? 'default' : 'outline'} 
-                      size="sm" 
-                      onClick={() => setDatePreset('30d')}
-                      className="flex-1 h-10"
-                    >30 dias</Button>
-                    <Button 
-                      variant={datePreset === 'custom' ? 'default' : 'outline'} 
-                      size="sm" 
-                      onClick={() => setDatePreset('custom')}
-                      className="flex-1 h-10"
-                    >Personalizado</Button>
-                  </div>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase text-muted-foreground font-bold">Filtrar Período</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant={datePreset === '7d' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setDatePreset('7d')}
+                    className="h-9 text-xs"
+                  >7 dias</Button>
+                  <Button 
+                    variant={datePreset === '30d' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setDatePreset('30d')}
+                    className="h-9 text-xs"
+                  >30 dias</Button>
+                  <Button 
+                    variant={datePreset === 'custom' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setDatePreset('custom')}
+                    className="h-9 text-xs"
+                  >Custom</Button>
                 </div>
               </div>
 
               {datePreset === 'custom' && (
-                <div className="flex flex-col md:flex-row gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <div className="flex-1 space-y-1.5">
-                    <Label className="text-xs">De</Label>
+                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase text-muted-foreground">De</Label>
                     <Input 
                       type="date" 
+                      className="h-9"
                       value={filterDateRange.from} 
                       onChange={e => setFilterDateRange({...filterDateRange, from: e.target.value})} 
                     />
                   </div>
-                  <div className="flex-1 space-y-1.5">
-                    <Label className="text-xs">Até</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase text-muted-foreground">Até</Label>
                     <Input 
                       type="date" 
+                      className="h-9"
                       value={filterDateRange.to} 
                       onChange={e => setFilterDateRange({...filterDateRange, to: e.target.value})} 
                     />
