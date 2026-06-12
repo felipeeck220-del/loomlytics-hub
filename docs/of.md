@@ -94,8 +94,10 @@ Se a implementação apresentar bugs críticos ou instabilidade:
 
 ---
 
-## 🚀 Próximos Passos
-1. Criar a migração SQL para a nova tabela e permissões RLS.
-2. Atualizar o sistema de tipos (`src/types/`).
-3. Desenvolver a página `BillingOrders.tsx` com o sistema de abas e componentes `shadcn/ui`.
-4. Integrar o Realtime do Supabase para atualizações instantâneas entre Admin e Expedição.
+## ✅ Status da Implementação (12/06/2026)
+1. Tabela `billing_orders` criada e configurada com RLS.
+2. Hook `useBillingOrders` implementado com dados reais do Supabase.
+3. Página `BillingOrders.tsx` 100% funcional com fluxos de Admin e Expedição.
+4. Perfil `expedicao` (Expedição Malha) adicionado às configurações de usuários e permissões.
+5. Visibilidade do sidebar configurada para todos os perfis.
+6. Sistema de auditoria (quem criou, separou e coletou) funcionando com base nos perfis reais.

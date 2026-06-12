@@ -1,48 +1,109 @@
 import { useState, useMemo } from 'react';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useBillingOrders, type BillingOrderStatus } from '@/hooks/useBillingOrders';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Play, CheckCircle2, Truck, History } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Search, Plus, Play, CheckCircle2, Truck, History, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { SearchableSelect } from '@/components/SearchableSelect';
 
 const BillingOrders = () => {
   const { user } = useAuth();
   const { role } = usePermissions();
   const { toast } = useToast();
+  const { getClients, getArticles, getMachines } = useSharedCompanyData();
+  const { orders, isLoading, createOrder, updateStatus } = useBillingOrders();
+
   const isAdmin = role === 'admin';
-  const [activeTab, setActiveTab] = useState('open');
+  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all'>('open');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
 
-  // Mock data for initial UI - will be replaced by real Supabase queries
-  const orders = [
-    {
-      id: '1',
-      of_number: '600',
-      client_name: 'WILSON',
-      article_name: 'SUPLEX CRU',
-      pieces_expected: 84,
-      machine_name: 'MAQUINA 17',
-      dyehouse: 'LITORAL',
-      status: 'open',
-      created_at: new Date().toISOString(),
-      created_by_name: 'Admin',
-      created_by_code: '001'
+  const [form, setForm] = useState({
+    of_number: '',
+    client_id: '',
+    article_id: '',
+    machine_id: '',
+    pieces_expected: '',
+    dyehouse: ''
+  });
+
+  const [launchForm, setLaunchForm] = useState({
+    pieces_real: '',
+    weight_real: ''
+  });
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      const matchesSearch = 
+        order.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.dyehouse.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.of_number.includes(searchTerm);
+      
+      if (activeTab === 'all') return matchesSearch;
+      return matchesSearch && order.status === activeTab;
+    });
+  }, [orders, searchTerm, activeTab]);
+
+  const stats = useMemo(() => {
+    return {
+      open: orders.filter(o => o.status === 'open').length,
+      separating: orders.filter(o => o.status === 'separating').length,
+      ready: orders.filter(o => o.status === 'ready').length,
+      collected: orders.filter(o => o.status === 'collected').length,
+    };
+  }, [orders]);
+
+  const handleCreate = async () => {
+    if (!form.of_number || !form.client_id || !form.article_id || !form.pieces_expected || !form.dyehouse) {
+      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      return;
     }
-  ];
 
-  const filteredOrders = orders.filter(order => 
-    order.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.dyehouse.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.of_number.includes(searchTerm)
-  );
+    await createOrder.mutateAsync({
+      of_number: form.of_number,
+      client_id: form.client_id,
+      article_id: form.article_id,
+      machine_id: form.machine_id || undefined,
+      pieces_expected: parseInt(form.pieces_expected),
+      dyehouse: form.dyehouse
+    });
+    setShowCreateModal(false);
+    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '' });
+  };
+
+  const handleLaunch = async () => {
+    if (!launchForm.pieces_real || !launchForm.weight_real) {
+      toast({ title: "Preencha os dados reais", variant: "destructive" });
+      return;
+    }
+
+    const pieces = parseInt(launchForm.pieces_real);
+    const weight = parseFloat(launchForm.weight_real);
+    const avg = pieces > 0 ? weight / pieces : 0;
+
+    await updateStatus.mutateAsync({
+      id: showLaunchModal.id,
+      status: 'ready',
+      data: {
+        pieces_real: pieces,
+        weight_real: weight,
+        weight_avg: avg
+      }
+    });
+    setShowLaunchModal(null);
+    setLaunchForm({ pieces_real: '', weight_real: '' });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -54,6 +115,14 @@ const BillingOrders = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -62,7 +131,7 @@ const BillingOrders = () => {
           <p className="text-muted-foreground text-sm">Gestão de coletas e separação de malha</p>
         </div>
         {isAdmin && (
-          <Button className="gap-2">
+          <Button onClick={() => setShowCreateModal(true)} className="gap-2">
             <Plus className="h-4 w-4" /> Nova OF
           </Button>
         )}
@@ -78,13 +147,13 @@ const BillingOrders = () => {
         />
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
         <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
           <TabsTrigger value="open" className="gap-2">
-            Em Aberto <Badge variant="secondary" className="ml-1">1</Badge>
+            Aberto <Badge variant="secondary" className="ml-1">{stats.open}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="separating">Separando</TabsTrigger>
-          <TabsTrigger value="ready">Pronto</TabsTrigger>
+          <TabsTrigger value="separating">Separando <Badge variant="secondary" className="ml-1">{stats.separating}</Badge></TabsTrigger>
+          <TabsTrigger value="ready">Pronto <Badge variant="secondary" className="ml-1">{stats.ready}</Badge></TabsTrigger>
           <TabsTrigger value="collected">Coletadas</TabsTrigger>
         </TabsList>
 
@@ -100,31 +169,58 @@ const BillingOrders = () => {
                         {order.dyehouse}
                       </Badge>
                     </div>
-                    <div className="text-sm font-medium">{order.client_name}</div>
+                    <div className="text-sm font-medium">{order.client?.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {order.article_name} • {order.pieces_expected} peças • {order.machine_name}
+                      {order.article?.name} • {order.pieces_expected} peças 
+                      {order.machine?.name && ` • ${order.machine.name}`}
                     </div>
+                    {order.status === 'ready' && (
+                      <div className="text-xs font-semibold text-green-700 mt-1">
+                        REAL: {order.pieces_real} pçs • {order.weight_real}kg • Média: {order.weight_avg?.toFixed(2)}kg
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col justify-between items-end gap-2">
                     <div className="text-[10px] text-right text-muted-foreground leading-tight">
-                      Criado por: {order.created_by_name} #{order.created_by_code}<br />
+                      Criado por: {order.creator?.name} #{order.creator?.code}<br />
                       {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {order.separated_by && (
+                        <div className="mt-1">Separado por: {order.separator?.name} #{order.separator?.code}</div>
+                      )}
+                      {order.collected_by && (
+                        <div className="mt-1">Coletado por: {order.collector?.name} #{order.collector?.code}</div>
+                      )}
                     </div>
                     
                     <div className="flex gap-2">
-                      {activeTab === 'open' && !isAdmin && (
-                        <Button size="sm" variant="outline" className="gap-2 text-yellow-600 border-yellow-200 hover:bg-yellow-50">
+                      {order.status === 'open' && (role === 'expedicao' || isAdmin) && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="gap-2 text-yellow-600 border-yellow-200 hover:bg-yellow-50"
+                          onClick={() => updateStatus.mutate({ id: order.id, status: 'separating' })}
+                        >
                           <Play className="h-4 w-4" /> Iniciar Separação
                         </Button>
                       )}
-                      {activeTab === 'separating' && !isAdmin && (
-                        <Button size="sm" variant="outline" className="gap-2 text-green-600 border-green-200 hover:bg-green-50">
+                      {order.status === 'separating' && (role === 'expedicao' || isAdmin) && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                          onClick={() => setShowLaunchModal(order)}
+                        >
                           <CheckCircle2 className="h-4 w-4" /> Lançar Dados
                         </Button>
                       )}
-                      {activeTab === 'ready' && !isAdmin && (
-                        <Button size="sm" variant="outline" className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
+                      {order.status === 'ready' && (role === 'expedicao' || isAdmin) && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                          onClick={() => updateStatus.mutate({ id: order.id, status: 'collected' })}
+                        >
                           <Truck className="h-4 w-4" /> Marcar Coletada
                         </Button>
                       )}
@@ -142,6 +238,95 @@ const BillingOrders = () => {
           )}
         </div>
       </Tabs>
+
+      {/* Modal Criar OF */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Nova Ordem de Faturamento (OF)</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">OF #</Label>
+              <Input className="col-span-3" value={form.of_number} onChange={e => setForm({...form, of_number: e.target.value})} placeholder="Ex: 600" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Cliente</Label>
+              <div className="col-span-3">
+                <SearchableSelect 
+                  value={form.client_id}
+                  onValueChange={v => setForm({...form, client_id: v, article_id: ''})}
+                  options={getClients().map(c => ({ value: c.id, label: c.name }))}
+                  placeholder="Selecione o cliente"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Artigo</Label>
+              <div className="col-span-3">
+                <SearchableSelect 
+                  value={form.article_id}
+                  onValueChange={v => setForm({...form, article_id: v})}
+                  options={getArticles().filter(a => a.client_id === form.client_id).map(a => ({ value: a.id, label: a.name }))}
+                  placeholder="Selecione o artigo"
+                  disabled={!form.client_id}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Peças</Label>
+              <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder="Quantidade de peças" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Máquina</Label>
+              <div className="col-span-3">
+                <SearchableSelect 
+                  value={form.machine_id}
+                  onValueChange={v => setForm({...form, machine_id: v})}
+                  options={getMachines().map(m => ({ value: m.id, label: m.name }))}
+                  placeholder="Selecione a máquina (opcional)"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Tinturaria</Label>
+              <Input className="col-span-3" value={form.dyehouse} onChange={e => setForm({...form, dyehouse: e.target.value.toUpperCase()})} placeholder="Ex: LITORAL" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={createOrder.isPending}>Criar OF</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Lançar Dados Reais */}
+      <Dialog open={!!showLaunchModal} onOpenChange={() => setShowLaunchModal(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Lançar Dados da Separação</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Peças</Label>
+              <Input type="number" className="col-span-3" value={launchForm.pieces_real} onChange={e => setLaunchForm({...launchForm, pieces_real: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Peso (kg)</Label>
+              <Input type="number" step="0.01" className="col-span-3" value={launchForm.weight_real} onChange={e => setLaunchForm({...launchForm, weight_real: e.target.value})} />
+            </div>
+            {launchForm.pieces_real && launchForm.weight_real && (
+              <div className="text-center text-sm font-bold text-primary">
+                Média Calculada: {(parseFloat(launchForm.weight_real) / parseInt(launchForm.pieces_real)).toFixed(2)} kg/peça
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLaunchModal(null)}>Cancelar</Button>
+            <Button onClick={handleLaunch} disabled={updateStatus.isPending}>Finalizar Separação</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
