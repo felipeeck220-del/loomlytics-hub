@@ -73,8 +73,12 @@ const BillingOrders = () => {
       if (activeTab === 'all') return matchesSearch;
       
       if (activeTab === 'priority_tab') {
-        if (!order.priority || order.status === 'collected') return false;
-        return matchesSearch;
+        return order.priority && order.status !== 'collected' && matchesSearch;
+      }
+
+      // Se for a aba Aberto, garantir que mostre apenas o que não é prioridade e tem status open
+      if (activeTab === 'open') {
+        return order.status === 'open' && !order.priority && matchesSearch;
       }
 
       if (order.status !== activeTab) return false;
@@ -178,7 +182,8 @@ const BillingOrders = () => {
     setLaunchForm({ pieces_real: '', weight_real: '' });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, isPriority?: boolean) => {
+    if (isPriority && status !== 'collected') return 'bg-red-500/5 border-red-500/20';
     switch (status) {
       case 'open': return isAdmin ? 'bg-red-500/10 border-red-500/20' : 'bg-card';
       case 'separating': return 'bg-yellow-500/20 border-yellow-500/30';
@@ -298,7 +303,7 @@ const BillingOrders = () => {
 
         <div className="mt-6 space-y-4">
           {filteredOrders.map((order) => (
-            <Card key={order.id} className={`${getStatusColor(order.status)} border transition-colors`}>
+            <Card key={order.id} className={`${getStatusColor(order.status, order.priority)} border transition-colors`}>
               <CardContent className="p-4">
                 <div className="flex flex-col md:flex-row justify-between gap-4">
                   <div className="space-y-1">
