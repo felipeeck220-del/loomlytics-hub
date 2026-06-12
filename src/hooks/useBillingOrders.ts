@@ -23,6 +23,10 @@ export interface BillingOrder {
   collected_by?: string;
   created_at: string;
   updated_at: string;
+  priority: boolean;
+  priority_reason?: string;
+  priority_at?: string;
+  priority_by?: string;
   // Joins
   client?: { name: string };
   article?: { name: string };
@@ -30,6 +34,7 @@ export interface BillingOrder {
   creator?: { name: string; code: string };
   separator?: { name: string; code: string };
   collector?: { name: string; code: string };
+  prioritizer?: { name: string; code: string };
 }
 
 export function useBillingOrders() {
@@ -50,7 +55,8 @@ export function useBillingOrders() {
           machine:machines(name),
           creator:profiles!billing_orders_created_by_fkey(name, code),
           separator:profiles!billing_orders_separated_by_fkey(name, code),
-          collector:profiles!billing_orders_collected_by_fkey(name, code)
+          collector:profiles!billing_orders_collected_by_fkey(name, code),
+          prioritizer:profiles!billing_orders_priority_by_fkey(name, code)
         `)
         .eq('company_id', user.company_id)
         .order('created_at', { ascending: false });
@@ -96,10 +102,17 @@ export function useBillingOrders() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status, data = {} }: { id: string, status: BillingOrderStatus, data?: any }) => {
-      const updatePayload: any = { status, ...data };
+    mutationFn: async ({ id, status, data = {} }: { id: string, status: BillingOrderStatus | 'priority', data?: any }) => {
+      let updatePayload: any = { ...data };
+      if (status !== 'priority') updatePayload.status = status;
+      
       if (status === 'separating') updatePayload.separated_by = profile?.id;
       if (status === 'collected') updatePayload.collected_by = profile?.id;
+      if (status === 'priority') {
+        updatePayload.priority = true;
+        updatePayload.priority_at = new Date().toISOString();
+        updatePayload.priority_by = profile?.id;
+      }
 
       const { error } = await supabase
         .from('billing_orders')
