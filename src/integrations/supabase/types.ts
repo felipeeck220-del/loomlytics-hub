@@ -246,6 +246,119 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_orders: {
+        Row: {
+          article_id: string
+          client_id: string
+          collected_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          dyehouse: string
+          id: string
+          machine_id: string | null
+          of_number: string
+          pieces_expected: number
+          pieces_real: number | null
+          separated_by: string | null
+          status: Database["public"]["Enums"]["billing_order_status"]
+          updated_at: string
+          weight_avg: number | null
+          weight_expected: number | null
+          weight_real: number | null
+        }
+        Insert: {
+          article_id: string
+          client_id: string
+          collected_by?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          dyehouse: string
+          id?: string
+          machine_id?: string | null
+          of_number: string
+          pieces_expected: number
+          pieces_real?: number | null
+          separated_by?: string | null
+          status?: Database["public"]["Enums"]["billing_order_status"]
+          updated_at?: string
+          weight_avg?: number | null
+          weight_expected?: number | null
+          weight_real?: number | null
+        }
+        Update: {
+          article_id?: string
+          client_id?: string
+          collected_by?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          dyehouse?: string
+          id?: string
+          machine_id?: string | null
+          of_number?: string
+          pieces_expected?: number
+          pieces_real?: number | null
+          separated_by?: string | null
+          status?: Database["public"]["Enums"]["billing_order_status"]
+          updated_at?: string
+          weight_avg?: number | null
+          weight_expected?: number | null
+          weight_real?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_orders_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_collected_by_fkey"
+            columns: ["collected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_separated_by_fkey"
+            columns: ["separated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_invoice_items: {
         Row: {
           article_id: string | null
@@ -2787,6 +2900,7 @@ export type Database = {
       set_active_company: { Args: { _company_id: string }; Returns: undefined }
     }
     Enums: {
+      billing_order_status: "open" | "separating" | "ready" | "collected"
       client_invoice_type: "entrada" | "saida"
       machine_status:
         | "ativa"
@@ -2924,6 +3038,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      billing_order_status: ["open", "separating", "ready", "collected"],
       client_invoice_type: ["entrada", "saida"],
       machine_status: [
         "ativa",
