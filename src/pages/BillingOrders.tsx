@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useSharedCompanyData } from '@/hooks/useSharedCompanyData';
+import { useCompanyData } from '@/hooks/useCompanyData';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
