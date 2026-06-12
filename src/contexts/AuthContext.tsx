@@ -13,6 +13,7 @@ interface UserCompany {
 interface AuthContextType {
   user: AppUser | null;
   companies: UserCompany[];
+  profile: any | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string; slug?: string }>;
@@ -61,17 +62,19 @@ async function fetchProfile(supabaseUser: SupabaseUser): Promise<AppUser | null>
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [companies, setCompanies] = useState<UserCompany[]>([]);
+  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Track if login was already tracked this session to avoid duplicates
   const loginTrackedRef = useRef(false);
 
   const loadUserData = useCallback(async (supabaseUser: SupabaseUser, isNewLogin = false) => {
-    const [appUser, userCompanies] = await Promise.all([
+    const [{ appUser, rawProfile }, userCompanies] = await Promise.all([
       fetchProfile(supabaseUser),
       fetchUserCompanies(),
     ]);
     setUser(appUser);
+    setProfile(rawProfile);
     setCompanies(userCompanies);
     setLoading(false);
 
@@ -132,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (event === 'SIGNED_OUT' || !session?.user) {
           setUser(null);
+          setProfile(null);
           setCompanies([]);
           setLoading(false);
           return;
@@ -197,11 +201,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: result?.error || 'Erro ao criar empresa' };
     }
 
-    const [appUser, userCompanies] = await Promise.all([
+    const [{ appUser, rawProfile }, userCompanies] = await Promise.all([
       fetchProfile(authData.user),
       fetchUserCompanies(),
     ]);
     setUser(appUser);
+    setProfile(rawProfile);
     setCompanies(userCompanies);
 
     return { success: true, slug: result?.slug };
@@ -213,8 +218,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Refetch user profile for new company
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const appUser = await fetchProfile(session.user);
+        const { appUser, rawProfile } = await fetchProfile(session.user);
         setUser(appUser);
+        setProfile(rawProfile);
       }
     } catch (err) {
       console.error('Error setting active company:', err);
@@ -224,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     // Clear all app state first
     setUser(null);
+    setProfile(null);
     setCompanies([]);
     loginTrackedRef.current = false;
 
@@ -248,7 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, companies, loading, login, register, logout, setActiveCompany }}>
+    <AuthContext.Provider value={{ user, profile, companies, loading, login, register, logout, setActiveCompany }}>
       {children}
     </AuthContext.Provider>
   );
