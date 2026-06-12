@@ -29,6 +29,7 @@ const BillingOrders = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
+  const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
   
   const [priorityForm, setPriorityForm] = useState({
     reason: '',
@@ -391,7 +392,7 @@ const BillingOrders = () => {
                           size="sm" 
                           variant="outline" 
                           className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                          onClick={() => updateStatus.mutate({ id: order.id, status: 'collected' })}
+                          onClick={() => setShowCollectConfirm(order)}
                         >
                           <Truck className="h-4 w-4" /> Marcar Coletada
                         </Button>
@@ -559,6 +560,36 @@ const BillingOrders = () => {
               disabled={updateStatus.isPending}
             >
               Confirmar Prioridade
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Confirmar Coleta */}
+      <Dialog open={!!showCollectConfirm} onOpenChange={() => setShowCollectConfirm(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-blue-600">
+              <Truck className="h-5 w-5" /> Confirmar Coleta
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Você tem certeza que deseja marcar a <strong>OF #{showCollectConfirm?.of_number}</strong> como coletada?
+              Esta ação moverá a ordem para a aba de Coletadas.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCollectConfirm(null)}>Cancelar</Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white" 
+              onClick={() => {
+                updateStatus.mutate({ id: showCollectConfirm.id, status: 'collected' });
+                setShowCollectConfirm(null);
+              }}
+              disabled={updateStatus.isPending}
+            >
+              Confirmar Coleta
             </Button>
           </DialogFooter>
         </DialogContent>
