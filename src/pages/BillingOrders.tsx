@@ -35,7 +35,8 @@ const BillingOrders = () => {
     article_id: '',
     machine_id: '',
     pieces_expected: '',
-    dyehouse: ''
+    dyehouse: '',
+    weight_expected: ''
   });
 
   const [launchForm, setLaunchForm] = useState({
@@ -74,12 +75,13 @@ const BillingOrders = () => {
       of_number: form.of_number,
       client_id: form.client_id,
       article_id: form.article_id,
-      machine_id: form.machine_id || undefined,
+      machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
       pieces_expected: parseInt(form.pieces_expected),
+      weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
       dyehouse: form.dyehouse
     });
     setShowCreateModal(false);
-    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '' });
+    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '' });
   };
 
   const handleLaunch = async () => {
@@ -172,6 +174,7 @@ const BillingOrders = () => {
                     <div className="text-sm font-medium">{order.client?.name}</div>
                     <div className="text-xs text-muted-foreground">
                       {order.article?.name} • {order.pieces_expected} peças 
+                      {order.weight_expected ? ` • ${order.weight_expected}kg` : ''}
                       {order.machine?.name && ` • ${order.machine.name}`}
                     </div>
                     {order.status === 'ready' && (
@@ -278,12 +281,19 @@ const BillingOrders = () => {
               <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder="Quantidade de peças" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Peso Peça</Label>
+              <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder="Peso estimado (opcional)" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Máquina</Label>
               <div className="col-span-3">
                 <SearchableSelect 
                   value={form.machine_id}
                   onValueChange={v => setForm({...form, machine_id: v})}
-                  options={getMachines().map(m => ({ value: m.id, label: m.name }))}
+                  options={[
+                    { value: 'none', label: 'NENHUMA' },
+                    ...getMachines().map(m => ({ value: m.id, label: m.name }))
+                  ]}
                   placeholder="Selecione a máquina (opcional)"
                 />
               </div>

@@ -76,6 +76,7 @@ export function useBillingOrders() {
           machine_id: newOrder.machine_id,
           pieces_expected: newOrder.pieces_expected,
           dyehouse: newOrder.dyehouse,
+          weight_expected: newOrder.weight_expected,
           company_id: user?.company_id as string,
           created_by: profile?.id as string,
           status: 'open' as any
