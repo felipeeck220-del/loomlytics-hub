@@ -1,14 +1,15 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
 
-export type AppRole = 'admin' | 'lider' | 'mecanico' | 'revisador';
+export type AppRole = 'admin' | 'lider' | 'mecanico' | 'revisador' | 'expedicao';
 
 /** Which sidebar/route keys each role can access by default */
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
-  admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'invoices', 'client-invoices', 'fechamento', 'settings'],
+  admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
   lider: ['machines', 'clients-articles', 'revision', 'mecanica', 'weavers'],
   mecanico: ['machines', 'mecanica'],
   revisador: ['revision'],
+  expedicao: ['billing-orders'],
 };
 
 /** Overridable permission keys that admin can grant to non-admin users */
@@ -34,6 +35,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   'contas-pagar': 'contas-pagar',
   residuos: 'residuos',
   'estoque-malha': 'estoque-malha',
+  'billing-orders': 'billing-orders',
   invoices: 'invoices',
   'client-invoices': 'client-invoices',
   fechamento: 'fechamento',
