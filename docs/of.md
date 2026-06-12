@@ -68,6 +68,9 @@ Este perfil será criado para limitar o acesso dos usuários do setor de expedi�
 
 ### Aba 4: Coletadas (`collected`)
 *   Lista histórica com fundo **cinza suave** (`bg-slate-500/10`).
+*   **Filtros Avançados**:
+    *   Filtro por Cliente.
+    *   Filtros de Período: Tudo, Últimos 7 dias, Últimos 30 dias e Personalizado (De/Até).
 *   Exibe histórico completo de quem criou, separou e coletou.
 
 ---
