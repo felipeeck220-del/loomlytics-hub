@@ -363,6 +363,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "billing_orders_priority_by_fkey"
+            columns: ["priority_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "billing_orders_separated_by_fkey"
             columns: ["separated_by"]
             isOneToOne: false
