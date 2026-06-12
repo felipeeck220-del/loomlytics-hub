@@ -183,7 +183,11 @@ const BillingOrders = () => {
   };
 
   const getStatusColor = (status: string, isPriority?: boolean) => {
+    // Se estiver em separação, fica amarelo para administradores verem
+    if (status === 'separating' && isAdmin) return 'bg-yellow-500/40 border-yellow-500/50';
+    
     if (isPriority && status !== 'collected') return 'bg-red-500/5 border-red-500/20';
+    
     switch (status) {
       case 'open': return isAdmin ? 'bg-red-500/10 border-red-500/20' : 'bg-card';
       case 'separating': return 'bg-yellow-500/20 border-yellow-500/30';
