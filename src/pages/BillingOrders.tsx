@@ -201,6 +201,77 @@ const BillingOrders = () => {
           </TabsTrigger>
         </TabsList>
 
+        {activeTab === 'collected' && (
+          <Card className="mt-4 border-dashed bg-muted/30">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 space-y-1.5">
+                  <Label className="text-xs uppercase text-muted-foreground font-bold">Cliente</Label>
+                  <SearchableSelect 
+                    value={filterClient}
+                    onValueChange={setFilterClient}
+                    options={[
+                      { value: 'all', label: 'TODOS OS CLIENTES' },
+                      ...getClients().map(c => ({ value: c.id, label: c.name }))
+                    ]}
+                    placeholder="Filtrar por cliente"
+                  />
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <Label className="text-xs uppercase text-muted-foreground font-bold">Período</Label>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant={datePreset === 'all' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setDatePreset('all')}
+                      className="flex-1 h-10"
+                    >Tudo</Button>
+                    <Button 
+                      variant={datePreset === '7d' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setDatePreset('7d')}
+                      className="flex-1 h-10"
+                    >7 dias</Button>
+                    <Button 
+                      variant={datePreset === '30d' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setDatePreset('30d')}
+                      className="flex-1 h-10"
+                    >30 dias</Button>
+                    <Button 
+                      variant={datePreset === 'custom' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setDatePreset('custom')}
+                      className="flex-1 h-10"
+                    >Personalizado</Button>
+                  </div>
+                </div>
+              </div>
+
+              {datePreset === 'custom' && (
+                <div className="flex flex-col md:flex-row gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="flex-1 space-y-1.5">
+                    <Label className="text-xs">De</Label>
+                    <Input 
+                      type="date" 
+                      value={filterDateRange.from} 
+                      onChange={e => setFilterDateRange({...filterDateRange, from: e.target.value})} 
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <Label className="text-xs">Até</Label>
+                    <Input 
+                      type="date" 
+                      value={filterDateRange.to} 
+                      onChange={e => setFilterDateRange({...filterDateRange, to: e.target.value})} 
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <div className="mt-6 space-y-4">
           {filteredOrders.map((order) => (
             <Card key={order.id} className={`${getStatusColor(order.status)} border transition-colors`}>
