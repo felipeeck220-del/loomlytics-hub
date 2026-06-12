@@ -30,6 +30,14 @@ const BillingOrders = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
 
+  // Filtros para aba Coletadas
+  const [filterClient, setFilterClient] = useState<string>('all');
+  const [filterDateRange, setFilterDateRange] = useState<{from: string, to: string}>({
+    from: '',
+    to: ''
+  });
+  const [datePreset, setDatePreset] = useState<'all' | '7d' | '30d' | 'custom'>('all');
+
   const [form, setForm] = useState({
     of_number: '',
     client_id: '',
@@ -53,9 +61,35 @@ const BillingOrders = () => {
         order.of_number.includes(searchTerm);
       
       if (activeTab === 'all') return matchesSearch;
-      return matchesSearch && order.status === activeTab;
+      if (order.status !== activeTab) return false;
+      if (!matchesSearch) return false;
+
+      // Filtros específicos para "Coletadas"
+      if (activeTab === 'collected') {
+        if (filterClient !== 'all' && order.client_id !== filterClient) return false;
+        
+        const orderDate = new Date(order.created_at);
+        const today = new Date();
+
+        if (datePreset === '7d') {
+          return isWithinInterval(orderDate, { start: subDays(today, 7), end: today });
+        }
+        if (datePreset === '30d') {
+          return isWithinInterval(orderDate, { start: subDays(today, 30), end: today });
+        }
+        if (datePreset === 'custom') {
+          if (filterDateRange.from && filterDateRange.to) {
+            return isWithinInterval(orderDate, { 
+              start: startOfDay(new Date(filterDateRange.from)), 
+              end: endOfDay(new Date(filterDateRange.to)) 
+            });
+          }
+        }
+      }
+
+      return true;
     });
-  }, [orders, searchTerm, activeTab]);
+  }, [orders, searchTerm, activeTab, filterClient, filterDateRange, datePreset]);
 
   const stats = useMemo(() => {
     return {
