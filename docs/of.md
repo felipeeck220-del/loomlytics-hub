@@ -39,7 +39,7 @@ Este perfil será criado para limitar o acesso dos usuários do setor de expedi�
 
 1.  **Alteração em `usePermissions.ts`**:
     *   Adicionar `'expedicao'` ao tipo `AppRole`.
-    *   Definir `ROLE_ALLOWED_KEYS` para expedição: `['of-open', 'of-ready', 'of-collected']`.
+    *   Definir `ROLE_ALLOWED_KEYS` para expedição: `['billing-orders']`.
     *   Mapear rotas em `ROUTE_KEY_MAP`.
 
 2.  **Visibilidade no Sidebar**:
@@ -50,21 +50,25 @@ Este perfil será criado para limitar o acesso dos usuários do setor de expedi�
 
 ## 💻 Interface e Fluxo (Frontend)
 
-### Aba 1: Em Aberto (`open`)
-*   **Admin**: Visualiza lista com fundo **vermelho claro** (`bg-red-50`). Botão para editar ou cancelar.
+### Aba 1: Aberto (`open`)
+*   **Admin**: Visualiza lista com fundo **vermelho suave** (`bg-red-500/10`). Botão para editar ou cancelar.
 *   **Expedição**: Visualiza lista com botão **"Iniciar Separação"**. Ao clicar, o status muda para `separating`.
 
-### Aba 2: Em Separação / Separada (`separating` / `ready`)
-*   **Status `separating`**: Fundo **amarelo claro** (`bg-yellow-50`) para o Admin.
-*   **Lançamento (Expedição)**: Botão "Lançar Dados" abre um modal para inserir:
+### Aba 2: Separando (`separating`)
+*   Fundo **amarelo suave** (`bg-yellow-500/20`).
+*   **Lançamento (Expedição/Admin)**: Botão "Lançar Dados" abre um modal para inserir:
     *   Quantidade Real de Peças.
     *   Peso Real (kg).
     *   Exibição em tempo real da Média (kg/peça).
 *   **Envio**: Ao salvar, o status muda para `ready`.
 
-### Aba 3: Coletada (`collected`)
-*   Lista histórica de todas as OFs que já saíram da fábrica.
-*   Botão "Marcar como Coletada" na aba de Separadas move o item para cá.
+### Aba 3: Pronto (`ready`)
+*   Fundo **verde suave** (`bg-green-500/20`).
+*   Botão **"Marcar Coletada"**: Move a OF para o histórico de coletadas.
+
+### Aba 4: Coletadas (`collected`)
+*   Lista histórica com fundo **cinza suave** (`bg-slate-500/10`).
+*   Exibe histórico completo de quem criou, separou e coletou.
 
 ---
 
