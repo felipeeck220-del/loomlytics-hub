@@ -111,11 +111,11 @@ const BillingOrders = () => {
 
   const stats = useMemo(() => {
     return {
-      open: orders.filter(o => o.status === 'open').length,
+      open: orders.filter(o => o.status === 'open' && !o.priority).length,
       separating: orders.filter(o => o.status === 'separating').length,
       ready: orders.filter(o => o.status === 'ready').length,
       collected: orders.filter(o => o.status === 'collected').length,
-      priority: orders.filter(o => o.priority && o.status !== 'collected').length,
+      priority: orders.filter(o => o.priority && o.status === 'open').length,
     };
   }, [orders]);
 
@@ -316,7 +316,7 @@ const BillingOrders = () => {
                       <Badge variant="outline" className="font-normal uppercase text-[10px]">
                         {order.dyehouse}
                       </Badge>
-                      {order.priority && (
+                      {order.priority && order.status === 'open' && (
                         <Badge variant="destructive" className="animate-pulse gap-1">
                           <AlertTriangle className="h-3 w-3" /> PRIORIDADE
                         </Badge>
