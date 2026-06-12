@@ -134,6 +134,8 @@ export function useBillingOrders() {
         // Se mudar para qualquer status diferente de priority, removemos a prioridade
         updatePayload.priority = false;
         updatePayload.priority_reason = null;
+        updatePayload.priority_at = null;
+        updatePayload.priority_by = null;
       }
       
       if (status === 'separating') updatePayload.separated_by = profile?.id;
