@@ -109,10 +109,10 @@ const BillingOrders = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return isAdmin ? 'bg-red-50 border-red-200' : 'bg-card';
-      case 'separating': return isAdmin ? 'bg-yellow-50 border-yellow-200' : 'bg-card';
-      case 'ready': return 'bg-green-50 border-green-200';
-      case 'collected': return 'bg-slate-50 border-slate-200';
+      case 'open': return isAdmin ? 'bg-red-500/10 border-red-500/20' : 'bg-card';
+      case 'separating': return 'bg-yellow-500/20 border-yellow-500/30';
+      case 'ready': return 'bg-green-500/20 border-green-500/30';
+      case 'collected': return 'bg-slate-500/10 border-slate-500/20';
       default: return 'bg-card';
     }
   };
@@ -150,13 +150,19 @@ const BillingOrders = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
-          <TabsTrigger value="open" className="gap-2">
-            Aberto <Badge variant="secondary" className="ml-1">{stats.open}</Badge>
+        <TabsList className="flex w-full overflow-x-auto h-auto p-1 bg-muted/50 scrollbar-none justify-start md:grid md:grid-cols-4 lg:w-[600px]">
+          <TabsTrigger value="open" className="flex-shrink-0 gap-1 px-3 py-2 min-w-[100px] md:min-w-0">
+            Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.open}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="separating">Separando <Badge variant="secondary" className="ml-1">{stats.separating}</Badge></TabsTrigger>
-          <TabsTrigger value="ready">Pronto <Badge variant="secondary" className="ml-1">{stats.ready}</Badge></TabsTrigger>
-          <TabsTrigger value="collected">Coletadas</TabsTrigger>
+          <TabsTrigger value="separating" className="flex-shrink-0 gap-1 px-3 py-2 min-w-[100px] md:min-w-0">
+            Separando <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.separating}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="ready" className="flex-shrink-0 gap-1 px-3 py-2 min-w-[100px] md:min-w-0">
+            Pronto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.ready}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="collected" className="flex-shrink-0 gap-1 px-3 py-2 min-w-[100px] md:min-w-0">
+            Coletadas
+          </TabsTrigger>
         </TabsList>
 
         <div className="mt-6 space-y-4">
