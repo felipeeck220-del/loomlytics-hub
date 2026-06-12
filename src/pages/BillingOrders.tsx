@@ -31,12 +31,12 @@ const BillingOrders = () => {
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
 
   // Filtros para aba Coletadas
-  const [filterClient, setFilterClient] = useState<string>('all');
+  // Filtros para aba Coletadas
   const [filterDateRange, setFilterDateRange] = useState<{from: string, to: string}>({
     from: '',
     to: ''
   });
-  const [datePreset, setDatePreset] = useState<'all' | '7d' | '30d' | 'custom'>('all');
+  const [datePreset, setDatePreset] = useState<'7d' | '30d' | 'custom'>('30d');
 
   const [form, setForm] = useState({
     of_number: '',
