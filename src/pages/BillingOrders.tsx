@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Play, CheckCircle2, Truck, Loader2 } from 'lucide-react';
+import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare } from 'lucide-react';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -24,10 +24,22 @@ const BillingOrders = () => {
   const { orders, isLoading, createOrder, updateStatus } = useBillingOrders();
 
   const isAdmin = role === 'admin';
-  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all'>('open');
+  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab'>('open');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
+  const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
+  
+  const [priorityForm, setPriorityForm] = useState({
+    reason: '',
+    customReason: ''
+  });
+
+  const priorityReasons = [
+    "Coleta a caminho",
+    "Será coletado hoje",
+    "NF para coleta"
+  ];
 
   // Filtros para aba Coletadas
   const [filterDateRange, setFilterDateRange] = useState<{from: string, to: string}>({
@@ -59,6 +71,12 @@ const BillingOrders = () => {
         order.of_number.includes(searchTerm);
       
       if (activeTab === 'all') return matchesSearch;
+      
+      if (activeTab === 'priority_tab') {
+        if (!order.priority || order.status === 'collected') return false;
+        return matchesSearch;
+      }
+
       if (order.status !== activeTab) return false;
       if (!matchesSearch) return false;
 
@@ -93,8 +111,30 @@ const BillingOrders = () => {
       separating: orders.filter(o => o.status === 'separating').length,
       ready: orders.filter(o => o.status === 'ready').length,
       collected: orders.filter(o => o.status === 'collected').length,
+      priority: orders.filter(o => o.priority && o.status !== 'collected').length,
     };
   }, [orders]);
+
+  const hasPendingPriority = stats.priority > 0;
+
+  const handlePriority = async () => {
+    if (!priorityForm.reason && !priorityForm.customReason) {
+      toast({ title: "Selecione ou digite um motivo", variant: "destructive" });
+      return;
+    }
+
+    const finalReason = priorityForm.reason === 'custom' ? priorityForm.customReason : priorityForm.reason;
+
+    await updateStatus.mutateAsync({
+      id: showPriorityModal.id,
+      status: 'priority',
+      data: {
+        priority_reason: finalReason
+      }
+    });
+    setShowPriorityModal(null);
+    setPriorityForm({ reason: '', customReason: '' });
+  };
 
   const handleCreate = async () => {
     if (!form.of_number || !form.client_id || !form.article_id || !form.pieces_expected || !form.dyehouse) {
@@ -182,17 +222,23 @@ const BillingOrders = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full h-auto p-1 bg-muted/50 gap-1 lg:w-[600px]">
-          <TabsTrigger value="open" className="gap-1 py-2 text-xs sm:text-sm">
+        <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
+          <TabsTrigger 
+            value="priority_tab" 
+            className={`gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial ${hasPendingPriority ? 'animate-pulse bg-red-600 text-white data-[state=active]:bg-red-700 data-[state=active]:text-white' : ''}`}
+          >
+            Aberto Prioritário <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.priority}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="open" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.open}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="separating" className="gap-1 py-2 text-xs sm:text-sm">
+          <TabsTrigger value="separating" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Separando <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.separating}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="ready" className="gap-1 py-2 text-xs sm:text-sm">
+          <TabsTrigger value="ready" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Pronto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.ready}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="collected" className="gap-1 py-2 text-xs sm:text-sm">
+          <TabsTrigger value="collected" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Coletadas
           </TabsTrigger>
         </TabsList>
@@ -261,8 +307,20 @@ const BillingOrders = () => {
                       <Badge variant="outline" className="font-normal uppercase text-[10px]">
                         {order.dyehouse}
                       </Badge>
+                      {order.priority && (
+                        <Badge variant="destructive" className="animate-pulse gap-1">
+                          <AlertTriangle className="h-3 w-3" /> PRIORIDADE
+                        </Badge>
+                      )}
                     </div>
-                    <div className="text-sm font-medium">{order.client?.name}</div>
+                    <div className="text-sm font-medium flex items-center gap-2">
+                      {order.client?.name}
+                      {order.priority_reason && (
+                        <Badge variant="outline" className="text-[10px] border-red-200 text-red-700 bg-red-50 gap-1 py-0 px-2 h-5">
+                          <MessageSquare className="h-3 w-3" /> {order.priority_reason}
+                        </Badge>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {order.article?.name} • {order.pieces_expected} peças 
                       {order.weight_expected ? ` • ${order.weight_expected}kg` : ''}
@@ -288,7 +346,18 @@ const BillingOrders = () => {
                     </div>
                     
                     <div className="flex gap-2">
-                      {order.status === 'open' && (role === 'expedicao' || isAdmin) && (
+                      {order.status === 'open' && isAdmin && !order.priority && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                          onClick={() => setShowPriorityModal(order)}
+                        >
+                          <AlertTriangle className="h-4 w-4" /> Marcar Prioridade
+                        </Button>
+                      )}
+
+                      {order.status === 'open' && role === 'expedicao' && (
                         <Button 
                           size="sm" 
                           variant="outline" 
@@ -425,6 +494,63 @@ const BillingOrders = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowLaunchModal(null)}>Cancelar</Button>
             <Button onClick={handleLaunch} disabled={updateStatus.isPending}>Finalizar Separação</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Motivo da Prioridade */}
+      <Dialog open={!!showPriorityModal} onOpenChange={() => setShowPriorityModal(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" /> Adicionar Prioridade
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-3">
+              <Label>Motivo da Prioridade</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {priorityReasons.map((reason) => (
+                  <Button
+                    key={reason}
+                    variant={priorityForm.reason === reason ? "default" : "outline"}
+                    className="justify-start font-normal"
+                    onClick={() => setPriorityForm({ ...priorityForm, reason, customReason: '' })}
+                  >
+                    {reason}
+                  </Button>
+                ))}
+                <Button
+                  variant={priorityForm.reason === 'custom' ? "default" : "outline"}
+                  className="justify-start font-normal"
+                  onClick={() => setPriorityForm({ ...priorityForm, reason: 'custom' })}
+                >
+                  Outro motivo...
+                </Button>
+              </div>
+            </div>
+
+            {priorityForm.reason === 'custom' && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                <Label htmlFor="custom-reason">Especifique o motivo</Label>
+                <Input
+                  id="custom-reason"
+                  placeholder="Digite o motivo personalizado..."
+                  value={priorityForm.customReason}
+                  onChange={(e) => setPriorityForm({ ...priorityForm, customReason: e.target.value })}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPriorityModal(null)}>Cancelar</Button>
+            <Button 
+              className="bg-red-600 hover:bg-red-700" 
+              onClick={handlePriority} 
+              disabled={updateStatus.isPending}
+            >
+              Confirmar Prioridade
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
