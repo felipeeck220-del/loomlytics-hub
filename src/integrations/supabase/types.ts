@@ -260,6 +260,10 @@ export type Database = {
           of_number: string
           pieces_expected: number
           pieces_real: number | null
+          priority: boolean | null
+          priority_at: string | null
+          priority_by: string | null
+          priority_reason: string | null
           separated_by: string | null
           status: Database["public"]["Enums"]["billing_order_status"]
           updated_at: string
@@ -280,6 +284,10 @@ export type Database = {
           of_number: string
           pieces_expected: number
           pieces_real?: number | null
+          priority?: boolean | null
+          priority_at?: string | null
+          priority_by?: string | null
+          priority_reason?: string | null
           separated_by?: string | null
           status?: Database["public"]["Enums"]["billing_order_status"]
           updated_at?: string
@@ -300,6 +308,10 @@ export type Database = {
           of_number?: string
           pieces_expected?: number
           pieces_real?: number | null
+          priority?: boolean | null
+          priority_at?: string | null
+          priority_by?: string | null
+          priority_reason?: string | null
           separated_by?: string | null
           status?: Database["public"]["Enums"]["billing_order_status"]
           updated_at?: string
