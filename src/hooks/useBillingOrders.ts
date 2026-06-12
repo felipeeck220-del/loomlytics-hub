@@ -33,7 +33,7 @@ export interface BillingOrder {
 }
 
 export function useBillingOrders() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -77,7 +77,7 @@ export function useBillingOrders() {
           pieces_expected: newOrder.pieces_expected,
           dyehouse: newOrder.dyehouse,
           company_id: user?.company_id as string,
-          created_by: user?.id as string,
+          created_by: profile?.id as string,
           status: 'open' as any
         }])
         .select()
@@ -97,8 +97,8 @@ export function useBillingOrders() {
   const updateStatus = useMutation({
     mutationFn: async ({ id, status, data = {} }: { id: string, status: BillingOrderStatus, data?: any }) => {
       const updatePayload: any = { status, ...data };
-      if (status === 'separating') updatePayload.separated_by = user?.id;
-      if (status === 'collected') updatePayload.collected_by = user?.id;
+      if (status === 'separating') updatePayload.separated_by = profile?.id;
+      if (status === 'collected') updatePayload.collected_by = profile?.id;
 
       const { error } = await supabase
         .from('billing_orders')
