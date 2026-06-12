@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,6 +67,30 @@ export function useBillingOrders() {
     },
     enabled: !!user?.company_id,
   });
+
+  useEffect(() => {
+    if (!user?.company_id) return;
+
+    const channel = supabase
+      .channel('billing_orders_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'billing_orders',
+          filter: `company_id=eq.${user.company_id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['billing_orders', user.company_id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.company_id, queryClient]);
 
   const createOrder = useMutation({
     mutationFn: async (newOrder: Partial<BillingOrder>) => {
