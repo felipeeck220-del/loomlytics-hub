@@ -63,13 +63,22 @@ export function useBillingOrders() {
 
   const createOrder = useMutation({
     mutationFn: async (newOrder: Partial<BillingOrder>) => {
+      if (!newOrder.of_number || !newOrder.client_id || !newOrder.article_id || !newOrder.pieces_expected || !newOrder.dyehouse) {
+        throw new Error("Missing required fields");
+      }
+
       const { data, error } = await supabase
         .from('billing_orders')
         .insert([{
-          ...newOrder,
-          company_id: user?.company_id,
-          created_by: user?.id,
-          status: 'open'
+          of_number: newOrder.of_number,
+          client_id: newOrder.client_id,
+          article_id: newOrder.article_id,
+          machine_id: newOrder.machine_id,
+          pieces_expected: newOrder.pieces_expected,
+          dyehouse: newOrder.dyehouse,
+          company_id: user?.company_id as string,
+          created_by: user?.id as string,
+          status: 'open' as any
         }])
         .select()
         .single();
