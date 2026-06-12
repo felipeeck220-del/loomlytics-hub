@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer } from 'lucide-react';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -181,6 +181,79 @@ const BillingOrders = () => {
     });
     setShowLaunchModal(null);
     setLaunchForm({ pieces_real: '', weight_real: '' });
+  };
+
+  const handlePrint = (order: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const html = `
+      <html>
+        <head>
+          <title>Imprimir OF #${order.of_number}</title>
+          <style>
+            @page {
+              size: landscape;
+              margin: 10mm;
+            }
+            body {
+              font-family: sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              text-align: center;
+            }
+            .content {
+              border: 2px solid black;
+              padding: 40px;
+              width: 80%;
+            }
+            .client {
+              font-size: 48pt;
+              font-weight: bold;
+              margin-bottom: 10px;
+              text-transform: uppercase;
+            }
+            .dyehouse {
+              font-size: 36pt;
+              margin-bottom: 30px;
+              text-transform: uppercase;
+            }
+            .pieces {
+              font-size: 42pt;
+              font-weight: bold;
+              margin-bottom: 20px;
+            }
+            .of-number {
+              font-size: 54pt;
+              font-weight: 900;
+              border-top: 2px solid black;
+              padding-top: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="content">
+            <div class="client">${order.client?.name}</div>
+            <div class="dyehouse">(${order.dyehouse})</div>
+            <div class="pieces">${order.pieces_real || order.pieces_expected} PEÇAS</div>
+            <div class="of-number">OF ${order.of_number}</div>
+          </div>
+          <script>
+            window.onload = () => {
+              window.print();
+              setTimeout(() => window.close(), 500);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   const getStatusColor = (status: string, isPriority?: boolean) => {
@@ -388,14 +461,24 @@ const BillingOrders = () => {
                         </Button>
                       )}
                       {order.status === 'ready' && (role === 'expedicao' || isAdmin) && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                          onClick={() => setShowCollectConfirm(order)}
-                        >
-                          <Truck className="h-4 w-4" /> Marcar Coletada
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="gap-2 text-slate-700 border-slate-200 hover:bg-slate-50"
+                            onClick={() => handlePrint(order)}
+                          >
+                            <Printer className="h-4 w-4" /> Imprimir
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                            onClick={() => setShowCollectConfirm(order)}
+                          >
+                            <Truck className="h-4 w-4" /> Marcar Coletada
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
