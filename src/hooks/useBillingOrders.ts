@@ -85,7 +85,7 @@ export function useBillingOrders() {
     if (!user?.company_id) return;
 
     const channel = supabase
-      .channel('billing_orders_changes')
+      .channel(`billing_orders_changes_${user.company_id}`)
       .on(
         'postgres_changes',
         {

@@ -82,7 +82,8 @@ const BillingOrders = () => {
       const matchesSearch = 
         order.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.dyehouse.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.of_number.includes(searchTerm);
+        order.of_number.includes(searchTerm) ||
+        (order.article?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
       
       if (activeTab === 'all') return matchesSearch;
       
@@ -209,6 +210,14 @@ const BillingOrders = () => {
     }
     if (!editForm.of_number || !editForm.client_id || !editForm.article_id || !editForm.dyehouse) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+    if (editForm.order_type === 'pieces' && !editForm.pieces_expected) {
+      toast({ title: 'Informe a quantidade de peças', variant: 'destructive' });
+      return;
+    }
+    if (editForm.order_type === 'weight' && !editForm.weight_expected) {
+      toast({ title: 'Informe o peso total (kg)', variant: 'destructive' });
       return;
     }
     const changes: any = {
@@ -826,7 +835,7 @@ const BillingOrders = () => {
                           </Button>
                         )}
 
-                        {order.status === 'open' && role === 'expedicao' && (
+                        {order.status === 'open' && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
                             className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
