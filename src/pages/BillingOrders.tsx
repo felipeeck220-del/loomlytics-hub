@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -24,7 +24,7 @@ const BillingOrders = () => {
   const { role } = usePermissions();
   const { toast } = useToast();
   const { getClients, getArticles, getMachines } = useSharedCompanyData();
-  const { orders, isLoading, createOrder, updateStatus, editOrder } = useBillingOrders();
+  const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists } = useBillingOrders();
 
   const isAdmin = role === 'admin';
   const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab'>('open');
@@ -37,6 +37,13 @@ const BillingOrders = () => {
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
   const [cancelReason, setCancelReason] = useState('');
+
+  // Auto-numeração e detecção de duplicidade no modal Nova OF
+  const [lastOfNumber, setLastOfNumber] = useState<string | null>(null);
+  const [createDupError, setCreateDupError] = useState<string | null>(null);
+
+  // Modal de conflito (outro usuário já alterou o status)
+  const [conflictInfo, setConflictInfo] = useState<{ action: string; ofNumber: string; currentStatus?: string; actor?: { name: string; code: string } | null } | null>(null);
   const [editForm, setEditForm] = useState<any>({
     of_number: '', client_id: '', article_id: '', machine_id: '',
     pieces_expected: '', weight_expected: '', dyehouse: '',
@@ -72,6 +79,22 @@ const BillingOrders = () => {
     piece_weight_target: '',
     order_type: 'pieces' as 'pieces' | 'weight',
   });
+
+  // Ao abrir o modal de criação, busca o último número gerado e sugere o próximo.
+  useEffect(() => {
+    if (!showCreateModal) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { last, next } = await getNextOfNumber();
+        if (cancelled) return;
+        setLastOfNumber(last);
+        setForm(f => ({ ...f, of_number: next }));
+        setCreateDupError(null);
+      } catch {/* ignore */}
+    })();
+    return () => { cancelled = true; };
+  }, [showCreateModal]);
 
   const [launchForm, setLaunchForm] = useState({
     pieces_real: '',
@@ -170,20 +193,34 @@ const BillingOrders = () => {
       toast({ title: "Informe o peso total (kg)", variant: "destructive" });
       return;
     }
-
-    await createOrder.mutateAsync({
-      of_number: form.of_number,
-      client_id: form.client_id,
-      article_id: form.article_id,
-      machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
-      pieces_expected: form.pieces_expected ? parseInt(form.pieces_expected) : undefined,
-      weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
-      piece_weight_target: form.piece_weight_target ? parseFloat(form.piece_weight_target) : null,
-      dyehouse: form.dyehouse,
-      order_type: form.order_type,
-    });
-    setShowCreateModal(false);
-    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces' });
+    setCreateDupError(null);
+    try {
+      await createOrder.mutateAsync({
+        of_number: form.of_number,
+        client_id: form.client_id,
+        article_id: form.article_id,
+        machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
+        pieces_expected: form.pieces_expected ? parseInt(form.pieces_expected) : undefined,
+        weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
+        piece_weight_target: form.piece_weight_target ? parseFloat(form.piece_weight_target) : null,
+        dyehouse: form.dyehouse,
+        order_type: form.order_type,
+      });
+      setShowCreateModal(false);
+      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces' });
+      setCreateDupError(null);
+    } catch (err: any) {
+      if (err?.code === 'DUPLICATE_OF') {
+        // Outro admin criou no meio do caminho — bumpa o número e pede confirmação.
+        try {
+          const { last, next } = await getNextOfNumber();
+          setLastOfNumber(last);
+          setForm(f => ({ ...f, of_number: next }));
+          setCreateDupError(`A OF #${form.of_number} já foi criada por outro admin. Atualizamos para #${next}. Clique em "Criar OF" novamente para salvar.`);
+        } catch {/* ignore */}
+      }
+      // demais erros já foram tratados via toast no hook
+    }
   };
 
   const openEditModal = (order: any) => {
@@ -243,13 +280,22 @@ const BillingOrders = () => {
       toast({ title: 'Informe o motivo do cancelamento', variant: 'destructive' });
       return;
     }
-    await updateStatus.mutateAsync({
-      id: showCancelModal.id,
-      status: 'cancelled',
-      data: { cancellation_reason: cancelReason.trim() },
-    });
-    setShowCancelModal(null);
-    setCancelReason('');
+    try {
+      await updateStatus.mutateAsync({
+        id: showCancelModal.id,
+        status: 'cancelled',
+        data: { cancellation_reason: cancelReason.trim() },
+        expectedStatus: showCancelModal.status,
+      });
+      setShowCancelModal(null);
+      setCancelReason('');
+    } catch (err: any) {
+      if (err?.code === 'CONFLICT') {
+        setShowCancelModal(null);
+        setCancelReason('');
+        setConflictInfo({ action: 'cancelar', ofNumber: showCancelModal.of_number, currentStatus: err.currentStatus, actor: err.actor });
+      }
+    }
   };
 
   const handleLaunch = async () => {
@@ -262,17 +308,27 @@ const BillingOrders = () => {
     const weight = parseFloat(launchForm.weight_real);
     const avg = pieces > 0 ? weight / pieces : 0;
 
-    await updateStatus.mutateAsync({
-      id: showLaunchModal.id,
-      status: 'ready',
-      data: {
-        pieces_real: pieces,
-        weight_real: weight,
-        weight_avg: avg
+    try {
+      await updateStatus.mutateAsync({
+        id: showLaunchModal.id,
+        status: 'ready',
+        data: {
+          pieces_real: pieces,
+          weight_real: weight,
+          weight_avg: avg
+        },
+        expectedStatus: 'separating',
+      });
+      setShowLaunchModal(null);
+      setLaunchForm({ pieces_real: '', weight_real: '' });
+    } catch (err: any) {
+      if (err?.code === 'CONFLICT') {
+        const target = showLaunchModal;
+        setShowLaunchModal(null);
+        setLaunchForm({ pieces_real: '', weight_real: '' });
+        setConflictInfo({ action: 'lançar dados', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
       }
-    });
-    setShowLaunchModal(null);
-    setLaunchForm({ pieces_real: '', weight_real: '' });
+    }
   };
 
   const handlePrint = (order: any) => {
@@ -888,8 +944,18 @@ const BillingOrders = () => {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">OF #</Label>
-              <Input className="col-span-3" value={form.of_number} onChange={e => setForm({...form, of_number: e.target.value})} placeholder="Ex: 600" />
+              <div className="col-span-3 space-y-1">
+                <Input value={form.of_number} onChange={e => { setForm({...form, of_number: e.target.value}); setCreateDupError(null); }} placeholder="Ex: 001" />
+                <p className="text-[10px] text-muted-foreground">
+                  Última OF gerada: <strong>#{lastOfNumber ?? '—'}</strong> · Sugerida: <strong>#{form.of_number || '—'}</strong>
+                </p>
+              </div>
             </div>
+            {createDupError && (
+              <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" /> <span>{createDupError}</span>
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Tipo</Label>
               <div className="col-span-3 grid grid-cols-2 gap-2">
@@ -1077,9 +1143,17 @@ const BillingOrders = () => {
             <Button variant="outline" onClick={() => setShowCollectConfirm(null)}>Cancelar</Button>
             <Button 
               className="bg-blue-600 hover:bg-blue-700 text-white" 
-              onClick={() => {
-                updateStatus.mutate({ id: showCollectConfirm.id, status: 'collected' });
-                setShowCollectConfirm(null);
+              onClick={async () => {
+                const target = showCollectConfirm;
+                try {
+                  await updateStatus.mutateAsync({ id: target.id, status: 'collected', expectedStatus: 'ready' });
+                  setShowCollectConfirm(null);
+                } catch (err: any) {
+                  if (err?.code === 'CONFLICT') {
+                    setShowCollectConfirm(null);
+                    setConflictInfo({ action: 'marcar coleta', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
+                  }
+                }
               }}
               disabled={updateStatus.isPending}
             >
@@ -1107,9 +1181,17 @@ const BillingOrders = () => {
             <Button variant="outline" onClick={() => setShowStartSepConfirm(null)}>Cancelar</Button>
             <Button
               className="bg-amber-500 hover:bg-amber-600 text-white"
-              onClick={() => {
-                updateStatus.mutate({ id: showStartSepConfirm.id, status: 'separating' });
-                setShowStartSepConfirm(null);
+              onClick={async () => {
+                const target = showStartSepConfirm;
+                try {
+                  await updateStatus.mutateAsync({ id: target.id, status: 'separating', expectedStatus: 'open' });
+                  setShowStartSepConfirm(null);
+                } catch (err: any) {
+                  if (err?.code === 'CONFLICT') {
+                    setShowStartSepConfirm(null);
+                    setConflictInfo({ action: 'iniciar separação', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
+                  }
+                }
               }}
               disabled={updateStatus.isPending}
             >
@@ -1243,6 +1325,36 @@ const BillingOrders = () => {
             >
               Confirmar Cancelamento
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Conflito — outro usuário alterou o status antes (delay/realtime) */}
+      <Dialog open={!!conflictInfo} onOpenChange={(o) => !o && setConflictInfo(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" /> Ação já realizada
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2 text-sm">
+            <p>
+              Não foi possível <strong>{conflictInfo?.action}</strong> a <strong>OF #{conflictInfo?.ofNumber}</strong> porque outro usuário já alterou esta OF.
+            </p>
+            {conflictInfo?.currentStatus && (
+              <p className="text-muted-foreground">
+                Status atual: <strong className="uppercase">{
+                  ({ open: 'Aberto', separating: 'Separando', ready: 'Pronto', collected: 'Coletada', cancelled: 'Cancelada' } as any)[conflictInfo.currentStatus] || conflictInfo.currentStatus
+                }</strong>
+                {conflictInfo.actor && (<> · por <strong>{conflictInfo.actor.name} #{conflictInfo.actor.code}</strong></>)}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              A lista foi atualizada e a OF foi movida para a aba correta.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setConflictInfo(null)}>Entendi</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

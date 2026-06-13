@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 13/06/2026 16:15 (Brasília)*
+*Última atualização: 13/06/2026 17:00 (Brasília)*
+- 13/06/2026 17:00 - OF: Auto-numeração e proteção contra conflitos multi-usuário. Modal "Nova OF" agora abre com o próximo número sugerido (padrão #001, depois incremental zero-padding 3 dígitos) e exibe a última OF gerada. Antes de salvar verifica no banco se o número já existe; em caso de duplicidade exibe aviso amarelo no modal, atualiza para o próximo livre e pede salvar novamente. Em "Iniciar Separação", "Lançar Dados", "Marcar Coleta" e "Cancelar" a atualização é condicional ao status esperado (.eq('status', expected)) — se outro usuário já moveu a OF (delay/realtime), exibe modal explicativo "Ação já realizada" mostrando status atual e autor, e atualiza a lista automaticamente.
 - 13/06/2026 16:15 - OF: Removido `truncate` dos campos Artigo e Máquina nos cards de todas as abas. Agora os dados técnicos (Artigo, Peças, Peso Total, Máquina) usam quebra de linha (`break-words`) para permanecerem 100% visíveis sem abreviações.
 - 13/06/2026 16:00 - OF: Adicionado modal de confirmação no botão "Iniciar Separação" para evitar cliques acidentais.
 - 13/06/2026 16:00 - OF: Adicionado modal de confirmação no botão "Iniciar Separação" para evitar cliques acidentais. Ao clicar, um diálogo exibe os detalhes da OF com opções "Cancelar" ou "Confirmar Separação".
