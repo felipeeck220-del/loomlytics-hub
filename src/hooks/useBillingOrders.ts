@@ -15,6 +15,7 @@ export interface BillingOrder {
   machine_id?: string;
   pieces_expected?: number | null;
   weight_expected?: number;
+  piece_weight_target?: number | null;
   dyehouse: string;
   status: BillingOrderStatus;
   order_type: BillingOrderType;
@@ -127,6 +128,7 @@ export function useBillingOrders() {
           pieces_expected: newOrder.pieces_expected ?? null,
           dyehouse: newOrder.dyehouse,
           weight_expected: newOrder.weight_expected,
+          piece_weight_target: newOrder.piece_weight_target ?? null,
           order_type: orderType,
           company_id: user?.company_id as string,
           created_by: profile?.id as string,
