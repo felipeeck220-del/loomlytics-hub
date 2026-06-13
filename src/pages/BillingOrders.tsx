@@ -679,7 +679,46 @@ const BillingOrders = () => {
                             <MessageSquare className="h-3 w-3" /> {order.priority_reason}
                           </Badge>
                         )}
+                        {order.order_type === 'weight' && (
+                          <Badge variant="outline" className="text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
+                            PEDIDO POR PESO
+                          </Badge>
+                        )}
                       </div>
+
+                      {/* Nota de edição visível para expedição quando OF voltou a Aberto */}
+                      {order.edit_note && order.status === 'open' && (
+                        <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 flex items-start gap-2">
+                          <History className="h-4 w-4 text-amber-700 dark:text-amber-400 mt-0.5 shrink-0" />
+                          <div className="text-xs text-amber-900 dark:text-amber-200">
+                            <div className="font-bold uppercase text-[10px] tracking-wide">Alteração do Admin — verificar antes de separar</div>
+                            <div className="mt-0.5">{order.edit_note}</div>
+                            {order.editor && (
+                              <div className="mt-1 text-[10px] opacity-80">
+                                Por {order.editor.name} #{order.editor.code}
+                                {order.last_edited_at && ` • ${format(new Date(order.last_edited_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Motivo do cancelamento visível na aba Cancelados */}
+                      {order.status === 'cancelled' && order.cancellation_reason && (
+                        <div className="rounded-md border border-zinc-400 bg-zinc-100 dark:bg-zinc-900/60 p-2 flex items-start gap-2">
+                          <Ban className="h-4 w-4 text-zinc-700 dark:text-zinc-300 mt-0.5 shrink-0" />
+                          <div className="text-xs text-zinc-900 dark:text-zinc-100">
+                            <div className="font-bold uppercase text-[10px] tracking-wide">Motivo do cancelamento</div>
+                            <div className="mt-0.5">{order.cancellation_reason}</div>
+                            {order.canceller && (
+                              <div className="mt-1 text-[10px] opacity-80">
+                                Por {order.canceller.name} #{order.canceller.code}
+                                {order.cancelled_at && ` • ${format(new Date(order.cancelled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Linha 3: Grid padronizado de dados técnicos */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
@@ -688,18 +727,23 @@ const BillingOrders = () => {
                           <div className="text-foreground font-medium truncate">{order.article?.name || '—'}</div>
                         </div>
                         <div>
-                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peças</div>
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+                            {order.order_type === 'weight' ? 'Peças (info)' : 'Peças'}
+                          </div>
                           <div className="text-foreground font-medium">
-                            {order.pieces_real ?? order.pieces_expected}
-                            {order.pieces_real && order.pieces_real !== order.pieces_expected && (
+                            {(order.pieces_real ?? order.pieces_expected) ?? '—'}
+                            {order.pieces_real != null && order.pieces_expected != null && order.pieces_real !== order.pieces_expected && (
                               <span className="text-muted-foreground"> / {order.pieces_expected}</span>
                             )}
                           </div>
                         </div>
                         <div>
-                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peso</div>
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peso Total</div>
                           <div className="text-foreground font-medium">
                             {order.weight_real ? `${order.weight_real} kg` : (order.weight_expected ? `${order.weight_expected} kg` : '—')}
+                            {order.weight_real != null && order.weight_expected != null && Number(order.weight_real) !== Number(order.weight_expected) && (
+                              <span className="text-muted-foreground"> / {order.weight_expected} kg</span>
+                            )}
                           </div>
                         </div>
                         <div>
