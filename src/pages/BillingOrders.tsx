@@ -944,8 +944,18 @@ const BillingOrders = () => {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">OF #</Label>
-              <Input className="col-span-3" value={form.of_number} onChange={e => setForm({...form, of_number: e.target.value})} placeholder="Ex: 600" />
+              <div className="col-span-3 space-y-1">
+                <Input value={form.of_number} onChange={e => { setForm({...form, of_number: e.target.value}); setCreateDupError(null); }} placeholder="Ex: 001" />
+                <p className="text-[10px] text-muted-foreground">
+                  Última OF gerada: <strong>#{lastOfNumber ?? '—'}</strong> · Sugerida: <strong>#{form.of_number || '—'}</strong>
+                </p>
+              </div>
             </div>
+            {createDupError && (
+              <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" /> <span>{createDupError}</span>
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Tipo</Label>
               <div className="col-span-3 grid grid-cols-2 gap-2">
