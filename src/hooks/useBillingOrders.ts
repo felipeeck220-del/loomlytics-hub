@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-export type BillingOrderStatus = 'open' | 'separating' | 'ready' | 'collected';
+export type BillingOrderStatus = 'open' | 'separating' | 'ready' | 'collected' | 'cancelled';
+export type BillingOrderType = 'pieces' | 'weight';
 
 export interface BillingOrder {
   id: string;
@@ -12,10 +13,11 @@ export interface BillingOrder {
   client_id: string;
   article_id: string;
   machine_id?: string;
-  pieces_expected: number;
+  pieces_expected?: number | null;
   weight_expected?: number;
   dyehouse: string;
   status: BillingOrderStatus;
+  order_type: BillingOrderType;
   pieces_real?: number;
   weight_real?: number;
   weight_avg?: number;
@@ -28,6 +30,12 @@ export interface BillingOrder {
   priority_reason?: string;
   priority_at?: string;
   priority_by?: string;
+  cancelled_by?: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
+  edit_note?: string;
+  last_edited_by?: string;
+  last_edited_at?: string;
   // Joins
   client?: { name: string };
   article?: { name: string };
@@ -36,6 +44,8 @@ export interface BillingOrder {
   separator?: { name: string; code: string };
   collector?: { name: string; code: string };
   prioritizer?: { name: string; code: string };
+  canceller?: { name: string; code: string };
+  editor?: { name: string; code: string };
 }
 
 export function useBillingOrders() {
@@ -57,7 +67,9 @@ export function useBillingOrders() {
           creator:profiles!billing_orders_created_by_fkey(name, code),
           separator:profiles!billing_orders_separated_by_fkey(name, code),
           collector:profiles!billing_orders_collected_by_fkey(name, code),
-          prioritizer:profiles!billing_orders_priority_by_fkey(name, code)
+          prioritizer:profiles!billing_orders_priority_by_fkey(name, code),
+          canceller:profiles!billing_orders_cancelled_by_fkey(name, code),
+          editor:profiles!billing_orders_last_edited_by_fkey(name, code)
         `)
         .eq('company_id', user.company_id)
         .order('created_at', { ascending: false });
@@ -94,8 +106,15 @@ export function useBillingOrders() {
 
   const createOrder = useMutation({
     mutationFn: async (newOrder: Partial<BillingOrder>) => {
-      if (!newOrder.of_number || !newOrder.client_id || !newOrder.article_id || !newOrder.pieces_expected || !newOrder.dyehouse) {
+      if (!newOrder.of_number || !newOrder.client_id || !newOrder.article_id || !newOrder.dyehouse) {
         throw new Error("Missing required fields");
+      }
+      const orderType: BillingOrderType = (newOrder.order_type as BillingOrderType) || 'pieces';
+      if (orderType === 'pieces' && !newOrder.pieces_expected) {
+        throw new Error("Pieces required for pieces-type order");
+      }
+      if (orderType === 'weight' && !newOrder.weight_expected) {
+        throw new Error("Weight required for weight-type order");
       }
 
       const { data, error } = await supabase
@@ -105,13 +124,14 @@ export function useBillingOrders() {
           client_id: newOrder.client_id,
           article_id: newOrder.article_id,
           machine_id: newOrder.machine_id,
-          pieces_expected: newOrder.pieces_expected,
+          pieces_expected: newOrder.pieces_expected ?? null,
           dyehouse: newOrder.dyehouse,
           weight_expected: newOrder.weight_expected,
+          order_type: orderType,
           company_id: user?.company_id as string,
           created_by: profile?.id as string,
           status: 'open' as any
-        }])
+        } as any])
         .select()
         .single();
       if (error) throw error;
@@ -131,15 +151,21 @@ export function useBillingOrders() {
       let updatePayload: any = { ...data };
       if (status !== 'priority') {
         updatePayload.status = status;
-        // Se mudar para qualquer status diferente de priority, removemos a prioridade
-        updatePayload.priority = false;
-        updatePayload.priority_reason = null;
-        updatePayload.priority_at = null;
-        updatePayload.priority_by = null;
+        // Limpa prioridade ao mudar de status (exceto quando voltamos a 'open' preservando prioridade futura)
+        if (status !== 'open') {
+          updatePayload.priority = false;
+          updatePayload.priority_reason = null;
+          updatePayload.priority_at = null;
+          updatePayload.priority_by = null;
+        }
       }
       
       if (status === 'separating') updatePayload.separated_by = profile?.id;
       if (status === 'collected') updatePayload.collected_by = profile?.id;
+      if (status === 'cancelled') {
+        updatePayload.cancelled_by = profile?.id;
+        updatePayload.cancelled_at = new Date().toISOString();
+      }
       if (status === 'priority') {
         updatePayload.priority = true;
         updatePayload.priority_at = new Date().toISOString();
@@ -161,10 +187,47 @@ export function useBillingOrders() {
     }
   });
 
+  const editOrder = useMutation({
+    mutationFn: async ({ id, changes, note, revertToOpen }: {
+      id: string;
+      changes: Partial<BillingOrder>;
+      note: string;
+      revertToOpen: boolean;
+    }) => {
+      const payload: any = {
+        ...changes,
+        edit_note: note,
+        last_edited_by: profile?.id,
+        last_edited_at: new Date().toISOString(),
+      };
+      if (revertToOpen) {
+        payload.status = 'open';
+        // Limpa dados reais já lançados, separador e prioridade — separação deverá recomeçar
+        payload.pieces_real = null;
+        payload.weight_real = null;
+        payload.weight_avg = null;
+        payload.separated_by = null;
+      }
+      const { error } = await supabase
+        .from('billing_orders')
+        .update(payload)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      toast({ title: 'OF atualizada' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao editar OF', description: error.message, variant: 'destructive' });
+    }
+  });
+
   return {
     orders,
     isLoading,
     createOrder,
-    updateStatus
+    updateStatus,
+    editOrder
   };
 }

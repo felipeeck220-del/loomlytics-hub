@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer } from 'lucide-react';
+import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History } from 'lucide-react';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ const BillingOrders = () => {
   const { role } = usePermissions();
   const { toast } = useToast();
   const { getClients, getArticles, getMachines } = useSharedCompanyData();
-  const { orders, isLoading, createOrder, updateStatus } = useBillingOrders();
+  const { orders, isLoading, createOrder, updateStatus, editOrder } = useBillingOrders();
 
   const isAdmin = role === 'admin';
   const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab'>('open');
@@ -33,6 +33,14 @@ const BillingOrders = () => {
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
   const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState<any>(null);
+  const [showCancelModal, setShowCancelModal] = useState<any>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [editForm, setEditForm] = useState<any>({
+    of_number: '', client_id: '', article_id: '', machine_id: '',
+    pieces_expected: '', weight_expected: '', dyehouse: '',
+    order_type: 'pieces', edit_note: ''
+  });
   
   const [priorityForm, setPriorityForm] = useState({
     reason: '',
@@ -59,7 +67,8 @@ const BillingOrders = () => {
     machine_id: '',
     pieces_expected: '',
     dyehouse: '',
-    weight_expected: ''
+    weight_expected: '',
+    order_type: 'pieces' as 'pieces' | 'weight',
   });
 
   const [launchForm, setLaunchForm] = useState({
@@ -120,6 +129,7 @@ const BillingOrders = () => {
       ready: orders.filter(o => o.status === 'ready').length,
       collected: orders.filter(o => o.status === 'collected').length,
       priority: orders.filter(o => o.priority && o.status === 'open').length,
+      cancelled: orders.filter(o => o.status === 'cancelled').length,
     };
   }, [orders]);
 
@@ -145,8 +155,16 @@ const BillingOrders = () => {
   };
 
   const handleCreate = async () => {
-    if (!form.of_number || !form.client_id || !form.article_id || !form.pieces_expected || !form.dyehouse) {
+    if (!form.of_number || !form.client_id || !form.article_id || !form.dyehouse) {
       toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      return;
+    }
+    if (form.order_type === 'pieces' && !form.pieces_expected) {
+      toast({ title: "Informe a quantidade de peças", variant: "destructive" });
+      return;
+    }
+    if (form.order_type === 'weight' && !form.weight_expected) {
+      toast({ title: "Informe o peso total (kg)", variant: "destructive" });
       return;
     }
 
@@ -155,12 +173,69 @@ const BillingOrders = () => {
       client_id: form.client_id,
       article_id: form.article_id,
       machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
-      pieces_expected: parseInt(form.pieces_expected),
+      pieces_expected: form.pieces_expected ? parseInt(form.pieces_expected) : undefined,
       weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
-      dyehouse: form.dyehouse
+      dyehouse: form.dyehouse,
+      order_type: form.order_type,
     });
     setShowCreateModal(false);
-    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '' });
+    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', order_type: 'pieces' });
+  };
+
+  const openEditModal = (order: any) => {
+    setEditForm({
+      of_number: order.of_number || '',
+      client_id: order.client_id || '',
+      article_id: order.article_id || '',
+      machine_id: order.machine_id || 'none',
+      pieces_expected: order.pieces_expected != null ? String(order.pieces_expected) : '',
+      weight_expected: order.weight_expected != null ? String(order.weight_expected) : '',
+      dyehouse: order.dyehouse || '',
+      order_type: order.order_type || 'pieces',
+      edit_note: '',
+    });
+    setShowEditModal(order);
+  };
+
+  const handleEdit = async () => {
+    if (!showEditModal) return;
+    const wasActive = showEditModal.status === 'separating' || showEditModal.status === 'ready';
+    if (wasActive && !editForm.edit_note.trim()) {
+      toast({ title: 'Informe o motivo da edição', description: 'A expedição precisa saber o que mudou.', variant: 'destructive' });
+      return;
+    }
+    if (!editForm.of_number || !editForm.client_id || !editForm.article_id || !editForm.dyehouse) {
+      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+    const changes: any = {
+      of_number: editForm.of_number,
+      client_id: editForm.client_id,
+      article_id: editForm.article_id,
+      machine_id: editForm.machine_id && editForm.machine_id !== 'none' ? editForm.machine_id : null,
+      pieces_expected: editForm.pieces_expected ? parseInt(editForm.pieces_expected) : null,
+      weight_expected: editForm.weight_expected ? parseFloat(editForm.weight_expected) : null,
+      dyehouse: editForm.dyehouse,
+      order_type: editForm.order_type,
+    };
+    const note = editForm.edit_note.trim() || `Editado por admin em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
+    await editOrder.mutateAsync({ id: showEditModal.id, changes, note, revertToOpen: wasActive });
+    setShowEditModal(null);
+  };
+
+  const handleCancel = async () => {
+    if (!showCancelModal) return;
+    if (!cancelReason.trim()) {
+      toast({ title: 'Informe o motivo do cancelamento', variant: 'destructive' });
+      return;
+    }
+    await updateStatus.mutateAsync({
+      id: showCancelModal.id,
+      status: 'cancelled',
+      data: { cancellation_reason: cancelReason.trim() },
+    });
+    setShowCancelModal(null);
+    setCancelReason('');
   };
 
   const handleLaunch = async () => {
@@ -448,6 +523,8 @@ const BillingOrders = () => {
         return { stripe: 'bg-emerald-600', label: 'PRONTO', badgeClass: 'bg-emerald-600 text-white border-emerald-700' };
       case 'collected':
         return { stripe: 'bg-slate-500', label: 'COLETADA', badgeClass: 'bg-slate-600 text-white border-slate-700' };
+      case 'cancelled':
+        return { stripe: 'bg-zinc-500', label: 'CANCELADA', badgeClass: 'bg-zinc-700 text-white border-zinc-800' };
       default:
         return { stripe: 'bg-muted', label: '', badgeClass: 'bg-muted text-foreground' };
     }
@@ -505,6 +582,9 @@ const BillingOrders = () => {
           </TabsTrigger>
           <TabsTrigger value="collected" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Coletadas
+          </TabsTrigger>
+          <TabsTrigger value="cancelled" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
+            Canceladas <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.cancelled}</Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -599,7 +679,46 @@ const BillingOrders = () => {
                             <MessageSquare className="h-3 w-3" /> {order.priority_reason}
                           </Badge>
                         )}
+                        {order.order_type === 'weight' && (
+                          <Badge variant="outline" className="text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
+                            PEDIDO POR PESO
+                          </Badge>
+                        )}
                       </div>
+
+                      {/* Nota de edição visível para expedição quando OF voltou a Aberto */}
+                      {order.edit_note && order.status === 'open' && (
+                        <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 flex items-start gap-2">
+                          <History className="h-4 w-4 text-amber-700 dark:text-amber-400 mt-0.5 shrink-0" />
+                          <div className="text-xs text-amber-900 dark:text-amber-200">
+                            <div className="font-bold uppercase text-[10px] tracking-wide">Alteração do Admin — verificar antes de separar</div>
+                            <div className="mt-0.5">{order.edit_note}</div>
+                            {order.editor && (
+                              <div className="mt-1 text-[10px] opacity-80">
+                                Por {order.editor.name} #{order.editor.code}
+                                {order.last_edited_at && ` • ${format(new Date(order.last_edited_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Motivo do cancelamento visível na aba Cancelados */}
+                      {order.status === 'cancelled' && order.cancellation_reason && (
+                        <div className="rounded-md border border-zinc-400 bg-zinc-100 dark:bg-zinc-900/60 p-2 flex items-start gap-2">
+                          <Ban className="h-4 w-4 text-zinc-700 dark:text-zinc-300 mt-0.5 shrink-0" />
+                          <div className="text-xs text-zinc-900 dark:text-zinc-100">
+                            <div className="font-bold uppercase text-[10px] tracking-wide">Motivo do cancelamento</div>
+                            <div className="mt-0.5">{order.cancellation_reason}</div>
+                            {order.canceller && (
+                              <div className="mt-1 text-[10px] opacity-80">
+                                Por {order.canceller.name} #{order.canceller.code}
+                                {order.cancelled_at && ` • ${format(new Date(order.cancelled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Linha 3: Grid padronizado de dados técnicos */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
@@ -608,18 +727,23 @@ const BillingOrders = () => {
                           <div className="text-foreground font-medium truncate">{order.article?.name || '—'}</div>
                         </div>
                         <div>
-                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peças</div>
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+                            {order.order_type === 'weight' ? 'Peças (info)' : 'Peças'}
+                          </div>
                           <div className="text-foreground font-medium">
-                            {order.pieces_real ?? order.pieces_expected}
-                            {order.pieces_real && order.pieces_real !== order.pieces_expected && (
+                            {(order.pieces_real ?? order.pieces_expected) ?? '—'}
+                            {order.pieces_real != null && order.pieces_expected != null && order.pieces_real !== order.pieces_expected && (
                               <span className="text-muted-foreground"> / {order.pieces_expected}</span>
                             )}
                           </div>
                         </div>
                         <div>
-                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peso</div>
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peso Total</div>
                           <div className="text-foreground font-medium">
                             {order.weight_real ? `${order.weight_real} kg` : (order.weight_expected ? `${order.weight_expected} kg` : '—')}
+                            {order.weight_real != null && order.weight_expected != null && Number(order.weight_real) !== Number(order.weight_expected) && (
+                              <span className="text-muted-foreground"> / {order.weight_expected} kg</span>
+                            )}
                           </div>
                         </div>
                         <div>
@@ -658,6 +782,28 @@ const BillingOrders = () => {
                         >
                           <Printer className="h-4 w-4" /> Imprimir
                         </Button>
+
+                        {isAdmin && order.status !== 'collected' && order.status !== 'cancelled' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => openEditModal(order)}
+                          >
+                            <Pencil className="h-4 w-4" /> Editar
+                          </Button>
+                        )}
+
+                        {isAdmin && order.status !== 'collected' && order.status !== 'cancelled' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-zinc-700 border-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                            onClick={() => { setCancelReason(''); setShowCancelModal(order); }}
+                          >
+                            <Ban className="h-4 w-4" /> Cancelar
+                          </Button>
+                        )}
 
                         {order.status === 'open' && isAdmin && !order.priority && (
                           <Button
@@ -725,6 +871,23 @@ const BillingOrders = () => {
               <Input className="col-span-3" value={form.of_number} onChange={e => setForm({...form, of_number: e.target.value})} placeholder="Ex: 600" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Tipo</Label>
+              <div className="col-span-3 grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={form.order_type === 'pieces' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setForm({ ...form, order_type: 'pieces' })}
+                >Por Peças</Button>
+                <Button
+                  type="button"
+                  variant={form.order_type === 'weight' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setForm({ ...form, order_type: 'weight' })}
+                >Por Peso Total (kg)</Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Cliente</Label>
               <div className="col-span-3">
                 <SearchableSelect 
@@ -748,12 +911,16 @@ const BillingOrders = () => {
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Peças</Label>
-              <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder="Quantidade de peças" />
+              <Label className="text-right">
+                Peças {form.order_type === 'weight' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
+              </Label>
+              <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder={form.order_type === 'weight' ? 'Opcional' : 'Quantidade de peças'} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Peso Peça</Label>
-              <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder="Peso estimado (opcional)" />
+              <Label className="text-right">
+                Peso Total (kg) {form.order_type === 'pieces' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
+              </Label>
+              <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder={form.order_type === 'weight' ? 'Ex: 1000' : 'Opcional'} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Máquina</Label>
@@ -891,6 +1058,130 @@ const BillingOrders = () => {
               disabled={updateStatus.isPending}
             >
               Confirmar Coleta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Editar OF (admin) */}
+      <Dialog open={!!showEditModal} onOpenChange={(o) => !o && setShowEditModal(null)}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" /> Editar OF #{showEditModal?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          {showEditModal && (showEditModal.status === 'separating' || showEditModal.status === 'ready') && (
+            <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200">
+              <strong>Atenção:</strong> esta OF já está em <strong>{showEditModal.status === 'ready' ? 'Pronta' : 'Separação'}</strong>.
+              Ao salvar, ela voltará para <strong>Aberto</strong> para que a expedição faça uma nova separação. Os dados reais já lançados (peças/peso) serão limpos. Informe um motivo claro abaixo.
+            </div>
+          )}
+          <div className="grid gap-3 py-2 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">OF #</Label>
+              <Input className="col-span-3 h-9" value={editForm.of_number} onChange={e => setEditForm({...editForm, of_number: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Tipo</Label>
+              <div className="col-span-3 grid grid-cols-2 gap-2">
+                <Button type="button" size="sm" variant={editForm.order_type === 'pieces' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'pieces'})}>Por Peças</Button>
+                <Button type="button" size="sm" variant={editForm.order_type === 'weight' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'weight'})}>Por Peso Total</Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Cliente</Label>
+              <div className="col-span-3">
+                <SearchableSelect
+                  value={editForm.client_id}
+                  onValueChange={v => setEditForm({...editForm, client_id: v, article_id: ''})}
+                  options={getClients().map(c => ({ value: c.id, label: c.name }))}
+                  placeholder="Selecione o cliente"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Artigo</Label>
+              <div className="col-span-3">
+                <SearchableSelect
+                  value={editForm.article_id}
+                  onValueChange={v => setEditForm({...editForm, article_id: v})}
+                  options={getArticles().filter(a => a.client_id === editForm.client_id).map(a => ({ value: a.id, label: a.name }))}
+                  placeholder="Selecione o artigo"
+                  disabled={!editForm.client_id}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Peças</Label>
+              <Input type="number" className="col-span-3 h-9" value={editForm.pieces_expected} onChange={e => setEditForm({...editForm, pieces_expected: e.target.value})} placeholder={editForm.order_type === 'weight' ? 'Opcional' : 'Quantidade'} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Peso Total (kg)</Label>
+              <Input type="number" step="0.01" className="col-span-3 h-9" value={editForm.weight_expected} onChange={e => setEditForm({...editForm, weight_expected: e.target.value})} placeholder={editForm.order_type === 'weight' ? 'Ex: 1000' : 'Opcional'} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Máquina</Label>
+              <div className="col-span-3">
+                <SearchableSelect
+                  value={editForm.machine_id}
+                  onValueChange={v => setEditForm({...editForm, machine_id: v})}
+                  options={[{ value: 'none', label: 'NENHUMA' }, ...getMachines().map(m => ({ value: m.id, label: m.name }))]}
+                  placeholder="Selecione a máquina"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Tinturaria</Label>
+              <Input className="col-span-3 h-9" value={editForm.dyehouse} onChange={e => setEditForm({...editForm, dyehouse: e.target.value.toUpperCase()})} />
+            </div>
+            <div className="grid grid-cols-4 items-start gap-3">
+              <Label className="text-right text-xs pt-2">
+                Motivo da edição
+                {showEditModal && (showEditModal.status === 'separating' || showEditModal.status === 'ready') && <span className="text-red-600"> *</span>}
+              </Label>
+              <textarea
+                className="col-span-3 min-h-[70px] rounded-md border bg-background p-2 text-sm"
+                value={editForm.edit_note}
+                onChange={e => setEditForm({...editForm, edit_note: e.target.value})}
+                placeholder="Ex: Cliente aumentou de 10 para 15 peças. Separar mais 5 peças do mesmo artigo."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(null)}>Cancelar</Button>
+            <Button onClick={handleEdit} disabled={editOrder.isPending}>Salvar Alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Cancelar OF */}
+      <Dialog open={!!showCancelModal} onOpenChange={(o) => !o && setShowCancelModal(null)}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-zinc-700">
+              <Ban className="h-5 w-5" /> Cancelar OF #{showCancelModal?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              A OF será movida para a aba <strong>Canceladas</strong>. Informe o motivo do cancelamento:
+            </p>
+            <textarea
+              className="w-full min-h-[80px] rounded-md border bg-background p-2 text-sm"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Ex: Cliente desistiu da coleta / OF duplicada / Pedido alterado."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCancelModal(null)}>Voltar</Button>
+            <Button
+              className="bg-zinc-700 hover:bg-zinc-800 text-white"
+              onClick={handleCancel}
+              disabled={updateStatus.isPending}
+            >
+              Confirmar Cancelamento
             </Button>
           </DialogFooter>
         </DialogContent>
