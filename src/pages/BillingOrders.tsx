@@ -688,6 +688,11 @@ const BillingOrders = () => {
                             PEDIDO POR PESO
                           </Badge>
                         )}
+                        {order.piece_weight_target != null && (
+                          <Badge variant="outline" className="text-[10px] border-sky-500 text-sky-700 dark:text-sky-400">
+                            PEÇA DE {Number(order.piece_weight_target)} KG
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Nota de edição visível para expedição quando OF voltou a Aberto */}
