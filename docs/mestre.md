@@ -4,7 +4,9 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 13/06/2026 16:00 (Brasília)*
+*Última atualização: 13/06/2026 16:15 (Brasília)*
+- 13/06/2026 16:15 - OF: Removido `truncate` dos campos Artigo e Máquina nos cards de todas as abas. Agora os dados técnicos (Artigo, Peças, Peso Total, Máquina) usam quebra de linha (`break-words`) para permanecerem 100% visíveis sem abreviações.
+- 13/06/2026 16:00 - OF: Adicionado modal de confirmação no botão "Iniciar Separação" para evitar cliques acidentais.
 - 13/06/2026 16:00 - OF: Adicionado modal de confirmação no botão "Iniciar Separação" para evitar cliques acidentais. Ao clicar, um diálogo exibe os detalhes da OF com opções "Cancelar" ou "Confirmar Separação".
 - 13/06/2026 15:10 - OF: Pente fino nas últimas atualizações.
 - 13/06/2026 15:10 - OF: Pente fino nas últimas atualizações. Corrigidos: (1) Admin não conseguia iniciar separação em OFs Abertas — botão "Iniciar Separação" passou a ser liberado para admin e expedição; (2) Pesquisa não considerava o nome do artigo — agora inclui artigo no filtro de busca; (3) Edição admin não validava peso/peças conforme o tipo de pedido (peças x peso total) — adicionada validação; (4) Canal Realtime de `billing_orders` usava nome fixo, podendo colidir entre empresas/abas abertas — passou a ser único por `company_id`. Verificado também enum `billing_order_status` (contém `cancelled`), políticas RLS de `billing_orders` e colunas novas (`order_type`, `edit_note`, `piece_weight_target`, `cancellation_reason`, `cancelled_by/at`, `last_edited_by/at`) — todos OK no banco.

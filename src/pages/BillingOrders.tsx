@@ -742,33 +742,33 @@ const BillingOrders = () => {
 
                       {/* Linha 3: Grid padronizado de dados técnicos */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
-                        <div>
+                        <div className="min-w-0">
                           <div className="text-[10px] uppercase text-muted-foreground font-semibold">Artigo</div>
-                          <div className="text-foreground font-medium truncate">{order.article?.name || '—'}</div>
+                          <div className="text-foreground font-medium whitespace-normal break-words">{order.article?.name || '—'}</div>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="text-[10px] uppercase text-muted-foreground font-semibold">
                             {order.order_type === 'weight' ? 'Peças (info)' : 'Peças'}
                           </div>
-                          <div className="text-foreground font-medium">
+                          <div className="text-foreground font-medium whitespace-normal break-words">
                             {(order.pieces_real ?? order.pieces_expected) ?? '—'}
                             {order.pieces_real != null && order.pieces_expected != null && order.pieces_real !== order.pieces_expected && (
                               <span className="text-muted-foreground"> / {order.pieces_expected}</span>
                             )}
                           </div>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peso Total</div>
-                          <div className="text-foreground font-medium">
+                          <div className="text-foreground font-medium whitespace-normal break-words">
                             {order.weight_real ? `${order.weight_real} kg` : (order.weight_expected ? `${order.weight_expected} kg` : '—')}
                             {order.weight_real != null && order.weight_expected != null && Number(order.weight_real) !== Number(order.weight_expected) && (
                               <span className="text-muted-foreground"> / {order.weight_expected} kg</span>
                             )}
                           </div>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="text-[10px] uppercase text-muted-foreground font-semibold">Máquina</div>
-                          <div className="text-foreground font-medium truncate">{order.machine?.name || '—'}</div>
+                          <div className="text-foreground font-medium whitespace-normal break-words">{order.machine?.name || '—'}</div>
                         </div>
                       </div>
 
