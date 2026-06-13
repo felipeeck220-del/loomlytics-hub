@@ -15,6 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/SearchableSelect';
+import { supabase } from '@/integrations/supabase/client';
+import jsPDF from 'jspdf';
+import { sanitizePdfText } from '@/lib/pdfUtils';
 
 const BillingOrders = () => {
   const { user, profile } = useAuth();
@@ -256,6 +259,181 @@ const BillingOrders = () => {
     printWindow.document.close();
   };
 
+  const handleAdminPrintPdf = async (order: any) => {
+    try {
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pw = pdf.internal.pageSize.getWidth();
+      const margin = 15;
+
+      const colors = {
+        grayBg: [249, 250, 251] as [number, number, number],
+        border: [229, 231, 235] as [number, number, number],
+        textDark: [17, 24, 39] as [number, number, number],
+        textMid: [75, 85, 99] as [number, number, number],
+        primary: [13, 148, 136] as [number, number, number],
+      };
+
+      // Logo + nome da empresa
+      let logoInfo: { data: string; w: number; h: number } | null = null;
+      let companyName = '';
+      if (user?.company_id) {
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('logo_url, name')
+          .eq('id', user.company_id)
+          .single();
+        companyName = companyData?.name || '';
+        if (companyData?.logo_url) {
+          try {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            await new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = () => reject();
+              img.src = companyData.logo_url as string;
+            });
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d')!.drawImage(img, 0, 0);
+            logoInfo = { data: canvas.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight };
+          } catch { /* no logo */ }
+        }
+      }
+
+      const dateStr = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      const fitWithinBox = (w: number, h: number, mw: number, mh: number) => {
+        const scale = Math.min(mw / w, mh / h);
+        return { width: w * scale, height: h * scale };
+      };
+
+      // Cabeçalho padrão
+      const headerH = 25;
+      const leftX = margin + 5;
+      const rightX = pw - margin - 5;
+      let y = margin;
+
+      pdf.setFillColor(...colors.grayBg);
+      pdf.rect(margin, y, pw - 2 * margin, headerH, 'F');
+      pdf.setDrawColor(...colors.border);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin, y, pw - 2 * margin, headerH, 'S');
+
+      if (logoInfo) {
+        try {
+          const ls = fitWithinBox(logoInfo.w, logoInfo.h, 24, 14);
+          pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, ls.width, ls.height);
+        } catch {
+          pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
+          pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+        }
+      } else if (companyName) {
+        pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
+        pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+      }
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textMid);
+      pdf.text(dateStr, leftX, y + 22);
+
+      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textDark);
+      const title = sanitizePdfText('ORDEM DE FATURAMENTO');
+      const tw = pdf.getTextWidth(title);
+      pdf.text(title, (pw - tw) / 2, y + 14);
+
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textMid);
+      const ofLabel = `OF #${order.of_number}`;
+      const ofW = pdf.getTextWidth(ofLabel);
+      pdf.text(ofLabel, rightX - ofW, y + 22);
+
+      y += headerH + 10;
+
+      // Status badge
+      const statusMap: Record<string, { label: string; color: [number, number, number] }> = {
+        open: { label: 'ABERTO', color: [2, 132, 199] },
+        separating: { label: 'SEPARANDO', color: [217, 119, 6] },
+        ready: { label: 'PRONTO', color: [5, 150, 105] },
+        collected: { label: 'COLETADA', color: [71, 85, 105] },
+      };
+      const st = statusMap[order.status] || { label: order.status.toUpperCase(), color: [100, 100, 100] as [number, number, number] };
+      pdf.setFillColor(...st.color);
+      pdf.roundedRect(margin, y, 50, 9, 1.5, 1.5, 'F');
+      pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
+      pdf.text(sanitizePdfText(st.label), margin + 25 - pdf.getTextWidth(st.label) / 2, y + 6.2);
+
+      if (order.priority && order.status !== 'collected') {
+        pdf.setFillColor(220, 38, 38);
+        pdf.roundedRect(margin + 55, y, 40, 9, 1.5, 1.5, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.text('PRIORIDADE', margin + 75 - pdf.getTextWidth('PRIORIDADE') / 2, y + 6.2);
+      }
+      y += 15;
+
+      // Bloco: Dados principais
+      const drawSection = (title: string, rows: Array<[string, string]>) => {
+        pdf.setFillColor(...colors.primary);
+        pdf.rect(margin, y, pw - 2 * margin, 7, 'F');
+        pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
+        pdf.text(sanitizePdfText(title), margin + 3, y + 5);
+        y += 7;
+
+        pdf.setDrawColor(...colors.border);
+        const rowH = 8;
+        rows.forEach((r, idx) => {
+          if (idx % 2 === 0) {
+            pdf.setFillColor(...colors.grayBg);
+            pdf.rect(margin, y, pw - 2 * margin, rowH, 'F');
+          }
+          pdf.setFontSize(9); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...colors.textMid);
+          pdf.text(sanitizePdfText(r[0]), margin + 3, y + 5.5);
+          pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...colors.textDark);
+          pdf.text(sanitizePdfText(r[1] || '—'), margin + 60, y + 5.5);
+          y += rowH;
+        });
+        pdf.rect(margin, y - rows.length * rowH - 7, pw - 2 * margin, rows.length * rowH + 7, 'S');
+        y += 6;
+      };
+
+      drawSection('DADOS DO PEDIDO', [
+        ['Cliente', order.client?.name || ''],
+        ['Tinturaria', order.dyehouse || ''],
+        ['Artigo', order.article?.name || ''],
+        ['Máquina', order.machine?.name || '—'],
+      ]);
+
+      drawSection('QUANTIDADES', [
+        ['Peças Previstas', String(order.pieces_expected ?? '—')],
+        ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
+        ['Peso Previsto', order.weight_expected ? `${order.weight_expected} kg` : '—'],
+        ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
+        ['Média', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
+      ]);
+
+      if (order.priority_reason) {
+        drawSection('PRIORIDADE', [
+          ['Motivo', order.priority_reason],
+          ['Marcado por', order.prioritizer ? `${order.prioritizer.name} #${order.prioritizer.code}` : '—'],
+          ['Marcado em', order.priority_at ? format(new Date(order.priority_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—'],
+        ]);
+      }
+
+      drawSection('AUDITORIA', [
+        ['Criado por', order.creator ? `${order.creator.name} #${order.creator.code}` : '—'],
+        ['Criado em', format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
+        ['Separado por', order.separator ? `${order.separator.name} #${order.separator.code}` : '—'],
+        ['Coletado por', order.collector ? `${order.collector.name} #${order.collector.code}` : '—'],
+        ['Última atualização', format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
+      ]);
+
+      // Rodapé
+      const ph = pdf.internal.pageSize.getHeight();
+      pdf.setFontSize(7); pdf.setFont('helvetica', 'italic'); pdf.setTextColor(...colors.textMid);
+      pdf.text(`Documento gerado em ${dateStr} • ${sanitizePdfText(companyName)}`, pw / 2 - 50, ph - 8);
+
+      pdf.save(`OF_${order.of_number}_${order.client?.name?.replace(/\s+/g, '_') || 'cliente'}.pdf`);
+    } catch (e: any) {
+      toast({ title: 'Erro ao gerar PDF', description: e?.message, variant: 'destructive' });
+    }
+  };
+
   // Padronização visual: faixa lateral colorida + fundo neutro do card para máxima legibilidade
   const getStatusStyle = (status: string, isPriority?: boolean) => {
     if (isPriority && status !== 'collected') {
@@ -476,7 +654,7 @@ const BillingOrders = () => {
                           size="sm"
                           variant="outline"
                           className="gap-1.5"
-                          onClick={() => handlePrint(order)}
+                          onClick={() => isAdmin ? handleAdminPrintPdf(order) : handlePrint(order)}
                         >
                           <Printer className="h-4 w-4" /> Imprimir
                         </Button>
