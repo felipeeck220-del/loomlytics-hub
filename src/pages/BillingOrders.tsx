@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer } from 'lucide-react';
+import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History } from 'lucide-react';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ const BillingOrders = () => {
   const { role } = usePermissions();
   const { toast } = useToast();
   const { getClients, getArticles, getMachines } = useSharedCompanyData();
-  const { orders, isLoading, createOrder, updateStatus } = useBillingOrders();
+  const { orders, isLoading, createOrder, updateStatus, editOrder } = useBillingOrders();
 
   const isAdmin = role === 'admin';
   const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab'>('open');
@@ -33,6 +33,14 @@ const BillingOrders = () => {
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
   const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState<any>(null);
+  const [showCancelModal, setShowCancelModal] = useState<any>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [editForm, setEditForm] = useState<any>({
+    of_number: '', client_id: '', article_id: '', machine_id: '',
+    pieces_expected: '', weight_expected: '', dyehouse: '',
+    order_type: 'pieces', edit_note: ''
+  });
   
   const [priorityForm, setPriorityForm] = useState({
     reason: '',
@@ -59,7 +67,8 @@ const BillingOrders = () => {
     machine_id: '',
     pieces_expected: '',
     dyehouse: '',
-    weight_expected: ''
+    weight_expected: '',
+    order_type: 'pieces' as 'pieces' | 'weight',
   });
 
   const [launchForm, setLaunchForm] = useState({
@@ -120,6 +129,7 @@ const BillingOrders = () => {
       ready: orders.filter(o => o.status === 'ready').length,
       collected: orders.filter(o => o.status === 'collected').length,
       priority: orders.filter(o => o.priority && o.status === 'open').length,
+      cancelled: orders.filter(o => o.status === 'cancelled').length,
     };
   }, [orders]);
 
@@ -145,8 +155,16 @@ const BillingOrders = () => {
   };
 
   const handleCreate = async () => {
-    if (!form.of_number || !form.client_id || !form.article_id || !form.pieces_expected || !form.dyehouse) {
+    if (!form.of_number || !form.client_id || !form.article_id || !form.dyehouse) {
       toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      return;
+    }
+    if (form.order_type === 'pieces' && !form.pieces_expected) {
+      toast({ title: "Informe a quantidade de peças", variant: "destructive" });
+      return;
+    }
+    if (form.order_type === 'weight' && !form.weight_expected) {
+      toast({ title: "Informe o peso total (kg)", variant: "destructive" });
       return;
     }
 
@@ -155,12 +173,69 @@ const BillingOrders = () => {
       client_id: form.client_id,
       article_id: form.article_id,
       machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
-      pieces_expected: parseInt(form.pieces_expected),
+      pieces_expected: form.pieces_expected ? parseInt(form.pieces_expected) : undefined,
       weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
-      dyehouse: form.dyehouse
+      dyehouse: form.dyehouse,
+      order_type: form.order_type,
     });
     setShowCreateModal(false);
-    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '' });
+    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', order_type: 'pieces' });
+  };
+
+  const openEditModal = (order: any) => {
+    setEditForm({
+      of_number: order.of_number || '',
+      client_id: order.client_id || '',
+      article_id: order.article_id || '',
+      machine_id: order.machine_id || 'none',
+      pieces_expected: order.pieces_expected != null ? String(order.pieces_expected) : '',
+      weight_expected: order.weight_expected != null ? String(order.weight_expected) : '',
+      dyehouse: order.dyehouse || '',
+      order_type: order.order_type || 'pieces',
+      edit_note: '',
+    });
+    setShowEditModal(order);
+  };
+
+  const handleEdit = async () => {
+    if (!showEditModal) return;
+    const wasActive = showEditModal.status === 'separating' || showEditModal.status === 'ready';
+    if (wasActive && !editForm.edit_note.trim()) {
+      toast({ title: 'Informe o motivo da edição', description: 'A expedição precisa saber o que mudou.', variant: 'destructive' });
+      return;
+    }
+    if (!editForm.of_number || !editForm.client_id || !editForm.article_id || !editForm.dyehouse) {
+      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+    const changes: any = {
+      of_number: editForm.of_number,
+      client_id: editForm.client_id,
+      article_id: editForm.article_id,
+      machine_id: editForm.machine_id && editForm.machine_id !== 'none' ? editForm.machine_id : null,
+      pieces_expected: editForm.pieces_expected ? parseInt(editForm.pieces_expected) : null,
+      weight_expected: editForm.weight_expected ? parseFloat(editForm.weight_expected) : null,
+      dyehouse: editForm.dyehouse,
+      order_type: editForm.order_type,
+    };
+    const note = editForm.edit_note.trim() || `Editado por admin em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
+    await editOrder.mutateAsync({ id: showEditModal.id, changes, note, revertToOpen: wasActive });
+    setShowEditModal(null);
+  };
+
+  const handleCancel = async () => {
+    if (!showCancelModal) return;
+    if (!cancelReason.trim()) {
+      toast({ title: 'Informe o motivo do cancelamento', variant: 'destructive' });
+      return;
+    }
+    await updateStatus.mutateAsync({
+      id: showCancelModal.id,
+      status: 'cancelled',
+      data: { cancellation_reason: cancelReason.trim() },
+    });
+    setShowCancelModal(null);
+    setCancelReason('');
   };
 
   const handleLaunch = async () => {
@@ -448,6 +523,8 @@ const BillingOrders = () => {
         return { stripe: 'bg-emerald-600', label: 'PRONTO', badgeClass: 'bg-emerald-600 text-white border-emerald-700' };
       case 'collected':
         return { stripe: 'bg-slate-500', label: 'COLETADA', badgeClass: 'bg-slate-600 text-white border-slate-700' };
+      case 'cancelled':
+        return { stripe: 'bg-zinc-500', label: 'CANCELADA', badgeClass: 'bg-zinc-700 text-white border-zinc-800' };
       default:
         return { stripe: 'bg-muted', label: '', badgeClass: 'bg-muted text-foreground' };
     }
