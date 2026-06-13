@@ -871,6 +871,23 @@ const BillingOrders = () => {
               <Input className="col-span-3" value={form.of_number} onChange={e => setForm({...form, of_number: e.target.value})} placeholder="Ex: 600" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Tipo</Label>
+              <div className="col-span-3 grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={form.order_type === 'pieces' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setForm({ ...form, order_type: 'pieces' })}
+                >Por Peças</Button>
+                <Button
+                  type="button"
+                  variant={form.order_type === 'weight' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setForm({ ...form, order_type: 'weight' })}
+                >Por Peso Total (kg)</Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Cliente</Label>
               <div className="col-span-3">
                 <SearchableSelect 
@@ -894,12 +911,16 @@ const BillingOrders = () => {
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Peças</Label>
-              <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder="Quantidade de peças" />
+              <Label className="text-right">
+                Peças {form.order_type === 'weight' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
+              </Label>
+              <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder={form.order_type === 'weight' ? 'Opcional' : 'Quantidade de peças'} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Peso Peça</Label>
-              <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder="Peso estimado (opcional)" />
+              <Label className="text-right">
+                Peso Total (kg) {form.order_type === 'pieces' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
+              </Label>
+              <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder={form.order_type === 'weight' ? 'Ex: 1000' : 'Opcional'} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Máquina</Label>
