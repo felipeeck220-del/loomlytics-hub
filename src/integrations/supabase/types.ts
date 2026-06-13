@@ -249,16 +249,23 @@ export type Database = {
       billing_orders: {
         Row: {
           article_id: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           client_id: string
           collected_by: string | null
           company_id: string
           created_at: string
           created_by: string
           dyehouse: string
+          edit_note: string | null
           id: string
+          last_edited_at: string | null
+          last_edited_by: string | null
           machine_id: string | null
           of_number: string
-          pieces_expected: number
+          order_type: string
+          pieces_expected: number | null
           pieces_real: number | null
           priority: boolean | null
           priority_at: string | null
@@ -273,16 +280,23 @@ export type Database = {
         }
         Insert: {
           article_id: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id: string
           collected_by?: string | null
           company_id: string
           created_at?: string
           created_by: string
           dyehouse: string
+          edit_note?: string | null
           id?: string
+          last_edited_at?: string | null
+          last_edited_by?: string | null
           machine_id?: string | null
           of_number: string
-          pieces_expected: number
+          order_type?: string
+          pieces_expected?: number | null
           pieces_real?: number | null
           priority?: boolean | null
           priority_at?: string | null
@@ -297,16 +311,23 @@ export type Database = {
         }
         Update: {
           article_id?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_id?: string
           collected_by?: string | null
           company_id?: string
           created_at?: string
           created_by?: string
           dyehouse?: string
+          edit_note?: string | null
           id?: string
+          last_edited_at?: string | null
+          last_edited_by?: string | null
           machine_id?: string | null
           of_number?: string
-          pieces_expected?: number
+          order_type?: string
+          pieces_expected?: number | null
           pieces_real?: number | null
           priority?: boolean | null
           priority_at?: string | null
@@ -325,6 +346,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -351,6 +379,13 @@ export type Database = {
           {
             foreignKeyName: "billing_orders_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_last_edited_by_fkey"
+            columns: ["last_edited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2919,7 +2954,12 @@ export type Database = {
       set_active_company: { Args: { _company_id: string }; Returns: undefined }
     }
     Enums: {
-      billing_order_status: "open" | "separating" | "ready" | "collected"
+      billing_order_status:
+        | "open"
+        | "separating"
+        | "ready"
+        | "collected"
+        | "cancelled"
       client_invoice_type: "entrada" | "saida"
       machine_status:
         | "ativa"
@@ -3057,7 +3097,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      billing_order_status: ["open", "separating", "ready", "collected"],
+      billing_order_status: [
+        "open",
+        "separating",
+        "ready",
+        "collected",
+        "cancelled",
+      ],
       client_invoice_type: ["entrada", "saida"],
       machine_status: [
         "ativa",
