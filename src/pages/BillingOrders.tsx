@@ -483,6 +483,7 @@ const BillingOrders = () => {
         ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
         ['Peso Previsto', order.weight_expected ? `${order.weight_expected} kg` : '—'],
         ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
+        ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
         ['Média', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
       ]);
 
