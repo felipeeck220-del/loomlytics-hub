@@ -927,6 +927,12 @@ const BillingOrders = () => {
               <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder={form.order_type === 'weight' ? 'Ex: 1000' : 'Opcional'} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Peso por Peça (kg) <span className="text-[10px] text-muted-foreground">(opc.)</span>
+              </Label>
+              <Input type="number" step="0.01" className="col-span-3" value={form.piece_weight_target} onChange={e => setForm({...form, piece_weight_target: e.target.value})} placeholder="Ex: 10 (cliente solicitou peças de 10kg)" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Máquina</Label>
               <div className="col-span-3">
                 <SearchableSelect 
