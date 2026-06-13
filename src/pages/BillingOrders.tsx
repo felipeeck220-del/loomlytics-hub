@@ -33,6 +33,7 @@ const BillingOrders = () => {
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
   const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
+  const [showStartSepConfirm, setShowStartSepConfirm] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -839,7 +840,7 @@ const BillingOrders = () => {
                           <Button
                             size="sm"
                             className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
-                            onClick={() => updateStatus.mutate({ id: order.id, status: 'separating' })}
+                            onClick={() => setShowStartSepConfirm(order)}
                           >
                             <Play className="h-4 w-4" /> Iniciar Separação
                           </Button>
@@ -1083,6 +1084,36 @@ const BillingOrders = () => {
               disabled={updateStatus.isPending}
             >
               Confirmar Coleta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Confirmar Iniciar Separação */}
+      <Dialog open={!!showStartSepConfirm} onOpenChange={() => setShowStartSepConfirm(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <Play className="h-5 w-5" /> Iniciar Separação
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Você tem certeza que deseja iniciar a separação da <strong>OF #{showStartSepConfirm?.of_number}</strong>?
+              Esta ação moverá a ordem para a aba <strong>Separando</strong>.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStartSepConfirm(null)}>Cancelar</Button>
+            <Button
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={() => {
+                updateStatus.mutate({ id: showStartSepConfirm.id, status: 'separating' });
+                setShowStartSepConfirm(null);
+              }}
+              disabled={updateStatus.isPending}
+            >
+              Confirmar Separação
             </Button>
           </DialogFooter>
         </DialogContent>
