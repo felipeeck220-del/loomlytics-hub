@@ -33,6 +33,7 @@ const BillingOrders = () => {
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
   const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
+  const [showStartSepConfirm, setShowStartSepConfirm] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -839,7 +840,7 @@ const BillingOrders = () => {
                           <Button
                             size="sm"
                             className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
-                            onClick={() => updateStatus.mutate({ id: order.id, status: 'separating' })}
+                            onClick={() => setShowStartSepConfirm(order)}
                           >
                             <Play className="h-4 w-4" /> Iniciar Separação
                           </Button>
