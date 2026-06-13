@@ -1328,6 +1328,36 @@ const BillingOrders = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Conflito — outro usuário alterou o status antes (delay/realtime) */}
+      <Dialog open={!!conflictInfo} onOpenChange={(o) => !o && setConflictInfo(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" /> Ação já realizada
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2 text-sm">
+            <p>
+              Não foi possível <strong>{conflictInfo?.action}</strong> a <strong>OF #{conflictInfo?.ofNumber}</strong> porque outro usuário já alterou esta OF.
+            </p>
+            {conflictInfo?.currentStatus && (
+              <p className="text-muted-foreground">
+                Status atual: <strong className="uppercase">{
+                  ({ open: 'Aberto', separating: 'Separando', ready: 'Pronto', collected: 'Coletada', cancelled: 'Cancelada' } as any)[conflictInfo.currentStatus] || conflictInfo.currentStatus
+                }</strong>
+                {conflictInfo.actor && (<> · por <strong>{conflictInfo.actor.name} #{conflictInfo.actor.code}</strong></>)}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              A lista foi atualizada e a OF foi movida para a aba correta.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setConflictInfo(null)}>Entendi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
