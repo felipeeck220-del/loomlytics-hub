@@ -1,0 +1,1 @@
+ALTER TABLE public.billing_orders ADD COLUMN IF NOT EXISTS piece_weight_target numeric;

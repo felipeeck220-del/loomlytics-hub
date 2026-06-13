@@ -265,6 +265,7 @@ export type Database = {
           machine_id: string | null
           of_number: string
           order_type: string
+          piece_weight_target: number | null
           pieces_expected: number | null
           pieces_real: number | null
           priority: boolean | null
@@ -296,6 +297,7 @@ export type Database = {
           machine_id?: string | null
           of_number: string
           order_type?: string
+          piece_weight_target?: number | null
           pieces_expected?: number | null
           pieces_real?: number | null
           priority?: boolean | null
@@ -327,6 +329,7 @@ export type Database = {
           machine_id?: string | null
           of_number?: string
           order_type?: string
+          piece_weight_target?: number | null
           pieces_expected?: number | null
           pieces_real?: number | null
           priority?: boolean | null
