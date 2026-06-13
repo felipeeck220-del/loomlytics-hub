@@ -118,6 +118,20 @@ export function useBillingOrders() {
         throw new Error("Weight required for weight-type order");
       }
 
+      // Verificação anti-duplicidade — vários admins podem gerar OF simultaneamente.
+      const { data: dup, error: dupErr } = await supabase
+        .from('billing_orders')
+        .select('id, of_number')
+        .eq('company_id', user?.company_id as string)
+        .eq('of_number', newOrder.of_number)
+        .maybeSingle();
+      if (dupErr) throw dupErr;
+      if (dup) {
+        const err: any = new Error(`OF #${newOrder.of_number} já existe — outro admin acabou de criá-la.`);
+        err.code = 'DUPLICATE_OF';
+        throw err;
+      }
+
       const { data, error } = await supabase
         .from('billing_orders')
         .insert([{
@@ -136,7 +150,15 @@ export function useBillingOrders() {
         } as any])
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        // Captura unique violation no banco (caso seja criada no instante exato)
+        if ((error as any).code === '23505') {
+          const e: any = new Error(`OF #${newOrder.of_number} já existe — outro admin acabou de criá-la.`);
+          e.code = 'DUPLICATE_OF';
+          throw e;
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
@@ -144,12 +166,14 @@ export function useBillingOrders() {
       toast({ title: "OF criada com sucesso" });
     },
     onError: (error: any) => {
+      // Duplicidade é tratada visualmente pelo modal — não exibir toast genérico.
+      if (error?.code === 'DUPLICATE_OF') return;
       toast({ title: "Erro ao criar OF", description: error.message, variant: "destructive" });
     }
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status, data = {} }: { id: string, status: BillingOrderStatus | 'priority', data?: any }) => {
+    mutationFn: async ({ id, status, data = {}, expectedStatus }: { id: string, status: BillingOrderStatus | 'priority', data?: any, expectedStatus?: BillingOrderStatus }) => {
       let updatePayload: any = { ...data };
       if (status !== 'priority') {
         updatePayload.status = status;
@@ -174,17 +198,39 @@ export function useBillingOrders() {
         updatePayload.priority_by = profile?.id;
       }
 
-      const { error } = await supabase
-        .from('billing_orders')
-        .update(updatePayload)
-        .eq('id', id);
+      // Atualização condicional — evita conflito quando outro usuário já mudou o status (delay/realtime).
+      let q = supabase.from('billing_orders').update(updatePayload).eq('id', id);
+      if (expectedStatus) q = q.eq('status', expectedStatus);
+      const { data: rows, error } = await q.select('id, status');
       if (error) throw error;
+      if (expectedStatus && (!rows || rows.length === 0)) {
+        // Buscar status atual para informar quem está conflitando
+        const { data: current } = await supabase
+          .from('billing_orders')
+          .select(`status, separator:profiles!billing_orders_separated_by_fkey(name, code), collector:profiles!billing_orders_collected_by_fkey(name, code), canceller:profiles!billing_orders_cancelled_by_fkey(name, code)`)
+          .eq('id', id)
+          .maybeSingle();
+        const err: any = new Error('CONFLICT');
+        err.code = 'CONFLICT';
+        err.currentStatus = current?.status;
+        err.actor = (current as any)?.separator || (current as any)?.collector || (current as any)?.canceller || null;
+        throw err;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-      toast({ title: "Status atualizado" });
+      const labels: Record<string, string> = {
+        open: 'OF voltou para Aberto', separating: 'Separação iniciada', ready: 'Separação finalizada',
+        collected: 'OF marcada como coletada', cancelled: 'OF cancelada', priority: 'Prioridade adicionada'
+      };
+      toast({ title: labels[vars.status] || 'Status atualizado' });
     },
     onError: (error: any) => {
+      // Conflito é tratado visualmente pela página.
+      if (error?.code === 'CONFLICT') {
+        queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+        return;
+      }
       toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" });
     }
   });
@@ -230,6 +276,32 @@ export function useBillingOrders() {
     isLoading,
     createOrder,
     updateStatus,
-    editOrder
+    editOrder,
+    getNextOfNumber: async (): Promise<{ last: string | null; next: string }> => {
+      if (!user?.company_id) return { last: null, next: '001' };
+      const { data, error } = await supabase
+        .from('billing_orders')
+        .select('of_number')
+        .eq('company_id', user.company_id);
+      if (error) throw error;
+      const nums = (data ?? [])
+        .map((r: any) => parseInt(String(r.of_number).replace(/\D/g, ''), 10))
+        .filter((n: number) => Number.isFinite(n));
+      if (nums.length === 0) return { last: null, next: '001' };
+      const max = Math.max(...nums);
+      const pad = (n: number) => String(n).padStart(3, '0');
+      return { last: pad(max), next: pad(max + 1) };
+    },
+    ofExists: async (ofNumber: string): Promise<boolean> => {
+      if (!user?.company_id || !ofNumber) return false;
+      const { data, error } = await supabase
+        .from('billing_orders')
+        .select('id')
+        .eq('company_id', user.company_id)
+        .eq('of_number', ofNumber)
+        .maybeSingle();
+      if (error) return false;
+      return !!data;
+    },
   };
 }
