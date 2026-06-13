@@ -654,7 +654,7 @@ const BillingOrders = () => {
                           size="sm"
                           variant="outline"
                           className="gap-1.5"
-                          onClick={() => handlePrint(order)}
+                          onClick={() => isAdmin ? handleAdminPrintPdf(order) : handlePrint(order)}
                         >
                           <Printer className="h-4 w-4" /> Imprimir
                         </Button>
