@@ -256,18 +256,22 @@ const BillingOrders = () => {
     printWindow.document.close();
   };
 
-  const getStatusColor = (status: string, isPriority?: boolean) => {
-    // Se estiver em separação, fica amarelo para administradores verem
-    if (status === 'separating' && isAdmin) return 'bg-yellow-500/40 border-yellow-500/50';
-    
-    if (isPriority && status !== 'collected') return 'bg-red-500/5 border-red-500/20';
-    
+  // Padronização visual: faixa lateral colorida + fundo neutro do card para máxima legibilidade
+  const getStatusStyle = (status: string, isPriority?: boolean) => {
+    if (isPriority && status !== 'collected') {
+      return { stripe: 'bg-red-600', label: 'PRIORIDADE', badgeClass: 'bg-red-600 text-white border-red-700' };
+    }
     switch (status) {
-      case 'open': return isAdmin ? 'bg-red-500/10 border-red-500/20' : 'bg-card';
-      case 'separating': return 'bg-yellow-500/20 border-yellow-500/30';
-      case 'ready': return 'bg-green-500/20 border-green-500/30';
-      case 'collected': return 'bg-slate-500/10 border-slate-500/20';
-      default: return 'bg-card';
+      case 'open':
+        return { stripe: 'bg-sky-600', label: 'ABERTO', badgeClass: 'bg-sky-600 text-white border-sky-700' };
+      case 'separating':
+        return { stripe: 'bg-amber-500', label: 'SEPARANDO', badgeClass: 'bg-amber-500 text-white border-amber-600' };
+      case 'ready':
+        return { stripe: 'bg-emerald-600', label: 'PRONTO', badgeClass: 'bg-emerald-600 text-white border-emerald-700' };
+      case 'collected':
+        return { stripe: 'bg-slate-500', label: 'COLETADA', badgeClass: 'bg-slate-600 text-white border-slate-700' };
+      default:
+        return { stripe: 'bg-muted', label: '', badgeClass: 'bg-muted text-foreground' };
     }
   };
 
@@ -379,113 +383,149 @@ const BillingOrders = () => {
           </Card>
         )}
 
-        <div className="mt-6 space-y-4">
-          {filteredOrders.map((order) => (
-            <Card key={order.id} className={`${getStatusColor(order.status, order.priority)} border transition-colors`}>
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-lg">OF #{order.of_number}</span>
-                      <Badge variant="outline" className="font-normal uppercase text-[10px]">
-                        {order.dyehouse}
-                      </Badge>
-                      {order.priority && order.status === 'open' && (
-                        <Badge variant="destructive" className="animate-pulse gap-1">
-                          <AlertTriangle className="h-3 w-3" /> PRIORIDADE
+        <div className="mt-6 space-y-3">
+          {filteredOrders.map((order) => {
+            const style = getStatusStyle(order.status, order.priority);
+            return (
+              <Card
+                key={order.id}
+                className="relative overflow-hidden border bg-card hover:shadow-md transition-shadow"
+              >
+                {/* Faixa lateral de status */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${style.stripe}`} />
+                <CardContent className="p-4 pl-5">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                    {/* Coluna principal padronizada */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      {/* Linha 1: Status + OF + Tinturaria + Prioridade */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={`${style.badgeClass} font-bold text-[10px] tracking-wide uppercase px-2 py-0.5`}>
+                          {style.label}
                         </Badge>
-                      )}
-                    </div>
-                    <div className="text-sm font-medium flex items-center gap-2">
-                      {order.client?.name}
-                      {order.priority_reason && (
-                        <Badge variant="outline" className="text-[10px] border-red-200 text-red-700 bg-red-50 gap-1 py-0 px-2 h-5">
-                          <MessageSquare className="h-3 w-3" /> {order.priority_reason}
+                        <span className="font-bold text-lg text-foreground">OF #{order.of_number}</span>
+                        <Badge variant="outline" className="font-semibold uppercase text-[10px] border-foreground/20 text-foreground">
+                          {order.dyehouse}
                         </Badge>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {order.article?.name} • {order.pieces_expected} peças 
-                      {order.weight_expected ? ` • ${order.weight_expected}kg` : ''}
-                      {order.machine?.name && ` • ${order.machine.name}`}
-                    </div>
-                    {order.status === 'ready' && (
-                      <div className="text-xs font-semibold text-green-700 mt-1">
-                        REAL: {order.pieces_real} pçs • {order.weight_real}kg • Média: {order.weight_avg?.toFixed(2)}kg
+                        {order.priority && order.status === 'open' && (
+                          <Badge variant="destructive" className="animate-pulse gap-1 text-[10px]">
+                            <AlertTriangle className="h-3 w-3" /> PRIORIDADE
+                          </Badge>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex flex-col justify-between items-end gap-2">
-                    <div className="text-[10px] text-right text-muted-foreground leading-tight">
-                      Criado por: {order.creator?.name} #{order.creator?.code}<br />
-                      {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      {order.separated_by && (
-                        <div className="mt-1">Separado por: {order.separator?.name} #{order.separator?.code}</div>
-                      )}
-                      {order.collected_by && (
-                        <div className="mt-1">Coletado por: {order.collector?.name} #{order.collector?.code}</div>
-                      )}
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      {order.status === 'open' && isAdmin && !order.priority && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
-                          onClick={() => setShowPriorityModal(order)}
-                        >
-                          <AlertTriangle className="h-4 w-4" /> Marcar Prioridade
-                        </Button>
-                      )}
+                      {/* Linha 2: Cliente em destaque */}
+                      <div className="text-base font-semibold text-foreground flex items-center gap-2 flex-wrap">
+                        {order.client?.name}
+                        {order.priority_reason && (
+                          <Badge className="text-[10px] bg-red-600 text-white border-red-700 gap-1 py-0 px-2 h-5">
+                            <MessageSquare className="h-3 w-3" /> {order.priority_reason}
+                          </Badge>
+                        )}
+                      </div>
 
-                      {order.status === 'open' && role === 'expedicao' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="gap-2 text-yellow-600 border-yellow-200 hover:bg-yellow-50"
-                          onClick={() => updateStatus.mutate({ id: order.id, status: 'separating' })}
-                        >
-                          <Play className="h-4 w-4" /> Iniciar Separação
-                        </Button>
-                      )}
-                      {order.status === 'separating' && (role === 'expedicao' || isAdmin) && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="gap-2 text-green-600 border-green-200 hover:bg-green-50"
-                          onClick={() => setShowLaunchModal(order)}
-                        >
-                          <CheckCircle2 className="h-4 w-4" /> Lançar Dados
-                        </Button>
-                      )}
-                      {order.status === 'ready' && (role === 'expedicao' || isAdmin) && (
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="gap-2 text-slate-700 border-slate-200 hover:bg-slate-50"
-                            onClick={() => handlePrint(order)}
-                          >
-                            <Printer className="h-4 w-4" /> Imprimir
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                            onClick={() => setShowCollectConfirm(order)}
-                          >
-                            <Truck className="h-4 w-4" /> Marcar Coletada
-                          </Button>
+                      {/* Linha 3: Grid padronizado de dados técnicos */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
+                        <div>
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Artigo</div>
+                          <div className="text-foreground font-medium truncate">{order.article?.name || '—'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peças</div>
+                          <div className="text-foreground font-medium">
+                            {order.pieces_real ?? order.pieces_expected}
+                            {order.pieces_real && order.pieces_real !== order.pieces_expected && (
+                              <span className="text-muted-foreground"> / {order.pieces_expected}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peso</div>
+                          <div className="text-foreground font-medium">
+                            {order.weight_real ? `${order.weight_real} kg` : (order.weight_expected ? `${order.weight_expected} kg` : '—')}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase text-muted-foreground font-semibold">Máquina</div>
+                          <div className="text-foreground font-medium truncate">{order.machine?.name || '—'}</div>
+                        </div>
+                      </div>
+
+                      {order.status === 'ready' && order.weight_avg && (
+                        <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 pt-1">
+                          Média: {order.weight_avg.toFixed(2)} kg/peça
                         </div>
                       )}
                     </div>
+
+                    {/* Coluna ações + auditoria padronizada */}
+                    <div className="flex flex-col items-stretch md:items-end gap-2 md:min-w-[200px]">
+                      <div className="text-[10px] text-muted-foreground leading-tight md:text-right">
+                        <div><span className="font-semibold">Criado:</span> {order.creator?.name} #{order.creator?.code}</div>
+                        <div>{format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
+                        {order.separated_by && (
+                          <div className="mt-0.5"><span className="font-semibold">Separado:</span> {order.separator?.name} #{order.separator?.code}</div>
+                        )}
+                        {order.collected_by && (
+                          <div className="mt-0.5"><span className="font-semibold">Coletado:</span> {order.collector?.name} #{order.collector?.code}</div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 md:justify-end">
+                        {/* Imprimir disponível em todas as abas/status */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5"
+                          onClick={() => handlePrint(order)}
+                        >
+                          <Printer className="h-4 w-4" /> Imprimir
+                        </Button>
+
+                        {order.status === 'open' && isAdmin && !order.priority && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950"
+                            onClick={() => setShowPriorityModal(order)}
+                          >
+                            <AlertTriangle className="h-4 w-4" /> Prioridade
+                          </Button>
+                        )}
+
+                        {order.status === 'open' && role === 'expedicao' && (
+                          <Button
+                            size="sm"
+                            className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
+                            onClick={() => updateStatus.mutate({ id: order.id, status: 'separating' })}
+                          >
+                            <Play className="h-4 w-4" /> Iniciar Separação
+                          </Button>
+                        )}
+                        {order.status === 'separating' && (role === 'expedicao' || isAdmin) && (
+                          <Button
+                            size="sm"
+                            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={() => setShowLaunchModal(order)}
+                          >
+                            <CheckCircle2 className="h-4 w-4" /> Lançar Dados
+                          </Button>
+                        )}
+                        {order.status === 'ready' && (role === 'expedicao' || isAdmin) && (
+                          <Button
+                            size="sm"
+                            className="gap-1.5 bg-sky-600 hover:bg-sky-700 text-white"
+                            onClick={() => setShowCollectConfirm(order)}
+                          >
+                            <Truck className="h-4 w-4" /> Marcar Coleta
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
 
           {filteredOrders.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">

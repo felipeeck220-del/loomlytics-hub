@@ -4,7 +4,8 @@
   - 10/05/2026 16:35 - Implementação de paginação numérica (1, 2, 3...) na listagem de produção (Production.tsx), com 10 registros por página, sincronizada com filtros e turnos.
   - 10/05/2026 16:15 - Implementação das diretrizes de rpcproduction.md: Criação de RPCs seguras para busca de meses, máquinas, clientes e artigos para filtros no banco de dados. Integração no Reports.tsx para carregar filtros de forma otimizada. Correção de travamento no botão Limpar da página de Produção (uso de useCallback).
  
-*Última atualização: 12/06/2026 11:45 (Brasília)*
+*Última atualização: 13/06/2026 10:30 (Brasília)*
+- 13/06/2026 10:30 - OF: Padronização visual dos cards em todas as abas (Aberto, Separando, Pronto, Coletadas). Cards agora com fundo neutro do tema e faixa lateral colorida por status (sky/amber/emerald/slate/red), badge de status em cor sólida com texto branco para máxima legibilidade, grid padronizado de dados técnicos (Artigo / Peças / Peso / Máquina) e bloco de auditoria alinhado. Botão "Imprimir" agora disponível em todas as seções (Aberto, Separando, Pronto, Coletadas).
 - 12/06/2026 11:45 - Fix Sidebar OF: Forçada a inclusão da chave `billing-orders` na coluna `enabled_nav_items` da tabela `company_settings` para garantir que o novo módulo apareça no sidebar de todas as empresas.
 - 12/06/2026 11:30 - Implementação OF: Criada a tabela `billing_orders` no banco de dados, configuradas as permissões para o novo perfil `expedicao` e implementada a interface base em `src/pages/BillingOrders.tsx`.
 
