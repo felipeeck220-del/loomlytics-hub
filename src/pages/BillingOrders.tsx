@@ -1143,9 +1143,17 @@ const BillingOrders = () => {
             <Button variant="outline" onClick={() => setShowCollectConfirm(null)}>Cancelar</Button>
             <Button 
               className="bg-blue-600 hover:bg-blue-700 text-white" 
-              onClick={() => {
-                updateStatus.mutate({ id: showCollectConfirm.id, status: 'collected' });
-                setShowCollectConfirm(null);
+              onClick={async () => {
+                const target = showCollectConfirm;
+                try {
+                  await updateStatus.mutateAsync({ id: target.id, status: 'collected', expectedStatus: 'ready' });
+                  setShowCollectConfirm(null);
+                } catch (err: any) {
+                  if (err?.code === 'CONFLICT') {
+                    setShowCollectConfirm(null);
+                    setConflictInfo({ action: 'marcar coleta', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
+                  }
+                }
               }}
               disabled={updateStatus.isPending}
             >
@@ -1173,9 +1181,17 @@ const BillingOrders = () => {
             <Button variant="outline" onClick={() => setShowStartSepConfirm(null)}>Cancelar</Button>
             <Button
               className="bg-amber-500 hover:bg-amber-600 text-white"
-              onClick={() => {
-                updateStatus.mutate({ id: showStartSepConfirm.id, status: 'separating' });
-                setShowStartSepConfirm(null);
+              onClick={async () => {
+                const target = showStartSepConfirm;
+                try {
+                  await updateStatus.mutateAsync({ id: target.id, status: 'separating', expectedStatus: 'open' });
+                  setShowStartSepConfirm(null);
+                } catch (err: any) {
+                  if (err?.code === 'CONFLICT') {
+                    setShowStartSepConfirm(null);
+                    setConflictInfo({ action: 'iniciar separação', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
+                  }
+                }
               }}
               disabled={updateStatus.isPending}
             >
