@@ -39,7 +39,7 @@ const BillingOrders = () => {
   const [editForm, setEditForm] = useState<any>({
     of_number: '', client_id: '', article_id: '', machine_id: '',
     pieces_expected: '', weight_expected: '', dyehouse: '',
-    order_type: 'pieces', edit_note: ''
+    order_type: 'pieces', edit_note: '', piece_weight_target: ''
   });
   
   const [priorityForm, setPriorityForm] = useState({
@@ -68,6 +68,7 @@ const BillingOrders = () => {
     pieces_expected: '',
     dyehouse: '',
     weight_expected: '',
+    piece_weight_target: '',
     order_type: 'pieces' as 'pieces' | 'weight',
   });
 
@@ -175,11 +176,12 @@ const BillingOrders = () => {
       machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
       pieces_expected: form.pieces_expected ? parseInt(form.pieces_expected) : undefined,
       weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
+      piece_weight_target: form.piece_weight_target ? parseFloat(form.piece_weight_target) : null,
       dyehouse: form.dyehouse,
       order_type: form.order_type,
     });
     setShowCreateModal(false);
-    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', order_type: 'pieces' });
+    setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces' });
   };
 
   const openEditModal = (order: any) => {
@@ -190,6 +192,7 @@ const BillingOrders = () => {
       machine_id: order.machine_id || 'none',
       pieces_expected: order.pieces_expected != null ? String(order.pieces_expected) : '',
       weight_expected: order.weight_expected != null ? String(order.weight_expected) : '',
+      piece_weight_target: order.piece_weight_target != null ? String(order.piece_weight_target) : '',
       dyehouse: order.dyehouse || '',
       order_type: order.order_type || 'pieces',
       edit_note: '',
@@ -215,6 +218,7 @@ const BillingOrders = () => {
       machine_id: editForm.machine_id && editForm.machine_id !== 'none' ? editForm.machine_id : null,
       pieces_expected: editForm.pieces_expected ? parseInt(editForm.pieces_expected) : null,
       weight_expected: editForm.weight_expected ? parseFloat(editForm.weight_expected) : null,
+      piece_weight_target: editForm.piece_weight_target ? parseFloat(editForm.piece_weight_target) : null,
       dyehouse: editForm.dyehouse,
       order_type: editForm.order_type,
     };
