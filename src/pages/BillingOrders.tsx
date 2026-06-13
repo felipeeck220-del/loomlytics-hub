@@ -1062,6 +1062,130 @@ const BillingOrders = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Editar OF (admin) */}
+      <Dialog open={!!showEditModal} onOpenChange={(o) => !o && setShowEditModal(null)}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" /> Editar OF #{showEditModal?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          {showEditModal && (showEditModal.status === 'separating' || showEditModal.status === 'ready') && (
+            <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200">
+              <strong>Atenção:</strong> esta OF já está em <strong>{showEditModal.status === 'ready' ? 'Pronta' : 'Separação'}</strong>.
+              Ao salvar, ela voltará para <strong>Aberto</strong> para que a expedição faça uma nova separação. Os dados reais já lançados (peças/peso) serão limpos. Informe um motivo claro abaixo.
+            </div>
+          )}
+          <div className="grid gap-3 py-2 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">OF #</Label>
+              <Input className="col-span-3 h-9" value={editForm.of_number} onChange={e => setEditForm({...editForm, of_number: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Tipo</Label>
+              <div className="col-span-3 grid grid-cols-2 gap-2">
+                <Button type="button" size="sm" variant={editForm.order_type === 'pieces' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'pieces'})}>Por Peças</Button>
+                <Button type="button" size="sm" variant={editForm.order_type === 'weight' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'weight'})}>Por Peso Total</Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Cliente</Label>
+              <div className="col-span-3">
+                <SearchableSelect
+                  value={editForm.client_id}
+                  onValueChange={v => setEditForm({...editForm, client_id: v, article_id: ''})}
+                  options={getClients().map(c => ({ value: c.id, label: c.name }))}
+                  placeholder="Selecione o cliente"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Artigo</Label>
+              <div className="col-span-3">
+                <SearchableSelect
+                  value={editForm.article_id}
+                  onValueChange={v => setEditForm({...editForm, article_id: v})}
+                  options={getArticles().filter(a => a.client_id === editForm.client_id).map(a => ({ value: a.id, label: a.name }))}
+                  placeholder="Selecione o artigo"
+                  disabled={!editForm.client_id}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Peças</Label>
+              <Input type="number" className="col-span-3 h-9" value={editForm.pieces_expected} onChange={e => setEditForm({...editForm, pieces_expected: e.target.value})} placeholder={editForm.order_type === 'weight' ? 'Opcional' : 'Quantidade'} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Peso Total (kg)</Label>
+              <Input type="number" step="0.01" className="col-span-3 h-9" value={editForm.weight_expected} onChange={e => setEditForm({...editForm, weight_expected: e.target.value})} placeholder={editForm.order_type === 'weight' ? 'Ex: 1000' : 'Opcional'} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Máquina</Label>
+              <div className="col-span-3">
+                <SearchableSelect
+                  value={editForm.machine_id}
+                  onValueChange={v => setEditForm({...editForm, machine_id: v})}
+                  options={[{ value: 'none', label: 'NENHUMA' }, ...getMachines().map(m => ({ value: m.id, label: m.name }))]}
+                  placeholder="Selecione a máquina"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs">Tinturaria</Label>
+              <Input className="col-span-3 h-9" value={editForm.dyehouse} onChange={e => setEditForm({...editForm, dyehouse: e.target.value.toUpperCase()})} />
+            </div>
+            <div className="grid grid-cols-4 items-start gap-3">
+              <Label className="text-right text-xs pt-2">
+                Motivo da edição
+                {showEditModal && (showEditModal.status === 'separating' || showEditModal.status === 'ready') && <span className="text-red-600"> *</span>}
+              </Label>
+              <textarea
+                className="col-span-3 min-h-[70px] rounded-md border bg-background p-2 text-sm"
+                value={editForm.edit_note}
+                onChange={e => setEditForm({...editForm, edit_note: e.target.value})}
+                placeholder="Ex: Cliente aumentou de 10 para 15 peças. Separar mais 5 peças do mesmo artigo."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(null)}>Cancelar</Button>
+            <Button onClick={handleEdit} disabled={editOrder.isPending}>Salvar Alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Cancelar OF */}
+      <Dialog open={!!showCancelModal} onOpenChange={(o) => !o && setShowCancelModal(null)}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-zinc-700">
+              <Ban className="h-5 w-5" /> Cancelar OF #{showCancelModal?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              A OF será movida para a aba <strong>Canceladas</strong>. Informe o motivo do cancelamento:
+            </p>
+            <textarea
+              className="w-full min-h-[80px] rounded-md border bg-background p-2 text-sm"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Ex: Cliente desistiu da coleta / OF duplicada / Pedido alterado."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCancelModal(null)}>Voltar</Button>
+            <Button
+              className="bg-zinc-700 hover:bg-zinc-800 text-white"
+              onClick={handleCancel}
+              disabled={updateStatus.isPending}
+            >
+              Confirmar Cancelamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
