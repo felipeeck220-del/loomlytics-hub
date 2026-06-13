@@ -583,6 +583,9 @@ const BillingOrders = () => {
           <TabsTrigger value="collected" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Coletadas
           </TabsTrigger>
+          <TabsTrigger value="cancelled" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
+            Canceladas <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.cancelled}</Badge>
+          </TabsTrigger>
         </TabsList>
 
         {activeTab === 'collected' && (
