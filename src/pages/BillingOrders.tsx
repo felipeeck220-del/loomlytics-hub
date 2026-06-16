@@ -276,15 +276,21 @@ const BillingOrders = () => {
 
   const handleCancel = async () => {
     if (!showCancelModal) return;
-    if (!cancelReason.trim()) {
-      toast({ title: 'Informe o motivo do cancelamento', variant: 'destructive' });
+    const isReversal = showCancelModal.status === 'collected';
+    const reason = cancelReason.trim();
+    if (!reason) {
+      toast({ title: isReversal ? 'Informe o motivo do estorno' : 'Informe o motivo do cancelamento', variant: 'destructive' });
+      return;
+    }
+    if (isReversal && reason.length < 5) {
+      toast({ title: 'Motivo do estorno muito curto', description: 'Descreva com pelo menos 5 caracteres.', variant: 'destructive' });
       return;
     }
     try {
       await updateStatus.mutateAsync({
         id: showCancelModal.id,
         status: 'cancelled',
-        data: { cancellation_reason: cancelReason.trim() },
+        data: { cancellation_reason: reason },
         expectedStatus: showCancelModal.status,
       });
       setShowCancelModal(null);
