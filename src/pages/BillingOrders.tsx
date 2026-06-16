@@ -438,13 +438,18 @@ const BillingOrders = () => {
   };
 
   const handleLaunch = async () => {
-    if (!launchForm.pieces_real || !launchForm.weight_real) {
-      toast({ title: "Preencha os dados reais", variant: "destructive" });
+    const orderType = (showLaunchModal?.order_type as 'pieces' | 'weight') || 'pieces';
+    const pieces = parseInt(launchForm.pieces_real || '0') || 0;
+    const weight = parseFloat(launchForm.weight_real || '0') || 0;
+    // OFs por peso podem ser finalizadas sem peças; OFs por peças exigem ambos.
+    if (orderType === 'pieces' && (!pieces || !weight)) {
+      toast({ title: 'Preencha peças e peso reais', variant: 'destructive' });
       return;
     }
-
-    const pieces = parseInt(launchForm.pieces_real);
-    const weight = parseFloat(launchForm.weight_real);
+    if (orderType === 'weight' && !weight) {
+      toast({ title: 'Informe o peso real (kg)', variant: 'destructive' });
+      return;
+    }
     const avg = pieces > 0 ? weight / pieces : 0;
 
     try {
