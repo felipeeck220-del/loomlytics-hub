@@ -1113,6 +1113,20 @@ const BillingOrders = () => {
                         {order.status === 'separating' && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+                            onClick={() => {
+                              setPallets([]);
+                              setPalletInput({ pieces: '', weight: '' });
+                              setShowPalletsModal(order);
+                            }}
+                          >
+                            <Boxes className="h-4 w-4" /> Paletes
+                          </Button>
+                        )}
+                        {order.status === 'separating' && (role === 'expedicao' || isAdmin) && (
+                          <Button
+                            size="sm"
                             className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                             onClick={() => setShowLaunchModal(order)}
                           >
