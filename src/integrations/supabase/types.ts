@@ -2429,6 +2429,84 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          article_id: string
+          billing_order_id: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          pieces: number
+          reason: string | null
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          weight_kg: number
+        }
+        Insert: {
+          article_id: string
+          billing_order_id?: string | null
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pieces?: number
+          reason?: string | null
+          type: Database["public"]["Enums"]["stock_movement_type"]
+          weight_kg?: number
+        }
+        Update: {
+          article_id?: string
+          billing_order_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pieces?: number
+          reason?: string | null
+          type?: Database["public"]["Enums"]["stock_movement_type"]
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_billing_order_id_fkey"
+            columns: ["billing_order_id"]
+            isOneToOne: false
+            referencedRelation: "billing_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tv_panels: {
         Row: {
           code: string
@@ -2973,6 +3051,13 @@ export type Database = {
         | "troca_agulhas"
       needle_exit_mode: "troca_agulheiro" | "reposicao"
       needle_transaction_type: "entry" | "exit"
+      stock_movement_type:
+        | "reserve"
+        | "release"
+        | "out"
+        | "in"
+        | "adjust_in"
+        | "adjust_out"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3118,6 +3203,14 @@ export const Constants = {
       ],
       needle_exit_mode: ["troca_agulheiro", "reposicao"],
       needle_transaction_type: ["entry", "exit"],
+      stock_movement_type: [
+        "reserve",
+        "release",
+        "out",
+        "in",
+        "adjust_in",
+        "adjust_out",
+      ],
     },
   },
 } as const
