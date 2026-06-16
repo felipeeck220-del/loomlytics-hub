@@ -2198,11 +2198,11 @@ const BillingOrders = () => {
             </div>
 
             {/* Grupos existentes */}
-            {linkGroups.size > 0 && (
+            {activeLinkGroups.size > 0 && (
               <div className="space-y-2">
-                <Label className="text-xs uppercase font-bold text-muted-foreground">Atrelações ativas ({linkGroups.size})</Label>
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Atrelações ativas ({activeLinkGroups.size})</Label>
                 <div className="space-y-2">
-                  {Array.from(linkGroups.entries()).map(([gid, list]) => (
+                  {Array.from(activeLinkGroups.entries()).map(([gid, list]) => (
                     <div key={gid} className="rounded-md border bg-fuchsia-50 dark:bg-fuchsia-950/30 border-fuchsia-300 dark:border-fuchsia-800 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
