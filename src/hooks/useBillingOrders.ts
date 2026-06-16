@@ -310,6 +310,13 @@ export function useBillingOrders() {
         queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
         return;
       }
+      if (error?.code === 'STOCK_MOVEMENT_FAILED') {
+        queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+        queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
+        queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
+        toast({ title: 'Estoque não atualizado', description: error.message, variant: 'destructive' });
+        return;
+      }
       toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" });
     }
   });
