@@ -74,6 +74,9 @@ const BillingOrders = () => {
   });
   const [datePreset, setDatePreset] = useState<'7d' | '30d' | 'custom'>('30d');
 
+  // Filtro da aba Pronto: todas / com doc / sem doc
+  const [readyDocFilter, setReadyDocFilter] = useState<'all' | 'with' | 'without'>('all');
+
   const [form, setForm] = useState({
     of_number: '',
     client_id: '',
@@ -129,6 +132,13 @@ const BillingOrders = () => {
       if (order.status !== activeTab) return false;
       if (!matchesSearch) return false;
 
+      // Filtro específico para "Pronto": com / sem documento
+      if (activeTab === 'ready') {
+        const hasDoc = !!(order as any).delivery_doc_number;
+        if (readyDocFilter === 'with' && !hasDoc) return false;
+        if (readyDocFilter === 'without' && hasDoc) return false;
+      }
+
       // Filtros específicos para "Coletadas"
       if (activeTab === 'collected') {
         const orderDate = new Date(order.created_at);
@@ -152,13 +162,15 @@ const BillingOrders = () => {
 
       return true;
     });
-  }, [orders, searchTerm, activeTab, filterDateRange, datePreset]);
+  }, [orders, searchTerm, activeTab, filterDateRange, datePreset, readyDocFilter]);
 
   const stats = useMemo(() => {
     return {
       open: orders.filter(o => o.status === 'open' && !o.priority).length,
       separating: orders.filter(o => o.status === 'separating').length,
       ready: orders.filter(o => o.status === 'ready').length,
+      readyWithDoc: orders.filter(o => o.status === 'ready' && !!(o as any).delivery_doc_number).length,
+      readyWithoutDoc: orders.filter(o => o.status === 'ready' && !(o as any).delivery_doc_number).length,
       collected: orders.filter(o => o.status === 'collected').length,
       priority: orders.filter(o => o.priority && o.status === 'open').length,
       cancelled: orders.filter(o => o.status === 'cancelled').length,
@@ -694,6 +706,42 @@ const BillingOrders = () => {
             Canceladas <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.cancelled}</Badge>
           </TabsTrigger>
         </TabsList>
+
+        {activeTab === 'ready' && (
+          <Card className="mt-4 border-dashed bg-muted/30">
+            <CardContent className="p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Label className="text-xs uppercase text-muted-foreground font-bold mr-2">Documento:</Label>
+                <Button
+                  size="sm"
+                  variant={readyDocFilter === 'all' ? 'default' : 'outline'}
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => setReadyDocFilter('all')}
+                >
+                  Todos <Badge variant="secondary" className="text-[10px] px-1 h-4">{stats.ready}</Badge>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={readyDocFilter === 'without' ? 'default' : 'outline'}
+                  className={cn('h-8 text-xs gap-1.5', readyDocFilter === 'without' && 'bg-violet-600 hover:bg-violet-700 text-white')}
+                  onClick={() => setReadyDocFilter('without')}
+                >
+                  <FileText className="h-3 w-3" /> Sem NF/Romaneio
+                  <Badge variant="secondary" className="text-[10px] px-1 h-4">{stats.readyWithoutDoc}</Badge>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={readyDocFilter === 'with' ? 'default' : 'outline'}
+                  className={cn('h-8 text-xs gap-1.5', readyDocFilter === 'with' && 'bg-emerald-600 hover:bg-emerald-700 text-white')}
+                  onClick={() => setReadyDocFilter('with')}
+                >
+                  <FileText className="h-3 w-3" /> Com NF/Romaneio
+                  <Badge variant="secondary" className="text-[10px] px-1 h-4">{stats.readyWithDoc}</Badge>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {activeTab === 'collected' && (
           <Card className="mt-4 border-dashed bg-muted/30">
@@ -1517,34 +1565,38 @@ const BillingOrders = () => {
 
       {/* Modal Escolha de Impressão (admin) — Controle Interno x Cliente */}
       <Dialog open={!!showPrintChoice} onOpenChange={(o) => !o && setShowPrintChoice(null)}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="w-[95vw] sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Printer className="h-5 w-5" /> Imprimir OF #{showPrintChoice?.of_number}
             </DialogTitle>
           </DialogHeader>
-          <div className="py-2 space-y-2">
+          <div className="py-2 space-y-2 overflow-hidden">
             <p className="text-xs text-muted-foreground">Escolha o tipo de impressão:</p>
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-auto py-3"
+              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start"
               onClick={() => { handleAdminPrintPdf(showPrintChoice, 'internal'); setShowPrintChoice(null); }}
             >
-              <FileText className="h-5 w-5 text-primary" />
-              <div className="text-left">
+              <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="text-left min-w-0 flex-1">
                 <div className="font-semibold text-sm">Controle Interno</div>
-                <div className="text-[11px] text-muted-foreground">PDF completo: quantidades previstas/reais, prioridade e auditoria.</div>
+                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-snug">
+                  PDF completo: quantidades previstas/reais, prioridade e auditoria.
+                </div>
               </div>
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-auto py-3"
+              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start"
               onClick={() => { handleAdminPrintPdf(showPrintChoice, 'client'); setShowPrintChoice(null); }}
             >
-              <UserIcon className="h-5 w-5 text-emerald-600" />
-              <div className="text-left">
+              <UserIcon className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="text-left min-w-0 flex-1">
                 <div className="font-semibold text-sm">Cliente</div>
-                <div className="text-[11px] text-muted-foreground">PDF resumido: sem auditoria, sem previstos e sem média. Status sempre "Pronto para Coleta".</div>
+                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-snug">
+                  PDF resumido: sem auditoria, sem previstos e sem média. Status sempre "Pronto para Coleta".
+                </div>
               </div>
             </Button>
           </div>
