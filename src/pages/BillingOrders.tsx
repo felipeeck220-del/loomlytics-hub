@@ -1895,8 +1895,8 @@ const BillingOrders = () => {
                       onClick={async () => {
                         const pc = parseInt(palletInput.pieces || '0');
                         const wt = parseFloat(palletInput.weight || '0');
-                        if (!pc && !wt) {
-                          toast({ title: 'Informe peças ou peso', variant: 'destructive' });
+                        if (!(wt > 0)) {
+                          toast({ title: 'Informe o peso do palete (kg)', variant: 'destructive' });
                           return;
                         }
                         if (!user?.company_id) return;
