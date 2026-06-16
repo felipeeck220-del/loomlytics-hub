@@ -17,6 +17,9 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ManualStockEntryModal } from '@/components/ManualStockEntryModal';
+import { Plus } from 'lucide-react';
 
 export default function StockMalha() {
   const { 
@@ -44,6 +47,9 @@ export default function StockMalha() {
   // Hooks for data calculation
   const { user } = useAuth();
   const companyId = user?.company_id || '';
+  const { role } = usePermissions();
+  const isAdmin = role === 'admin';
+  const [manualOpen, setManualOpen] = useState(false);
 
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices_for_stock', companyId],
@@ -59,6 +65,18 @@ export default function StockMalha() {
     queryKey: ['invoice_items_for_stock', companyId],
     queryFn: async () => {
       const { data, error } = await supabase.from('invoice_items').select('*').eq('company_id', companyId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
+  const { data: stockMovements = [], refetch: refetchMovements } = useQuery({
+    queryKey: ['stock_movements_for_stock', companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)('stock_movements')
+        .select('id, article_id, type, pieces, weight_kg, created_at')
+        .eq('company_id', companyId);
       if (error) throw error;
       return data || [];
     },
@@ -101,6 +119,22 @@ export default function StockMalha() {
       }
     }
 
+    // 3. Stock movements (manual adjustments) — add to producedKg/Rolls so it flows into Estoque
+    const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
+    for (const mv of stockMovements as any[]) {
+      if (!monthMatchesMovement(mv.created_at)) continue;
+      if (mv.type !== 'adjust_in' && mv.type !== 'adjust_out') continue;
+      const art = articles.find(a => a.id === mv.article_id);
+      if (!art || !art.client_id) continue;
+      if (!map.has(art.client_id)) map.set(art.client_id, new Map());
+      const artMap = map.get(art.client_id)!;
+      if (!artMap.has(mv.article_id)) artMap.set(mv.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
+      const entry = artMap.get(mv.article_id)!;
+      const sign = mv.type === 'adjust_in' ? 1 : -1;
+      entry.producedKg += sign * Number(mv.weight_kg);
+      entry.producedRolls += sign * Number(mv.pieces);
+    }
+
     const result: any[] = [];
     map.forEach((artMap, clientId) => {
       if (estoqueClient !== 'all' && clientId !== estoqueClient) return;
@@ -118,7 +152,7 @@ export default function StockMalha() {
       }
     });
     return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
-  }, [productions, invoices, invoiceItems, articles, clients, estoqueClient, estoqueArticle, estoqueMonth]);
+  }, [productions, invoices, invoiceItems, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth]);
 
   const estoqueKpis = useMemo(() => malhaEstoque.reduce((acc, g) => ({
     producedKg: acc.producedKg + g.totalProducedKg,
@@ -146,6 +180,12 @@ export default function StockMalha() {
           </h1>
           <p className="text-sm text-muted-foreground">Visão consolidada do saldo de artigos por cliente</p>
         </div>
+        {isAdmin && (
+          <Button size="sm" onClick={() => setManualOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Lançamento Manual
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -264,6 +304,16 @@ export default function StockMalha() {
             </Collapsible>
           ))}
         </div>
+      )}
+
+      {isAdmin && (
+        <ManualStockEntryModal
+          open={manualOpen}
+          onOpenChange={setManualOpen}
+          clients={clients}
+          articles={articles as any}
+          onSaved={() => refetchMovements()}
+        />
       )}
     </div>
   );
