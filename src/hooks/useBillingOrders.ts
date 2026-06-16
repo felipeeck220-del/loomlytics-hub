@@ -281,7 +281,15 @@ export function useBillingOrders() {
           }
 
           if (mvs.length > 0) {
-            await (supabase.from as any)('stock_movements').insert(mvs);
+            const { error: mvErr } = await (supabase.from as any)('stock_movements').insert(mvs);
+            if (mvErr) {
+              // Status da OF já foi atualizado — não revertemos, mas avisamos no console
+              // e levantamos um erro amigável para o toast/onError.
+              console.error('[useBillingOrders] stock_movements insert failed:', mvErr);
+              const e: any = new Error(`Status atualizado, mas o lançamento no estoque falhou: ${mvErr.message}`);
+              e.code = 'STOCK_MOVEMENT_FAILED';
+              throw e;
+            }
           }
         }
       }
