@@ -20,6 +20,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ManualStockEntryModal } from '@/components/ManualStockEntryModal';
 import { Plus } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info, Lock } from 'lucide-react';
 
 export default function StockMalha() {
   const { 
@@ -85,7 +88,7 @@ export default function StockMalha() {
 
   // Re-implementing the malhaEstoque logic from Invoices.tsx
   const malhaEstoque = useMemo(() => {
-    const map = new Map<string, Map<string, { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number }>>();
+    const map = new Map<string, Map<string, { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; reservedKg: number; reservedRolls: number }>>();
     const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
 
     // 1. Production
@@ -95,41 +98,28 @@ export default function StockMalha() {
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
       const artMap = map.get(art.client_id)!;
-      if (!artMap.has(prod.article_id!)) artMap.set(prod.article_id!, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
+      if (!artMap.has(prod.article_id!)) artMap.set(prod.article_id!, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, reservedKg: 0, reservedRolls: 0 });
       const entry = artMap.get(prod.article_id!)!;
       entry.producedKg += Number(prod.weight_kg);
       entry.producedRolls += Number(prod.rolls_produced);
     }
 
-    // 2. Deliveries (NFs)
-    const activeInvs = invoices.filter((i: any) => i.status !== 'cancelada' && matchMonth(i.issue_date));
-    for (const inv of activeInvs) {
-      const items = invoiceItems.filter((it: any) => it.invoice_id === inv.id);
-      for (const item of items) {
-        if (!item.article_id) continue;
-        const artForDelivery = articles.find(a => a.id === item.article_id);
-        const clientIdForItem = artForDelivery?.client_id;
-        if (!clientIdForItem) continue;
-        if (!map.has(clientIdForItem)) map.set(clientIdForItem, new Map());
-        const artMap = map.get(clientIdForItem)!;
-        if (!artMap.has(item.article_id)) artMap.set(item.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
-        const entry = artMap.get(item.article_id)!;
-        entry.deliveredKg += Number(item.weight_kg);
-        entry.deliveredRolls += Number(item.quantity_rolls || 0);
-      }
-    }
+    // 2. NFs de Saída NÃO descontam mais estoque a partir do deploy de OF×Estoque.
+    //    A baixa real ocorre via stock_movements.out gerado pela OF coletada (§9 do plano).
 
     // 3. Stock movements (manual adjustments) — add to producedKg/Rolls so it flows into Estoque
     const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
     for (const mv of stockMovements as any[]) {
       if (!monthMatchesMovement(mv.created_at)) continue;
-      if (!['adjust_in', 'adjust_out', 'out', 'in'].includes(mv.type)) continue;
+      if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
       const art = articles.find(a => a.id === mv.article_id);
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
       const artMap = map.get(art.client_id)!;
-      if (!artMap.has(mv.article_id)) artMap.set(mv.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
+      if (!artMap.has(mv.article_id)) artMap.set(mv.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, reservedKg: 0, reservedRolls: 0 });
       const entry = artMap.get(mv.article_id)!;
+      const kg = Number(mv.weight_kg);
+      const pc = Number(mv.pieces);
       if (mv.type === 'adjust_in' || mv.type === 'in') {
         entry.producedKg += Number(mv.weight_kg);
         entry.producedRolls += Number(mv.pieces);
@@ -140,6 +130,12 @@ export default function StockMalha() {
         // Saída por OF coletada — conta como entregue (não desconta o "Produzido" exibido).
         entry.deliveredKg += Number(mv.weight_kg);
         entry.deliveredRolls += Number(mv.pieces);
+      } else if (mv.type === 'reserve') {
+        entry.reservedKg += kg;
+        entry.reservedRolls += pc;
+      } else if (mv.type === 'release') {
+        entry.reservedKg -= kg;
+        entry.reservedRolls -= pc;
       }
     }
 
@@ -148,15 +144,36 @@ export default function StockMalha() {
       if (estoqueClient !== 'all' && clientId !== estoqueClient) return;
       const client = clients.find(c => c.id === clientId);
       const arts: any[] = [];
-      let tPK = 0, tPR = 0, tDK = 0, tDR = 0;
+      let tPK = 0, tPR = 0, tDK = 0, tDR = 0, tRK = 0, tRR = 0;
       artMap.forEach((vals, articleId) => {
         if (estoqueArticle !== 'all' && articleId !== estoqueArticle) return;
         const article = articles.find(a => a.id === articleId);
-        arts.push({ articleId, articleName: article?.name || 'Artigo removido', ...vals, stockKg: vals.producedKg - vals.deliveredKg, stockRolls: vals.producedRolls - vals.deliveredRolls });
-        tPK += vals.producedKg; tPR += vals.producedRolls; tDK += vals.deliveredKg; tDR += vals.deliveredRolls;
+        const stockKg = vals.producedKg - vals.deliveredKg;
+        const stockRolls = vals.producedRolls - vals.deliveredRolls;
+        arts.push({
+          articleId,
+          articleName: article?.name || 'Artigo removido',
+          ...vals,
+          stockKg,
+          stockRolls,
+          availableKg: stockKg - vals.reservedKg,
+          availableRolls: stockRolls - vals.reservedRolls,
+        });
+        tPK += vals.producedKg; tPR += vals.producedRolls;
+        tDK += vals.deliveredKg; tDR += vals.deliveredRolls;
+        tRK += vals.reservedKg; tRR += vals.reservedRolls;
       });
       if (arts.length > 0) {
-        result.push({ clientId, clientName: client?.name || 'Cliente removido', articles: arts.sort((a, b) => a.articleName.localeCompare(b.articleName)), totalProducedKg: tPK, totalProducedRolls: tPR, totalDeliveredKg: tDK, totalDeliveredRolls: tDR, totalStockKg: tPK - tDK, totalStockRolls: tPR - tDR });
+        result.push({
+          clientId,
+          clientName: client?.name || 'Cliente removido',
+          articles: arts.sort((a, b) => a.articleName.localeCompare(b.articleName)),
+          totalProducedKg: tPK, totalProducedRolls: tPR,
+          totalDeliveredKg: tDK, totalDeliveredRolls: tDR,
+          totalReservedKg: tRK, totalReservedRolls: tRR,
+          totalStockKg: tPK - tDK, totalStockRolls: tPR - tDR,
+          totalAvailableKg: (tPK - tDK) - tRK, totalAvailableRolls: (tPR - tDR) - tRR,
+        });
       }
     });
     return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
