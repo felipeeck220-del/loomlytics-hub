@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/auditLog';
-import { getFriendlyErrorMessage } from '@/lib/errorMessages';
+import { getFriendlyErrorMessage } from '@/lib/utils';
 import { Warehouse } from 'lucide-react';
 
 interface Client { id: string; name: string }
@@ -81,7 +81,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
         userId: user.id,
         userName: user.name,
         userRole: user.role,
-        userCode: user.code,
+        userCode: (user as any).code,
         details: {
           type, client_id: clientId, article_id: articleId,
           pieces: piecesNum, weight_kg: weightNum, reason: reason.trim(),
