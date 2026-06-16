@@ -550,21 +550,23 @@ export default function Dashboard() {
               </SelectContent>
             </Select>
 
-            <Select value={filterClient} onValueChange={setFilterClient}>
-              <SelectTrigger className="w-[130px] h-9 rounded-lg"><SelectValue placeholder="Cliente" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Cliente</SelectItem>
-                {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={filterClient}
+              onValueChange={setFilterClient}
+              options={[{ value: 'all', label: 'Todos os clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+              placeholder="Cliente"
+              searchPlaceholder="Buscar cliente..."
+              triggerClassName="w-[160px] h-9 rounded-lg"
+            />
 
-            <Select value={filterArticle} onValueChange={setFilterArticle}>
-              <SelectTrigger className="w-[130px] h-9 rounded-lg"><SelectValue placeholder="Artigo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Artigo</SelectItem>
-                {articles.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={filterArticle}
+              onValueChange={setFilterArticle}
+              options={[{ value: 'all', label: 'Todos os artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
+              placeholder="Artigo"
+              searchPlaceholder="Buscar artigo..."
+              triggerClassName="w-[160px] h-9 rounded-lg"
+            />
           </div>
         </CardContent>
       </Card>
