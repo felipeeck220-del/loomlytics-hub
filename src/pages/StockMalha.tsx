@@ -184,7 +184,9 @@ export default function StockMalha() {
     deliveredKg: acc.deliveredKg + g.totalDeliveredKg,
     stockKg: acc.stockKg + g.totalStockKg,
     stockRolls: acc.stockRolls + g.totalStockRolls,
-  }), { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0 }), [malhaEstoque]);
+    reservedKg: acc.reservedKg + g.totalReservedKg,
+    availableKg: acc.availableKg + g.totalAvailableKg,
+  }), { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0, reservedKg: 0, availableKg: 0 }), [malhaEstoque]);
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
