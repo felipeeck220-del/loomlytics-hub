@@ -897,10 +897,33 @@ const BillingOrders = () => {
                           size="sm"
                           variant="outline"
                           className="gap-1.5"
-                          onClick={() => isAdmin ? handleAdminPrintPdf(order) : handlePrint(order)}
+                          onClick={() => isAdmin ? setShowPrintChoice(order) : handlePrint(order)}
                         >
                           <Printer className="h-4 w-4" /> Imprimir
                         </Button>
+
+                        {isAdmin && order.status === 'ready' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={cn(
+                              'gap-1.5',
+                              (order as any).delivery_doc_number
+                                ? 'text-emerald-700 border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950'
+                                : 'text-violet-700 border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950'
+                            )}
+                            onClick={() => {
+                              setDocForm({
+                                type: ((order as any).delivery_doc_type as 'nf' | 'romaneio') || 'nf',
+                                number: (order as any).delivery_doc_number || '',
+                              });
+                              setShowDocModal(order);
+                            }}
+                          >
+                            <FileText className="h-4 w-4" />
+                            {(order as any).delivery_doc_number ? 'Alterar NF/Romaneio' : 'Adicionar NF/Romaneio'}
+                          </Button>
+                        )}
 
                         {isAdmin && order.status !== 'collected' && order.status !== 'cancelled' && (
                           <Button
