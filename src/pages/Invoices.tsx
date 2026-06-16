@@ -497,7 +497,6 @@ export default function Invoices() {
       logAction('invoice_create', { invoice_number: formInvoiceNumber.trim() || 'S/N', type: formType, client: logName, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
       resetForm();
-      setDialogOpen(false);
     } catch (e: any) {
       toast({ title: 'Erro ao salvar NF', description: getFriendlyErrorMessage(e.message), variant: 'destructive' });
     } finally {
