@@ -311,9 +311,11 @@ const BillingOrders = () => {
         status: 'cancelled',
         data: { cancellation_reason: reason },
         expectedStatus: showCancelModal.status,
+        reversalQuality: showCancelModal.status === 'collected' ? reversalQuality : undefined,
       });
       setShowCancelModal(null);
       setCancelReason('');
+      setReversalQuality('first');
     } catch (err: any) {
       if (err?.code === 'CONFLICT') {
         setShowCancelModal(null);
