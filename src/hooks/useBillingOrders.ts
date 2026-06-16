@@ -388,6 +388,11 @@ export function useBillingOrders() {
           });
         }
       }
+
+      // Em qualquer revert para Aberto, apaga paletes salvos (usuário recomeça a separação do zero)
+      if (revertToOpen) {
+        await (supabase.from as any)('billing_order_pallets').delete().eq('billing_order_id', id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
