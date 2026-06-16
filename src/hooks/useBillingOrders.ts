@@ -279,6 +279,7 @@ export function useBillingOrders() {
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
       queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
       const labels: Record<string, string> = {
         open: 'OF voltou para Aberto', separating: 'Separação iniciada', ready: 'Separação finalizada',
         collected: 'OF marcada como coletada', cancelled: 'OF cancelada', priority: 'Prioridade adicionada'
