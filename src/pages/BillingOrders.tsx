@@ -524,6 +524,7 @@ const BillingOrders = () => {
         separating: { label: 'SEPARANDO', color: [217, 119, 6] },
         ready: { label: order.delivery_doc_number ? 'PRONTO' : 'PRONTO PARA COLETA', color: order.delivery_doc_number ? [5, 150, 105] : [124, 58, 237] },
         collected: { label: 'COLETADA', color: [71, 85, 105] },
+        cancelled: { label: 'CANCELADA', color: [113, 113, 122] },
       };
       let st = statusMap[order.status] || { label: order.status.toUpperCase(), color: [100, 100, 100] as [number, number, number] };
       // PDF para cliente: sempre exibe "PRONTO PARA COLETA"
