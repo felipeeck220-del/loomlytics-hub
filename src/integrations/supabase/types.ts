@@ -257,6 +257,12 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          delivery_doc_number: string | null
+          delivery_doc_set_at: string | null
+          delivery_doc_set_by: string | null
+          delivery_doc_type:
+            | Database["public"]["Enums"]["billing_delivery_doc_type"]
+            | null
           dyehouse: string
           edit_note: string | null
           id: string
@@ -293,6 +299,12 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          delivery_doc_number?: string | null
+          delivery_doc_set_at?: string | null
+          delivery_doc_set_by?: string | null
+          delivery_doc_type?:
+            | Database["public"]["Enums"]["billing_delivery_doc_type"]
+            | null
           dyehouse: string
           edit_note?: string | null
           id?: string
@@ -329,6 +341,12 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          delivery_doc_number?: string | null
+          delivery_doc_set_at?: string | null
+          delivery_doc_set_by?: string | null
+          delivery_doc_type?:
+            | Database["public"]["Enums"]["billing_delivery_doc_type"]
+            | null
           dyehouse?: string
           edit_note?: string | null
           id?: string
@@ -394,6 +412,13 @@ export type Database = {
           {
             foreignKeyName: "billing_orders_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_delivery_doc_set_by_fkey"
+            columns: ["delivery_doc_set_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -3054,6 +3079,7 @@ export type Database = {
       set_active_company: { Args: { _company_id: string }; Returns: undefined }
     }
     Enums: {
+      billing_delivery_doc_type: "nf" | "romaneio"
       billing_order_status:
         | "open"
         | "separating"
@@ -3204,6 +3230,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      billing_delivery_doc_type: ["nf", "romaneio"],
       billing_order_status: [
         "open",
         "separating",
