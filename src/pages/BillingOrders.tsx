@@ -38,6 +38,7 @@ const BillingOrders = () => {
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [reversalQuality, setReversalQuality] = useState<'first' | 'second'>('first');
 
   // Modal documento de saída (NF/Romaneio) e modal de escolha de impressão (admin)
   const [showDocModal, setShowDocModal] = useState<any>(null);
