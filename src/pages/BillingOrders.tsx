@@ -252,6 +252,21 @@ const BillingOrders = () => {
     return map;
   }, [orders]);
 
+  // Grupos ainda ATIVOS: pelo menos 1 OF não foi coletada/cancelada.
+  // Quando todas as OFs do grupo já estão coletadas (ou canceladas), o
+  // grupo some da gestão de Atrelar OFs e do contador, mas o badge
+  // "ATRELADA" continua aparecendo em cada OF como histórico.
+  const activeLinkGroups = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const [gid, list] of linkGroups) {
+      const stillActive = list.some(
+        (o: any) => o.status !== 'collected' && o.status !== 'cancelled'
+      );
+      if (stillActive) map.set(gid, list);
+    }
+    return map;
+  }, [linkGroups]);
+
   // OFs elegíveis para atrelamento: aberto, prioritário, separando, pronto
   const linkableOrders = useMemo(() => {
     return orders.filter((o: any) => ['open', 'separating', 'ready'].includes(o.status));
@@ -843,8 +858,8 @@ const BillingOrders = () => {
             onClick={() => { setLinkSelected(new Set()); setShowLinkModal(true); }}
           >
             <Link2 className="h-4 w-4" /> Atrelar OFs
-            {linkGroups.size > 0 && (
-              <Badge variant="secondary" className="ml-1">{linkGroups.size}</Badge>
+            {activeLinkGroups.size > 0 && (
+              <Badge variant="secondary" className="ml-1">{activeLinkGroups.size}</Badge>
             )}
           </Button>
           {isAdmin && (
@@ -2183,11 +2198,11 @@ const BillingOrders = () => {
             </div>
 
             {/* Grupos existentes */}
-            {linkGroups.size > 0 && (
+            {activeLinkGroups.size > 0 && (
               <div className="space-y-2">
-                <Label className="text-xs uppercase font-bold text-muted-foreground">Atrelações ativas ({linkGroups.size})</Label>
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Atrelações ativas ({activeLinkGroups.size})</Label>
                 <div className="space-y-2">
-                  {Array.from(linkGroups.entries()).map(([gid, list]) => (
+                  {Array.from(activeLinkGroups.entries()).map(([gid, list]) => (
                     <div key={gid} className="rounded-md border bg-fuchsia-50 dark:bg-fuchsia-950/30 border-fuchsia-300 dark:border-fuchsia-800 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
