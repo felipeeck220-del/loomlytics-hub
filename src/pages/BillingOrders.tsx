@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-  import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History, FileText, User as UserIcon, Boxes, Trash2 } from 'lucide-react';
+  import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History, FileText, User as UserIcon, Boxes, Trash2, Link2, Link2Off } from 'lucide-react';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/SearchableSelect';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
 import { sanitizePdfText } from '@/lib/pdfUtils';
@@ -25,7 +26,7 @@ const BillingOrders = () => {
   const { role } = usePermissions();
   const { toast } = useToast();
   const { getClients, getArticles, getMachines } = useSharedCompanyData();
-  const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc } = useBillingOrders();
+  const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc, linkOrders, unlinkGroup, removeFromGroup } = useBillingOrders() as any;
 
   const isAdmin = role === 'admin';
   const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab'>('open');
@@ -92,6 +93,11 @@ const BillingOrders = () => {
   const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null }>>([]);
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string }>({ pieces: '', weight: '' });
   const [palletBusy, setPalletBusy] = useState(false);
+
+  // Modal de Atrelar OFs
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkSelected, setLinkSelected] = useState<Set<string>>(new Set());
+  const [linkBusy, setLinkBusy] = useState(false);
 
   // Carrega paletes salvos ao abrir o modal
   useEffect(() => {
@@ -229,6 +235,46 @@ const BillingOrders = () => {
   }, [orders]);
 
   const hasPendingPriority = stats.priority > 0;
+
+  // Mapa de grupos de atrelamento → lista de OFs do grupo
+  const linkGroups = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const o of orders) {
+      const gid = (o as any).link_group_id;
+      if (!gid) continue;
+      if (!map.has(gid)) map.set(gid, []);
+      map.get(gid)!.push(o);
+    }
+    // remove grupos com 1 só OF (não faz sentido manter)
+    for (const [gid, arr] of map) {
+      if (arr.length < 2) map.delete(gid);
+    }
+    return map;
+  }, [orders]);
+
+  // OFs elegíveis para atrelamento: aberto, prioritário, separando, pronto
+  const linkableOrders = useMemo(() => {
+    return orders.filter((o: any) => ['open', 'separating', 'ready'].includes(o.status));
+  }, [orders]);
+
+  const groupLabel = (gid: string) => `#${gid.slice(0, 6).toUpperCase()}`;
+
+  const handleLink = async () => {
+    if (linkSelected.size < 2) {
+      toast({ title: 'Selecione 2 ou mais OFs para atrelar', variant: 'destructive' });
+      return;
+    }
+    setLinkBusy(true);
+    try {
+      await linkOrders(Array.from(linkSelected));
+      setLinkSelected(new Set());
+      setShowLinkModal(false);
+    } catch (e: any) {
+      toast({ title: 'Erro ao atrelar OFs', description: e?.message || String(e), variant: 'destructive' });
+    } finally {
+      setLinkBusy(false);
+    }
+  };
 
   const handlePriority = async () => {
     if (!priorityForm.reason && !priorityForm.customReason) {
@@ -790,11 +836,23 @@ const BillingOrders = () => {
           <h1 className="text-2xl font-bold">Ordem de Faturamento (OF)</h1>
           <p className="text-muted-foreground text-sm">Gestão de coletas e separação de malha</p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => setShowCreateModal(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Nova OF
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => { setLinkSelected(new Set()); setShowLinkModal(true); }}
+          >
+            <Link2 className="h-4 w-4" /> Atrelar OFs
+            {linkGroups.size > 0 && (
+              <Badge variant="secondary" className="ml-1">{linkGroups.size}</Badge>
+            )}
           </Button>
-        )}
+          {isAdmin && (
+            <Button onClick={() => setShowCreateModal(true)} className="gap-2">
+              <Plus className="h-4 w-4" /> Nova OF
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 bg-card p-3 rounded-lg border shadow-sm">
@@ -974,6 +1032,18 @@ const BillingOrders = () => {
                           <Badge className="text-[10px] bg-emerald-600 text-white border-emerald-700 gap-1 py-0 px-2 h-5">
                             <FileText className="h-3 w-3" />
                             {(order as any).delivery_doc_type === 'romaneio' ? 'ROMANEIO' : 'NF'} {(order as any).delivery_doc_number}
+                          </Badge>
+                        )}
+                        {(order as any).link_group_id && linkGroups.has((order as any).link_group_id) && (
+                          <Badge
+                            className="text-[10px] bg-fuchsia-600 text-white border-fuchsia-700 gap-1 py-0 px-2 h-5 cursor-pointer"
+                            title={`Atrelada com: ${linkGroups.get((order as any).link_group_id)!.filter((x: any) => x.id !== order.id).map((x: any) => `#${x.of_number}`).join(', ')}`}
+                            onClick={() => { setLinkSelected(new Set()); setShowLinkModal(true); }}
+                          >
+                            <Link2 className="h-3 w-3" /> ATRELADA {groupLabel((order as any).link_group_id)}
+                            <span className="opacity-90">
+                              ({linkGroups.get((order as any).link_group_id)!.filter((x: any) => x.id !== order.id).map((x: any) => `#${x.of_number}`).join(' + ')})
+                            </span>
                           </Badge>
                         )}
                       </div>
@@ -2090,6 +2160,157 @@ const BillingOrders = () => {
               }}
             >
               <CheckCircle2 className="h-4 w-4" /> Finalizar com {pallets.length} palete{pallets.length !== 1 ? 's' : ''}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Atrelar OFs */}
+      <Dialog open={showLinkModal} onOpenChange={(v) => { setShowLinkModal(v); if (!v) setLinkSelected(new Set()); }}>
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-fuchsia-600" />
+              Atrelar OFs (mesma NF / Romaneio)
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-md bg-muted/50 border p-3 text-xs text-muted-foreground">
+              Marque duas ou mais OFs que serão enviadas juntas (ex.: malha + ribana complementar).
+              Apenas OFs <strong>Aberto</strong>, <strong>Separando</strong> e <strong>Pronto</strong> aparecem aqui — Coletadas e Canceladas ficam fora.
+              Se selecionar uma OF já atrelada, todos os grupos envolvidos serão mesclados em um único.
+            </div>
+
+            {/* Grupos existentes */}
+            {linkGroups.size > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Atrelações ativas ({linkGroups.size})</Label>
+                <div className="space-y-2">
+                  {Array.from(linkGroups.entries()).map(([gid, list]) => (
+                    <div key={gid} className="rounded-md border bg-fuchsia-50 dark:bg-fuchsia-950/30 border-fuchsia-300 dark:border-fuchsia-800 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className="text-[10px] bg-fuchsia-600 text-white border-fuchsia-700">
+                            GRUPO {groupLabel(gid)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">{list.length} OFs</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {list.map((o: any) => (
+                            <span key={o.id} className="inline-flex items-center gap-1 rounded bg-card border px-2 py-0.5 text-xs">
+                              <strong>#{o.of_number}</strong>
+                              <span className="text-muted-foreground">{o.client?.name}</span>
+                              <button
+                                title="Remover do grupo"
+                                className="text-muted-foreground hover:text-red-600"
+                                onClick={async () => {
+                                  try { await removeFromGroup(o.id); } catch (e: any) {
+                                    toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-red-700 border-red-300 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
+                        onClick={async () => {
+                          try { await unlinkGroup(gid); } catch (e: any) {
+                            toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <Link2Off className="h-4 w-4" /> Desfazer
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Lista de OFs elegíveis */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Selecione as OFs para atrelar</Label>
+                <span className="text-xs text-muted-foreground">
+                  {linkSelected.size} selecionada{linkSelected.size !== 1 ? 's' : ''}
+                </span>
+              </div>
+              {linkableOrders.length === 0 ? (
+                <div className="text-center text-sm text-muted-foreground py-8 border rounded-md">
+                  Nenhuma OF em aberto, separando ou pronta no momento.
+                </div>
+              ) : (
+                <div className="border rounded-md divide-y max-h-[40vh] overflow-y-auto">
+                  {linkableOrders.map((o: any) => {
+                    const checked = linkSelected.has(o.id);
+                    const statusLabel = o.status === 'open' ? (o.priority ? 'Aberto Prioritário' : 'Aberto') : o.status === 'separating' ? 'Separando' : 'Pronto';
+                    const statusColor = o.status === 'open'
+                      ? (o.priority ? 'bg-red-600' : 'bg-sky-600')
+                      : o.status === 'separating' ? 'bg-amber-500' : 'bg-emerald-600';
+                    return (
+                      <label
+                        key={o.id}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/50',
+                          checked && 'bg-fuchsia-50 dark:bg-fuchsia-950/30'
+                        )}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            const next = new Set(linkSelected);
+                            if (v) next.add(o.id); else next.delete(o.id);
+                            setLinkSelected(next);
+                          }}
+                        />
+                        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-6 gap-2 items-center text-sm">
+                          <div className="flex items-center gap-2">
+                            <Badge className={cn('text-[10px] text-white border-0', statusColor)}>{statusLabel}</Badge>
+                            <span className="font-bold">#{o.of_number}</span>
+                          </div>
+                          <div className="sm:col-span-2 truncate">
+                            <span className="font-medium">{o.client?.name}</span>
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground">{o.article?.name || '—'}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {o.order_type === 'weight'
+                              ? `${o.weight_real ?? o.weight_expected ?? '—'} kg`
+                              : `${o.pieces_real ?? o.pieces_expected ?? '—'} pç`}
+                          </div>
+                          <div className="text-xs">
+                            {o.link_group_id ? (
+                              <Badge className="text-[10px] bg-fuchsia-600 text-white">{groupLabel(o.link_group_id)}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowLinkModal(false); setLinkSelected(new Set()); }}>
+              Fechar
+            </Button>
+            <Button
+              className="gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+              disabled={linkSelected.size < 2 || linkBusy}
+              onClick={handleLink}
+            >
+              <Link2 className="h-4 w-4" />
+              {linkBusy ? 'Atrelando...' : `Atrelar ${linkSelected.size} OFs`}
             </Button>
           </DialogFooter>
         </DialogContent>
