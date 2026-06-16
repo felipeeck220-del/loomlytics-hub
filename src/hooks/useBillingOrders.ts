@@ -52,6 +52,7 @@ export interface BillingOrder {
   canceller?: { name: string; code: string };
   editor?: { name: string; code: string };
   delivery_doc_setter?: { name: string; code: string };
+  link_group_id?: string | null;
 }
 
 export function useBillingOrders() {
