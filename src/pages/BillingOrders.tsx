@@ -438,13 +438,18 @@ const BillingOrders = () => {
   };
 
   const handleLaunch = async () => {
-    if (!launchForm.pieces_real || !launchForm.weight_real) {
-      toast({ title: "Preencha os dados reais", variant: "destructive" });
+    const orderType = (showLaunchModal?.order_type as 'pieces' | 'weight') || 'pieces';
+    const pieces = parseInt(launchForm.pieces_real || '0') || 0;
+    const weight = parseFloat(launchForm.weight_real || '0') || 0;
+    // OFs por peso podem ser finalizadas sem peças; OFs por peças exigem ambos.
+    if (orderType === 'pieces' && (!pieces || !weight)) {
+      toast({ title: 'Preencha peças e peso reais', variant: 'destructive' });
       return;
     }
-
-    const pieces = parseInt(launchForm.pieces_real);
-    const weight = parseFloat(launchForm.weight_real);
+    if (orderType === 'weight' && !weight) {
+      toast({ title: 'Informe o peso real (kg)', variant: 'destructive' });
+      return;
+    }
     const avg = pieces > 0 ? weight / pieces : 0;
 
     try {
@@ -1307,7 +1312,9 @@ const BillingOrders = () => {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Peças</Label>
+              <Label className="text-right">
+                Peças {showLaunchModal?.order_type === 'weight' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
+              </Label>
               <Input type="number" className="col-span-3" value={launchForm.pieces_real} onChange={e => setLaunchForm({...launchForm, pieces_real: e.target.value})} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
