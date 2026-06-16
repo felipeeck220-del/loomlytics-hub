@@ -707,6 +707,42 @@ const BillingOrders = () => {
           </TabsTrigger>
         </TabsList>
 
+        {activeTab === 'ready' && (
+          <Card className="mt-4 border-dashed bg-muted/30">
+            <CardContent className="p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Label className="text-xs uppercase text-muted-foreground font-bold mr-2">Documento:</Label>
+                <Button
+                  size="sm"
+                  variant={readyDocFilter === 'all' ? 'default' : 'outline'}
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => setReadyDocFilter('all')}
+                >
+                  Todos <Badge variant="secondary" className="text-[10px] px-1 h-4">{stats.ready}</Badge>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={readyDocFilter === 'without' ? 'default' : 'outline'}
+                  className={cn('h-8 text-xs gap-1.5', readyDocFilter === 'without' && 'bg-violet-600 hover:bg-violet-700 text-white')}
+                  onClick={() => setReadyDocFilter('without')}
+                >
+                  <FileText className="h-3 w-3" /> Sem NF/Romaneio
+                  <Badge variant="secondary" className="text-[10px] px-1 h-4">{stats.readyWithoutDoc}</Badge>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={readyDocFilter === 'with' ? 'default' : 'outline'}
+                  className={cn('h-8 text-xs gap-1.5', readyDocFilter === 'with' && 'bg-emerald-600 hover:bg-emerald-700 text-white')}
+                  onClick={() => setReadyDocFilter('with')}
+                >
+                  <FileText className="h-3 w-3" /> Com NF/Romaneio
+                  <Badge variant="secondary" className="text-[10px] px-1 h-4">{stats.readyWithDoc}</Badge>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {activeTab === 'collected' && (
           <Card className="mt-4 border-dashed bg-muted/30">
             <CardContent className="p-4 space-y-4">
