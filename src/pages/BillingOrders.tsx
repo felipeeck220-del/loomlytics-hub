@@ -2057,8 +2057,8 @@ const BillingOrders = () => {
                 if (!showPalletsModal) return;
                 const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
                 const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
-                if (totalPieces <= 0 || totalWeight <= 0) {
-                  toast({ title: 'Adicione peças e peso para finalizar', variant: 'destructive' });
+                if (totalWeight <= 0) {
+                  toast({ title: 'Adicione pelo menos um palete com peso para finalizar', variant: 'destructive' });
                   return;
                 }
                 const avg = totalPieces > 0 ? totalWeight / totalPieces : 0;
