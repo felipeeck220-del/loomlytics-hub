@@ -37,6 +37,10 @@ export interface BillingOrder {
   edit_note?: string;
   last_edited_by?: string;
   last_edited_at?: string;
+  delivery_doc_type?: 'nf' | 'romaneio' | null;
+  delivery_doc_number?: string | null;
+  delivery_doc_set_by?: string | null;
+  delivery_doc_set_at?: string | null;
   // Joins
   client?: { name: string };
   article?: { name: string };
@@ -47,6 +51,7 @@ export interface BillingOrder {
   prioritizer?: { name: string; code: string };
   canceller?: { name: string; code: string };
   editor?: { name: string; code: string };
+  delivery_doc_setter?: { name: string; code: string };
 }
 
 export function useBillingOrders() {
