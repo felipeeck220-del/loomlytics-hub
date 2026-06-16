@@ -1743,6 +1743,235 @@ const BillingOrders = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Aviso de Saldo Negativo ao Criar OF */}
+      <Dialog open={!!negativeWarning} onOpenChange={(o) => !o && setNegativeWarning(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" /> Saldo do artigo
+            </DialogTitle>
+          </DialogHeader>
+          {negativeWarning && (
+            <div className="py-2 space-y-3 text-sm">
+              <div className="font-semibold text-foreground">{negativeWarning.articleName}</div>
+              {(negativeWarning.currentKg < 0 || negativeWarning.currentPieces < 0) ? (
+                <div className="rounded-md border border-red-400 bg-red-50 dark:bg-red-950/30 p-3 text-red-900 dark:text-red-200">
+                  <div className="font-bold uppercase text-xs mb-1">Saldo atual já está negativo</div>
+                  <div className="text-xs">
+                    Disponível: <strong>{negativeWarning.currentPieces.toFixed(0)} pç</strong> · <strong>{negativeWarning.currentKg.toFixed(2)} kg</strong>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-amber-900 dark:text-amber-200">
+                  <div className="font-bold uppercase text-xs mb-1">Esta OF deixará o saldo negativo</div>
+                  <div className="text-xs">
+                    Disponível agora: <strong>{negativeWarning.currentPieces.toFixed(0)} pç</strong> · <strong>{negativeWarning.currentKg.toFixed(2)} kg</strong>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="rounded border p-2">
+                  <div className="text-[10px] uppercase text-muted-foreground">Solicitado</div>
+                  <div className="font-semibold">{negativeWarning.requestedPieces || 0} pç</div>
+                  <div className="font-semibold">{negativeWarning.requestedKg.toFixed(2)} kg</div>
+                </div>
+                <div className="rounded border p-2">
+                  <div className="text-[10px] uppercase text-muted-foreground">Disponível</div>
+                  <div className="font-semibold">{negativeWarning.currentPieces.toFixed(0)} pç</div>
+                  <div className="font-semibold">{negativeWarning.currentKg.toFixed(2)} kg</div>
+                </div>
+                <div className={cn('rounded border p-2', (negativeWarning.afterKg < 0 || negativeWarning.afterPieces < 0) && 'border-red-400 bg-red-50 dark:bg-red-950/30')}>
+                  <div className="text-[10px] uppercase text-muted-foreground">Após esta OF</div>
+                  <div className={cn('font-semibold', negativeWarning.afterPieces < 0 && 'text-red-600')}>{negativeWarning.afterPieces.toFixed(0)} pç</div>
+                  <div className={cn('font-semibold', negativeWarning.afterKg < 0 && 'text-red-600')}>{negativeWarning.afterKg.toFixed(2)} kg</div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Deseja continuar mesmo assim?</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNegativeWarning(null)}>Cancelar</Button>
+            <Button
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={async () => {
+                if (!negativeWarning) return;
+                const payload = negativeWarning.payload;
+                setNegativeWarning(null);
+                await submitCreateOrder(payload);
+              }}
+              disabled={createOrder.isPending}
+            >
+              Continuar mesmo assim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Paletes — separação por paletes */}
+      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '' }); } }}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-indigo-700">
+              <Boxes className="h-5 w-5" /> Paletes · OF #{showPalletsModal?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          {showPalletsModal && (() => {
+            const order = showPalletsModal;
+            const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
+            const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
+            const targetPieces = Number(order.pieces_expected || 0);
+            const targetWeight = Number(order.weight_expected || 0);
+            const remainingPieces = targetPieces - totalPieces;
+            const remainingWeight = targetWeight - totalWeight;
+            const orderType = order.order_type || 'pieces';
+            const canFinish = pallets.length > 0;
+            return (
+              <div className="space-y-3 py-2">
+                {/* Resumo do pedido */}
+                <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
+                  <div><span className="text-muted-foreground">Cliente:</span> <strong>{order.client?.name}</strong></div>
+                  <div><span className="text-muted-foreground">Artigo:</span> <strong>{order.article?.name}</strong></div>
+                  <div className="flex flex-wrap gap-3 pt-1">
+                    <span><span className="text-muted-foreground">Solicitado:</span> <strong>{targetPieces || '—'} pç</strong> · <strong>{targetWeight ? `${targetWeight.toFixed(2)} kg` : '—'}</strong></span>
+                    {order.piece_weight_target != null && (
+                      <Badge variant="outline" className="text-[10px]">Peça alvo: {Number(order.piece_weight_target)} kg</Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Adicionar palete */}
+                <div className="rounded-md border p-3 space-y-2">
+                  <div className="text-xs font-semibold uppercase text-muted-foreground">Adicionar palete</div>
+                  <div className="grid grid-cols-5 gap-2 items-end">
+                    <div className="col-span-2">
+                      <Label className="text-[10px] uppercase">Peças</Label>
+                      <Input type="number" value={palletInput.pieces} onChange={e => setPalletInput({ ...palletInput, pieces: e.target.value })} placeholder="Ex: 25" />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-[10px] uppercase">Peso (kg)</Label>
+                      <Input type="number" step="0.01" value={palletInput.weight} onChange={e => setPalletInput({ ...palletInput, weight: e.target.value })} placeholder="Ex: 250" />
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                      onClick={() => {
+                        const pc = parseInt(palletInput.pieces || '0');
+                        const wt = parseFloat(palletInput.weight || '0');
+                        if (!pc && !wt) {
+                          toast({ title: 'Informe peças ou peso', variant: 'destructive' });
+                          return;
+                        }
+                        setPallets(prev => [...prev, { id: crypto.randomUUID(), pieces: pc || 0, weight: wt || 0 }]);
+                        setPalletInput({ pieces: '', weight: '' });
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Lista */}
+                {pallets.length > 0 && (
+                  <div className="rounded-md border max-h-[180px] overflow-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 sticky top-0">
+                        <tr>
+                          <th className="text-left p-2">#</th>
+                          <th className="text-right p-2">Peças</th>
+                          <th className="text-right p-2">Peso (kg)</th>
+                          <th className="p-2 w-8"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pallets.map((p, i) => (
+                          <tr key={p.id} className="border-t">
+                            <td className="p-2 font-semibold">Palete {i + 1}</td>
+                            <td className="p-2 text-right">{p.pieces}</td>
+                            <td className="p-2 text-right">{p.weight.toFixed(2)}</td>
+                            <td className="p-2">
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700" onClick={() => setPallets(prev => prev.filter(x => x.id !== p.id))}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Totais */}
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-md border p-2">
+                    <div className="text-[10px] uppercase text-muted-foreground">Paletes</div>
+                    <div className="font-bold text-base">{pallets.length}</div>
+                  </div>
+                  <div className="rounded-md border p-2">
+                    <div className="text-[10px] uppercase text-muted-foreground">Acumulado</div>
+                    <div className="font-bold">{totalPieces} pç</div>
+                    <div className="font-bold">{totalWeight.toFixed(2)} kg</div>
+                  </div>
+                  <div className={cn('rounded-md border p-2',
+                    orderType === 'pieces'
+                      ? (remainingPieces === 0 ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30' : remainingPieces < 0 ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-amber-400')
+                      : (remainingWeight <= 0 ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30' : 'border-amber-400')
+                  )}>
+                    <div className="text-[10px] uppercase text-muted-foreground">Falta</div>
+                    {targetPieces > 0 && (
+                      <div className={cn('font-bold', remainingPieces < 0 && 'text-red-600', remainingPieces === 0 && 'text-emerald-600')}>
+                        {remainingPieces} pç
+                      </div>
+                    )}
+                    {targetWeight > 0 && (
+                      <div className={cn('font-bold', remainingWeight < 0 && 'text-red-600', remainingWeight === 0 && 'text-emerald-600')}>
+                        {remainingWeight.toFixed(2)} kg
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '' }); }}>Fechar</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+              disabled={pallets.length === 0 || updateStatus.isPending}
+              onClick={async () => {
+                if (!showPalletsModal) return;
+                const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
+                const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
+                if (totalPieces <= 0 || totalWeight <= 0) {
+                  toast({ title: 'Adicione peças e peso para finalizar', variant: 'destructive' });
+                  return;
+                }
+                const avg = totalPieces > 0 ? totalWeight / totalPieces : 0;
+                const target = showPalletsModal;
+                try {
+                  await updateStatus.mutateAsync({
+                    id: target.id,
+                    status: 'ready',
+                    data: { pieces_real: totalPieces, weight_real: totalWeight, weight_avg: avg },
+                    expectedStatus: 'separating',
+                  });
+                  setShowPalletsModal(null);
+                  setPallets([]);
+                  setPalletInput({ pieces: '', weight: '' });
+                } catch (err: any) {
+                  if (err?.code === 'CONFLICT') {
+                    setShowPalletsModal(null);
+                    setPallets([]);
+                    setConflictInfo({ action: 'lançar dados', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
+                  }
+                }
+              }}
+            >
+              <CheckCircle2 className="h-4 w-4" /> Finalizar com {pallets.length} palete{pallets.length !== 1 ? 's' : ''}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
