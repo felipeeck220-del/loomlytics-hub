@@ -836,11 +836,23 @@ const BillingOrders = () => {
           <h1 className="text-2xl font-bold">Ordem de Faturamento (OF)</h1>
           <p className="text-muted-foreground text-sm">Gestão de coletas e separação de malha</p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => setShowCreateModal(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Nova OF
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => { setLinkSelected(new Set()); setShowLinkModal(true); }}
+          >
+            <Link2 className="h-4 w-4" /> Atrelar OFs
+            {linkGroups.size > 0 && (
+              <Badge variant="secondary" className="ml-1">{linkGroups.size}</Badge>
+            )}
           </Button>
-        )}
+          {isAdmin && (
+            <Button onClick={() => setShowCreateModal(true)} className="gap-2">
+              <Plus className="h-4 w-4" /> Nova OF
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 bg-card p-3 rounded-lg border shadow-sm">
