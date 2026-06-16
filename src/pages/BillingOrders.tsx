@@ -797,6 +797,12 @@ const BillingOrders = () => {
                             PEÇA DE {Number(order.piece_weight_target)} KG
                           </Badge>
                         )}
+                        {(order as any).delivery_doc_number && (
+                          <Badge className="text-[10px] bg-emerald-600 text-white border-emerald-700 gap-1 py-0 px-2 h-5">
+                            <FileText className="h-3 w-3" />
+                            {(order as any).delivery_doc_type === 'romaneio' ? 'ROMANEIO' : 'NF'} {(order as any).delivery_doc_number}
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Nota de edição visível para expedição quando OF voltou a Aberto */}
