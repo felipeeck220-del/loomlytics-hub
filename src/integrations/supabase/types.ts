@@ -272,6 +272,10 @@ export type Database = {
           priority_at: string | null
           priority_by: string | null
           priority_reason: string | null
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          reverted_from: string | null
           separated_by: string | null
           status: Database["public"]["Enums"]["billing_order_status"]
           updated_at: string
@@ -304,6 +308,10 @@ export type Database = {
           priority_at?: string | null
           priority_by?: string | null
           priority_reason?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          reverted_from?: string | null
           separated_by?: string | null
           status?: Database["public"]["Enums"]["billing_order_status"]
           updated_at?: string
@@ -336,6 +344,10 @@ export type Database = {
           priority_at?: string | null
           priority_by?: string | null
           priority_reason?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          reverted_from?: string | null
           separated_by?: string | null
           status?: Database["public"]["Enums"]["billing_order_status"]
           updated_at?: string
@@ -403,6 +415,13 @@ export type Database = {
           {
             foreignKeyName: "billing_orders_priority_by_fkey"
             columns: ["priority_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_orders_reversed_by_fkey"
+            columns: ["reversed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
