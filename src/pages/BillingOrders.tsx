@@ -1565,34 +1565,38 @@ const BillingOrders = () => {
 
       {/* Modal Escolha de Impressão (admin) — Controle Interno x Cliente */}
       <Dialog open={!!showPrintChoice} onOpenChange={(o) => !o && setShowPrintChoice(null)}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="w-[95vw] sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Printer className="h-5 w-5" /> Imprimir OF #{showPrintChoice?.of_number}
             </DialogTitle>
           </DialogHeader>
-          <div className="py-2 space-y-2">
+          <div className="py-2 space-y-2 overflow-hidden">
             <p className="text-xs text-muted-foreground">Escolha o tipo de impressão:</p>
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-auto py-3"
+              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start"
               onClick={() => { handleAdminPrintPdf(showPrintChoice, 'internal'); setShowPrintChoice(null); }}
             >
-              <FileText className="h-5 w-5 text-primary" />
-              <div className="text-left">
+              <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="text-left min-w-0 flex-1">
                 <div className="font-semibold text-sm">Controle Interno</div>
-                <div className="text-[11px] text-muted-foreground">PDF completo: quantidades previstas/reais, prioridade e auditoria.</div>
+                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-snug">
+                  PDF completo: quantidades previstas/reais, prioridade e auditoria.
+                </div>
               </div>
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-auto py-3"
+              className="w-full justify-start gap-3 h-auto py-3 px-3 whitespace-normal text-left items-start"
               onClick={() => { handleAdminPrintPdf(showPrintChoice, 'client'); setShowPrintChoice(null); }}
             >
-              <UserIcon className="h-5 w-5 text-emerald-600" />
-              <div className="text-left">
+              <UserIcon className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="text-left min-w-0 flex-1">
                 <div className="font-semibold text-sm">Cliente</div>
-                <div className="text-[11px] text-muted-foreground">PDF resumido: sem auditoria, sem previstos e sem média. Status sempre "Pronto para Coleta".</div>
+                <div className="text-[11px] text-muted-foreground whitespace-normal break-words leading-snug">
+                  PDF resumido: sem auditoria, sem previstos e sem média. Status sempre "Pronto para Coleta".
+                </div>
               </div>
             </Button>
           </div>
