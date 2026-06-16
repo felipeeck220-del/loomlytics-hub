@@ -2164,6 +2164,157 @@ const BillingOrders = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Atrelar OFs */}
+      <Dialog open={showLinkModal} onOpenChange={(v) => { setShowLinkModal(v); if (!v) setLinkSelected(new Set()); }}>
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-fuchsia-600" />
+              Atrelar OFs (mesma NF / Romaneio)
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-md bg-muted/50 border p-3 text-xs text-muted-foreground">
+              Marque duas ou mais OFs que serão enviadas juntas (ex.: malha + ribana complementar).
+              Apenas OFs <strong>Aberto</strong>, <strong>Separando</strong> e <strong>Pronto</strong> aparecem aqui — Coletadas e Canceladas ficam fora.
+              Se selecionar uma OF já atrelada, todos os grupos envolvidos serão mesclados em um único.
+            </div>
+
+            {/* Grupos existentes */}
+            {linkGroups.size > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Atrelações ativas ({linkGroups.size})</Label>
+                <div className="space-y-2">
+                  {Array.from(linkGroups.entries()).map(([gid, list]) => (
+                    <div key={gid} className="rounded-md border bg-fuchsia-50 dark:bg-fuchsia-950/30 border-fuchsia-300 dark:border-fuchsia-800 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className="text-[10px] bg-fuchsia-600 text-white border-fuchsia-700">
+                            GRUPO {groupLabel(gid)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">{list.length} OFs</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {list.map((o: any) => (
+                            <span key={o.id} className="inline-flex items-center gap-1 rounded bg-card border px-2 py-0.5 text-xs">
+                              <strong>#{o.of_number}</strong>
+                              <span className="text-muted-foreground">{o.client?.name}</span>
+                              <button
+                                title="Remover do grupo"
+                                className="text-muted-foreground hover:text-red-600"
+                                onClick={async () => {
+                                  try { await removeFromGroup(o.id); } catch (e: any) {
+                                    toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-red-700 border-red-300 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
+                        onClick={async () => {
+                          try { await unlinkGroup(gid); } catch (e: any) {
+                            toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <Link2Off className="h-4 w-4" /> Desfazer
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Lista de OFs elegíveis */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase font-bold text-muted-foreground">Selecione as OFs para atrelar</Label>
+                <span className="text-xs text-muted-foreground">
+                  {linkSelected.size} selecionada{linkSelected.size !== 1 ? 's' : ''}
+                </span>
+              </div>
+              {linkableOrders.length === 0 ? (
+                <div className="text-center text-sm text-muted-foreground py-8 border rounded-md">
+                  Nenhuma OF em aberto, separando ou pronta no momento.
+                </div>
+              ) : (
+                <div className="border rounded-md divide-y max-h-[40vh] overflow-y-auto">
+                  {linkableOrders.map((o: any) => {
+                    const checked = linkSelected.has(o.id);
+                    const statusLabel = o.status === 'open' ? (o.priority ? 'Aberto Prioritário' : 'Aberto') : o.status === 'separating' ? 'Separando' : 'Pronto';
+                    const statusColor = o.status === 'open'
+                      ? (o.priority ? 'bg-red-600' : 'bg-sky-600')
+                      : o.status === 'separating' ? 'bg-amber-500' : 'bg-emerald-600';
+                    return (
+                      <label
+                        key={o.id}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/50',
+                          checked && 'bg-fuchsia-50 dark:bg-fuchsia-950/30'
+                        )}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            const next = new Set(linkSelected);
+                            if (v) next.add(o.id); else next.delete(o.id);
+                            setLinkSelected(next);
+                          }}
+                        />
+                        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-6 gap-2 items-center text-sm">
+                          <div className="flex items-center gap-2">
+                            <Badge className={cn('text-[10px] text-white border-0', statusColor)}>{statusLabel}</Badge>
+                            <span className="font-bold">#{o.of_number}</span>
+                          </div>
+                          <div className="sm:col-span-2 truncate">
+                            <span className="font-medium">{o.client?.name}</span>
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground">{o.article?.name || '—'}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {o.order_type === 'weight'
+                              ? `${o.weight_real ?? o.weight_expected ?? '—'} kg`
+                              : `${o.pieces_real ?? o.pieces_expected ?? '—'} pç`}
+                          </div>
+                          <div className="text-xs">
+                            {o.link_group_id ? (
+                              <Badge className="text-[10px] bg-fuchsia-600 text-white">{groupLabel(o.link_group_id)}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowLinkModal(false); setLinkSelected(new Set()); }}>
+              Fechar
+            </Button>
+            <Button
+              className="gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+              disabled={linkSelected.size < 2 || linkBusy}
+              onClick={handleLink}
+            >
+              <Link2 className="h-4 w-4" />
+              {linkBusy ? 'Atrelando...' : `Atrelar ${linkSelected.size} OFs`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
