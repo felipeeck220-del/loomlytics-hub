@@ -354,6 +354,7 @@ export default function StockMalha() {
                           <TableHead className="text-xs text-right">Entregue kg</TableHead>
                           <TableHead className="text-xs text-right">Rolos</TableHead>
                           <TableHead className="text-xs text-right">Físico kg</TableHead>
+                          <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Rolos reservados</TableHead>
                           <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Reservado kg</TableHead>
                           <TableHead className="text-xs text-right font-bold">Disponível kg</TableHead>
                           <TableHead className="text-xs text-right font-bold">Disp. Rolos</TableHead>
@@ -370,6 +371,9 @@ export default function StockMalha() {
                             <TableCell className={cn('text-xs text-right', a.stockKg < 0 ? 'text-destructive' : a.stockKg === 0 ? 'text-muted-foreground' : 'text-foreground')}>
                               {formatWeight(a.stockKg)}
                               {a.stockKg < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
+                            </TableCell>
+                            <TableCell className="text-xs text-right text-amber-700 dark:text-amber-400">
+                              {formatNumber(a.reservedRolls)}
                             </TableCell>
                             <TableCell className="text-xs text-right text-amber-700 dark:text-amber-400">
                               {formatWeight(a.reservedKg)}
