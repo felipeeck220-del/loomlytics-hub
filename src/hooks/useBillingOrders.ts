@@ -216,6 +216,33 @@ export function useBillingOrders() {
         err.actor = (current as any)?.separator || (current as any)?.collector || (current as any)?.canceller || null;
         throw err;
       }
+
+      // Baixa de estoque: ao marcar como coletada, registra um movimento `out`
+      // com base nos valores reais (pieces_real / weight_real) lançados na separação.
+      if (status === 'collected' && rows && rows.length > 0 && user?.company_id) {
+        const { data: ofRow } = await supabase
+          .from('billing_orders')
+          .select('article_id, client_id, pieces_real, weight_real, of_number')
+          .eq('id', id)
+          .maybeSingle();
+        if (ofRow?.article_id) {
+          const pieces = Math.max(0, Math.round(Number(ofRow.pieces_real || 0)));
+          const weight = Math.max(0, Number(ofRow.weight_real || 0));
+          if (pieces > 0 || weight > 0) {
+            await (supabase.from as any)('stock_movements').insert({
+              company_id: user.company_id,
+              article_id: ofRow.article_id,
+              client_id: ofRow.client_id,
+              billing_order_id: id,
+              type: 'out',
+              pieces,
+              weight_kg: weight,
+              reason: `OF #${ofRow.of_number} coletada`,
+              created_by: profile?.id ?? null,
+            });
+          }
+        }
+      }
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
