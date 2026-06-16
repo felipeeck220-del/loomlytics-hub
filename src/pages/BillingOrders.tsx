@@ -1034,6 +1034,18 @@ const BillingOrders = () => {
                             {(order as any).delivery_doc_type === 'romaneio' ? 'ROMANEIO' : 'NF'} {(order as any).delivery_doc_number}
                           </Badge>
                         )}
+                        {(order as any).link_group_id && linkGroups.has((order as any).link_group_id) && (
+                          <Badge
+                            className="text-[10px] bg-fuchsia-600 text-white border-fuchsia-700 gap-1 py-0 px-2 h-5 cursor-pointer"
+                            title={`Atrelada com: ${linkGroups.get((order as any).link_group_id)!.filter((x: any) => x.id !== order.id).map((x: any) => `#${x.of_number}`).join(', ')}`}
+                            onClick={() => { setLinkSelected(new Set()); setShowLinkModal(true); }}
+                          >
+                            <Link2 className="h-3 w-3" /> ATRELADA {groupLabel((order as any).link_group_id)}
+                            <span className="opacity-90">
+                              ({linkGroups.get((order as any).link_group_id)!.filter((x: any) => x.id !== order.id).map((x: any) => `#${x.of_number}`).join(' + ')})
+                            </span>
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Nota de edição visível para expedição quando OF voltou a Aberto */}
