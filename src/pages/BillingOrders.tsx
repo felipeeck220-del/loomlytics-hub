@@ -1312,7 +1312,9 @@ const BillingOrders = () => {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Peças</Label>
+              <Label className="text-right">
+                Peças {showLaunchModal?.order_type === 'weight' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
+              </Label>
               <Input type="number" className="col-span-3" value={launchForm.pieces_real} onChange={e => setLaunchForm({...launchForm, pieces_real: e.target.value})} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
