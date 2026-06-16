@@ -53,6 +53,12 @@ export default function StockMalha() {
   const { role } = usePermissions();
   const isAdmin = role === 'admin';
   const [manualOpen, setManualOpen] = useState(false);
+  const [manual2qOpen, setManual2qOpen] = useState(false);
+  const [activeStockTab, setActiveStockTab] = useState<'estoque' | 'segunda' | 'movimentos'>('estoque');
+  // Filtros independentes para 2ª qualidade
+  const [segClient, setSegClient] = useState('all');
+  const [segArticle, setSegArticle] = useState('all');
+  const [segMonth, setSegMonth] = useState('all');
 
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices_for_stock', companyId],
