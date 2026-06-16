@@ -302,6 +302,24 @@ export function useBillingOrders() {
       note: string;
       revertToOpen: boolean;
     }) => {
+      // Snapshot do que será revertido para emitir 'release' depois
+      let preReleaseSnapshot: { pieces: number; weight: number; article_id: string | null; client_id: string | null; of_number: string | null; prev_status: string | null } | null = null;
+      if (revertToOpen) {
+        const { data: pre } = await supabase
+          .from('billing_orders')
+          .select('article_id, client_id, of_number, pieces_real, weight_real, status')
+          .eq('id', id)
+          .maybeSingle();
+        preReleaseSnapshot = {
+          pieces: Math.max(0, Math.round(Number(pre?.pieces_real || 0))),
+          weight: Math.max(0, Number(pre?.weight_real || 0)),
+          article_id: pre?.article_id ?? null,
+          client_id: pre?.client_id ?? null,
+          of_number: pre?.of_number ?? null,
+          prev_status: pre?.status ?? null,
+        };
+      }
+
       const payload: any = {
         ...changes,
         edit_note: note,
@@ -321,9 +339,28 @@ export function useBillingOrders() {
         .update(payload)
         .eq('id', id);
       if (error) throw error;
+
+      // Libera reserva se a OF tinha sido pronta (ready)
+      if (revertToOpen && preReleaseSnapshot && preReleaseSnapshot.prev_status === 'ready' && preReleaseSnapshot.article_id && user?.company_id) {
+        if (preReleaseSnapshot.pieces > 0 || preReleaseSnapshot.weight > 0) {
+          await (supabase.from as any)('stock_movements').insert({
+            company_id: user.company_id,
+            article_id: preReleaseSnapshot.article_id,
+            client_id: preReleaseSnapshot.client_id,
+            billing_order_id: id,
+            type: 'release',
+            pieces: preReleaseSnapshot.pieces,
+            weight_kg: preReleaseSnapshot.weight,
+            reason: `OF #${preReleaseSnapshot.of_number} editada — reserva liberada`,
+            created_by: profile?.id ?? null,
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
       toast({ title: 'OF atualizada' });
     },
     onError: (error: any) => {
