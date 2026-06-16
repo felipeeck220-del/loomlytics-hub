@@ -89,8 +89,44 @@ const BillingOrders = () => {
 
   // Modal de Paletes na Separação
   const [showPalletsModal, setShowPalletsModal] = useState<any>(null);
-  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number }>>([]);
+  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null }>>([]);
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string }>({ pieces: '', weight: '' });
+  const [palletBusy, setPalletBusy] = useState(false);
+
+  // Carrega paletes salvos ao abrir o modal
+  useEffect(() => {
+    if (!showPalletsModal) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('billing_order_pallets' as any)
+        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id')
+        .eq('billing_order_id', showPalletsModal.id)
+        .order('pallet_number', { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        toast({ title: 'Erro ao carregar paletes', description: error.message, variant: 'destructive' });
+        return;
+      }
+      setPallets((data || []).map((r: any) => ({
+        id: r.id,
+        pallet_number: r.pallet_number,
+        pieces: Number(r.pieces || 0),
+        weight: Number(r.weight_kg || 0),
+        reserve_movement_id: r.reserve_movement_id,
+      })));
+    })();
+    return () => { cancelled = true; };
+  }, [showPalletsModal, toast]);
+
+  const refreshStockCaches = () => {
+    // hook do BillingOrders já invalida estoque em mutations próprias; aqui forçamos manualmente
+    // para o caso de inserts diretos em stock_movements feitos pelo modal de paletes.
+    try {
+      // window event para que /estoque-malha (se aberto) recarregue
+      window.dispatchEvent(new CustomEvent('stock-movements-changed'));
+    } catch {}
+  };
 
   const [form, setForm] = useState({
     of_number: '',
