@@ -281,7 +281,7 @@ export default function StockMalha() {
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('stock_movements')
         .select(`
-          id, article_id, client_id, billing_order_id, type, pieces, weight_kg, reason, created_at,
+          id, article_id, client_id, billing_order_id, type, pieces, weight_kg, reason, is_second_quality, created_at,
           article:articles(name),
           client:clients(name),
           author:profiles!stock_movements_created_by_fkey(name, code),
