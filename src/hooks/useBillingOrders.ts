@@ -191,6 +191,14 @@ export function useBillingOrders() {
       if (status === 'cancelled') {
         updatePayload.cancelled_by = profile?.id;
         updatePayload.cancelled_at = new Date().toISOString();
+        // Marca de onde veio o cancelamento (informativo)
+        if (expectedStatus) (updatePayload as any).reverted_from = expectedStatus;
+        // Quando estorna uma OF já coletada, registra o estorno
+        if (expectedStatus === 'collected') {
+          (updatePayload as any).reversal_reason = updatePayload.cancellation_reason;
+          (updatePayload as any).reversed_by = profile?.id;
+          (updatePayload as any).reversed_at = new Date().toISOString();
+        }
       }
       if (status === 'priority') {
         updatePayload.priority = true;
@@ -217,29 +225,53 @@ export function useBillingOrders() {
         throw err;
       }
 
-      // Baixa de estoque: ao marcar como coletada, registra um movimento `out`
-      // com base nos valores reais (pieces_real / weight_real) lançados na separação.
-      if (status === 'collected' && rows && rows.length > 0 && user?.company_id) {
+      // Movimentos de estoque conforme ciclo de vida da OF
+      if (rows && rows.length > 0 && user?.company_id) {
         const { data: ofRow } = await supabase
           .from('billing_orders')
-          .select('article_id, client_id, pieces_real, weight_real, of_number')
+          .select('article_id, client_id, pieces_real, weight_real, of_number, pieces_expected, weight_expected')
           .eq('id', id)
           .maybeSingle();
         if (ofRow?.article_id) {
-          const pieces = Math.max(0, Math.round(Number(ofRow.pieces_real || 0)));
-          const weight = Math.max(0, Number(ofRow.weight_real || 0));
-          if (pieces > 0 || weight > 0) {
-            await (supabase.from as any)('stock_movements').insert({
-              company_id: user.company_id,
-              article_id: ofRow.article_id,
-              client_id: ofRow.client_id,
-              billing_order_id: id,
-              type: 'out',
-              pieces,
-              weight_kg: weight,
-              reason: `OF #${ofRow.of_number} coletada`,
-              created_by: profile?.id ?? null,
-            });
+          const pieces = Math.max(0, Math.round(Number(ofRow.pieces_real ?? ofRow.pieces_expected ?? 0)));
+          const weight = Math.max(0, Number(ofRow.weight_real ?? ofRow.weight_expected ?? 0));
+          const baseMov = {
+            company_id: user.company_id,
+            article_id: ofRow.article_id,
+            client_id: ofRow.client_id,
+            billing_order_id: id,
+            created_by: profile?.id ?? null,
+          };
+          const mvs: any[] = [];
+
+          // separating -> ready: reserva o estoque
+          if (status === 'ready' && expectedStatus === 'separating' && (pieces > 0 || weight > 0)) {
+            mvs.push({ ...baseMov, type: 'reserve', pieces, weight_kg: weight,
+              reason: `OF #${ofRow.of_number} pronta (reserva)` });
+          }
+
+          // ready -> collected: libera a reserva e baixa do físico
+          if (status === 'collected' && expectedStatus === 'ready' && (pieces > 0 || weight > 0)) {
+            mvs.push({ ...baseMov, type: 'release', pieces, weight_kg: weight,
+              reason: `OF #${ofRow.of_number} coletada (libera reserva)` });
+            mvs.push({ ...baseMov, type: 'out', pieces, weight_kg: weight,
+              reason: `OF #${ofRow.of_number} coletada` });
+          }
+
+          // ready -> cancelled: libera a reserva (estoque volta para Disponível)
+          if (status === 'cancelled' && expectedStatus === 'ready' && (pieces > 0 || weight > 0)) {
+            mvs.push({ ...baseMov, type: 'release', pieces, weight_kg: weight,
+              reason: `OF #${ofRow.of_number} cancelada (libera reserva)` });
+          }
+
+          // collected -> cancelled: estorno (devolve ao físico)
+          if (status === 'cancelled' && expectedStatus === 'collected' && (pieces > 0 || weight > 0)) {
+            mvs.push({ ...baseMov, type: 'in', pieces, weight_kg: weight,
+              reason: `OF #${ofRow.of_number} estornada — ${updatePayload.cancellation_reason || 'sem motivo'}` });
+          }
+
+          if (mvs.length > 0) {
+            await (supabase.from as any)('stock_movements').insert(mvs);
           }
         }
       }
