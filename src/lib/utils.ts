@@ -9,7 +9,14 @@ export function cn(...inputs: ClassValue[]) {
  * Converte mensagens de erro do banco de dados em mensagens legíveis para o usuário.
  * Trata erros de foreign key constraint, RLS, e outros erros comuns.
  */
-export function getFriendlyErrorMessage(errorMessage: string): string {
+export function getFriendlyErrorMessage(errorMessage: unknown): string {
+  // Coerce to a string safely — callers sometimes pass the raw error object.
+  if (errorMessage == null) return 'Erro desconhecido.';
+  if (typeof errorMessage !== 'string') {
+    const anyErr = errorMessage as any;
+    errorMessage = anyErr?.message || anyErr?.error_description || anyErr?.details || anyErr?.hint || String(errorMessage);
+  }
+  errorMessage = errorMessage as string;
   // Foreign key constraint violations
   if (errorMessage.includes('violates foreign key constraint')) {
     // Extract table name from the error for context
