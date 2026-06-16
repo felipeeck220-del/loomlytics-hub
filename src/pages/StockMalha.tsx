@@ -86,7 +86,7 @@ export default function StockMalha() {
     enabled: !!companyId,
   });
 
-  const { data: stockMovements = [], refetch: refetchMovements } = useQuery({
+  const { data: stockMovements = [] } = useQuery({
     queryKey: ['stock_movements_for_stock', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('stock_movements')
