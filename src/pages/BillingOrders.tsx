@@ -13,6 +13,7 @@ import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fn
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { supabase } from '@/integrations/supabase/client';
