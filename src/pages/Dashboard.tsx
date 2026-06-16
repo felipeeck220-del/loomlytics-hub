@@ -213,20 +213,17 @@ export default function Dashboard() {
     const [loadingStats, setLoadingStats] = useState(false);
  
     const fetchDashboardMetrics = useCallback(async () => {
-      if (!dbCompanyId || !currentPeriod) return;
+      if (!dbCompanyId) return;
       setLoadingStats(true);
       try {
         const params: any = {
           p_company_id: dbCompanyId,
           p_machine_id: undefined,
-          p_shift: filterShift === 'all' ? null : filterShift
+          p_shift: filterShift === 'all' ? null : filterShift,
+          // "Todo período": envia null/null e a RPC calcula min/max a partir das productions
+          p_start_date: currentPeriod ? currentPeriod.start : null,
+          p_end_date: currentPeriod ? currentPeriod.end : null,
         };
-
-        // Só envia as datas se não for "Todo período"
-        if (currentPeriod) {
-          params.p_start_date = currentPeriod.start;
-          params.p_end_date = currentPeriod.end;
-        }
 
         const { data, error } = await (supabase.rpc as any)('get_dashboard_metrics', params);
 
@@ -234,6 +231,7 @@ export default function Dashboard() {
         setDashboardMetrics(data);
       } catch (err) {
         console.error('Error fetching dashboard metrics RPC:', err);
+        setDashboardMetrics(null);
       } finally {
         setLoadingStats(false);
       }
