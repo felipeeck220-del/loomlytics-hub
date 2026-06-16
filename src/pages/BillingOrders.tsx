@@ -1426,7 +1426,7 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Cancelar OF */}
-      <Dialog open={!!showCancelModal} onOpenChange={(o) => !o && setShowCancelModal(null)}>
+      <Dialog open={!!showCancelModal} onOpenChange={(o) => { if (!o) { setShowCancelModal(null); setCancelReason(''); setReversalQuality('first'); } }}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle className={cn('flex items-center gap-2', showCancelModal?.status === 'collected' ? 'text-red-700' : 'text-zinc-700')}>
