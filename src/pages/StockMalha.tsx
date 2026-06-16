@@ -78,7 +78,7 @@ export default function StockMalha() {
     queryKey: ['stock_movements_for_stock', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('stock_movements')
-        .select('id, article_id, type, pieces, weight_kg, created_at')
+        .select('id, article_id, client_id, billing_order_id, type, pieces, weight_kg, is_second_quality, created_at')
         .eq('company_id', companyId);
       if (error) throw error;
       return data || [];
@@ -111,6 +111,8 @@ export default function StockMalha() {
     const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
     for (const mv of stockMovements as any[]) {
       if (!monthMatchesMovement(mv.created_at)) continue;
+      // Movimentos de 2ª qualidade não afetam o estoque principal
+      if (mv.is_second_quality) continue;
       if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
       const art = articles.find(a => a.id === mv.article_id);
       if (!art || !art.client_id) continue;
@@ -120,12 +122,21 @@ export default function StockMalha() {
       const entry = artMap.get(mv.article_id)!;
       const kg = Number(mv.weight_kg);
       const pc = Number(mv.pieces);
-      if (mv.type === 'adjust_in' || mv.type === 'in') {
+      if (mv.type === 'adjust_in') {
         entry.producedKg += Number(mv.weight_kg);
         entry.producedRolls += Number(mv.pieces);
       } else if (mv.type === 'adjust_out') {
         entry.producedKg -= Number(mv.weight_kg);
         entry.producedRolls -= Number(mv.pieces);
+      } else if (mv.type === 'in') {
+        // Estorno 1ª qualidade: pç retornam ao estoque → desconta Entregue (libera Disponível)
+        if (mv.billing_order_id) {
+          entry.deliveredKg -= kg;
+          entry.deliveredRolls -= pc;
+        } else {
+          entry.producedKg += kg;
+          entry.producedRolls += pc;
+        }
       } else if (mv.type === 'out') {
         // Saída por OF coletada — conta como entregue (não desconta o "Produzido" exibido).
         entry.deliveredKg += Number(mv.weight_kg);
