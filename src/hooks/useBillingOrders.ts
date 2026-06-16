@@ -504,5 +504,57 @@ export function useBillingOrders() {
       if (error) return false;
       return !!data;
     },
+    linkOrders: async (ids: string[]): Promise<string> => {
+      if (!user?.company_id) throw new Error('Sessão inválida');
+      if (!ids || ids.length < 2) throw new Error('Selecione pelo menos 2 OFs para atrelar.');
+      // Se alguma das OFs já pertence a um grupo, reutiliza o mesmo group_id (mescla os grupos)
+      const { data: existing } = await supabase
+        .from('billing_orders')
+        .select('id, link_group_id')
+        .in('id', ids);
+      const existingGroups = Array.from(new Set((existing || []).map((r: any) => r.link_group_id).filter(Boolean)));
+      const groupId: string = existingGroups[0] || (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
+      // Coleta TODOS os ids que devem ficar no grupo final (selecionados + qualquer um que já pertença a grupos sendo mesclados)
+      let allIds = new Set<string>(ids);
+      if (existingGroups.length > 0) {
+        const { data: members } = await supabase
+          .from('billing_orders')
+          .select('id')
+          .eq('company_id', user.company_id)
+          .in('link_group_id', existingGroups as string[]);
+        (members || []).forEach((m: any) => allIds.add(m.id));
+      }
+      const { error } = await supabase
+        .from('billing_orders')
+        .update({ link_group_id: groupId } as any)
+        .in('id', Array.from(allIds))
+        .eq('company_id', user.company_id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      toast({ title: `${allIds.size} OFs atreladas` });
+      return groupId;
+    },
+    unlinkGroup: async (groupId: string): Promise<void> => {
+      if (!user?.company_id || !groupId) return;
+      const { error } = await supabase
+        .from('billing_orders')
+        .update({ link_group_id: null } as any)
+        .eq('company_id', user.company_id)
+        .eq('link_group_id', groupId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      toast({ title: 'Atrelação desfeita' });
+    },
+    removeFromGroup: async (orderId: string): Promise<void> => {
+      if (!user?.company_id || !orderId) return;
+      const { error } = await supabase
+        .from('billing_orders')
+        .update({ link_group_id: null } as any)
+        .eq('company_id', user.company_id)
+        .eq('id', orderId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      toast({ title: 'OF removida do grupo' });
+    },
   };
 }
