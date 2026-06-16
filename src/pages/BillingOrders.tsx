@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History } from 'lucide-react';
+import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History, FileText, User as UserIcon } from 'lucide-react';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +25,7 @@ const BillingOrders = () => {
   const { role } = usePermissions();
   const { toast } = useToast();
   const { getClients, getArticles, getMachines } = useSharedCompanyData();
-  const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists } = useBillingOrders();
+  const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc } = useBillingOrders();
 
   const isAdmin = role === 'admin';
   const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab'>('open');
@@ -38,6 +38,11 @@ const BillingOrders = () => {
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
   const [cancelReason, setCancelReason] = useState('');
+
+  // Modal documento de saída (NF/Romaneio) e modal de escolha de impressão (admin)
+  const [showDocModal, setShowDocModal] = useState<any>(null);
+  const [docForm, setDocForm] = useState<{ type: 'nf' | 'romaneio'; number: string }>({ type: 'nf', number: '' });
+  const [showPrintChoice, setShowPrintChoice] = useState<any>(null);
 
   // Auto-numeração e detecção de duplicidade no modal Nova OF
   const [lastOfNumber, setLastOfNumber] = useState<string | null>(null);
