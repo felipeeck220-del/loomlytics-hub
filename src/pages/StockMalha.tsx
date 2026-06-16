@@ -668,7 +668,7 @@ export default function StockMalha() {
                     <SelectItem value="adjust_out">Ajuste manual -</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="text-xs text-muted-foreground">Últimos 500 movimentos</span>
+                <span className="text-xs text-muted-foreground">{filteredMovements.length} movimento(s) — Página {movPage} de {movTotalPages || 1}</span>
               </div>
             </CardContent>
           </Card>
@@ -690,10 +690,10 @@ export default function StockMalha() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMovements.length === 0 && (
+                  {paginatedMovements.length === 0 && (
                     <TableRow><TableCell colSpan={9} className="text-center text-xs text-muted-foreground py-8">Sem movimentos.</TableCell></TableRow>
                   )}
-                  {filteredMovements.map((m: any) => {
+                  {paginatedMovements.map((m: any) => {
                     const meta = movementLabel[m.type] || { label: m.type, color: 'bg-muted text-foreground' };
                     return (
                       <TableRow key={m.id}>
@@ -720,6 +720,41 @@ export default function StockMalha() {
               </Table>
             </CardContent>
           </Card>
+
+          {/* Paginação */}
+          {movTotalPages > 1 && (
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMovPage(p => Math.max(1, p - 1))}
+                disabled={movPage === 1}
+              >
+                Anterior
+              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-1">
+                {movVisiblePages.map(page => (
+                  <Button
+                    key={page}
+                    variant={movPage === page ? "default" : "outline"}
+                    size="sm"
+                    className="w-8 h-8 p-0"
+                    onClick={() => setMovPage(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMovPage(p => Math.min(movTotalPages, p + 1))}
+                disabled={movPage === movTotalPages}
+              >
+                Próximo
+              </Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
