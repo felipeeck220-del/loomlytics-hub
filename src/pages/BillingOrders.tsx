@@ -858,8 +858,8 @@ const BillingOrders = () => {
             onClick={() => { setLinkSelected(new Set()); setShowLinkModal(true); }}
           >
             <Link2 className="h-4 w-4" /> Atrelar OFs
-            {linkGroups.size > 0 && (
-              <Badge variant="secondary" className="ml-1">{linkGroups.size}</Badge>
+            {activeLinkGroups.size > 0 && (
+              <Badge variant="secondary" className="ml-1">{activeLinkGroups.size}</Badge>
             )}
           </Button>
           {isAdmin && (
