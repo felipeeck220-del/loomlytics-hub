@@ -256,19 +256,34 @@ export default function StockMalha() {
           <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.producedKg)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Entregue</div>
+          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Entregue (OF coletadas)</div>
           <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.deliveredKg)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Em Estoque</div>
-          <p className={cn('text-xl font-bold', estoqueKpis.stockKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(estoqueKpis.stockKg)}</p>
+          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Lock className="h-3.5 w-3.5" />Reservado (OFs Pronto)</div>
+          <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatWeight(estoqueKpis.reservedKg)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Layers className="h-3.5 w-3.5" />Rolos</div>
-          <p className={cn('text-xl font-bold', estoqueKpis.stockRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(estoqueKpis.stockRolls)}</p>
+          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Disponível</div>
+          <p className={cn('text-xl font-bold', estoqueKpis.availableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(estoqueKpis.availableKg)}</p>
         </CardContent></Card>
       </div>
 
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription className="text-xs">
+          Estoque calculado por <strong>Produção + Ajustes − OF Coletadas</strong>. NFs de Saída deixaram de descontar o estoque — a baixa real ocorre quando a OF é marcada como <strong>Coletada</strong>.
+          O saldo parte de zero a partir do deploy; use <strong>Lançamento Manual</strong> para registrar saldo inicial ou ajustes.
+        </AlertDescription>
+      </Alert>
+
+      <Tabs defaultValue="estoque" className="w-full">
+        <TabsList>
+          <TabsTrigger value="estoque">Estoque</TabsTrigger>
+          <TabsTrigger value="movimentos">Movimentações</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="estoque" className="space-y-3 mt-4">
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -323,7 +338,8 @@ export default function StockMalha() {
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span>Produzido: <span className="font-semibold text-foreground">{formatWeight(group.totalProducedKg)}</span></span>
-                      <span>Estoque: <span className={cn('font-semibold', group.totalStockKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalStockKg)}</span></span>
+                      <span>Reservado: <span className="font-semibold text-amber-600 dark:text-amber-400">{formatWeight(group.totalReservedKg)}</span></span>
+                      <span>Disponível: <span className={cn('font-semibold', group.totalAvailableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalAvailableKg)}</span></span>
                     </div>
                   </CardHeader>
                 </CollapsibleTrigger>
@@ -337,8 +353,10 @@ export default function StockMalha() {
                           <TableHead className="text-xs text-right">Rolos</TableHead>
                           <TableHead className="text-xs text-right">Entregue kg</TableHead>
                           <TableHead className="text-xs text-right">Rolos</TableHead>
-                          <TableHead className="text-xs text-right font-bold">Estoque kg</TableHead>
-                          <TableHead className="text-xs text-right font-bold">Rolos</TableHead>
+                          <TableHead className="text-xs text-right">Físico kg</TableHead>
+                          <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Reservado kg</TableHead>
+                          <TableHead className="text-xs text-right font-bold">Disponível kg</TableHead>
+                          <TableHead className="text-xs text-right font-bold">Disp. Rolos</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -349,12 +367,18 @@ export default function StockMalha() {
                             <TableCell className="text-xs text-right">{formatNumber(a.producedRolls)}</TableCell>
                             <TableCell className="text-xs text-right">{formatWeight(a.deliveredKg)}</TableCell>
                             <TableCell className="text-xs text-right">{formatNumber(a.deliveredRolls)}</TableCell>
-                            <TableCell className={cn('text-xs text-right font-bold', a.stockKg < 0 ? 'text-destructive' : a.stockKg === 0 ? 'text-muted-foreground' : 'text-success')}>
+                            <TableCell className={cn('text-xs text-right', a.stockKg < 0 ? 'text-destructive' : a.stockKg === 0 ? 'text-muted-foreground' : 'text-foreground')}>
                               {formatWeight(a.stockKg)}
                               {a.stockKg < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
                             </TableCell>
-                            <TableCell className={cn('text-xs text-right font-bold', a.stockRolls < 0 ? 'text-destructive' : a.stockRolls === 0 ? 'text-muted-foreground' : 'text-success')}>
-                              {formatNumber(a.stockRolls)}
+                            <TableCell className="text-xs text-right text-amber-700 dark:text-amber-400">
+                              {formatWeight(a.reservedKg)}
+                            </TableCell>
+                            <TableCell className={cn('text-xs text-right font-bold', a.availableKg < 0 ? 'text-destructive' : a.availableKg === 0 ? 'text-muted-foreground' : 'text-success')}>
+                              {formatWeight(a.availableKg)}
+                            </TableCell>
+                            <TableCell className={cn('text-xs text-right font-bold', a.availableRolls < 0 ? 'text-destructive' : a.availableRolls === 0 ? 'text-muted-foreground' : 'text-success')}>
+                              {formatNumber(a.availableRolls)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -367,6 +391,75 @@ export default function StockMalha() {
           ))}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="movimentos" className="space-y-3 mt-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={movFilterType} onValueChange={setMovFilterType}>
+                  <SelectTrigger className="w-[200px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
+                    <SelectItem value="reserve">Reserva (OF Pronta)</SelectItem>
+                    <SelectItem value="release">Liberação de reserva</SelectItem>
+                    <SelectItem value="out">Saída (OF coletada)</SelectItem>
+                    <SelectItem value="in">Entrada (estorno)</SelectItem>
+                    <SelectItem value="adjust_in">Ajuste manual +</SelectItem>
+                    <SelectItem value="adjust_out">Ajuste manual -</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground">Últimos 500 movimentos</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Data/Hora</TableHead>
+                    <TableHead className="text-xs">Tipo</TableHead>
+                    <TableHead className="text-xs">Cliente</TableHead>
+                    <TableHead className="text-xs">Artigo</TableHead>
+                    <TableHead className="text-xs">OF</TableHead>
+                    <TableHead className="text-xs text-right">Peças</TableHead>
+                    <TableHead className="text-xs text-right">Peso (kg)</TableHead>
+                    <TableHead className="text-xs">Motivo</TableHead>
+                    <TableHead className="text-xs">Autor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMovements.length === 0 && (
+                    <TableRow><TableCell colSpan={9} className="text-center text-xs text-muted-foreground py-8">Sem movimentos.</TableCell></TableRow>
+                  )}
+                  {filteredMovements.map((m: any) => {
+                    const meta = movementLabel[m.type] || { label: m.type, color: 'bg-muted text-foreground' };
+                    return (
+                      <TableRow key={m.id}>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {format(new Date(m.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <Badge variant="outline" className={cn('text-[10px]', meta.color)}>{meta.label}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs">{m.client?.name || '—'}</TableCell>
+                        <TableCell className="text-xs">{m.article?.name || '—'}</TableCell>
+                        <TableCell className="text-xs">{m.billing_order?.of_number ? `#${m.billing_order.of_number}` : '—'}</TableCell>
+                        <TableCell className="text-xs text-right">{formatNumber(m.pieces)}</TableCell>
+                        <TableCell className="text-xs text-right">{formatWeight(Number(m.weight_kg))}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-[260px] truncate" title={m.reason || ''}>{m.reason || '—'}</TableCell>
+                        <TableCell className="text-xs">{m.author?.name ? `${m.author.name} #${m.author.code}` : '—'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {isAdmin && (
         <ManualStockEntryModal
