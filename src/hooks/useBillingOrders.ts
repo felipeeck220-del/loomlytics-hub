@@ -281,7 +281,15 @@ export function useBillingOrders() {
           }
 
           if (mvs.length > 0) {
-            await (supabase.from as any)('stock_movements').insert(mvs);
+            const { error: mvErr } = await (supabase.from as any)('stock_movements').insert(mvs);
+            if (mvErr) {
+              // Status da OF já foi atualizado — não revertemos, mas avisamos no console
+              // e levantamos um erro amigável para o toast/onError.
+              console.error('[useBillingOrders] stock_movements insert failed:', mvErr);
+              const e: any = new Error(`Status atualizado, mas o lançamento no estoque falhou: ${mvErr.message}`);
+              e.code = 'STOCK_MOVEMENT_FAILED';
+              throw e;
+            }
           }
         }
       }
@@ -300,6 +308,13 @@ export function useBillingOrders() {
       // Conflito é tratado visualmente pela página.
       if (error?.code === 'CONFLICT') {
         queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+        return;
+      }
+      if (error?.code === 'STOCK_MOVEMENT_FAILED') {
+        queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+        queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
+        queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
+        toast({ title: 'Estoque não atualizado', description: error.message, variant: 'destructive' });
         return;
       }
       toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" });

@@ -412,9 +412,13 @@ const BillingOrders = () => {
         </head>
         <body>
           <div class="content">
-            <div class="client">${order.client?.name}</div>
-            <div class="dyehouse">(${order.dyehouse})</div>
-            <div class="pieces">${order.pieces_real || order.pieces_expected} PEÇAS</div>
+            <div class="client">${order.client?.name ?? ''}</div>
+            <div class="dyehouse">(${order.dyehouse ?? ''})</div>
+            <div class="pieces">${
+              order.order_type === 'weight' && !order.pieces_real && !order.pieces_expected
+                ? `${order.weight_real ?? order.weight_expected ?? '—'} KG`
+                : `${order.pieces_real ?? order.pieces_expected ?? '—'} PEÇAS`
+            }</div>
             <div class="of-number">OF ${order.of_number}</div>
           </div>
           <script>
@@ -524,6 +528,7 @@ const BillingOrders = () => {
         separating: { label: 'SEPARANDO', color: [217, 119, 6] },
         ready: { label: order.delivery_doc_number ? 'PRONTO' : 'PRONTO PARA COLETA', color: order.delivery_doc_number ? [5, 150, 105] : [124, 58, 237] },
         collected: { label: 'COLETADA', color: [71, 85, 105] },
+        cancelled: { label: 'CANCELADA', color: [113, 113, 122] },
       };
       let st = statusMap[order.status] || { label: order.status.toUpperCase(), color: [100, 100, 100] as [number, number, number] };
       // PDF para cliente: sempre exibe "PRONTO PARA COLETA"

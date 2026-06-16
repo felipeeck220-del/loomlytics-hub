@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,11 @@ export default function StockMalha() {
   const [manualOpen, setManualOpen] = useState(false);
   const [manual2qOpen, setManual2qOpen] = useState(false);
   const [activeStockTab, setActiveStockTab] = useState<'estoque' | 'segunda' | 'movimentos'>('estoque');
+  const queryClient = useQueryClient();
+  const refreshAllStock = () => {
+    queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock', companyId] });
+    queryClient.invalidateQueries({ queryKey: ['stock_movements_history', companyId] });
+  };
   // Filtros independentes para 2ª qualidade
   const [segClient, setSegClient] = useState('all');
   const [segArticle, setSegArticle] = useState('all');
@@ -80,7 +86,7 @@ export default function StockMalha() {
     enabled: !!companyId,
   });
 
-  const { data: stockMovements = [], refetch: refetchMovements } = useQuery({
+  const { data: stockMovements = [] } = useQuery({
     queryKey: ['stock_movements_for_stock', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('stock_movements')
@@ -660,6 +666,9 @@ export default function StockMalha() {
                         </TableCell>
                         <TableCell className="text-xs">
                           <Badge variant="outline" className={cn('text-[10px]', meta.color)}>{meta.label}</Badge>
+                          {m.is_second_quality && (
+                            <Badge variant="outline" className="ml-1 text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-300">2ª</Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-xs">{m.client?.name || '—'}</TableCell>
                         <TableCell className="text-xs">{m.article?.name || '—'}</TableCell>
@@ -684,7 +693,7 @@ export default function StockMalha() {
           onOpenChange={setManualOpen}
           clients={clients}
           articles={articles as any}
-          onSaved={() => refetchMovements()}
+          onSaved={refreshAllStock}
         />
       )}
       {isAdmin && (
@@ -694,7 +703,7 @@ export default function StockMalha() {
           clients={clients}
           articles={articles as any}
           isSecondQuality
-          onSaved={() => refetchMovements()}
+          onSaved={refreshAllStock}
         />
       )}
     </div>
