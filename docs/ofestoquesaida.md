@@ -19,6 +19,37 @@ A OF passa por estes estados: `open → separating → ready → collected` (com
 3. **Migração histórica:** estoque parte **do zero** na data do deploy (não retroage OFs ready/collected antigas).
 4. **Aba Movimentações:** nova tab dentro da página **Estoque Malha**.
 5. **Produção Pendente** (lançamentos do dia que ainda não foram digitados): entra **na Fase 1**, na versão simples.
+6. **Lançamento Manual de Entrada de Malha em Estoque** (saldo inicial e ajustes pontuais): botão dedicado em **Estoque Malha** com modal — necessário porque a empresa já possui muita malha pronta na fábrica antes do deploy, e o `productions` só registra do deploy em diante. Sem esse botão o saldo inicial nasceria zerado.
+
+### Botão "Lançamento Manual" — escopo na Fase 1
+
+- **Localização:** topo da página `Estoque Malha`, ao lado do título (alinhado à direita).
+- **Visibilidade:** somente `role = admin`.
+- **Modal "Lançamento Manual de Estoque":**
+  - Tipo: **Entrada** (default — saldo inicial / sobra encontrada) ou **Saída** (ajuste de quebra, perda, contagem).
+  - Cliente (`SearchableSelect`, obrigatório).
+  - Artigo (`SearchableSelect` filtrado pelo cliente, obrigatório).
+  - Peças (inteiro ≥ 0).
+  - Peso em kg (`BrazilianWeightInput`, > 0).
+  - Motivo (`Textarea` obrigatório, mín. 5 chars — ex.: "Saldo inicial pré-sistema", "Quebra contagem 16/06").
+  - Botões: **Cancelar** | **Salvar**.
+- **Persistência:** insere em `stock_movements` com `type = adjust_in` (Entrada) ou `adjust_out` (Saída), preservando `pieces`/`weight_kg` sempre positivos, `reason`, `created_by`, `company_id`.
+- **Auditoria:** chama `logAudit({ action: 'STOCK_ADJUST', details: { type, article_id, client_id, pieces, weight_kg, reason } })`.
+- **Efeito no cálculo (compatível com a versão atual):**
+  - `estoqueKg = produzido + Σ adjust_in.weight_kg − Σ adjust_out.weight_kg − entregue`
+  - `estoqueRolos = produzido + Σ adjust_in.pieces − Σ adjust_out.pieces − entregue`
+  - Quando a §5 entrar em vigor (OF descontando estoque), a mesma fórmula continua válida — adjust apenas complementa.
+- **Aba Movimentações (Fase 1 mínima):** os lançamentos manuais já passam a aparecer na futura tab Movimentações (§6.1); por enquanto ficam apenas em `stock_movements` e na linha de Estoque consolidado da tabela.
+
+### Migration mínima para habilitar o botão (já feita na Fase 1)
+
+- Enum `stock_movement_type` com **todos** os valores previstos (`reserve | release | out | in | adjust_in | adjust_out`) para evitar `ALTER TYPE` futuro.
+- Tabela `stock_movements` completa conforme §3.1.
+- RLS, GRANTs e índices conforme §3.1.
+- **Sem** RPCs OF ainda — entram quando a integração com `billing_orders` for ligada.
+- **Sem** alterações em `billing_orders` ainda.
+
+Isso significa que a tabela já nasce no formato final; futuras fases apenas plugam as RPCs por cima.
 
 ---
 
