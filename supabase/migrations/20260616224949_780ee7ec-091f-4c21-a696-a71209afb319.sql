@@ -1,0 +1,2 @@
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS stock_cutoff_date DATE;
+UPDATE public.company_settings SET stock_cutoff_date = '2026-06-17' WHERE company_id = 'a664927c-a285-4997-8faa-8c90985c6fac';
