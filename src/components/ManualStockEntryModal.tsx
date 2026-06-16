@@ -94,6 +94,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
       onSaved();
       onOpenChange(false);
     } catch (err: any) {
+      console.error('[ManualStockEntry] insert error', err);
       toast({ title: 'Erro ao salvar', description: getFriendlyErrorMessage(err), variant: 'destructive' });
     } finally {
       setSaving(false);
