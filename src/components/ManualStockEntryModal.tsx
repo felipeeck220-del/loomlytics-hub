@@ -106,7 +106,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Warehouse className="h-4 w-4 text-primary" />
-            Lançamento Manual de Estoque
+            {isSecondQuality ? 'Lançamento Manual — Estoque de 2ª' : 'Lançamento Manual de Estoque'}
           </DialogTitle>
         </DialogHeader>
 
