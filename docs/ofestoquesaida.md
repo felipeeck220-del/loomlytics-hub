@@ -312,3 +312,30 @@ ALTER TABLE public.billing_orders
 | Migração histórica                          | **Estoque parte do zero** no deploy.                       |
 | Aba Movimentações                           | **Dentro de Estoque Malha** (nova tab).                    |
 | Produção Pendente                           | **Fase 1**, versão simples (banner de alerta).             |
+
+---
+
+## 14. Fase 4 — Estoque de 2ª Qualidade (16/06/2026)
+
+### Motivação
+Estorno de OF coletada agora é dual-quality: peças podem voltar como **1ª qualidade** (vendáveis, retornam ao estoque principal) ou **2ª qualidade** (defeitos, retornam para saldo separado para venda como resíduo/segunda linha).
+
+### Migração
+- `stock_movements.is_second_quality boolean default false`
+- `billing_orders.reversal_quality text check in ('first','second')` — histórico/auditoria do tipo de estorno.
+
+### Fluxo de estorno (Coletada → Cancelada)
+No modal "Estornar OF" o admin escolhe:
+- **1ª qualidade** → insere `stock_movements{type:'in', is_second_quality:false, billing_order_id}`. Cálculo: decrementa `deliveredKg/Rolls` (Disponível volta a refletir as peças no estoque).
+- **2ª qualidade** → insere `stock_movements{type:'in', is_second_quality:true, billing_order_id}`. Estoque principal **não muda** (Entregue permanece — afinal a peça saiu). O saldo aparece exclusivamente na aba **Estoque de 2ª**.
+
+### UI `/estoque-malha`
+Tabs: **Estoque** | **Estoque de 2ª** | **Movimentações**
+- KPIs do topo trocam conforme a tab ativa (na 2ª: Entradas, Saídas, Saldo kg, Saldo pç).
+- Filtros independentes (mês/cliente/artigo) por tab.
+- Botão **Lançamento Manual (2ª)** (admin) abre o mesmo `ManualStockEntryModal` com prop `isSecondQuality`, gravando o flag no insert.
+- Tabela agrupa por cliente com Entradas/Saídas/Saldo (kg e pç).
+
+### Correção do bug "Disp. Rolos não atribuiu peças após estorno"
+Antes: `in` → `producedKg += w; producedRolls += p`. Resultado: `Entregue` permanecia inflada e `Disp. Rolos` mostrava inconsistência.
+Agora: `in` com `billing_order_id` → `deliveredKg -= w; deliveredRolls -= p`. Estoque principal volta a 100 % do produzido menos o líquido entregue.
