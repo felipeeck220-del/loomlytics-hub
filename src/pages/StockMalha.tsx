@@ -118,7 +118,10 @@ export default function StockMalha() {
 
   // Re-implementing the malhaEstoque logic from Invoices.tsx
   const malhaEstoque = useMemo(() => {
-    const map = new Map<string, Map<string, { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; reservedKg: number; reservedRolls: number }>>();
+    // deliveredKg/Rolls = entregue NO RANGE (apenas para exibição da coluna Entregue).
+    // deliveredKgTotal/RollsTotal = entregue ACUMULADO (usado para calcular Estoque/Disponível,
+    // que NÃO devem oscilar conforme o usuário muda o filtro de período).
+    const map = new Map<string, Map<string, { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; deliveredKgTotal: number; deliveredRollsTotal: number; reservedKg: number; reservedRolls: number }>>();
     const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
 
     // 1. Production
@@ -128,7 +131,7 @@ export default function StockMalha() {
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
       const artMap = map.get(art.client_id)!;
-      if (!artMap.has(prod.article_id!)) artMap.set(prod.article_id!, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, reservedKg: 0, reservedRolls: 0 });
+      if (!artMap.has(prod.article_id!)) artMap.set(prod.article_id!, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, deliveredKgTotal: 0, deliveredRollsTotal: 0, reservedKg: 0, reservedRolls: 0 });
       const entry = artMap.get(prod.article_id!)!;
       entry.producedKg += Number(prod.weight_kg);
       entry.producedRolls += Number(prod.rolls_produced);
@@ -156,7 +159,7 @@ export default function StockMalha() {
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
       const artMap = map.get(art.client_id)!;
-      if (!artMap.has(mv.article_id)) artMap.set(mv.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, reservedKg: 0, reservedRolls: 0 });
+      if (!artMap.has(mv.article_id)) artMap.set(mv.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, deliveredKgTotal: 0, deliveredRollsTotal: 0, reservedKg: 0, reservedRolls: 0 });
       const entry = artMap.get(mv.article_id)!;
       const kg = Number(mv.weight_kg);
       const pc = Number(mv.pieces);
@@ -169,6 +172,10 @@ export default function StockMalha() {
       } else if (mv.type === 'in') {
         // Estorno 1ª qualidade: pç retornam ao estoque → desconta Entregue (libera Disponível)
         if (mv.billing_order_id) {
+          // total (sempre): afeta cálculo de Estoque/Disponível
+          entry.deliveredKgTotal -= kg;
+          entry.deliveredRollsTotal -= pc;
+          // exibição: só desconta da coluna Entregue se cair no range filtrado
           if (matchesEntregueRange(mv.created_at)) {
             entry.deliveredKg -= kg;
             entry.deliveredRolls -= pc;
@@ -179,6 +186,8 @@ export default function StockMalha() {
         }
       } else if (mv.type === 'out') {
         // Saída por OF coletada — conta como entregue (não desconta o "Produzido" exibido).
+        entry.deliveredKgTotal += Number(mv.weight_kg);
+        entry.deliveredRollsTotal += Number(mv.pieces);
         if (matchesEntregueRange(mv.created_at)) {
           entry.deliveredKg += Number(mv.weight_kg);
           entry.deliveredRolls += Number(mv.pieces);
@@ -197,12 +206,13 @@ export default function StockMalha() {
       if (estoqueClient !== 'all' && clientId !== estoqueClient) return;
       const client = clients.find(c => c.id === clientId);
       const arts: any[] = [];
-      let tPK = 0, tPR = 0, tDK = 0, tDR = 0, tRK = 0, tRR = 0;
+      let tPK = 0, tPR = 0, tDK = 0, tDR = 0, tDKT = 0, tDRT = 0, tRK = 0, tRR = 0;
       artMap.forEach((vals, articleId) => {
         if (estoqueArticle !== 'all' && articleId !== estoqueArticle) return;
         const article = articles.find(a => a.id === articleId);
-        const stockKg = vals.producedKg - vals.deliveredKg;
-        const stockRolls = vals.producedRolls - vals.deliveredRolls;
+        // Estoque/Disponível usam o TOTAL entregue (não o filtrado pelo range)
+        const stockKg = vals.producedKg - vals.deliveredKgTotal;
+        const stockRolls = vals.producedRolls - vals.deliveredRollsTotal;
         arts.push({
           articleId,
           articleName: article?.name || 'Artigo removido',
@@ -214,6 +224,7 @@ export default function StockMalha() {
         });
         tPK += vals.producedKg; tPR += vals.producedRolls;
         tDK += vals.deliveredKg; tDR += vals.deliveredRolls;
+        tDKT += vals.deliveredKgTotal; tDRT += vals.deliveredRollsTotal;
         tRK += vals.reservedKg; tRR += vals.reservedRolls;
       });
       if (arts.length > 0) {
@@ -224,8 +235,8 @@ export default function StockMalha() {
           totalProducedKg: tPK, totalProducedRolls: tPR,
           totalDeliveredKg: tDK, totalDeliveredRolls: tDR,
           totalReservedKg: tRK, totalReservedRolls: tRR,
-          totalStockKg: tPK - tDK, totalStockRolls: tPR - tDR,
-          totalAvailableKg: (tPK - tDK) - tRK, totalAvailableRolls: (tPR - tDR) - tRR,
+          totalStockKg: tPK - tDKT, totalStockRolls: tPR - tDRT,
+          totalAvailableKg: (tPK - tDKT) - tRK, totalAvailableRolls: (tPR - tDRT) - tRR,
         });
       }
     });
