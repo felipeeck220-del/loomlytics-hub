@@ -1,6 +1,7 @@
     - 11/05/2026 09:15 - Criação do arquivo rpcreports.md documentando a lógica de cálculos do módulo de Relatórios para futura migração para RPCs, garantindo que os algoritmos permaneçam idênticos.
 
-*Última atualização: 17/06/2026 00:05 (Brasília)*
+*Última atualização: 17/06/2026 00:20 (Brasília)*
+- 17/06/2026 00:20 - /invoices (Venda de Fio / Entrada de Fio): ao clicar em "Salvar NF" no modal "Nova NF", o modal permanece aberto e os campos são limpos automaticamente via `resetForm()`, permitindo lançar várias NFs em sequência sem reabrir o modal. O fechamento manual continua pelo botão "Cancelar".
 - 17/06/2026 00:05 - Trama Certa: apagados os 154 lançamentos `adjust_out` de baseline em `stock_movements` a pedido do usuário — aba **Movimentações** ficou totalmente vazia. ⚠️ Observação: sem o baseline, a aba **Estoque** volta a contar toda a produção histórica de `productions` como "Produzido"; recomendado, quando o usuário começar a operar de verdade, fixar um filtro mensal ou implementar um cutoff por empresa caso queira que o estoque ignore produções antigas.
 - 16/06/2026 23:55 - Limpeza + pente fino:
   - **Trama Certa — limpeza de dados de teste:** apagadas as 15 OFs de teste de /billing-orders (todos os status) e respectivos paletes; apagados TODOS os `stock_movements` da empresa (Movimentações + 2ª qualidade do 4K Têxtil — tudo teste); inseridos lançamentos de baseline (`adjust_out`) por par Artigo+Cliente igualando o total já produzido, **zerando o estoque atual** sem apagar o histórico de `productions` (preserva relatórios/dashboard). A partir de agora a contagem do Estoque parte do zero.
