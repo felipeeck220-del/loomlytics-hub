@@ -74,6 +74,9 @@ const BillingOrders = () => {
   });
   const [datePreset, setDatePreset] = useState<'7d' | '30d' | 'custom'>('30d');
 
+  // Filtro da aba Pronto: todas / com doc / sem doc
+  const [readyDocFilter, setReadyDocFilter] = useState<'all' | 'with' | 'without'>('all');
+
   const [form, setForm] = useState({
     of_number: '',
     client_id: '',
