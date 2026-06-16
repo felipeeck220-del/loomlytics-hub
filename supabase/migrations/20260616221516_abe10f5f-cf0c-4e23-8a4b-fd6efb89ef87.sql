@@ -1,0 +1,2 @@
+ALTER TABLE public.billing_orders ADD COLUMN IF NOT EXISTS link_group_id uuid;
+CREATE INDEX IF NOT EXISTS idx_billing_orders_link_group ON public.billing_orders(link_group_id) WHERE link_group_id IS NOT NULL;

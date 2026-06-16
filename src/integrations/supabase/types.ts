@@ -333,6 +333,7 @@ export type Database = {
           id: string
           last_edited_at: string | null
           last_edited_by: string | null
+          link_group_id: string | null
           machine_id: string | null
           of_number: string
           order_type: string
@@ -376,6 +377,7 @@ export type Database = {
           id?: string
           last_edited_at?: string | null
           last_edited_by?: string | null
+          link_group_id?: string | null
           machine_id?: string | null
           of_number: string
           order_type?: string
@@ -419,6 +421,7 @@ export type Database = {
           id?: string
           last_edited_at?: string | null
           last_edited_by?: string | null
+          link_group_id?: string | null
           machine_id?: string | null
           of_number?: string
           order_type?: string
