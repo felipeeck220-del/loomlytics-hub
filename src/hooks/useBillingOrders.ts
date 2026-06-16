@@ -252,8 +252,14 @@ export function useBillingOrders() {
 
           // separating -> ready: reserva o estoque
           if (status === 'ready' && expectedStatus === 'separating' && (pieces > 0 || weight > 0)) {
-            mvs.push({ ...baseMov, type: 'reserve', pieces, weight_kg: weight,
-              reason: `OF #${ofRow.of_number} pronta (reserva)` });
+            // Se já há paletes salvos (com reservas individuais), NÃO duplica a reserva.
+            const { count: palletCount } = await (supabase.from as any)('billing_order_pallets')
+              .select('id', { count: 'exact', head: true })
+              .eq('billing_order_id', id);
+            if (!palletCount || palletCount === 0) {
+              mvs.push({ ...baseMov, type: 'reserve', pieces, weight_kg: weight,
+                reason: `OF #${ofRow.of_number} pronta (reserva)` });
+            }
           }
 
           // ready -> collected: libera a reserva e baixa do físico
