@@ -138,10 +138,15 @@ export default function StockMalha() {
     // que NÃO devem oscilar conforme o usuário muda o filtro de período).
     const map = new Map<string, Map<string, { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; deliveredKgTotal: number; deliveredRollsTotal: number; reservedKg: number; reservedRolls: number }>>();
     const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
+    // Corte: ignora qualquer produção/movimentação com data < stockCutoffDate
+    const cutoff = stockCutoffDate || '';
+    const afterCutoffDate = (date: string) => !cutoff || date >= cutoff;
+    const afterCutoffTs = (createdAt: string) => !cutoff || format(new Date(createdAt), 'yyyy-MM-dd') >= cutoff;
 
     // 1. Production
     for (const prod of productions) {
       if (!matchMonth(prod.date)) continue;
+      if (!afterCutoffDate(prod.date)) continue;
       const art = articles.find(a => a.id === prod.article_id);
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
@@ -167,6 +172,7 @@ export default function StockMalha() {
     };
     for (const mv of stockMovements as any[]) {
       if (!monthMatchesMovement(mv.created_at)) continue;
+      if (!afterCutoffTs(mv.created_at)) continue;
       // Movimentos de 2ª qualidade não afetam o estoque principal
       if (mv.is_second_quality) continue;
       if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
@@ -256,7 +262,7 @@ export default function StockMalha() {
       }
     });
     return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
-  }, [productions, invoices, invoiceItems, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth, entregueRange]);
+  }, [productions, invoices, invoiceItems, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth, entregueRange, stockCutoffDate]);
 
   const estoqueKpis = useMemo(() => malhaEstoque.reduce((acc, g) => ({
     producedKg: acc.producedKg + g.totalProducedKg,
