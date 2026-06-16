@@ -1438,9 +1438,49 @@ const BillingOrders = () => {
           </DialogHeader>
           <div className="py-2 space-y-3">
             {showCancelModal?.status === 'collected' ? (
-              <p className="text-sm text-muted-foreground">
-                O estorno devolve as <strong>{showCancelModal?.pieces_real} pç / {Number(showCancelModal?.weight_real || 0).toFixed(2)} kg</strong> ao estoque físico e move a OF para <strong>Canceladas</strong>. Informe o motivo do estorno (mín. 5 caracteres):
-              </p>
+              <>
+                <p className="text-sm text-muted-foreground">
+                  O estorno devolve as <strong>{showCancelModal?.pieces_real} pç / {Number(showCancelModal?.weight_real || 0).toFixed(2)} kg</strong> e move a OF para <strong>Canceladas</strong>.
+                </p>
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-foreground">Tipo do estorno *</div>
+                  <div className="grid grid-cols-1 gap-2">
+                    <label className={cn(
+                      'flex items-start gap-2 p-2 rounded-md border cursor-pointer transition-colors',
+                      reversalQuality === 'first' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-border hover:bg-muted/50'
+                    )}>
+                      <input
+                        type="radio"
+                        name="rev-q"
+                        className="mt-0.5"
+                        checked={reversalQuality === 'first'}
+                        onChange={() => setReversalQuality('first')}
+                      />
+                      <div className="text-xs">
+                        <div className="font-semibold text-emerald-700 dark:text-emerald-400">1ª qualidade</div>
+                        <div className="text-muted-foreground">Peças voltam para o <strong>Estoque de Malha</strong>, somam em Disponível e descontam Entregue kg/Rolos.</div>
+                      </div>
+                    </label>
+                    <label className={cn(
+                      'flex items-start gap-2 p-2 rounded-md border cursor-pointer transition-colors',
+                      reversalQuality === 'second' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-border hover:bg-muted/50'
+                    )}>
+                      <input
+                        type="radio"
+                        name="rev-q"
+                        className="mt-0.5"
+                        checked={reversalQuality === 'second'}
+                        onChange={() => setReversalQuality('second')}
+                      />
+                      <div className="text-xs">
+                        <div className="font-semibold text-amber-700 dark:text-amber-400">2ª qualidade</div>
+                        <div className="text-muted-foreground">Peças vão para a aba <strong>Estoque de 2ª</strong> (saldo independente). O estoque principal não é afetado.</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">Informe o motivo do estorno (mín. 5 caracteres):</p>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">
                 A OF será movida para a aba <strong>Canceladas</strong>. Informe o motivo do cancelamento:
