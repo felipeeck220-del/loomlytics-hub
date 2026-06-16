@@ -195,6 +195,41 @@ export default function StockMalha() {
     return Array.from(months).sort().reverse();
   }, [invoices]);
 
+  // Histórico completo de movimentos (tab Movimentações)
+  const { data: movementsHistory = [] } = useQuery({
+    queryKey: ['stock_movements_history', companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)('stock_movements')
+        .select(`
+          id, article_id, client_id, billing_order_id, type, pieces, weight_kg, reason, created_at,
+          article:articles(name),
+          client:clients(name),
+          author:profiles!stock_movements_created_by_fkey(name, code),
+          billing_order:billing_orders(of_number)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
+  const [movFilterType, setMovFilterType] = useState<string>('all');
+  const filteredMovements = useMemo(() => {
+    return (movementsHistory as any[]).filter(m => movFilterType === 'all' || m.type === movFilterType);
+  }, [movementsHistory, movFilterType]);
+
+  const movementLabel: Record<string, { label: string; color: string }> = {
+    reserve: { label: 'Reserva', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' },
+    release: { label: 'Libera reserva', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+    out: { label: 'Saída (OF coletada)', color: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' },
+    in: { label: 'Entrada (estorno)', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' },
+    adjust_in: { label: 'Ajuste +', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300' },
+    adjust_out: { label: 'Ajuste -', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300' },
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
