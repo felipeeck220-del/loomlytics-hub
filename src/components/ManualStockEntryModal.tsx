@@ -23,9 +23,10 @@ interface Props {
   clients: Client[];
   articles: Article[];
   onSaved: () => void;
+  isSecondQuality?: boolean;
 }
 
-export function ManualStockEntryModal({ open, onOpenChange, clients, articles, onSaved }: Props) {
+export function ManualStockEntryModal({ open, onOpenChange, clients, articles, onSaved, isSecondQuality = false }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
@@ -72,11 +73,12 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
         weight_kg: weightNum,
         reason: reason.trim(),
         created_by: user.id,
+        is_second_quality: isSecondQuality,
       });
       if (error) throw error;
 
       await logAudit({
-        action: 'STOCK_ADJUST',
+        action: isSecondQuality ? 'STOCK_2Q_ADJUST' : 'STOCK_ADJUST',
         companyId: user.company_id,
         userId: user.id,
         userName: user.name,
