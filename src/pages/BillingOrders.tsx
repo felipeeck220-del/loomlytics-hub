@@ -416,7 +416,7 @@ const BillingOrders = () => {
     printWindow.document.close();
   };
 
-  const handleAdminPrintPdf = async (order: any) => {
+  const handleAdminPrintPdf = async (order: any, mode: 'internal' | 'client' = 'internal') => {
     try {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pw = pdf.internal.pageSize.getWidth();
@@ -507,14 +507,19 @@ const BillingOrders = () => {
       const statusMap: Record<string, { label: string; color: [number, number, number] }> = {
         open: { label: 'ABERTO', color: [2, 132, 199] },
         separating: { label: 'SEPARANDO', color: [217, 119, 6] },
-        ready: { label: 'PRONTO', color: [5, 150, 105] },
+        ready: { label: order.delivery_doc_number ? 'PRONTO' : 'PRONTO PARA COLETA', color: order.delivery_doc_number ? [5, 150, 105] : [124, 58, 237] },
         collected: { label: 'COLETADA', color: [71, 85, 105] },
       };
-      const st = statusMap[order.status] || { label: order.status.toUpperCase(), color: [100, 100, 100] as [number, number, number] };
+      let st = statusMap[order.status] || { label: order.status.toUpperCase(), color: [100, 100, 100] as [number, number, number] };
+      // PDF para cliente: sempre exibe "PRONTO PARA COLETA"
+      if (mode === 'client') {
+        st = { label: 'PRONTO PARA COLETA', color: [5, 150, 105] };
+      }
       pdf.setFillColor(...st.color);
-      pdf.roundedRect(margin, y, 50, 9, 1.5, 1.5, 'F');
+      const badgeW = mode === 'client' ? 70 : 50;
+      pdf.roundedRect(margin, y, badgeW, 9, 1.5, 1.5, 'F');
       pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
-      pdf.text(sanitizePdfText(st.label), margin + 25 - pdf.getTextWidth(st.label) / 2, y + 6.2);
+      pdf.text(sanitizePdfText(st.label), margin + badgeW / 2 - pdf.getTextWidth(st.label) / 2, y + 6.2);
 
       if (order.priority && order.status !== 'collected') {
         pdf.setFillColor(220, 38, 38);
@@ -556,14 +561,28 @@ const BillingOrders = () => {
         ['Máquina', order.machine?.name || '—'],
       ]);
 
-      drawSection('QUANTIDADES', [
-        ['Peças Previstas', String(order.pieces_expected ?? '—')],
-        ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
-        ['Peso Previsto', order.weight_expected ? `${order.weight_expected} kg` : '—'],
-        ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
-        ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
-        ['Média', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
-      ]);
+      if (mode === 'client') {
+        drawSection('QUANTIDADES', [
+          ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
+          ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
+          ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
+        ]);
+      } else {
+        drawSection('QUANTIDADES', [
+          ['Peças Previstas', String(order.pieces_expected ?? '—')],
+          ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
+          ['Peso Previsto', order.weight_expected ? `${order.weight_expected} kg` : '—'],
+          ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
+          ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
+          ['Média', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
+        ]);
+      }
+
+      if (order.delivery_doc_number) {
+        drawSection(order.delivery_doc_type === 'romaneio' ? 'ROMANEIO' : 'NOTA FISCAL', [
+          [order.delivery_doc_type === 'romaneio' ? 'Romaneio Nº' : 'NF Nº', order.delivery_doc_number],
+        ]);
+      }
 
       if (order.priority_reason) {
         drawSection('PRIORIDADE', [
@@ -573,20 +592,23 @@ const BillingOrders = () => {
         ]);
       }
 
-      drawSection('AUDITORIA', [
-        ['Criado por', order.creator ? `${order.creator.name} #${order.creator.code}` : '—'],
-        ['Criado em', format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
-        ['Separado por', order.separator ? `${order.separator.name} #${order.separator.code}` : '—'],
-        ['Coletado por', order.collector ? `${order.collector.name} #${order.collector.code}` : '—'],
-        ['Última atualização', format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
-      ]);
+      if (mode !== 'client') {
+        drawSection('AUDITORIA', [
+          ['Criado por', order.creator ? `${order.creator.name} #${order.creator.code}` : '—'],
+          ['Criado em', format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
+          ['Separado por', order.separator ? `${order.separator.name} #${order.separator.code}` : '—'],
+          ['Coletado por', order.collector ? `${order.collector.name} #${order.collector.code}` : '—'],
+          ['Última atualização', format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
+        ]);
+      }
 
       // Rodapé
       const ph = pdf.internal.pageSize.getHeight();
       pdf.setFontSize(7); pdf.setFont('helvetica', 'italic'); pdf.setTextColor(...colors.textMid);
       pdf.text(`Documento gerado em ${dateStr} • ${sanitizePdfText(companyName)}`, pw / 2 - 50, ph - 8);
 
-      pdf.save(`OF_${order.of_number}_${order.client?.name?.replace(/\s+/g, '_') || 'cliente'}.pdf`);
+      const suffix = mode === 'client' ? '_CLIENTE' : '';
+      pdf.save(`OF_${order.of_number}_${order.client?.name?.replace(/\s+/g, '_') || 'cliente'}${suffix}.pdf`);
     } catch (e: any) {
       toast({ title: 'Erro ao gerar PDF', description: e?.message, variant: 'destructive' });
     }
