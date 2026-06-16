@@ -236,6 +236,46 @@ const BillingOrders = () => {
 
   const hasPendingPriority = stats.priority > 0;
 
+  // Mapa de grupos de atrelamento → lista de OFs do grupo
+  const linkGroups = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const o of orders) {
+      const gid = (o as any).link_group_id;
+      if (!gid) continue;
+      if (!map.has(gid)) map.set(gid, []);
+      map.get(gid)!.push(o);
+    }
+    // remove grupos com 1 só OF (não faz sentido manter)
+    for (const [gid, arr] of map) {
+      if (arr.length < 2) map.delete(gid);
+    }
+    return map;
+  }, [orders]);
+
+  // OFs elegíveis para atrelamento: aberto, prioritário, separando, pronto
+  const linkableOrders = useMemo(() => {
+    return orders.filter((o: any) => ['open', 'separating', 'ready'].includes(o.status));
+  }, [orders]);
+
+  const groupLabel = (gid: string) => `#${gid.slice(0, 6).toUpperCase()}`;
+
+  const handleLink = async () => {
+    if (linkSelected.size < 2) {
+      toast({ title: 'Selecione 2 ou mais OFs para atrelar', variant: 'destructive' });
+      return;
+    }
+    setLinkBusy(true);
+    try {
+      await linkOrders(Array.from(linkSelected));
+      setLinkSelected(new Set());
+      setShowLinkModal(false);
+    } catch (e: any) {
+      toast({ title: 'Erro ao atrelar OFs', description: e?.message || String(e), variant: 'destructive' });
+    } finally {
+      setLinkBusy(false);
+    }
+  };
+
   const handlePriority = async () => {
     if (!priorityForm.reason && !priorityForm.customReason) {
       toast({ title: "Selecione ou digite um motivo", variant: "destructive" });
