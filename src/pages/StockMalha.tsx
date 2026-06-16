@@ -20,13 +20,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ManualStockEntryModal } from '@/components/ManualStockEntryModal';
-import { Plus } from 'lucide-react';
+import { Plus, CalendarDays } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CalendarDays } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
 
 export default function StockMalha() {
   const { 
@@ -503,24 +505,53 @@ export default function StockMalha() {
               <CalendarDays className="h-3.5 w-3.5" />
               <span className="font-medium">Entregue — período:</span>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] uppercase text-muted-foreground">De</Label>
-              <Input
-                type="date"
-                className="h-8 text-xs w-[150px]"
-                value={entregueRange.from}
-                onChange={e => setEntregueRange(r => ({ ...r, from: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] uppercase text-muted-foreground">Até</Label>
-              <Input
-                type="date"
-                className="h-8 text-xs w-[150px]"
-                value={entregueRange.to}
-                onChange={e => setEntregueRange(r => ({ ...r, to: e.target.value }))}
-              />
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-8 text-xs justify-start text-left font-normal w-[260px]",
+                    !entregueRange.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarDays className="mr-2 h-3.5 w-3.5" />
+                  {entregueRange.from ? (
+                    entregueRange.to && entregueRange.to !== entregueRange.from ? (
+                      <>
+                        {format(parse(entregueRange.from, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')} → {format(parse(entregueRange.to, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')}
+                      </>
+                    ) : (
+                      format(parse(entregueRange.from, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')
+                    )
+                  ) : (
+                    <span>Selecionar datas</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={{
+                    from: entregueRange.from ? parse(entregueRange.from, 'yyyy-MM-dd', new Date()) : undefined,
+                    to: entregueRange.to ? parse(entregueRange.to, 'yyyy-MM-dd', new Date()) : undefined,
+                  }}
+                  onSelect={(range) => {
+                    if (!range) {
+                      setEntregueRange({ from: '', to: '' });
+                      return;
+                    }
+                    setEntregueRange({
+                      from: range.from ? format(range.from, 'yyyy-MM-dd') : '',
+                      to: range.to ? format(range.to, 'yyyy-MM-dd') : (range.from ? format(range.from, 'yyyy-MM-dd') : ''),
+                    });
+                  }}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                  numberOfMonths={1}
+                />
+              </PopoverContent>
+            </Popover>
             <Button
               variant="ghost"
               size="sm"
