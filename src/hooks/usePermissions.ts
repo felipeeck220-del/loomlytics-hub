@@ -9,7 +9,7 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
   lider: ['machines', 'clients-articles', 'revision', 'mecanica', 'weavers'],
   mecanico: ['machines', 'mecanica'],
   revisador: ['revision'],
-  expedicao: ['billing-orders'],
+  expedicao: ['billing-orders', 'estoque-malha'],
 };
 
 /** Overridable permission keys that admin can grant to non-admin users */
