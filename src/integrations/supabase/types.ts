@@ -246,6 +246,71 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_order_pallets: {
+        Row: {
+          billing_order_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          pallet_number: number
+          pieces: number
+          reserve_movement_id: string | null
+          weight_kg: number
+        }
+        Insert: {
+          billing_order_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pallet_number: number
+          pieces?: number
+          reserve_movement_id?: string | null
+          weight_kg?: number
+        }
+        Update: {
+          billing_order_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pallet_number?: number
+          pieces?: number
+          reserve_movement_id?: string | null
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_order_pallets_billing_order_id_fkey"
+            columns: ["billing_order_id"]
+            isOneToOne: false
+            referencedRelation: "billing_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_order_pallets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_order_pallets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_order_pallets_reserve_movement_id_fkey"
+            columns: ["reserve_movement_id"]
+            isOneToOne: false
+            referencedRelation: "stock_movements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_orders: {
         Row: {
           article_id: string
