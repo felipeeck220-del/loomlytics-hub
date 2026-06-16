@@ -11,14 +11,16 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function getFriendlyErrorMessage(errorMessage: unknown): string {
   // Coerce to a string safely — callers sometimes pass the raw error object.
+  let msg: string;
   if (errorMessage == null) return 'Erro desconhecido.';
-  if (typeof errorMessage !== 'string') {
+  if (typeof errorMessage === 'string') {
+    msg = errorMessage;
+  } else {
     const anyErr = errorMessage as any;
-    errorMessage = anyErr?.message || anyErr?.error_description || anyErr?.details || anyErr?.hint || String(errorMessage);
+    msg = anyErr?.message || anyErr?.error_description || anyErr?.details || anyErr?.hint || String(errorMessage);
   }
-  errorMessage = errorMessage as string;
   // Foreign key constraint violations
-  if (errorMessage.includes('violates foreign key constraint')) {
+  if (msg.includes('violates foreign key constraint')) {
     // Extract table name from the error for context
     if (errorMessage.includes('invoice_items')) {
       return 'Este item não pode ser excluído porque está sendo usado em Notas Fiscais. Remova primeiro os itens de NF que o utilizam.';
