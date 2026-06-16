@@ -310,9 +310,38 @@ export default function StockMalha() {
   });
 
   const [movFilterType, setMovFilterType] = useState<string>('all');
+  const [movPage, setMovPage] = useState(1);
+  const MOV_PAGE_SIZE = 15;
+
   const filteredMovements = useMemo(() => {
     return (movementsHistory as any[]).filter(m => movFilterType === 'all' || m.type === movFilterType);
   }, [movementsHistory, movFilterType]);
+
+  const movTotalPages = Math.ceil(filteredMovements.length / MOV_PAGE_SIZE);
+
+  const movVisiblePages = useMemo(() => {
+    const pages = [];
+    const maxVisible = 3;
+    let start = Math.max(1, movPage - Math.floor(maxVisible / 2));
+    let end = Math.min(movTotalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }, [movPage, movTotalPages]);
+
+  const paginatedMovements = useMemo(() => {
+    const start = (movPage - 1) * MOV_PAGE_SIZE;
+    return filteredMovements.slice(start, start + MOV_PAGE_SIZE);
+  }, [filteredMovements, movPage]);
+
+  // Reset page when filter type changes
+  useEffect(() => {
+    setMovPage(1);
+  }, [movFilterType]);
 
   const movementLabel: Record<string, { label: string; color: string }> = {
     reserve: { label: 'Reserva', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' },
