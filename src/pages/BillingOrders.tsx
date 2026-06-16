@@ -881,6 +881,17 @@ const BillingOrders = () => {
                           </Button>
                         )}
 
+                        {isAdmin && order.status === 'collected' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-red-700 border-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+                            onClick={() => { setCancelReason(''); setShowCancelModal(order); }}
+                          >
+                            <Ban className="h-4 w-4" /> Estornar
+                          </Button>
+                        )}
+
                         {order.status === 'open' && isAdmin && !order.priority && (
                           <Button
                             size="sm"
