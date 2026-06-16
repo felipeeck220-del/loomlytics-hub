@@ -252,6 +252,21 @@ const BillingOrders = () => {
     return map;
   }, [orders]);
 
+  // Grupos ainda ATIVOS: pelo menos 1 OF não foi coletada/cancelada.
+  // Quando todas as OFs do grupo já estão coletadas (ou canceladas), o
+  // grupo some da gestão de Atrelar OFs e do contador, mas o badge
+  // "ATRELADA" continua aparecendo em cada OF como histórico.
+  const activeLinkGroups = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const [gid, list] of linkGroups) {
+      const stillActive = list.some(
+        (o: any) => o.status !== 'collected' && o.status !== 'cancelled'
+      );
+      if (stillActive) map.set(gid, list);
+    }
+    return map;
+  }, [linkGroups]);
+
   // OFs elegíveis para atrelamento: aberto, prioritário, separando, pronto
   const linkableOrders = useMemo(() => {
     return orders.filter((o: any) => ['open', 'separating', 'ready'].includes(o.status));
