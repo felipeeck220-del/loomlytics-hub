@@ -24,6 +24,9 @@ import { Plus } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, Lock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { CalendarDays } from 'lucide-react';
 
 export default function StockMalha() {
   const { 
@@ -47,6 +50,13 @@ export default function StockMalha() {
   const [estoqueClient, setEstoqueClient] = useState('all');
   const [estoqueArticle, setEstoqueArticle] = useState('all');
   const [estoqueMonth, setEstoqueMonth] = useState('all');
+
+  // Filtro de data para a coluna "Entregue" (apenas afeta Entregue kg / Rolos entregues)
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const [entregueRange, setEntregueRange] = useState<{ from: string; to: string }>({
+    from: todayStr,
+    to: todayStr,
+  });
 
   // Hooks for data calculation
   const { user } = useAuth();
@@ -128,6 +138,14 @@ export default function StockMalha() {
 
     // 3. Stock movements (manual adjustments) — add to producedKg/Rolls so it flows into Estoque
     const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
+    // Filtro do intervalo de "Entregue" (compara dia local do created_at com o range escolhido)
+    const entregueFrom = entregueRange.from || '';
+    const entregueTo = entregueRange.to || entregueFrom;
+    const matchesEntregueRange = (createdAt: string) => {
+      if (!entregueFrom) return true;
+      const d = format(new Date(createdAt), 'yyyy-MM-dd');
+      return d >= entregueFrom && d <= entregueTo;
+    };
     for (const mv of stockMovements as any[]) {
       if (!monthMatchesMovement(mv.created_at)) continue;
       // Movimentos de 2ª qualidade não afetam o estoque principal
@@ -150,16 +168,20 @@ export default function StockMalha() {
       } else if (mv.type === 'in') {
         // Estorno 1ª qualidade: pç retornam ao estoque → desconta Entregue (libera Disponível)
         if (mv.billing_order_id) {
-          entry.deliveredKg -= kg;
-          entry.deliveredRolls -= pc;
+          if (matchesEntregueRange(mv.created_at)) {
+            entry.deliveredKg -= kg;
+            entry.deliveredRolls -= pc;
+          }
         } else {
           entry.producedKg += kg;
           entry.producedRolls += pc;
         }
       } else if (mv.type === 'out') {
         // Saída por OF coletada — conta como entregue (não desconta o "Produzido" exibido).
-        entry.deliveredKg += Number(mv.weight_kg);
-        entry.deliveredRolls += Number(mv.pieces);
+        if (matchesEntregueRange(mv.created_at)) {
+          entry.deliveredKg += Number(mv.weight_kg);
+          entry.deliveredRolls += Number(mv.pieces);
+        }
       } else if (mv.type === 'reserve') {
         entry.reservedKg += kg;
         entry.reservedRolls += pc;
@@ -207,7 +229,7 @@ export default function StockMalha() {
       }
     });
     return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
-  }, [productions, invoices, invoiceItems, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth]);
+  }, [productions, invoices, invoiceItems, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth, entregueRange]);
 
   const estoqueKpis = useMemo(() => malhaEstoque.reduce((acc, g) => ({
     producedKg: acc.producedKg + g.totalProducedKg,
@@ -476,6 +498,38 @@ export default function StockMalha() {
               <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEstoqueClient('all'); setEstoqueArticle('all'); setEstoqueMonth('all'); }}>Limpar</Button>
             )}
           </div>
+          <div className="flex flex-wrap items-end gap-2 mt-3 pt-3 border-t">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span className="font-medium">Entregue — período:</span>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">De</Label>
+              <Input
+                type="date"
+                className="h-8 text-xs w-[150px]"
+                value={entregueRange.from}
+                onChange={e => setEntregueRange(r => ({ ...r, from: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase text-muted-foreground">Até</Label>
+              <Input
+                type="date"
+                className="h-8 text-xs w-[150px]"
+                value={entregueRange.to}
+                onChange={e => setEntregueRange(r => ({ ...r, to: e.target.value }))}
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs h-8"
+              onClick={() => setEntregueRange({ from: todayStr, to: todayStr })}
+            >
+              Hoje
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -507,10 +561,10 @@ export default function StockMalha() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="text-xs">Artigo</TableHead>
-                          <TableHead className="text-xs text-right">Produzido kg</TableHead>
-                          <TableHead className="text-xs text-right">Rolos</TableHead>
-                          <TableHead className="text-xs text-right">Entregue kg</TableHead>
-                          <TableHead className="text-xs text-right">Rolos</TableHead>
+                          <TableHead className="text-xs text-right">Produzido (kg)</TableHead>
+                          <TableHead className="text-xs text-right">Rolos produzidos</TableHead>
+                          <TableHead className="text-xs text-right">Entregue (kg)</TableHead>
+                          <TableHead className="text-xs text-right">Rolos entregues</TableHead>
                           <TableHead className="text-xs text-right">Físico kg</TableHead>
                           <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Rolos reservados</TableHead>
                           <TableHead className="text-xs text-right text-amber-700 dark:text-amber-400">Reservado kg</TableHead>
