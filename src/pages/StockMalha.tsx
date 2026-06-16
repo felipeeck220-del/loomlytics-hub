@@ -666,6 +666,9 @@ export default function StockMalha() {
                         </TableCell>
                         <TableCell className="text-xs">
                           <Badge variant="outline" className={cn('text-[10px]', meta.color)}>{meta.label}</Badge>
+                          {m.is_second_quality && (
+                            <Badge variant="outline" className="ml-1 text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-300">2ª</Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-xs">{m.client?.name || '—'}</TableCell>
                         <TableCell className="text-xs">{m.article?.name || '—'}</TableCell>
