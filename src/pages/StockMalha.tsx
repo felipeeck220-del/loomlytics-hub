@@ -316,48 +316,86 @@ export default function StockMalha() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Warehouse className="h-6 w-6 text-primary" />
-            Estoque de Malha
+            {activeStockTab === 'segunda' ? 'Estoque de 2ª Qualidade' : 'Estoque de Malha'}
           </h1>
-          <p className="text-sm text-muted-foreground">Visão consolidada do saldo de artigos por cliente</p>
+          <p className="text-sm text-muted-foreground">
+            {activeStockTab === 'segunda'
+              ? 'Peças retornadas como 2ª qualidade — saldo independente do estoque principal'
+              : 'Visão consolidada do saldo de artigos por cliente'}
+          </p>
         </div>
         {isAdmin && (
-          <Button size="sm" onClick={() => setManualOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Lançamento Manual
-          </Button>
+          activeStockTab === 'segunda' ? (
+            <Button size="sm" onClick={() => setManual2qOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Lançamento Manual (2ª)
+            </Button>
+          ) : activeStockTab === 'estoque' ? (
+            <Button size="sm" onClick={() => setManualOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Lançamento Manual
+            </Button>
+          ) : null
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Produzido</div>
-          <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.producedKg)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Entregue (OF coletadas)</div>
-          <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.deliveredKg)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Lock className="h-3.5 w-3.5" />Reservado (OFs Pronto)</div>
-          <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatWeight(estoqueKpis.reservedKg)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Disponível</div>
-          <p className={cn('text-xl font-bold', estoqueKpis.availableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(estoqueKpis.availableKg)}</p>
-        </CardContent></Card>
-      </div>
+      {activeStockTab === 'segunda' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Entradas 2ª</div>
+            <p className="text-xl font-bold text-foreground">{formatWeight(segundaKpis.entradaKg)}</p>
+            <p className="text-[10px] text-muted-foreground">{formatNumber(segundaKpis.entradaRolls)} pç</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Saídas 2ª</div>
+            <p className="text-xl font-bold text-foreground">{formatWeight(segundaKpis.saidaKg)}</p>
+            <p className="text-[10px] text-muted-foreground">{formatNumber(segundaKpis.saidaRolls)} pç</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Layers className="h-3.5 w-3.5" />Saldo 2ª (kg)</div>
+            <p className={cn('text-xl font-bold', segundaKpis.saldoKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(segundaKpis.saldoKg)}</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Scale className="h-3.5 w-3.5" />Saldo 2ª (peças)</div>
+            <p className={cn('text-xl font-bold', segundaKpis.saldoRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(segundaKpis.saldoRolls)}</p>
+          </CardContent></Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Produzido</div>
+            <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.producedKg)}</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Entregue (OF coletadas)</div>
+            <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.deliveredKg)}</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Lock className="h-3.5 w-3.5" />Reservado (OFs Pronto)</div>
+            <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatWeight(estoqueKpis.reservedKg)}</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Disponível</div>
+            <p className={cn('text-xl font-bold', estoqueKpis.availableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(estoqueKpis.availableKg)}</p>
+          </CardContent></Card>
+        </div>
+      )}
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription className="text-xs">
-          Estoque calculado por <strong>Produção + Ajustes − OF Coletadas</strong>. NFs de Saída deixaram de descontar o estoque — a baixa real ocorre quando a OF é marcada como <strong>Coletada</strong>.
-          O saldo parte de zero a partir do deploy; use <strong>Lançamento Manual</strong> para registrar saldo inicial ou ajustes.
-        </AlertDescription>
-      </Alert>
+      {activeStockTab !== 'segunda' && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            Estoque calculado por <strong>Produção + Ajustes − OF Coletadas</strong>. NFs de Saída deixaram de descontar o estoque — a baixa real ocorre quando a OF é marcada como <strong>Coletada</strong>.
+            O saldo parte de zero a partir do deploy; use <strong>Lançamento Manual</strong> para registrar saldo inicial ou ajustes.
+            Estornos de OF agora têm duas opções: <strong>1ª qualidade</strong> (volta para este estoque) ou <strong>2ª qualidade</strong> (vai para a aba ao lado).
+          </AlertDescription>
+        </Alert>
+      )}
 
-      <Tabs defaultValue="estoque" className="w-full">
+      <Tabs value={activeStockTab} onValueChange={(v) => setActiveStockTab(v as any)} className="w-full">
         <TabsList>
           <TabsTrigger value="estoque">Estoque</TabsTrigger>
+          <TabsTrigger value="segunda">Estoque de 2ª</TabsTrigger>
           <TabsTrigger value="movimentos">Movimentações</TabsTrigger>
         </TabsList>
 
