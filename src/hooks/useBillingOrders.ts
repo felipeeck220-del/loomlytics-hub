@@ -178,7 +178,7 @@ export function useBillingOrders() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status, data = {}, expectedStatus }: { id: string, status: BillingOrderStatus | 'priority', data?: any, expectedStatus?: BillingOrderStatus }) => {
+    mutationFn: async ({ id, status, data = {}, expectedStatus, reversalQuality }: { id: string, status: BillingOrderStatus | 'priority', data?: any, expectedStatus?: BillingOrderStatus, reversalQuality?: 'first' | 'second' }) => {
       let updatePayload: any = { ...data };
       if (status !== 'priority') {
         updatePayload.status = status;
@@ -203,6 +203,7 @@ export function useBillingOrders() {
           (updatePayload as any).reversal_reason = updatePayload.cancellation_reason;
           (updatePayload as any).reversed_by = profile?.id;
           (updatePayload as any).reversed_at = new Date().toISOString();
+          (updatePayload as any).reversal_quality = reversalQuality || 'first';
         }
       }
       if (status === 'priority') {
@@ -271,8 +272,12 @@ export function useBillingOrders() {
 
           // collected -> cancelled: estorno (devolve ao físico)
           if (status === 'cancelled' && expectedStatus === 'collected' && (pieces > 0 || weight > 0)) {
-            mvs.push({ ...baseMov, type: 'in', pieces, weight_kg: weight,
-              reason: `OF #${ofRow.of_number} estornada — ${updatePayload.cancellation_reason || 'sem motivo'}` });
+            const isSecondQ = reversalQuality === 'second';
+            mvs.push({
+              ...baseMov, type: 'in', pieces, weight_kg: weight,
+              is_second_quality: isSecondQ,
+              reason: `OF #${ofRow.of_number} estornada — ${isSecondQ ? '2ª QUALIDADE' : '1ª qualidade'} — ${updatePayload.cancellation_reason || 'sem motivo'}`,
+            });
           }
 
           if (mvs.length > 0) {
