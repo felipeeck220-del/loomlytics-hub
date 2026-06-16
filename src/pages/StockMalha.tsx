@@ -116,6 +116,21 @@ export default function StockMalha() {
     enabled: !!companyId,
   });
 
+  // Data de corte do estoque: produções/movimentações anteriores são ignoradas no cálculo
+  // (mas continuam preservadas no histórico para relatórios/dashboard).
+  const { data: stockCutoffDate } = useQuery({
+    queryKey: ['stock_cutoff_date', companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)('company_settings')
+        .select('stock_cutoff_date')
+        .eq('company_id', companyId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.stock_cutoff_date as string | null) || null;
+    },
+    enabled: !!companyId,
+  });
+
   // Re-implementing the malhaEstoque logic from Invoices.tsx
   const malhaEstoque = useMemo(() => {
     // deliveredKg/Rolls = entregue NO RANGE (apenas para exibição da coluna Entregue).
