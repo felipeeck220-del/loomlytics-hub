@@ -205,6 +205,67 @@ export default function StockMalha() {
     availableKg: acc.availableKg + g.totalAvailableKg,
   }), { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0, reservedKg: 0, availableKg: 0 }), [malhaEstoque]);
 
+  // 2ª QUALIDADE — agregação independente
+  const segundaEstoque = useMemo(() => {
+    const map = new Map<string, Map<string, { entradaKg: number; entradaRolls: number; saidaKg: number; saidaRolls: number }>>();
+    const matchMonth = (createdAt: string) => segMonth === 'all' || createdAt.startsWith(segMonth);
+    for (const mv of stockMovements as any[]) {
+      if (!mv.is_second_quality) continue;
+      if (!matchMonth(mv.created_at)) continue;
+      const art = articles.find(a => a.id === mv.article_id);
+      if (!art || !art.client_id) continue;
+      if (!map.has(art.client_id)) map.set(art.client_id, new Map());
+      const artMap = map.get(art.client_id)!;
+      if (!artMap.has(mv.article_id)) artMap.set(mv.article_id, { entradaKg: 0, entradaRolls: 0, saidaKg: 0, saidaRolls: 0 });
+      const e = artMap.get(mv.article_id)!;
+      const kg = Number(mv.weight_kg);
+      const pc = Number(mv.pieces);
+      if (mv.type === 'in' || mv.type === 'adjust_in') {
+        e.entradaKg += kg; e.entradaRolls += pc;
+      } else if (mv.type === 'out' || mv.type === 'adjust_out') {
+        e.saidaKg += kg; e.saidaRolls += pc;
+      }
+    }
+    const result: any[] = [];
+    map.forEach((artMap, clientId) => {
+      if (segClient !== 'all' && clientId !== segClient) return;
+      const client = clients.find(c => c.id === clientId);
+      const arts: any[] = [];
+      let tEK = 0, tER = 0, tSK = 0, tSR = 0;
+      artMap.forEach((vals, articleId) => {
+        if (segArticle !== 'all' && articleId !== segArticle) return;
+        const article = articles.find(a => a.id === articleId);
+        const saldoKg = vals.entradaKg - vals.saidaKg;
+        const saldoRolls = vals.entradaRolls - vals.saidaRolls;
+        arts.push({
+          articleId, articleName: article?.name || 'Artigo removido',
+          ...vals, saldoKg, saldoRolls,
+        });
+        tEK += vals.entradaKg; tER += vals.entradaRolls;
+        tSK += vals.saidaKg; tSR += vals.saidaRolls;
+      });
+      if (arts.length > 0) {
+        result.push({
+          clientId, clientName: client?.name || 'Cliente removido',
+          articles: arts.sort((a, b) => a.articleName.localeCompare(b.articleName)),
+          totalEntradaKg: tEK, totalEntradaRolls: tER,
+          totalSaidaKg: tSK, totalSaidaRolls: tSR,
+          totalSaldoKg: tEK - tSK, totalSaldoRolls: tER - tSR,
+        });
+      }
+    });
+    return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
+  }, [stockMovements, articles, clients, segClient, segArticle, segMonth]);
+
+  const segundaKpis = useMemo(() => segundaEstoque.reduce((acc, g) => ({
+    entradaKg: acc.entradaKg + g.totalEntradaKg,
+    entradaRolls: acc.entradaRolls + g.totalEntradaRolls,
+    saidaKg: acc.saidaKg + g.totalSaidaKg,
+    saidaRolls: acc.saidaRolls + g.totalSaidaRolls,
+    saldoKg: acc.saldoKg + g.totalSaldoKg,
+    saldoRolls: acc.saldoRolls + g.totalSaldoRolls,
+  }), { entradaKg: 0, entradaRolls: 0, saidaKg: 0, saidaRolls: 0, saldoKg: 0, saldoRolls: 0 }), [segundaEstoque]);
+
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
     months.add(format(new Date(), 'yyyy-MM'));
