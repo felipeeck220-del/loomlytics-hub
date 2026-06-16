@@ -312,9 +312,9 @@ export default function Dashboard() {
           return {
             shift,
             label: companyShiftLabels[shift].split(' (')[0],
-            rolls: 0, // RPC doesn't currently return rolls per shift
-            kg: d?.weight ?? 0,
-            revenue: 0, // RPC doesn't currently return revenue per shift
+            rolls: Number(d?.rolls ?? 0),
+            kg: Number(d?.weight ?? 0),
+            revenue: Number(d?.revenue ?? 0),
           };
         });
       }
@@ -334,9 +334,10 @@ export default function Dashboard() {
       if (dashboardMetrics?.charts?.top_machines?.length) {
         return dashboardMetrics.charts.top_machines.map((m: any) => ({
           name: m.name,
-          rolls: 0,
-          kg: m.weight,
-          efficiency: 0,
+          rolls: Number(m.rolls ?? 0),
+          kg: Number(m.weight ?? 0),
+          revenue: Number(m.revenue ?? 0),
+          efficiency: Number(m.efficiency ?? 0),
           records: 0,
           targetEfficiency: 80
         }));
@@ -356,10 +357,10 @@ export default function Dashboard() {
       if (dashboardMetrics?.charts?.trend?.length) {
         return dashboardMetrics.charts.trend.map((d: any) => ({
           date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-          rolos: 0,
+          rolos: Number(d.rolls ?? 0),
           kg: Math.round(d.weight * 100) / 100,
           faturamento: Math.round(d.revenue * 100) / 100,
-          eficiencia: 0
+          eficiencia: Math.round(Number(d.efficiency ?? 0) * 10) / 10,
         }));
       }
       const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
