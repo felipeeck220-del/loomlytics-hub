@@ -1448,6 +1448,111 @@ const BillingOrders = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal NF / Romaneio (admin libera OF como pronta com documento) */}
+      <Dialog open={!!showDocModal} onOpenChange={(o) => !o && setShowDocModal(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-violet-700">
+              <FileText className="h-5 w-5" />
+              {(showDocModal as any)?.delivery_doc_number ? 'Alterar' : 'Adicionar'} NF / Romaneio · OF #{showDocModal?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Ao registrar o documento, a OF passa de <strong className="text-violet-700">PRONTO PARA COLETA</strong> para <strong className="text-emerald-700">PRONTO</strong> (verde), sinalizando à expedição que pode ser coletada.
+            </p>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase">Tipo de documento</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={docForm.type === 'nf' ? 'default' : 'outline'}
+                  className="justify-start gap-2"
+                  onClick={() => setDocForm({ ...docForm, type: 'nf' })}
+                >
+                  <FileText className="h-4 w-4" /> Nota Fiscal
+                </Button>
+                <Button
+                  type="button"
+                  variant={docForm.type === 'romaneio' ? 'default' : 'outline'}
+                  className="justify-start gap-2"
+                  onClick={() => setDocForm({ ...docForm, type: 'romaneio' })}
+                >
+                  <FileText className="h-4 w-4" /> Romaneio
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase">
+                Nº {docForm.type === 'nf' ? 'da Nota Fiscal' : 'do Romaneio'}
+              </Label>
+              <Input
+                value={docForm.number}
+                onChange={(e) => setDocForm({ ...docForm, number: e.target.value })}
+                placeholder={docForm.type === 'nf' ? 'Ex: 12345' : 'Ex: ROM-2026-001'}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDocModal(null)}>Cancelar</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={!docForm.number.trim()}
+              onClick={async () => {
+                try {
+                  await setDeliveryDoc({ id: showDocModal.id, type: docForm.type, number: docForm.number });
+                  setShowDocModal(null);
+                } catch (err: any) {
+                  toast({ title: 'Erro ao registrar documento', description: err?.message, variant: 'destructive' });
+                }
+              }}
+            >
+              Salvar Documento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Escolha de Impressão (admin) — Controle Interno x Cliente */}
+      <Dialog open={!!showPrintChoice} onOpenChange={(o) => !o && setShowPrintChoice(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Printer className="h-5 w-5" /> Imprimir OF #{showPrintChoice?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2">
+            <p className="text-xs text-muted-foreground">Escolha o tipo de impressão:</p>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => { handleAdminPrintPdf(showPrintChoice, 'internal'); setShowPrintChoice(null); }}
+            >
+              <FileText className="h-5 w-5 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold text-sm">Controle Interno</div>
+                <div className="text-[11px] text-muted-foreground">PDF completo: quantidades previstas/reais, prioridade e auditoria.</div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => { handleAdminPrintPdf(showPrintChoice, 'client'); setShowPrintChoice(null); }}
+            >
+              <UserIcon className="h-5 w-5 text-emerald-600" />
+              <div className="text-left">
+                <div className="font-semibold text-sm">Cliente</div>
+                <div className="text-[11px] text-muted-foreground">PDF resumido: sem auditoria, sem previstos e sem média. Status sempre "Pronto para Coleta".</div>
+              </div>
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPrintChoice(null)}>Cancelar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
