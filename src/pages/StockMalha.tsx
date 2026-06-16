@@ -514,6 +514,106 @@ export default function StockMalha() {
         </TabsContent>
 
         <TabsContent value="movimentos" className="space-y-3 mt-4">
+        </TabsContent>
+
+        <TabsContent value="segunda" className="space-y-3 mt-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={segMonth} onValueChange={setSegMonth}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todo período</SelectItem>
+                    {availableMonths.map(m => (
+                      <SelectItem key={m} value={m}>
+                        {format(parse(m, 'yyyy-MM', new Date()), 'MMMM yyyy', { locale: ptBR })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <SearchableSelect
+                  value={segClient === 'all' ? '' : segClient}
+                  onValueChange={v => setSegClient(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todos clientes"
+                  searchPlaceholder="Buscar cliente..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={segArticle === 'all' ? '' : segArticle}
+                  onValueChange={v => setSegArticle(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
+                  placeholder="Todos artigos"
+                  searchPlaceholder="Buscar artigo..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                {(segClient !== 'all' || segArticle !== 'all' || segMonth !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setSegClient('all'); setSegArticle('all'); setSegMonth('all'); }}>Limpar</Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {segundaEstoque.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Nenhum saldo de 2ª qualidade. Use <strong>Lançamento Manual (2ª)</strong> ou faça um estorno de OF como <strong>2ª qualidade</strong> em /billing-orders.
+            </CardContent></Card>
+          ) : (
+            <div className="space-y-3">
+              {segundaEstoque.map(group => (
+                <Collapsible key={group.clientId}>
+                  <Card>
+                    <CollapsibleTrigger className="w-full">
+                      <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          <CardTitle className="text-sm font-semibold">{group.clientName}</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Entradas: <span className="font-semibold text-foreground">{formatWeight(group.totalEntradaKg)}</span></span>
+                          <span>Saídas: <span className="font-semibold text-foreground">{formatWeight(group.totalSaidaKg)}</span></span>
+                          <span>Saldo: <span className={cn('font-semibold', group.totalSaldoKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(group.totalSaldoKg)}</span></span>
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Artigo</TableHead>
+                              <TableHead className="text-xs text-right">Entradas kg</TableHead>
+                              <TableHead className="text-xs text-right">Entradas pç</TableHead>
+                              <TableHead className="text-xs text-right">Saídas kg</TableHead>
+                              <TableHead className="text-xs text-right">Saídas pç</TableHead>
+                              <TableHead className="text-xs text-right font-bold">Saldo kg</TableHead>
+                              <TableHead className="text-xs text-right font-bold">Saldo pç</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.articles.map((a: any) => (
+                              <TableRow key={a.articleId}>
+                                <TableCell className="text-xs">{a.articleName}</TableCell>
+                                <TableCell className="text-xs text-right">{formatWeight(a.entradaKg)}</TableCell>
+                                <TableCell className="text-xs text-right">{formatNumber(a.entradaRolls)}</TableCell>
+                                <TableCell className="text-xs text-right">{formatWeight(a.saidaKg)}</TableCell>
+                                <TableCell className="text-xs text-right">{formatNumber(a.saidaRolls)}</TableCell>
+                                <TableCell className={cn('text-xs text-right font-bold', a.saldoKg < 0 ? 'text-destructive' : a.saldoKg === 0 ? 'text-muted-foreground' : 'text-success')}>{formatWeight(a.saldoKg)}</TableCell>
+                                <TableCell className={cn('text-xs text-right font-bold', a.saldoRolls < 0 ? 'text-destructive' : a.saldoRolls === 0 ? 'text-muted-foreground' : 'text-success')}>{formatNumber(a.saldoRolls)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="movimentos_real" className="space-y-3 mt-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center gap-2">
