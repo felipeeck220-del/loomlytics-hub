@@ -27,7 +27,7 @@ interface Props {
 }
 
 export function ManualStockEntryModal({ open, onOpenChange, clients, articles, onSaved, isSecondQuality = false }: Props) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
   const [clientId, setClientId] = useState('');
@@ -72,7 +72,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
         pieces: piecesNum,
         weight_kg: weightNum,
         reason: reason.trim(),
-        created_by: user.id,
+        created_by: profile?.id ?? null,
         is_second_quality: isSecondQuality,
       });
       if (error) throw error;
