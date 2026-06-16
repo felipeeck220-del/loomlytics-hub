@@ -764,6 +764,7 @@ export type Database = {
           shift_noite_start: string
           shift_tarde_end: string
           shift_tarde_start: string
+          stock_cutoff_date: string | null
           stripe_customer_id: string | null
           subscription_paid_at: string | null
           subscription_plan: string | null
@@ -786,6 +787,7 @@ export type Database = {
           shift_noite_start?: string
           shift_tarde_end?: string
           shift_tarde_start?: string
+          stock_cutoff_date?: string | null
           stripe_customer_id?: string | null
           subscription_paid_at?: string | null
           subscription_plan?: string | null
@@ -808,6 +810,7 @@ export type Database = {
           shift_noite_start?: string
           shift_tarde_end?: string
           shift_tarde_start?: string
+          stock_cutoff_date?: string | null
           stripe_customer_id?: string | null
           subscription_paid_at?: string | null
           subscription_plan?: string | null
