@@ -690,7 +690,7 @@ export default function StockMalha() {
           onOpenChange={setManualOpen}
           clients={clients}
           articles={articles as any}
-          onSaved={() => refetchMovements()}
+          onSaved={refreshAllStock}
         />
       )}
       {isAdmin && (
@@ -700,7 +700,7 @@ export default function StockMalha() {
           clients={clients}
           articles={articles as any}
           isSecondQuality
-          onSaved={() => refetchMovements()}
+          onSaved={refreshAllStock}
         />
       )}
     </div>
