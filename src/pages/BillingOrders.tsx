@@ -412,9 +412,13 @@ const BillingOrders = () => {
         </head>
         <body>
           <div class="content">
-            <div class="client">${order.client?.name}</div>
-            <div class="dyehouse">(${order.dyehouse})</div>
-            <div class="pieces">${order.pieces_real || order.pieces_expected} PEÇAS</div>
+            <div class="client">${order.client?.name ?? ''}</div>
+            <div class="dyehouse">(${order.dyehouse ?? ''})</div>
+            <div class="pieces">${
+              order.order_type === 'weight' && !order.pieces_real && !order.pieces_expected
+                ? `${order.weight_real ?? order.weight_expected ?? '—'} KG`
+                : `${order.pieces_real ?? order.pieces_expected ?? '—'} PEÇAS`
+            }</div>
             <div class="of-number">OF ${order.of_number}</div>
           </div>
           <script>
