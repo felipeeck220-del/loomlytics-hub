@@ -123,16 +123,24 @@ export default function StockMalha() {
     const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
     for (const mv of stockMovements as any[]) {
       if (!monthMatchesMovement(mv.created_at)) continue;
-      if (mv.type !== 'adjust_in' && mv.type !== 'adjust_out') continue;
+      if (!['adjust_in', 'adjust_out', 'out', 'in'].includes(mv.type)) continue;
       const art = articles.find(a => a.id === mv.article_id);
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
       const artMap = map.get(art.client_id)!;
       if (!artMap.has(mv.article_id)) artMap.set(mv.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
       const entry = artMap.get(mv.article_id)!;
-      const sign = mv.type === 'adjust_in' ? 1 : -1;
-      entry.producedKg += sign * Number(mv.weight_kg);
-      entry.producedRolls += sign * Number(mv.pieces);
+      if (mv.type === 'adjust_in' || mv.type === 'in') {
+        entry.producedKg += Number(mv.weight_kg);
+        entry.producedRolls += Number(mv.pieces);
+      } else if (mv.type === 'adjust_out') {
+        entry.producedKg -= Number(mv.weight_kg);
+        entry.producedRolls -= Number(mv.pieces);
+      } else if (mv.type === 'out') {
+        // Saída por OF coletada — conta como entregue (não desconta o "Produzido" exibido).
+        entry.deliveredKg += Number(mv.weight_kg);
+        entry.deliveredRolls += Number(mv.pieces);
+      }
     }
 
     const result: any[] = [];
