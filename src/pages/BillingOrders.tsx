@@ -213,6 +213,57 @@ const BillingOrders = () => {
     setPriorityForm({ reason: '', customReason: '' });
   };
 
+  // Calcula o saldo disponível atual do artigo (kg e peças) — mesma lógica do StockMalha.
+  const fetchArticleBalance = async (articleId: string): Promise<{ availableKg: number; availablePieces: number }> => {
+    if (!user?.company_id) return { availableKg: 0, availablePieces: 0 };
+    const [prodRes, mvRes] = await Promise.all([
+      supabase.from('productions').select('weight_kg, rolls_produced').eq('company_id', user.company_id).eq('article_id', articleId),
+      (supabase.from as any)('stock_movements').select('type, pieces, weight_kg, is_second_quality, billing_order_id').eq('company_id', user.company_id).eq('article_id', articleId),
+    ]);
+    let producedKg = 0, producedRolls = 0, deliveredKg = 0, deliveredRolls = 0, reservedKg = 0, reservedRolls = 0;
+    for (const p of (prodRes.data || [])) {
+      producedKg += Number(p.weight_kg) || 0;
+      producedRolls += Number(p.rolls_produced) || 0;
+    }
+    for (const mv of (mvRes.data || []) as any[]) {
+      if (mv.is_second_quality) continue;
+      const kg = Number(mv.weight_kg) || 0;
+      const pc = Number(mv.pieces) || 0;
+      if (mv.type === 'adjust_in') { producedKg += kg; producedRolls += pc; }
+      else if (mv.type === 'adjust_out') { producedKg -= kg; producedRolls -= pc; }
+      else if (mv.type === 'in') {
+        if (mv.billing_order_id) { deliveredKg -= kg; deliveredRolls -= pc; }
+        else { producedKg += kg; producedRolls += pc; }
+      } else if (mv.type === 'out') { deliveredKg += kg; deliveredRolls += pc; }
+      else if (mv.type === 'reserve') { reservedKg += kg; reservedRolls += pc; }
+      else if (mv.type === 'release') { reservedKg -= kg; reservedRolls -= pc; }
+    }
+    const stockKg = producedKg - deliveredKg;
+    const stockRolls = producedRolls - deliveredRolls;
+    return {
+      availableKg: stockKg - reservedKg,
+      availablePieces: stockRolls - reservedRolls,
+    };
+  };
+
+  const submitCreateOrder = async (payload: any) => {
+    try {
+      await createOrder.mutateAsync(payload);
+      setShowCreateModal(false);
+      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces' });
+      setCreateDupError(null);
+    } catch (err: any) {
+      if (err?.code === 'DUPLICATE_OF') {
+        try {
+          const { last, next } = await getNextOfNumber();
+          setLastOfNumber(last);
+          setForm(f => ({ ...f, of_number: next }));
+          setCreateDupError(`A OF #${payload.of_number} já foi criada por outro admin. Atualizamos para #${next}. Clique em "Criar OF" novamente para salvar.`);
+        } catch {/* ignore */}
+      }
+    }
+  };
+
   const handleCreate = async () => {
     if (!form.of_number || !form.client_id || !form.article_id || !form.dyehouse) {
       toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
@@ -227,33 +278,44 @@ const BillingOrders = () => {
       return;
     }
     setCreateDupError(null);
+    const payload = {
+      of_number: form.of_number,
+      client_id: form.client_id,
+      article_id: form.article_id,
+      machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
+      pieces_expected: form.pieces_expected ? parseInt(form.pieces_expected) : undefined,
+      weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
+      piece_weight_target: form.piece_weight_target ? parseFloat(form.piece_weight_target) : null,
+      dyehouse: form.dyehouse,
+      order_type: form.order_type as 'pieces' | 'weight',
+    };
+    // Checa saldo do artigo e avisa se já estiver negativo ou se for ficar negativo.
     try {
-      await createOrder.mutateAsync({
-        of_number: form.of_number,
-        client_id: form.client_id,
-        article_id: form.article_id,
-        machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
-        pieces_expected: form.pieces_expected ? parseInt(form.pieces_expected) : undefined,
-        weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
-        piece_weight_target: form.piece_weight_target ? parseFloat(form.piece_weight_target) : null,
-        dyehouse: form.dyehouse,
-        order_type: form.order_type,
-      });
-      setShowCreateModal(false);
-      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces' });
-      setCreateDupError(null);
-    } catch (err: any) {
-      if (err?.code === 'DUPLICATE_OF') {
-        // Outro admin criou no meio do caminho — bumpa o número e pede confirmação.
-        try {
-          const { last, next } = await getNextOfNumber();
-          setLastOfNumber(last);
-          setForm(f => ({ ...f, of_number: next }));
-          setCreateDupError(`A OF #${form.of_number} já foi criada por outro admin. Atualizamos para #${next}. Clique em "Criar OF" novamente para salvar.`);
-        } catch {/* ignore */}
+      const { availableKg, availablePieces } = await fetchArticleBalance(form.article_id);
+      const reqPieces = payload.pieces_expected || 0;
+      const reqKg = payload.weight_expected || (reqPieces && payload.piece_weight_target ? reqPieces * (payload.piece_weight_target as number) : 0);
+      const afterKg = availableKg - reqKg;
+      const afterPieces = availablePieces - reqPieces;
+      const isAlreadyNegative = availableKg < 0 || availablePieces < 0;
+      const willGoNegative = (reqKg > 0 && afterKg < 0) || (reqPieces > 0 && afterPieces < 0);
+      if (isAlreadyNegative || willGoNegative) {
+        const article = getArticles().find(a => a.id === form.article_id);
+        setNegativeWarning({
+          currentKg: availableKg,
+          currentPieces: availablePieces,
+          requestedKg: reqKg,
+          requestedPieces: reqPieces,
+          afterKg, afterPieces,
+          articleName: article?.name || 'Artigo',
+          payload,
+        });
+        return;
       }
-      // demais erros já foram tratados via toast no hook
+    } catch (e) {
+      // Se a checagem falhar, segue normalmente sem bloquear o usuário
+      console.error('[BillingOrders] balance check failed', e);
     }
+    await submitCreateOrder(payload);
   };
 
   const openEditModal = (order: any) => {
