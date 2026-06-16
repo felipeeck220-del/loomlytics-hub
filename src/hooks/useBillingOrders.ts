@@ -287,10 +287,30 @@ export function useBillingOrders() {
               reason: `OF #${ofRow.of_number} coletada` });
           }
 
-          // ready -> cancelled: libera a reserva (estoque volta para Disponível)
-          if (status === 'cancelled' && expectedStatus === 'ready' && (pieces > 0 || weight > 0)) {
-            mvs.push({ ...baseMov, type: 'release', pieces, weight_kg: weight,
-              reason: `OF #${ofRow.of_number} cancelada (libera reserva)` });
+          // *->cancelled (exceto a partir de 'collected'): libera APENAS o que está
+          // efetivamente reservado para esta OF (soma de reserves − releases já feitos).
+          // Evita criar release "fantasma" quando a OF nunca teve reserva (ex.: OFs
+          // antigas, anteriores à integração com estoque) — o que deixava reservedKg
+          // negativo em /estoque-malha.
+          if (status === 'cancelled' && expectedStatus !== 'collected' && expectedStatus !== 'cancelled') {
+            const { data: existingMvs } = await (supabase.from as any)('stock_movements')
+              .select('type, pieces, weight_kg')
+              .eq('billing_order_id', id)
+              .in('type', ['reserve', 'release']);
+            let netP = 0, netW = 0;
+            for (const m of (existingMvs || [])) {
+              const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
+              if (m.type === 'reserve') { netP += p; netW += w; }
+              else if (m.type === 'release') { netP -= p; netW -= w; }
+            }
+            if (netP > 0 || netW > 0) {
+              mvs.push({ ...baseMov, type: 'release',
+                pieces: Math.max(0, Math.round(netP)),
+                weight_kg: Math.max(0, netW),
+                reason: `OF #${ofRow.of_number} cancelada (libera reserva pendente)` });
+            }
+            // Limpa paletes vinculados (se houver) — OF cancelada não retém paletes
+            await (supabase.from as any)('billing_order_pallets').delete().eq('billing_order_id', id);
           }
 
           // collected -> cancelled: estorno (devolve ao físico)
