@@ -615,7 +615,7 @@ const BillingOrders = () => {
   };
 
   // Padronização visual: faixa lateral colorida + fundo neutro do card para máxima legibilidade
-  const getStatusStyle = (status: string, isPriority?: boolean) => {
+  const getStatusStyle = (status: string, isPriority?: boolean, hasDoc?: boolean) => {
     if (isPriority && status !== 'collected') {
       return { stripe: 'bg-red-600', label: 'PRIORIDADE', badgeClass: 'bg-red-600 text-white border-red-700' };
     }
@@ -625,7 +625,9 @@ const BillingOrders = () => {
       case 'separating':
         return { stripe: 'bg-amber-500', label: 'SEPARANDO', badgeClass: 'bg-amber-500 text-white border-amber-600' };
       case 'ready':
-        return { stripe: 'bg-emerald-600', label: 'PRONTO', badgeClass: 'bg-emerald-600 text-white border-emerald-700' };
+        return hasDoc
+          ? { stripe: 'bg-emerald-600', label: 'PRONTO', badgeClass: 'bg-emerald-600 text-white border-emerald-700' }
+          : { stripe: 'bg-violet-600', label: 'PRONTO PARA COLETA', badgeClass: 'bg-violet-600 text-white border-violet-700' };
       case 'collected':
         return { stripe: 'bg-slate-500', label: 'COLETADA', badgeClass: 'bg-slate-600 text-white border-slate-700' };
       case 'cancelled':
