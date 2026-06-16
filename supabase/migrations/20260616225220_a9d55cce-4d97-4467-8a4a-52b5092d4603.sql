@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.get_dashboard_metrics(uuid, date, date, text, uuid);
