@@ -78,6 +78,20 @@ const BillingOrders = () => {
   // Filtro da aba Pronto: todas / com doc / sem doc
   const [readyDocFilter, setReadyDocFilter] = useState<'all' | 'with' | 'without'>('all');
 
+  // Aviso de saldo negativo ao criar OF
+  const [negativeWarning, setNegativeWarning] = useState<null | {
+    currentKg: number; currentPieces: number;
+    requestedKg: number; requestedPieces: number;
+    afterKg: number; afterPieces: number;
+    articleName: string;
+    payload: any;
+  }>(null);
+
+  // Modal de Paletes na Separação
+  const [showPalletsModal, setShowPalletsModal] = useState<any>(null);
+  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number }>>([]);
+  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string }>({ pieces: '', weight: '' });
+
   const [form, setForm] = useState({
     of_number: '',
     client_id: '',
