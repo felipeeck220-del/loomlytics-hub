@@ -13,6 +13,7 @@ import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fn
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { supabase } from '@/integrations/supabase/client';
@@ -276,15 +277,21 @@ const BillingOrders = () => {
 
   const handleCancel = async () => {
     if (!showCancelModal) return;
-    if (!cancelReason.trim()) {
-      toast({ title: 'Informe o motivo do cancelamento', variant: 'destructive' });
+    const isReversal = showCancelModal.status === 'collected';
+    const reason = cancelReason.trim();
+    if (!reason) {
+      toast({ title: isReversal ? 'Informe o motivo do estorno' : 'Informe o motivo do cancelamento', variant: 'destructive' });
+      return;
+    }
+    if (isReversal && reason.length < 5) {
+      toast({ title: 'Motivo do estorno muito curto', description: 'Descreva com pelo menos 5 caracteres.', variant: 'destructive' });
       return;
     }
     try {
       await updateStatus.mutateAsync({
         id: showCancelModal.id,
         status: 'cancelled',
-        data: { cancellation_reason: cancelReason.trim() },
+        data: { cancellation_reason: reason },
         expectedStatus: showCancelModal.status,
       });
       setShowCancelModal(null);
@@ -881,6 +888,17 @@ const BillingOrders = () => {
                           </Button>
                         )}
 
+                        {isAdmin && order.status === 'collected' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-red-700 border-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+                            onClick={() => { setCancelReason(''); setShowCancelModal(order); }}
+                          >
+                            <Ban className="h-4 w-4" /> Estornar
+                          </Button>
+                        )}
+
                         {order.status === 'open' && isAdmin && !order.priority && (
                           <Button
                             size="sm"
@@ -1301,29 +1319,42 @@ const BillingOrders = () => {
       <Dialog open={!!showCancelModal} onOpenChange={(o) => !o && setShowCancelModal(null)}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-zinc-700">
-              <Ban className="h-5 w-5" /> Cancelar OF #{showCancelModal?.of_number}
+            <DialogTitle className={cn('flex items-center gap-2', showCancelModal?.status === 'collected' ? 'text-red-700' : 'text-zinc-700')}>
+              <Ban className="h-5 w-5" />
+              {showCancelModal?.status === 'collected'
+                ? `Estornar OF #${showCancelModal?.of_number}`
+                : `Cancelar OF #${showCancelModal?.of_number}`}
             </DialogTitle>
           </DialogHeader>
           <div className="py-2 space-y-3">
-            <p className="text-sm text-muted-foreground">
-              A OF será movida para a aba <strong>Canceladas</strong>. Informe o motivo do cancelamento:
-            </p>
+            {showCancelModal?.status === 'collected' ? (
+              <p className="text-sm text-muted-foreground">
+                O estorno devolve as <strong>{showCancelModal?.pieces_real} pç / {Number(showCancelModal?.weight_real || 0).toFixed(2)} kg</strong> ao estoque físico e move a OF para <strong>Canceladas</strong>. Informe o motivo do estorno (mín. 5 caracteres):
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                A OF será movida para a aba <strong>Canceladas</strong>. Informe o motivo do cancelamento:
+              </p>
+            )}
             <textarea
               className="w-full min-h-[80px] rounded-md border bg-background p-2 text-sm"
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Ex: Cliente desistiu da coleta / OF duplicada / Pedido alterado."
+              placeholder={showCancelModal?.status === 'collected'
+                ? 'Ex.: Coleta lançada por engano / NF cancelada na tinturaria / Cliente devolveu a malha.'
+                : 'Ex.: Cliente desistiu da coleta / OF duplicada / Pedido alterado.'}
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCancelModal(null)}>Voltar</Button>
             <Button
-              className="bg-zinc-700 hover:bg-zinc-800 text-white"
+              className={showCancelModal?.status === 'collected'
+                ? 'bg-red-700 hover:bg-red-800 text-white'
+                : 'bg-zinc-700 hover:bg-zinc-800 text-white'}
               onClick={handleCancel}
               disabled={updateStatus.isPending}
             >
-              Confirmar Cancelamento
+              {showCancelModal?.status === 'collected' ? 'Confirmar Estorno' : 'Confirmar Cancelamento'}
             </Button>
           </DialogFooter>
         </DialogContent>
