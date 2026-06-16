@@ -212,6 +212,23 @@ export function useBillingOrders() {
         updatePayload.priority_by = profile?.id;
       }
 
+      // Se a OF tem paletes salvos, separating→ready DEVE usar a SOMA dos paletes
+      // como pieces_real/weight_real — mesmo que o usuário tenha clicado em
+      // "Lançar Dados" com números diferentes (caso contrário o release no
+      // collected não bateria com a soma dos reserves individuais já gerados).
+      if (status === 'ready' && expectedStatus === 'separating') {
+        const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
+          .select('pieces, weight_kg')
+          .eq('billing_order_id', id);
+        if (palletRows && palletRows.length > 0) {
+          const sumP = palletRows.reduce((s: number, p: any) => s + Number(p.pieces || 0), 0);
+          const sumW = palletRows.reduce((s: number, p: any) => s + Number(p.weight_kg || 0), 0);
+          updatePayload.pieces_real = sumP;
+          updatePayload.weight_real = sumW;
+          updatePayload.weight_avg = sumP > 0 ? sumW / sumP : 0;
+        }
+      }
+
       // Atualização condicional — evita conflito quando outro usuário já mudou o status (delay/realtime).
       let q = supabase.from('billing_orders').update(updatePayload).eq('id', id);
       if (expectedStatus) q = q.eq('status', expectedStatus);
