@@ -132,6 +132,13 @@ const BillingOrders = () => {
       if (order.status !== activeTab) return false;
       if (!matchesSearch) return false;
 
+      // Filtro específico para "Pronto": com / sem documento
+      if (activeTab === 'ready') {
+        const hasDoc = !!(order as any).delivery_doc_number;
+        if (readyDocFilter === 'with' && !hasDoc) return false;
+        if (readyDocFilter === 'without' && hasDoc) return false;
+      }
+
       // Filtros específicos para "Coletadas"
       if (activeTab === 'collected') {
         const orderDate = new Date(order.created_at);
@@ -155,13 +162,15 @@ const BillingOrders = () => {
 
       return true;
     });
-  }, [orders, searchTerm, activeTab, filterDateRange, datePreset]);
+  }, [orders, searchTerm, activeTab, filterDateRange, datePreset, readyDocFilter]);
 
   const stats = useMemo(() => {
     return {
       open: orders.filter(o => o.status === 'open' && !o.priority).length,
       separating: orders.filter(o => o.status === 'separating').length,
       ready: orders.filter(o => o.status === 'ready').length,
+      readyWithDoc: orders.filter(o => o.status === 'ready' && !!(o as any).delivery_doc_number).length,
+      readyWithoutDoc: orders.filter(o => o.status === 'ready' && !(o as any).delivery_doc_number).length,
       collected: orders.filter(o => o.status === 'collected').length,
       priority: orders.filter(o => o.priority && o.status === 'open').length,
       cancelled: orders.filter(o => o.status === 'cancelled').length,
