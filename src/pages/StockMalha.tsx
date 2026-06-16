@@ -495,14 +495,9 @@ export default function StockMalha() {
               searchPlaceholder="Buscar artigo..."
               triggerClassName="w-[220px] h-8 text-xs"
             />
-            {(estoqueClient !== 'all' || estoqueArticle !== 'all' || estoqueMonth !== 'all') && (
-              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEstoqueClient('all'); setEstoqueArticle('all'); setEstoqueMonth('all'); }}>Limpar</Button>
-            )}
-          </div>
-          <div className="flex flex-wrap items-end gap-2 mt-3 pt-3 border-t">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5" />
-              <span className="font-medium">Entregue — período:</span>
+              <span className="font-medium">Entregue:</span>
             </div>
             <Popover>
               <PopoverTrigger asChild>
@@ -510,7 +505,7 @@ export default function StockMalha() {
                   variant="outline"
                   size="sm"
                   className={cn(
-                    "h-8 text-xs justify-start text-left font-normal w-[260px]",
+                    "h-8 text-xs justify-start text-left font-normal w-[200px]",
                     !entregueRange.from && "text-muted-foreground"
                   )}
                 >
@@ -559,6 +554,9 @@ export default function StockMalha() {
             >
               Hoje
             </Button>
+            {(estoqueClient !== 'all' || estoqueArticle !== 'all' || estoqueMonth !== 'all') && (
+              <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setEstoqueClient('all'); setEstoqueArticle('all'); setEstoqueMonth('all'); }}>Limpar</Button>
+            )}
           </div>
         </CardContent>
       </Card>
