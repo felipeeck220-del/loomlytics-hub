@@ -687,6 +687,16 @@ export default function StockMalha() {
           onSaved={() => refetchMovements()}
         />
       )}
+      {isAdmin && (
+        <ManualStockEntryModal
+          open={manual2qOpen}
+          onOpenChange={setManual2qOpen}
+          clients={clients}
+          articles={articles as any}
+          isSecondQuality
+          onSaved={() => refetchMovements()}
+        />
+      )}
     </div>
   );
 }
