@@ -278,6 +278,7 @@ export type Database = {
           priority_at: string | null
           priority_by: string | null
           priority_reason: string | null
+          reversal_quality: string | null
           reversal_reason: string | null
           reversed_at: string | null
           reversed_by: string | null
@@ -320,6 +321,7 @@ export type Database = {
           priority_at?: string | null
           priority_by?: string | null
           priority_reason?: string | null
+          reversal_quality?: string | null
           reversal_reason?: string | null
           reversed_at?: string | null
           reversed_by?: string | null
@@ -362,6 +364,7 @@ export type Database = {
           priority_at?: string | null
           priority_by?: string | null
           priority_reason?: string | null
+          reversal_quality?: string | null
           reversal_reason?: string | null
           reversed_at?: string | null
           reversed_by?: string | null
@@ -2482,6 +2485,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          is_second_quality: boolean
           pieces: number
           reason: string | null
           type: Database["public"]["Enums"]["stock_movement_type"]
@@ -2495,6 +2499,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_second_quality?: boolean
           pieces?: number
           reason?: string | null
           type: Database["public"]["Enums"]["stock_movement_type"]
@@ -2508,6 +2513,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_second_quality?: boolean
           pieces?: number
           reason?: string | null
           type?: Database["public"]["Enums"]["stock_movement_type"]
