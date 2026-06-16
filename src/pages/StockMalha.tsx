@@ -513,9 +513,6 @@ export default function StockMalha() {
       )}
         </TabsContent>
 
-        <TabsContent value="movimentos" className="space-y-3 mt-4">
-        </TabsContent>
-
         <TabsContent value="segunda" className="space-y-3 mt-4">
           <Card>
             <CardContent className="p-4">
@@ -613,7 +610,7 @@ export default function StockMalha() {
           )}
         </TabsContent>
 
-        <TabsContent value="movimentos_real" className="space-y-3 mt-4">
+        <TabsContent value="movimentos" className="space-y-3 mt-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center gap-2">
