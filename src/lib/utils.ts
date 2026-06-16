@@ -21,6 +21,19 @@ export function getFriendlyErrorMessage(errorMessage: unknown): string {
   }
   // Foreign key constraint violations
   if (msg.includes('violates foreign key constraint')) {
+    // Insert/update failing because referenced row does not exist
+    if (msg.includes('is not present in table')) {
+      const tableMatch = msg.match(/is not present in table "([^"]+)"/);
+      const tbl = tableMatch?.[1] ?? '';
+      const map: Record<string, string> = {
+        articles: 'Artigo selecionado não foi encontrado. Recarregue a página e tente novamente.',
+        clients: 'Cliente selecionado não foi encontrado. Recarregue a página e tente novamente.',
+        profiles: 'Seu perfil de usuário não foi localizado no sistema. Faça logout e entre novamente.',
+        companies: 'Empresa não encontrada. Faça logout e entre novamente.',
+        billing_orders: 'Ordem de fabricação vinculada não foi encontrada.',
+      };
+      return map[tbl] || `Registro vinculado não encontrado (${tbl || 'desconhecido'}). Recarregue a página e tente novamente.`;
+    }
     // Extract table name from the error for context
     if (msg.includes('invoice_items')) {
       return 'Este item não pode ser excluído porque está sendo usado em Notas Fiscais. Remova primeiro os itens de NF que o utilizam.';
