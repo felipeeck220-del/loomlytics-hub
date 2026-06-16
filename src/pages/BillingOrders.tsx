@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History } from 'lucide-react';
+import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History, FileText, User as UserIcon } from 'lucide-react';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +25,7 @@ const BillingOrders = () => {
   const { role } = usePermissions();
   const { toast } = useToast();
   const { getClients, getArticles, getMachines } = useSharedCompanyData();
-  const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists } = useBillingOrders();
+  const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc } = useBillingOrders();
 
   const isAdmin = role === 'admin';
   const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab'>('open');
@@ -38,6 +38,11 @@ const BillingOrders = () => {
   const [showEditModal, setShowEditModal] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState<any>(null);
   const [cancelReason, setCancelReason] = useState('');
+
+  // Modal documento de saída (NF/Romaneio) e modal de escolha de impressão (admin)
+  const [showDocModal, setShowDocModal] = useState<any>(null);
+  const [docForm, setDocForm] = useState<{ type: 'nf' | 'romaneio'; number: string }>({ type: 'nf', number: '' });
+  const [showPrintChoice, setShowPrintChoice] = useState<any>(null);
 
   // Auto-numeração e detecção de duplicidade no modal Nova OF
   const [lastOfNumber, setLastOfNumber] = useState<string | null>(null);
@@ -411,7 +416,7 @@ const BillingOrders = () => {
     printWindow.document.close();
   };
 
-  const handleAdminPrintPdf = async (order: any) => {
+  const handleAdminPrintPdf = async (order: any, mode: 'internal' | 'client' = 'internal') => {
     try {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pw = pdf.internal.pageSize.getWidth();
@@ -502,14 +507,19 @@ const BillingOrders = () => {
       const statusMap: Record<string, { label: string; color: [number, number, number] }> = {
         open: { label: 'ABERTO', color: [2, 132, 199] },
         separating: { label: 'SEPARANDO', color: [217, 119, 6] },
-        ready: { label: 'PRONTO', color: [5, 150, 105] },
+        ready: { label: order.delivery_doc_number ? 'PRONTO' : 'PRONTO PARA COLETA', color: order.delivery_doc_number ? [5, 150, 105] : [124, 58, 237] },
         collected: { label: 'COLETADA', color: [71, 85, 105] },
       };
-      const st = statusMap[order.status] || { label: order.status.toUpperCase(), color: [100, 100, 100] as [number, number, number] };
+      let st = statusMap[order.status] || { label: order.status.toUpperCase(), color: [100, 100, 100] as [number, number, number] };
+      // PDF para cliente: sempre exibe "PRONTO PARA COLETA"
+      if (mode === 'client') {
+        st = { label: 'PRONTO PARA COLETA', color: [5, 150, 105] };
+      }
       pdf.setFillColor(...st.color);
-      pdf.roundedRect(margin, y, 50, 9, 1.5, 1.5, 'F');
+      const badgeW = mode === 'client' ? 70 : 50;
+      pdf.roundedRect(margin, y, badgeW, 9, 1.5, 1.5, 'F');
       pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(255, 255, 255);
-      pdf.text(sanitizePdfText(st.label), margin + 25 - pdf.getTextWidth(st.label) / 2, y + 6.2);
+      pdf.text(sanitizePdfText(st.label), margin + badgeW / 2 - pdf.getTextWidth(st.label) / 2, y + 6.2);
 
       if (order.priority && order.status !== 'collected') {
         pdf.setFillColor(220, 38, 38);
@@ -551,14 +561,28 @@ const BillingOrders = () => {
         ['Máquina', order.machine?.name || '—'],
       ]);
 
-      drawSection('QUANTIDADES', [
-        ['Peças Previstas', String(order.pieces_expected ?? '—')],
-        ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
-        ['Peso Previsto', order.weight_expected ? `${order.weight_expected} kg` : '—'],
-        ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
-        ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
-        ['Média', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
-      ]);
+      if (mode === 'client') {
+        drawSection('QUANTIDADES', [
+          ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
+          ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
+          ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
+        ]);
+      } else {
+        drawSection('QUANTIDADES', [
+          ['Peças Previstas', String(order.pieces_expected ?? '—')],
+          ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
+          ['Peso Previsto', order.weight_expected ? `${order.weight_expected} kg` : '—'],
+          ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
+          ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
+          ['Média', order.weight_avg ? `${order.weight_avg.toFixed(2)} kg/peça` : '—'],
+        ]);
+      }
+
+      if (order.delivery_doc_number) {
+        drawSection(order.delivery_doc_type === 'romaneio' ? 'ROMANEIO' : 'NOTA FISCAL', [
+          [order.delivery_doc_type === 'romaneio' ? 'Romaneio Nº' : 'NF Nº', order.delivery_doc_number],
+        ]);
+      }
 
       if (order.priority_reason) {
         drawSection('PRIORIDADE', [
@@ -568,27 +592,30 @@ const BillingOrders = () => {
         ]);
       }
 
-      drawSection('AUDITORIA', [
-        ['Criado por', order.creator ? `${order.creator.name} #${order.creator.code}` : '—'],
-        ['Criado em', format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
-        ['Separado por', order.separator ? `${order.separator.name} #${order.separator.code}` : '—'],
-        ['Coletado por', order.collector ? `${order.collector.name} #${order.collector.code}` : '—'],
-        ['Última atualização', format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
-      ]);
+      if (mode !== 'client') {
+        drawSection('AUDITORIA', [
+          ['Criado por', order.creator ? `${order.creator.name} #${order.creator.code}` : '—'],
+          ['Criado em', format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
+          ['Separado por', order.separator ? `${order.separator.name} #${order.separator.code}` : '—'],
+          ['Coletado por', order.collector ? `${order.collector.name} #${order.collector.code}` : '—'],
+          ['Última atualização', format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })],
+        ]);
+      }
 
       // Rodapé
       const ph = pdf.internal.pageSize.getHeight();
       pdf.setFontSize(7); pdf.setFont('helvetica', 'italic'); pdf.setTextColor(...colors.textMid);
       pdf.text(`Documento gerado em ${dateStr} • ${sanitizePdfText(companyName)}`, pw / 2 - 50, ph - 8);
 
-      pdf.save(`OF_${order.of_number}_${order.client?.name?.replace(/\s+/g, '_') || 'cliente'}.pdf`);
+      const suffix = mode === 'client' ? '_CLIENTE' : '';
+      pdf.save(`OF_${order.of_number}_${order.client?.name?.replace(/\s+/g, '_') || 'cliente'}${suffix}.pdf`);
     } catch (e: any) {
       toast({ title: 'Erro ao gerar PDF', description: e?.message, variant: 'destructive' });
     }
   };
 
   // Padronização visual: faixa lateral colorida + fundo neutro do card para máxima legibilidade
-  const getStatusStyle = (status: string, isPriority?: boolean) => {
+  const getStatusStyle = (status: string, isPriority?: boolean, hasDoc?: boolean) => {
     if (isPriority && status !== 'collected') {
       return { stripe: 'bg-red-600', label: 'PRIORIDADE', badgeClass: 'bg-red-600 text-white border-red-700' };
     }
@@ -598,7 +625,9 @@ const BillingOrders = () => {
       case 'separating':
         return { stripe: 'bg-amber-500', label: 'SEPARANDO', badgeClass: 'bg-amber-500 text-white border-amber-600' };
       case 'ready':
-        return { stripe: 'bg-emerald-600', label: 'PRONTO', badgeClass: 'bg-emerald-600 text-white border-emerald-700' };
+        return hasDoc
+          ? { stripe: 'bg-emerald-600', label: 'PRONTO', badgeClass: 'bg-emerald-600 text-white border-emerald-700' }
+          : { stripe: 'bg-violet-600', label: 'PRONTO PARA COLETA', badgeClass: 'bg-violet-600 text-white border-violet-700' };
       case 'collected':
         return { stripe: 'bg-slate-500', label: 'COLETADA', badgeClass: 'bg-slate-600 text-white border-slate-700' };
       case 'cancelled':
@@ -721,7 +750,8 @@ const BillingOrders = () => {
 
         <div className="mt-6 space-y-3">
           {filteredOrders.map((order) => {
-            const style = getStatusStyle(order.status, order.priority);
+            const hasDoc = !!(order as any).delivery_doc_number;
+            const style = getStatusStyle(order.status, order.priority, hasDoc);
             return (
               <Card
                 key={order.id}
@@ -765,6 +795,12 @@ const BillingOrders = () => {
                         {order.piece_weight_target != null && (
                           <Badge variant="outline" className="text-[10px] border-sky-500 text-sky-700 dark:text-sky-400">
                             PEÇA DE {Number(order.piece_weight_target)} KG
+                          </Badge>
+                        )}
+                        {(order as any).delivery_doc_number && (
+                          <Badge className="text-[10px] bg-emerald-600 text-white border-emerald-700 gap-1 py-0 px-2 h-5">
+                            <FileText className="h-3 w-3" />
+                            {(order as any).delivery_doc_type === 'romaneio' ? 'ROMANEIO' : 'NF'} {(order as any).delivery_doc_number}
                           </Badge>
                         )}
                       </div>
@@ -861,10 +897,33 @@ const BillingOrders = () => {
                           size="sm"
                           variant="outline"
                           className="gap-1.5"
-                          onClick={() => isAdmin ? handleAdminPrintPdf(order) : handlePrint(order)}
+                          onClick={() => isAdmin ? setShowPrintChoice(order) : handlePrint(order)}
                         >
                           <Printer className="h-4 w-4" /> Imprimir
                         </Button>
+
+                        {isAdmin && order.status === 'ready' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={cn(
+                              'gap-1.5',
+                              (order as any).delivery_doc_number
+                                ? 'text-emerald-700 border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950'
+                                : 'text-violet-700 border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950'
+                            )}
+                            onClick={() => {
+                              setDocForm({
+                                type: ((order as any).delivery_doc_type as 'nf' | 'romaneio') || 'nf',
+                                number: (order as any).delivery_doc_number || '',
+                              });
+                              setShowDocModal(order);
+                            }}
+                          >
+                            <FileText className="h-4 w-4" />
+                            {(order as any).delivery_doc_number ? 'Alterar NF/Romaneio' : 'Adicionar NF/Romaneio'}
+                          </Button>
+                        )}
 
                         {isAdmin && order.status !== 'collected' && order.status !== 'cancelled' && (
                           <Button
@@ -1386,6 +1445,111 @@ const BillingOrders = () => {
           </div>
           <DialogFooter>
             <Button onClick={() => setConflictInfo(null)}>Entendi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal NF / Romaneio (admin libera OF como pronta com documento) */}
+      <Dialog open={!!showDocModal} onOpenChange={(o) => !o && setShowDocModal(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-violet-700">
+              <FileText className="h-5 w-5" />
+              {(showDocModal as any)?.delivery_doc_number ? 'Alterar' : 'Adicionar'} NF / Romaneio · OF #{showDocModal?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Ao registrar o documento, a OF passa de <strong className="text-violet-700">PRONTO PARA COLETA</strong> para <strong className="text-emerald-700">PRONTO</strong> (verde), sinalizando à expedição que pode ser coletada.
+            </p>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase">Tipo de documento</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={docForm.type === 'nf' ? 'default' : 'outline'}
+                  className="justify-start gap-2"
+                  onClick={() => setDocForm({ ...docForm, type: 'nf' })}
+                >
+                  <FileText className="h-4 w-4" /> Nota Fiscal
+                </Button>
+                <Button
+                  type="button"
+                  variant={docForm.type === 'romaneio' ? 'default' : 'outline'}
+                  className="justify-start gap-2"
+                  onClick={() => setDocForm({ ...docForm, type: 'romaneio' })}
+                >
+                  <FileText className="h-4 w-4" /> Romaneio
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase">
+                Nº {docForm.type === 'nf' ? 'da Nota Fiscal' : 'do Romaneio'}
+              </Label>
+              <Input
+                value={docForm.number}
+                onChange={(e) => setDocForm({ ...docForm, number: e.target.value })}
+                placeholder={docForm.type === 'nf' ? 'Ex: 12345' : 'Ex: ROM-2026-001'}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDocModal(null)}>Cancelar</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={!docForm.number.trim()}
+              onClick={async () => {
+                try {
+                  await setDeliveryDoc({ id: showDocModal.id, type: docForm.type, number: docForm.number });
+                  setShowDocModal(null);
+                } catch (err: any) {
+                  toast({ title: 'Erro ao registrar documento', description: err?.message, variant: 'destructive' });
+                }
+              }}
+            >
+              Salvar Documento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Escolha de Impressão (admin) — Controle Interno x Cliente */}
+      <Dialog open={!!showPrintChoice} onOpenChange={(o) => !o && setShowPrintChoice(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Printer className="h-5 w-5" /> Imprimir OF #{showPrintChoice?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2">
+            <p className="text-xs text-muted-foreground">Escolha o tipo de impressão:</p>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => { handleAdminPrintPdf(showPrintChoice, 'internal'); setShowPrintChoice(null); }}
+            >
+              <FileText className="h-5 w-5 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold text-sm">Controle Interno</div>
+                <div className="text-[11px] text-muted-foreground">PDF completo: quantidades previstas/reais, prioridade e auditoria.</div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 h-auto py-3"
+              onClick={() => { handleAdminPrintPdf(showPrintChoice, 'client'); setShowPrintChoice(null); }}
+            >
+              <UserIcon className="h-5 w-5 text-emerald-600" />
+              <div className="text-left">
+                <div className="font-semibold text-sm">Cliente</div>
+                <div className="text-[11px] text-muted-foreground">PDF resumido: sem auditoria, sem previstos e sem média. Status sempre "Pronto para Coleta".</div>
+              </div>
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPrintChoice(null)}>Cancelar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

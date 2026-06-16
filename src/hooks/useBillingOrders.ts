@@ -37,6 +37,10 @@ export interface BillingOrder {
   edit_note?: string;
   last_edited_by?: string;
   last_edited_at?: string;
+  delivery_doc_type?: 'nf' | 'romaneio' | null;
+  delivery_doc_number?: string | null;
+  delivery_doc_set_by?: string | null;
+  delivery_doc_set_at?: string | null;
   // Joins
   client?: { name: string };
   article?: { name: string };
@@ -47,6 +51,7 @@ export interface BillingOrder {
   prioritizer?: { name: string; code: string };
   canceller?: { name: string; code: string };
   editor?: { name: string; code: string };
+  delivery_doc_setter?: { name: string; code: string };
 }
 
 export function useBillingOrders() {
@@ -375,6 +380,23 @@ export function useBillingOrders() {
     createOrder,
     updateStatus,
     editOrder,
+    setDeliveryDoc: async ({ id, type, number }: { id: string; type: 'nf' | 'romaneio'; number: string }) => {
+      if (!number || number.trim().length < 1) {
+        throw new Error('Informe o número do documento');
+      }
+      const { error } = await supabase
+        .from('billing_orders' as any)
+        .update({
+          delivery_doc_type: type,
+          delivery_doc_number: number.trim(),
+          delivery_doc_set_by: profile?.id,
+          delivery_doc_set_at: new Date().toISOString(),
+        } as any)
+        .eq('id', id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      toast({ title: `${type === 'nf' ? 'NF' : 'Romaneio'} registrado` });
+    },
     getNextOfNumber: async (): Promise<{ last: string | null; next: string }> => {
       if (!user?.company_id) return { last: null, next: '001' };
       const { data, error } = await supabase
