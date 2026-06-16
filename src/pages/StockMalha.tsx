@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,6 +61,13 @@ export default function StockMalha() {
     queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock', companyId] });
     queryClient.invalidateQueries({ queryKey: ['stock_movements_history', companyId] });
   };
+  // Reage a inserts diretos em stock_movements vindos de outros módulos (ex.: paletes em OF)
+  useEffect(() => {
+    const handler = () => refreshAllStock();
+    window.addEventListener('stock-movements-changed', handler);
+    return () => window.removeEventListener('stock-movements-changed', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId]);
   // Filtros independentes para 2ª qualidade
   const [segClient, setSegClient] = useState('all');
   const [segArticle, setSegArticle] = useState('all');

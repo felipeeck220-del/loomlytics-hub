@@ -89,8 +89,44 @@ const BillingOrders = () => {
 
   // Modal de Paletes na Separação
   const [showPalletsModal, setShowPalletsModal] = useState<any>(null);
-  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number }>>([]);
+  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null }>>([]);
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string }>({ pieces: '', weight: '' });
+  const [palletBusy, setPalletBusy] = useState(false);
+
+  // Carrega paletes salvos ao abrir o modal
+  useEffect(() => {
+    if (!showPalletsModal) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('billing_order_pallets' as any)
+        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id')
+        .eq('billing_order_id', showPalletsModal.id)
+        .order('pallet_number', { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        toast({ title: 'Erro ao carregar paletes', description: error.message, variant: 'destructive' });
+        return;
+      }
+      setPallets((data || []).map((r: any) => ({
+        id: r.id,
+        pallet_number: r.pallet_number,
+        pieces: Number(r.pieces || 0),
+        weight: Number(r.weight_kg || 0),
+        reserve_movement_id: r.reserve_movement_id,
+      })));
+    })();
+    return () => { cancelled = true; };
+  }, [showPalletsModal, toast]);
+
+  const refreshStockCaches = () => {
+    // hook do BillingOrders já invalida estoque em mutations próprias; aqui forçamos manualmente
+    // para o caso de inserts diretos em stock_movements feitos pelo modal de paletes.
+    try {
+      // window event para que /estoque-malha (se aberto) recarregue
+      window.dispatchEvent(new CustomEvent('stock-movements-changed'));
+    } catch {}
+  };
 
   const [form, setForm] = useState({
     of_number: '',
@@ -1855,15 +1891,62 @@ const BillingOrders = () => {
                     <Button
                       size="sm"
                       className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                      onClick={() => {
+                      disabled={palletBusy}
+                      onClick={async () => {
                         const pc = parseInt(palletInput.pieces || '0');
                         const wt = parseFloat(palletInput.weight || '0');
                         if (!pc && !wt) {
                           toast({ title: 'Informe peças ou peso', variant: 'destructive' });
                           return;
                         }
-                        setPallets(prev => [...prev, { id: crypto.randomUUID(), pieces: pc || 0, weight: wt || 0 }]);
-                        setPalletInput({ pieces: '', weight: '' });
+                        if (!user?.company_id) return;
+                        const order = showPalletsModal;
+                        setPalletBusy(true);
+                        try {
+                          const nextNumber = (pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0) || 0) + 1;
+                          // 1. Cria movimento de reserva
+                          const { data: mv, error: mvErr } = await (supabase.from as any)('stock_movements').insert({
+                            company_id: user.company_id,
+                            article_id: order.article_id,
+                            client_id: order.client_id,
+                            billing_order_id: order.id,
+                            type: 'reserve',
+                            pieces: pc || 0,
+                            weight_kg: wt || 0,
+                            reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva)`,
+                            created_by: profile?.id ?? null,
+                          }).select('id').single();
+                          if (mvErr) throw mvErr;
+                          // 2. Persiste palete
+                          const { data: row, error: pErr } = await (supabase.from as any)('billing_order_pallets').insert({
+                            billing_order_id: order.id,
+                            company_id: user.company_id,
+                            pallet_number: nextNumber,
+                            pieces: pc || 0,
+                            weight_kg: wt || 0,
+                            reserve_movement_id: mv?.id ?? null,
+                            created_by: profile?.id ?? null,
+                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id').single();
+                          if (pErr) {
+                            // rollback do movimento se persistência falhar
+                            if (mv?.id) await (supabase.from as any)('stock_movements').delete().eq('id', mv.id);
+                            throw pErr;
+                          }
+                          setPallets(prev => [...prev, {
+                            id: row.id,
+                            pallet_number: row.pallet_number,
+                            pieces: Number(row.pieces),
+                            weight: Number(row.weight_kg),
+                            reserve_movement_id: row.reserve_movement_id,
+                          }]);
+                          setPalletInput({ pieces: '', weight: '' });
+                          refreshStockCaches();
+                          toast({ title: `Palete ${nextNumber} salvo e reservado no estoque` });
+                        } catch (e: any) {
+                          toast({ title: 'Erro ao salvar palete', description: e.message, variant: 'destructive' });
+                        } finally {
+                          setPalletBusy(false);
+                        }
                       }}
                     >
                       <Plus className="h-4 w-4" />
@@ -1884,13 +1967,45 @@ const BillingOrders = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {pallets.map((p, i) => (
+                        {pallets.map((p) => (
                           <tr key={p.id} className="border-t">
-                            <td className="p-2 font-semibold">Palete {i + 1}</td>
+                            <td className="p-2 font-semibold">Palete {p.pallet_number}</td>
                             <td className="p-2 text-right">{p.pieces}</td>
                             <td className="p-2 text-right">{p.weight.toFixed(2)}</td>
                             <td className="p-2">
-                              <Button size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700" onClick={() => setPallets(prev => prev.filter(x => x.id !== p.id))}>
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700"
+                                disabled={palletBusy}
+                                onClick={async () => {
+                                  if (!user?.company_id) return;
+                                  const order = showPalletsModal;
+                                  setPalletBusy(true);
+                                  try {
+                                    // 1. Libera reserva (movimento contrário)
+                                    const { error: relErr } = await (supabase.from as any)('stock_movements').insert({
+                                      company_id: user.company_id,
+                                      article_id: order.article_id,
+                                      client_id: order.client_id,
+                                      billing_order_id: order.id,
+                                      type: 'release',
+                                      pieces: p.pieces || 0,
+                                      weight_kg: p.weight || 0,
+                                      reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva)`,
+                                      created_by: profile?.id ?? null,
+                                    });
+                                    if (relErr) throw relErr;
+                                    // 2. Apaga palete
+                                    const { error: delErr } = await (supabase.from as any)('billing_order_pallets').delete().eq('id', p.id);
+                                    if (delErr) throw delErr;
+                                    setPallets(prev => prev.filter(x => x.id !== p.id));
+                                    refreshStockCaches();
+                                    toast({ title: `Palete ${p.pallet_number} removido — estoque liberado` });
+                                  } catch (e: any) {
+                                    toast({ title: 'Erro ao remover palete', description: e.message, variant: 'destructive' });
+                                  } finally {
+                                    setPalletBusy(false);
+                                  }
+                                }}
+                              >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </td>
