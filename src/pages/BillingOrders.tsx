@@ -1585,9 +1585,10 @@ const BillingOrders = () => {
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
               <Label className="text-right text-xs">Tipo</Label>
-              <div className="col-span-3 grid grid-cols-2 gap-2">
+              <div className="col-span-3 grid grid-cols-3 gap-2">
                 <Button type="button" size="sm" variant={editForm.order_type === 'pieces' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'pieces'})}>Por Peças</Button>
-                <Button type="button" size="sm" variant={editForm.order_type === 'weight' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'weight'})}>Por Peso Total</Button>
+                <Button type="button" size="sm" variant={editForm.order_type === 'weight' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'weight'})}>Por Peso</Button>
+                <Button type="button" size="sm" variant={editForm.order_type === 'all' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: ''})}>Coletar Tudo</Button>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
