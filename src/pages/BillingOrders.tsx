@@ -374,17 +374,18 @@ const BillingOrders = () => {
       toast({ title: "Informe o peso total (kg)", variant: "destructive" });
       return;
     }
+    // order_type === 'all' (Coletar Tudo) não exige peças/peso
     setCreateDupError(null);
     const payload = {
       of_number: form.of_number,
       client_id: form.client_id,
       article_id: form.article_id,
       machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
-      pieces_expected: form.pieces_expected ? parseInt(form.pieces_expected) : undefined,
-      weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
-      piece_weight_target: form.piece_weight_target ? parseFloat(form.piece_weight_target) : null,
+      pieces_expected: form.order_type === 'all' ? undefined : (form.pieces_expected ? parseInt(form.pieces_expected) : undefined),
+      weight_expected: form.order_type === 'all' ? undefined : (form.weight_expected ? parseFloat(form.weight_expected) : undefined),
+      piece_weight_target: form.order_type === 'all' ? null : (form.piece_weight_target ? parseFloat(form.piece_weight_target) : null),
       dyehouse: form.dyehouse,
-      order_type: form.order_type as 'pieces' | 'weight',
+      order_type: form.order_type as 'pieces' | 'weight' | 'all',
     };
     // Checa saldo do artigo e avisa se já estiver negativo ou se for ficar negativo.
     try {
@@ -455,9 +456,9 @@ const BillingOrders = () => {
       client_id: editForm.client_id,
       article_id: editForm.article_id,
       machine_id: editForm.machine_id && editForm.machine_id !== 'none' ? editForm.machine_id : null,
-      pieces_expected: editForm.pieces_expected ? parseInt(editForm.pieces_expected) : null,
-      weight_expected: editForm.weight_expected ? parseFloat(editForm.weight_expected) : null,
-      piece_weight_target: editForm.piece_weight_target ? parseFloat(editForm.piece_weight_target) : null,
+      pieces_expected: editForm.order_type === 'all' ? null : (editForm.pieces_expected ? parseInt(editForm.pieces_expected) : null),
+      weight_expected: editForm.order_type === 'all' ? null : (editForm.weight_expected ? parseFloat(editForm.weight_expected) : null),
+      piece_weight_target: editForm.order_type === 'all' ? null : (editForm.piece_weight_target ? parseFloat(editForm.piece_weight_target) : null),
       dyehouse: editForm.dyehouse,
       order_type: editForm.order_type,
     };
