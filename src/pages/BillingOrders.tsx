@@ -143,7 +143,7 @@ const BillingOrders = () => {
     dyehouse: '',
     weight_expected: '',
     piece_weight_target: '',
-    order_type: 'pieces' as 'pieces' | 'weight',
+    order_type: 'pieces' as 'pieces' | 'weight' | 'all',
   });
 
   // Ao abrir o modal de criação, busca o último número gerado e sugere o próximo.
