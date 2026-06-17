@@ -594,9 +594,11 @@ const BillingOrders = () => {
             <div class="client">${order.client?.name ?? ''}</div>
             <div class="dyehouse">(${order.dyehouse ?? ''})</div>
             <div class="pieces">${
-              order.order_type === 'weight' && !order.pieces_real && !order.pieces_expected
-                ? `${order.weight_real ?? order.weight_expected ?? '—'} KG`
-                : `${order.pieces_real ?? order.pieces_expected ?? '—'} PEÇAS`
+              order.order_type === 'all' && !order.pieces_real && !order.weight_real
+                ? `COLETAR TUDO`
+                : (order.order_type === 'weight' && !order.pieces_real && !order.pieces_expected
+                    ? `${order.weight_real ?? order.weight_expected ?? '—'} KG`
+                    : `${order.pieces_real ?? order.pieces_expected ?? '—'} PEÇAS`)
             }</div>
             <div class="of-number">OF ${order.of_number}</div>
           </div>
@@ -1037,6 +1039,11 @@ const BillingOrders = () => {
                         {order.order_type === 'weight' && (
                           <Badge variant="outline" className="text-[10px] border-emerald-500 text-emerald-700 dark:text-emerald-400">
                             PEDIDO POR PESO
+                          </Badge>
+                        )}
+                        {order.order_type === 'all' && (
+                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                            COLETAR TUDO
                           </Badge>
                         )}
                         {order.piece_weight_target != null && (
