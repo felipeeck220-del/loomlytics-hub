@@ -500,7 +500,7 @@ const BillingOrders = () => {
   };
 
   const handleLaunch = async () => {
-    const orderType = (showLaunchModal?.order_type as 'pieces' | 'weight') || 'pieces';
+    const orderType = (showLaunchModal?.order_type as 'pieces' | 'weight' | 'all') || 'pieces';
     const pieces = parseInt(launchForm.pieces_real || '0') || 0;
     const weight = parseFloat(launchForm.weight_real || '0') || 0;
     // OFs por peso podem ser finalizadas sem peças; OFs por peças exigem ambos.
@@ -510,6 +510,10 @@ const BillingOrders = () => {
     }
     if (orderType === 'weight' && !weight) {
       toast({ title: 'Informe o peso real (kg)', variant: 'destructive' });
+      return;
+    }
+    if (orderType === 'all' && !pieces && !weight) {
+      toast({ title: 'Informe peças e/ou peso reais coletados', variant: 'destructive' });
       return;
     }
     const avg = pieces > 0 ? weight / pieces : 0;
