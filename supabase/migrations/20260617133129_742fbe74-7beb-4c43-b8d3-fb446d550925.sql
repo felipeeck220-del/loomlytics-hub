@@ -1,0 +1,2 @@
+ALTER TABLE public.billing_orders DROP CONSTRAINT IF EXISTS billing_orders_order_type_check;
+ALTER TABLE public.billing_orders ADD CONSTRAINT billing_orders_order_type_check CHECK (order_type IN ('pieces','weight','all'));

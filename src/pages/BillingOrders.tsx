@@ -143,7 +143,7 @@ const BillingOrders = () => {
     dyehouse: '',
     weight_expected: '',
     piece_weight_target: '',
-    order_type: 'pieces' as 'pieces' | 'weight',
+    order_type: 'pieces' as 'pieces' | 'weight' | 'all',
   });
 
   // Ao abrir o modal de criação, busca o último número gerado e sugere o próximo.
@@ -374,17 +374,18 @@ const BillingOrders = () => {
       toast({ title: "Informe o peso total (kg)", variant: "destructive" });
       return;
     }
+    // order_type === 'all' (Coletar Tudo) não exige peças/peso
     setCreateDupError(null);
     const payload = {
       of_number: form.of_number,
       client_id: form.client_id,
       article_id: form.article_id,
       machine_id: form.machine_id && form.machine_id !== 'none' ? form.machine_id : undefined,
-      pieces_expected: form.pieces_expected ? parseInt(form.pieces_expected) : undefined,
-      weight_expected: form.weight_expected ? parseFloat(form.weight_expected) : undefined,
-      piece_weight_target: form.piece_weight_target ? parseFloat(form.piece_weight_target) : null,
+      pieces_expected: form.order_type === 'all' ? undefined : (form.pieces_expected ? parseInt(form.pieces_expected) : undefined),
+      weight_expected: form.order_type === 'all' ? undefined : (form.weight_expected ? parseFloat(form.weight_expected) : undefined),
+      piece_weight_target: form.order_type === 'all' ? null : (form.piece_weight_target ? parseFloat(form.piece_weight_target) : null),
       dyehouse: form.dyehouse,
-      order_type: form.order_type as 'pieces' | 'weight',
+      order_type: form.order_type as 'pieces' | 'weight' | 'all',
     };
     // Checa saldo do artigo e avisa se já estiver negativo ou se for ficar negativo.
     try {
@@ -455,9 +456,9 @@ const BillingOrders = () => {
       client_id: editForm.client_id,
       article_id: editForm.article_id,
       machine_id: editForm.machine_id && editForm.machine_id !== 'none' ? editForm.machine_id : null,
-      pieces_expected: editForm.pieces_expected ? parseInt(editForm.pieces_expected) : null,
-      weight_expected: editForm.weight_expected ? parseFloat(editForm.weight_expected) : null,
-      piece_weight_target: editForm.piece_weight_target ? parseFloat(editForm.piece_weight_target) : null,
+      pieces_expected: editForm.order_type === 'all' ? null : (editForm.pieces_expected ? parseInt(editForm.pieces_expected) : null),
+      weight_expected: editForm.order_type === 'all' ? null : (editForm.weight_expected ? parseFloat(editForm.weight_expected) : null),
+      piece_weight_target: editForm.order_type === 'all' ? null : (editForm.piece_weight_target ? parseFloat(editForm.piece_weight_target) : null),
       dyehouse: editForm.dyehouse,
       order_type: editForm.order_type,
     };
@@ -499,7 +500,7 @@ const BillingOrders = () => {
   };
 
   const handleLaunch = async () => {
-    const orderType = (showLaunchModal?.order_type as 'pieces' | 'weight') || 'pieces';
+    const orderType = (showLaunchModal?.order_type as 'pieces' | 'weight' | 'all') || 'pieces';
     const pieces = parseInt(launchForm.pieces_real || '0') || 0;
     const weight = parseFloat(launchForm.weight_real || '0') || 0;
     // OFs por peso podem ser finalizadas sem peças; OFs por peças exigem ambos.
@@ -509,6 +510,10 @@ const BillingOrders = () => {
     }
     if (orderType === 'weight' && !weight) {
       toast({ title: 'Informe o peso real (kg)', variant: 'destructive' });
+      return;
+    }
+    if (orderType === 'all' && !pieces && !weight) {
+      toast({ title: 'Informe peças e/ou peso reais coletados', variant: 'destructive' });
       return;
     }
     const avg = pieces > 0 ? weight / pieces : 0;
@@ -593,9 +598,11 @@ const BillingOrders = () => {
             <div class="client">${order.client?.name ?? ''}</div>
             <div class="dyehouse">(${order.dyehouse ?? ''})</div>
             <div class="pieces">${
-              order.order_type === 'weight' && !order.pieces_real && !order.pieces_expected
-                ? `${order.weight_real ?? order.weight_expected ?? '—'} KG`
-                : `${order.pieces_real ?? order.pieces_expected ?? '—'} PEÇAS`
+              order.order_type === 'all' && !order.pieces_real && !order.weight_real
+                ? `COLETAR TUDO`
+                : (order.order_type === 'weight' && !order.pieces_real && !order.pieces_expected
+                    ? `${order.weight_real ?? order.weight_expected ?? '—'} KG`
+                    : `${order.pieces_real ?? order.pieces_expected ?? '—'} PEÇAS`)
             }</div>
             <div class="of-number">OF ${order.of_number}</div>
           </div>
@@ -1038,6 +1045,11 @@ const BillingOrders = () => {
                             PEDIDO POR PESO
                           </Badge>
                         )}
+                        {order.order_type === 'all' && (
+                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                            COLETAR TUDO
+                          </Badge>
+                        )}
                         {order.piece_weight_target != null && (
                           <Badge variant="outline" className="text-[10px] border-sky-500 text-sky-700 dark:text-sky-400">
                             PEÇA DE {Number(order.piece_weight_target)} KG
@@ -1307,7 +1319,7 @@ const BillingOrders = () => {
             )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Tipo</Label>
-              <div className="col-span-3 grid grid-cols-2 gap-2">
+              <div className="col-span-3 grid grid-cols-3 gap-2">
                 <Button
                   type="button"
                   variant={form.order_type === 'pieces' ? 'default' : 'outline'}
@@ -1319,7 +1331,13 @@ const BillingOrders = () => {
                   variant={form.order_type === 'weight' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setForm({ ...form, order_type: 'weight' })}
-                >Por Peso Total (kg)</Button>
+                >Por Peso (kg)</Button>
+                <Button
+                  type="button"
+                  variant={form.order_type === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setForm({ ...form, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: '' })}
+                >Coletar Tudo</Button>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -1349,20 +1367,25 @@ const BillingOrders = () => {
               <Label className="text-right">
                 Peças {form.order_type === 'weight' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
               </Label>
-              <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder={form.order_type === 'weight' ? 'Opcional' : 'Quantidade de peças'} />
+              <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder={form.order_type === 'all' ? 'Tudo disponível' : (form.order_type === 'weight' ? 'Opcional' : 'Quantidade de peças')} disabled={form.order_type === 'all'} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">
                 Peso Total (kg) {form.order_type === 'pieces' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
               </Label>
-              <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder={form.order_type === 'weight' ? 'Ex: 1000' : 'Opcional'} />
+              <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder={form.order_type === 'all' ? 'Tudo disponível' : (form.order_type === 'weight' ? 'Ex: 1000' : 'Opcional')} disabled={form.order_type === 'all'} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">
                 Peso por Peça (kg) <span className="text-[10px] text-muted-foreground">(opc.)</span>
               </Label>
-              <Input type="number" step="0.01" className="col-span-3" value={form.piece_weight_target} onChange={e => setForm({...form, piece_weight_target: e.target.value})} placeholder="Ex: 10 (cliente solicitou peças de 10kg)" />
+              <Input type="number" step="0.01" className="col-span-3" value={form.piece_weight_target} onChange={e => setForm({...form, piece_weight_target: e.target.value})} placeholder="Ex: 10 (cliente solicitou peças de 10kg)" disabled={form.order_type === 'all'} />
             </div>
+            {form.order_type === 'all' && (
+              <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 text-xs text-amber-900 dark:text-amber-200">
+                Modo <strong>Coletar Tudo</strong>: a expedição vai separar e lançar todo o estoque disponível do artigo no momento da coleta. Peças e peso ficam em branco até o lançamento real.
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Máquina</Label>
               <div className="col-span-3">
@@ -1573,9 +1596,10 @@ const BillingOrders = () => {
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
               <Label className="text-right text-xs">Tipo</Label>
-              <div className="col-span-3 grid grid-cols-2 gap-2">
+              <div className="col-span-3 grid grid-cols-3 gap-2">
                 <Button type="button" size="sm" variant={editForm.order_type === 'pieces' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'pieces'})}>Por Peças</Button>
-                <Button type="button" size="sm" variant={editForm.order_type === 'weight' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'weight'})}>Por Peso Total</Button>
+                <Button type="button" size="sm" variant={editForm.order_type === 'weight' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'weight'})}>Por Peso</Button>
+                <Button type="button" size="sm" variant={editForm.order_type === 'all' ? 'default' : 'outline'} onClick={() => setEditForm({...editForm, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: ''})}>Coletar Tudo</Button>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-3">

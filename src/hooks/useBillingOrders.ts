@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export type BillingOrderStatus = 'open' | 'separating' | 'ready' | 'collected' | 'cancelled';
-export type BillingOrderType = 'pieces' | 'weight';
+export type BillingOrderType = 'pieces' | 'weight' | 'all';
 
 export interface BillingOrder {
   id: string;
@@ -123,6 +123,7 @@ export function useBillingOrders() {
       if (orderType === 'weight' && !newOrder.weight_expected) {
         throw new Error("Weight required for weight-type order");
       }
+      // 'all' = coletar tudo disponível, sem peças/peso pré-definidos
 
       // Verificação anti-duplicidade — vários admins podem gerar OF simultaneamente.
       const { data: dup, error: dupErr } = await supabase
