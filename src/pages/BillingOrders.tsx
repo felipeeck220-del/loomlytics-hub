@@ -1308,7 +1308,7 @@ const BillingOrders = () => {
             )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Tipo</Label>
-              <div className="col-span-3 grid grid-cols-2 gap-2">
+              <div className="col-span-3 grid grid-cols-3 gap-2">
                 <Button
                   type="button"
                   variant={form.order_type === 'pieces' ? 'default' : 'outline'}
@@ -1320,7 +1320,13 @@ const BillingOrders = () => {
                   variant={form.order_type === 'weight' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setForm({ ...form, order_type: 'weight' })}
-                >Por Peso Total (kg)</Button>
+                >Por Peso (kg)</Button>
+                <Button
+                  type="button"
+                  variant={form.order_type === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setForm({ ...form, order_type: 'all', pieces_expected: '', weight_expected: '', piece_weight_target: '' })}
+                >Coletar Tudo</Button>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -1350,20 +1356,25 @@ const BillingOrders = () => {
               <Label className="text-right">
                 Peças {form.order_type === 'weight' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
               </Label>
-              <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder={form.order_type === 'weight' ? 'Opcional' : 'Quantidade de peças'} />
+              <Input type="number" className="col-span-3" value={form.pieces_expected} onChange={e => setForm({...form, pieces_expected: e.target.value})} placeholder={form.order_type === 'all' ? 'Tudo disponível' : (form.order_type === 'weight' ? 'Opcional' : 'Quantidade de peças')} disabled={form.order_type === 'all'} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">
                 Peso Total (kg) {form.order_type === 'pieces' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
               </Label>
-              <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder={form.order_type === 'weight' ? 'Ex: 1000' : 'Opcional'} />
+              <Input type="number" step="0.01" className="col-span-3" value={form.weight_expected} onChange={e => setForm({...form, weight_expected: e.target.value})} placeholder={form.order_type === 'all' ? 'Tudo disponível' : (form.order_type === 'weight' ? 'Ex: 1000' : 'Opcional')} disabled={form.order_type === 'all'} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">
                 Peso por Peça (kg) <span className="text-[10px] text-muted-foreground">(opc.)</span>
               </Label>
-              <Input type="number" step="0.01" className="col-span-3" value={form.piece_weight_target} onChange={e => setForm({...form, piece_weight_target: e.target.value})} placeholder="Ex: 10 (cliente solicitou peças de 10kg)" />
+              <Input type="number" step="0.01" className="col-span-3" value={form.piece_weight_target} onChange={e => setForm({...form, piece_weight_target: e.target.value})} placeholder="Ex: 10 (cliente solicitou peças de 10kg)" disabled={form.order_type === 'all'} />
             </div>
+            {form.order_type === 'all' && (
+              <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 text-xs text-amber-900 dark:text-amber-200">
+                Modo <strong>Coletar Tudo</strong>: a expedição vai separar e lançar todo o estoque disponível do artigo no momento da coleta. Peças e peso ficam em branco até o lançamento real.
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Máquina</Label>
               <div className="col-span-3">
