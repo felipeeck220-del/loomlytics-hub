@@ -90,8 +90,8 @@ const BillingOrders = () => {
 
   // Modal de Paletes na Separação
   const [showPalletsModal, setShowPalletsModal] = useState<any>(null);
-  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null }>>([]);
-  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string }>({ pieces: '', weight: '' });
+  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null }>>([]);
+  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string }>({ pieces: '', weight: '', machine_id: 'none' });
   const [palletBusy, setPalletBusy] = useState(false);
 
   // Modal de Atrelar OFs
