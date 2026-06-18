@@ -1996,14 +1996,28 @@ const BillingOrders = () => {
                 {/* Adicionar palete */}
                 <div className="rounded-md border p-3 space-y-2">
                   <div className="text-xs font-semibold uppercase text-muted-foreground">Adicionar palete</div>
-                  <div className="grid grid-cols-5 gap-2 items-end">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
                       <Label className="text-[10px] uppercase">Peças</Label>
                       <Input type="number" value={palletInput.pieces} onChange={e => setPalletInput({ ...palletInput, pieces: e.target.value })} placeholder="Ex: 25" />
                     </div>
-                    <div className="col-span-2">
+                    <div>
                       <Label className="text-[10px] uppercase">Peso (kg)</Label>
                       <Input type="number" step="0.01" value={palletInput.weight} onChange={e => setPalletInput({ ...palletInput, weight: e.target.value })} placeholder="Ex: 250" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label className="text-[10px] uppercase">Máquina</Label>
+                      <SearchableSelect
+                        value={palletInput.machine_id}
+                        onValueChange={v => setPalletInput({ ...palletInput, machine_id: v })}
+                        options={[
+                          { value: 'none', label: order.machine?.name ? `Padrão da OF (${order.machine.name})` : 'Não informado' },
+                          ...getMachines().map(m => ({ value: m.id, label: m.name })),
+                        ]}
+                        placeholder="Selecione a máquina"
+                      />
                     </div>
                     <Button
                       size="sm"
@@ -2021,6 +2035,9 @@ const BillingOrders = () => {
                         setPalletBusy(true);
                         try {
                           const nextNumber = (pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0) || 0) + 1;
+                          const palletMachineId = palletInput.machine_id && palletInput.machine_id !== 'none'
+                            ? palletInput.machine_id
+                            : (order.machine_id || null);
                           // 1. Cria movimento de reserva
                           const { data: mv, error: mvErr } = await (supabase.from as any)('stock_movements').insert({
                             company_id: user.company_id,
@@ -2042,8 +2059,9 @@ const BillingOrders = () => {
                             pieces: pc || 0,
                             weight_kg: wt || 0,
                             reserve_movement_id: mv?.id ?? null,
+                            machine_id: palletMachineId,
                             created_by: profile?.id ?? null,
-                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id').single();
+                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id').single();
                           if (pErr) {
                             // rollback do movimento se persistência falhar
                             if (mv?.id) await (supabase.from as any)('stock_movements').delete().eq('id', mv.id);
@@ -2055,8 +2073,9 @@ const BillingOrders = () => {
                             pieces: Number(row.pieces),
                             weight: Number(row.weight_kg),
                             reserve_movement_id: row.reserve_movement_id,
+                            machine_id: row.machine_id ?? null,
                           }]);
-                          setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
+                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id });
                           refreshStockCaches();
                           toast({ title: `Palete ${nextNumber} salvo e reservado no estoque` });
                         } catch (e: any) {
