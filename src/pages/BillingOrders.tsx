@@ -1172,6 +1172,46 @@ const BillingOrders = () => {
                           Média: {order.weight_avg.toFixed(2)} kg/peça
                         </div>
                       )}
+
+                      {/* Resumo de paletes por máquina (visível em Separando / Pronto / Coletadas) */}
+                      {(['separating', 'ready', 'collected'] as const).includes(order.status as any) && palletsByOrder.has(order.id) && (() => {
+                        const list = palletsByOrder.get(order.id)!;
+                        if (list.length === 0) return null;
+                        const machinesMap = new Map(getMachines().map((m: any) => [m.id, m.name]));
+                        const byMachine = new Map<string, { name: string; pieces: number; weight: number; count: number }>();
+                        for (const p of list) {
+                          const key = p.machine_id || '__none__';
+                          const name = p.machine_id ? (machinesMap.get(p.machine_id) || '—') : 'Sem máquina';
+                          const cur = byMachine.get(key) || { name, pieces: 0, weight: 0, count: 0 };
+                          cur.pieces += p.pieces;
+                          cur.weight += p.weight;
+                          cur.count += 1;
+                          byMachine.set(key, cur);
+                        }
+                        const groups = Array.from(byMachine.values());
+                        const single = groups.length === 1;
+                        return (
+                          <div className="rounded-md border border-indigo-300 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/30 p-2 mt-2">
+                            <div className="text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-300 mb-1 flex items-center gap-1">
+                              <Boxes className="h-3 w-3" />
+                              {single ? 'Paletes — Máquina' : 'Paletes — Resumo por máquina'}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
+                              {groups.map((g, i) => (
+                                <div key={i} className="flex justify-between gap-2 bg-white/60 dark:bg-black/20 rounded px-2 py-1">
+                                  <span className="font-bold text-indigo-800 dark:text-indigo-200">{g.name}</span>
+                                  <span className="font-semibold text-foreground">{g.pieces} pç · {g.weight.toFixed(2)} kg <span className="text-muted-foreground font-normal">({g.count})</span></span>
+                                </div>
+                              ))}
+                            </div>
+                            {!single && (
+                              <div className="text-[11px] font-bold text-indigo-900 dark:text-indigo-100 mt-1 pt-1 border-t border-indigo-200 dark:border-indigo-800 text-right">
+                                Total: {groups.reduce((s, g) => s + g.pieces, 0)} pç · {groups.reduce((s, g) => s + g.weight, 0).toFixed(2)} kg
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Coluna ações + auditoria padronizada */}
