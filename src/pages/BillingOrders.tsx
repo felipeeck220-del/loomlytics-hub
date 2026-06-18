@@ -2091,12 +2091,29 @@ const BillingOrders = () => {
                 </div>
 
                 {/* Lista */}
-                {pallets.length > 0 && (
+                {pallets.length > 0 && (() => {
+                  const machinesMap = new Map(getMachines().map(m => [m.id, m.name]));
+                  const machineName = (id?: string | null) => id ? (machinesMap.get(id) || '—') : '—';
+                  // Agrupamento por máquina
+                  const byMachine = new Map<string, { name: string; pieces: number; weight: number; count: number }>();
+                  for (const p of pallets) {
+                    const key = p.machine_id || '__none__';
+                    const name = p.machine_id ? machineName(p.machine_id) : 'Sem máquina';
+                    const cur = byMachine.get(key) || { name, pieces: 0, weight: 0, count: 0 };
+                    cur.pieces += p.pieces || 0;
+                    cur.weight += p.weight || 0;
+                    cur.count += 1;
+                    byMachine.set(key, cur);
+                  }
+                  const machineGroups = Array.from(byMachine.values());
+                  return (
+                  <>
                   <div className="rounded-md border max-h-[180px] overflow-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-muted/50 sticky top-0">
                         <tr>
                           <th className="text-left p-2">#</th>
+                          <th className="text-left p-2">Máquina</th>
                           <th className="text-right p-2">Peças</th>
                           <th className="text-right p-2">Peso (kg)</th>
                           <th className="p-2 w-8"></th>
@@ -2106,6 +2123,7 @@ const BillingOrders = () => {
                         {pallets.map((p) => (
                           <tr key={p.id} className="border-t">
                             <td className="p-2 font-semibold">Palete {p.pallet_number}</td>
+                            <td className="p-2 font-medium text-indigo-700 dark:text-indigo-300">{p.machine_id ? machineName(p.machine_id) : <span className="text-muted-foreground italic">—</span>}</td>
                             <td className="p-2 text-right">{p.pieces}</td>
                             <td className="p-2 text-right">{p.weight.toFixed(2)}</td>
                             <td className="p-2">
@@ -2150,7 +2168,25 @@ const BillingOrders = () => {
                       </tbody>
                     </table>
                   </div>
-                )}
+                  {/* Resumo por máquina */}
+                  <div className="rounded-md border p-2 space-y-1 bg-indigo-50/40 dark:bg-indigo-950/20">
+                    <div className="text-[10px] uppercase text-muted-foreground font-semibold">Resumo por máquina</div>
+                    {machineGroups.length === 1 ? (
+                      <div className="text-xs font-bold text-indigo-800 dark:text-indigo-200">
+                        Total — {machineGroups[0].name}: {machineGroups[0].pieces} pç · {machineGroups[0].weight.toFixed(2)} kg
+                      </div>
+                    ) : (
+                      machineGroups.map((g, i) => (
+                        <div key={i} className="text-xs font-bold text-indigo-800 dark:text-indigo-200 flex justify-between">
+                          <span>{g.name} ({g.count} palete{g.count !== 1 ? 's' : ''})</span>
+                          <span>{g.pieces} pç · {g.weight.toFixed(2)} kg</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  </>
+                  );
+                })()}
 
                 {/* Totais */}
                 <div className="grid grid-cols-3 gap-2 text-xs">
