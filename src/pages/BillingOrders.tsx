@@ -2472,6 +2472,120 @@ const BillingOrders = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Detalhes da OF (olho) */}
+      <Dialog open={!!showDetailsModal} onOpenChange={(o) => { if (!o) { setShowDetailsModal(null); setDetailsPallets([]); } }}>
+        <DialogContent className="sm:max-w-[720px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-indigo-700">
+              <Eye className="h-5 w-5" /> Detalhes · OF #{showDetailsModal?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          {showDetailsModal && (() => {
+            const order = showDetailsModal;
+            const machinesMap = new Map(getMachines().map((m: any) => [m.id, m.name]));
+            const machineName = (id?: string | null) => id ? (machinesMap.get(id) || '—') : 'Sem máquina';
+            const byMachine = new Map<string, { name: string; pieces: number; weight: number; count: number; pallets: typeof detailsPallets }>();
+            for (const p of detailsPallets) {
+              const key = p.machine_id || '__none__';
+              const cur = byMachine.get(key) || { name: machineName(p.machine_id), pieces: 0, weight: 0, count: 0, pallets: [] };
+              cur.pieces += p.pieces;
+              cur.weight += p.weight;
+              cur.count += 1;
+              cur.pallets.push(p);
+              byMachine.set(key, cur);
+            }
+            const groups = Array.from(byMachine.values());
+            const single = groups.length === 1;
+            const totalP = groups.reduce((s, g) => s + g.pieces, 0);
+            const totalW = groups.reduce((s, g) => s + g.weight, 0);
+            const companions = order.link_group_id && linkGroups.has(order.link_group_id)
+              ? linkGroups.get(order.link_group_id)!.filter((x: any) => x.id !== order.id)
+              : [];
+            return (
+              <div className="space-y-3 py-2 text-sm">
+                {/* Cabeçalho de dados gerais */}
+                <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                    <div><span className="text-muted-foreground">Cliente:</span> <strong>{order.client?.name || '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Artigo:</span> <strong>{order.article?.name || '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Máquina (OF):</span> <strong>{order.machine?.name || '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Tipo:</span> <strong>{order.order_type === 'all' ? 'Coletar tudo' : order.order_type === 'weight' ? 'Por peso' : 'Por peças'}</strong></div>
+                    <div><span className="text-muted-foreground">Solicitado:</span> <strong>{order.pieces_expected ?? '—'} pç · {order.weight_expected ? `${Number(order.weight_expected).toFixed(2)} kg` : '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Realizado:</span> <strong>{order.pieces_real ?? '—'} pç · {order.weight_real ? `${Number(order.weight_real).toFixed(2)} kg` : '—'}</strong></div>
+                    {order.piece_weight_target != null && (
+                      <div><span className="text-muted-foreground">Peça alvo:</span> <strong>{Number(order.piece_weight_target)} kg</strong></div>
+                    )}
+                    {order.weight_avg && (
+                      <div><span className="text-muted-foreground">Média:</span> <strong>{Number(order.weight_avg).toFixed(2)} kg/pç</strong></div>
+                    )}
+                    {(order as any).delivery_doc_number && (
+                      <div><span className="text-muted-foreground">{(order as any).delivery_doc_type === 'romaneio' ? 'Romaneio' : 'NF'}:</span> <strong>{(order as any).delivery_doc_number}</strong></div>
+                    )}
+                    {companions.length > 0 && (
+                      <div className="col-span-full"><span className="text-muted-foreground">Atrelada a:</span> <strong>{companions.map((x: any) => `#${x.of_number}`).join(' + ')}</strong></div>
+                    )}
+                  </div>
+                  <div className="pt-1 mt-1 border-t text-[10px] text-muted-foreground">
+                    Criado por {order.creator?.name} #{order.creator?.code} em {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {order.separated_by && <> · Separado por {order.separator?.name} #{order.separator?.code}</>}
+                    {order.collected_by && <> · Coletado por {order.collector?.name} #{order.collector?.code}</>}
+                  </div>
+                </div>
+
+                {/* Paletes */}
+                <div className="rounded-md border border-indigo-300 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-950/20 p-3">
+                  <div className="text-xs uppercase font-bold text-indigo-700 dark:text-indigo-300 mb-2 flex items-center gap-1">
+                    <Boxes className="h-4 w-4" /> Paletes ({detailsPallets.length})
+                  </div>
+                  {detailsPallets.length === 0 ? (
+                    <div className="text-xs text-muted-foreground italic">Nenhum palete registrado para esta OF.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {groups.map((g, gi) => (
+                        <div key={gi} className="rounded-md bg-white/70 dark:bg-black/30 border border-indigo-200 dark:border-indigo-900">
+                          <div className="flex justify-between items-center px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 rounded-t-md">
+                            <span className="font-bold text-xs text-indigo-900 dark:text-indigo-100">Máquina: {g.name}</span>
+                            <span className="text-xs font-semibold">{g.pieces} pç · {g.weight.toFixed(2)} kg <span className="text-muted-foreground font-normal">({g.count} palete{g.count > 1 ? 's' : ''})</span></span>
+                          </div>
+                          <table className="w-full text-xs">
+                            <thead className="text-muted-foreground">
+                              <tr>
+                                <th className="text-left px-2 py-1">#</th>
+                                <th className="text-right px-2 py-1">Peças</th>
+                                <th className="text-right px-2 py-1">Peso (kg)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {g.pallets.map(p => (
+                                <tr key={p.id} className="border-t border-indigo-100 dark:border-indigo-900">
+                                  <td className="px-2 py-1">Palete {p.pallet_number}</td>
+                                  <td className="px-2 py-1 text-right">{p.pieces}</td>
+                                  <td className="px-2 py-1 text-right">{p.weight.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
+                      <div className={cn(
+                        'text-xs font-bold pt-2 border-t border-indigo-200 dark:border-indigo-800 flex justify-between',
+                        single ? 'text-indigo-900 dark:text-indigo-100' : 'text-indigo-900 dark:text-indigo-100'
+                      )}>
+                        <span>{single ? 'Total (única máquina)' : 'Total geral'}</span>
+                        <span>{totalP} pç · {totalW.toFixed(2)} kg</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailsModal(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
