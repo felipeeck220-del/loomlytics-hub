@@ -253,6 +253,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          machine_id: string | null
           pallet_number: number
           pieces: number
           reserve_movement_id: string | null
@@ -264,6 +265,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          machine_id?: string | null
           pallet_number: number
           pieces?: number
           reserve_movement_id?: string | null
@@ -275,6 +277,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          machine_id?: string | null
           pallet_number?: number
           pieces?: number
           reserve_movement_id?: string | null
@@ -300,6 +303,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_order_pallets_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
             referencedColumns: ["id"]
           },
           {

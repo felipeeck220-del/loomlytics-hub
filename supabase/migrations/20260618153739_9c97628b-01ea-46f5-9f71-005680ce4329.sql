@@ -1,0 +1,2 @@
+ALTER TABLE public.billing_order_pallets ADD COLUMN IF NOT EXISTS machine_id uuid REFERENCES public.machines(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_billing_order_pallets_machine ON public.billing_order_pallets(machine_id);
