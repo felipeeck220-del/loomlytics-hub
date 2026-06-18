@@ -33,6 +33,7 @@ const BillingOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
+  const [confirmFinalizePallets, setConfirmFinalizePallets] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
   const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
   const [showStartSepConfirm, setShowStartSepConfirm] = useState<any>(null);
