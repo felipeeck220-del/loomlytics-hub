@@ -283,8 +283,24 @@ export function useBillingOrders() {
 
           // ready -> collected: libera a reserva e baixa do físico
           if (status === 'collected' && expectedStatus === 'ready' && (pieces > 0 || weight > 0)) {
-            mvs.push({ ...baseMov, type: 'release', pieces, weight_kg: weight,
-              reason: `OF #${ofRow.of_number} coletada (libera reserva)` });
+            // Libera APENAS o que foi realmente reservado (soma reserve − release já feitos)
+            // — protege contra release fantasma em OFs legadas sem reserva prévia.
+            const { data: existingMvs } = await (supabase.from as any)('stock_movements')
+              .select('type, pieces, weight_kg')
+              .eq('billing_order_id', id)
+              .in('type', ['reserve', 'release']);
+            let netP = 0, netW = 0;
+            for (const m of (existingMvs || [])) {
+              const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
+              if (m.type === 'reserve') { netP += p; netW += w; }
+              else if (m.type === 'release') { netP -= p; netW -= w; }
+            }
+            if (netP > 0 || netW > 0) {
+              mvs.push({ ...baseMov, type: 'release',
+                pieces: Math.max(0, Math.round(netP)),
+                weight_kg: Math.max(0, netW),
+                reason: `OF #${ofRow.of_number} coletada (libera reserva)` });
+            }
             mvs.push({ ...baseMov, type: 'out', pieces, weight_kg: weight,
               reason: `OF #${ofRow.of_number} coletada` });
           }
