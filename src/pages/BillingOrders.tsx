@@ -129,6 +129,28 @@ const BillingOrders = () => {
     return () => { cancelled = true; };
   }, [showPalletsModal, toast]);
 
+  // Carrega paletes do modal de Detalhes (olho)
+  useEffect(() => {
+    if (!showDetailsModal) { setDetailsPallets([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('billing_order_pallets' as any)
+        .select('id, pallet_number, pieces, weight_kg, machine_id')
+        .eq('billing_order_id', showDetailsModal.id)
+        .order('pallet_number', { ascending: true });
+      if (cancelled || error || !data) return;
+      setDetailsPallets((data as any[]).map(r => ({
+        id: r.id,
+        pallet_number: r.pallet_number,
+        pieces: Number(r.pieces || 0),
+        weight: Number(r.weight_kg || 0),
+        machine_id: r.machine_id ?? null,
+      })));
+    })();
+    return () => { cancelled = true; };
+  }, [showDetailsModal]);
+
   const refreshStockCaches = () => {
     // hook do BillingOrders já invalida estoque em mutations próprias; aqui forçamos manualmente
     // para o caso de inserts diretos em stock_movements feitos pelo modal de paletes.
