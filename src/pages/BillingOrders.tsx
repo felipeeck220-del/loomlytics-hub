@@ -1216,6 +1216,15 @@ const BillingOrders = () => {
                       </div>
 
                       <div className="flex flex-wrap gap-2 md:justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+                          onClick={() => setShowDetailsModal(order)}
+                          title="Ver detalhes da OF"
+                        >
+                          <Eye className="h-4 w-4" /> Detalhes
+                        </Button>
                         {/* Imprimir disponível em todas as abas/status */}
                         <Button
                           size="sm"
