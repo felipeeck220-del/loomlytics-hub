@@ -90,8 +90,8 @@ const BillingOrders = () => {
 
   // Modal de Paletes na Separação
   const [showPalletsModal, setShowPalletsModal] = useState<any>(null);
-  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null }>>([]);
-  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string }>({ pieces: '', weight: '' });
+  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null }>>([]);
+  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string }>({ pieces: '', weight: '', machine_id: 'none' });
   const [palletBusy, setPalletBusy] = useState(false);
 
   // Modal de Atrelar OFs
@@ -106,7 +106,7 @@ const BillingOrders = () => {
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
-        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id')
+        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id')
         .eq('billing_order_id', showPalletsModal.id)
         .order('pallet_number', { ascending: true });
       if (cancelled) return;
@@ -120,6 +120,7 @@ const BillingOrders = () => {
         pieces: Number(r.pieces || 0),
         weight: Number(r.weight_kg || 0),
         reserve_movement_id: r.reserve_movement_id,
+        machine_id: r.machine_id ?? null,
       })));
     })();
     return () => { cancelled = true; };
@@ -273,6 +274,31 @@ const BillingOrders = () => {
   }, [orders]);
 
   const groupLabel = (gid: string) => `#${gid.slice(0, 6).toUpperCase()}`;
+
+  // Mapa de paletes por OF (resumo por máquina) — usado nos cards de Separando/Pronto/Coletadas
+  const [palletsByOrder, setPalletsByOrder] = useState<Map<string, Array<{ pieces: number; weight: number; machine_id: string | null }>>>(new Map());
+  useEffect(() => {
+    const targetIds = orders
+      .filter((o: any) => ['separating', 'ready', 'collected'].includes(o.status))
+      .map((o: any) => o.id);
+    if (targetIds.length === 0) { setPalletsByOrder(new Map()); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('billing_order_pallets' as any)
+        .select('billing_order_id, pieces, weight_kg, machine_id')
+        .in('billing_order_id', targetIds);
+      if (cancelled || error || !data) return;
+      const map = new Map<string, Array<{ pieces: number; weight: number; machine_id: string | null }>>();
+      for (const r of data as any[]) {
+        const arr = map.get(r.billing_order_id) || [];
+        arr.push({ pieces: Number(r.pieces || 0), weight: Number(r.weight_kg || 0), machine_id: r.machine_id ?? null });
+        map.set(r.billing_order_id, arr);
+      }
+      setPalletsByOrder(map);
+    })();
+    return () => { cancelled = true; };
+  }, [orders, showPalletsModal]);
 
   const handleLink = async () => {
     if (linkSelected.size < 2) {
@@ -1146,6 +1172,46 @@ const BillingOrders = () => {
                           Média: {order.weight_avg.toFixed(2)} kg/peça
                         </div>
                       )}
+
+                      {/* Resumo de paletes por máquina (visível em Separando / Pronto / Coletadas) */}
+                      {(['separating', 'ready', 'collected'] as const).includes(order.status as any) && palletsByOrder.has(order.id) && (() => {
+                        const list = palletsByOrder.get(order.id)!;
+                        if (list.length === 0) return null;
+                        const machinesMap = new Map(getMachines().map((m: any) => [m.id, m.name]));
+                        const byMachine = new Map<string, { name: string; pieces: number; weight: number; count: number }>();
+                        for (const p of list) {
+                          const key = p.machine_id || '__none__';
+                          const name = p.machine_id ? (machinesMap.get(p.machine_id) || '—') : 'Sem máquina';
+                          const cur = byMachine.get(key) || { name, pieces: 0, weight: 0, count: 0 };
+                          cur.pieces += p.pieces;
+                          cur.weight += p.weight;
+                          cur.count += 1;
+                          byMachine.set(key, cur);
+                        }
+                        const groups = Array.from(byMachine.values());
+                        const single = groups.length === 1;
+                        return (
+                          <div className="rounded-md border border-indigo-300 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/30 p-2 mt-2">
+                            <div className="text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-300 mb-1 flex items-center gap-1">
+                              <Boxes className="h-3 w-3" />
+                              {single ? 'Paletes — Máquina' : 'Paletes — Resumo por máquina'}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
+                              {groups.map((g, i) => (
+                                <div key={i} className="flex justify-between gap-2 bg-white/60 dark:bg-black/20 rounded px-2 py-1">
+                                  <span className="font-bold text-indigo-800 dark:text-indigo-200">{g.name}</span>
+                                  <span className="font-semibold text-foreground">{g.pieces} pç · {g.weight.toFixed(2)} kg <span className="text-muted-foreground font-normal">({g.count})</span></span>
+                                </div>
+                              ))}
+                            </div>
+                            {!single && (
+                              <div className="text-[11px] font-bold text-indigo-900 dark:text-indigo-100 mt-1 pt-1 border-t border-indigo-200 dark:border-indigo-800 text-right">
+                                Total: {groups.reduce((s, g) => s + g.pieces, 0)} pç · {groups.reduce((s, g) => s + g.weight, 0).toFixed(2)} kg
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Coluna ações + auditoria padronizada */}
@@ -1255,7 +1321,7 @@ const BillingOrders = () => {
                             className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
                             onClick={() => {
                               setPallets([]);
-                              setPalletInput({ pieces: '', weight: '' });
+                              setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
                               setShowPalletsModal(order);
                             }}
                           >
@@ -1961,7 +2027,7 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Paletes — separação por paletes */}
-      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '' }); } }}>
+      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none' }); } }}>
         <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-indigo-700">
@@ -1995,14 +2061,28 @@ const BillingOrders = () => {
                 {/* Adicionar palete */}
                 <div className="rounded-md border p-3 space-y-2">
                   <div className="text-xs font-semibold uppercase text-muted-foreground">Adicionar palete</div>
-                  <div className="grid grid-cols-5 gap-2 items-end">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
                       <Label className="text-[10px] uppercase">Peças</Label>
                       <Input type="number" value={palletInput.pieces} onChange={e => setPalletInput({ ...palletInput, pieces: e.target.value })} placeholder="Ex: 25" />
                     </div>
-                    <div className="col-span-2">
+                    <div>
                       <Label className="text-[10px] uppercase">Peso (kg)</Label>
                       <Input type="number" step="0.01" value={palletInput.weight} onChange={e => setPalletInput({ ...palletInput, weight: e.target.value })} placeholder="Ex: 250" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label className="text-[10px] uppercase">Máquina</Label>
+                      <SearchableSelect
+                        value={palletInput.machine_id}
+                        onValueChange={v => setPalletInput({ ...palletInput, machine_id: v })}
+                        options={[
+                          { value: 'none', label: order.machine?.name ? `Padrão da OF (${order.machine.name})` : 'Não informado' },
+                          ...getMachines().map(m => ({ value: m.id, label: m.name })),
+                        ]}
+                        placeholder="Selecione a máquina"
+                      />
                     </div>
                     <Button
                       size="sm"
@@ -2020,6 +2100,9 @@ const BillingOrders = () => {
                         setPalletBusy(true);
                         try {
                           const nextNumber = (pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0) || 0) + 1;
+                          const palletMachineId = palletInput.machine_id && palletInput.machine_id !== 'none'
+                            ? palletInput.machine_id
+                            : (order.machine_id || null);
                           // 1. Cria movimento de reserva
                           const { data: mv, error: mvErr } = await (supabase.from as any)('stock_movements').insert({
                             company_id: user.company_id,
@@ -2041,8 +2124,9 @@ const BillingOrders = () => {
                             pieces: pc || 0,
                             weight_kg: wt || 0,
                             reserve_movement_id: mv?.id ?? null,
+                            machine_id: palletMachineId,
                             created_by: profile?.id ?? null,
-                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id').single();
+                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id').single();
                           if (pErr) {
                             // rollback do movimento se persistência falhar
                             if (mv?.id) await (supabase.from as any)('stock_movements').delete().eq('id', mv.id);
@@ -2054,8 +2138,9 @@ const BillingOrders = () => {
                             pieces: Number(row.pieces),
                             weight: Number(row.weight_kg),
                             reserve_movement_id: row.reserve_movement_id,
+                            machine_id: row.machine_id ?? null,
                           }]);
-                          setPalletInput({ pieces: '', weight: '' });
+                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id });
                           refreshStockCaches();
                           toast({ title: `Palete ${nextNumber} salvo e reservado no estoque` });
                         } catch (e: any) {
@@ -2071,12 +2156,29 @@ const BillingOrders = () => {
                 </div>
 
                 {/* Lista */}
-                {pallets.length > 0 && (
+                {pallets.length > 0 && (() => {
+                  const machinesMap = new Map(getMachines().map(m => [m.id, m.name]));
+                  const machineName = (id?: string | null) => id ? (machinesMap.get(id) || '—') : '—';
+                  // Agrupamento por máquina
+                  const byMachine = new Map<string, { name: string; pieces: number; weight: number; count: number }>();
+                  for (const p of pallets) {
+                    const key = p.machine_id || '__none__';
+                    const name = p.machine_id ? machineName(p.machine_id) : 'Sem máquina';
+                    const cur = byMachine.get(key) || { name, pieces: 0, weight: 0, count: 0 };
+                    cur.pieces += p.pieces || 0;
+                    cur.weight += p.weight || 0;
+                    cur.count += 1;
+                    byMachine.set(key, cur);
+                  }
+                  const machineGroups = Array.from(byMachine.values());
+                  return (
+                  <>
                   <div className="rounded-md border max-h-[180px] overflow-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-muted/50 sticky top-0">
                         <tr>
                           <th className="text-left p-2">#</th>
+                          <th className="text-left p-2">Máquina</th>
                           <th className="text-right p-2">Peças</th>
                           <th className="text-right p-2">Peso (kg)</th>
                           <th className="p-2 w-8"></th>
@@ -2086,6 +2188,7 @@ const BillingOrders = () => {
                         {pallets.map((p) => (
                           <tr key={p.id} className="border-t">
                             <td className="p-2 font-semibold">Palete {p.pallet_number}</td>
+                            <td className="p-2 font-medium text-indigo-700 dark:text-indigo-300">{p.machine_id ? machineName(p.machine_id) : <span className="text-muted-foreground italic">—</span>}</td>
                             <td className="p-2 text-right">{p.pieces}</td>
                             <td className="p-2 text-right">{p.weight.toFixed(2)}</td>
                             <td className="p-2">
@@ -2130,7 +2233,25 @@ const BillingOrders = () => {
                       </tbody>
                     </table>
                   </div>
-                )}
+                  {/* Resumo por máquina */}
+                  <div className="rounded-md border p-2 space-y-1 bg-indigo-50/40 dark:bg-indigo-950/20">
+                    <div className="text-[10px] uppercase text-muted-foreground font-semibold">Resumo por máquina</div>
+                    {machineGroups.length === 1 ? (
+                      <div className="text-xs font-bold text-indigo-800 dark:text-indigo-200">
+                        Total — {machineGroups[0].name}: {machineGroups[0].pieces} pç · {machineGroups[0].weight.toFixed(2)} kg
+                      </div>
+                    ) : (
+                      machineGroups.map((g, i) => (
+                        <div key={i} className="text-xs font-bold text-indigo-800 dark:text-indigo-200 flex justify-between">
+                          <span>{g.name} ({g.count} palete{g.count !== 1 ? 's' : ''})</span>
+                          <span>{g.pieces} pç · {g.weight.toFixed(2)} kg</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  </>
+                  );
+                })()}
 
                 {/* Totais */}
                 <div className="grid grid-cols-3 gap-2 text-xs">
@@ -2165,7 +2286,7 @@ const BillingOrders = () => {
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '' }); }}>Fechar</Button>
+            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none' }); }}>Fechar</Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
               disabled={pallets.length === 0 || updateStatus.isPending}
@@ -2188,7 +2309,7 @@ const BillingOrders = () => {
                   });
                   setShowPalletsModal(null);
                   setPallets([]);
-                  setPalletInput({ pieces: '', weight: '' });
+                  setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
                 } catch (err: any) {
                   if (err?.code === 'CONFLICT') {
                     setShowPalletsModal(null);
