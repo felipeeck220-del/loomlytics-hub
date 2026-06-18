@@ -106,7 +106,7 @@ const BillingOrders = () => {
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
-        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id')
+        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id')
         .eq('billing_order_id', showPalletsModal.id)
         .order('pallet_number', { ascending: true });
       if (cancelled) return;
@@ -120,6 +120,7 @@ const BillingOrders = () => {
         pieces: Number(r.pieces || 0),
         weight: Number(r.weight_kg || 0),
         reserve_movement_id: r.reserve_movement_id,
+        machine_id: r.machine_id ?? null,
       })));
     })();
     return () => { cancelled = true; };
