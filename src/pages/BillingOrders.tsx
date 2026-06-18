@@ -33,6 +33,7 @@ const BillingOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
+  const [confirmFinalizePallets, setConfirmFinalizePallets] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState<any>(null);
   const [showCollectConfirm, setShowCollectConfirm] = useState<any>(null);
   const [showStartSepConfirm, setShowStartSepConfirm] = useState<any>(null);
@@ -1457,6 +1458,30 @@ const BillingOrders = () => {
             <DialogTitle>Lançar Dados da Separação</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {showLaunchModal && (
+              <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm text-primary">OF #{showLaunchModal.of_number}</span>
+                  {showLaunchModal.order_type === 'all' && (
+                    <Badge variant="outline" className="text-[10px]">Coletar Tudo</Badge>
+                  )}
+                </div>
+                <div><span className="text-muted-foreground">Cliente:</span> <strong>{showLaunchModal.client?.name || '—'}</strong></div>
+                <div><span className="text-muted-foreground">Artigo:</span> <strong>{showLaunchModal.article?.name || '—'}</strong></div>
+                {showLaunchModal.machine?.name && (
+                  <div><span className="text-muted-foreground">Máquina:</span> <strong>{showLaunchModal.machine.name}</strong></div>
+                )}
+                <div className="pt-1 border-t mt-1">
+                  <span className="text-muted-foreground">Solicitado:</span>{' '}
+                  <strong>{Number(showLaunchModal.pieces_expected || 0) || '—'} pç</strong>
+                  {' · '}
+                  <strong>{showLaunchModal.weight_expected ? `${Number(showLaunchModal.weight_expected).toFixed(2)} kg` : '—'}</strong>
+                </div>
+                <div className="text-[10px] text-amber-700 dark:text-amber-400 italic pt-1">
+                  Confira os dados acima antes de lançar.
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">
                 Peças {showLaunchModal?.order_type === 'weight' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
@@ -2262,14 +2287,60 @@ const BillingOrders = () => {
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
               disabled={pallets.length === 0 || updateStatus.isPending}
-              onClick={async () => {
-                if (!showPalletsModal) return;
-                const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
+              onClick={() => {
                 const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
                 if (totalWeight <= 0) {
                   toast({ title: 'Adicione pelo menos um palete com peso para finalizar', variant: 'destructive' });
                   return;
                 }
+                setConfirmFinalizePallets(true);
+              }}
+            >
+              <CheckCircle2 className="h-4 w-4" /> Finalizar com {pallets.length} palete{pallets.length !== 1 ? 's' : ''}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Confirmar Finalizar Paletes → PRONTO */}
+      <Dialog open={confirmFinalizePallets} onOpenChange={setConfirmFinalizePallets}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" /> Finalizar Separação?
+            </DialogTitle>
+          </DialogHeader>
+          {showPalletsModal && (() => {
+            const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
+            const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
+            return (
+              <div className="py-3 space-y-3 text-sm">
+                <p>
+                  Você confirma a finalização da <strong>OF #{showPalletsModal.of_number}</strong> com{' '}
+                  <strong>{pallets.length} palete{pallets.length !== 1 ? 's' : ''}</strong>?
+                </p>
+                <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+                  <div><span className="text-muted-foreground">Cliente:</span> <strong>{showPalletsModal.client?.name}</strong></div>
+                  <div><span className="text-muted-foreground">Artigo:</span> <strong>{showPalletsModal.article?.name}</strong></div>
+                  <div className="pt-1 border-t mt-1">
+                    <strong>Total:</strong> {totalPieces} pç · {totalWeight.toFixed(2)} kg
+                  </div>
+                </div>
+                <div className="rounded-md border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 p-3 text-xs text-emerald-800 dark:text-emerald-200">
+                  Ao finalizar, a OF será movida automaticamente para a aba <strong>PRONTO</strong> e ficará disponível para coleta.
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmFinalizePallets(false)}>Cancelar</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+              disabled={updateStatus.isPending}
+              onClick={async () => {
+                if (!showPalletsModal) return;
+                const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
+                const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
                 const avg = totalPieces > 0 ? totalWeight / totalPieces : 0;
                 const target = showPalletsModal;
                 try {
@@ -2279,11 +2350,13 @@ const BillingOrders = () => {
                     data: { pieces_real: totalPieces, weight_real: totalWeight, weight_avg: avg },
                     expectedStatus: 'separating',
                   });
+                  setConfirmFinalizePallets(false);
                   setShowPalletsModal(null);
                   setPallets([]);
                   setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
                 } catch (err: any) {
                   if (err?.code === 'CONFLICT') {
+                    setConfirmFinalizePallets(false);
                     setShowPalletsModal(null);
                     setPallets([]);
                     setConflictInfo({ action: 'lançar dados', ofNumber: target.of_number, currentStatus: err.currentStatus, actor: err.actor });
@@ -2291,7 +2364,7 @@ const BillingOrders = () => {
                 }
               }}
             >
-              <CheckCircle2 className="h-4 w-4" /> Finalizar com {pallets.length} palete{pallets.length !== 1 ? 's' : ''}
+              <CheckCircle2 className="h-4 w-4" /> Confirmar e enviar para PRONTO
             </Button>
           </DialogFooter>
         </DialogContent>
