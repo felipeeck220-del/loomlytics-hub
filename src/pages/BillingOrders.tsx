@@ -1255,7 +1255,7 @@ const BillingOrders = () => {
                             className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
                             onClick={() => {
                               setPallets([]);
-                              setPalletInput({ pieces: '', weight: '' });
+                              setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
                               setShowPalletsModal(order);
                             }}
                           >
@@ -1961,7 +1961,7 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Paletes — separação por paletes */}
-      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '' }); } }}>
+      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none' }); } }}>
         <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-indigo-700">
@@ -2055,7 +2055,7 @@ const BillingOrders = () => {
                             weight: Number(row.weight_kg),
                             reserve_movement_id: row.reserve_movement_id,
                           }]);
-                          setPalletInput({ pieces: '', weight: '' });
+                          setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
                           refreshStockCaches();
                           toast({ title: `Palete ${nextNumber} salvo e reservado no estoque` });
                         } catch (e: any) {
@@ -2165,7 +2165,7 @@ const BillingOrders = () => {
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '' }); }}>Fechar</Button>
+            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none' }); }}>Fechar</Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
               disabled={pallets.length === 0 || updateStatus.isPending}
@@ -2188,7 +2188,7 @@ const BillingOrders = () => {
                   });
                   setShowPalletsModal(null);
                   setPallets([]);
-                  setPalletInput({ pieces: '', weight: '' });
+                  setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
                 } catch (err: any) {
                   if (err?.code === 'CONFLICT') {
                     setShowPalletsModal(null);
