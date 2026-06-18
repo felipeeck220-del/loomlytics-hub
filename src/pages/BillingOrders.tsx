@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-  import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History, FileText, User as UserIcon, Boxes, Trash2, Link2, Link2Off } from 'lucide-react';
+  import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History, FileText, User as UserIcon, Boxes, Trash2, Link2, Link2Off, Eye } from 'lucide-react';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -90,6 +90,9 @@ const BillingOrders = () => {
 
   // Modal de Paletes na Separação
   const [showPalletsModal, setShowPalletsModal] = useState<any>(null);
+  // Modal de Detalhes (olho)
+  const [showDetailsModal, setShowDetailsModal] = useState<any>(null);
+  const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null }>>([]);
   const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null }>>([]);
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string }>({ pieces: '', weight: '', machine_id: 'none' });
   const [palletBusy, setPalletBusy] = useState(false);
@@ -125,6 +128,28 @@ const BillingOrders = () => {
     })();
     return () => { cancelled = true; };
   }, [showPalletsModal, toast]);
+
+  // Carrega paletes do modal de Detalhes (olho)
+  useEffect(() => {
+    if (!showDetailsModal) { setDetailsPallets([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('billing_order_pallets' as any)
+        .select('id, pallet_number, pieces, weight_kg, machine_id')
+        .eq('billing_order_id', showDetailsModal.id)
+        .order('pallet_number', { ascending: true });
+      if (cancelled || error || !data) return;
+      setDetailsPallets((data as any[]).map(r => ({
+        id: r.id,
+        pallet_number: r.pallet_number,
+        pieces: Number(r.pieces || 0),
+        weight: Number(r.weight_kg || 0),
+        machine_id: r.machine_id ?? null,
+      })));
+    })();
+    return () => { cancelled = true; };
+  }, [showDetailsModal]);
 
   const refreshStockCaches = () => {
     // hook do BillingOrders já invalida estoque em mutations próprias; aqui forçamos manualmente
@@ -274,31 +299,6 @@ const BillingOrders = () => {
   }, [orders]);
 
   const groupLabel = (gid: string) => `#${gid.slice(0, 6).toUpperCase()}`;
-
-  // Mapa de paletes por OF (resumo por máquina) — usado nos cards de Separando/Pronto/Coletadas
-  const [palletsByOrder, setPalletsByOrder] = useState<Map<string, Array<{ pieces: number; weight: number; machine_id: string | null }>>>(new Map());
-  useEffect(() => {
-    const targetIds = orders
-      .filter((o: any) => ['separating', 'ready', 'collected'].includes(o.status))
-      .map((o: any) => o.id);
-    if (targetIds.length === 0) { setPalletsByOrder(new Map()); return; }
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from('billing_order_pallets' as any)
-        .select('billing_order_id, pieces, weight_kg, machine_id')
-        .in('billing_order_id', targetIds);
-      if (cancelled || error || !data) return;
-      const map = new Map<string, Array<{ pieces: number; weight: number; machine_id: string | null }>>();
-      for (const r of data as any[]) {
-        const arr = map.get(r.billing_order_id) || [];
-        arr.push({ pieces: Number(r.pieces || 0), weight: Number(r.weight_kg || 0), machine_id: r.machine_id ?? null });
-        map.set(r.billing_order_id, arr);
-      }
-      setPalletsByOrder(map);
-    })();
-    return () => { cancelled = true; };
-  }, [orders, showPalletsModal]);
 
   const handleLink = async () => {
     if (linkSelected.size < 2) {
@@ -1087,18 +1087,20 @@ const BillingOrders = () => {
                             {(order as any).delivery_doc_type === 'romaneio' ? 'ROMANEIO' : 'NF'} {(order as any).delivery_doc_number}
                           </Badge>
                         )}
-                        {(order as any).link_group_id && linkGroups.has((order as any).link_group_id) && (
-                          <Badge
-                            className="text-[10px] bg-fuchsia-600 text-white border-fuchsia-700 gap-1 py-0 px-2 h-5 cursor-pointer"
-                            title={`Atrelada com: ${linkGroups.get((order as any).link_group_id)!.filter((x: any) => x.id !== order.id).map((x: any) => `#${x.of_number}`).join(', ')}`}
-                            onClick={() => { setLinkSelected(new Set()); setShowLinkModal(true); }}
-                          >
-                            <Link2 className="h-3 w-3" /> ATRELADA {groupLabel((order as any).link_group_id)}
-                            <span className="opacity-90">
-                              ({linkGroups.get((order as any).link_group_id)!.filter((x: any) => x.id !== order.id).map((x: any) => `#${x.of_number}`).join(' + ')})
-                            </span>
-                          </Badge>
-                        )}
+                        {(order as any).link_group_id && linkGroups.has((order as any).link_group_id) && (() => {
+                          const companions = linkGroups.get((order as any).link_group_id)!.filter((x: any) => x.id !== order.id);
+                          if (companions.length === 0) return null;
+                          const label = companions.map((x: any) => `#${x.of_number}`).join(' + ');
+                          return (
+                            <Badge
+                              className="text-[10px] bg-fuchsia-600 text-white border-fuchsia-700 gap-1 py-0 px-2 h-5 cursor-pointer"
+                              title={`Atrelada com: ${label}`}
+                              onClick={() => { setLinkSelected(new Set()); setShowLinkModal(true); }}
+                            >
+                              <Link2 className="h-3 w-3" /> ATRELADA A OF {label}
+                            </Badge>
+                          );
+                        })()}
                       </div>
 
                       {/* Nota de edição visível para expedição quando OF voltou a Aberto */}
@@ -1173,45 +1175,6 @@ const BillingOrders = () => {
                         </div>
                       )}
 
-                      {/* Resumo de paletes por máquina (visível em Separando / Pronto / Coletadas) */}
-                      {(['separating', 'ready', 'collected'] as const).includes(order.status as any) && palletsByOrder.has(order.id) && (() => {
-                        const list = palletsByOrder.get(order.id)!;
-                        if (list.length === 0) return null;
-                        const machinesMap = new Map(getMachines().map((m: any) => [m.id, m.name]));
-                        const byMachine = new Map<string, { name: string; pieces: number; weight: number; count: number }>();
-                        for (const p of list) {
-                          const key = p.machine_id || '__none__';
-                          const name = p.machine_id ? (machinesMap.get(p.machine_id) || '—') : 'Sem máquina';
-                          const cur = byMachine.get(key) || { name, pieces: 0, weight: 0, count: 0 };
-                          cur.pieces += p.pieces;
-                          cur.weight += p.weight;
-                          cur.count += 1;
-                          byMachine.set(key, cur);
-                        }
-                        const groups = Array.from(byMachine.values());
-                        const single = groups.length === 1;
-                        return (
-                          <div className="rounded-md border border-indigo-300 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/30 p-2 mt-2">
-                            <div className="text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-300 mb-1 flex items-center gap-1">
-                              <Boxes className="h-3 w-3" />
-                              {single ? 'Paletes — Máquina' : 'Paletes — Resumo por máquina'}
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
-                              {groups.map((g, i) => (
-                                <div key={i} className="flex justify-between gap-2 bg-white/60 dark:bg-black/20 rounded px-2 py-1">
-                                  <span className="font-bold text-indigo-800 dark:text-indigo-200">{g.name}</span>
-                                  <span className="font-semibold text-foreground">{g.pieces} pç · {g.weight.toFixed(2)} kg <span className="text-muted-foreground font-normal">({g.count})</span></span>
-                                </div>
-                              ))}
-                            </div>
-                            {!single && (
-                              <div className="text-[11px] font-bold text-indigo-900 dark:text-indigo-100 mt-1 pt-1 border-t border-indigo-200 dark:border-indigo-800 text-right">
-                                Total: {groups.reduce((s, g) => s + g.pieces, 0)} pç · {groups.reduce((s, g) => s + g.weight, 0).toFixed(2)} kg
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
                     </div>
 
                     {/* Coluna ações + auditoria padronizada */}
@@ -1228,6 +1191,15 @@ const BillingOrders = () => {
                       </div>
 
                       <div className="flex flex-wrap gap-2 md:justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+                          onClick={() => setShowDetailsModal(order)}
+                          title="Ver detalhes da OF"
+                        >
+                          <Eye className="h-4 w-4" /> Detalhes
+                        </Button>
                         {/* Imprimir disponível em todas as abas/status */}
                         <Button
                           size="sm"
@@ -2472,6 +2444,120 @@ const BillingOrders = () => {
               <Link2 className="h-4 w-4" />
               {linkBusy ? 'Atrelando...' : `Atrelar ${linkSelected.size} OFs`}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Detalhes da OF (olho) */}
+      <Dialog open={!!showDetailsModal} onOpenChange={(o) => { if (!o) { setShowDetailsModal(null); setDetailsPallets([]); } }}>
+        <DialogContent className="sm:max-w-[720px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-indigo-700">
+              <Eye className="h-5 w-5" /> Detalhes · OF #{showDetailsModal?.of_number}
+            </DialogTitle>
+          </DialogHeader>
+          {showDetailsModal && (() => {
+            const order = showDetailsModal;
+            const machinesMap = new Map(getMachines().map((m: any) => [m.id, m.name]));
+            const machineName = (id?: string | null) => id ? (machinesMap.get(id) || '—') : 'Sem máquina';
+            const byMachine = new Map<string, { name: string; pieces: number; weight: number; count: number; pallets: typeof detailsPallets }>();
+            for (const p of detailsPallets) {
+              const key = p.machine_id || '__none__';
+              const cur = byMachine.get(key) || { name: machineName(p.machine_id), pieces: 0, weight: 0, count: 0, pallets: [] };
+              cur.pieces += p.pieces;
+              cur.weight += p.weight;
+              cur.count += 1;
+              cur.pallets.push(p);
+              byMachine.set(key, cur);
+            }
+            const groups = Array.from(byMachine.values());
+            const single = groups.length === 1;
+            const totalP = groups.reduce((s, g) => s + g.pieces, 0);
+            const totalW = groups.reduce((s, g) => s + g.weight, 0);
+            const companions = order.link_group_id && linkGroups.has(order.link_group_id)
+              ? linkGroups.get(order.link_group_id)!.filter((x: any) => x.id !== order.id)
+              : [];
+            return (
+              <div className="space-y-3 py-2 text-sm">
+                {/* Cabeçalho de dados gerais */}
+                <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                    <div><span className="text-muted-foreground">Cliente:</span> <strong>{order.client?.name || '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Artigo:</span> <strong>{order.article?.name || '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Máquina (OF):</span> <strong>{order.machine?.name || '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Tipo:</span> <strong>{order.order_type === 'all' ? 'Coletar tudo' : order.order_type === 'weight' ? 'Por peso' : 'Por peças'}</strong></div>
+                    <div><span className="text-muted-foreground">Solicitado:</span> <strong>{order.pieces_expected ?? '—'} pç · {order.weight_expected ? `${Number(order.weight_expected).toFixed(2)} kg` : '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Realizado:</span> <strong>{order.pieces_real ?? '—'} pç · {order.weight_real ? `${Number(order.weight_real).toFixed(2)} kg` : '—'}</strong></div>
+                    {order.piece_weight_target != null && (
+                      <div><span className="text-muted-foreground">Peça alvo:</span> <strong>{Number(order.piece_weight_target)} kg</strong></div>
+                    )}
+                    {order.weight_avg && (
+                      <div><span className="text-muted-foreground">Média:</span> <strong>{Number(order.weight_avg).toFixed(2)} kg/pç</strong></div>
+                    )}
+                    {(order as any).delivery_doc_number && (
+                      <div><span className="text-muted-foreground">{(order as any).delivery_doc_type === 'romaneio' ? 'Romaneio' : 'NF'}:</span> <strong>{(order as any).delivery_doc_number}</strong></div>
+                    )}
+                    {companions.length > 0 && (
+                      <div className="col-span-full"><span className="text-muted-foreground">Atrelada a:</span> <strong>{companions.map((x: any) => `#${x.of_number}`).join(' + ')}</strong></div>
+                    )}
+                  </div>
+                  <div className="pt-1 mt-1 border-t text-[10px] text-muted-foreground">
+                    Criado por {order.creator?.name} #{order.creator?.code} em {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {order.separated_by && <> · Separado por {order.separator?.name} #{order.separator?.code}</>}
+                    {order.collected_by && <> · Coletado por {order.collector?.name} #{order.collector?.code}</>}
+                  </div>
+                </div>
+
+                {/* Paletes */}
+                <div className="rounded-md border border-indigo-300 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-950/20 p-3">
+                  <div className="text-xs uppercase font-bold text-indigo-700 dark:text-indigo-300 mb-2 flex items-center gap-1">
+                    <Boxes className="h-4 w-4" /> Paletes ({detailsPallets.length})
+                  </div>
+                  {detailsPallets.length === 0 ? (
+                    <div className="text-xs text-muted-foreground italic">Nenhum palete registrado para esta OF.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {groups.map((g, gi) => (
+                        <div key={gi} className="rounded-md bg-white/70 dark:bg-black/30 border border-indigo-200 dark:border-indigo-900">
+                          <div className="flex justify-between items-center px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 rounded-t-md">
+                            <span className="font-bold text-xs text-indigo-900 dark:text-indigo-100">Máquina: {g.name}</span>
+                            <span className="text-xs font-semibold">{g.pieces} pç · {g.weight.toFixed(2)} kg <span className="text-muted-foreground font-normal">({g.count} palete{g.count > 1 ? 's' : ''})</span></span>
+                          </div>
+                          <table className="w-full text-xs">
+                            <thead className="text-muted-foreground">
+                              <tr>
+                                <th className="text-left px-2 py-1">#</th>
+                                <th className="text-right px-2 py-1">Peças</th>
+                                <th className="text-right px-2 py-1">Peso (kg)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {g.pallets.map(p => (
+                                <tr key={p.id} className="border-t border-indigo-100 dark:border-indigo-900">
+                                  <td className="px-2 py-1">Palete {p.pallet_number}</td>
+                                  <td className="px-2 py-1 text-right">{p.pieces}</td>
+                                  <td className="px-2 py-1 text-right">{p.weight.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
+                      <div className={cn(
+                        'text-xs font-bold pt-2 border-t border-indigo-200 dark:border-indigo-800 flex justify-between',
+                        single ? 'text-indigo-900 dark:text-indigo-100' : 'text-indigo-900 dark:text-indigo-100'
+                      )}>
+                        <span>{single ? 'Total (única máquina)' : 'Total geral'}</span>
+                        <span>{totalP} pç · {totalW.toFixed(2)} kg</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailsModal(null)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
