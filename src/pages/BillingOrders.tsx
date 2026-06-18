@@ -1458,6 +1458,30 @@ const BillingOrders = () => {
             <DialogTitle>Lançar Dados da Separação</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {showLaunchModal && (
+              <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm text-primary">OF #{showLaunchModal.of_number}</span>
+                  {showLaunchModal.order_type === 'all' && (
+                    <Badge variant="outline" className="text-[10px]">Coletar Tudo</Badge>
+                  )}
+                </div>
+                <div><span className="text-muted-foreground">Cliente:</span> <strong>{showLaunchModal.client?.name || '—'}</strong></div>
+                <div><span className="text-muted-foreground">Artigo:</span> <strong>{showLaunchModal.article?.name || '—'}</strong></div>
+                {showLaunchModal.machine?.name && (
+                  <div><span className="text-muted-foreground">Máquina:</span> <strong>{showLaunchModal.machine.name}</strong></div>
+                )}
+                <div className="pt-1 border-t mt-1">
+                  <span className="text-muted-foreground">Solicitado:</span>{' '}
+                  <strong>{Number(showLaunchModal.pieces_expected || 0) || '—'} pç</strong>
+                  {' · '}
+                  <strong>{showLaunchModal.weight_expected ? `${Number(showLaunchModal.weight_expected).toFixed(2)} kg` : '—'}</strong>
+                </div>
+                <div className="text-[10px] text-amber-700 dark:text-amber-400 italic pt-1">
+                  Confira os dados acima antes de lançar.
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">
                 Peças {showLaunchModal?.order_type === 'weight' && <span className="text-[10px] text-muted-foreground">(opc.)</span>}
