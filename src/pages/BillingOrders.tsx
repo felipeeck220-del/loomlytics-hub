@@ -300,31 +300,6 @@ const BillingOrders = () => {
 
   const groupLabel = (gid: string) => `#${gid.slice(0, 6).toUpperCase()}`;
 
-  // Mapa de paletes por OF (resumo por máquina) — usado nos cards de Separando/Pronto/Coletadas
-  const [palletsByOrder, setPalletsByOrder] = useState<Map<string, Array<{ pieces: number; weight: number; machine_id: string | null }>>>(new Map());
-  useEffect(() => {
-    const targetIds = orders
-      .filter((o: any) => ['separating', 'ready', 'collected'].includes(o.status))
-      .map((o: any) => o.id);
-    if (targetIds.length === 0) { setPalletsByOrder(new Map()); return; }
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from('billing_order_pallets' as any)
-        .select('billing_order_id, pieces, weight_kg, machine_id')
-        .in('billing_order_id', targetIds);
-      if (cancelled || error || !data) return;
-      const map = new Map<string, Array<{ pieces: number; weight: number; machine_id: string | null }>>();
-      for (const r of data as any[]) {
-        const arr = map.get(r.billing_order_id) || [];
-        arr.push({ pieces: Number(r.pieces || 0), weight: Number(r.weight_kg || 0), machine_id: r.machine_id ?? null });
-        map.set(r.billing_order_id, arr);
-      }
-      setPalletsByOrder(map);
-    })();
-    return () => { cancelled = true; };
-  }, [orders, showPalletsModal]);
-
   const handleLink = async () => {
     if (linkSelected.size < 2) {
       toast({ title: 'Selecione 2 ou mais OFs para atrelar', variant: 'destructive' });
