@@ -693,8 +693,8 @@ export default function StockMalha() {
                       </TableHeader>
                       <TableBody>
                         {group.articles.map((a: any) => (
-                          <>
-                          <TableRow key={a.articleId} className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedArticle(expandedArticle === `${group.clientId}::${a.articleId}` ? null : `${group.clientId}::${a.articleId}`)}>
+                          <React.Fragment key={a.articleId}>
+                          <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedArticle(expandedArticle === `${group.clientId}::${a.articleId}` ? null : `${group.clientId}::${a.articleId}`)}>
                             <TableCell className="text-xs">
                               <div className="flex items-center gap-1.5">
                                 <ChevronDown className={cn('h-3 w-3 transition-transform', expandedArticle === `${group.clientId}::${a.articleId}` ? '' : '-rotate-90')} />
@@ -759,7 +759,7 @@ export default function StockMalha() {
                               </TableRow>
                             ));
                           })()}
-                          </>
+                          </React.Fragment>
                         ))}
                       </TableBody>
                     </Table>
