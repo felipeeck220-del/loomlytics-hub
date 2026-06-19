@@ -28,12 +28,13 @@ interface Props {
   isSecondQuality?: boolean;
 }
 
-export function ManualStockEntryModal({ open, onOpenChange, clients, articles, onSaved, isSecondQuality = false }: Props) {
+export function ManualStockEntryModal({ open, onOpenChange, clients, articles, machines, onSaved, isSecondQuality = false }: Props) {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
   const [clientId, setClientId] = useState('');
   const [articleId, setArticleId] = useState('');
+  const [machineId, setMachineId] = useState('');
   const [pieces, setPieces] = useState('');
   const [weight, setWeight] = useState('');
   const [reason, setReason] = useState('');
