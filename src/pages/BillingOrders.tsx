@@ -797,7 +797,6 @@ const BillingOrders = () => {
         drawSection('QUANTIDADES', [
           ['Peças Reais', order.pieces_real != null ? String(order.pieces_real) : '—'],
           ['Peso Real', order.weight_real ? `${order.weight_real} kg` : '—'],
-          ['Peso por Peça (alvo)', order.piece_weight_target != null ? `${order.piece_weight_target} kg` : '—'],
         ]);
       } else {
         drawSection('QUANTIDADES', [
