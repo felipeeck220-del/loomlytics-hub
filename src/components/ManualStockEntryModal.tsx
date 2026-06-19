@@ -72,6 +72,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, m
         company_id: user.company_id,
         article_id: articleId,
         client_id: clientId,
+        machine_id: machineId,
         type,
         pieces: piecesNum,
         weight_kg: weightNum,
@@ -89,7 +90,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, m
         userRole: user.role,
         userCode: (user as any).code,
         details: {
-          type, client_id: clientId, article_id: articleId,
+          type, client_id: clientId, article_id: articleId, machine_id: machineId,
           pieces: piecesNum, weight_kg: weightNum, reason: reason.trim(),
         },
       });
@@ -149,6 +150,18 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, m
               options={filteredArticles.map(a => ({ value: a.id, label: a.name }))}
               placeholder={clientId ? 'Selecione o artigo' : 'Escolha um cliente primeiro'}
               searchPlaceholder="Buscar artigo..."
+              disabled={!clientId}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Máquina *</Label>
+            <SearchableSelect
+              value={machineId}
+              onValueChange={setMachineId}
+              options={machines.map(m => ({ value: m.id, label: m.name }))}
+              placeholder={clientId ? 'Selecione a máquina' : 'Escolha um cliente primeiro'}
+              searchPlaceholder="Buscar máquina..."
               disabled={!clientId}
             />
           </div>
