@@ -16,12 +16,14 @@ import { Warehouse } from 'lucide-react';
 
 interface Client { id: string; name: string }
 interface Article { id: string; name: string; client_id: string | null }
+interface Machine { id: string; name: string }
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   clients: Client[];
   articles: Article[];
+  machines: Machine[];
   onSaved: () => void;
   isSecondQuality?: boolean;
 }
