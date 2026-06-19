@@ -254,7 +254,7 @@ export function useBillingOrders() {
       if (rows && rows.length > 0 && user?.company_id) {
         const { data: ofRow } = await supabase
           .from('billing_orders')
-          .select('article_id, client_id, pieces_real, weight_real, of_number, pieces_expected, weight_expected')
+          .select('article_id, client_id, machine_id, pieces_real, weight_real, of_number, pieces_expected, weight_expected')
           .eq('id', id)
           .maybeSingle();
         if (ofRow?.article_id) {
@@ -276,33 +276,63 @@ export function useBillingOrders() {
               .select('id', { count: 'exact', head: true })
               .eq('billing_order_id', id);
             if (!palletCount || palletCount === 0) {
-              mvs.push({ ...baseMov, type: 'reserve', pieces, weight_kg: weight,
+              mvs.push({ ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
+                type: 'reserve', pieces, weight_kg: weight,
                 reason: `OF #${ofRow.of_number} pronta (reserva)` });
             }
           }
 
           // ready -> collected: libera a reserva e baixa do físico
           if (status === 'collected' && expectedStatus === 'ready' && (pieces > 0 || weight > 0)) {
-            // Libera APENAS o que foi realmente reservado (soma reserve − release já feitos)
-            // — protege contra release fantasma em OFs legadas sem reserva prévia.
+            // Libera APENAS o que foi realmente reservado, agrupando por máquina
+            // — assim a baixa do estoque mantém a separação por máquina.
             const { data: existingMvs } = await (supabase.from as any)('stock_movements')
-              .select('type, pieces, weight_kg')
+              .select('type, pieces, weight_kg, machine_id')
               .eq('billing_order_id', id)
               .in('type', ['reserve', 'release']);
-            let netP = 0, netW = 0;
+            const netByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
             for (const m of (existingMvs || [])) {
+              const k = (m.machine_id as string | null) || '__none__';
+              const cur = netByMachine.get(k) || { p: 0, w: 0, mid: (m.machine_id as string | null) || null };
               const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
-              if (m.type === 'reserve') { netP += p; netW += w; }
-              else if (m.type === 'release') { netP -= p; netW -= w; }
+              if (m.type === 'reserve') { cur.p += p; cur.w += w; }
+              else if (m.type === 'release') { cur.p -= p; cur.w -= w; }
+              netByMachine.set(k, cur);
             }
-            if (netP > 0 || netW > 0) {
-              mvs.push({ ...baseMov, type: 'release',
-                pieces: Math.max(0, Math.round(netP)),
-                weight_kg: Math.max(0, netW),
-                reason: `OF #${ofRow.of_number} coletada (libera reserva)` });
+            for (const cur of netByMachine.values()) {
+              if (cur.p > 0 || cur.w > 0) {
+                mvs.push({ ...baseMov, machine_id: cur.mid, type: 'release',
+                  pieces: Math.max(0, Math.round(cur.p)),
+                  weight_kg: Math.max(0, cur.w),
+                  reason: `OF #${ofRow.of_number} coletada (libera reserva)` });
+              }
             }
-            mvs.push({ ...baseMov, type: 'out', pieces, weight_kg: weight,
-              reason: `OF #${ofRow.of_number} coletada` });
+            // Baixa do físico: prefere agrupar por máquina a partir dos paletes
+            const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
+              .select('pieces, weight_kg, machine_id')
+              .eq('billing_order_id', id);
+            if (palletRows && palletRows.length > 0) {
+              const outByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
+              for (const pr of palletRows) {
+                const k = (pr.machine_id as string | null) || '__none__';
+                const cur = outByMachine.get(k) || { p: 0, w: 0, mid: (pr.machine_id as string | null) || null };
+                cur.p += Number(pr.pieces || 0);
+                cur.w += Number(pr.weight_kg || 0);
+                outByMachine.set(k, cur);
+              }
+              for (const cur of outByMachine.values()) {
+                if (cur.p > 0 || cur.w > 0) {
+                  mvs.push({ ...baseMov, machine_id: cur.mid, type: 'out',
+                    pieces: Math.max(0, Math.round(cur.p)),
+                    weight_kg: Math.max(0, cur.w),
+                    reason: `OF #${ofRow.of_number} coletada` });
+                }
+              }
+            } else {
+              mvs.push({ ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
+                type: 'out', pieces, weight_kg: weight,
+                reason: `OF #${ofRow.of_number} coletada` });
+            }
           }
 
           // *->cancelled (exceto a partir de 'collected'): libera APENAS o que está
@@ -312,20 +342,25 @@ export function useBillingOrders() {
           // negativo em /estoque-malha.
           if (status === 'cancelled' && expectedStatus !== 'collected' && expectedStatus !== 'cancelled') {
             const { data: existingMvs } = await (supabase.from as any)('stock_movements')
-              .select('type, pieces, weight_kg')
+              .select('type, pieces, weight_kg, machine_id')
               .eq('billing_order_id', id)
               .in('type', ['reserve', 'release']);
-            let netP = 0, netW = 0;
+            const netByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
             for (const m of (existingMvs || [])) {
+              const k = (m.machine_id as string | null) || '__none__';
+              const cur = netByMachine.get(k) || { p: 0, w: 0, mid: (m.machine_id as string | null) || null };
               const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
-              if (m.type === 'reserve') { netP += p; netW += w; }
-              else if (m.type === 'release') { netP -= p; netW -= w; }
+              if (m.type === 'reserve') { cur.p += p; cur.w += w; }
+              else if (m.type === 'release') { cur.p -= p; cur.w -= w; }
+              netByMachine.set(k, cur);
             }
-            if (netP > 0 || netW > 0) {
-              mvs.push({ ...baseMov, type: 'release',
-                pieces: Math.max(0, Math.round(netP)),
-                weight_kg: Math.max(0, netW),
-                reason: `OF #${ofRow.of_number} cancelada (libera reserva pendente)` });
+            for (const cur of netByMachine.values()) {
+              if (cur.p > 0 || cur.w > 0) {
+                mvs.push({ ...baseMov, machine_id: cur.mid, type: 'release',
+                  pieces: Math.max(0, Math.round(cur.p)),
+                  weight_kg: Math.max(0, cur.w),
+                  reason: `OF #${ofRow.of_number} cancelada (libera reserva pendente)` });
+              }
             }
             // Limpa paletes vinculados (se houver) — OF cancelada não retém paletes
             await (supabase.from as any)('billing_order_pallets').delete().eq('billing_order_id', id);
@@ -335,7 +370,8 @@ export function useBillingOrders() {
           if (status === 'cancelled' && expectedStatus === 'collected' && (pieces > 0 || weight > 0)) {
             const isSecondQ = reversalQuality === 'second';
             mvs.push({
-              ...baseMov, type: 'in', pieces, weight_kg: weight,
+              ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
+              type: 'in', pieces, weight_kg: weight,
               is_second_quality: isSecondQ,
               reason: `OF #${ofRow.of_number} estornada — ${isSecondQ ? '2ª QUALIDADE' : '1ª qualidade'} — ${updatePayload.cancellation_reason || 'sem motivo'}`,
             });
@@ -432,27 +468,37 @@ export function useBillingOrders() {
       // fantasma em OFs antigas sem reserva prévia.
       if (revertToOpen && preReleaseSnapshot && preReleaseSnapshot.article_id && user?.company_id) {
         const { data: existingMvs } = await (supabase.from as any)('stock_movements')
-          .select('type, pieces, weight_kg')
+          .select('type, pieces, weight_kg, machine_id')
           .eq('billing_order_id', id)
           .in('type', ['reserve', 'release']);
-        let netP = 0, netW = 0;
+        const netByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
         for (const m of (existingMvs || [])) {
+          const k = (m.machine_id as string | null) || '__none__';
+          const cur = netByMachine.get(k) || { p: 0, w: 0, mid: (m.machine_id as string | null) || null };
           const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
-          if (m.type === 'reserve') { netP += p; netW += w; }
-          else if (m.type === 'release') { netP -= p; netW -= w; }
+          if (m.type === 'reserve') { cur.p += p; cur.w += w; }
+          else if (m.type === 'release') { cur.p -= p; cur.w -= w; }
+          netByMachine.set(k, cur);
         }
-        if (netP > 0 || netW > 0) {
-          await (supabase.from as any)('stock_movements').insert({
-            company_id: user.company_id,
-            article_id: preReleaseSnapshot.article_id,
-            client_id: preReleaseSnapshot.client_id,
-            billing_order_id: id,
-            type: 'release',
-            pieces: Math.max(0, Math.round(netP)),
-            weight_kg: Math.max(0, netW),
-            reason: `OF #${preReleaseSnapshot.of_number} editada — reserva liberada`,
-            created_by: profile?.id ?? null,
-          });
+        const rels: any[] = [];
+        for (const cur of netByMachine.values()) {
+          if (cur.p > 0 || cur.w > 0) {
+            rels.push({
+              company_id: user.company_id,
+              article_id: preReleaseSnapshot.article_id,
+              client_id: preReleaseSnapshot.client_id,
+              billing_order_id: id,
+              machine_id: cur.mid,
+              type: 'release',
+              pieces: Math.max(0, Math.round(cur.p)),
+              weight_kg: Math.max(0, cur.w),
+              reason: `OF #${preReleaseSnapshot.of_number} editada — reserva liberada`,
+              created_by: profile?.id ?? null,
+            });
+          }
+        }
+        if (rels.length > 0) {
+          await (supabase.from as any)('stock_movements').insert(rels);
         }
       }
 

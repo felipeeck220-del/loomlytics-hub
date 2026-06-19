@@ -1301,15 +1301,6 @@ const BillingOrders = () => {
                             <Boxes className="h-4 w-4" /> Paletes
                           </Button>
                         )}
-                        {order.status === 'separating' && (role === 'expedicao' || isAdmin) && (
-                          <Button
-                            size="sm"
-                            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={() => setShowLaunchModal(order)}
-                          >
-                            <CheckCircle2 className="h-4 w-4" /> Lançar Dados
-                          </Button>
-                        )}
                         {order.status === 'ready' && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
@@ -2070,15 +2061,12 @@ const BillingOrders = () => {
                   </div>
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
-                      <Label className="text-[10px] uppercase">Máquina</Label>
+                      <Label className="text-[10px] uppercase">Máquina <span className="text-red-600">*</span></Label>
                       <SearchableSelect
                         value={palletInput.machine_id}
                         onValueChange={v => setPalletInput({ ...palletInput, machine_id: v })}
-                        options={[
-                          { value: 'none', label: order.machine?.name ? `Padrão da OF (${order.machine.name})` : 'Não informado' },
-                          ...getMachines().map(m => ({ value: m.id, label: m.name })),
-                        ]}
-                        placeholder="Selecione a máquina"
+                        options={getMachines().map(m => ({ value: m.id, label: m.name }))}
+                        placeholder="Selecione a máquina (obrigatório)"
                       />
                     </div>
                     <Button
@@ -2092,20 +2080,23 @@ const BillingOrders = () => {
                           toast({ title: 'Informe o peso do palete (kg)', variant: 'destructive' });
                           return;
                         }
+                        if (!palletInput.machine_id || palletInput.machine_id === 'none') {
+                          toast({ title: 'Selecione a máquina do palete', description: 'A máquina é obrigatória para separar o estoque corretamente.', variant: 'destructive' });
+                          return;
+                        }
                         if (!user?.company_id) return;
                         const order = showPalletsModal;
                         setPalletBusy(true);
                         try {
                           const nextNumber = (pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0) || 0) + 1;
-                          const palletMachineId = palletInput.machine_id && palletInput.machine_id !== 'none'
-                            ? palletInput.machine_id
-                            : (order.machine_id || null);
+                          const palletMachineId = palletInput.machine_id;
                           // 1. Cria movimento de reserva
                           const { data: mv, error: mvErr } = await (supabase.from as any)('stock_movements').insert({
                             company_id: user.company_id,
                             article_id: order.article_id,
                             client_id: order.client_id,
                             billing_order_id: order.id,
+                            machine_id: palletMachineId,
                             type: 'reserve',
                             pieces: pc || 0,
                             weight_kg: wt || 0,
@@ -2202,6 +2193,7 @@ const BillingOrders = () => {
                                       article_id: order.article_id,
                                       client_id: order.client_id,
                                       billing_order_id: order.id,
+                                      machine_id: p.machine_id ?? null,
                                       type: 'release',
                                       pieces: p.pieces || 0,
                                       weight_kg: p.weight || 0,

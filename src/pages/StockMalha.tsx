@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,13 +31,20 @@ import { Calendar } from '@/components/ui/calendar';
 
 export default function StockMalha() {
   const { 
-    getProductions, getClients, getArticles, getYarnTypes 
+    getProductions, getClients, getArticles, getYarnTypes, getMachines 
   } = useSharedCompanyData();
   
   const productions = getProductions();
   const clients = getClients();
   const articles = getArticles();
   const yarnTypes = getYarnTypes();
+  const machines = getMachines();
+  const machineNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const x of machines) m.set(x.id, x.name);
+    return m;
+  }, [machines]);
+  const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
 
   // No Invoices or InvoiceItems dependency as requested: "sem ligação com a aba Saida de malha"
   // Wait, if I don't use invoices, I can't calculate stock (produced - delivered).
@@ -108,7 +115,7 @@ export default function StockMalha() {
     queryKey: ['stock_movements_for_stock', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('stock_movements')
-        .select('id, article_id, client_id, billing_order_id, type, pieces, weight_kg, is_second_quality, created_at')
+        .select('id, article_id, client_id, billing_order_id, machine_id, type, pieces, weight_kg, is_second_quality, created_at')
         .eq('company_id', companyId);
       if (error) throw error;
       return data || [];
@@ -272,6 +279,58 @@ export default function StockMalha() {
     reservedKg: acc.reservedKg + g.totalReservedKg,
     availableKg: acc.availableKg + g.totalAvailableKg,
   }), { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0, reservedKg: 0, availableKg: 0 }), [malhaEstoque]);
+
+  // Quebra por máquina, por artigo. Chave: `${clientId}::${articleId}` → Map(machineKey → totals)
+  // machineKey = machine_id ou '__none__' quando não informado.
+  const byMachineMap = useMemo(() => {
+    type MachineTotals = { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; reservedKg: number; reservedRolls: number };
+    const out = new Map<string, Map<string, MachineTotals>>();
+    const ensure = (k: string, mk: string) => {
+      if (!out.has(k)) out.set(k, new Map());
+      const inner = out.get(k)!;
+      if (!inner.has(mk)) inner.set(mk, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, reservedKg: 0, reservedRolls: 0 });
+      return inner.get(mk)!;
+    };
+    const cutoff = stockCutoffDate || '';
+    const afterCutoffDate = (date: string) => !cutoff || date >= cutoff;
+    const afterCutoffTs = (createdAt: string) => !cutoff || format(new Date(createdAt), 'yyyy-MM-dd') >= cutoff;
+    const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
+    const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
+
+    for (const prod of productions) {
+      if (!matchMonth(prod.date)) continue;
+      if (!afterCutoffDate(prod.date)) continue;
+      const art = articles.find(a => a.id === prod.article_id);
+      if (!art || !art.client_id) continue;
+      const k = `${art.client_id}::${prod.article_id}`;
+      const mk = (prod.machine_id as string | null) || '__none__';
+      const e = ensure(k, mk);
+      e.producedKg += Number(prod.weight_kg);
+      e.producedRolls += Number(prod.rolls_produced);
+    }
+    for (const mv of stockMovements as any[]) {
+      if (!monthMatchesMovement(mv.created_at)) continue;
+      if (!afterCutoffTs(mv.created_at)) continue;
+      if (mv.is_second_quality) continue;
+      if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
+      const art = articles.find(a => a.id === mv.article_id);
+      if (!art || !art.client_id) continue;
+      const k = `${art.client_id}::${mv.article_id}`;
+      const mk = (mv.machine_id as string | null) || '__none__';
+      const e = ensure(k, mk);
+      const kg = Number(mv.weight_kg); const pc = Number(mv.pieces);
+      if (mv.type === 'adjust_in') { e.producedKg += kg; e.producedRolls += pc; }
+      else if (mv.type === 'adjust_out') { e.producedKg -= kg; e.producedRolls -= pc; }
+      else if (mv.type === 'in') {
+        if (mv.billing_order_id) { e.deliveredKg -= kg; e.deliveredRolls -= pc; }
+        else { e.producedKg += kg; e.producedRolls += pc; }
+      }
+      else if (mv.type === 'out') { e.deliveredKg += kg; e.deliveredRolls += pc; }
+      else if (mv.type === 'reserve') { e.reservedKg += kg; e.reservedRolls += pc; }
+      else if (mv.type === 'release') { e.reservedKg -= kg; e.reservedRolls -= pc; }
+    }
+    return out;
+  }, [productions, stockMovements, articles, estoqueMonth, stockCutoffDate]);
 
   // 2ª QUALIDADE — agregação independente
   const segundaEstoque = useMemo(() => {
@@ -634,8 +693,14 @@ export default function StockMalha() {
                       </TableHeader>
                       <TableBody>
                         {group.articles.map((a: any) => (
-                          <TableRow key={a.articleId}>
-                            <TableCell className="text-xs">{a.articleName}</TableCell>
+                          <React.Fragment key={a.articleId}>
+                          <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedArticle(expandedArticle === `${group.clientId}::${a.articleId}` ? null : `${group.clientId}::${a.articleId}`)}>
+                            <TableCell className="text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <ChevronDown className={cn('h-3 w-3 transition-transform', expandedArticle === `${group.clientId}::${a.articleId}` ? '' : '-rotate-90')} />
+                                {a.articleName}
+                              </div>
+                            </TableCell>
                             <TableCell className="text-xs text-right">{formatWeight(a.producedKg)}</TableCell>
                             <TableCell className="text-xs text-right">{formatNumber(a.producedRolls)}</TableCell>
                             <TableCell className="text-xs text-right">{formatWeight(a.deliveredKg)}</TableCell>
@@ -657,6 +722,44 @@ export default function StockMalha() {
                               {formatNumber(a.availableRolls)}
                             </TableCell>
                           </TableRow>
+                          {expandedArticle === `${group.clientId}::${a.articleId}` && (() => {
+                            const inner = byMachineMap.get(`${group.clientId}::${a.articleId}`);
+                            if (!inner || inner.size === 0) {
+                              return (
+                                <TableRow key={`${a.articleId}-empty`}>
+                                  <TableCell colSpan={10} className="text-[11px] text-muted-foreground italic bg-muted/30 py-2 pl-8">
+                                    Sem quebra por máquina disponível.
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            }
+                            const rows = Array.from(inner.entries()).map(([mk, v]) => ({
+                              mk,
+                              name: mk === '__none__' ? 'Sem máquina' : (machineNameById.get(mk) || 'Máquina removida'),
+                              ...v,
+                              stockKg: v.producedKg - v.deliveredKg,
+                              stockRolls: v.producedRolls - v.deliveredRolls,
+                              availableKg: (v.producedKg - v.deliveredKg) - v.reservedKg,
+                              availableRolls: (v.producedRolls - v.deliveredRolls) - v.reservedRolls,
+                            })).sort((x, y) => x.name.localeCompare(y.name));
+                            return rows.map((r) => (
+                              <TableRow key={`${a.articleId}-${r.mk}`} className="bg-muted/30">
+                                <TableCell className="text-[11px] pl-8 text-muted-foreground">
+                                  ↳ <span className="font-medium text-indigo-700 dark:text-indigo-300">{r.name}</span>
+                                </TableCell>
+                                <TableCell className="text-[11px] text-right">{formatWeight(r.producedKg)}</TableCell>
+                                <TableCell className="text-[11px] text-right">{formatNumber(r.producedRolls)}</TableCell>
+                                <TableCell className="text-[11px] text-right">{formatWeight(r.deliveredKg)}</TableCell>
+                                <TableCell className="text-[11px] text-right">{formatNumber(r.deliveredRolls)}</TableCell>
+                                <TableCell className={cn('text-[11px] text-right', r.stockKg < 0 ? 'text-destructive' : 'text-foreground')}>{formatWeight(r.stockKg)}</TableCell>
+                                <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatNumber(r.reservedRolls)}</TableCell>
+                                <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatWeight(r.reservedKg)}</TableCell>
+                                <TableCell className={cn('text-[11px] text-right font-semibold', r.availableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(r.availableKg)}</TableCell>
+                                <TableCell className={cn('text-[11px] text-right font-semibold', r.availableRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(r.availableRolls)}</TableCell>
+                              </TableRow>
+                            ));
+                          })()}
+                          </React.Fragment>
                         ))}
                       </TableBody>
                     </Table>
