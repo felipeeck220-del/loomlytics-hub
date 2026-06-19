@@ -31,13 +31,20 @@ import { Calendar } from '@/components/ui/calendar';
 
 export default function StockMalha() {
   const { 
-    getProductions, getClients, getArticles, getYarnTypes 
+    getProductions, getClients, getArticles, getYarnTypes, getMachines 
   } = useSharedCompanyData();
   
   const productions = getProductions();
   const clients = getClients();
   const articles = getArticles();
   const yarnTypes = getYarnTypes();
+  const machines = getMachines();
+  const machineNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const x of machines) m.set(x.id, x.name);
+    return m;
+  }, [machines]);
+  const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
 
   // No Invoices or InvoiceItems dependency as requested: "sem ligação com a aba Saida de malha"
   // Wait, if I don't use invoices, I can't calculate stock (produced - delivered).
