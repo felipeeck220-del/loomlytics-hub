@@ -468,27 +468,37 @@ export function useBillingOrders() {
       // fantasma em OFs antigas sem reserva prévia.
       if (revertToOpen && preReleaseSnapshot && preReleaseSnapshot.article_id && user?.company_id) {
         const { data: existingMvs } = await (supabase.from as any)('stock_movements')
-          .select('type, pieces, weight_kg')
+          .select('type, pieces, weight_kg, machine_id')
           .eq('billing_order_id', id)
           .in('type', ['reserve', 'release']);
-        let netP = 0, netW = 0;
+        const netByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
         for (const m of (existingMvs || [])) {
+          const k = (m.machine_id as string | null) || '__none__';
+          const cur = netByMachine.get(k) || { p: 0, w: 0, mid: (m.machine_id as string | null) || null };
           const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
-          if (m.type === 'reserve') { netP += p; netW += w; }
-          else if (m.type === 'release') { netP -= p; netW -= w; }
+          if (m.type === 'reserve') { cur.p += p; cur.w += w; }
+          else if (m.type === 'release') { cur.p -= p; cur.w -= w; }
+          netByMachine.set(k, cur);
         }
-        if (netP > 0 || netW > 0) {
-          await (supabase.from as any)('stock_movements').insert({
-            company_id: user.company_id,
-            article_id: preReleaseSnapshot.article_id,
-            client_id: preReleaseSnapshot.client_id,
-            billing_order_id: id,
-            type: 'release',
-            pieces: Math.max(0, Math.round(netP)),
-            weight_kg: Math.max(0, netW),
-            reason: `OF #${preReleaseSnapshot.of_number} editada — reserva liberada`,
-            created_by: profile?.id ?? null,
-          });
+        const rels: any[] = [];
+        for (const cur of netByMachine.values()) {
+          if (cur.p > 0 || cur.w > 0) {
+            rels.push({
+              company_id: user.company_id,
+              article_id: preReleaseSnapshot.article_id,
+              client_id: preReleaseSnapshot.client_id,
+              billing_order_id: id,
+              machine_id: cur.mid,
+              type: 'release',
+              pieces: Math.max(0, Math.round(cur.p)),
+              weight_kg: Math.max(0, cur.w),
+              reason: `OF #${preReleaseSnapshot.of_number} editada — reserva liberada`,
+              created_by: profile?.id ?? null,
+            });
+          }
+        }
+        if (rels.length > 0) {
+          await (supabase.from as any)('stock_movements').insert(rels);
         }
       }
 
