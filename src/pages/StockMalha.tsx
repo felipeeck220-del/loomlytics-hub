@@ -280,6 +280,58 @@ export default function StockMalha() {
     availableKg: acc.availableKg + g.totalAvailableKg,
   }), { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0, reservedKg: 0, availableKg: 0 }), [malhaEstoque]);
 
+  // Quebra por máquina, por artigo. Chave: `${clientId}::${articleId}` → Map(machineKey → totals)
+  // machineKey = machine_id ou '__none__' quando não informado.
+  const byMachineMap = useMemo(() => {
+    type MachineTotals = { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; reservedKg: number; reservedRolls: number };
+    const out = new Map<string, Map<string, MachineTotals>>();
+    const ensure = (k: string, mk: string) => {
+      if (!out.has(k)) out.set(k, new Map());
+      const inner = out.get(k)!;
+      if (!inner.has(mk)) inner.set(mk, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, reservedKg: 0, reservedRolls: 0 });
+      return inner.get(mk)!;
+    };
+    const cutoff = stockCutoffDate || '';
+    const afterCutoffDate = (date: string) => !cutoff || date >= cutoff;
+    const afterCutoffTs = (createdAt: string) => !cutoff || format(new Date(createdAt), 'yyyy-MM-dd') >= cutoff;
+    const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
+    const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
+
+    for (const prod of productions) {
+      if (!matchMonth(prod.date)) continue;
+      if (!afterCutoffDate(prod.date)) continue;
+      const art = articles.find(a => a.id === prod.article_id);
+      if (!art || !art.client_id) continue;
+      const k = `${art.client_id}::${prod.article_id}`;
+      const mk = (prod.machine_id as string | null) || '__none__';
+      const e = ensure(k, mk);
+      e.producedKg += Number(prod.weight_kg);
+      e.producedRolls += Number(prod.rolls_produced);
+    }
+    for (const mv of stockMovements as any[]) {
+      if (!monthMatchesMovement(mv.created_at)) continue;
+      if (!afterCutoffTs(mv.created_at)) continue;
+      if (mv.is_second_quality) continue;
+      if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
+      const art = articles.find(a => a.id === mv.article_id);
+      if (!art || !art.client_id) continue;
+      const k = `${art.client_id}::${mv.article_id}`;
+      const mk = (mv.machine_id as string | null) || '__none__';
+      const e = ensure(k, mk);
+      const kg = Number(mv.weight_kg); const pc = Number(mv.pieces);
+      if (mv.type === 'adjust_in') { e.producedKg += kg; e.producedRolls += pc; }
+      else if (mv.type === 'adjust_out') { e.producedKg -= kg; e.producedRolls -= pc; }
+      else if (mv.type === 'in') {
+        if (mv.billing_order_id) { e.deliveredKg -= kg; e.deliveredRolls -= pc; }
+        else { e.producedKg += kg; e.producedRolls += pc; }
+      }
+      else if (mv.type === 'out') { e.deliveredKg += kg; e.deliveredRolls += pc; }
+      else if (mv.type === 'reserve') { e.reservedKg += kg; e.reservedRolls += pc; }
+      else if (mv.type === 'release') { e.reservedKg -= kg; e.reservedRolls -= pc; }
+    }
+    return out;
+  }, [productions, stockMovements, articles, estoqueMonth, stockCutoffDate]);
+
   // 2ª QUALIDADE — agregação independente
   const segundaEstoque = useMemo(() => {
     const map = new Map<string, Map<string, { entradaKg: number; entradaRolls: number; saidaKg: number; saidaRolls: number }>>();
