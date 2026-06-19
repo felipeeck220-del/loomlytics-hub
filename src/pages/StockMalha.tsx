@@ -750,10 +750,10 @@ export default function StockMalha() {
                               mk,
                               name: mk === '__none__' ? 'Sem máquina' : (machineNameById.get(mk) || 'Máquina removida'),
                               ...v,
-                              stockKg: v.producedKg - v.deliveredKg,
-                              stockRolls: v.producedRolls - v.deliveredRolls,
-                              availableKg: (v.producedKg - v.deliveredKg) - v.reservedKg,
-                              availableRolls: (v.producedRolls - v.deliveredRolls) - v.reservedRolls,
+                              stockKg: v.producedKg - v.deliveredKgTotal,
+                              stockRolls: v.producedRolls - v.deliveredRollsTotal,
+                              availableKg: (v.producedKg - v.deliveredKgTotal) - v.reservedKg,
+                              availableRolls: (v.producedRolls - v.deliveredRollsTotal) - v.reservedRolls,
                             })).sort((x, y) => x.name.localeCompare(y.name));
                             return rows.map((r) => (
                               <TableRow key={`${a.articleId}-${r.mk}`} className="bg-muted/30">
