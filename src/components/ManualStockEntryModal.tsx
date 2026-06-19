@@ -16,22 +16,25 @@ import { Warehouse } from 'lucide-react';
 
 interface Client { id: string; name: string }
 interface Article { id: string; name: string; client_id: string | null }
+interface Machine { id: string; name: string }
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   clients: Client[];
   articles: Article[];
+  machines: Machine[];
   onSaved: () => void;
   isSecondQuality?: boolean;
 }
 
-export function ManualStockEntryModal({ open, onOpenChange, clients, articles, onSaved, isSecondQuality = false }: Props) {
+export function ManualStockEntryModal({ open, onOpenChange, clients, articles, machines, onSaved, isSecondQuality = false }: Props) {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [type, setType] = useState<'adjust_in' | 'adjust_out'>('adjust_in');
   const [clientId, setClientId] = useState('');
   const [articleId, setArticleId] = useState('');
+  const [machineId, setMachineId] = useState('');
   const [pieces, setPieces] = useState('');
   const [weight, setWeight] = useState('');
   const [reason, setReason] = useState('');
@@ -40,7 +43,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
   useEffect(() => {
     if (open) {
       setType('adjust_in');
-      setClientId(''); setArticleId(''); setPieces(''); setWeight(''); setReason('');
+      setClientId(''); setArticleId(''); setMachineId(''); setPieces(''); setWeight(''); setReason('');
     }
   }, [open]);
 
@@ -54,6 +57,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
     const weightNum = parseFloat(weight || '0');
     if (!clientId) return toast({ title: 'Cliente obrigatório', variant: 'destructive' });
     if (!articleId) return toast({ title: 'Artigo obrigatório', variant: 'destructive' });
+    if (!machineId) return toast({ title: 'Máquina obrigatória', variant: 'destructive' });
     if (!(weightNum > 0) && !(piecesNum > 0)) {
       return toast({ title: 'Informe peças ou peso', description: 'Pelo menos um dos campos deve ser maior que zero.', variant: 'destructive' });
     }
@@ -68,6 +72,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
         company_id: user.company_id,
         article_id: articleId,
         client_id: clientId,
+        machine_id: machineId,
         type,
         pieces: piecesNum,
         weight_kg: weightNum,
@@ -85,7 +90,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
         userRole: user.role,
         userCode: (user as any).code,
         details: {
-          type, client_id: clientId, article_id: articleId,
+          type, client_id: clientId, article_id: articleId, machine_id: machineId,
           pieces: piecesNum, weight_kg: weightNum, reason: reason.trim(),
         },
       });
@@ -145,6 +150,18 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, o
               options={filteredArticles.map(a => ({ value: a.id, label: a.name }))}
               placeholder={clientId ? 'Selecione o artigo' : 'Escolha um cliente primeiro'}
               searchPlaceholder="Buscar artigo..."
+              disabled={!clientId}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Máquina *</Label>
+            <SearchableSelect
+              value={machineId}
+              onValueChange={setMachineId}
+              options={machines.map(m => ({ value: m.id, label: m.name }))}
+              placeholder={clientId ? 'Selecione a máquina' : 'Escolha um cliente primeiro'}
+              searchPlaceholder="Buscar máquina..."
               disabled={!clientId}
             />
           </div>
