@@ -693,8 +693,14 @@ export default function StockMalha() {
                       </TableHeader>
                       <TableBody>
                         {group.articles.map((a: any) => (
-                          <TableRow key={a.articleId}>
-                            <TableCell className="text-xs">{a.articleName}</TableCell>
+                          <>
+                          <TableRow key={a.articleId} className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedArticle(expandedArticle === `${group.clientId}::${a.articleId}` ? null : `${group.clientId}::${a.articleId}`)}>
+                            <TableCell className="text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <ChevronDown className={cn('h-3 w-3 transition-transform', expandedArticle === `${group.clientId}::${a.articleId}` ? '' : '-rotate-90')} />
+                                {a.articleName}
+                              </div>
+                            </TableCell>
                             <TableCell className="text-xs text-right">{formatWeight(a.producedKg)}</TableCell>
                             <TableCell className="text-xs text-right">{formatNumber(a.producedRolls)}</TableCell>
                             <TableCell className="text-xs text-right">{formatWeight(a.deliveredKg)}</TableCell>
@@ -716,6 +722,44 @@ export default function StockMalha() {
                               {formatNumber(a.availableRolls)}
                             </TableCell>
                           </TableRow>
+                          {expandedArticle === `${group.clientId}::${a.articleId}` && (() => {
+                            const inner = byMachineMap.get(`${group.clientId}::${a.articleId}`);
+                            if (!inner || inner.size === 0) {
+                              return (
+                                <TableRow key={`${a.articleId}-empty`}>
+                                  <TableCell colSpan={10} className="text-[11px] text-muted-foreground italic bg-muted/30 py-2 pl-8">
+                                    Sem quebra por máquina disponível.
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            }
+                            const rows = Array.from(inner.entries()).map(([mk, v]) => ({
+                              mk,
+                              name: mk === '__none__' ? 'Sem máquina' : (machineNameById.get(mk) || 'Máquina removida'),
+                              ...v,
+                              stockKg: v.producedKg - v.deliveredKg,
+                              stockRolls: v.producedRolls - v.deliveredRolls,
+                              availableKg: (v.producedKg - v.deliveredKg) - v.reservedKg,
+                              availableRolls: (v.producedRolls - v.deliveredRolls) - v.reservedRolls,
+                            })).sort((x, y) => x.name.localeCompare(y.name));
+                            return rows.map((r) => (
+                              <TableRow key={`${a.articleId}-${r.mk}`} className="bg-muted/30">
+                                <TableCell className="text-[11px] pl-8 text-muted-foreground">
+                                  ↳ <span className="font-medium text-indigo-700 dark:text-indigo-300">{r.name}</span>
+                                </TableCell>
+                                <TableCell className="text-[11px] text-right">{formatWeight(r.producedKg)}</TableCell>
+                                <TableCell className="text-[11px] text-right">{formatNumber(r.producedRolls)}</TableCell>
+                                <TableCell className="text-[11px] text-right">{formatWeight(r.deliveredKg)}</TableCell>
+                                <TableCell className="text-[11px] text-right">{formatNumber(r.deliveredRolls)}</TableCell>
+                                <TableCell className={cn('text-[11px] text-right', r.stockKg < 0 ? 'text-destructive' : 'text-foreground')}>{formatWeight(r.stockKg)}</TableCell>
+                                <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatNumber(r.reservedRolls)}</TableCell>
+                                <TableCell className="text-[11px] text-right text-amber-700 dark:text-amber-400">{formatWeight(r.reservedKg)}</TableCell>
+                                <TableCell className={cn('text-[11px] text-right font-semibold', r.availableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(r.availableKg)}</TableCell>
+                                <TableCell className={cn('text-[11px] text-right font-semibold', r.availableRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(r.availableRolls)}</TableCell>
+                              </TableRow>
+                            ));
+                          })()}
+                          </>
                         ))}
                       </TableBody>
                     </Table>
