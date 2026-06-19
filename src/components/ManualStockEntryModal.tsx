@@ -57,6 +57,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, m
     const weightNum = parseFloat(weight || '0');
     if (!clientId) return toast({ title: 'Cliente obrigatório', variant: 'destructive' });
     if (!articleId) return toast({ title: 'Artigo obrigatório', variant: 'destructive' });
+    if (!machineId) return toast({ title: 'Máquina obrigatória', variant: 'destructive' });
     if (!(weightNum > 0) && !(piecesNum > 0)) {
       return toast({ title: 'Informe peças ou peso', description: 'Pelo menos um dos campos deve ser maior que zero.', variant: 'destructive' });
     }
