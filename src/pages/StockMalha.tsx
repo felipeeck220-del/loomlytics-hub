@@ -994,6 +994,7 @@ export default function StockMalha() {
           onOpenChange={setManualOpen}
           clients={clients}
           articles={articles as any}
+          machines={machines}
           onSaved={refreshAllStock}
         />
       )}
@@ -1003,6 +1004,7 @@ export default function StockMalha() {
           onOpenChange={setManual2qOpen}
           clients={clients}
           articles={articles as any}
+          machines={machines}
           isSecondQuality
           onSaved={refreshAllStock}
         />

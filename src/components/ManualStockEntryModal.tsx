@@ -43,7 +43,7 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, m
   useEffect(() => {
     if (open) {
       setType('adjust_in');
-      setClientId(''); setArticleId(''); setPieces(''); setWeight(''); setReason('');
+      setClientId(''); setArticleId(''); setMachineId(''); setPieces(''); setWeight(''); setReason('');
     }
   }, [open]);
 
