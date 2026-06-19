@@ -2066,7 +2066,7 @@ const BillingOrders = () => {
                         value={palletInput.machine_id}
                         onValueChange={v => setPalletInput({ ...palletInput, machine_id: v })}
                         options={getMachines().map(m => ({ value: m.id, label: m.name }))}
-                        placeholder="Selecione a máquina (obrigatório)"
+                        placeholder="Selecione a máquina"
                       />
                     </div>
                     <Button
