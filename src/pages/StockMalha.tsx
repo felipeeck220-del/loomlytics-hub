@@ -283,12 +283,12 @@ export default function StockMalha() {
   // Quebra por máquina, por artigo. Chave: `${clientId}::${articleId}` → Map(machineKey → totals)
   // machineKey = machine_id ou '__none__' quando não informado.
   const byMachineMap = useMemo(() => {
-    type MachineTotals = { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; reservedKg: number; reservedRolls: number };
+    type MachineTotals = { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; deliveredKgTotal: number; deliveredRollsTotal: number; reservedKg: number; reservedRolls: number };
     const out = new Map<string, Map<string, MachineTotals>>();
     const ensure = (k: string, mk: string) => {
       if (!out.has(k)) out.set(k, new Map());
       const inner = out.get(k)!;
-      if (!inner.has(mk)) inner.set(mk, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, reservedKg: 0, reservedRolls: 0 });
+      if (!inner.has(mk)) inner.set(mk, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, deliveredKgTotal: 0, deliveredRollsTotal: 0, reservedKg: 0, reservedRolls: 0 });
       return inner.get(mk)!;
     };
     const cutoff = stockCutoffDate || '';
@@ -296,6 +296,13 @@ export default function StockMalha() {
     const afterCutoffTs = (createdAt: string) => !cutoff || format(new Date(createdAt), 'yyyy-MM-dd') >= cutoff;
     const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
     const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
+    const entregueFrom = entregueRange.from || '';
+    const entregueTo = entregueRange.to || entregueFrom;
+    const matchesEntregueRange = (createdAt: string) => {
+      if (!entregueFrom) return true;
+      const d = format(new Date(createdAt), 'yyyy-MM-dd');
+      return d >= entregueFrom && d <= entregueTo;
+    };
 
     for (const prod of productions) {
       if (!matchMonth(prod.date)) continue;
@@ -322,15 +329,21 @@ export default function StockMalha() {
       if (mv.type === 'adjust_in') { e.producedKg += kg; e.producedRolls += pc; }
       else if (mv.type === 'adjust_out') { e.producedKg -= kg; e.producedRolls -= pc; }
       else if (mv.type === 'in') {
-        if (mv.billing_order_id) { e.deliveredKg -= kg; e.deliveredRolls -= pc; }
+        if (mv.billing_order_id) {
+          e.deliveredKgTotal -= kg; e.deliveredRollsTotal -= pc;
+          if (matchesEntregueRange(mv.created_at)) { e.deliveredKg -= kg; e.deliveredRolls -= pc; }
+        }
         else { e.producedKg += kg; e.producedRolls += pc; }
       }
-      else if (mv.type === 'out') { e.deliveredKg += kg; e.deliveredRolls += pc; }
+      else if (mv.type === 'out') {
+        e.deliveredKgTotal += kg; e.deliveredRollsTotal += pc;
+        if (matchesEntregueRange(mv.created_at)) { e.deliveredKg += kg; e.deliveredRolls += pc; }
+      }
       else if (mv.type === 'reserve') { e.reservedKg += kg; e.reservedRolls += pc; }
       else if (mv.type === 'release') { e.reservedKg -= kg; e.reservedRolls -= pc; }
     }
     return out;
-  }, [productions, stockMovements, articles, estoqueMonth, stockCutoffDate]);
+  }, [productions, stockMovements, articles, estoqueMonth, stockCutoffDate, entregueRange]);
 
   // 2ª QUALIDADE — agregação independente
   const segundaEstoque = useMemo(() => {
@@ -737,10 +750,10 @@ export default function StockMalha() {
                               mk,
                               name: mk === '__none__' ? 'Sem máquina' : (machineNameById.get(mk) || 'Máquina removida'),
                               ...v,
-                              stockKg: v.producedKg - v.deliveredKg,
-                              stockRolls: v.producedRolls - v.deliveredRolls,
-                              availableKg: (v.producedKg - v.deliveredKg) - v.reservedKg,
-                              availableRolls: (v.producedRolls - v.deliveredRolls) - v.reservedRolls,
+                              stockKg: v.producedKg - v.deliveredKgTotal,
+                              stockRolls: v.producedRolls - v.deliveredRollsTotal,
+                              availableKg: (v.producedKg - v.deliveredKgTotal) - v.reservedKg,
+                              availableRolls: (v.producedRolls - v.deliveredRollsTotal) - v.reservedRolls,
                             })).sort((x, y) => x.name.localeCompare(y.name));
                             return rows.map((r) => (
                               <TableRow key={`${a.articleId}-${r.mk}`} className="bg-muted/30">
