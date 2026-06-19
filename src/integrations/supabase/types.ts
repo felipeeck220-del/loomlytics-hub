@@ -2567,6 +2567,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_second_quality: boolean
+          machine_id: string | null
           pieces: number
           reason: string | null
           type: Database["public"]["Enums"]["stock_movement_type"]
@@ -2581,6 +2582,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_second_quality?: boolean
+          machine_id?: string | null
           pieces?: number
           reason?: string | null
           type: Database["public"]["Enums"]["stock_movement_type"]
@@ -2595,6 +2597,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_second_quality?: boolean
+          machine_id?: string | null
           pieces?: number
           reason?: string | null
           type?: Database["public"]["Enums"]["stock_movement_type"]
@@ -2634,6 +2637,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
             referencedColumns: ["id"]
           },
         ]

@@ -1,0 +1,2 @@
+ALTER TABLE public.stock_movements ADD COLUMN IF NOT EXISTS machine_id uuid REFERENCES public.machines(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_stock_movements_machine_id ON public.stock_movements(machine_id);
