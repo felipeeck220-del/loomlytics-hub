@@ -2193,6 +2193,7 @@ const BillingOrders = () => {
                                       article_id: order.article_id,
                                       client_id: order.client_id,
                                       billing_order_id: order.id,
+                                      machine_id: p.machine_id ?? null,
                                       type: 'release',
                                       pieces: p.pieces || 0,
                                       weight_kg: p.weight || 0,
