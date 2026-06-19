@@ -115,7 +115,7 @@ export default function StockMalha() {
     queryKey: ['stock_movements_for_stock', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('stock_movements')
-        .select('id, article_id, client_id, billing_order_id, type, pieces, weight_kg, is_second_quality, created_at')
+        .select('id, article_id, client_id, billing_order_id, machine_id, type, pieces, weight_kg, is_second_quality, created_at')
         .eq('company_id', companyId);
       if (error) throw error;
       return data || [];
