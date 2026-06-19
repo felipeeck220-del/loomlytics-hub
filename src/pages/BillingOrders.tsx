@@ -1301,15 +1301,6 @@ const BillingOrders = () => {
                             <Boxes className="h-4 w-4" /> Paletes
                           </Button>
                         )}
-                        {order.status === 'separating' && (role === 'expedicao' || isAdmin) && (
-                          <Button
-                            size="sm"
-                            className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={() => setShowLaunchModal(order)}
-                          >
-                            <CheckCircle2 className="h-4 w-4" /> Lançar Dados
-                          </Button>
-                        )}
                         {order.status === 'ready' && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
