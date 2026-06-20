@@ -112,7 +112,8 @@ export default function Machines() {
          model: form.model || undefined, diameter: form.diameter || undefined, 
          fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
-         serial_number: form.serial_number || undefined
+         serial_number: form.serial_number || undefined,
+         machine_type: form.machine_type || undefined
        };
 
       if (oldStatus !== form.status) {
@@ -145,7 +146,8 @@ export default function Machines() {
          model: form.model || undefined, diameter: form.diameter || undefined, 
          fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
-         serial_number: form.serial_number || undefined
+        serial_number: form.serial_number || undefined,
+        machine_type: form.machine_type || undefined
        };
       all.push(newMachine);
       await saveMachines(all);
