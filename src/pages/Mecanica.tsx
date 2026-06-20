@@ -96,6 +96,9 @@ export default function MecanicaPage() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [detailsSearch, setDetailsSearch] = useState('');
   const [historyMachineId, setHistoryMachineId] = useState<string | null>(null);
+  const [scheduleSearch, setScheduleSearch] = useState('');
+  const [scheduleHistoryMachineId, setScheduleHistoryMachineId] = useState<string | null>(null);
+  const [obsByLogId, setObsByLogId] = useState<Record<string, { observation: string; created_at: string }[]>>({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [addMachineId, setAddMachineId] = useState('');
   const [addStatus, setAddStatus] = useState<string>('manutencao_preventiva');
