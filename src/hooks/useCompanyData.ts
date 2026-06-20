@@ -72,6 +72,7 @@ export function useCompanyData() {
       last_needle_change_at: r.last_needle_change_at || undefined,
       last_sinker_change_at: r.last_sinker_change_at || undefined,
       cylinder_id: r.cylinder_id || undefined,
+      machine_type: r.machine_type || undefined,
     });
     const mapCylinder = (r: any): Cylinder => ({
       id: r.id, company_id: r.company_id, brand: r.brand,
@@ -294,6 +295,7 @@ export function useCompanyData() {
         last_needle_change_at: m.last_needle_change_at || null,
         last_sinker_change_at: m.last_sinker_change_at || null,
         cylinder_id: m.cylinder_id || null,
+        machine_type: m.machine_type || null,
       }));
       const { error } = await sb('machines').upsert(rows);
       if (error) { console.error('Error saving machines:', error); throw error; }

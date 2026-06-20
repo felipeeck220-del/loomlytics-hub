@@ -69,14 +69,16 @@ export default function Machines() {
   const isMobile = useIsMobile();
    const [form, setForm] = useState({ 
      number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
-     model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: ''
+     model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
+     machine_type: '' as '' | 'mono' | 'dupla'
    });
 
   const openNew = () => {
     setEditing(null);
      setForm({ 
        number: '', rpm: '', status: 'ativa', article_id: 'none', observations: '',
-       model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: ''
+       model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
+       machine_type: ''
      });
     setShowModal(true);
   };
@@ -89,7 +91,8 @@ export default function Machines() {
        model: m.model || '', diameter: m.diameter || '', fineness: m.fineness || '',
        needle_quantity: m.needle_quantity ? String(m.needle_quantity) : '',
        feeder_quantity: m.feeder_quantity ? String(m.feeder_quantity) : '',
-       serial_number: m.serial_number || ''
+       serial_number: m.serial_number || '',
+       machine_type: m.machine_type || ''
      });
     setShowModal(true);
   };
@@ -109,7 +112,8 @@ export default function Machines() {
          model: form.model || undefined, diameter: form.diameter || undefined, 
          fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
-         serial_number: form.serial_number || undefined
+         serial_number: form.serial_number || undefined,
+         machine_type: form.machine_type || undefined
        };
 
       if (oldStatus !== form.status) {
@@ -142,7 +146,8 @@ export default function Machines() {
          model: form.model || undefined, diameter: form.diameter || undefined, 
          fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
-         serial_number: form.serial_number || undefined
+        serial_number: form.serial_number || undefined,
+        machine_type: form.machine_type || undefined
        };
       all.push(newMachine);
       await saveMachines(all);
@@ -391,6 +396,19 @@ export default function Machines() {
                <div className="flex items-center gap-2">
                  <Badge variant="outline" className="h-6">Dados Técnicos</Badge>
                  <div className="h-px flex-1 bg-border" />
+               </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Tipo de Máquina</Label>
+                   <Select value={form.machine_type || 'none'} onValueChange={v => setForm(p => ({ ...p, machine_type: v === 'none' ? '' : v as 'mono' | 'dupla' }))}>
+                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="none">Não definido</SelectItem>
+                       <SelectItem value="mono">Mono Frontura (Agulhas + Platinas)</SelectItem>
+                       <SelectItem value="dupla">Dupla Frontura (Agulhas Disco + Cilindro)</SelectItem>
+                     </SelectContent>
+                   </Select>
+                 </div>
                </div>
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                  <div className="space-y-2">
