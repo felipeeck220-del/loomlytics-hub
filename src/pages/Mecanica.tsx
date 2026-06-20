@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
   import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package } from 'lucide-react';
@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
 import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, type MachineStatus, type MachineLog } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -94,6 +96,9 @@ export default function MecanicaPage() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [detailsSearch, setDetailsSearch] = useState('');
   const [historyMachineId, setHistoryMachineId] = useState<string | null>(null);
+  const [scheduleSearch, setScheduleSearch] = useState('');
+  const [scheduleHistoryMachineId, setScheduleHistoryMachineId] = useState<string | null>(null);
+  const [obsByLogId, setObsByLogId] = useState<Record<string, { observation: string; created_at: string }[]>>({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [addMachineId, setAddMachineId] = useState('');
   const [addStatus, setAddStatus] = useState<string>('manutencao_preventiva');
@@ -238,6 +243,94 @@ export default function MecanicaPage() {
   }, [historyMachineId, machineLogs, productions]);
 
   const historyMachineName = historyMachineId ? getMachineName(historyMachineId) : '';
+
+  // ============ Programação de Manutenções (Calendário em tabela) ============
+  const MAINTENANCE_INTERVAL_DAYS = 30;
+
+  const scheduleRows = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return activeMachines.map(m => {
+      const allPrev = getLogsByStatus(m.id, 'manutencao_preventiva');
+      const last = allPrev[0] || null;
+      const lastDate = last ? new Date(last.ended_at || last.started_at) : null;
+      const nextDate = lastDate ? new Date(lastDate.getTime() + MAINTENANCE_INTERVAL_DAYS * 86400000) : null;
+      const daysLeft = nextDate ? Math.ceil((nextDate.getTime() - today.getTime()) / 86400000) : null;
+      let durationMin: number | null = null;
+      if (last?.started_at && last?.ended_at) {
+        durationMin = Math.max(0, (new Date(last.ended_at).getTime() - new Date(last.started_at).getTime()) / 60000);
+      }
+      return { machine: m, last, lastDate, nextDate, daysLeft, durationMin, historyCount: allPrev.length };
+    });
+  }, [activeMachines, machineLogs]);
+
+  const filteredScheduleRows = useMemo(() => {
+    const q = scheduleSearch.trim().toLowerCase();
+    if (!q) return scheduleRows;
+    return scheduleRows.filter(r =>
+      r.machine.name.toLowerCase().includes(q) ||
+      (r.machine.model || '').toLowerCase().includes(q) ||
+      (r.machine.diameter || '').toLowerCase().includes(q) ||
+      (r.machine.fineness || '').toLowerCase().includes(q)
+    );
+  }, [scheduleRows, scheduleSearch]);
+
+  const scheduleHistoryRows = useMemo(() => {
+    if (!scheduleHistoryMachineId) return [];
+    return getLogsByStatus(scheduleHistoryMachineId, 'manutencao_preventiva');
+  }, [scheduleHistoryMachineId, machineLogs]);
+
+  // Carrega observações dos logs de manutenção preventiva visíveis (linha principal + histórico aberto)
+  useEffect(() => {
+    const logIds = new Set<string>();
+    scheduleRows.forEach(r => { if (r.last?.id) logIds.add(r.last.id); });
+    scheduleHistoryRows.forEach(l => logIds.add(l.id));
+    const missing = Array.from(logIds).filter(id => !(id in obsByLogId));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase.from as any)('machine_maintenance_observations')
+        .select('machine_log_id, observation, created_at')
+        .in('machine_log_id', missing)
+        .order('created_at', { ascending: true });
+      if (cancelled) return;
+      setObsByLogId(prev => {
+        const next = { ...prev };
+        missing.forEach(id => { if (!(id in next)) next[id] = []; });
+        (data || []).forEach((row: any) => {
+          if (!next[row.machine_log_id]) next[row.machine_log_id] = [];
+          next[row.machine_log_id].push({ observation: row.observation, created_at: row.created_at });
+        });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [scheduleRows, scheduleHistoryRows]);
+
+  const formatDuration = (mins: number | null) => {
+    if (mins == null) return '—';
+    const h = Math.floor(mins / 60);
+    const m = Math.round(mins % 60);
+    if (h === 0) return `${m}min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
+  };
+
+  const daysLeftCellClass = (d: number | null) => {
+    if (d == null) return 'bg-muted/30 text-muted-foreground';
+    if (d < 0) return 'bg-destructive/25 text-destructive font-bold';
+    if (d === 0) return 'bg-destructive/20 text-destructive font-bold';
+    if (d <= 7) return 'bg-warning/25 text-warning-foreground font-semibold';
+    return 'bg-success/20 text-success-foreground font-semibold';
+  };
+
+  const daysLeftLabel = (d: number | null) => {
+    if (d == null) return 'Sem registro';
+    if (d < 0) return `${Math.abs(d)} ${Math.abs(d) === 1 ? 'dia' : 'dias'} de atraso`;
+    if (d === 0) return 'Hoje';
+    return `${d} ${d === 1 ? 'dia' : 'dias'}`;
+  };
+  // ===========================================================================
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -1161,77 +1254,107 @@ export default function MecanicaPage() {
             <CardHeader className="pb-2 px-3 sm:px-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">Programação de Manutenções</CardTitle>
                   <Button size="sm" onClick={() => setShowAddModal(true)}>
                     <Plus className="h-4 w-4 mr-1" /> Adicionar
                   </Button>
                 </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-xs sm:text-sm font-medium min-w-[110px] sm:min-w-[140px] text-center capitalize">
-                    {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-                  </span>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar máquina, modelo, diâmetro..."
+                    value={scheduleSearch}
+                    onChange={e => setScheduleSearch(e.target.value)}
+                    className="pl-9 h-9"
+                  />
                 </div>
               </div>
             </CardHeader>
             <CardContent className="px-2 sm:px-6">
-              <div className="flex flex-wrap gap-2 sm:gap-3 mb-3">
-                {MAINTENANCE_STATUSES.map(status => (
-                  <div key={status} className="flex items-center gap-1.5">
-                    <div className={cn('h-3 w-3 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])} />
-                    <span className="text-xs text-muted-foreground">{MACHINE_STATUS_LABELS[status]}</span>
-                  </div>
-                ))}
+              <div className="flex flex-wrap items-center gap-3 mb-3 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Legenda:</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-success/40 border border-success/50" /> &gt; 7 dias</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-warning/40 border border-warning/50" /> 1-7 dias</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/40 border border-destructive/50" /> Hoje ou atrasado</span>
+                <span className="ml-auto text-[10px]">Intervalo padrão: {MAINTENANCE_INTERVAL_DAYS} dias entre preventivas</span>
               </div>
 
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {weekDays.map(d => (
-                  <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1">{d}</div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: startDayOfWeek }).map((_, i) => (
-                  <div key={`empty-${i}`} className="aspect-square" />
-                ))}
-
-                {daysInMonth.map(day => {
-                  const key = format(day, 'yyyy-MM-dd');
-                  const events = dayEventsMap.get(key) || [];
-                  const hasEvents = events.length > 0;
-                  const isToday = isSameDay(day, new Date());
-                  const dayStatuses = [...new Set(events.map(e => e.status as MachineStatus))];
-
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => hasEvents && setSelectedDay(day)}
-                      className={cn(
-                        'rounded-md border flex flex-col items-center justify-center gap-0.5 transition-all text-xs relative p-1.5',
-                        isToday && 'border-primary',
-                        hasEvents
-                          ? 'border-warning/50 bg-warning/5 hover:bg-warning/10 cursor-pointer'
-                          : 'border-border hover:bg-accent/50 cursor-default',
-                      )}
-                    >
-                      <span className={cn('font-medium', isToday ? 'text-primary' : 'text-foreground')}>
-                        {format(day, 'd')}
-                      </span>
-                      {hasEvents && (
-                        <div className="flex gap-0.5">
-                          {dayStatuses.map((status, idx) => (
-                            <div key={idx} className={cn('h-1.5 w-1.5 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])} />
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="rounded-md border border-border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead className="text-center font-bold">TEAR</TableHead>
+                      <TableHead className="text-center font-bold">MODELO</TableHead>
+                      <TableHead className="text-center font-bold">DIÂMETRO</TableHead>
+                      <TableHead className="text-center font-bold">FINURA</TableHead>
+                      <TableHead className="text-center font-bold">ÚLTIMA MANUTENÇÃO</TableHead>
+                      <TableHead className="text-center font-bold">MANUTENÇÃO PREVISTA</TableHead>
+                      <TableHead className="text-center font-bold">DIAS P/ PRÓXIMA</TableHead>
+                      <TableHead className="text-center font-bold">HORA INÍCIO</TableHead>
+                      <TableHead className="text-center font-bold">HORA FIM</TableHead>
+                      <TableHead className="text-center font-bold">HORAS PARADAS</TableHead>
+                      <TableHead className="font-bold min-w-[180px]">OBSERVAÇÃO</TableHead>
+                      <TableHead className="text-center font-bold">HISTÓRICO</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredScheduleRows.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={12} className="text-center text-sm text-muted-foreground py-8">
+                          {loading ? 'Carregando máquinas...' : 'Nenhuma máquina encontrada.'}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {filteredScheduleRows.map(row => {
+                      const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount } = row;
+                      const obsList = last ? (obsByLogId[last.id] || []) : [];
+                      const obsText = obsList.map(o => o.observation).join(' • ');
+                      return (
+                        <TableRow key={machine.id} className="text-xs">
+                          <TableCell className="text-center font-semibold">{machine.name}</TableCell>
+                          <TableCell className="text-center">{machine.model || '—'}</TableCell>
+                          <TableCell className="text-center">{machine.diameter || '—'}</TableCell>
+                          <TableCell className="text-center">{machine.fineness || '—'}</TableCell>
+                          <TableCell className="text-center">
+                            {lastDate ? format(lastDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {nextDate ? format(nextDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className={cn('text-center', daysLeftCellClass(daysLeft))}>
+                            {daysLeftLabel(daysLeft)}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—'}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {last?.ended_at ? format(new Date(last.ended_at), 'HH:mm') : '—'}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">{formatDuration(durationMin)}</TableCell>
+                          <TableCell className="max-w-[260px]">
+                            {obsText ? (
+                              <span className="block truncate" title={obsText}>{obsText}</span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-[11px]"
+                              onClick={() => setScheduleHistoryMachineId(machine.id)}
+                              disabled={historyCount === 0}
+                            >
+                              <History className="h-3 w-3 mr-1" />
+                              {historyCount}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
@@ -1522,6 +1645,62 @@ export default function MecanicaPage() {
       </Dialog>
 
       {/* Add manual log modal */}
+      {/* Histórico de manutenções preventivas por máquina (Programação) */}
+      <Dialog open={!!scheduleHistoryMachineId} onOpenChange={(open) => !open && setScheduleHistoryMachineId(null)}>
+        <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              Histórico de Manutenções — {scheduleHistoryMachineId ? getMachineName(scheduleHistoryMachineId) : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            {scheduleHistoryRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma manutenção preventiva registrada.</p>
+            ) : (
+              <div className="rounded-md border border-border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead>DATA</TableHead>
+                      <TableHead>HORA INÍCIO</TableHead>
+                      <TableHead>HORA FIM</TableHead>
+                      <TableHead>DURAÇÃO</TableHead>
+                      <TableHead>RESPONSÁVEL</TableHead>
+                      <TableHead className="min-w-[260px]">OBSERVAÇÃO</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {scheduleHistoryRows.map(log => {
+                      const start = new Date(log.started_at);
+                      const end = log.ended_at ? new Date(log.ended_at) : null;
+                      const dur = end ? Math.max(0, (end.getTime() - start.getTime()) / 60000) : null;
+                      const obs = (obsByLogId[log.id] || []).map(o => o.observation).join(' • ');
+                      return (
+                        <TableRow key={log.id} className="text-xs">
+                          <TableCell>{format(start, 'dd/MM/yyyy')}</TableCell>
+                          <TableCell className="tabular-nums">{format(start, 'HH:mm')}</TableCell>
+                          <TableCell className="tabular-nums">{end ? format(end, 'HH:mm') : '—'}</TableCell>
+                          <TableCell className="tabular-nums">{formatDuration(dur)}</TableCell>
+                          <TableCell>
+                            {log.started_by_name
+                              ? `${log.started_by_name}${log.started_by_code ? ` #${log.started_by_code}` : ''}`
+                              : '—'}
+                          </TableCell>
+                          <TableCell className="max-w-[400px]">
+                            {obs ? <span className="block whitespace-pre-wrap">{obs}</span> : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* === Original Add Manual Log Modal (preserved) === */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-md" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
