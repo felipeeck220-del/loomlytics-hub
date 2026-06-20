@@ -304,7 +304,7 @@ export function useCompanyData() {
   const saveMachineLogs = useCallback(async (data: MachineLog[]) => {
     if (!companyId) return;
     const rows = data.map(l => ({
-      id: l.id, machine_id: l.machine_id, status: l.status,
+      id: l.id, company_id: companyId, machine_id: l.machine_id, status: l.status,
       started_at: l.started_at, ended_at: l.ended_at || null,
       started_by_name: l.started_by_name || null,
       started_by_code: l.started_by_code || null,
