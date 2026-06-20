@@ -1254,77 +1254,107 @@ export default function MecanicaPage() {
             <CardHeader className="pb-2 px-3 sm:px-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base sm:text-lg">Calendário de Manutenções</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">Programação de Manutenções</CardTitle>
                   <Button size="sm" onClick={() => setShowAddModal(true)}>
                     <Plus className="h-4 w-4 mr-1" /> Adicionar
                   </Button>
                 </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-xs sm:text-sm font-medium min-w-[110px] sm:min-w-[140px] text-center capitalize">
-                    {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-                  </span>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar máquina, modelo, diâmetro..."
+                    value={scheduleSearch}
+                    onChange={e => setScheduleSearch(e.target.value)}
+                    className="pl-9 h-9"
+                  />
                 </div>
               </div>
             </CardHeader>
             <CardContent className="px-2 sm:px-6">
-              <div className="flex flex-wrap gap-2 sm:gap-3 mb-3">
-                {MAINTENANCE_STATUSES.map(status => (
-                  <div key={status} className="flex items-center gap-1.5">
-                    <div className={cn('h-3 w-3 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])} />
-                    <span className="text-xs text-muted-foreground">{MACHINE_STATUS_LABELS[status]}</span>
-                  </div>
-                ))}
+              <div className="flex flex-wrap items-center gap-3 mb-3 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Legenda:</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-success/40 border border-success/50" /> &gt; 7 dias</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-warning/40 border border-warning/50" /> 1-7 dias</span>
+                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/40 border border-destructive/50" /> Hoje ou atrasado</span>
+                <span className="ml-auto text-[10px]">Intervalo padrão: {MAINTENANCE_INTERVAL_DAYS} dias entre preventivas</span>
               </div>
 
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {weekDays.map(d => (
-                  <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1">{d}</div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: startDayOfWeek }).map((_, i) => (
-                  <div key={`empty-${i}`} className="aspect-square" />
-                ))}
-
-                {daysInMonth.map(day => {
-                  const key = format(day, 'yyyy-MM-dd');
-                  const events = dayEventsMap.get(key) || [];
-                  const hasEvents = events.length > 0;
-                  const isToday = isSameDay(day, new Date());
-                  const dayStatuses = [...new Set(events.map(e => e.status as MachineStatus))];
-
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => hasEvents && setSelectedDay(day)}
-                      className={cn(
-                        'rounded-md border flex flex-col items-center justify-center gap-0.5 transition-all text-xs relative p-1.5',
-                        isToday && 'border-primary',
-                        hasEvents
-                          ? 'border-warning/50 bg-warning/5 hover:bg-warning/10 cursor-pointer'
-                          : 'border-border hover:bg-accent/50 cursor-default',
-                      )}
-                    >
-                      <span className={cn('font-medium', isToday ? 'text-primary' : 'text-foreground')}>
-                        {format(day, 'd')}
-                      </span>
-                      {hasEvents && (
-                        <div className="flex gap-0.5">
-                          {dayStatuses.map((status, idx) => (
-                            <div key={idx} className={cn('h-1.5 w-1.5 rounded-full', MACHINE_STATUS_COLORS[status].split(' ')[0])} />
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="rounded-md border border-border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead className="text-center font-bold">TEAR</TableHead>
+                      <TableHead className="text-center font-bold">MODELO</TableHead>
+                      <TableHead className="text-center font-bold">DIÂMETRO</TableHead>
+                      <TableHead className="text-center font-bold">FINURA</TableHead>
+                      <TableHead className="text-center font-bold">ÚLTIMA MANUTENÇÃO</TableHead>
+                      <TableHead className="text-center font-bold">MANUTENÇÃO PREVISTA</TableHead>
+                      <TableHead className="text-center font-bold">DIAS P/ PRÓXIMA</TableHead>
+                      <TableHead className="text-center font-bold">HORA INÍCIO</TableHead>
+                      <TableHead className="text-center font-bold">HORA FIM</TableHead>
+                      <TableHead className="text-center font-bold">HORAS PARADAS</TableHead>
+                      <TableHead className="font-bold min-w-[180px]">OBSERVAÇÃO</TableHead>
+                      <TableHead className="text-center font-bold">HISTÓRICO</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredScheduleRows.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={12} className="text-center text-sm text-muted-foreground py-8">
+                          {loading ? 'Carregando máquinas...' : 'Nenhuma máquina encontrada.'}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {filteredScheduleRows.map(row => {
+                      const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount } = row;
+                      const obsList = last ? (obsByLogId[last.id] || []) : [];
+                      const obsText = obsList.map(o => o.observation).join(' • ');
+                      return (
+                        <TableRow key={machine.id} className="text-xs">
+                          <TableCell className="text-center font-semibold">{machine.name}</TableCell>
+                          <TableCell className="text-center">{machine.model || '—'}</TableCell>
+                          <TableCell className="text-center">{machine.diameter || '—'}</TableCell>
+                          <TableCell className="text-center">{machine.fineness || '—'}</TableCell>
+                          <TableCell className="text-center">
+                            {lastDate ? format(lastDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {nextDate ? format(nextDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className={cn('text-center', daysLeftCellClass(daysLeft))}>
+                            {daysLeftLabel(daysLeft)}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—'}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {last?.ended_at ? format(new Date(last.ended_at), 'HH:mm') : '—'}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">{formatDuration(durationMin)}</TableCell>
+                          <TableCell className="max-w-[260px]">
+                            {obsText ? (
+                              <span className="block truncate" title={obsText}>{obsText}</span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-[11px]"
+                              onClick={() => setScheduleHistoryMachineId(machine.id)}
+                              disabled={historyCount === 0}
+                            >
+                              <History className="h-3 w-3 mr-1" />
+                              {historyCount}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
