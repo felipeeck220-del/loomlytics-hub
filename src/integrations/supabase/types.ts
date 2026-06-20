@@ -1613,6 +1613,7 @@ export type Database = {
           id: string
           last_needle_change_at: string | null
           last_sinker_change_at: string | null
+          machine_type: string | null
           model: string | null
           name: string
           needle_quantity: number | null
@@ -1634,6 +1635,7 @@ export type Database = {
           id?: string
           last_needle_change_at?: string | null
           last_sinker_change_at?: string | null
+          machine_type?: string | null
           model?: string | null
           name: string
           needle_quantity?: number | null
@@ -1655,6 +1657,7 @@ export type Database = {
           id?: string
           last_needle_change_at?: string | null
           last_sinker_change_at?: string | null
+          machine_type?: string | null
           model?: string | null
           name?: string
           needle_quantity?: number | null

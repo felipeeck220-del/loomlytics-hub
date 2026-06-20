@@ -1,0 +1,1 @@
+ALTER TABLE public.machines ADD COLUMN IF NOT EXISTS machine_type text;
