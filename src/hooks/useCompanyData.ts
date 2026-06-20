@@ -295,6 +295,7 @@ export function useCompanyData() {
         last_needle_change_at: m.last_needle_change_at || null,
         last_sinker_change_at: m.last_sinker_change_at || null,
         cylinder_id: m.cylinder_id || null,
+        machine_type: m.machine_type || null,
       }));
       const { error } = await sb('machines').upsert(rows);
       if (error) { console.error('Error saving machines:', error); throw error; }
