@@ -1438,10 +1438,9 @@ export default function MecanicaPage() {
 
                       {/* Since last sinker change */}
                       {(() => {
-                        const cyl = cylinders.find(c => c.id === machine.cylinder_id);
-                        const hasSinkers = cyl && (cyl.sinker_quantity && cyl.sinker_quantity > 0);
-                        
-                        if (!hasSinkers) return null;
+                        // Mostra "Desde última Troca de Platinas" apenas para máquinas Mono Frontura
+                        // (Mono usa agulhas + platinas; Dupla Frontura usa agulhas disco + cilindro, sem platinas)
+                        if (machine.machine_type !== 'mono') return null;
                         
                         const revenue = calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).revenue;
                         const weight = calcPeriod(machine.id, machine.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'yyyy-MM-dd') : '2000-01-01', format(new Date(), 'yyyy-MM-dd')).weight;
