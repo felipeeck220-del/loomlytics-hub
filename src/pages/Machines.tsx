@@ -69,14 +69,16 @@ export default function Machines() {
   const isMobile = useIsMobile();
    const [form, setForm] = useState({ 
      number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
-     model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: ''
+     model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
+     machine_type: '' as '' | 'mono' | 'dupla'
    });
 
   const openNew = () => {
     setEditing(null);
      setForm({ 
        number: '', rpm: '', status: 'ativa', article_id: 'none', observations: '',
-       model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: ''
+       model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
+       machine_type: ''
      });
     setShowModal(true);
   };
@@ -89,7 +91,8 @@ export default function Machines() {
        model: m.model || '', diameter: m.diameter || '', fineness: m.fineness || '',
        needle_quantity: m.needle_quantity ? String(m.needle_quantity) : '',
        feeder_quantity: m.feeder_quantity ? String(m.feeder_quantity) : '',
-       serial_number: m.serial_number || ''
+       serial_number: m.serial_number || '',
+       machine_type: m.machine_type || ''
      });
     setShowModal(true);
   };
