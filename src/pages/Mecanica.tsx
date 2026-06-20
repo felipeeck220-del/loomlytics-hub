@@ -2278,19 +2278,9 @@ export default function MecanicaPage() {
                 <Input value={cylinderForm.fineness} onChange={e => setCylinderForm({...cylinderForm, fineness: e.target.value})} placeholder="Ex: 24" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Qtd Agulhas</Label>
-                <Input type="number" value={cylinderForm.needle_quantity} onChange={e => setCylinderForm({...cylinderForm, needle_quantity: e.target.value})} placeholder="Ex: 2280" />
-              </div>
-              <div className="space-y-1">
-                <Label>Qtd Platinas (Opcional)</Label>
-                <Input type="number" value={cylinderForm.sinker_quantity} onChange={e => setCylinderForm({...cylinderForm, sinker_quantity: e.target.value})} placeholder="Ex: 2280" />
-              </div>
-            </div>
             <div className="space-y-1">
-              <Label>Qtd Alimentadores</Label>
-              <Input type="number" value={cylinderForm.feeder_quantity} onChange={e => setCylinderForm({...cylinderForm, feeder_quantity: e.target.value})} placeholder="Ex: 96" />
+              <Label>Qtd Agulhas</Label>
+              <Input type="number" value={cylinderForm.needle_quantity} onChange={e => setCylinderForm({...cylinderForm, needle_quantity: e.target.value})} placeholder="Ex: 2280" />
             </div>
             <div className="space-y-1">
               <Label>Observações</Label>
