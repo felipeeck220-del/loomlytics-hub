@@ -1645,15 +1645,6 @@ export default function MecanicaPage() {
       </Dialog>
 
       {/* Add manual log modal */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-md" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle>Adicionar Registro Manual</DialogTitle>
-          </DialogHeader>
-          {null}
-        </DialogContent>
-      </Dialog>
-
       {/* Histórico de manutenções preventivas por máquina (Programação) */}
       <Dialog open={!!scheduleHistoryMachineId} onOpenChange={(open) => !open && setScheduleHistoryMachineId(null)}>
         <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] flex flex-col">
