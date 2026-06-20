@@ -1650,6 +1650,71 @@ export default function MecanicaPage() {
           <DialogHeader>
             <DialogTitle>Adicionar Registro Manual</DialogTitle>
           </DialogHeader>
+          {null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Histórico de manutenções preventivas por máquina (Programação) */}
+      <Dialog open={!!scheduleHistoryMachineId} onOpenChange={(open) => !open && setScheduleHistoryMachineId(null)}>
+        <DialogContent className="w-[80vw] max-w-[80vw] h-[80vh] max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              Histórico de Manutenções — {scheduleHistoryMachineId ? getMachineName(scheduleHistoryMachineId) : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            {scheduleHistoryRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhuma manutenção preventiva registrada.</p>
+            ) : (
+              <div className="rounded-md border border-border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead>DATA</TableHead>
+                      <TableHead>HORA INÍCIO</TableHead>
+                      <TableHead>HORA FIM</TableHead>
+                      <TableHead>DURAÇÃO</TableHead>
+                      <TableHead>RESPONSÁVEL</TableHead>
+                      <TableHead className="min-w-[260px]">OBSERVAÇÃO</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {scheduleHistoryRows.map(log => {
+                      const start = new Date(log.started_at);
+                      const end = log.ended_at ? new Date(log.ended_at) : null;
+                      const dur = end ? Math.max(0, (end.getTime() - start.getTime()) / 60000) : null;
+                      const obs = (obsByLogId[log.id] || []).map(o => o.observation).join(' • ');
+                      return (
+                        <TableRow key={log.id} className="text-xs">
+                          <TableCell>{format(start, 'dd/MM/yyyy')}</TableCell>
+                          <TableCell className="tabular-nums">{format(start, 'HH:mm')}</TableCell>
+                          <TableCell className="tabular-nums">{end ? format(end, 'HH:mm') : '—'}</TableCell>
+                          <TableCell className="tabular-nums">{formatDuration(dur)}</TableCell>
+                          <TableCell>
+                            {log.started_by_name
+                              ? `${log.started_by_name}${log.started_by_code ? ` #${log.started_by_code}` : ''}`
+                              : '—'}
+                          </TableCell>
+                          <TableCell className="max-w-[400px]">
+                            {obs ? <span className="block whitespace-pre-wrap">{obs}</span> : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* === Original Add Manual Log Modal (preserved) === */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Adicionar Registro Manual</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Máquina</Label>
