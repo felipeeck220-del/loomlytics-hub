@@ -397,6 +397,19 @@ export default function Machines() {
                  <Badge variant="outline" className="h-6">Dados Técnicos</Badge>
                  <div className="h-px flex-1 bg-border" />
                </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Tipo de Máquina</Label>
+                   <Select value={form.machine_type || 'none'} onValueChange={v => setForm(p => ({ ...p, machine_type: v === 'none' ? '' : v as 'mono' | 'dupla' }))}>
+                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="none">Não definido</SelectItem>
+                       <SelectItem value="mono">Mono Frontura (Agulhas + Platinas)</SelectItem>
+                       <SelectItem value="dupla">Dupla Frontura (Agulhas Disco + Cilindro)</SelectItem>
+                     </SelectContent>
+                   </Select>
+                 </div>
+               </div>
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                  <div className="space-y-2">
                    <Label className="text-xs font-semibold">Modelo</Label>
