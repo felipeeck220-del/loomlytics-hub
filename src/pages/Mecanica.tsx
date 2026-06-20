@@ -244,6 +244,94 @@ export default function MecanicaPage() {
 
   const historyMachineName = historyMachineId ? getMachineName(historyMachineId) : '';
 
+  // ============ Programação de Manutenções (Calendário em tabela) ============
+  const MAINTENANCE_INTERVAL_DAYS = 30;
+
+  const scheduleRows = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return activeMachines.map(m => {
+      const allPrev = getLogsByStatus(m.id, 'manutencao_preventiva');
+      const last = allPrev[0] || null;
+      const lastDate = last ? new Date(last.ended_at || last.started_at) : null;
+      const nextDate = lastDate ? new Date(lastDate.getTime() + MAINTENANCE_INTERVAL_DAYS * 86400000) : null;
+      const daysLeft = nextDate ? Math.ceil((nextDate.getTime() - today.getTime()) / 86400000) : null;
+      let durationMin: number | null = null;
+      if (last?.started_at && last?.ended_at) {
+        durationMin = Math.max(0, (new Date(last.ended_at).getTime() - new Date(last.started_at).getTime()) / 60000);
+      }
+      return { machine: m, last, lastDate, nextDate, daysLeft, durationMin, historyCount: allPrev.length };
+    });
+  }, [activeMachines, machineLogs]);
+
+  const filteredScheduleRows = useMemo(() => {
+    const q = scheduleSearch.trim().toLowerCase();
+    if (!q) return scheduleRows;
+    return scheduleRows.filter(r =>
+      r.machine.name.toLowerCase().includes(q) ||
+      (r.machine.model || '').toLowerCase().includes(q) ||
+      (r.machine.diameter || '').toLowerCase().includes(q) ||
+      (r.machine.fineness || '').toLowerCase().includes(q)
+    );
+  }, [scheduleRows, scheduleSearch]);
+
+  const scheduleHistoryRows = useMemo(() => {
+    if (!scheduleHistoryMachineId) return [];
+    return getLogsByStatus(scheduleHistoryMachineId, 'manutencao_preventiva');
+  }, [scheduleHistoryMachineId, machineLogs]);
+
+  // Carrega observações dos logs de manutenção preventiva visíveis (linha principal + histórico aberto)
+  useEffect(() => {
+    const logIds = new Set<string>();
+    scheduleRows.forEach(r => { if (r.last?.id) logIds.add(r.last.id); });
+    scheduleHistoryRows.forEach(l => logIds.add(l.id));
+    const missing = Array.from(logIds).filter(id => !(id in obsByLogId));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase.from as any)('machine_maintenance_observations')
+        .select('machine_log_id, observation, created_at')
+        .in('machine_log_id', missing)
+        .order('created_at', { ascending: true });
+      if (cancelled) return;
+      setObsByLogId(prev => {
+        const next = { ...prev };
+        missing.forEach(id => { if (!(id in next)) next[id] = []; });
+        (data || []).forEach((row: any) => {
+          if (!next[row.machine_log_id]) next[row.machine_log_id] = [];
+          next[row.machine_log_id].push({ observation: row.observation, created_at: row.created_at });
+        });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [scheduleRows, scheduleHistoryRows]);
+
+  const formatDuration = (mins: number | null) => {
+    if (mins == null) return '—';
+    const h = Math.floor(mins / 60);
+    const m = Math.round(mins % 60);
+    if (h === 0) return `${m}min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
+  };
+
+  const daysLeftCellClass = (d: number | null) => {
+    if (d == null) return 'bg-muted/30 text-muted-foreground';
+    if (d < 0) return 'bg-destructive/25 text-destructive font-bold';
+    if (d === 0) return 'bg-destructive/20 text-destructive font-bold';
+    if (d <= 7) return 'bg-warning/25 text-warning-foreground font-semibold';
+    return 'bg-success/20 text-success-foreground font-semibold';
+  };
+
+  const daysLeftLabel = (d: number | null) => {
+    if (d == null) return 'Sem registro';
+    if (d < 0) return `${Math.abs(d)} ${Math.abs(d) === 1 ? 'dia' : 'dias'} de atraso`;
+    if (d === 0) return 'Hoje';
+    return `${d} ${d === 1 ? 'dia' : 'dias'}`;
+  };
+  // ===========================================================================
+
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
