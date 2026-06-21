@@ -2358,6 +2358,78 @@ export default function MecanicaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal: Máquinas usando esta agulha */}
+      <Dialog open={!!needleUsageView} onOpenChange={() => setNeedleUsageView(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Máquinas usando esta agulha</DialogTitle>
+          </DialogHeader>
+          {needleUsageView && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{needleUsageView.brand}</span> — <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{needleUsageView.reference_code}</code>
+              </div>
+              {(() => {
+                const list = machines.filter(m => m.current_needle_id === needleUsageView.id).sort((a,b) => a.number - b.number);
+                if (list.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
+                return (
+                  <div className="max-h-80 overflow-auto space-y-2">
+                    {list.map(m => (
+                      <div key={m.id} className="flex items-center justify-between p-3 rounded bg-muted/50">
+                        <div>
+                          <p className="font-semibold">{m.name}</p>
+                          <p className="text-xs text-muted-foreground">{m.machine_type === 'mono' ? 'Mono Frontura' : m.machine_type === 'dupla' ? 'Dupla Frontura' : 'Tipo não definido'} {m.model ? `· ${m.model}` : ''} {m.diameter ? `· Ø ${m.diameter}` : ''} {m.fineness ? `· ${m.fineness}` : ''}</p>
+                        </div>
+                        <Badge variant="outline">{m.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNeedleUsageView(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Máquinas usando esta platina */}
+      <Dialog open={!!sinkerUsageView} onOpenChange={() => setSinkerUsageView(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Máquinas usando esta platina</DialogTitle>
+          </DialogHeader>
+          {sinkerUsageView && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{sinkerUsageView.brand}</span> — <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{sinkerUsageView.reference_code}</code>
+              </div>
+              {(() => {
+                const list = machines.filter(m => m.current_sinker_id === sinkerUsageView.id).sort((a,b) => a.number - b.number);
+                if (list.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
+                return (
+                  <div className="max-h-80 overflow-auto space-y-2">
+                    {list.map(m => (
+                      <div key={m.id} className="flex items-center justify-between p-3 rounded bg-muted/50">
+                        <div>
+                          <p className="font-semibold">{m.name}</p>
+                          <p className="text-xs text-muted-foreground">Mono Frontura {m.model ? `· ${m.model}` : ''} {m.diameter ? `· Ø ${m.diameter}` : ''} {m.fineness ? `· ${m.fineness}` : ''}</p>
+                        </div>
+                        <Badge variant="outline">{m.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSinkerUsageView(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
