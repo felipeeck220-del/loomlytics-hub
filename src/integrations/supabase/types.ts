@@ -1550,6 +1550,48 @@ export type Database = {
         }
         Relationships: []
       }
+      machine_needle_refs: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          machine_id: string
+          needle_id: string
+          position: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          machine_id: string
+          needle_id: string
+          position?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          machine_id?: string
+          needle_id?: string
+          position?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_needle_refs_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machine_needle_refs_needle_id_fkey"
+            columns: ["needle_id"]
+            isOneToOne: false
+            referencedRelation: "needle_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machine_readings: {
         Row: {
           company_id: string
@@ -1597,6 +1639,45 @@ export type Database = {
             columns: ["machine_id"]
             isOneToOne: false
             referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      machine_sinker_refs: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          machine_id: string
+          sinker_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          machine_id: string
+          sinker_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          machine_id?: string
+          sinker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_sinker_refs_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machine_sinker_refs_sinker_id_fkey"
+            columns: ["sinker_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_inventory"
             referencedColumns: ["id"]
           },
         ]
