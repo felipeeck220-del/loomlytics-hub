@@ -112,6 +112,7 @@ export default function MecanicaPage() {
   const [addEndDate, setAddEndDate] = useState('');
   const [addEndTime, setAddEndTime] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
 
   const activeMachines = useMemo(() => machines.filter(m => m.status !== 'inativa'), [machines]);
 
