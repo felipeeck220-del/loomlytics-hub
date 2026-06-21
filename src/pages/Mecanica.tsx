@@ -58,6 +58,8 @@ export default function MecanicaPage() {
    const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_agulheiro' });
    const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
    const [needleHistoryPage, setNeedleHistoryPage] = useState(1);
+   const [needleUsageView, setNeedleUsageView] = useState<{ id: string; brand: string; reference_code: string } | null>(null);
+   const [sinkerUsageView, setSinkerUsageView] = useState<{ id: string; brand: string; reference_code: string } | null>(null);
    const NEEDLE_HISTORY_PER_PAGE = 15;
 
    // Sinker Management State (Platinas)
