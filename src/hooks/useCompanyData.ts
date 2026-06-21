@@ -73,6 +73,8 @@ export function useCompanyData() {
       last_sinker_change_at: r.last_sinker_change_at || undefined,
       cylinder_id: r.cylinder_id || undefined,
       machine_type: r.machine_type || undefined,
+      current_needle_id: r.current_needle_id || undefined,
+      current_sinker_id: r.current_sinker_id || undefined,
     });
     const mapCylinder = (r: any): Cylinder => ({
       id: r.id, company_id: r.company_id, brand: r.brand,
