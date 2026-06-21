@@ -483,34 +483,119 @@ export default function Machines() {
                    <Input value={form.serial_number} onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))} placeholder="Opcional" />
                  </div>
                </div>
-                <div className={cn("grid grid-cols-1 gap-4", form.machine_type === 'mono' ? 'sm:grid-cols-2' : 'sm:grid-cols-1')}>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold">Ref. Agulha em Uso</Label>
-                    <Select value={form.current_needle_id} onValueChange={v => setForm(p => ({ ...p, current_needle_id: v }))}>
-                      <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhuma</SelectItem>
-                        {[...needles].sort((a,b) => a.brand.localeCompare(b.brand)).map(n => (
-                          <SelectItem key={n.id} value={n.id}>{n.brand} — {n.reference_code} ({n.provider})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {form.machine_type === 'mono' && (
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold">Ref. Platina em Uso</Label>
-                      <Select value={form.current_sinker_id} onValueChange={v => setForm(p => ({ ...p, current_sinker_id: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Nenhuma</SelectItem>
-                          {[...sinkers].sort((a,b) => a.brand.localeCompare(b.brand)).map(s => (
-                            <SelectItem key={s.id} value={s.id}>{s.brand} — {s.reference_code} ({s.provider})</SelectItem>
+                {(() => {
+                  const sortedNeedles = [...needles].sort((a,b) => a.brand.localeCompare(b.brand));
+                  const sortedSinkers = [...sinkers].sort((a,b) => a.brand.localeCompare(b.brand));
+                  const needleLabel = (id: string) => {
+                    const n = needles.find(x => x.id === id);
+                    return n ? `${n.brand} — ${n.reference_code}` : '—';
+                  };
+                  const sinkerLabel = (id: string) => {
+                    const s = sinkers.find(x => x.id === id);
+                    return s ? `${s.brand} — ${s.reference_code}` : '—';
+                  };
+                  const addNeedle = (position: NeedleRefPosition, needleId: string) => {
+                    if (!needleId) return;
+                    setForm(p => {
+                      if (p.needleRefs.some(r => r.needle_id === needleId && r.position === position)) return p;
+                      return { ...p, needleRefs: [...p.needleRefs, { needle_id: needleId, position }] };
+                    });
+                    setAddNeedlePicker(prev => ({ ...prev, [position]: '' }));
+                  };
+                  const removeNeedle = (position: NeedleRefPosition, needleId: string) => {
+                    setForm(p => ({ ...p, needleRefs: p.needleRefs.filter(r => !(r.needle_id === needleId && r.position === position)) }));
+                  };
+                  const addSinker = (sinkerId: string) => {
+                    if (!sinkerId) return;
+                    setForm(p => {
+                      if (p.sinkerRefs.some(r => r.sinker_id === sinkerId)) return p;
+                      return { ...p, sinkerRefs: [...p.sinkerRefs, { sinker_id: sinkerId }] };
+                    });
+                    setAddSinkerPicker('');
+                  };
+                  const removeSinker = (sinkerId: string) => {
+                    setForm(p => ({ ...p, sinkerRefs: p.sinkerRefs.filter(r => r.sinker_id !== sinkerId) }));
+                  };
+                  const renderNeedleSection = (label: string, position: NeedleRefPosition) => {
+                    const refs = form.needleRefs.filter(r => r.position === position);
+                    return (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold">{label}</Label>
+                        <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                          {refs.length === 0 && <span className="text-xs text-muted-foreground italic">Nenhuma referência</span>}
+                          {refs.map(r => (
+                            <Badge key={`${position}-${r.needle_id}`} variant="secondary" className="gap-1 pl-2 pr-1 py-0.5">
+                              {needleLabel(r.needle_id)}
+                              <button type="button" onClick={() => removeNeedle(position, r.needle_id)} className="ml-1 hover:bg-destructive/20 rounded p-0.5">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </Badge>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </div>
+                        <div className="flex gap-2">
+                          <Select value={addNeedlePicker[position]} onValueChange={v => setAddNeedlePicker(prev => ({ ...prev, [position]: v }))}>
+                            <SelectTrigger><SelectValue placeholder="Selecione para adicionar..." /></SelectTrigger>
+                            <SelectContent>
+                              {sortedNeedles
+                                .filter(n => !refs.some(r => r.needle_id === n.id))
+                                .map(n => (
+                                  <SelectItem key={n.id} value={n.id}>{n.brand} — {n.reference_code} ({n.provider})</SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <Button type="button" variant="outline" size="sm" onClick={() => addNeedle(position, addNeedlePicker[position])} disabled={!addNeedlePicker[position]}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  };
+                  if (form.machine_type === 'dupla') {
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {renderNeedleSection('Ref. Agulha em Uso — Cilindro', 'cilindro')}
+                        {renderNeedleSection('Ref. Agulha em Uso — Disco', 'disco')}
+                      </div>
+                    );
+                  }
+                  // Mono ou não definido (padrão = mono)
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {renderNeedleSection('Ref. Agulha em Uso', 'mono')}
+                      {form.machine_type === 'mono' && (
+                        <div className="space-y-2">
+                          <Label className="text-xs font-semibold">Ref. Platina em Uso</Label>
+                          <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                            {form.sinkerRefs.length === 0 && <span className="text-xs text-muted-foreground italic">Nenhuma referência</span>}
+                            {form.sinkerRefs.map(r => (
+                              <Badge key={r.sinker_id} variant="secondary" className="gap-1 pl-2 pr-1 py-0.5">
+                                {sinkerLabel(r.sinker_id)}
+                                <button type="button" onClick={() => removeSinker(r.sinker_id)} className="ml-1 hover:bg-destructive/20 rounded p-0.5">
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Select value={addSinkerPicker} onValueChange={setAddSinkerPicker}>
+                              <SelectTrigger><SelectValue placeholder="Selecione para adicionar..." /></SelectTrigger>
+                              <SelectContent>
+                                {sortedSinkers
+                                  .filter(s => !form.sinkerRefs.some(r => r.sinker_id === s.id))
+                                  .map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.brand} — {s.reference_code} ({s.provider})</SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <Button type="button" variant="outline" size="sm" onClick={() => addSinker(addSinkerPicker)} disabled={!addSinkerPicker}>
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
              </div>
  
             {(() => {
