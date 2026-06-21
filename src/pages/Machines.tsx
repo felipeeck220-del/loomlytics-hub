@@ -490,6 +490,19 @@ export default function Machines() {
                    <Input value={form.serial_number} onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))} placeholder="Opcional" />
                  </div>
                </div>
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Ano</Label>
+                   <Input
+                     type="number"
+                     min="1900"
+                     max="2100"
+                     value={form.year}
+                     onChange={e => setForm(p => ({ ...p, year: e.target.value }))}
+                     placeholder="Ex: 2018"
+                   />
+                 </div>
+               </div>
                 {(() => {
                   const sortedNeedles = [...needles].sort((a,b) => a.brand.localeCompare(b.brand));
                   const sortedSinkers = [...sinkers].sort((a,b) => a.brand.localeCompare(b.brand));
