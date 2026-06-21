@@ -1124,7 +1124,7 @@ export default function MecanicaPage() {
                                 n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
                               )
                               .map(n => {
-                                const usedBy = machines.filter(m => m.current_needle_id === n.id).length;
+                                const usedBy = new Set(machineNeedleRefs.filter(r => r.needle_id === n.id).map(r => r.machine_id)).size;
                                 return (
                               <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
                                 <td className="p-4">{n.provider}</td>
