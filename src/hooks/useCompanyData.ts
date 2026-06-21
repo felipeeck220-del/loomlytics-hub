@@ -6,7 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
    ArticleMachineTurns, CompanyShiftSettings, ShiftType, DefectRecord,
    NeedleInventory, NeedleTransaction,
    SinkerInventory, SinkerTransaction,
-   Cylinder
+   Cylinder,
+   MachineNeedleRef, MachineSinkerRef, NeedleRefPosition
  } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
@@ -29,6 +30,8 @@ export function useCompanyData() {
     const [sinkers, setSinkers] = useState<SinkerInventory[]>([]);
     const [sinkerTransactions, setSinkerTransactions] = useState<SinkerTransaction[]>([]);
      const [cylinders, setCylinders] = useState<Cylinder[]>([]);
+     const [machineNeedleRefs, setMachineNeedleRefs] = useState<MachineNeedleRef[]>([]);
+     const [machineSinkerRefs, setMachineSinkerRefs] = useState<MachineSinkerRef[]>([]);
      const [yarnTypes, setYarnTypes] = useState<{ id: string; name: string; company_id: string }[]>([]);
    const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
