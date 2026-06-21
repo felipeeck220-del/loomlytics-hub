@@ -52,10 +52,12 @@ const FILTER_OPTIONS = [
 
 export default function Machines() {
   const { user } = useAuth();
-  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, loading } = useSharedCompanyData();
+  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, loading } = useSharedCompanyData();
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
+  const needles = getNeedles();
+  const sinkers = getSinkers();
   const { logAction, userName, userCode } = useAuditLog();
 
   const [showModal, setShowModal] = useState(false);
@@ -70,7 +72,8 @@ export default function Machines() {
    const [form, setForm] = useState({ 
      number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
      model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
-     machine_type: '' as '' | 'mono' | 'dupla'
+     machine_type: '' as '' | 'mono' | 'dupla',
+     current_needle_id: 'none', current_sinker_id: 'none'
    });
 
   const openNew = () => {
@@ -78,7 +81,8 @@ export default function Machines() {
      setForm({ 
        number: '', rpm: '', status: 'ativa', article_id: 'none', observations: '',
        model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
-       machine_type: ''
+       machine_type: '',
+       current_needle_id: 'none', current_sinker_id: 'none'
      });
     setShowModal(true);
   };
@@ -92,7 +96,9 @@ export default function Machines() {
        needle_quantity: m.needle_quantity ? String(m.needle_quantity) : '',
        feeder_quantity: m.feeder_quantity ? String(m.feeder_quantity) : '',
        serial_number: m.serial_number || '',
-       machine_type: m.machine_type || ''
+       machine_type: m.machine_type || '',
+       current_needle_id: m.current_needle_id || 'none',
+       current_sinker_id: m.current_sinker_id || 'none'
      });
     setShowModal(true);
   };
