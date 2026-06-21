@@ -165,8 +165,6 @@ export default function Machines() {
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
         serial_number: form.serial_number || undefined,
         machine_type: form.machine_type || undefined,
-        current_needle_id: form.current_needle_id && form.current_needle_id !== 'none' ? form.current_needle_id : undefined,
-        current_sinker_id: form.machine_type === 'mono' && form.current_sinker_id && form.current_sinker_id !== 'none' ? form.current_sinker_id : undefined
        };
       all.push(newMachine);
       await saveMachines(all);
