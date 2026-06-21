@@ -1346,12 +1346,13 @@ export default function MecanicaPage() {
                       <TableHead className="text-center font-bold">HORAS PARADAS</TableHead>
                       <TableHead className="font-bold min-w-[180px]">OBSERVAÇÃO</TableHead>
                       <TableHead className="text-center font-bold">HISTÓRICO</TableHead>
+                      <TableHead className="text-center font-bold">AÇÕES</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredScheduleRows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={12} className="text-center text-sm text-muted-foreground py-8">
+                        <TableCell colSpan={13} className="text-center text-sm text-muted-foreground py-8">
                           {loading ? 'Carregando máquinas...' : 'Nenhuma máquina encontrada.'}
                         </TableCell>
                       </TableRow>
