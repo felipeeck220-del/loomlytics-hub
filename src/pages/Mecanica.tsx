@@ -1730,6 +1730,7 @@ export default function MecanicaPage() {
                       <TableHead>DURAÇÃO</TableHead>
                       <TableHead>RESPONSÁVEL</TableHead>
                       <TableHead className="min-w-[260px]">OBSERVAÇÃO</TableHead>
+                      <TableHead className="text-center">AÇÕES</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1751,6 +1752,17 @@ export default function MecanicaPage() {
                           </TableCell>
                           <TableCell className="max-w-[400px]">
                             {obs ? <span className="block whitespace-pre-wrap">{obs}</span> : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => { setScheduleHistoryMachineId(null); openEditLog(log as MachineLog); }}
+                              title="Editar registro"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
