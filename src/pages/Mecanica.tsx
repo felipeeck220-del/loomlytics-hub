@@ -1402,6 +1402,18 @@ export default function MecanicaPage() {
                               {historyCount}
                             </Button>
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => last && openEditLog(last as MachineLog)}
+                              disabled={!last}
+                              title="Editar último registro"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
