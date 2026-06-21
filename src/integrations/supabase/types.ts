@@ -1713,6 +1713,7 @@ export type Database = {
           rpm: number
           serial_number: string | null
           status: Database["public"]["Enums"]["machine_status"]
+          year: number | null
         }
         Insert: {
           article_id?: string | null
@@ -1737,6 +1738,7 @@ export type Database = {
           rpm?: number
           serial_number?: string | null
           status?: Database["public"]["Enums"]["machine_status"]
+          year?: number | null
         }
         Update: {
           article_id?: string | null
@@ -1761,6 +1763,7 @@ export type Database = {
           rpm?: number
           serial_number?: string | null
           status?: Database["public"]["Enums"]["machine_status"]
+          year?: number | null
         }
         Relationships: [
           {
