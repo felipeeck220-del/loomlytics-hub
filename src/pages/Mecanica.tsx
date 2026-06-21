@@ -746,6 +746,7 @@ export default function MecanicaPage() {
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
                               <th className="text-right p-4 font-medium">Estoque</th>
+                              <th className="text-center p-4 font-medium w-20">Em Uso</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -756,17 +757,26 @@ export default function MecanicaPage() {
                                 s.provider.toLowerCase().includes(sinkerSearch.toLowerCase()) || 
                                 s.reference_code.toLowerCase().includes(sinkerSearch.toLowerCase())
                               )
-                              .map(s => (
+                              .map(s => {
+                                const usedBy = machines.filter(m => m.current_sinker_id === s.id).length;
+                                return (
                               <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
                                 <td className="p-4">{s.provider}</td>
                                 <td className="p-4">{s.brand}</td>
                                 <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s.reference_code}</code></td>
                                 <td className="p-4 text-right font-bold">{s.current_quantity}</td>
+                                <td className="p-4 text-center">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSinkerUsageView({ id: s.id, brand: s.brand, reference_code: s.reference_code })} title={`${usedBy} máquina(s) usando`}>
+                                    <Eye className="h-4 w-4" />
+                                    {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
+                                  </Button>
+                                </td>
                               </tr>
-                            ))}
+                                );
+                              })}
                             {sinkers.length === 0 && (
                               <tr>
-                                <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td>
+                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td>
                               </tr>
                             )}
                           </tbody>
