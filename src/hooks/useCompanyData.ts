@@ -745,6 +745,40 @@ export function useCompanyData() {
       getCylinders, saveCylinders, assignCylinderToMachine,
       getYarnTypes,
        saveShiftSettings,
+      getMachineNeedleRefs: useCallback(() => machineNeedleRefs, [machineNeedleRefs]),
+      getMachineSinkerRefs: useCallback(() => machineSinkerRefs, [machineSinkerRefs]),
+      saveMachineRefs: useCallback(async (
+        machineId: string,
+        needleRefs: { needle_id: string; position: NeedleRefPosition }[],
+        sinkerRefs: { sinker_id: string }[]
+      ) => {
+        if (!companyId || !machineId) return;
+        // Replace strategy: delete current, insert new
+        await sb('machine_needle_refs').delete().eq('machine_id', machineId);
+        await sb('machine_sinker_refs').delete().eq('machine_id', machineId);
+        if (needleRefs.length > 0) {
+          const rows = needleRefs.map(r => ({
+            company_id: companyId, machine_id: machineId,
+            needle_id: r.needle_id, position: r.position,
+          }));
+          const { error } = await sb('machine_needle_refs').insert(rows);
+          if (error) { console.error('Error saving needle refs:', error); throw error; }
+        }
+        if (sinkerRefs.length > 0) {
+          const rows = sinkerRefs.map(r => ({
+            company_id: companyId, machine_id: machineId, sinker_id: r.sinker_id,
+          }));
+          const { error } = await sb('machine_sinker_refs').insert(rows);
+          if (error) { console.error('Error saving sinker refs:', error); throw error; }
+        }
+        // Refresh local state
+        const [mnr, msr] = await Promise.all([
+          fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at'),
+          fetchAll('machine_sinker_refs', { column: 'company_id', value: companyId }, 'created_at'),
+        ]);
+        setMachineNeedleRefs(mnr as MachineNeedleRef[]);
+        setMachineSinkerRefs(msr as MachineSinkerRef[]);
+      }, [companyId, fetchAll]),
      getProductionFilterMonths: useCallback(async () => {
        if (!companyId) return [];
        const { data, error } = await supabase.rpc('get_production_filter_months', { p_company_id: companyId });
