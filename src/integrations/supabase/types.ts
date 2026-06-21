@@ -887,6 +887,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "cylinders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cylinders_machine_id_fkey"
             columns: ["machine_id"]
             isOneToOne: false
