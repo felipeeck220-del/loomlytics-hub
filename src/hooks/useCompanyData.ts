@@ -298,6 +298,8 @@ export function useCompanyData() {
         last_sinker_change_at: m.last_sinker_change_at || null,
         cylinder_id: m.cylinder_id || null,
         machine_type: m.machine_type || null,
+        current_needle_id: m.current_needle_id || null,
+        current_sinker_id: m.current_sinker_id || null,
       }));
       const { error } = await sb('machines').upsert(rows);
       if (error) { console.error('Error saving machines:', error); throw error; }
