@@ -74,7 +74,7 @@ export default function Machines() {
   const isMobile = useIsMobile();
    const [form, setForm] = useState({ 
      number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
-     model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
+    model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '', year: '',
      machine_type: '' as '' | 'mono' | 'dupla',
      needleRefs: [] as { needle_id: string; position: NeedleRefPosition }[],
      sinkerRefs: [] as { sinker_id: string }[],
@@ -86,7 +86,7 @@ export default function Machines() {
     setEditing(null);
      setForm({ 
        number: '', rpm: '', status: 'ativa', article_id: 'none', observations: '',
-       model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
+       model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '', year: '',
        machine_type: '',
        needleRefs: [], sinkerRefs: [],
      });
@@ -104,6 +104,7 @@ export default function Machines() {
        needle_quantity: m.needle_quantity ? String(m.needle_quantity) : '',
        feeder_quantity: m.feeder_quantity ? String(m.feeder_quantity) : '',
        serial_number: m.serial_number || '',
+       year: m.year ? String(m.year) : '',
        machine_type: m.machine_type || '',
        needleRefs: allNeedleRefs.filter(r => r.machine_id === m.id).map(r => ({ needle_id: r.needle_id, position: r.position })),
        sinkerRefs: allSinkerRefs.filter(r => r.machine_id === m.id).map(r => ({ sinker_id: r.sinker_id })),
