@@ -47,6 +47,8 @@ export interface Machine {
   last_sinker_change_at?: string;
   cylinder_id?: string;
   machine_type?: 'mono' | 'dupla';
+  current_needle_id?: string;
+  current_sinker_id?: string;
 }
 
 export interface Cylinder {
