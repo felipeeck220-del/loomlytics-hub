@@ -761,7 +761,7 @@ export default function MecanicaPage() {
                                 s.reference_code.toLowerCase().includes(sinkerSearch.toLowerCase())
                               )
                               .map(s => {
-                                const usedBy = machines.filter(m => m.current_sinker_id === s.id).length;
+                                const usedBy = new Set(machineSinkerRefs.filter(r => r.sinker_id === s.id).map(r => r.machine_id)).size;
                                 return (
                               <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
                                 <td className="p-4">{s.provider}</td>
