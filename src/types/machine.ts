@@ -43,6 +43,7 @@ export interface Machine {
   needle_quantity?: number;
   feeder_quantity?: number;
   serial_number?: string;
+  year?: number;
   last_needle_change_at?: string;
   last_sinker_change_at?: string;
   cylinder_id?: string;

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, FileBarChart, Loader2, Monitor, CheckCircle2, XCircle, Wrench, Settings, AlertCircle, Search, Eye, Copy } from 'lucide-react';
@@ -73,7 +74,7 @@ export default function Machines() {
   const isMobile = useIsMobile();
    const [form, setForm] = useState({ 
      number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
-     model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
+    model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '', year: '',
      machine_type: '' as '' | 'mono' | 'dupla',
      needleRefs: [] as { needle_id: string; position: NeedleRefPosition }[],
      sinkerRefs: [] as { sinker_id: string }[],
@@ -85,7 +86,7 @@ export default function Machines() {
     setEditing(null);
      setForm({ 
        number: '', rpm: '', status: 'ativa', article_id: 'none', observations: '',
-       model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
+       model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '', year: '',
        machine_type: '',
        needleRefs: [], sinkerRefs: [],
      });
@@ -103,6 +104,7 @@ export default function Machines() {
        needle_quantity: m.needle_quantity ? String(m.needle_quantity) : '',
        feeder_quantity: m.feeder_quantity ? String(m.feeder_quantity) : '',
        serial_number: m.serial_number || '',
+       year: m.year ? String(m.year) : '',
        machine_type: m.machine_type || '',
        needleRefs: allNeedleRefs.filter(r => r.machine_id === m.id).map(r => ({ needle_id: r.needle_id, position: r.position })),
        sinkerRefs: allSinkerRefs.filter(r => r.machine_id === m.id).map(r => ({ sinker_id: r.sinker_id })),
@@ -131,6 +133,7 @@ export default function Machines() {
          machine_type: form.machine_type || undefined,
          current_needle_id: undefined,
          current_sinker_id: undefined,
+        year: form.year ? Number(form.year) : undefined,
        };
 
       if (oldStatus !== form.status) {
@@ -179,6 +182,7 @@ export default function Machines() {
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
         serial_number: form.serial_number || undefined,
         machine_type: form.machine_type || undefined,
+       year: form.year ? Number(form.year) : undefined,
        };
       all.push(newMachine);
       await saveMachines(all);
@@ -423,16 +427,19 @@ export default function Machines() {
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Artigo Atual</Label>
-                <Select value={form.article_id} onValueChange={v => setForm(p => ({ ...p, article_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione um artigo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none" className="text-destructive font-medium uppercase italic">NENHUM ARTIGO</SelectItem>
-                    {articles.map(a => {
-                      const client = a.client_name ? ` (${a.client_name})` : '';
-                      return <SelectItem key={a.id} value={a.id}>{a.name}{client}</SelectItem>;
-                    })}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={form.article_id}
+                  onValueChange={v => setForm(p => ({ ...p, article_id: v }))}
+                  placeholder="Selecione um artigo"
+                  searchPlaceholder="Buscar artigo ou cliente..."
+                  options={[
+                    { value: 'none', label: 'NENHUM ARTIGO' },
+                    ...articles.map(a => ({
+                      value: a.id,
+                      label: a.client_name ? `${a.name} (${a.client_name})` : a.name,
+                    })),
+                  ]}
+                />
               </div>
             </div>
 
@@ -481,6 +488,19 @@ export default function Machines() {
                  <div className="space-y-2">
                    <Label className="text-xs font-semibold">Nº de Série</Label>
                    <Input value={form.serial_number} onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))} placeholder="Opcional" />
+                 </div>
+               </div>
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <div className="space-y-2">
+                   <Label className="text-xs font-semibold">Ano</Label>
+                   <Input
+                     type="number"
+                     min="1900"
+                     max="2100"
+                     value={form.year}
+                     onChange={e => setForm(p => ({ ...p, year: e.target.value }))}
+                     placeholder="Ex: 2018"
+                   />
                  </div>
                </div>
                 {(() => {
