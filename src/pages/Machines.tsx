@@ -151,6 +151,20 @@ export default function Machines() {
       }
 
       await saveMachines(all);
+      // Persist needle/sinker refs
+      try {
+        const validNeedles = (form.needleRefs || []).filter(r => {
+          if (!r.needle_id) return false;
+          if (form.machine_type === 'mono') return r.position === 'mono';
+          if (form.machine_type === 'dupla') return r.position === 'cilindro' || r.position === 'disco';
+          return r.position === 'mono';
+        });
+        const validSinkers = form.machine_type === 'mono' ? (form.sinkerRefs || []).filter(r => r.sinker_id) : [];
+        await saveMachineRefs(editing.id, validNeedles, validSinkers);
+      } catch (err) {
+        console.error('Failed to save machine refs:', err);
+        toast.error('Erro ao salvar referências de agulha/platina');
+      }
       logAction(oldStatus !== form.status ? 'machine_status_change' : 'machine_update', {
         machine: `TEAR ${form.number.padStart(2, '0')}`, old_status: oldStatus, new_status: form.status,
       });
@@ -168,6 +182,20 @@ export default function Machines() {
        };
       all.push(newMachine);
       await saveMachines(all);
+      // Persist needle/sinker refs for new machine
+      try {
+        const validNeedles = (form.needleRefs || []).filter(r => {
+          if (!r.needle_id) return false;
+          if (form.machine_type === 'mono') return r.position === 'mono';
+          if (form.machine_type === 'dupla') return r.position === 'cilindro' || r.position === 'disco';
+          return r.position === 'mono';
+        });
+        const validSinkers = form.machine_type === 'mono' ? (form.sinkerRefs || []).filter(r => r.sinker_id) : [];
+        await saveMachineRefs(newMachine.id, validNeedles, validSinkers);
+      } catch (err) {
+        console.error('Failed to save machine refs:', err);
+        toast.error('Erro ao salvar referências de agulha/platina');
+      }
 
       const allLogs = [...logs];
       allLogs.push({ id: crypto.randomUUID(), machine_id: newMachine.id, status: form.status, started_at: new Date().toISOString(), started_by_name: userName || undefined, started_by_code: userCode || undefined });
