@@ -14,7 +14,7 @@ import MaintenanceViewModal from '@/components/MaintenanceViewModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import type { Machine, MachineStatus, MachineLog } from '@/types';
+import type { Machine, MachineStatus, MachineLog, NeedleRefPosition } from '@/types';
 import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -52,12 +52,14 @@ const FILTER_OPTIONS = [
 
 export default function Machines() {
   const { user } = useAuth();
-  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, loading } = useSharedCompanyData();
+  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, getMachineNeedleRefs, getMachineSinkerRefs, saveMachineRefs, loading } = useSharedCompanyData();
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
   const needles = getNeedles();
   const sinkers = getSinkers();
+  const allNeedleRefs = getMachineNeedleRefs();
+  const allSinkerRefs = getMachineSinkerRefs();
   const { logAction, userName, userCode } = useAuditLog();
 
   const [showModal, setShowModal] = useState(false);
@@ -73,8 +75,11 @@ export default function Machines() {
      number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
      model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
      machine_type: '' as '' | 'mono' | 'dupla',
-     current_needle_id: 'none', current_sinker_id: 'none'
+     needleRefs: [] as { needle_id: string; position: NeedleRefPosition }[],
+     sinkerRefs: [] as { sinker_id: string }[],
    });
+   const [addNeedlePicker, setAddNeedlePicker] = useState<Record<NeedleRefPosition, string>>({ mono: '', cilindro: '', disco: '' });
+   const [addSinkerPicker, setAddSinkerPicker] = useState('');
 
   const openNew = () => {
     setEditing(null);
@@ -82,8 +87,10 @@ export default function Machines() {
        number: '', rpm: '', status: 'ativa', article_id: 'none', observations: '',
        model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
        machine_type: '',
-       current_needle_id: 'none', current_sinker_id: 'none'
+       needleRefs: [], sinkerRefs: [],
      });
+    setAddNeedlePicker({ mono: '', cilindro: '', disco: '' });
+    setAddSinkerPicker('');
     setShowModal(true);
   };
 
@@ -97,9 +104,11 @@ export default function Machines() {
        feeder_quantity: m.feeder_quantity ? String(m.feeder_quantity) : '',
        serial_number: m.serial_number || '',
        machine_type: m.machine_type || '',
-       current_needle_id: m.current_needle_id || 'none',
-       current_sinker_id: m.current_sinker_id || 'none'
+       needleRefs: allNeedleRefs.filter(r => r.machine_id === m.id).map(r => ({ needle_id: r.needle_id, position: r.position })),
+       sinkerRefs: allSinkerRefs.filter(r => r.machine_id === m.id).map(r => ({ sinker_id: r.sinker_id })),
      });
+    setAddNeedlePicker({ mono: '', cilindro: '', disco: '' });
+    setAddSinkerPicker('');
     setShowModal(true);
   };
 
@@ -120,8 +129,8 @@ export default function Machines() {
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
          serial_number: form.serial_number || undefined,
          machine_type: form.machine_type || undefined,
-         current_needle_id: form.current_needle_id && form.current_needle_id !== 'none' ? form.current_needle_id : undefined,
-         current_sinker_id: form.machine_type === 'mono' && form.current_sinker_id && form.current_sinker_id !== 'none' ? form.current_sinker_id : undefined
+         current_needle_id: undefined,
+         current_sinker_id: undefined,
        };
 
       if (oldStatus !== form.status) {
@@ -142,6 +151,20 @@ export default function Machines() {
       }
 
       await saveMachines(all);
+      // Persist needle/sinker refs
+      try {
+        const validNeedles = (form.needleRefs || []).filter(r => {
+          if (!r.needle_id) return false;
+          if (form.machine_type === 'mono') return r.position === 'mono';
+          if (form.machine_type === 'dupla') return r.position === 'cilindro' || r.position === 'disco';
+          return r.position === 'mono';
+        });
+        const validSinkers = form.machine_type === 'mono' ? (form.sinkerRefs || []).filter(r => r.sinker_id) : [];
+        await saveMachineRefs(editing.id, validNeedles, validSinkers);
+      } catch (err) {
+        console.error('Failed to save machine refs:', err);
+        toast.error('Erro ao salvar referências de agulha/platina');
+      }
       logAction(oldStatus !== form.status ? 'machine_status_change' : 'machine_update', {
         machine: `TEAR ${form.number.padStart(2, '0')}`, old_status: oldStatus, new_status: form.status,
       });
@@ -156,11 +179,23 @@ export default function Machines() {
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
         serial_number: form.serial_number || undefined,
         machine_type: form.machine_type || undefined,
-        current_needle_id: form.current_needle_id && form.current_needle_id !== 'none' ? form.current_needle_id : undefined,
-        current_sinker_id: form.machine_type === 'mono' && form.current_sinker_id && form.current_sinker_id !== 'none' ? form.current_sinker_id : undefined
        };
       all.push(newMachine);
       await saveMachines(all);
+      // Persist needle/sinker refs for new machine
+      try {
+        const validNeedles = (form.needleRefs || []).filter(r => {
+          if (!r.needle_id) return false;
+          if (form.machine_type === 'mono') return r.position === 'mono';
+          if (form.machine_type === 'dupla') return r.position === 'cilindro' || r.position === 'disco';
+          return r.position === 'mono';
+        });
+        const validSinkers = form.machine_type === 'mono' ? (form.sinkerRefs || []).filter(r => r.sinker_id) : [];
+        await saveMachineRefs(newMachine.id, validNeedles, validSinkers);
+      } catch (err) {
+        console.error('Failed to save machine refs:', err);
+        toast.error('Erro ao salvar referências de agulha/platina');
+      }
 
       const allLogs = [...logs];
       allLogs.push({ id: crypto.randomUUID(), machine_id: newMachine.id, status: form.status, started_at: new Date().toISOString(), started_by_name: userName || undefined, started_by_code: userCode || undefined });
@@ -448,34 +483,119 @@ export default function Machines() {
                    <Input value={form.serial_number} onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))} placeholder="Opcional" />
                  </div>
                </div>
-                <div className={cn("grid grid-cols-1 gap-4", form.machine_type === 'mono' ? 'sm:grid-cols-2' : 'sm:grid-cols-1')}>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold">Ref. Agulha em Uso</Label>
-                    <Select value={form.current_needle_id} onValueChange={v => setForm(p => ({ ...p, current_needle_id: v }))}>
-                      <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhuma</SelectItem>
-                        {[...needles].sort((a,b) => a.brand.localeCompare(b.brand)).map(n => (
-                          <SelectItem key={n.id} value={n.id}>{n.brand} — {n.reference_code} ({n.provider})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {form.machine_type === 'mono' && (
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold">Ref. Platina em Uso</Label>
-                      <Select value={form.current_sinker_id} onValueChange={v => setForm(p => ({ ...p, current_sinker_id: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Nenhuma</SelectItem>
-                          {[...sinkers].sort((a,b) => a.brand.localeCompare(b.brand)).map(s => (
-                            <SelectItem key={s.id} value={s.id}>{s.brand} — {s.reference_code} ({s.provider})</SelectItem>
+                {(() => {
+                  const sortedNeedles = [...needles].sort((a,b) => a.brand.localeCompare(b.brand));
+                  const sortedSinkers = [...sinkers].sort((a,b) => a.brand.localeCompare(b.brand));
+                  const needleLabel = (id: string) => {
+                    const n = needles.find(x => x.id === id);
+                    return n ? `${n.brand} — ${n.reference_code}` : '—';
+                  };
+                  const sinkerLabel = (id: string) => {
+                    const s = sinkers.find(x => x.id === id);
+                    return s ? `${s.brand} — ${s.reference_code}` : '—';
+                  };
+                  const addNeedle = (position: NeedleRefPosition, needleId: string) => {
+                    if (!needleId) return;
+                    setForm(p => {
+                      if (p.needleRefs.some(r => r.needle_id === needleId && r.position === position)) return p;
+                      return { ...p, needleRefs: [...p.needleRefs, { needle_id: needleId, position }] };
+                    });
+                    setAddNeedlePicker(prev => ({ ...prev, [position]: '' }));
+                  };
+                  const removeNeedle = (position: NeedleRefPosition, needleId: string) => {
+                    setForm(p => ({ ...p, needleRefs: p.needleRefs.filter(r => !(r.needle_id === needleId && r.position === position)) }));
+                  };
+                  const addSinker = (sinkerId: string) => {
+                    if (!sinkerId) return;
+                    setForm(p => {
+                      if (p.sinkerRefs.some(r => r.sinker_id === sinkerId)) return p;
+                      return { ...p, sinkerRefs: [...p.sinkerRefs, { sinker_id: sinkerId }] };
+                    });
+                    setAddSinkerPicker('');
+                  };
+                  const removeSinker = (sinkerId: string) => {
+                    setForm(p => ({ ...p, sinkerRefs: p.sinkerRefs.filter(r => r.sinker_id !== sinkerId) }));
+                  };
+                  const renderNeedleSection = (label: string, position: NeedleRefPosition) => {
+                    const refs = form.needleRefs.filter(r => r.position === position);
+                    return (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold">{label}</Label>
+                        <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                          {refs.length === 0 && <span className="text-xs text-muted-foreground italic">Nenhuma referência</span>}
+                          {refs.map(r => (
+                            <Badge key={`${position}-${r.needle_id}`} variant="secondary" className="gap-1 pl-2 pr-1 py-0.5">
+                              {needleLabel(r.needle_id)}
+                              <button type="button" onClick={() => removeNeedle(position, r.needle_id)} className="ml-1 hover:bg-destructive/20 rounded p-0.5">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </Badge>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </div>
+                        <div className="flex gap-2">
+                          <Select value={addNeedlePicker[position]} onValueChange={v => setAddNeedlePicker(prev => ({ ...prev, [position]: v }))}>
+                            <SelectTrigger><SelectValue placeholder="Selecione para adicionar..." /></SelectTrigger>
+                            <SelectContent>
+                              {sortedNeedles
+                                .filter(n => !refs.some(r => r.needle_id === n.id))
+                                .map(n => (
+                                  <SelectItem key={n.id} value={n.id}>{n.brand} — {n.reference_code} ({n.provider})</SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <Button type="button" variant="outline" size="sm" onClick={() => addNeedle(position, addNeedlePicker[position])} disabled={!addNeedlePicker[position]}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  };
+                  if (form.machine_type === 'dupla') {
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {renderNeedleSection('Ref. Agulha em Uso — Cilindro', 'cilindro')}
+                        {renderNeedleSection('Ref. Agulha em Uso — Disco', 'disco')}
+                      </div>
+                    );
+                  }
+                  // Mono ou não definido (padrão = mono)
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {renderNeedleSection('Ref. Agulha em Uso', 'mono')}
+                      {form.machine_type === 'mono' && (
+                        <div className="space-y-2">
+                          <Label className="text-xs font-semibold">Ref. Platina em Uso</Label>
+                          <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                            {form.sinkerRefs.length === 0 && <span className="text-xs text-muted-foreground italic">Nenhuma referência</span>}
+                            {form.sinkerRefs.map(r => (
+                              <Badge key={r.sinker_id} variant="secondary" className="gap-1 pl-2 pr-1 py-0.5">
+                                {sinkerLabel(r.sinker_id)}
+                                <button type="button" onClick={() => removeSinker(r.sinker_id)} className="ml-1 hover:bg-destructive/20 rounded p-0.5">
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Select value={addSinkerPicker} onValueChange={setAddSinkerPicker}>
+                              <SelectTrigger><SelectValue placeholder="Selecione para adicionar..." /></SelectTrigger>
+                              <SelectContent>
+                                {sortedSinkers
+                                  .filter(s => !form.sinkerRefs.some(r => r.sinker_id === s.id))
+                                  .map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.brand} — {s.reference_code} ({s.provider})</SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <Button type="button" variant="outline" size="sm" onClick={() => addSinker(addSinkerPicker)} disabled={!addSinkerPicker}>
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
              </div>
  
             {(() => {

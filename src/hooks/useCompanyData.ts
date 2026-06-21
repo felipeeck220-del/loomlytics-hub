@@ -6,7 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
    ArticleMachineTurns, CompanyShiftSettings, ShiftType, DefectRecord,
    NeedleInventory, NeedleTransaction,
    SinkerInventory, SinkerTransaction,
-   Cylinder
+   Cylinder,
+   MachineNeedleRef, MachineSinkerRef, NeedleRefPosition
  } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
@@ -29,6 +30,8 @@ export function useCompanyData() {
     const [sinkers, setSinkers] = useState<SinkerInventory[]>([]);
     const [sinkerTransactions, setSinkerTransactions] = useState<SinkerTransaction[]>([]);
      const [cylinders, setCylinders] = useState<Cylinder[]>([]);
+     const [machineNeedleRefs, setMachineNeedleRefs] = useState<MachineNeedleRef[]>([]);
+     const [machineSinkerRefs, setMachineSinkerRefs] = useState<MachineSinkerRef[]>([]);
      const [yarnTypes, setYarnTypes] = useState<{ id: string; name: string; company_id: string }[]>([]);
    const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
@@ -200,6 +203,8 @@ export function useCompanyData() {
           { name: 'sinker_transactions', fn: () => fetchAll('sinker_transactions', { column: 'company_id', value: companyId }, 'date', false) },
           { name: 'cylinders', fn: () => fetchAll('cylinders', { column: 'company_id', value: companyId }, 'brand') },
           { name: 'yarn_types', fn: () => fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name') },
+          { name: 'machine_needle_refs', fn: () => fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at') },
+          { name: 'machine_sinker_refs', fn: () => fetchAll('machine_sinker_refs', { column: 'company_id', value: companyId }, 'created_at') },
          ];
  
        let completed = 0;
@@ -210,7 +215,7 @@ export function useCompanyData() {
          return result;
        }));
  
-       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData] = results;
+        const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData, mnrData, msrData] = results;
  
        setMachines(mData.map(mapMachine));
        setMachineLogs(mlRes.map(mapMachineLog));
@@ -226,6 +231,8 @@ export function useCompanyData() {
         setSinkerTransactions(stData.map(mapSinkerTransaction));
          setCylinders(cylData.map(mapCylinder));
          setYarnTypes(ytData);
+         setMachineNeedleRefs(mnrData as MachineNeedleRef[]);
+         setMachineSinkerRefs(msrData as MachineSinkerRef[]);
        
        if (csRes.data) {
          setShiftSettings({
@@ -738,6 +745,40 @@ export function useCompanyData() {
       getCylinders, saveCylinders, assignCylinderToMachine,
       getYarnTypes,
        saveShiftSettings,
+      getMachineNeedleRefs: useCallback(() => machineNeedleRefs, [machineNeedleRefs]),
+      getMachineSinkerRefs: useCallback(() => machineSinkerRefs, [machineSinkerRefs]),
+      saveMachineRefs: useCallback(async (
+        machineId: string,
+        needleRefs: { needle_id: string; position: NeedleRefPosition }[],
+        sinkerRefs: { sinker_id: string }[]
+      ) => {
+        if (!companyId || !machineId) return;
+        // Replace strategy: delete current, insert new
+        await sb('machine_needle_refs').delete().eq('machine_id', machineId);
+        await sb('machine_sinker_refs').delete().eq('machine_id', machineId);
+        if (needleRefs.length > 0) {
+          const rows = needleRefs.map(r => ({
+            company_id: companyId, machine_id: machineId,
+            needle_id: r.needle_id, position: r.position,
+          }));
+          const { error } = await sb('machine_needle_refs').insert(rows);
+          if (error) { console.error('Error saving needle refs:', error); throw error; }
+        }
+        if (sinkerRefs.length > 0) {
+          const rows = sinkerRefs.map(r => ({
+            company_id: companyId, machine_id: machineId, sinker_id: r.sinker_id,
+          }));
+          const { error } = await sb('machine_sinker_refs').insert(rows);
+          if (error) { console.error('Error saving sinker refs:', error); throw error; }
+        }
+        // Refresh local state
+        const [mnr, msr] = await Promise.all([
+          fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at'),
+          fetchAll('machine_sinker_refs', { column: 'company_id', value: companyId }, 'created_at'),
+        ]);
+        setMachineNeedleRefs(mnr as MachineNeedleRef[]);
+        setMachineSinkerRefs(msr as MachineSinkerRef[]);
+      }, [companyId, fetchAll]),
      getProductionFilterMonths: useCallback(async () => {
        if (!companyId) return [];
        const { data, error } = await supabase.rpc('get_production_filter_months', { p_company_id: companyId });

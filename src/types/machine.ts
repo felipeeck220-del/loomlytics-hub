@@ -51,6 +51,25 @@ export interface Machine {
   current_sinker_id?: string;
 }
 
+export type NeedleRefPosition = 'mono' | 'cilindro' | 'disco';
+
+export interface MachineNeedleRef {
+  id: string;
+  company_id: string;
+  machine_id: string;
+  needle_id: string;
+  position: NeedleRefPosition;
+  created_at: string;
+}
+
+export interface MachineSinkerRef {
+  id: string;
+  company_id: string;
+  machine_id: string;
+  sinker_id: string;
+  created_at: string;
+}
+
 export interface Cylinder {
   id: string;
   company_id: string;

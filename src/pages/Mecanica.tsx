@@ -37,6 +37,7 @@ export default function MecanicaPage() {
      getSinkers, saveSinkers, getSinkerTransactions, addSinkerTransaction,
      updateSinkerTransaction, deleteSinkerTransaction,
      getCylinders, saveCylinders, assignCylinderToMachine,
+     getMachineNeedleRefs, getMachineSinkerRefs,
      loading 
    } = useSharedCompanyData();
    const needles = getNeedles();
@@ -44,6 +45,8 @@ export default function MecanicaPage() {
    const sinkers = getSinkers();
    const sinkerTransactions = getSinkerTransactions();
    const cylinders = getCylinders();
+   const machineNeedleRefs = getMachineNeedleRefs();
+   const machineSinkerRefs = getMachineSinkerRefs();
    // Needle Management State
    const [needleSearch, setNeedleSearch] = useState('');
    const [showNeedleModal, setShowNeedleModal] = useState(false);
@@ -758,7 +761,7 @@ export default function MecanicaPage() {
                                 s.reference_code.toLowerCase().includes(sinkerSearch.toLowerCase())
                               )
                               .map(s => {
-                                const usedBy = machines.filter(m => m.current_sinker_id === s.id).length;
+                                const usedBy = new Set(machineSinkerRefs.filter(r => r.sinker_id === s.id).map(r => r.machine_id)).size;
                                 return (
                               <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
                                 <td className="p-4">{s.provider}</td>
@@ -1121,7 +1124,7 @@ export default function MecanicaPage() {
                                 n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
                               )
                               .map(n => {
-                                const usedBy = machines.filter(m => m.current_needle_id === n.id).length;
+                                const usedBy = new Set(machineNeedleRefs.filter(r => r.needle_id === n.id).map(r => r.machine_id)).size;
                                 return (
                               <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
                                 <td className="p-4">{n.provider}</td>
@@ -2371,14 +2374,24 @@ export default function MecanicaPage() {
                 <span className="font-semibold text-foreground">{needleUsageView.brand}</span> — <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{needleUsageView.reference_code}</code>
               </div>
               {(() => {
-                const list = machines.filter(m => m.current_needle_id === needleUsageView.id).sort((a,b) => a.number - b.number);
-                if (list.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
+                const refs = machineNeedleRefs.filter(r => r.needle_id === needleUsageView.id);
+                const grouped = refs.map(r => {
+                  const m = machines.find(x => x.id === r.machine_id);
+                  return m ? { machine: m, position: r.position } : null;
+                }).filter((x): x is { machine: typeof machines[number]; position: 'mono' | 'cilindro' | 'disco' } => !!x)
+                  .sort((a,b) => a.machine.number - b.machine.number);
+                if (grouped.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
                 return (
                   <div className="max-h-80 overflow-auto space-y-2">
-                    {list.map(m => (
-                      <div key={m.id} className="flex items-center justify-between p-3 rounded bg-muted/50">
+                    {grouped.map(({ machine: m, position }) => (
+                      <div key={`${m.id}-${position}`} className="flex items-center justify-between p-3 rounded bg-muted/50">
                         <div>
-                          <p className="font-semibold">{m.name}</p>
+                          <p className="font-semibold flex items-center gap-2">
+                            {m.name}
+                            {position !== 'mono' && (
+                              <Badge variant="outline" className="text-[10px] uppercase">{position}</Badge>
+                            )}
+                          </p>
                           <p className="text-xs text-muted-foreground">{m.machine_type === 'mono' ? 'Mono Frontura' : m.machine_type === 'dupla' ? 'Dupla Frontura' : 'Tipo não definido'} {m.model ? `· ${m.model}` : ''} {m.diameter ? `· Ø ${m.diameter}` : ''} {m.fineness ? `· ${m.fineness}` : ''}</p>
                         </div>
                         <Badge variant="outline">{m.status}</Badge>
@@ -2407,7 +2420,8 @@ export default function MecanicaPage() {
                 <span className="font-semibold text-foreground">{sinkerUsageView.brand}</span> — <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{sinkerUsageView.reference_code}</code>
               </div>
               {(() => {
-                const list = machines.filter(m => m.current_sinker_id === sinkerUsageView.id).sort((a,b) => a.number - b.number);
+                const machineIds = new Set(machineSinkerRefs.filter(r => r.sinker_id === sinkerUsageView.id).map(r => r.machine_id));
+                const list = machines.filter(m => machineIds.has(m.id)).sort((a,b) => a.number - b.number);
                 if (list.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
                 return (
                   <div className="max-h-80 overflow-auto space-y-2">
