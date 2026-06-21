@@ -4,7 +4,8 @@ export type { Company } from './company';
    Machine, MachineLog, MachineStatus, ProductionMode, 
    NeedleInventory, NeedleTransaction, NeedleTransactionType, NeedleExitMode,
    SinkerInventory, SinkerTransaction, SinkerTransactionType, SinkerExitMode,
-   Cylinder
+   Cylinder,
+   MachineNeedleRef, MachineSinkerRef, NeedleRefPosition
  } from './machine';
 export { PRODUCTION_MODE_LABELS, MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS } from './machine';
 export type { Client, Article, ArticleMachineTurns } from './client';
