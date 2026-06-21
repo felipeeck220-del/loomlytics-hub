@@ -448,6 +448,34 @@ export default function Machines() {
                    <Input value={form.serial_number} onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))} placeholder="Opcional" />
                  </div>
                </div>
+                <div className={cn("grid grid-cols-1 gap-4", form.machine_type === 'mono' ? 'sm:grid-cols-2' : 'sm:grid-cols-1')}>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Ref. Agulha em Uso</Label>
+                    <Select value={form.current_needle_id} onValueChange={v => setForm(p => ({ ...p, current_needle_id: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                        {[...needles].sort((a,b) => a.brand.localeCompare(b.brand)).map(n => (
+                          <SelectItem key={n.id} value={n.id}>{n.brand} — {n.reference_code} ({n.provider})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {form.machine_type === 'mono' && (
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold">Ref. Platina em Uso</Label>
+                      <Select value={form.current_sinker_id} onValueChange={v => setForm(p => ({ ...p, current_sinker_id: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhuma</SelectItem>
+                          {[...sinkers].sort((a,b) => a.brand.localeCompare(b.brand)).map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.brand} — {s.reference_code} ({s.provider})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
              </div>
  
             {(() => {
