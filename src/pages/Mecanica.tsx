@@ -1776,10 +1776,10 @@ export default function MecanicaPage() {
       </Dialog>
 
       {/* === Original Add Manual Log Modal (preserved) === */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+      <Dialog open={showAddModal} onOpenChange={(open) => { setShowAddModal(open); if (!open) { setEditingLogId(null); setAddMachineId(''); setAddStatus('manutencao_preventiva'); setAddStartDate(''); setAddStartTime('08:00'); setAddEndDate(''); setAddEndTime(''); } }}>
         <DialogContent className="max-w-md" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>Adicionar Registro Manual</DialogTitle>
+            <DialogTitle>{editingLogId ? 'Editar Registro de Manutenção' : 'Adicionar Registro Manual'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -1828,7 +1828,7 @@ export default function MecanicaPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancelar</Button>
             <Button onClick={handleAddLog} disabled={saving}>
-              {saving ? 'Salvando...' : 'Adicionar'}
+              {saving ? 'Salvando...' : (editingLogId ? 'Salvar Alterações' : 'Adicionar')}
             </Button>
           </DialogFooter>
        </DialogContent>
