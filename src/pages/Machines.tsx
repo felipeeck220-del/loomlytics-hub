@@ -14,7 +14,7 @@ import MaintenanceViewModal from '@/components/MaintenanceViewModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import type { Machine, MachineStatus, MachineLog } from '@/types';
+import type { Machine, MachineStatus, MachineLog, NeedleRefPosition } from '@/types';
 import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -52,12 +52,14 @@ const FILTER_OPTIONS = [
 
 export default function Machines() {
   const { user } = useAuth();
-  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, loading } = useSharedCompanyData();
+  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, getMachineNeedleRefs, getMachineSinkerRefs, saveMachineRefs, loading } = useSharedCompanyData();
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
   const needles = getNeedles();
   const sinkers = getSinkers();
+  const allNeedleRefs = getMachineNeedleRefs();
+  const allSinkerRefs = getMachineSinkerRefs();
   const { logAction, userName, userCode } = useAuditLog();
 
   const [showModal, setShowModal] = useState(false);
@@ -73,8 +75,11 @@ export default function Machines() {
      number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
      model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
      machine_type: '' as '' | 'mono' | 'dupla',
-     current_needle_id: 'none', current_sinker_id: 'none'
+     needleRefs: [] as { needle_id: string; position: NeedleRefPosition }[],
+     sinkerRefs: [] as { sinker_id: string }[],
    });
+   const [addNeedlePicker, setAddNeedlePicker] = useState<Record<NeedleRefPosition, string>>({ mono: '', cilindro: '', disco: '' });
+   const [addSinkerPicker, setAddSinkerPicker] = useState('');
 
   const openNew = () => {
     setEditing(null);
@@ -82,8 +87,10 @@ export default function Machines() {
        number: '', rpm: '', status: 'ativa', article_id: 'none', observations: '',
        model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
        machine_type: '',
-       current_needle_id: 'none', current_sinker_id: 'none'
+       needleRefs: [], sinkerRefs: [],
      });
+    setAddNeedlePicker({ mono: '', cilindro: '', disco: '' });
+    setAddSinkerPicker('');
     setShowModal(true);
   };
 
@@ -97,9 +104,11 @@ export default function Machines() {
        feeder_quantity: m.feeder_quantity ? String(m.feeder_quantity) : '',
        serial_number: m.serial_number || '',
        machine_type: m.machine_type || '',
-       current_needle_id: m.current_needle_id || 'none',
-       current_sinker_id: m.current_sinker_id || 'none'
+       needleRefs: allNeedleRefs.filter(r => r.machine_id === m.id).map(r => ({ needle_id: r.needle_id, position: r.position })),
+       sinkerRefs: allSinkerRefs.filter(r => r.machine_id === m.id).map(r => ({ sinker_id: r.sinker_id })),
      });
+    setAddNeedlePicker({ mono: '', cilindro: '', disco: '' });
+    setAddSinkerPicker('');
     setShowModal(true);
   };
 
