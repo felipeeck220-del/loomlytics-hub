@@ -203,6 +203,8 @@ export function useCompanyData() {
           { name: 'sinker_transactions', fn: () => fetchAll('sinker_transactions', { column: 'company_id', value: companyId }, 'date', false) },
           { name: 'cylinders', fn: () => fetchAll('cylinders', { column: 'company_id', value: companyId }, 'brand') },
           { name: 'yarn_types', fn: () => fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name') },
+          { name: 'machine_needle_refs', fn: () => fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at') },
+          { name: 'machine_sinker_refs', fn: () => fetchAll('machine_sinker_refs', { column: 'company_id', value: companyId }, 'created_at') },
          ];
  
        let completed = 0;
@@ -213,7 +215,7 @@ export function useCompanyData() {
          return result;
        }));
  
-       const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData] = results;
+        const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData, mnrData, msrData] = results;
  
        setMachines(mData.map(mapMachine));
        setMachineLogs(mlRes.map(mapMachineLog));
@@ -229,6 +231,8 @@ export function useCompanyData() {
         setSinkerTransactions(stData.map(mapSinkerTransaction));
          setCylinders(cylData.map(mapCylinder));
          setYarnTypes(ytData);
+         setMachineNeedleRefs(mnrData as MachineNeedleRef[]);
+         setMachineSinkerRefs(msrData as MachineSinkerRef[]);
        
        if (csRes.data) {
          setShiftSettings({
