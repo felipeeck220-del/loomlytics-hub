@@ -427,16 +427,19 @@ export default function Machines() {
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Artigo Atual</Label>
-                <Select value={form.article_id} onValueChange={v => setForm(p => ({ ...p, article_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione um artigo" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none" className="text-destructive font-medium uppercase italic">NENHUM ARTIGO</SelectItem>
-                    {articles.map(a => {
-                      const client = a.client_name ? ` (${a.client_name})` : '';
-                      return <SelectItem key={a.id} value={a.id}>{a.name}{client}</SelectItem>;
-                    })}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={form.article_id}
+                  onValueChange={v => setForm(p => ({ ...p, article_id: v }))}
+                  placeholder="Selecione um artigo"
+                  searchPlaceholder="Buscar artigo ou cliente..."
+                  options={[
+                    { value: 'none', label: 'NENHUM ARTIGO' },
+                    ...articles.map(a => ({
+                      value: a.id,
+                      label: a.client_name ? `${a.name} (${a.client_name})` : a.name,
+                    })),
+                  ]}
+                />
               </div>
             </div>
 
