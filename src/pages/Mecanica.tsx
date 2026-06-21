@@ -354,35 +354,60 @@ export default function MecanicaPage() {
     }
     setSaving(true);
     try {
-      const newLog: MachineLog = {
-        id: crypto.randomUUID(),
-        machine_id: addMachineId,
-        status: addStatus as MachineStatus,
-        started_at: new Date(`${addStartDate}T${addStartTime}:00`).toISOString(),
-        ended_at: new Date(`${addEndDate}T${addEndTime}:00`).toISOString(),
-        started_by_name: userName || undefined,
-        started_by_code: userCode || undefined,
-        ended_by_name: userName || undefined,
-        ended_by_code: userCode || undefined,
-      };
-      const updatedLogs = [...machineLogs, newLog];
+      const started_at = new Date(`${addStartDate}T${addStartTime}:00`).toISOString();
+      const ended_at = new Date(`${addEndDate}T${addEndTime}:00`).toISOString();
+      let updatedLogs: MachineLog[];
+      if (editingLogId) {
+        updatedLogs = machineLogs.map(l => l.id === editingLogId
+          ? { ...l, machine_id: addMachineId, status: addStatus as MachineStatus, started_at, ended_at }
+          : l
+        );
+      } else {
+        const newLog: MachineLog = {
+          id: crypto.randomUUID(),
+          machine_id: addMachineId,
+          status: addStatus as MachineStatus,
+          started_at,
+          ended_at,
+          started_by_name: userName || undefined,
+          started_by_code: userCode || undefined,
+          ended_by_name: userName || undefined,
+          ended_by_code: userCode || undefined,
+        };
+        updatedLogs = [...machineLogs, newLog];
+      }
       await saveMachineLogs(updatedLogs);
       const machineName = machines.find(m => m.id === addMachineId)?.name;
-       logAction('maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
-       toast.success('Registro adicionado com sucesso!');
-       setShowAddModal(false);
-       setAddMachineId('');
-       setAddStatus('manutencao_preventiva');
-       setAddStartDate('');
-       setAddStartTime('08:00');
-       setAddEndDate('');
-       setAddEndTime('');
+      logAction(editingLogId ? 'maintenance_manual_edit' : 'maintenance_manual_add', { machine: machineName, status: addStatus, start: addStartDate, end: addEndDate });
+      toast.success(editingLogId ? 'Registro atualizado!' : 'Registro adicionado com sucesso!');
+      setShowAddModal(false);
+      setEditingLogId(null);
+      setAddMachineId('');
+      setAddStatus('manutencao_preventiva');
+      setAddStartDate('');
+      setAddStartTime('08:00');
+      setAddEndDate('');
+      setAddEndTime('');
      } catch (e) {
        toast.error('Erro ao salvar registro.');
      } finally {
        setSaving(false);
      }
    };
+
+  const openEditLog = (log: MachineLog) => {
+    const s = new Date(log.started_at);
+    const e = log.ended_at ? new Date(log.ended_at) : s;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setEditingLogId(log.id);
+    setAddMachineId(log.machine_id);
+    setAddStatus(log.status);
+    setAddStartDate(`${s.getFullYear()}-${pad(s.getMonth()+1)}-${pad(s.getDate())}`);
+    setAddStartTime(`${pad(s.getHours())}:${pad(s.getMinutes())}`);
+    setAddEndDate(`${e.getFullYear()}-${pad(e.getMonth()+1)}-${pad(e.getDate())}`);
+    setAddEndTime(`${pad(e.getHours())}:${pad(e.getMinutes())}`);
+    setShowAddModal(true);
+  };
  
    const handleSaveNeedle = async () => {
      if (!needleForm.provider || !needleForm.brand || !needleForm.reference_code) {
