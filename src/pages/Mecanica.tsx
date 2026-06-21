@@ -2420,7 +2420,8 @@ export default function MecanicaPage() {
                 <span className="font-semibold text-foreground">{sinkerUsageView.brand}</span> — <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{sinkerUsageView.reference_code}</code>
               </div>
               {(() => {
-                const list = machines.filter(m => m.current_sinker_id === sinkerUsageView.id).sort((a,b) => a.number - b.number);
+                const machineIds = new Set(machineSinkerRefs.filter(r => r.sinker_id === sinkerUsageView.id).map(r => r.machine_id));
+                const list = machines.filter(m => machineIds.has(m.id)).sort((a,b) => a.number - b.number);
                 if (list.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
                 return (
                   <div className="max-h-80 overflow-auto space-y-2">
