@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package } from 'lucide-react';
+  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -58,6 +58,8 @@ export default function MecanicaPage() {
    const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_agulheiro' });
    const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
    const [needleHistoryPage, setNeedleHistoryPage] = useState(1);
+   const [needleUsageView, setNeedleUsageView] = useState<{ id: string; brand: string; reference_code: string } | null>(null);
+   const [sinkerUsageView, setSinkerUsageView] = useState<{ id: string; brand: string; reference_code: string } | null>(null);
    const NEEDLE_HISTORY_PER_PAGE = 15;
 
    // Sinker Management State (Platinas)
@@ -744,6 +746,7 @@ export default function MecanicaPage() {
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
                               <th className="text-right p-4 font-medium">Estoque</th>
+                              <th className="text-center p-4 font-medium w-20">Em Uso</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -754,17 +757,26 @@ export default function MecanicaPage() {
                                 s.provider.toLowerCase().includes(sinkerSearch.toLowerCase()) || 
                                 s.reference_code.toLowerCase().includes(sinkerSearch.toLowerCase())
                               )
-                              .map(s => (
+                              .map(s => {
+                                const usedBy = machines.filter(m => m.current_sinker_id === s.id).length;
+                                return (
                               <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
                                 <td className="p-4">{s.provider}</td>
                                 <td className="p-4">{s.brand}</td>
                                 <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s.reference_code}</code></td>
                                 <td className="p-4 text-right font-bold">{s.current_quantity}</td>
+                                <td className="p-4 text-center">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSinkerUsageView({ id: s.id, brand: s.brand, reference_code: s.reference_code })} title={`${usedBy} máquina(s) usando`}>
+                                    <Eye className="h-4 w-4" />
+                                    {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
+                                  </Button>
+                                </td>
                               </tr>
-                            ))}
+                                );
+                              })}
                             {sinkers.length === 0 && (
                               <tr>
-                                <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td>
+                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td>
                               </tr>
                             )}
                           </tbody>
@@ -1097,6 +1109,7 @@ export default function MecanicaPage() {
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
                               <th className="text-right p-4 font-medium">Estoque</th>
+                              <th className="text-center p-4 font-medium w-20">Em Uso</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1107,17 +1120,26 @@ export default function MecanicaPage() {
                                 n.provider.toLowerCase().includes(needleSearch.toLowerCase()) || 
                                 n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
                               )
-                              .map(n => (
+                              .map(n => {
+                                const usedBy = machines.filter(m => m.current_needle_id === n.id).length;
+                                return (
                               <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
                                 <td className="p-4">{n.provider}</td>
                                 <td className="p-4">{n.brand}</td>
                                 <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
                                 <td className="p-4 text-right font-bold">{n.current_quantity}</td>
+                                <td className="p-4 text-center">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setNeedleUsageView({ id: n.id, brand: n.brand, reference_code: n.reference_code })} title={`${usedBy} máquina(s) usando`}>
+                                    <Eye className="h-4 w-4" />
+                                    {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
+                                  </Button>
+                                </td>
                               </tr>
-                            ))}
+                                );
+                              })}
                             {needles.length === 0 && (
                               <tr>
-                                <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
+                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
                               </tr>
                             )}
                           </tbody>
@@ -2333,6 +2355,78 @@ export default function MecanicaPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAssignModal(false)}>Cancelar</Button>
             <Button onClick={handleAssignCylinder}>Confirmar Atribuição</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Máquinas usando esta agulha */}
+      <Dialog open={!!needleUsageView} onOpenChange={() => setNeedleUsageView(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Máquinas usando esta agulha</DialogTitle>
+          </DialogHeader>
+          {needleUsageView && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{needleUsageView.brand}</span> — <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{needleUsageView.reference_code}</code>
+              </div>
+              {(() => {
+                const list = machines.filter(m => m.current_needle_id === needleUsageView.id).sort((a,b) => a.number - b.number);
+                if (list.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
+                return (
+                  <div className="max-h-80 overflow-auto space-y-2">
+                    {list.map(m => (
+                      <div key={m.id} className="flex items-center justify-between p-3 rounded bg-muted/50">
+                        <div>
+                          <p className="font-semibold">{m.name}</p>
+                          <p className="text-xs text-muted-foreground">{m.machine_type === 'mono' ? 'Mono Frontura' : m.machine_type === 'dupla' ? 'Dupla Frontura' : 'Tipo não definido'} {m.model ? `· ${m.model}` : ''} {m.diameter ? `· Ø ${m.diameter}` : ''} {m.fineness ? `· ${m.fineness}` : ''}</p>
+                        </div>
+                        <Badge variant="outline">{m.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNeedleUsageView(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Máquinas usando esta platina */}
+      <Dialog open={!!sinkerUsageView} onOpenChange={() => setSinkerUsageView(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Máquinas usando esta platina</DialogTitle>
+          </DialogHeader>
+          {sinkerUsageView && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{sinkerUsageView.brand}</span> — <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{sinkerUsageView.reference_code}</code>
+              </div>
+              {(() => {
+                const list = machines.filter(m => m.current_sinker_id === sinkerUsageView.id).sort((a,b) => a.number - b.number);
+                if (list.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
+                return (
+                  <div className="max-h-80 overflow-auto space-y-2">
+                    {list.map(m => (
+                      <div key={m.id} className="flex items-center justify-between p-3 rounded bg-muted/50">
+                        <div>
+                          <p className="font-semibold">{m.name}</p>
+                          <p className="text-xs text-muted-foreground">Mono Frontura {m.model ? `· ${m.model}` : ''} {m.diameter ? `· Ø ${m.diameter}` : ''} {m.fineness ? `· ${m.fineness}` : ''}</p>
+                        </div>
+                        <Badge variant="outline">{m.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSinkerUsageView(null)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

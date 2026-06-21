@@ -52,10 +52,12 @@ const FILTER_OPTIONS = [
 
 export default function Machines() {
   const { user } = useAuth();
-  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, loading } = useSharedCompanyData();
+  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, loading } = useSharedCompanyData();
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
+  const needles = getNeedles();
+  const sinkers = getSinkers();
   const { logAction, userName, userCode } = useAuditLog();
 
   const [showModal, setShowModal] = useState(false);
@@ -70,7 +72,8 @@ export default function Machines() {
    const [form, setForm] = useState({ 
      number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
      model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
-     machine_type: '' as '' | 'mono' | 'dupla'
+     machine_type: '' as '' | 'mono' | 'dupla',
+     current_needle_id: 'none', current_sinker_id: 'none'
    });
 
   const openNew = () => {
@@ -78,7 +81,8 @@ export default function Machines() {
      setForm({ 
        number: '', rpm: '', status: 'ativa', article_id: 'none', observations: '',
        model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '',
-       machine_type: ''
+       machine_type: '',
+       current_needle_id: 'none', current_sinker_id: 'none'
      });
     setShowModal(true);
   };
@@ -92,7 +96,9 @@ export default function Machines() {
        needle_quantity: m.needle_quantity ? String(m.needle_quantity) : '',
        feeder_quantity: m.feeder_quantity ? String(m.feeder_quantity) : '',
        serial_number: m.serial_number || '',
-       machine_type: m.machine_type || ''
+       machine_type: m.machine_type || '',
+       current_needle_id: m.current_needle_id || 'none',
+       current_sinker_id: m.current_sinker_id || 'none'
      });
     setShowModal(true);
   };
@@ -113,7 +119,9 @@ export default function Machines() {
          fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
          serial_number: form.serial_number || undefined,
-         machine_type: form.machine_type || undefined
+         machine_type: form.machine_type || undefined,
+         current_needle_id: form.current_needle_id && form.current_needle_id !== 'none' ? form.current_needle_id : undefined,
+         current_sinker_id: form.machine_type === 'mono' && form.current_sinker_id && form.current_sinker_id !== 'none' ? form.current_sinker_id : undefined
        };
 
       if (oldStatus !== form.status) {
@@ -147,7 +155,9 @@ export default function Machines() {
          fineness: form.fineness || undefined, needle_quantity: form.needle_quantity ? Number(form.needle_quantity) : undefined,
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
         serial_number: form.serial_number || undefined,
-        machine_type: form.machine_type || undefined
+        machine_type: form.machine_type || undefined,
+        current_needle_id: form.current_needle_id && form.current_needle_id !== 'none' ? form.current_needle_id : undefined,
+        current_sinker_id: form.machine_type === 'mono' && form.current_sinker_id && form.current_sinker_id !== 'none' ? form.current_sinker_id : undefined
        };
       all.push(newMachine);
       await saveMachines(all);
@@ -438,6 +448,34 @@ export default function Machines() {
                    <Input value={form.serial_number} onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))} placeholder="Opcional" />
                  </div>
                </div>
+                <div className={cn("grid grid-cols-1 gap-4", form.machine_type === 'mono' ? 'sm:grid-cols-2' : 'sm:grid-cols-1')}>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Ref. Agulha em Uso</Label>
+                    <Select value={form.current_needle_id} onValueChange={v => setForm(p => ({ ...p, current_needle_id: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                        {[...needles].sort((a,b) => a.brand.localeCompare(b.brand)).map(n => (
+                          <SelectItem key={n.id} value={n.id}>{n.brand} — {n.reference_code} ({n.provider})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {form.machine_type === 'mono' && (
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold">Ref. Platina em Uso</Label>
+                      <Select value={form.current_sinker_id} onValueChange={v => setForm(p => ({ ...p, current_sinker_id: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhuma</SelectItem>
+                          {[...sinkers].sort((a,b) => a.brand.localeCompare(b.brand)).map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.brand} — {s.reference_code} ({s.provider})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
              </div>
  
             {(() => {
