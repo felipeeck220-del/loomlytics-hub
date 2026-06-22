@@ -2317,6 +2317,11 @@ const BillingOrders = () => {
           {showPalletsModal && (() => {
             const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
             const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
+            const avg = totalPieces > 0 ? totalWeight / totalPieces : 0;
+            const article = getArticles().find(a => a.id === showPalletsModal.article_id);
+            const refWeight = Number(article?.weight_per_roll || 0);
+            const diffPct = refWeight > 0 && avg > 0 ? ((avg - refWeight) / refWeight) * 100 : 0;
+            const outOfRange = refWeight > 0 && Math.abs(diffPct) > 10;
             return (
               <div className="py-3 space-y-3 text-sm">
                 <p>
@@ -2329,7 +2334,26 @@ const BillingOrders = () => {
                   <div className="pt-1 border-t mt-1">
                     <strong>Total:</strong> {totalPieces} pç · {totalWeight.toFixed(2)} kg
                   </div>
+                  {totalPieces > 0 && (
+                    <div>
+                      <strong>Média:</strong> {avg.toFixed(2)} kg/peça
+                      {refWeight > 0 && (
+                        <span className="text-muted-foreground"> · ref. artigo: {refWeight.toFixed(2)} kg ({diffPct >= 0 ? '+' : ''}{diffPct.toFixed(1)}%)</span>
+                      )}
+                    </div>
+                  )}
                 </div>
+                {outOfRange && (
+                  <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <div className="font-bold uppercase text-[10px] tracking-wide">Atenção — média fora do esperado</div>
+                      <div className="mt-0.5">
+                        A média calculada ({avg.toFixed(2)} kg/peça) está <strong>{diffPct >= 0 ? 'acima' : 'abaixo'}</strong> em <strong>{Math.abs(diffPct).toFixed(1)}%</strong> do peso de referência do artigo ({refWeight.toFixed(2)} kg). Confira os paletes ou siga em frente se estiver correto.
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="rounded-md border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 p-3 text-xs text-emerald-800 dark:text-emerald-200">
                   Ao finalizar, a OF será movida automaticamente para a aba <strong>PRONTO</strong> e ficará disponível para coleta.
                 </div>
