@@ -1607,8 +1607,7 @@ export default function MecanicaPage() {
                     <TableRow className="bg-muted/40">
                       <TableHead className="text-center font-bold">TEAR</TableHead>
                       <TableHead className="text-center font-bold">MODELO</TableHead>
-                      <TableHead className="text-center font-bold">DIÂMETRO</TableHead>
-                      <TableHead className="text-center font-bold">FINURA</TableHead>
+                      <TableHead className="text-center font-bold whitespace-nowrap">Ø / FINURA</TableHead>
                       <TableHead className="text-center font-bold">ÚLTIMA MANUTENÇÃO</TableHead>
                       <TableHead className="text-center font-bold">MANUTENÇÃO PREVISTA</TableHead>
                       <TableHead className="text-center font-bold">DIAS P/ PRÓXIMA</TableHead>
@@ -1625,7 +1624,7 @@ export default function MecanicaPage() {
                   <TableBody>
                     {filteredScheduleRows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={15} className="text-center text-sm text-muted-foreground py-8">
+                        <TableCell colSpan={14} className="text-center text-sm text-muted-foreground py-8">
                           {loading ? 'Carregando máquinas...' : 'Nenhuma máquina encontrada.'}
                         </TableCell>
                       </TableRow>
@@ -1638,8 +1637,11 @@ export default function MecanicaPage() {
                         <TableRow key={machine.id} className="text-xs">
                           <TableCell className="text-center font-semibold">{machine.name}</TableCell>
                           <TableCell className="text-center">{machine.model || '—'}</TableCell>
-                          <TableCell className="text-center">{machine.diameter || '—'}</TableCell>
-                          <TableCell className="text-center">{machine.fineness || '—'}</TableCell>
+                          <TableCell className="text-center whitespace-nowrap tabular-nums">
+                            {(machine.diameter || machine.fineness)
+                              ? `${machine.diameter || '—'} / ${machine.fineness || '—'}`
+                              : '—'}
+                          </TableCell>
                           <TableCell className="text-center">
                             {lastDate ? format(lastDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
                           </TableCell>
