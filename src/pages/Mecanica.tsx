@@ -466,7 +466,7 @@ export default function MecanicaPage() {
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...colors.textMid);
-      const periodText = sanitizePdfText(`Intervalo padrão: ${MAINTENANCE_INTERVAL_DAYS} dias`);
+      const periodText = sanitizePdfText(`Intervalo padrão: ${DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias`);
       const pW = pdf.getTextWidth(periodText);
       pdf.text(periodText, rightX - pW, y + 22);
 
@@ -1538,7 +1538,7 @@ export default function MecanicaPage() {
                 <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-success/40 border border-success/50" /> &gt; 7 dias</span>
                 <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-warning/40 border border-warning/50" /> 1-7 dias</span>
                 <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/40 border border-destructive/50" /> Hoje ou atrasado</span>
-                <span className="ml-auto text-[10px]">Intervalo padrão: {MAINTENANCE_INTERVAL_DAYS} dias entre preventivas</span>
+                <span className="ml-auto text-[10px]">Intervalo padrão: {DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias entre preventivas</span>
               </div>
 
               <div className="rounded-md border border-border overflow-x-auto">
