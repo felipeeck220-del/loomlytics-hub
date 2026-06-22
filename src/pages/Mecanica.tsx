@@ -503,7 +503,7 @@ export default function MecanicaPage() {
       pdf.text(periodText, rightX - pW, y + 22);
 
       const headers = [[
-        'TEAR', 'MODELO', 'DIÂMETRO', 'FINURA',
+        'TEAR', 'MODELO', 'Ø / FINURA',
         'ÚLTIMA MANUTENÇÃO', 'INTERVALO', 'MANUTENÇÃO PREVISTA', 'DIAS P/ PRÓXIMA', 'META KG', 'KG RESTANTES',
         'HORA INÍCIO', 'HORA FIM', 'HORAS PARADAS', 'OBSERVAÇÃO', 'Nº HISTÓRICO',
       ]];
@@ -515,8 +515,9 @@ export default function MecanicaPage() {
         return [
           sanitizePdfText(machine.name),
           sanitizePdfText(machine.model || '—'),
-          sanitizePdfText(machine.diameter || '—'),
-          sanitizePdfText(machine.fineness || '—'),
+          sanitizePdfText(((machine.diameter || machine.fineness)
+            ? `${machine.diameter || '—'} / ${machine.fineness || '—'}`
+            : '—')),
           lastDate ? format(lastDate, 'dd/MM/yyyy') : '—',
           `${intervalDays} dias`,
           nextDate ? format(nextDate, 'dd/MM/yyyy') : '—',
@@ -545,10 +546,10 @@ export default function MecanicaPage() {
         bodyStyles: { halign: 'center' },
         columnStyles: {
           0: { fontStyle: 'bold' },
-          13: { halign: 'left', cellWidth: 45 },
+          12: { halign: 'left', cellWidth: 45 },
         },
         didParseCell: (data) => {
-          if (data.section === 'body' && data.column.index === 7) {
+          if (data.section === 'body' && data.column.index === 6) {
             const row = scheduleRows[data.row.index];
             if (row) {
               const d = row.daysLeft;
@@ -569,7 +570,7 @@ export default function MecanicaPage() {
               }
             }
           }
-          if (data.section === 'body' && data.column.index === 9) {
+          if (data.section === 'body' && data.column.index === 8) {
             const row = scheduleRows[data.row.index];
             if (row && row.kgTarget != null && row.kgLeft != null) {
               if (row.kgLeft <= 0) {
