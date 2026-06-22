@@ -641,7 +641,7 @@ export default function Machines() {
                 value={form.observations}
                 onChange={e => setForm(p => ({ ...p, observations: e.target.value }))}
                 placeholder="Observações sobre a máquina..."
-                rows={3}
+                rows={2}
               />
             </div>
           </div>
