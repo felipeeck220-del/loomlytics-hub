@@ -366,27 +366,93 @@ export default function MecanicaPage() {
       const margin = 12;
       const dateStr = new Date().toLocaleString('pt-BR');
 
-      // Header
-      pdf.setFillColor(249, 250, 251);
-      pdf.rect(margin, margin, pageWidth - 2 * margin, 18, 'F');
-      pdf.setDrawColor(229, 231, 235);
-      pdf.setLineWidth(0.4);
-      pdf.rect(margin, margin, pageWidth - 2 * margin, 18, 'S');
+      // Load logo (mesmo padrão do Reports)
+      const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0);
+              resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+            } catch { resolve(null); }
+          };
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+      const logoInfo = companyLogoUrl ? await loadLogo(companyLogoUrl) : null;
+      const fitWithinBox = (w: number, h: number, mw: number, mh: number) => {
+        if (!w || !h) return { width: mw, height: mh };
+        const s = Math.min(mw / w, mh / h);
+        return { width: w * s, height: h * s };
+      };
+
+      // Cabeçalho padrão (Reports.tsx)
+      const colors = {
+        grayBg: [249, 250, 251] as [number, number, number],
+        border: [229, 231, 235] as [number, number, number],
+        textDark: [17, 24, 39] as [number, number, number],
+        textMid: [75, 85, 99] as [number, number, number],
+      };
+      const headerH = 25;
+      const leftX = margin + 5;
+      const rightX = pageWidth - margin - 5;
+      const y = margin;
+      const titleMaxWidth = pageWidth - 2 * margin - 90;
+
+      pdf.setFillColor(...colors.grayBg);
+      pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
+      pdf.setDrawColor(...colors.border);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
+
+      if (logoInfo) {
+        try {
+          const logoSize = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+          pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, logoSize.width, logoSize.height);
+        } catch {
+          if (companyName) {
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(...colors.textDark);
+            pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+          }
+        }
+      } else if (companyName) {
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...colors.textDark);
+        pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+      }
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...colors.textMid);
+      pdf.text(sanitizePdfText(dateStr), leftX, y + 22);
+
+      // Título centralizado
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(17, 24, 39);
-      const title = 'PROGRAMAÇÃO DE MANUTENÇÕES';
-      const tw = pdf.getTextWidth(sanitizePdfText(title));
-      pdf.text(sanitizePdfText(title), (pageWidth - tw) / 2, margin + 8);
-      pdf.setFontSize(9);
+      pdf.setTextColor(...colors.textDark);
+      const reportTitle = 'PROGRAMAÇÃO DE MANUTENÇÕES';
+      const titleLines = pdf.splitTextToSize(sanitizePdfText(reportTitle), titleMaxWidth) as string[];
+      let titleY = y + 10;
+      titleLines.forEach((line) => {
+        const tw = pdf.getTextWidth(line);
+        pdf.text(line, (pageWidth - tw) / 2, titleY);
+        titleY += 6;
+      });
+
+      // Direita: intervalo padrão
+      pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(75, 85, 99);
-      pdf.text(sanitizePdfText(`Gerado em ${dateStr}`), margin + 3, margin + 15);
-      pdf.text(
-        sanitizePdfText(`Intervalo padrão: ${MAINTENANCE_INTERVAL_DAYS} dias`),
-        pageWidth - margin - 3 - pdf.getTextWidth(sanitizePdfText(`Intervalo padrão: ${MAINTENANCE_INTERVAL_DAYS} dias`)),
-        margin + 15,
-      );
+      pdf.setTextColor(...colors.textMid);
+      const periodText = sanitizePdfText(`Intervalo padrão: ${MAINTENANCE_INTERVAL_DAYS} dias`);
+      const pW = pdf.getTextWidth(periodText);
+      pdf.text(periodText, rightX - pW, y + 22);
 
       const headers = [[
         'TEAR', 'MODELO', 'DIÂMETRO', 'FINURA',
@@ -417,7 +483,7 @@ export default function MecanicaPage() {
       autoTable(pdf, {
         head: headers,
         body,
-        startY: margin + 22,
+        startY: y + headerH + 6,
         margin: { left: margin, right: margin },
         styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', valign: 'middle' },
         headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', halign: 'center' },
