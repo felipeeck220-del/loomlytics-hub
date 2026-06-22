@@ -34,6 +34,7 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 export default function MecanicaPage() {
    const { 
      getMachines, getMachineLogs, getProductions, saveMachineLogs, 
+     saveMachines,
      getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
      updateNeedleTransaction, deleteNeedleTransaction,
      getSinkers, saveSinkers, getSinkerTransactions, addSinkerTransaction,
