@@ -503,7 +503,7 @@ export default function MecanicaPage() {
       pdf.text(periodText, rightX - pW, y + 22);
 
       const headers = [[
-        'TEAR', 'MODELO', 'DIÂMETRO', 'FINURA',
+        'TEAR', 'MODELO', 'Ø / FINURA',
         'ÚLTIMA MANUTENÇÃO', 'INTERVALO', 'MANUTENÇÃO PREVISTA', 'DIAS P/ PRÓXIMA', 'META KG', 'KG RESTANTES',
         'HORA INÍCIO', 'HORA FIM', 'HORAS PARADAS', 'OBSERVAÇÃO', 'Nº HISTÓRICO',
       ]];
@@ -515,8 +515,9 @@ export default function MecanicaPage() {
         return [
           sanitizePdfText(machine.name),
           sanitizePdfText(machine.model || '—'),
-          sanitizePdfText(machine.diameter || '—'),
-          sanitizePdfText(machine.fineness || '—'),
+          sanitizePdfText(((machine.diameter || machine.fineness)
+            ? `${machine.diameter || '—'} / ${machine.fineness || '—'}`
+            : '—')),
           lastDate ? format(lastDate, 'dd/MM/yyyy') : '—',
           `${intervalDays} dias`,
           nextDate ? format(nextDate, 'dd/MM/yyyy') : '—',
@@ -545,10 +546,10 @@ export default function MecanicaPage() {
         bodyStyles: { halign: 'center' },
         columnStyles: {
           0: { fontStyle: 'bold' },
-          13: { halign: 'left', cellWidth: 45 },
+          12: { halign: 'left', cellWidth: 45 },
         },
         didParseCell: (data) => {
-          if (data.section === 'body' && data.column.index === 7) {
+          if (data.section === 'body' && data.column.index === 6) {
             const row = scheduleRows[data.row.index];
             if (row) {
               const d = row.daysLeft;
@@ -569,7 +570,7 @@ export default function MecanicaPage() {
               }
             }
           }
-          if (data.section === 'body' && data.column.index === 9) {
+          if (data.section === 'body' && data.column.index === 8) {
             const row = scheduleRows[data.row.index];
             if (row && row.kgTarget != null && row.kgLeft != null) {
               if (row.kgLeft <= 0) {
@@ -1606,8 +1607,7 @@ export default function MecanicaPage() {
                     <TableRow className="bg-muted/40">
                       <TableHead className="text-center font-bold">TEAR</TableHead>
                       <TableHead className="text-center font-bold">MODELO</TableHead>
-                      <TableHead className="text-center font-bold">DIÂMETRO</TableHead>
-                      <TableHead className="text-center font-bold">FINURA</TableHead>
+                      <TableHead className="text-center font-bold whitespace-nowrap">Ø / FINURA</TableHead>
                       <TableHead className="text-center font-bold">ÚLTIMA MANUTENÇÃO</TableHead>
                       <TableHead className="text-center font-bold">MANUTENÇÃO PREVISTA</TableHead>
                       <TableHead className="text-center font-bold">DIAS P/ PRÓXIMA</TableHead>
@@ -1624,7 +1624,7 @@ export default function MecanicaPage() {
                   <TableBody>
                     {filteredScheduleRows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={15} className="text-center text-sm text-muted-foreground py-8">
+                        <TableCell colSpan={14} className="text-center text-sm text-muted-foreground py-8">
                           {loading ? 'Carregando máquinas...' : 'Nenhuma máquina encontrada.'}
                         </TableCell>
                       </TableRow>
@@ -1637,8 +1637,11 @@ export default function MecanicaPage() {
                         <TableRow key={machine.id} className="text-xs">
                           <TableCell className="text-center font-semibold">{machine.name}</TableCell>
                           <TableCell className="text-center">{machine.model || '—'}</TableCell>
-                          <TableCell className="text-center">{machine.diameter || '—'}</TableCell>
-                          <TableCell className="text-center">{machine.fineness || '—'}</TableCell>
+                          <TableCell className="text-center whitespace-nowrap tabular-nums">
+                            {(machine.diameter || machine.fineness)
+                              ? `${machine.diameter || '—'} / ${machine.fineness || '—'}`
+                              : '—'}
+                          </TableCell>
                           <TableCell className="text-center">
                             {lastDate ? format(lastDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
                           </TableCell>
