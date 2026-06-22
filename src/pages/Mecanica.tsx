@@ -301,8 +301,6 @@ export default function MecanicaPage() {
       };
     });
   }, [activeMachines, machineLogs, productions]);
-    });
-  }, [activeMachines, machineLogs]);
 
   const filteredScheduleRows = useMemo(() => {
     const q = scheduleSearch.trim().toLowerCase();
