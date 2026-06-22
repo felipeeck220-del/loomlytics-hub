@@ -287,9 +287,13 @@ export default function MecanicaPage() {
         durationMin = Math.max(0, (new Date(last.ended_at).getTime() - new Date(last.started_at).getTime()) / 60000);
       }
       // KG produzidos desde a última preventiva
-      const fromTs = lastDate ? lastDate.getTime() : 0;
+      // Comparação por data (yyyy-mm-dd) para não excluir produções do mesmo dia
+      // da última preventiva (productions.date é date-only).
+      const fromDateStr = lastDate
+        ? `${lastDate.getFullYear()}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(lastDate.getDate()).padStart(2, '0')}`
+        : null;
       const kgSince = productions
-        .filter(p => p.machine_id === m.id && new Date(p.date).getTime() >= fromTs)
+        .filter(p => p.machine_id === m.id && (!fromDateStr || String(p.date) >= fromDateStr))
         .reduce((s, p) => s + (Number(p.weight_kg) || 0), 0);
       const kgTarget = m.maintenance_kg_target && m.maintenance_kg_target > 0 ? m.maintenance_kg_target : null;
       const kgLeft = kgTarget != null ? kgTarget - kgSince : null;
@@ -383,10 +387,12 @@ export default function MecanicaPage() {
   };
   const handleSaveInterval = async () => {
     if (!intervalModalMachine) return;
-    const daysNum = intervalForm.days.trim() === '' ? null : Number(intervalForm.days);
+    const daysRaw = intervalForm.days.trim() === '' ? null : Number(intervalForm.days);
     const kgNum = intervalForm.kg.trim() === '' ? null : Number(intervalForm.kg.replace(',', '.'));
-    if (daysNum != null && (!isFinite(daysNum) || daysNum < 0)) { toast.error('Dias inválidos.'); return; }
-    if (kgNum != null && (!isFinite(kgNum) || kgNum < 0)) { toast.error('Kg inválido.'); return; }
+    if (daysRaw != null && (!isFinite(daysRaw) || daysRaw < 1 || daysRaw > 3650)) { toast.error('Dias inválidos (1–3650).'); return; }
+    if (kgNum != null && (!isFinite(kgNum) || kgNum <= 0)) { toast.error('Kg inválido (> 0).'); return; }
+    // Coluna é integer → arredonda
+    const daysNum = daysRaw != null ? Math.round(daysRaw) : null;
     setSavingInterval(true);
     try {
       const all = machines.map(m => m.id === intervalModalMachine.id

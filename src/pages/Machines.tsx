@@ -116,6 +116,17 @@ export default function Machines() {
 
   const handleSave = async () => {
     if (!form.number || !form.rpm) { toast.error('Preencha os campos obrigatórios'); return; }
+    // Validação de ano (opcional, mas se preenchido deve ser plausível)
+    const currentYear = new Date().getFullYear();
+    let yearValue: number | undefined = undefined;
+    if (form.year && form.year.trim() !== '') {
+      const y = Number(form.year);
+      if (!Number.isFinite(y) || y < 1900 || y > currentYear + 1) {
+        toast.error(`Ano inválido (1900–${currentYear + 1}).`);
+        return;
+      }
+      yearValue = Math.round(y);
+    }
     const all = [...machines];
 
     if (editing) {
@@ -133,7 +144,7 @@ export default function Machines() {
          machine_type: form.machine_type || undefined,
          current_needle_id: undefined,
          current_sinker_id: undefined,
-        year: form.year ? Number(form.year) : undefined,
+        year: yearValue,
        };
 
       if (oldStatus !== form.status) {
@@ -182,7 +193,7 @@ export default function Machines() {
          feeder_quantity: form.feeder_quantity ? Number(form.feeder_quantity) : undefined,
         serial_number: form.serial_number || undefined,
         machine_type: form.machine_type || undefined,
-       year: form.year ? Number(form.year) : undefined,
+        year: yearValue,
        };
       all.push(newMachine);
       await saveMachines(all);
