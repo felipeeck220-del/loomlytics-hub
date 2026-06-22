@@ -2761,6 +2761,56 @@ export default function MecanicaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal: Configurar intervalo de manutenção preventiva */}
+      <Dialog open={!!intervalModalMachine} onOpenChange={(open) => { if (!open) setIntervalModalMachine(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Intervalo entre Preventivas — {intervalModalMachine?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="text-xs text-muted-foreground">
+              Defina o intervalo personalizado em <strong>dias</strong> e/ou uma <strong>meta de produção em kg</strong> entre uma preventiva e a próxima.
+              Os dois critérios são considerados juntos — o que vier primeiro indica a hora da próxima manutenção.
+              Em branco usa o padrão de <strong>{DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias</strong> e <strong>sem meta de kg</strong>.
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interval-days">Dias entre preventivas</Label>
+              <Input
+                id="interval-days"
+                type="number"
+                min={1}
+                step={1}
+                placeholder={`Padrão: ${DEFAULT_MAINTENANCE_INTERVAL_DAYS}`}
+                value={intervalForm.days}
+                onChange={e => setIntervalForm(f => ({ ...f, days: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interval-kg">Kg para próxima preventiva</Label>
+              <Input
+                id="interval-kg"
+                type="number"
+                min={0}
+                step="0.1"
+                placeholder="Ex: 5000"
+                value={intervalForm.kg}
+                onChange={e => setIntervalForm(f => ({ ...f, kg: e.target.value }))}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Soma os <strong>kg dos registros de produção</strong> desta máquina desde a última preventiva.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIntervalModalMachine(null)} disabled={savingInterval}>Cancelar</Button>
+            <Button onClick={handleSaveInterval} disabled={savingInterval}>
+              {savingInterval && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
