@@ -387,10 +387,12 @@ export default function MecanicaPage() {
   };
   const handleSaveInterval = async () => {
     if (!intervalModalMachine) return;
-    const daysNum = intervalForm.days.trim() === '' ? null : Number(intervalForm.days);
+    const daysRaw = intervalForm.days.trim() === '' ? null : Number(intervalForm.days);
     const kgNum = intervalForm.kg.trim() === '' ? null : Number(intervalForm.kg.replace(',', '.'));
-    if (daysNum != null && (!isFinite(daysNum) || daysNum < 0)) { toast.error('Dias inválidos.'); return; }
-    if (kgNum != null && (!isFinite(kgNum) || kgNum < 0)) { toast.error('Kg inválido.'); return; }
+    if (daysRaw != null && (!isFinite(daysRaw) || daysRaw < 1 || daysRaw > 3650)) { toast.error('Dias inválidos (1–3650).'); return; }
+    if (kgNum != null && (!isFinite(kgNum) || kgNum <= 0)) { toast.error('Kg inválido (> 0).'); return; }
+    // Coluna é integer → arredonda
+    const daysNum = daysRaw != null ? Math.round(daysRaw) : null;
     setSavingInterval(true);
     try {
       const all = machines.map(m => m.id === intervalModalMachine.id
