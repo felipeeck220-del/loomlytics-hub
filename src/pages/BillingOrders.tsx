@@ -2019,13 +2019,22 @@ const BillingOrders = () => {
 
       {/* Modal Paletes — separação por paletes */}
       <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none' }); } }}>
-        <DialogContent className="sm:max-w-[560px]">
+        <DialogContent
+          className="sm:max-w-[560px]"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-indigo-700">
               <Boxes className="h-5 w-5" /> Paletes · OF #{showPalletsModal?.of_number}
             </DialogTitle>
           </DialogHeader>
-          {showPalletsModal && (() => {
+          {showPalletsModal && palletsLoading && (
+            <div className="py-10 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+              <span className="text-xs">Carregando paletes salvos…</span>
+            </div>
+          )}
+          {showPalletsModal && !palletsLoading && (() => {
             const order = showPalletsModal;
             const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
             const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
@@ -2053,14 +2062,14 @@ const BillingOrders = () => {
                 <div className="rounded-md border p-3 space-y-2">
                   <div className="text-xs font-semibold uppercase text-muted-foreground">Adicionar palete</div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-[10px] uppercase">Peças</Label>
-                      <Input type="number" value={palletInput.pieces} onChange={e => setPalletInput({ ...palletInput, pieces: e.target.value })} placeholder="Ex: 25" />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] uppercase">Peso (kg)</Label>
-                      <Input type="number" step="0.01" value={palletInput.weight} onChange={e => setPalletInput({ ...palletInput, weight: e.target.value })} placeholder="Ex: 250" />
-                    </div>
+                     <div>
+                       <Label className="text-[10px] uppercase">Peças</Label>
+                       <Input type="number" inputMode="numeric" pattern="[0-9]*" value={palletInput.pieces} onChange={e => setPalletInput({ ...palletInput, pieces: e.target.value })} placeholder="Ex: 25" />
+                     </div>
+                     <div>
+                       <Label className="text-[10px] uppercase">Peso (kg)</Label>
+                       <Input type="number" inputMode="decimal" step="0.01" value={palletInput.weight} onChange={e => setPalletInput({ ...palletInput, weight: e.target.value })} placeholder="Ex: 250" />
+                     </div>
                   </div>
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
