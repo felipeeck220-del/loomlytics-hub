@@ -268,7 +268,7 @@ export default function MecanicaPage() {
   const historyMachineName = historyMachineId ? getMachineName(historyMachineId) : '';
 
   // ============ Programação de Manutenções (Calendário em tabela) ============
-  const MAINTENANCE_INTERVAL_DAYS = 30;
+  const DEFAULT_MAINTENANCE_INTERVAL_DAYS = 30;
 
   const scheduleRows = useMemo(() => {
     const today = new Date();
@@ -277,13 +277,30 @@ export default function MecanicaPage() {
       const allPrev = getLogsByStatus(m.id, 'manutencao_preventiva');
       const last = allPrev[0] || null;
       const lastDate = last ? new Date(last.ended_at || last.started_at) : null;
-      const nextDate = lastDate ? new Date(lastDate.getTime() + MAINTENANCE_INTERVAL_DAYS * 86400000) : null;
+      const intervalDays = m.maintenance_interval_days && m.maintenance_interval_days > 0
+        ? m.maintenance_interval_days
+        : DEFAULT_MAINTENANCE_INTERVAL_DAYS;
+      const nextDate = lastDate ? new Date(lastDate.getTime() + intervalDays * 86400000) : null;
       const daysLeft = nextDate ? Math.ceil((nextDate.getTime() - today.getTime()) / 86400000) : null;
       let durationMin: number | null = null;
       if (last?.started_at && last?.ended_at) {
         durationMin = Math.max(0, (new Date(last.ended_at).getTime() - new Date(last.started_at).getTime()) / 60000);
       }
-      return { machine: m, last, lastDate, nextDate, daysLeft, durationMin, historyCount: allPrev.length };
+      // KG produzidos desde a última preventiva
+      const fromTs = lastDate ? lastDate.getTime() : 0;
+      const kgSince = productions
+        .filter(p => p.machine_id === m.id && new Date(p.date).getTime() >= fromTs)
+        .reduce((s, p) => s + (Number(p.weight_kg) || 0), 0);
+      const kgTarget = m.maintenance_kg_target && m.maintenance_kg_target > 0 ? m.maintenance_kg_target : null;
+      const kgLeft = kgTarget != null ? kgTarget - kgSince : null;
+      return {
+        machine: m, last, lastDate, nextDate, daysLeft, durationMin,
+        historyCount: allPrev.length,
+        intervalDays, kgSince, kgTarget, kgLeft,
+        isCustomized: !!(m.maintenance_interval_days || m.maintenance_kg_target),
+      };
+    });
+  }, [activeMachines, machineLogs, productions]);
     });
   }, [activeMachines, machineLogs]);
 
