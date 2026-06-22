@@ -371,6 +371,38 @@ export default function MecanicaPage() {
   // ===========================================================================
 
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [intervalModalMachine, setIntervalModalMachine] = useState<any>(null);
+  const [intervalForm, setIntervalForm] = useState<{ days: string; kg: string }>({ days: '', kg: '' });
+  const [savingInterval, setSavingInterval] = useState(false);
+  const openIntervalModal = (m: any) => {
+    setIntervalModalMachine(m);
+    setIntervalForm({
+      days: m.maintenance_interval_days ? String(m.maintenance_interval_days) : '',
+      kg: m.maintenance_kg_target ? String(m.maintenance_kg_target) : '',
+    });
+  };
+  const handleSaveInterval = async () => {
+    if (!intervalModalMachine) return;
+    const daysNum = intervalForm.days.trim() === '' ? null : Number(intervalForm.days);
+    const kgNum = intervalForm.kg.trim() === '' ? null : Number(intervalForm.kg.replace(',', '.'));
+    if (daysNum != null && (!isFinite(daysNum) || daysNum < 0)) { toast.error('Dias inválidos.'); return; }
+    if (kgNum != null && (!isFinite(kgNum) || kgNum < 0)) { toast.error('Kg inválido.'); return; }
+    setSavingInterval(true);
+    try {
+      const all = machines.map(m => m.id === intervalModalMachine.id
+        ? { ...m, maintenance_interval_days: daysNum ?? undefined, maintenance_kg_target: kgNum ?? undefined }
+        : m
+      );
+      await saveMachines(all);
+      logAction('maintenance_interval_update', { machine: intervalModalMachine.name, days: daysNum, kg: kgNum });
+      toast.success('Intervalo de manutenção atualizado!');
+      setIntervalModalMachine(null);
+    } catch (e) {
+      toast.error('Erro ao salvar.');
+    } finally {
+      setSavingInterval(false);
+    }
+  };
   const handleExportSchedulePdf = async () => {
     if (exportingPdf) return;
     setExportingPdf(true);
