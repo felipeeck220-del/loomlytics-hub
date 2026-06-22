@@ -339,6 +339,115 @@ export default function MecanicaPage() {
   };
   // ===========================================================================
 
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const handleExportSchedulePdf = async () => {
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 12;
+      const dateStr = new Date().toLocaleString('pt-BR');
+
+      // Header
+      pdf.setFillColor(249, 250, 251);
+      pdf.rect(margin, margin, pageWidth - 2 * margin, 18, 'F');
+      pdf.setDrawColor(229, 231, 235);
+      pdf.setLineWidth(0.4);
+      pdf.rect(margin, margin, pageWidth - 2 * margin, 18, 'S');
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(17, 24, 39);
+      const title = 'PROGRAMAÇÃO DE MANUTENÇÕES';
+      const tw = pdf.getTextWidth(sanitizePdfText(title));
+      pdf.text(sanitizePdfText(title), (pageWidth - tw) / 2, margin + 8);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(75, 85, 99);
+      pdf.text(sanitizePdfText(`Gerado em ${dateStr}`), margin + 3, margin + 15);
+      pdf.text(
+        sanitizePdfText(`Intervalo padrão: ${MAINTENANCE_INTERVAL_DAYS} dias`),
+        pageWidth - margin - 3 - pdf.getTextWidth(sanitizePdfText(`Intervalo padrão: ${MAINTENANCE_INTERVAL_DAYS} dias`)),
+        margin + 15,
+      );
+
+      const headers = [[
+        'TEAR', 'MODELO', 'DIÂMETRO', 'FINURA',
+        'ÚLTIMA MANUTENÇÃO', 'MANUTENÇÃO PREVISTA', 'DIAS P/ PRÓXIMA',
+        'HORA INÍCIO', 'HORA FIM', 'HORAS PARADAS', 'OBSERVAÇÃO', 'Nº HISTÓRICO',
+      ]];
+
+      const body = scheduleRows.map(r => {
+        const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount } = r;
+        const obsList = last ? (obsByLogId[last.id] || []) : [];
+        const obsText = obsList.map(o => o.observation).join(' • ');
+        return [
+          sanitizePdfText(machine.name),
+          sanitizePdfText(machine.model || '—'),
+          sanitizePdfText(machine.diameter || '—'),
+          sanitizePdfText(machine.fineness || '—'),
+          lastDate ? format(lastDate, 'dd/MM/yyyy') : '—',
+          nextDate ? format(nextDate, 'dd/MM/yyyy') : '—',
+          sanitizePdfText(daysLeftLabel(daysLeft)),
+          last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—',
+          last?.ended_at ? format(new Date(last.ended_at), 'HH:mm') : '—',
+          sanitizePdfText(formatDuration(durationMin)),
+          sanitizePdfText(obsText || '—'),
+          String(historyCount),
+        ];
+      });
+
+      autoTable(pdf, {
+        head: headers,
+        body,
+        startY: margin + 22,
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', valign: 'middle' },
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', halign: 'center' },
+        bodyStyles: { halign: 'center' },
+        columnStyles: {
+          0: { fontStyle: 'bold' },
+          10: { halign: 'left', cellWidth: 50 },
+        },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 6) {
+            const row = scheduleRows[data.row.index];
+            if (row) {
+              const d = row.daysLeft;
+              if (d == null) {
+                data.cell.styles.fillColor = [243, 244, 246];
+                data.cell.styles.textColor = [107, 114, 128];
+              } else if (d <= 0) {
+                data.cell.styles.fillColor = [254, 226, 226];
+                data.cell.styles.textColor = [153, 27, 27];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (d <= 7) {
+                data.cell.styles.fillColor = [254, 243, 199];
+                data.cell.styles.textColor = [146, 64, 14];
+                data.cell.styles.fontStyle = 'bold';
+              } else {
+                data.cell.styles.fillColor = [220, 252, 231];
+                data.cell.styles.textColor = [22, 101, 52];
+              }
+            }
+          }
+        },
+      });
+
+      const fileName = `programacao-manutencoes-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+      pdf.save(fileName);
+      logAction('maintenance_schedule_export_pdf', { rows: scheduleRows.length });
+      toast.success('PDF gerado com sucesso!');
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar PDF.');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
