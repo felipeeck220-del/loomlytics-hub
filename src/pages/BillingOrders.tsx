@@ -97,6 +97,7 @@ const BillingOrders = () => {
   const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null }>>([]);
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string }>({ pieces: '', weight: '', machine_id: 'none' });
   const [palletBusy, setPalletBusy] = useState(false);
+  const [palletsLoading, setPalletsLoading] = useState(false);
 
   // Modal de Atrelar OFs
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -107,15 +108,17 @@ const BillingOrders = () => {
   useEffect(() => {
     if (!showPalletsModal) return;
     let cancelled = false;
+    setPalletsLoading(true);
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
         .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id')
         .eq('billing_order_id', showPalletsModal.id)
         .order('pallet_number', { ascending: true });
-      if (cancelled) return;
+      if (cancelled) { setPalletsLoading(false); return; }
       if (error) {
         toast({ title: 'Erro ao carregar paletes', description: error.message, variant: 'destructive' });
+        setPalletsLoading(false);
         return;
       }
       setPallets((data || []).map((r: any) => ({
@@ -126,6 +129,7 @@ const BillingOrders = () => {
         reserve_movement_id: r.reserve_movement_id,
         machine_id: r.machine_id ?? null,
       })));
+      setPalletsLoading(false);
     })();
     return () => { cancelled = true; };
   }, [showPalletsModal, toast]);
