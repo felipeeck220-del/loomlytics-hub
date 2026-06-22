@@ -1298,6 +1298,7 @@ const BillingOrders = () => {
                             onClick={() => {
                               setPallets([]);
                               setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
+                              setPalletsLoading(true);
                               setShowPalletsModal(order);
                             }}
                           >
