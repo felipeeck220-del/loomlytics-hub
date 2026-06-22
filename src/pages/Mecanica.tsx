@@ -1570,7 +1570,7 @@ export default function MecanicaPage() {
                 <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-success/40 border border-success/50" /> &gt; 7 dias</span>
                 <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-warning/40 border border-warning/50" /> 1-7 dias</span>
                 <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/40 border border-destructive/50" /> Hoje ou atrasado</span>
-                <span className="ml-auto text-[10px]">Intervalo padrão: {DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias entre preventivas</span>
+                <span className="ml-auto text-[10px]">Padrão: {DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias — clique no <Settings className="inline h-3 w-3 -mt-0.5" /> de cada máquina para personalizar (dias e/ou kg).</span>
               </div>
 
               <div className="rounded-md border border-border overflow-x-auto">
@@ -1584,6 +1584,8 @@ export default function MecanicaPage() {
                       <TableHead className="text-center font-bold">ÚLTIMA MANUTENÇÃO</TableHead>
                       <TableHead className="text-center font-bold">MANUTENÇÃO PREVISTA</TableHead>
                       <TableHead className="text-center font-bold">DIAS P/ PRÓXIMA</TableHead>
+                      <TableHead className="text-center font-bold">META KG</TableHead>
+                      <TableHead className="text-center font-bold">KG RESTANTES</TableHead>
                       <TableHead className="text-center font-bold">HORA INÍCIO</TableHead>
                       <TableHead className="text-center font-bold">HORA FIM</TableHead>
                       <TableHead className="text-center font-bold">HORAS PARADAS</TableHead>
@@ -1595,13 +1597,13 @@ export default function MecanicaPage() {
                   <TableBody>
                     {filteredScheduleRows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={13} className="text-center text-sm text-muted-foreground py-8">
+                        <TableCell colSpan={15} className="text-center text-sm text-muted-foreground py-8">
                           {loading ? 'Carregando máquinas...' : 'Nenhuma máquina encontrada.'}
                         </TableCell>
                       </TableRow>
                     )}
                     {filteredScheduleRows.map(row => {
-                      const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount } = row;
+                      const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount, kgTarget, kgLeft, kgSince, intervalDays, isCustomized } = row;
                       const obsList = last ? (obsByLogId[last.id] || []) : [];
                       const obsText = obsList.map(o => o.observation).join(' • ');
                       return (
@@ -1614,10 +1616,20 @@ export default function MecanicaPage() {
                             {lastDate ? format(lastDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell className="text-center">
-                            {nextDate ? format(nextDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
+                            {nextDate ? (
+                              <span title={`Intervalo: ${intervalDays} dias`}>{format(nextDate, 'dd/MM/yyyy')}</span>
+                            ) : <span className="text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell className={cn('text-center', daysLeftCellClass(daysLeft))}>
                             {daysLeftLabel(daysLeft)}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {kgTarget != null ? `${kgTarget.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className={cn('text-center tabular-nums', kgTarget == null ? 'bg-muted/30 text-muted-foreground' : kgLeft != null && kgLeft <= 0 ? 'bg-destructive/25 text-destructive font-bold' : kgLeft != null && kgLeft <= kgTarget * 0.1 ? 'bg-warning/25 text-warning-foreground font-semibold' : 'bg-success/20 text-success-foreground font-semibold')}>
+                            {kgTarget == null ? '—' : kgLeft! <= 0
+                              ? `Atingido (${Math.abs(kgLeft!).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`
+                              : `${kgLeft!.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`}
                           </TableCell>
                           <TableCell className="text-center tabular-nums">
                             {last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—'}
@@ -1646,16 +1658,27 @@ export default function MecanicaPage() {
                             </Button>
                           </TableCell>
                           <TableCell className="text-center">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => last && openEditLog(last as MachineLog)}
-                              disabled={!last}
-                              title="Editar último registro"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => last && openEditLog(last as MachineLog)}
+                                disabled={!last}
+                                title="Editar último registro"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant={isCustomized ? 'default' : 'outline'}
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => openIntervalModal(machine)}
+                                title={`Configurar intervalo (atual: ${intervalDays} dias${kgTarget ? ` + ${kgTarget} kg` : ''})`}
+                              >
+                                <Settings className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
