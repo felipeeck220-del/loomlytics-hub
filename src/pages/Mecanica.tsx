@@ -1419,6 +1419,10 @@ export default function MecanicaPage() {
                   <Button size="sm" onClick={() => setShowAddModal(true)}>
                     <Plus className="h-4 w-4 mr-1" /> Adicionar
                   </Button>
+                  <Button size="sm" variant="outline" onClick={handleExportSchedulePdf} disabled={exportingPdf}>
+                    {exportingPdf ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
+                    Exportar PDF
+                  </Button>
                 </div>
                 <div className="relative w-full sm:w-72">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
