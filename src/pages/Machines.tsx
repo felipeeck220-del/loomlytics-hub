@@ -376,15 +376,15 @@ export default function Machines() {
 
       {/* Add/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="sm:max-w-2xl" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
+        <DialogContent className="w-[92vw] max-w-[92vw] sm:max-w-[min(1100px,92vw)] max-h-[90vh] overflow-y-auto" onEscapeKeyDown={e => e.preventDefault()} onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-lg font-display">Informações Básicas</DialogTitle>
             <p className="text-sm text-muted-foreground">Dados principais da máquina</p>
           </DialogHeader>
 
-          <div className="space-y-5">
-            {/* Row: Número + RPM */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+           <div className="space-y-4">
+            {/* Row: Número + RPM + Status + Artigo */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label className="font-semibold">Número da Máquina <span className="text-destructive">*</span></Label>
                 <div className="flex items-center gap-0">
@@ -405,10 +405,6 @@ export default function Machines() {
                 <Label className="font-semibold">RPM Padrão <span className="text-destructive">*</span></Label>
                 <Input type="number" value={form.rpm} onChange={e => setForm(p => ({ ...p, rpm: e.target.value }))} placeholder="27" />
               </div>
-            </div>
-
-            {/* Row: Status + Artigo */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="font-semibold">Status</Label>
                 <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v as MachineStatus }))}>
@@ -444,12 +440,12 @@ export default function Machines() {
             </div>
 
              {/* Dados Técnicos Expandidos */}
-             <div className="space-y-4">
+             <div className="space-y-3">
                <div className="flex items-center gap-2">
                  <Badge variant="outline" className="h-6">Dados Técnicos</Badge>
                  <div className="h-px flex-1 bg-border" />
                </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                  <div className="space-y-2">
                    <Label className="text-xs font-semibold">Tipo de Máquina</Label>
                    <Select value={form.machine_type || 'none'} onValueChange={v => setForm(p => ({ ...p, machine_type: v === 'none' ? '' : v as 'mono' | 'dupla' }))}>
@@ -461,8 +457,6 @@ export default function Machines() {
                      </SelectContent>
                    </Select>
                  </div>
-               </div>
-               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                  <div className="space-y-2">
                    <Label className="text-xs font-semibold">Modelo</Label>
                    <Input value={form.model} onChange={e => setForm(p => ({ ...p, model: e.target.value }))} placeholder="Ex: Mayer & Cie" />
@@ -476,7 +470,7 @@ export default function Machines() {
                    <Input value={form.fineness} onChange={e => setForm(p => ({ ...p, fineness: e.target.value }))} placeholder="Ex: 24G" />
                  </div>
                </div>
-               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                  <div className="space-y-2">
                    <Label className="text-xs font-semibold">Qtd. Agulhas</Label>
                    <Input type="number" value={form.needle_quantity} onChange={e => setForm(p => ({ ...p, needle_quantity: e.target.value }))} placeholder="Ex: 2268" />
@@ -489,8 +483,6 @@ export default function Machines() {
                    <Label className="text-xs font-semibold">Nº de Série</Label>
                    <Input value={form.serial_number} onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))} placeholder="Opcional" />
                  </div>
-               </div>
-               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                  <div className="space-y-2">
                    <Label className="text-xs font-semibold">Ano</Label>
                    <Input
