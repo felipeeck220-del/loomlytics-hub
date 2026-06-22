@@ -1,6 +1,10 @@
     - 11/05/2026 09:15 - Criação do arquivo rpcreports.md documentando a lógica de cálculos do módulo de Relatórios para futura migração para RPCs, garantindo que os algoritmos permaneçam idênticos.
 
 *Última atualização: 21/06/2026 (Brasília)*
+- 22/06/2026 (v7 — pente fino) - Correções nas últimas atualizações de **Máquinas** e **Mecânica**:
+  - **/mecanica · Calendário > KG RESTANTES**: bug corrigido — `kgSince` excluía produções do mesmo dia da última preventiva (comparava `new Date(p.date)` em UTC com a hora do log em GMT-3). Passou a comparar por string `yyyy-mm-dd`, incluindo corretamente as produções a partir da data da última manutenção.
+  - **/mecanica · Modal "Intervalo entre Preventivas"**: a coluna `maintenance_interval_days` é `integer` no banco; valores decimais quebravam o `update`. Agora o input é validado (1–3650) e arredondado com `Math.round`; kg exige `> 0`.
+  - **/machines · campo Ano**: adicionada validação plausível (1900 — ano atual + 1) e arredondamento para inteiro antes de salvar, evitando valores negativos/futuristas e erros de tipo na coluna `machines.year (integer)`.
 - 22/06/2026 (v6) - /machines · Modal **Informações Básicas** alargado para `92vw` (cap `min(1100px,92vw)`) com `max-h-[90vh]` e scroll só se necessário. Campos reorganizados em grids de **4 colunas** (TEAR/RPM/Status/Artigo na linha 1; Tipo/Modelo/Diâmetro/Finura na linha 2 dos Dados Técnicos; Qtd. Agulhas/Qtd. Alimentadores/Nº Série/Ano na linha 3) — elimina o scroll vertical em telas comuns.
 - 22/06/2026 (v5) - /mecanica · PDF de **Programação de Manutenções** — coluna **Nº HISTÓRICO** removida do export (informação só visível na tela).
 - 22/06/2026 (v4) - /mecanica · Aba **Calendário > Programação de Manutenções** — colunas **DIÂMETRO** e **FINURA** unificadas em uma única coluna **Ø / FINURA** (formato `36" / 28`) na planilha e no PDF, para reduzir scroll horizontal. Ajustados `colSpan` do estado vazio e índices de `didParseCell` no `autoTable`.
