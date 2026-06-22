@@ -1298,6 +1298,7 @@ const BillingOrders = () => {
                             onClick={() => {
                               setPallets([]);
                               setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
+                              setPalletsLoading(true);
                               setShowPalletsModal(order);
                             }}
                           >
@@ -2319,9 +2320,13 @@ const BillingOrders = () => {
             const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
             const avg = totalPieces > 0 ? totalWeight / totalPieces : 0;
             const article = getArticles().find(a => a.id === showPalletsModal.article_id);
-            const refWeight = Number(article?.weight_per_roll || 0);
+            // Preferência: peso por peça solicitado pelo cliente nesta OF; fallback: peso registrado no artigo.
+            const orderPieceTarget = Number((showPalletsModal as any).piece_weight_target || 0);
+            const articleWeight = Number(article?.weight_per_roll || 0);
+            const refWeight = orderPieceTarget > 0 ? orderPieceTarget : articleWeight;
+            const refSource = orderPieceTarget > 0 ? 'OF' : 'artigo';
             const diffPct = refWeight > 0 && avg > 0 ? ((avg - refWeight) / refWeight) * 100 : 0;
-            const outOfRange = refWeight > 0 && Math.abs(diffPct) > 10;
+            const outOfRange = refWeight > 0 && avg > 0 && Math.abs(diffPct) > 10;
             return (
               <div className="py-3 space-y-3 text-sm">
                 <p>
@@ -2338,7 +2343,7 @@ const BillingOrders = () => {
                     <div>
                       <strong>Média:</strong> {avg.toFixed(2)} kg/peça
                       {refWeight > 0 && (
-                        <span className="text-muted-foreground"> · ref. artigo: {refWeight.toFixed(2)} kg ({diffPct >= 0 ? '+' : ''}{diffPct.toFixed(1)}%)</span>
+                        <span className="text-muted-foreground"> · ref. {refSource}: {refWeight.toFixed(2)} kg ({diffPct >= 0 ? '+' : ''}{diffPct.toFixed(1)}%)</span>
                       )}
                     </div>
                   )}
@@ -2349,7 +2354,7 @@ const BillingOrders = () => {
                     <div>
                       <div className="font-bold uppercase text-[10px] tracking-wide">Atenção — média fora do esperado</div>
                       <div className="mt-0.5">
-                        A média calculada ({avg.toFixed(2)} kg/peça) está <strong>{diffPct >= 0 ? 'acima' : 'abaixo'}</strong> em <strong>{Math.abs(diffPct).toFixed(1)}%</strong> do peso de referência do artigo ({refWeight.toFixed(2)} kg). Confira os paletes ou siga em frente se estiver correto.
+                        A média calculada ({avg.toFixed(2)} kg/peça) está <strong>{diffPct >= 0 ? 'acima' : 'abaixo'}</strong> em <strong>{Math.abs(diffPct).toFixed(1)}%</strong> do peso de referência ({refSource === 'OF' ? 'peça-alvo da OF' : 'peso do artigo'}: {refWeight.toFixed(2)} kg). Confira os paletes ou siga em frente se estiver correto.
                       </div>
                     </div>
                   </div>
