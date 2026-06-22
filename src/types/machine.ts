@@ -50,6 +50,8 @@ export interface Machine {
   machine_type?: 'mono' | 'dupla';
   current_needle_id?: string;
   current_sinker_id?: string;
+  maintenance_interval_days?: number;
+  maintenance_kg_target?: number;
 }
 
 export type NeedleRefPosition = 'mono' | 'cilindro' | 'disco';
