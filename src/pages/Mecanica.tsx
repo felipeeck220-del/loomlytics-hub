@@ -22,6 +22,7 @@ import { getDateLimits, isDateValid } from '@/lib/formatters';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
   'manutencao_preventiva',
@@ -97,6 +98,20 @@ export default function MecanicaPage() {
   const machineLogs = getMachineLogs();
   const productions = getProductions();
   const { logAction, userName, userCode } = useAuditLog();
+  const { user } = useAuth();
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState('');
+  useEffect(() => {
+    if (!user?.company_id) return;
+    (supabase.from as any)('companies')
+      .select('logo_url, name')
+      .eq('id', user.company_id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
+        if (data?.name) setCompanyName(data.name);
+      });
+  }, [user?.company_id]);
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
