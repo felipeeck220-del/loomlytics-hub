@@ -2320,9 +2320,13 @@ const BillingOrders = () => {
             const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
             const avg = totalPieces > 0 ? totalWeight / totalPieces : 0;
             const article = getArticles().find(a => a.id === showPalletsModal.article_id);
-            const refWeight = Number(article?.weight_per_roll || 0);
+            // Preferência: peso por peça solicitado pelo cliente nesta OF; fallback: peso registrado no artigo.
+            const orderPieceTarget = Number((showPalletsModal as any).piece_weight_target || 0);
+            const articleWeight = Number(article?.weight_per_roll || 0);
+            const refWeight = orderPieceTarget > 0 ? orderPieceTarget : articleWeight;
+            const refSource = orderPieceTarget > 0 ? 'OF' : 'artigo';
             const diffPct = refWeight > 0 && avg > 0 ? ((avg - refWeight) / refWeight) * 100 : 0;
-            const outOfRange = refWeight > 0 && Math.abs(diffPct) > 10;
+            const outOfRange = refWeight > 0 && avg > 0 && Math.abs(diffPct) > 10;
             return (
               <div className="py-3 space-y-3 text-sm">
                 <p>
