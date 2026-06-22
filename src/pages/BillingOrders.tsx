@@ -2354,7 +2354,7 @@ const BillingOrders = () => {
                     <div>
                       <div className="font-bold uppercase text-[10px] tracking-wide">Atenção — média fora do esperado</div>
                       <div className="mt-0.5">
-                        A média calculada ({avg.toFixed(2)} kg/peça) está <strong>{diffPct >= 0 ? 'acima' : 'abaixo'}</strong> em <strong>{Math.abs(diffPct).toFixed(1)}%</strong> do peso de referência do artigo ({refWeight.toFixed(2)} kg). Confira os paletes ou siga em frente se estiver correto.
+                        A média calculada ({avg.toFixed(2)} kg/peça) está <strong>{diffPct >= 0 ? 'acima' : 'abaixo'}</strong> em <strong>{Math.abs(diffPct).toFixed(1)}%</strong> do peso de referência ({refSource === 'OF' ? 'peça-alvo da OF' : 'peso do artigo'}: {refWeight.toFixed(2)} kg). Confira os paletes ou siga em frente se estiver correto.
                       </div>
                     </div>
                   </div>
