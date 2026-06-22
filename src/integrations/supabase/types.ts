@@ -1704,6 +1704,8 @@ export type Database = {
           last_needle_change_at: string | null
           last_sinker_change_at: string | null
           machine_type: string | null
+          maintenance_interval_days: number | null
+          maintenance_kg_target: number | null
           model: string | null
           name: string
           needle_quantity: number | null
@@ -1729,6 +1731,8 @@ export type Database = {
           last_needle_change_at?: string | null
           last_sinker_change_at?: string | null
           machine_type?: string | null
+          maintenance_interval_days?: number | null
+          maintenance_kg_target?: number | null
           model?: string | null
           name: string
           needle_quantity?: number | null
@@ -1754,6 +1758,8 @@ export type Database = {
           last_needle_change_at?: string | null
           last_sinker_change_at?: string | null
           machine_type?: string | null
+          maintenance_interval_days?: number | null
+          maintenance_kg_target?: number | null
           model?: string | null
           name?: string
           needle_quantity?: number | null

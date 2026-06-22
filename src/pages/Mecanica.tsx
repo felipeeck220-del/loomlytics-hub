@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package, Eye, FileDown } from 'lucide-react';
+  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package, Eye, FileDown, Settings } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -34,6 +34,7 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 export default function MecanicaPage() {
    const { 
      getMachines, getMachineLogs, getProductions, saveMachineLogs, 
+     saveMachines,
      getNeedles, saveNeedles, getNeedleTransactions, addNeedleTransaction,
      updateNeedleTransaction, deleteNeedleTransaction,
      getSinkers, saveSinkers, getSinkerTransactions, addSinkerTransaction,
@@ -267,7 +268,7 @@ export default function MecanicaPage() {
   const historyMachineName = historyMachineId ? getMachineName(historyMachineId) : '';
 
   // ============ Programação de Manutenções (Calendário em tabela) ============
-  const MAINTENANCE_INTERVAL_DAYS = 30;
+  const DEFAULT_MAINTENANCE_INTERVAL_DAYS = 30;
 
   const scheduleRows = useMemo(() => {
     const today = new Date();
@@ -276,15 +277,30 @@ export default function MecanicaPage() {
       const allPrev = getLogsByStatus(m.id, 'manutencao_preventiva');
       const last = allPrev[0] || null;
       const lastDate = last ? new Date(last.ended_at || last.started_at) : null;
-      const nextDate = lastDate ? new Date(lastDate.getTime() + MAINTENANCE_INTERVAL_DAYS * 86400000) : null;
+      const intervalDays = m.maintenance_interval_days && m.maintenance_interval_days > 0
+        ? m.maintenance_interval_days
+        : DEFAULT_MAINTENANCE_INTERVAL_DAYS;
+      const nextDate = lastDate ? new Date(lastDate.getTime() + intervalDays * 86400000) : null;
       const daysLeft = nextDate ? Math.ceil((nextDate.getTime() - today.getTime()) / 86400000) : null;
       let durationMin: number | null = null;
       if (last?.started_at && last?.ended_at) {
         durationMin = Math.max(0, (new Date(last.ended_at).getTime() - new Date(last.started_at).getTime()) / 60000);
       }
-      return { machine: m, last, lastDate, nextDate, daysLeft, durationMin, historyCount: allPrev.length };
+      // KG produzidos desde a última preventiva
+      const fromTs = lastDate ? lastDate.getTime() : 0;
+      const kgSince = productions
+        .filter(p => p.machine_id === m.id && new Date(p.date).getTime() >= fromTs)
+        .reduce((s, p) => s + (Number(p.weight_kg) || 0), 0);
+      const kgTarget = m.maintenance_kg_target && m.maintenance_kg_target > 0 ? m.maintenance_kg_target : null;
+      const kgLeft = kgTarget != null ? kgTarget - kgSince : null;
+      return {
+        machine: m, last, lastDate, nextDate, daysLeft, durationMin,
+        historyCount: allPrev.length,
+        intervalDays, kgSince, kgTarget, kgLeft,
+        isCustomized: !!(m.maintenance_interval_days || m.maintenance_kg_target),
+      };
     });
-  }, [activeMachines, machineLogs]);
+  }, [activeMachines, machineLogs, productions]);
 
   const filteredScheduleRows = useMemo(() => {
     const q = scheduleSearch.trim().toLowerCase();
@@ -355,6 +371,38 @@ export default function MecanicaPage() {
   // ===========================================================================
 
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [intervalModalMachine, setIntervalModalMachine] = useState<any>(null);
+  const [intervalForm, setIntervalForm] = useState<{ days: string; kg: string }>({ days: '', kg: '' });
+  const [savingInterval, setSavingInterval] = useState(false);
+  const openIntervalModal = (m: any) => {
+    setIntervalModalMachine(m);
+    setIntervalForm({
+      days: m.maintenance_interval_days ? String(m.maintenance_interval_days) : '',
+      kg: m.maintenance_kg_target ? String(m.maintenance_kg_target) : '',
+    });
+  };
+  const handleSaveInterval = async () => {
+    if (!intervalModalMachine) return;
+    const daysNum = intervalForm.days.trim() === '' ? null : Number(intervalForm.days);
+    const kgNum = intervalForm.kg.trim() === '' ? null : Number(intervalForm.kg.replace(',', '.'));
+    if (daysNum != null && (!isFinite(daysNum) || daysNum < 0)) { toast.error('Dias inválidos.'); return; }
+    if (kgNum != null && (!isFinite(kgNum) || kgNum < 0)) { toast.error('Kg inválido.'); return; }
+    setSavingInterval(true);
+    try {
+      const all = machines.map(m => m.id === intervalModalMachine.id
+        ? { ...m, maintenance_interval_days: daysNum ?? undefined, maintenance_kg_target: kgNum ?? undefined }
+        : m
+      );
+      await saveMachines(all);
+      logAction('maintenance_interval_update', { machine: intervalModalMachine.name, days: daysNum, kg: kgNum });
+      toast.success('Intervalo de manutenção atualizado!');
+      setIntervalModalMachine(null);
+    } catch (e) {
+      toast.error('Erro ao salvar.');
+    } finally {
+      setSavingInterval(false);
+    }
+  };
   const handleExportSchedulePdf = async () => {
     if (exportingPdf) return;
     setExportingPdf(true);
@@ -450,18 +498,18 @@ export default function MecanicaPage() {
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...colors.textMid);
-      const periodText = sanitizePdfText(`Intervalo padrão: ${MAINTENANCE_INTERVAL_DAYS} dias`);
+      const periodText = sanitizePdfText(`Padrão: ${DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias (configurável por máquina)`);
       const pW = pdf.getTextWidth(periodText);
       pdf.text(periodText, rightX - pW, y + 22);
 
       const headers = [[
         'TEAR', 'MODELO', 'DIÂMETRO', 'FINURA',
-        'ÚLTIMA MANUTENÇÃO', 'MANUTENÇÃO PREVISTA', 'DIAS P/ PRÓXIMA',
+        'ÚLTIMA MANUTENÇÃO', 'INTERVALO', 'MANUTENÇÃO PREVISTA', 'DIAS P/ PRÓXIMA', 'META KG', 'KG RESTANTES',
         'HORA INÍCIO', 'HORA FIM', 'HORAS PARADAS', 'OBSERVAÇÃO', 'Nº HISTÓRICO',
       ]];
 
       const body = scheduleRows.map(r => {
-        const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount } = r;
+        const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount, intervalDays, kgTarget, kgLeft } = r;
         const obsList = last ? (obsByLogId[last.id] || []) : [];
         const obsText = obsList.map(o => o.observation).join(' • ');
         return [
@@ -470,8 +518,15 @@ export default function MecanicaPage() {
           sanitizePdfText(machine.diameter || '—'),
           sanitizePdfText(machine.fineness || '—'),
           lastDate ? format(lastDate, 'dd/MM/yyyy') : '—',
+          `${intervalDays} dias`,
           nextDate ? format(nextDate, 'dd/MM/yyyy') : '—',
           sanitizePdfText(daysLeftLabel(daysLeft)),
+          kgTarget != null ? `${kgTarget.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : '—',
+          kgTarget == null
+            ? '—'
+            : kgLeft! <= 0
+              ? sanitizePdfText(`Atingido (${Math.abs(kgLeft!).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`)
+              : `${kgLeft!.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`,
           last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—',
           last?.ended_at ? format(new Date(last.ended_at), 'HH:mm') : '—',
           sanitizePdfText(formatDuration(durationMin)),
@@ -490,10 +545,10 @@ export default function MecanicaPage() {
         bodyStyles: { halign: 'center' },
         columnStyles: {
           0: { fontStyle: 'bold' },
-          10: { halign: 'left', cellWidth: 50 },
+          13: { halign: 'left', cellWidth: 45 },
         },
         didParseCell: (data) => {
-          if (data.section === 'body' && data.column.index === 6) {
+          if (data.section === 'body' && data.column.index === 7) {
             const row = scheduleRows[data.row.index];
             if (row) {
               const d = row.daysLeft;
@@ -512,6 +567,26 @@ export default function MecanicaPage() {
                 data.cell.styles.fillColor = [220, 252, 231];
                 data.cell.styles.textColor = [22, 101, 52];
               }
+            }
+          }
+          if (data.section === 'body' && data.column.index === 9) {
+            const row = scheduleRows[data.row.index];
+            if (row && row.kgTarget != null && row.kgLeft != null) {
+              if (row.kgLeft <= 0) {
+                data.cell.styles.fillColor = [254, 226, 226];
+                data.cell.styles.textColor = [153, 27, 27];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (row.kgLeft <= row.kgTarget * 0.1) {
+                data.cell.styles.fillColor = [254, 243, 199];
+                data.cell.styles.textColor = [146, 64, 14];
+                data.cell.styles.fontStyle = 'bold';
+              } else {
+                data.cell.styles.fillColor = [220, 252, 231];
+                data.cell.styles.textColor = [22, 101, 52];
+              }
+            } else {
+              data.cell.styles.fillColor = [243, 244, 246];
+              data.cell.styles.textColor = [107, 114, 128];
             }
           }
         },
@@ -1522,7 +1597,7 @@ export default function MecanicaPage() {
                 <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-success/40 border border-success/50" /> &gt; 7 dias</span>
                 <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-warning/40 border border-warning/50" /> 1-7 dias</span>
                 <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/40 border border-destructive/50" /> Hoje ou atrasado</span>
-                <span className="ml-auto text-[10px]">Intervalo padrão: {MAINTENANCE_INTERVAL_DAYS} dias entre preventivas</span>
+                <span className="ml-auto text-[10px]">Padrão: {DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias — clique no <Settings className="inline h-3 w-3 -mt-0.5" /> de cada máquina para personalizar (dias e/ou kg).</span>
               </div>
 
               <div className="rounded-md border border-border overflow-x-auto">
@@ -1536,6 +1611,8 @@ export default function MecanicaPage() {
                       <TableHead className="text-center font-bold">ÚLTIMA MANUTENÇÃO</TableHead>
                       <TableHead className="text-center font-bold">MANUTENÇÃO PREVISTA</TableHead>
                       <TableHead className="text-center font-bold">DIAS P/ PRÓXIMA</TableHead>
+                      <TableHead className="text-center font-bold">META KG</TableHead>
+                      <TableHead className="text-center font-bold">KG RESTANTES</TableHead>
                       <TableHead className="text-center font-bold">HORA INÍCIO</TableHead>
                       <TableHead className="text-center font-bold">HORA FIM</TableHead>
                       <TableHead className="text-center font-bold">HORAS PARADAS</TableHead>
@@ -1547,13 +1624,13 @@ export default function MecanicaPage() {
                   <TableBody>
                     {filteredScheduleRows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={13} className="text-center text-sm text-muted-foreground py-8">
+                        <TableCell colSpan={15} className="text-center text-sm text-muted-foreground py-8">
                           {loading ? 'Carregando máquinas...' : 'Nenhuma máquina encontrada.'}
                         </TableCell>
                       </TableRow>
                     )}
                     {filteredScheduleRows.map(row => {
-                      const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount } = row;
+                      const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount, kgTarget, kgLeft, kgSince, intervalDays, isCustomized } = row;
                       const obsList = last ? (obsByLogId[last.id] || []) : [];
                       const obsText = obsList.map(o => o.observation).join(' • ');
                       return (
@@ -1566,10 +1643,20 @@ export default function MecanicaPage() {
                             {lastDate ? format(lastDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell className="text-center">
-                            {nextDate ? format(nextDate, 'dd/MM/yyyy') : <span className="text-muted-foreground">—</span>}
+                            {nextDate ? (
+                              <span title={`Intervalo: ${intervalDays} dias`}>{format(nextDate, 'dd/MM/yyyy')}</span>
+                            ) : <span className="text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell className={cn('text-center', daysLeftCellClass(daysLeft))}>
                             {daysLeftLabel(daysLeft)}
+                          </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            {kgTarget != null ? `${kgTarget.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className={cn('text-center tabular-nums', kgTarget == null ? 'bg-muted/30 text-muted-foreground' : kgLeft != null && kgLeft <= 0 ? 'bg-destructive/25 text-destructive font-bold' : kgLeft != null && kgLeft <= kgTarget * 0.1 ? 'bg-warning/25 text-warning-foreground font-semibold' : 'bg-success/20 text-success-foreground font-semibold')}>
+                            {kgTarget == null ? '—' : kgLeft! <= 0
+                              ? `Atingido (${Math.abs(kgLeft!).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`
+                              : `${kgLeft!.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`}
                           </TableCell>
                           <TableCell className="text-center tabular-nums">
                             {last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—'}
@@ -1598,16 +1685,27 @@ export default function MecanicaPage() {
                             </Button>
                           </TableCell>
                           <TableCell className="text-center">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => last && openEditLog(last as MachineLog)}
-                              disabled={!last}
-                              title="Editar último registro"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => last && openEditLog(last as MachineLog)}
+                                disabled={!last}
+                                title="Editar último registro"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant={isCustomized ? 'default' : 'outline'}
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => openIntervalModal(machine)}
+                                title={`Configurar intervalo (atual: ${intervalDays} dias${kgTarget ? ` + ${kgTarget} kg` : ''})`}
+                              >
+                                <Settings className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -2687,6 +2785,56 @@ export default function MecanicaPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setSinkerUsageView(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Configurar intervalo de manutenção preventiva */}
+      <Dialog open={!!intervalModalMachine} onOpenChange={(open) => { if (!open) setIntervalModalMachine(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Intervalo entre Preventivas — {intervalModalMachine?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="text-xs text-muted-foreground">
+              Defina o intervalo personalizado em <strong>dias</strong> e/ou uma <strong>meta de produção em kg</strong> entre uma preventiva e a próxima.
+              Os dois critérios são considerados juntos — o que vier primeiro indica a hora da próxima manutenção.
+              Em branco usa o padrão de <strong>{DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias</strong> e <strong>sem meta de kg</strong>.
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interval-days">Dias entre preventivas</Label>
+              <Input
+                id="interval-days"
+                type="number"
+                min={1}
+                step={1}
+                placeholder={`Padrão: ${DEFAULT_MAINTENANCE_INTERVAL_DAYS}`}
+                value={intervalForm.days}
+                onChange={e => setIntervalForm(f => ({ ...f, days: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interval-kg">Kg para próxima preventiva</Label>
+              <Input
+                id="interval-kg"
+                type="number"
+                min={0}
+                step="0.1"
+                placeholder="Ex: 5000"
+                value={intervalForm.kg}
+                onChange={e => setIntervalForm(f => ({ ...f, kg: e.target.value }))}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Soma os <strong>kg dos registros de produção</strong> desta máquina desde a última preventiva.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIntervalModalMachine(null)} disabled={savingInterval}>Cancelar</Button>
+            <Button onClick={handleSaveInterval} disabled={savingInterval}>
+              {savingInterval && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Salvar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
