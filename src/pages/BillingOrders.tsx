@@ -2343,7 +2343,7 @@ const BillingOrders = () => {
                     <div>
                       <strong>Média:</strong> {avg.toFixed(2)} kg/peça
                       {refWeight > 0 && (
-                        <span className="text-muted-foreground"> · ref. artigo: {refWeight.toFixed(2)} kg ({diffPct >= 0 ? '+' : ''}{diffPct.toFixed(1)}%)</span>
+                        <span className="text-muted-foreground"> · ref. {refSource}: {refWeight.toFixed(2)} kg ({diffPct >= 0 ? '+' : ''}{diffPct.toFixed(1)}%)</span>
                       )}
                     </div>
                   )}
