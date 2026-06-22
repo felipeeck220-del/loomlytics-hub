@@ -498,18 +498,18 @@ export default function MecanicaPage() {
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...colors.textMid);
-      const periodText = sanitizePdfText(`Intervalo padrão: ${DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias`);
+      const periodText = sanitizePdfText(`Padrão: ${DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias (configurável por máquina)`);
       const pW = pdf.getTextWidth(periodText);
       pdf.text(periodText, rightX - pW, y + 22);
 
       const headers = [[
         'TEAR', 'MODELO', 'DIÂMETRO', 'FINURA',
-        'ÚLTIMA MANUTENÇÃO', 'MANUTENÇÃO PREVISTA', 'DIAS P/ PRÓXIMA',
+        'ÚLTIMA MANUTENÇÃO', 'INTERVALO', 'MANUTENÇÃO PREVISTA', 'DIAS P/ PRÓXIMA', 'META KG', 'KG RESTANTES',
         'HORA INÍCIO', 'HORA FIM', 'HORAS PARADAS', 'OBSERVAÇÃO', 'Nº HISTÓRICO',
       ]];
 
       const body = scheduleRows.map(r => {
-        const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount } = r;
+        const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount, intervalDays, kgTarget, kgLeft } = r;
         const obsList = last ? (obsByLogId[last.id] || []) : [];
         const obsText = obsList.map(o => o.observation).join(' • ');
         return [
@@ -518,8 +518,15 @@ export default function MecanicaPage() {
           sanitizePdfText(machine.diameter || '—'),
           sanitizePdfText(machine.fineness || '—'),
           lastDate ? format(lastDate, 'dd/MM/yyyy') : '—',
+          `${intervalDays} dias`,
           nextDate ? format(nextDate, 'dd/MM/yyyy') : '—',
           sanitizePdfText(daysLeftLabel(daysLeft)),
+          kgTarget != null ? `${kgTarget.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : '—',
+          kgTarget == null
+            ? '—'
+            : kgLeft! <= 0
+              ? sanitizePdfText(`Atingido (${Math.abs(kgLeft!).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`)
+              : `${kgLeft!.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`,
           last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—',
           last?.ended_at ? format(new Date(last.ended_at), 'HH:mm') : '—',
           sanitizePdfText(formatDuration(durationMin)),
@@ -538,10 +545,10 @@ export default function MecanicaPage() {
         bodyStyles: { halign: 'center' },
         columnStyles: {
           0: { fontStyle: 'bold' },
-          10: { halign: 'left', cellWidth: 50 },
+          13: { halign: 'left', cellWidth: 45 },
         },
         didParseCell: (data) => {
-          if (data.section === 'body' && data.column.index === 6) {
+          if (data.section === 'body' && data.column.index === 7) {
             const row = scheduleRows[data.row.index];
             if (row) {
               const d = row.daysLeft;
@@ -560,6 +567,26 @@ export default function MecanicaPage() {
                 data.cell.styles.fillColor = [220, 252, 231];
                 data.cell.styles.textColor = [22, 101, 52];
               }
+            }
+          }
+          if (data.section === 'body' && data.column.index === 9) {
+            const row = scheduleRows[data.row.index];
+            if (row && row.kgTarget != null && row.kgLeft != null) {
+              if (row.kgLeft <= 0) {
+                data.cell.styles.fillColor = [254, 226, 226];
+                data.cell.styles.textColor = [153, 27, 27];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (row.kgLeft <= row.kgTarget * 0.1) {
+                data.cell.styles.fillColor = [254, 243, 199];
+                data.cell.styles.textColor = [146, 64, 14];
+                data.cell.styles.fontStyle = 'bold';
+              } else {
+                data.cell.styles.fillColor = [220, 252, 231];
+                data.cell.styles.textColor = [22, 101, 52];
+              }
+            } else {
+              data.cell.styles.fillColor = [243, 244, 246];
+              data.cell.styles.textColor = [107, 114, 128];
             }
           }
         },
