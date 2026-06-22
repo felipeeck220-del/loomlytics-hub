@@ -1043,7 +1043,7 @@ const BillingOrders = () => {
                 {/* Faixa lateral de status */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${style.stripe}`} />
                 <CardContent className="p-4 pl-5">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
                     {/* Coluna principal padronizada */}
                     <div className="flex-1 min-w-0 space-y-2">
                       {/* Linha 1: Status + OF + Tinturaria + Prioridade */}
@@ -1182,8 +1182,8 @@ const BillingOrders = () => {
                     </div>
 
                     {/* Coluna ações + auditoria padronizada */}
-                    <div className="flex flex-col items-stretch md:items-end gap-2 md:min-w-[200px]">
-                      <div className="text-[10px] text-muted-foreground leading-tight md:text-right">
+                    <div className="flex flex-col items-stretch xl:items-end gap-2 xl:min-w-[220px]">
+                      <div className="text-[10px] text-muted-foreground leading-tight xl:text-right">
                         <div><span className="font-semibold">Criado:</span> {order.creator?.name} #{order.creator?.code}</div>
                         <div>{format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
                         {order.separated_by && (
@@ -1194,7 +1194,7 @@ const BillingOrders = () => {
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-2 md:justify-end">
+                      <div className="flex flex-wrap gap-2 xl:justify-end">
                         <Button
                           size="sm"
                           variant="outline"
