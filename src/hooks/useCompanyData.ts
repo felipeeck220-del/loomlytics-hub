@@ -311,6 +311,8 @@ export function useCompanyData() {
         machine_type: m.machine_type || null,
         current_needle_id: m.current_needle_id || null,
         current_sinker_id: m.current_sinker_id || null,
+        maintenance_interval_days: m.maintenance_interval_days ?? null,
+        maintenance_kg_target: m.maintenance_kg_target ?? null,
       }));
       const { error } = await sb('machines').upsert(rows);
       if (error) { console.error('Error saving machines:', error); throw error; }
