@@ -97,6 +97,7 @@ const BillingOrders = () => {
   const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null }>>([]);
   const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string }>({ pieces: '', weight: '', machine_id: 'none' });
   const [palletBusy, setPalletBusy] = useState(false);
+  const [palletsLoading, setPalletsLoading] = useState(false);
 
   // Modal de Atrelar OFs
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -107,15 +108,17 @@ const BillingOrders = () => {
   useEffect(() => {
     if (!showPalletsModal) return;
     let cancelled = false;
+    setPalletsLoading(true);
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
         .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id')
         .eq('billing_order_id', showPalletsModal.id)
         .order('pallet_number', { ascending: true });
-      if (cancelled) return;
+      if (cancelled) { setPalletsLoading(false); return; }
       if (error) {
         toast({ title: 'Erro ao carregar paletes', description: error.message, variant: 'destructive' });
+        setPalletsLoading(false);
         return;
       }
       setPallets((data || []).map((r: any) => ({
@@ -126,6 +129,7 @@ const BillingOrders = () => {
         reserve_movement_id: r.reserve_movement_id,
         machine_id: r.machine_id ?? null,
       })));
+      setPalletsLoading(false);
     })();
     return () => { cancelled = true; };
   }, [showPalletsModal, toast]);
@@ -1039,7 +1043,7 @@ const BillingOrders = () => {
                 {/* Faixa lateral de status */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${style.stripe}`} />
                 <CardContent className="p-4 pl-5">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
                     {/* Coluna principal padronizada */}
                     <div className="flex-1 min-w-0 space-y-2">
                       {/* Linha 1: Status + OF + Tinturaria + Prioridade */}
@@ -1178,8 +1182,8 @@ const BillingOrders = () => {
                     </div>
 
                     {/* Coluna ações + auditoria padronizada */}
-                    <div className="flex flex-col items-stretch md:items-end gap-2 md:min-w-[200px]">
-                      <div className="text-[10px] text-muted-foreground leading-tight md:text-right">
+                    <div className="flex flex-col items-stretch xl:items-end gap-2 xl:min-w-[220px]">
+                      <div className="text-[10px] text-muted-foreground leading-tight xl:text-right">
                         <div><span className="font-semibold">Criado:</span> {order.creator?.name} #{order.creator?.code}</div>
                         <div>{format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</div>
                         {order.separated_by && (
@@ -1190,7 +1194,7 @@ const BillingOrders = () => {
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-2 md:justify-end">
+                      <div className="flex flex-wrap gap-2 xl:justify-end">
                         <Button
                           size="sm"
                           variant="outline"
@@ -2015,13 +2019,22 @@ const BillingOrders = () => {
 
       {/* Modal Paletes — separação por paletes */}
       <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none' }); } }}>
-        <DialogContent className="sm:max-w-[560px]">
+        <DialogContent
+          className="sm:max-w-[560px]"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-indigo-700">
               <Boxes className="h-5 w-5" /> Paletes · OF #{showPalletsModal?.of_number}
             </DialogTitle>
           </DialogHeader>
-          {showPalletsModal && (() => {
+          {showPalletsModal && palletsLoading && (
+            <div className="py-10 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+              <span className="text-xs">Carregando paletes salvos…</span>
+            </div>
+          )}
+          {showPalletsModal && !palletsLoading && (() => {
             const order = showPalletsModal;
             const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
             const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
@@ -2049,14 +2062,14 @@ const BillingOrders = () => {
                 <div className="rounded-md border p-3 space-y-2">
                   <div className="text-xs font-semibold uppercase text-muted-foreground">Adicionar palete</div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-[10px] uppercase">Peças</Label>
-                      <Input type="number" value={palletInput.pieces} onChange={e => setPalletInput({ ...palletInput, pieces: e.target.value })} placeholder="Ex: 25" />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] uppercase">Peso (kg)</Label>
-                      <Input type="number" step="0.01" value={palletInput.weight} onChange={e => setPalletInput({ ...palletInput, weight: e.target.value })} placeholder="Ex: 250" />
-                    </div>
+                     <div>
+                       <Label className="text-[10px] uppercase">Peças</Label>
+                       <Input type="number" inputMode="numeric" pattern="[0-9]*" value={palletInput.pieces} onChange={e => setPalletInput({ ...palletInput, pieces: e.target.value })} placeholder="Ex: 25" />
+                     </div>
+                     <div>
+                       <Label className="text-[10px] uppercase">Peso (kg)</Label>
+                       <Input type="number" inputMode="decimal" step="0.01" value={palletInput.weight} onChange={e => setPalletInput({ ...palletInput, weight: e.target.value })} placeholder="Ex: 250" />
+                     </div>
                   </div>
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
@@ -2304,6 +2317,11 @@ const BillingOrders = () => {
           {showPalletsModal && (() => {
             const totalPieces = pallets.reduce((s, p) => s + (p.pieces || 0), 0);
             const totalWeight = pallets.reduce((s, p) => s + (p.weight || 0), 0);
+            const avg = totalPieces > 0 ? totalWeight / totalPieces : 0;
+            const article = getArticles().find(a => a.id === showPalletsModal.article_id);
+            const refWeight = Number(article?.weight_per_roll || 0);
+            const diffPct = refWeight > 0 && avg > 0 ? ((avg - refWeight) / refWeight) * 100 : 0;
+            const outOfRange = refWeight > 0 && Math.abs(diffPct) > 10;
             return (
               <div className="py-3 space-y-3 text-sm">
                 <p>
@@ -2316,7 +2334,26 @@ const BillingOrders = () => {
                   <div className="pt-1 border-t mt-1">
                     <strong>Total:</strong> {totalPieces} pç · {totalWeight.toFixed(2)} kg
                   </div>
+                  {totalPieces > 0 && (
+                    <div>
+                      <strong>Média:</strong> {avg.toFixed(2)} kg/peça
+                      {refWeight > 0 && (
+                        <span className="text-muted-foreground"> · ref. artigo: {refWeight.toFixed(2)} kg ({diffPct >= 0 ? '+' : ''}{diffPct.toFixed(1)}%)</span>
+                      )}
+                    </div>
+                  )}
                 </div>
+                {outOfRange && (
+                  <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <div className="font-bold uppercase text-[10px] tracking-wide">Atenção — média fora do esperado</div>
+                      <div className="mt-0.5">
+                        A média calculada ({avg.toFixed(2)} kg/peça) está <strong>{diffPct >= 0 ? 'acima' : 'abaixo'}</strong> em <strong>{Math.abs(diffPct).toFixed(1)}%</strong> do peso de referência do artigo ({refWeight.toFixed(2)} kg). Confira os paletes ou siga em frente se estiver correto.
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="rounded-md border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 p-3 text-xs text-emerald-800 dark:text-emerald-200">
                   Ao finalizar, a OF será movida automaticamente para a aba <strong>PRONTO</strong> e ficará disponível para coleta.
                 </div>
