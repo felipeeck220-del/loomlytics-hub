@@ -505,11 +505,11 @@ export default function MecanicaPage() {
       const headers = [[
         'TEAR', 'MODELO', 'Ø / FINURA',
         'ÚLTIMA MANUTENÇÃO', 'INTERVALO', 'MANUTENÇÃO PREVISTA', 'DIAS P/ PRÓXIMA', 'META KG', 'KG RESTANTES',
-        'HORA INÍCIO', 'HORA FIM', 'HORAS PARADAS', 'OBSERVAÇÃO', 'Nº HISTÓRICO',
+        'HORA INÍCIO', 'HORA FIM', 'HORAS PARADAS', 'OBSERVAÇÃO',
       ]];
 
       const body = scheduleRows.map(r => {
-        const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount, intervalDays, kgTarget, kgLeft } = r;
+        const { machine, last, lastDate, nextDate, daysLeft, durationMin, intervalDays, kgTarget, kgLeft } = r;
         const obsList = last ? (obsByLogId[last.id] || []) : [];
         const obsText = obsList.map(o => o.observation).join(' • ');
         return [
@@ -532,7 +532,6 @@ export default function MecanicaPage() {
           last?.ended_at ? format(new Date(last.ended_at), 'HH:mm') : '—',
           sanitizePdfText(formatDuration(durationMin)),
           sanitizePdfText(obsText || '—'),
-          String(historyCount),
         ];
       });
 
