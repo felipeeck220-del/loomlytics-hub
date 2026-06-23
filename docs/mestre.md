@@ -1,6 +1,7 @@
     - 11/05/2026 09:15 - Criação do arquivo rpcreports.md documentando a lógica de cálculos do módulo de Relatórios para futura migração para RPCs, garantindo que os algoritmos permaneçam idênticos.
 
-*Última atualização: 21/06/2026 (Brasília)*
+*Última atualização: 22/06/2026 (Brasília)*
+- 22/06/2026 (v8) - /settings · Aba **Empresa** — bloco **Dispositivos IoT** **desbloqueado** (removido overlay "Em breve" e `pointer-events-none`). `IotDevicesManager` totalmente operacional para cadastro de tokens ESP32, geração de credenciais e teste do webhook `machine-webhook`.
 - 22/06/2026 (v7 — pente fino) - Correções nas últimas atualizações de **Máquinas** e **Mecânica**:
   - **/mecanica · Calendário > KG RESTANTES**: bug corrigido — `kgSince` excluía produções do mesmo dia da última preventiva (comparava `new Date(p.date)` em UTC com a hora do log em GMT-3). Passou a comparar por string `yyyy-mm-dd`, incluindo corretamente as produções a partir da data da última manutenção.
   - **/mecanica · Modal "Intervalo entre Preventivas"**: a coluna `maintenance_interval_days` é `integer` no banco; valores decimais quebravam o `update`. Agora o input é validado (1–3650) e arredondado com `Math.round`; kg exige `> 0`.
