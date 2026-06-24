@@ -1077,7 +1077,8 @@ export default function ClientInvoices() {
               );
             })()}
           </div>
-          <DialogFooter>
+          <DialogFooter className="px-6 py-3 border-t bg-muted/30">
+            <Button variant="outline" onClick={() => setLinkedDialogOpen(false)}>Fechar</Button>
             <Button
               onClick={() => {
                 if (linkedParent) {
