@@ -176,6 +176,11 @@ Deno.serve(async (req) => {
       await trackRpm(supabase, device.machine_id, safeRpm);
     }
 
+    // 9b. Real-time production upsert (mirrors current shift state into productions)
+    if (machine.article_id) {
+      await upsertRealtimeProduction(supabase, device, currentShift);
+    }
+
     // 10. Check shift change
     await checkShiftChange(supabase, device, settings, currentShift);
 
@@ -422,8 +427,7 @@ async function finalizeShift(supabase: any, device: any, state: any) {
   const brasiliaDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
   const dateStr = brasiliaDate.toISOString().split("T")[0];
 
-  // Insert production record
-  await supabase.from("productions").insert({
+  const payload = {
     company_id: device.company_id,
     machine_id: state.machine_id,
     machine_name: machine?.name || null,
@@ -440,7 +444,14 @@ async function finalizeShift(supabase: any, device: any, state: any) {
     efficiency: Math.round(efficiency * 100) / 100,
     created_by_name: "IoT",
     created_by_code: "IOT",
-  });
+  };
+
+  if (state.production_id) {
+    // Finalize the realtime-mirrored row instead of duplicating
+    await supabase.from("productions").update(payload).eq("id", state.production_id);
+  } else {
+    await supabase.from("productions").insert(payload);
+  }
 }
 
 async function startNewShift(supabase: any, device: any, newShift: string, rollPosition: number) {
@@ -470,6 +481,7 @@ async function startNewShift(supabase: any, device: any, newShift: string, rollP
       last_rpm: 0,
       rpm_sum: 0,
       rpm_count: 0,
+      production_id: null,
       shift_started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -500,4 +512,102 @@ async function getAssignedWeaver(supabase: any, machineId: string, companyId: st
     .single();
 
   return weaver;
+}
+
+// Real-time mirror: write/update a productions row for the current IoT shift state.
+// Uses iot_shift_state.production_id so each shift has exactly one row that grows
+// as turns accumulate. Cleared on shift change in startNewShift (next row created).
+async function upsertRealtimeProduction(supabase: any, device: any, currentShift: string) {
+  const { machine_id, company_id } = device;
+
+  const { data: state } = await supabase
+    .from("iot_shift_state")
+    .select("id, article_id, weaver_id, total_turns, rpm_sum, rpm_count, last_rpm, shift_started_at, production_id")
+    .eq("machine_id", machine_id)
+    .single();
+
+  if (!state || !state.article_id || (state.total_turns ?? 0) <= 0) return;
+
+  const { data: article } = await supabase
+    .from("articles")
+    .select("name, turns_per_roll, weight_per_roll, value_per_kg")
+    .eq("id", state.article_id)
+    .single();
+
+  if (!article) return;
+
+  const { data: amt } = await supabase
+    .from("article_machine_turns")
+    .select("turns_per_roll")
+    .eq("article_id", state.article_id)
+    .eq("machine_id", machine_id)
+    .single();
+
+  const turnsPerRoll = amt?.turns_per_roll || article.turns_per_roll || 0;
+  if (turnsPerRoll <= 0) return;
+
+  const fractionalRolls = state.total_turns / turnsPerRoll;
+  const weightKg = fractionalRolls * (article.weight_per_roll || 0);
+  const revenue = weightKg * (article.value_per_kg || 0);
+  const avgRpm = state.rpm_count > 0 ? state.rpm_sum / state.rpm_count : (state.last_rpm || 0);
+
+  const { data: machine } = await supabase
+    .from("machines")
+    .select("name, rpm")
+    .eq("id", machine_id)
+    .single();
+
+  const targetRpm = machine?.rpm || 25;
+  const efficiency = targetRpm > 0 ? Math.min((avgRpm / targetRpm) * 100, 999) : 0;
+
+  let weaverName: string | null = null;
+  if (state.weaver_id) {
+    const { data: w } = await supabase.from("weavers").select("name").eq("id", state.weaver_id).single();
+    weaverName = w?.name ?? null;
+  }
+
+  const now = new Date();
+  const brasiliaDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const dateStr = brasiliaDate.toISOString().split("T")[0];
+
+  const payload = {
+    company_id,
+    machine_id,
+    machine_name: machine?.name || null,
+    weaver_id: state.weaver_id,
+    weaver_name: weaverName,
+    article_id: state.article_id,
+    article_name: article.name,
+    date: dateStr,
+    shift: currentShift,
+    rolls_produced: Math.round(fractionalRolls * 100) / 100,
+    weight_kg: Math.round(weightKg * 100) / 100,
+    revenue: Math.round(revenue * 100) / 100,
+    rpm: Math.round(avgRpm),
+    efficiency: Math.round(efficiency * 100) / 100,
+    created_by_name: "IoT",
+    created_by_code: "IOT",
+  };
+
+  if (state.production_id) {
+    const { error: updErr } = await supabase
+      .from("productions")
+      .update(payload)
+      .eq("id", state.production_id);
+    if (!updErr) return;
+    // fall through and recreate if row was deleted
+  }
+
+  const { data: inserted } = await supabase
+    .from("productions")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (inserted?.id) {
+    await supabase
+      .from("iot_shift_state")
+      .update({ production_id: inserted.id })
+      .eq("id", state.id);
+  }
 }
