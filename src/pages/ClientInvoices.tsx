@@ -152,6 +152,9 @@ export default function ClientInvoices() {
           }
         }
         const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
+        if (validLinks.length === 0) {
+          throw new Error('Selecione ao menos uma NF de entrada para descontar (a primeira é obrigatória).');
+        }
         if (validLinks.length > 0) {
           const totalDeduct = validLinks.reduce((s, l) => s + (parseFloat(l.deduct_kg) || 0), 0);
           const peso = parseFloat(weightKg) || 0;
