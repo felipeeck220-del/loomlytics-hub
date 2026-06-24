@@ -615,42 +615,7 @@ export default function ClientInvoices() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {/* Composição de Fios (porcentagens) */}
-                <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold">Composição do Fio (%)</Label>
-                    <span className={cn(
-                      "text-[10px] font-medium",
-                      Math.abs(composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0) - 100) < 0.01
-                        ? "text-emerald-600" : "text-amber-600"
-                    )}>
-                      Total: {composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0).toFixed(2)}%
-                    </span>
-                  </div>
-                  {composition.map((c, idx) => (
-                    <div key={idx} className="grid grid-cols-[1fr_90px_32px] gap-2 items-center">
-                      <SearchableSelect
-                        options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
-                        value={c.yarn_type_id}
-                        onValueChange={(v) => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, yarn_type_id: v } : r))}
-                        placeholder="Tipo de fio..."
-                      />
-                      <Input
-                        type="number" step="0.01" placeholder="%"
-                        value={c.percentage}
-                        onChange={e => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, percentage: e.target.value } : r))}
-                      />
-                      <Button variant="ghost" size="icon" onClick={() => setComposition(prev => prev.filter((_, i) => i !== idx))} disabled={composition.length === 1}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setComposition(prev => [...prev, { yarn_type_id: '', percentage: '' }])}>
-                    <Plus className="h-3 w-3" /> Adicionar fio
-                  </Button>
-                </div>
-
-                {/* Vínculos com Notas de Entrada (multi) */}
+                {/* Vínculos com Notas de Entrada (multi) — vem PRIMEIRO para alimentar a composição */}
                 <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold flex items-center gap-1">
@@ -742,6 +707,104 @@ export default function ClientInvoices() {
                     </p>
                   )}
                 </div>
+
+                {/* Composição de Fios (porcentagens) — derivada das NFs de entrada selecionadas */}
+                {(() => {
+                  // Tipos de fio disponíveis = união dos yarn_type_id das entradas vinculadas
+                  const availableYarnIds = Array.from(new Set(
+                    exitLinks
+                      .map(l => {
+                        if (l.yarn_type_id) return l.yarn_type_id;
+                        const inv: any = clientInvoices.find(i => i.id === l.entry_invoice_id);
+                        return inv?.items?.[0]?.yarn_type_id || null;
+                      })
+                      .filter(Boolean)
+                  )) as string[];
+                  const availableYarns = availableYarnIds
+                    .map(id => yarnTypes.find(y => y.id === id))
+                    .filter(Boolean) as typeof yarnTypes;
+                  const compTotal = composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0);
+                  return (
+                    <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold">Composição do Fio (%)</Label>
+                        {availableYarns.length > 0 && (
+                          <span className={cn(
+                            "text-[10px] font-medium",
+                            Math.abs(compTotal - 100) < 0.01 ? "text-emerald-600" : "text-amber-600"
+                          )}>
+                            Total: {compTotal.toFixed(2)}%
+                          </span>
+                        )}
+                      </div>
+                      {availableYarns.length === 0 ? (
+                        <p className="text-[10px] text-muted-foreground italic">
+                          Selecione ao menos uma NF de entrada ao lado para listar os fios disponíveis.
+                        </p>
+                      ) : (
+                        <>
+                          {composition
+                            .filter(c => !c.yarn_type_id || availableYarnIds.includes(c.yarn_type_id))
+                            .length === 0 && (
+                            <p className="text-[10px] text-amber-600 italic">
+                              Adicione abaixo a porcentagem de cada fio das NFs selecionadas.
+                            </p>
+                          )}
+                          {composition.map((c, idx) => {
+                            // Para esta linha, mostra apenas fios disponíveis + o já escolhido (mesmo que removido das links)
+                            const usedElsewhere = composition
+                              .filter((_, i) => i !== idx)
+                              .map(r => r.yarn_type_id)
+                              .filter(Boolean);
+                            const opts = availableYarns
+                              .filter(y => !usedElsewhere.includes(y.id) || y.id === c.yarn_type_id)
+                              .map(y => ({ value: y.id, label: y.name }));
+                            return (
+                              <div key={idx} className="grid grid-cols-[1fr_90px_32px] gap-2 items-center">
+                                <SearchableSelect
+                                  options={opts}
+                                  value={c.yarn_type_id}
+                                  onValueChange={(v) => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, yarn_type_id: v } : r))}
+                                  placeholder="Tipo de fio..."
+                                />
+                                <Input
+                                  type="number" step="0.01" placeholder="%"
+                                  value={c.percentage}
+                                  onChange={e => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, percentage: e.target.value } : r))}
+                                />
+                                <Button variant="ghost" size="icon" onClick={() => setComposition(prev => prev.filter((_, i) => i !== idx))} disabled={composition.length === 1}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              variant="outline" size="sm" className="gap-1 h-7 text-xs"
+                              disabled={composition.length >= availableYarns.length}
+                              onClick={() => setComposition(prev => [...prev, { yarn_type_id: '', percentage: '' }])}
+                            >
+                              <Plus className="h-3 w-3" /> Adicionar fio
+                            </Button>
+                            <Button
+                              variant="outline" size="sm" className="gap-1 h-7 text-xs"
+                              onClick={() => {
+                                // Pré-popula uma linha por fio disponível, dividindo 100% igualmente
+                                const each = availableYarns.length > 0 ? (100 / availableYarns.length) : 0;
+                                setComposition(availableYarns.map(y => ({
+                                  yarn_type_id: y.id,
+                                  percentage: each.toFixed(2),
+                                })));
+                              }}
+                            >
+                              <Wand2 className="h-3 w-3" /> Preencher dos vínculos
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
                 </div>
               </>
             )}
