@@ -63,9 +63,9 @@ Deno.serve(async (req) => {
 
     if (machineErr) {
       console.error("machine lookup error:", machineErr);
-      return jsonResponse({ error: "Machine lookup failed", details: machineErr.message }, 500);
+      return jsonResponse({ error: "Machine lookup failed" }, 500);
     }
-    if (!machine) return jsonResponse({ error: "Machine not found", machine_id }, 404);
+    if (!machine) return jsonResponse({ error: "Machine not found" }, 404);
 
     // If machine is inactive, ignore readings entirely
     if (machine.status === "inativa") {
