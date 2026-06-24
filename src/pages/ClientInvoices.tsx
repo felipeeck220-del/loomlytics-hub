@@ -154,6 +154,7 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
+            composition: formType === 'saida' ? (composition.filter(c => c.yarn_type_id && c.percentage).map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 })) as any) : null,
           } as any)
           .eq('id', editingInvoice.id);
 
@@ -170,7 +171,24 @@ export default function ClientInvoices() {
           .eq('invoice_id', editingInvoice.id);
 
         if (itemError) throw itemError;
-        
+
+        if (formType === 'saida') {
+          await supabase.from('client_invoice_exit_links').delete().eq('exit_invoice_id', editingInvoice.id);
+          const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
+          if (validLinks.length > 0) {
+            const { error: linksError } = await supabase.from('client_invoice_exit_links').insert(
+              validLinks.map(l => ({
+                company_id: companyId,
+                exit_invoice_id: editingInvoice.id,
+                entry_invoice_id: l.entry_invoice_id,
+                yarn_type_id: l.yarn_type_id || null,
+                deduct_kg: parseFloat(l.deduct_kg) || 0,
+              }))
+            );
+            if (linksError) throw linksError;
+          }
+        }
+
         return { action: 'updated', id: editingInvoice.id };
       } else {
         // Inserir o cabeçalho da nota
@@ -185,6 +203,7 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
+            composition: formType === 'saida' ? (composition.filter(c => c.yarn_type_id && c.percentage).map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 })) as any) : null,
             created_by_name: userTrackingInfo.created_by_name,
             created_by_code: userTrackingInfo.created_by_code
           } as any)
@@ -208,13 +227,30 @@ export default function ClientInvoices() {
           await supabase.from('client_invoices').delete().eq('id', invoice.id);
           throw itemError;
         }
-        
+
+        if (formType === 'saida') {
+          const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
+          if (validLinks.length > 0) {
+            const { error: linksError } = await supabase.from('client_invoice_exit_links').insert(
+              validLinks.map(l => ({
+                company_id: companyId,
+                exit_invoice_id: invoice.id,
+                entry_invoice_id: l.entry_invoice_id,
+                yarn_type_id: l.yarn_type_id || null,
+                deduct_kg: parseFloat(l.deduct_kg) || 0,
+              }))
+            );
+            if (linksError) throw linksError;
+          }
+        }
+
         return { action: 'created', id: invoice.id };
       }
     },
     onSuccess: (data) => {
       logAction(`NF CLIENTES: ${data.action === 'updated' ? 'Editou' : 'Criou'} nota`, { invoice_number: invoiceNumber, type: formType });
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoice_exit_links'] });
       toast.success(`Nota ${data.action === 'updated' ? 'atualizada' : 'registrada'} com sucesso!`);
       setDialogOpen(false);
       resetForm();
@@ -234,10 +270,12 @@ export default function ClientInvoices() {
     setYarnTypeId('');
     setArticleId('');
     setSupplierName('');
+    setComposition([{ yarn_type_id: '', percentage: '100' }]);
+    setExitLinks([]);
     setIssueDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
-  const handleEditInvoice = (inv: any) => {
+  const handleEditInvoice = async (inv: any) => {
     setEditingInvoice(inv);
     setFormType(inv.type);
     setSelectedClientId(inv.client_id);
@@ -251,6 +289,29 @@ export default function ClientInvoices() {
       setYarnTypeId(inv.items[0].yarn_type_id || '');
       setArticleId(inv.items[0].article_id || '');
     }
+    if (inv.type === 'saida') {
+      const comp = Array.isArray(inv.composition) ? inv.composition : [];
+      setComposition(comp.length > 0
+        ? comp.map((c: any) => ({ yarn_type_id: c.yarn_type_id || '', percentage: String(c.percentage ?? '') }))
+        : [{ yarn_type_id: '', percentage: '100' }]);
+      const links = exitLinksAll.filter((l: any) => l.exit_invoice_id === inv.id);
+      if (links.length > 0) {
+        setExitLinks(links.map((l: any) => ({
+          entry_invoice_id: l.entry_invoice_id,
+          yarn_type_id: l.yarn_type_id || null,
+          deduct_kg: String(l.deduct_kg ?? ''),
+        })));
+      } else if (inv.parent_invoice_id) {
+        // legado: vínculo único via parent_invoice_id
+        setExitLinks([{
+          entry_invoice_id: inv.parent_invoice_id,
+          yarn_type_id: null,
+          deduct_kg: String(inv.items?.[0]?.weight_kg ?? ''),
+        }]);
+      } else {
+        setExitLinks([]);
+      }
+    }
     setDialogOpen(true);
   };
 
@@ -259,6 +320,12 @@ export default function ClientInvoices() {
     setSelectedClientId(clientId);
     setFormType(type);
     setParentInvoiceId(parentId);
+    if (type === 'saida' && parentId) {
+      const parent = clientInvoices.find(i => i.id === parentId);
+      const yarn = parent?.items?.[0]?.yarn_type_id || '';
+      setComposition([{ yarn_type_id: yarn, percentage: '100' }]);
+      setExitLinks([{ entry_invoice_id: parentId, yarn_type_id: yarn || null, deduct_kg: '' }]);
+    }
     // Saída tem número de NF próprio (diferente da entrada). Não pré-preenchemos mais.
     setDialogOpen(true);
   };
