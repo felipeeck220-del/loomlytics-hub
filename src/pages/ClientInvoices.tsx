@@ -615,42 +615,7 @@ export default function ClientInvoices() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {/* Composição de Fios (porcentagens) */}
-                <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold">Composição do Fio (%)</Label>
-                    <span className={cn(
-                      "text-[10px] font-medium",
-                      Math.abs(composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0) - 100) < 0.01
-                        ? "text-emerald-600" : "text-amber-600"
-                    )}>
-                      Total: {composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0).toFixed(2)}%
-                    </span>
-                  </div>
-                  {composition.map((c, idx) => (
-                    <div key={idx} className="grid grid-cols-[1fr_90px_32px] gap-2 items-center">
-                      <SearchableSelect
-                        options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
-                        value={c.yarn_type_id}
-                        onValueChange={(v) => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, yarn_type_id: v } : r))}
-                        placeholder="Tipo de fio..."
-                      />
-                      <Input
-                        type="number" step="0.01" placeholder="%"
-                        value={c.percentage}
-                        onChange={e => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, percentage: e.target.value } : r))}
-                      />
-                      <Button variant="ghost" size="icon" onClick={() => setComposition(prev => prev.filter((_, i) => i !== idx))} disabled={composition.length === 1}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setComposition(prev => [...prev, { yarn_type_id: '', percentage: '' }])}>
-                    <Plus className="h-3 w-3" /> Adicionar fio
-                  </Button>
-                </div>
-
-                {/* Vínculos com Notas de Entrada (multi) */}
+                {/* Vínculos com Notas de Entrada (multi) — vem PRIMEIRO para alimentar a composição */}
                 <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold flex items-center gap-1">
