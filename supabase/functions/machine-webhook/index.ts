@@ -363,10 +363,10 @@ async function finalizeShift(supabase: any, device: any, state: any) {
   const weightKg = fractionalRolls * (article.weight_per_roll || 0);
   const revenue = weightKg * (article.value_per_kg || 0);
 
-  // Get machine info
+  // Get machine info (PostgREST alias = `alias:col`, não SQL `col as alias`)
   const { data: machine } = await supabase
     .from("machines")
-    .select("name, rpm as target_rpm")
+    .select("name, target_rpm:rpm")
     .eq("id", state.machine_id)
     .single();
 
