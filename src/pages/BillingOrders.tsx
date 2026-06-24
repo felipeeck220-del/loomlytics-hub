@@ -941,7 +941,9 @@ const BillingOrders = () => {
             value="awaiting_doc"
             className={cn(
               'gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial',
-              stats.readyWithoutDoc > 0 && 'text-violet-700 data-[state=active]:bg-violet-600 data-[state=active]:text-white'
+              stats.readyWithoutDoc > 0 && 'text-violet-700 data-[state=active]:bg-violet-600 data-[state=active]:text-white',
+              // Pulsa para o admin enquanto houver OFs aguardando lançamento de NF/Romaneio
+              isAdmin && stats.readyWithoutDoc > 0 && 'animate-pulse'
             )}
           >
             <FileText className="h-3 w-3" /> Aguardando NF/ROM
