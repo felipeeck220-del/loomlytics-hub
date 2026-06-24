@@ -1636,8 +1636,12 @@ const BillingOrders = () => {
           </DialogHeader>
           {showEditModal && (showEditModal.status === 'separating' || showEditModal.status === 'ready') && (
             <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200">
-              <strong>Atenção:</strong> esta OF já está em <strong>{showEditModal.status === 'ready' ? 'Pronta' : 'Separação'}</strong>.
-              Ao salvar, ela voltará para <strong>Aberto</strong> para que a expedição faça uma nova separação. Os dados reais já lançados (peças/peso) serão limpos. Informe um motivo claro abaixo.
+              <strong>Atenção:</strong> esta OF já está em <strong>{
+                showEditModal.status === 'ready'
+                  ? ((showEditModal as any).delivery_doc_number ? 'Pronto para Coleta' : 'Aguardando NF/ROM')
+                  : 'Separação'
+              }</strong>.
+              Ao salvar, ela voltará para <strong>Aberto</strong> para que a expedição faça uma nova separação. Os dados reais já lançados (peças/peso){showEditModal.status === 'ready' ? ' e a NF/Romaneio registrada' : ''} serão limpos. Informe um motivo claro abaixo.
             </div>
           )}
           <div className="grid gap-3 py-2 max-h-[60vh] overflow-y-auto pr-1">
