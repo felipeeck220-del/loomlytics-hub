@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { formatWeight, getDateLimits } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import {
-  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle, ArrowUpRight, CheckCircle2, Clock, History, List, Truck
+  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle, ArrowUpRight, CheckCircle2, Clock, History, List, Truck, Wand2, Link2
 } from 'lucide-react';
 
 import { format } from 'date-fns';
@@ -68,6 +68,12 @@ export default function ClientInvoices() {
   const [observations, setObservations] = useState('');
   const [supplierName, setSupplierName] = useState('');
 
+  // Saída de Malha: composição de fios (porcentagens) e vínculos com múltiplas entradas
+  type CompRow = { yarn_type_id: string; percentage: string };
+  type LinkRow = { entry_invoice_id: string; yarn_type_id: string | null; deduct_kg: string };
+  const [composition, setComposition] = useState<CompRow[]>([{ yarn_type_id: '', percentage: '100' }]);
+  const [exitLinks, setExitLinks] = useState<LinkRow[]>([]);
+
   // Modal de saídas vinculadas a uma entrada
   const [linkedDialogOpen, setLinkedDialogOpen] = useState(false);
   const [linkedParent, setLinkedParent] = useState<any>(null);
@@ -86,6 +92,20 @@ export default function ClientInvoices() {
         .select('*, items:client_invoice_items(*)')
         .eq('company_id', companyId)
         .order('issue_date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
+  // Vínculos de saídas com entradas (multi-NF + por tipo de fio)
+  const { data: exitLinksAll = [] } = useQuery({
+    queryKey: ['client_invoice_exit_links', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_invoice_exit_links')
+        .select('*')
+        .eq('company_id', companyId);
       if (error) throw error;
       return data || [];
     },
@@ -134,6 +154,7 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
+            composition: formType === 'saida' ? (composition.filter(c => c.yarn_type_id && c.percentage).map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 })) as any) : null,
           } as any)
           .eq('id', editingInvoice.id);
 
@@ -150,7 +171,24 @@ export default function ClientInvoices() {
           .eq('invoice_id', editingInvoice.id);
 
         if (itemError) throw itemError;
-        
+
+        if (formType === 'saida') {
+          await supabase.from('client_invoice_exit_links').delete().eq('exit_invoice_id', editingInvoice.id);
+          const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
+          if (validLinks.length > 0) {
+            const { error: linksError } = await supabase.from('client_invoice_exit_links').insert(
+              validLinks.map(l => ({
+                company_id: companyId,
+                exit_invoice_id: editingInvoice.id,
+                entry_invoice_id: l.entry_invoice_id,
+                yarn_type_id: l.yarn_type_id || null,
+                deduct_kg: parseFloat(l.deduct_kg) || 0,
+              }))
+            );
+            if (linksError) throw linksError;
+          }
+        }
+
         return { action: 'updated', id: editingInvoice.id };
       } else {
         // Inserir o cabeçalho da nota
@@ -165,6 +203,7 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
+            composition: formType === 'saida' ? (composition.filter(c => c.yarn_type_id && c.percentage).map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 })) as any) : null,
             created_by_name: userTrackingInfo.created_by_name,
             created_by_code: userTrackingInfo.created_by_code
           } as any)
@@ -188,13 +227,30 @@ export default function ClientInvoices() {
           await supabase.from('client_invoices').delete().eq('id', invoice.id);
           throw itemError;
         }
-        
+
+        if (formType === 'saida') {
+          const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
+          if (validLinks.length > 0) {
+            const { error: linksError } = await supabase.from('client_invoice_exit_links').insert(
+              validLinks.map(l => ({
+                company_id: companyId,
+                exit_invoice_id: invoice.id,
+                entry_invoice_id: l.entry_invoice_id,
+                yarn_type_id: l.yarn_type_id || null,
+                deduct_kg: parseFloat(l.deduct_kg) || 0,
+              }))
+            );
+            if (linksError) throw linksError;
+          }
+        }
+
         return { action: 'created', id: invoice.id };
       }
     },
     onSuccess: (data) => {
       logAction(`NF CLIENTES: ${data.action === 'updated' ? 'Editou' : 'Criou'} nota`, { invoice_number: invoiceNumber, type: formType });
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoice_exit_links'] });
       toast.success(`Nota ${data.action === 'updated' ? 'atualizada' : 'registrada'} com sucesso!`);
       setDialogOpen(false);
       resetForm();
@@ -214,10 +270,12 @@ export default function ClientInvoices() {
     setYarnTypeId('');
     setArticleId('');
     setSupplierName('');
+    setComposition([{ yarn_type_id: '', percentage: '100' }]);
+    setExitLinks([]);
     setIssueDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
-  const handleEditInvoice = (inv: any) => {
+  const handleEditInvoice = async (inv: any) => {
     setEditingInvoice(inv);
     setFormType(inv.type);
     setSelectedClientId(inv.client_id);
@@ -231,6 +289,29 @@ export default function ClientInvoices() {
       setYarnTypeId(inv.items[0].yarn_type_id || '');
       setArticleId(inv.items[0].article_id || '');
     }
+    if (inv.type === 'saida') {
+      const comp = Array.isArray(inv.composition) ? inv.composition : [];
+      setComposition(comp.length > 0
+        ? comp.map((c: any) => ({ yarn_type_id: c.yarn_type_id || '', percentage: String(c.percentage ?? '') }))
+        : [{ yarn_type_id: '', percentage: '100' }]);
+      const links = exitLinksAll.filter((l: any) => l.exit_invoice_id === inv.id);
+      if (links.length > 0) {
+        setExitLinks(links.map((l: any) => ({
+          entry_invoice_id: l.entry_invoice_id,
+          yarn_type_id: l.yarn_type_id || null,
+          deduct_kg: String(l.deduct_kg ?? ''),
+        })));
+      } else if (inv.parent_invoice_id) {
+        // legado: vínculo único via parent_invoice_id
+        setExitLinks([{
+          entry_invoice_id: inv.parent_invoice_id,
+          yarn_type_id: null,
+          deduct_kg: String(inv.items?.[0]?.weight_kg ?? ''),
+        }]);
+      } else {
+        setExitLinks([]);
+      }
+    }
     setDialogOpen(true);
   };
 
@@ -239,6 +320,12 @@ export default function ClientInvoices() {
     setSelectedClientId(clientId);
     setFormType(type);
     setParentInvoiceId(parentId);
+    if (type === 'saida' && parentId) {
+      const parent = clientInvoices.find(i => i.id === parentId);
+      const yarn = parent?.items?.[0]?.yarn_type_id || '';
+      setComposition([{ yarn_type_id: yarn, percentage: '100' }]);
+      setExitLinks([{ entry_invoice_id: parentId, yarn_type_id: yarn || null, deduct_kg: '' }]);
+    }
     // Saída tem número de NF próprio (diferente da entrada). Não pré-preenchemos mais.
     setDialogOpen(true);
   };
@@ -417,6 +504,7 @@ export default function ClientInvoices() {
               clientId={tab.id} 
               invoices={clientInvoices.filter(i => i.client_id === tab.id)}
               allInvoices={clientInvoices}
+              exitLinksAll={exitLinksAll}
               allClients={allClients}
               allArticles={allArticles}
               yarnTypes={yarnTypes}
@@ -433,7 +521,7 @@ export default function ClientInvoices() {
 
       {/* Registration Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={cn(formType === 'saida' ? 'max-w-2xl max-h-[90vh] overflow-y-auto' : 'max-w-md')}>
           <DialogHeader>
             <DialogTitle>
               {editingInvoice ? 'Editar Nota' : (formType === 'entrada' ? 'Nova Entrada de Fio' : 'Nova Saída de Malha')}
@@ -511,19 +599,149 @@ export default function ClientInvoices() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
-                <Label>Artigo de Malha</Label>
-                <SearchableSelect
-                  options={allArticles.filter(a => a.client_id === selectedClientId).map(a => ({ value: a.id, label: a.name }))}
-                  value={articleId}
-                  onValueChange={setArticleId}
-                  placeholder={allArticles.filter(a => a.client_id === selectedClientId).length === 0 ? "Nenhum artigo cadastrado para este cliente" : "Selecione o artigo..."}
-                  disabled={allArticles.filter(a => a.client_id === selectedClientId).length === 0}
-                />
-                {allArticles.filter(a => a.client_id === selectedClientId).length === 0 && (
-                  <p className="text-[10px] text-destructive italic">Cadastre artigos para este cliente no menu Artigos</p>
-                )}
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label>Artigo de Malha</Label>
+                  <SearchableSelect
+                    options={allArticles.filter(a => a.client_id === selectedClientId).map(a => ({ value: a.id, label: a.name }))}
+                    value={articleId}
+                    onValueChange={setArticleId}
+                    placeholder={allArticles.filter(a => a.client_id === selectedClientId).length === 0 ? "Nenhum artigo cadastrado para este cliente" : "Selecione o artigo..."}
+                    disabled={allArticles.filter(a => a.client_id === selectedClientId).length === 0}
+                  />
+                  {allArticles.filter(a => a.client_id === selectedClientId).length === 0 && (
+                    <p className="text-[10px] text-destructive italic">Cadastre artigos para este cliente no menu Artigos</p>
+                  )}
+                </div>
+
+                {/* Composição de Fios (porcentagens) */}
+                <div className="space-y-2 border rounded-md p-3 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">Composição do Fio (%)</Label>
+                    <span className={cn(
+                      "text-[10px] font-medium",
+                      Math.abs(composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0) - 100) < 0.01
+                        ? "text-emerald-600" : "text-amber-600"
+                    )}>
+                      Total: {composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0).toFixed(2)}%
+                    </span>
+                  </div>
+                  {composition.map((c, idx) => (
+                    <div key={idx} className="grid grid-cols-[1fr_90px_32px] gap-2 items-center">
+                      <SearchableSelect
+                        options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
+                        value={c.yarn_type_id}
+                        onValueChange={(v) => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, yarn_type_id: v } : r))}
+                        placeholder="Tipo de fio..."
+                      />
+                      <Input
+                        type="number" step="0.01" placeholder="%"
+                        value={c.percentage}
+                        onChange={e => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, percentage: e.target.value } : r))}
+                      />
+                      <Button variant="ghost" size="icon" onClick={() => setComposition(prev => prev.filter((_, i) => i !== idx))} disabled={composition.length === 1}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setComposition(prev => [...prev, { yarn_type_id: '', percentage: '' }])}>
+                    <Plus className="h-3 w-3" /> Adicionar fio
+                  </Button>
+                </div>
+
+                {/* Vínculos com Notas de Entrada (multi) */}
+                <div className="space-y-2 border rounded-md p-3 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1">
+                      <Link2 className="h-3 w-3" /> Descontar de Notas de Entrada (opcional)
+                    </Label>
+                    <Button
+                      variant="outline" size="sm" className="gap-1 h-7 text-xs"
+                      onClick={() => {
+                        const totalKg = parseFloat(weightKg) || 0;
+                        const validComp = composition.filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0);
+                        if (totalKg <= 0 || validComp.length === 0) {
+                          toast.error('Informe o peso total e a composição antes de auto distribuir');
+                          return;
+                        }
+                        const newLinks: LinkRow[] = [];
+                        for (const comp of validComp) {
+                          let need = totalKg * (parseFloat(comp.percentage) / 100);
+                          // entradas do mesmo cliente, mesmo fio, com saldo > 0
+                          const candidates = clientInvoices
+                            .filter(i => i.type === 'entrada' && i.client_id === selectedClientId && i.items?.[0]?.yarn_type_id === comp.yarn_type_id)
+                            .map(i => {
+                              const weightEntrada = i.items?.[0]?.weight_kg || 0;
+                              const used = exitLinksAll
+                                .filter((l: any) => l.entry_invoice_id === i.id && (!editingInvoice || l.exit_invoice_id !== editingInvoice.id))
+                                .reduce((s: number, l: any) => s + Number(l.deduct_kg || 0), 0);
+                              return { id: i.id, saldo: Math.max(0, weightEntrada - used), date: i.issue_date };
+                            })
+                            .filter(c => c.saldo > 0.0001)
+                            .sort((a, b) => a.date.localeCompare(b.date));
+                          for (const cand of candidates) {
+                            if (need <= 0) break;
+                            const take = Math.min(need, cand.saldo);
+                            newLinks.push({ entry_invoice_id: cand.id, yarn_type_id: comp.yarn_type_id, deduct_kg: take.toFixed(3) });
+                            need -= take;
+                          }
+                          if (need > 0.0001) {
+                            toast.warning(`Saldo insuficiente em entradas para ${yarnTypes.find(y => y.id === comp.yarn_type_id)?.name}: faltam ${need.toFixed(3)} kg`);
+                          }
+                        }
+                        setExitLinks(newLinks);
+                      }}
+                    >
+                      <Wand2 className="h-3 w-3" /> Auto distribuir
+                    </Button>
+                  </div>
+
+                  {exitLinks.map((link, idx) => {
+                    const entryInv: any = clientInvoices.find(i => i.id === link.entry_invoice_id);
+                    return (
+                      <div key={idx} className="grid grid-cols-[1fr_100px_100px_32px] gap-2 items-center">
+                        <SearchableSelect
+                          options={clientInvoices
+                            .filter(i => i.type === 'entrada' && i.client_id === selectedClientId)
+                            .map(i => ({
+                              value: i.id,
+                              label: `NF ${i.invoice_number} · ${yarnTypes.find(y => y.id === i.items?.[0]?.yarn_type_id)?.name || '?'}`
+                            }))}
+                          value={link.entry_invoice_id}
+                          onValueChange={(v) => {
+                            const inv: any = clientInvoices.find(i => i.id === v);
+                            setExitLinks(prev => prev.map((r, i) => i === idx ? { ...r, entry_invoice_id: v, yarn_type_id: inv?.items?.[0]?.yarn_type_id || null } : r));
+                          }}
+                          placeholder="NF de entrada..."
+                        />
+                        <Input
+                          value={link.yarn_type_id ? (yarnTypes.find(y => y.id === link.yarn_type_id)?.name || '-') : (entryInv?.items?.[0]?.yarn_type_id ? yarnTypes.find(y => y.id === entryInv.items[0].yarn_type_id)?.name : '-')}
+                          readOnly
+                          className="text-xs bg-muted/40"
+                        />
+                        <Input
+                          type="number" step="0.001" placeholder="kg"
+                          value={link.deduct_kg}
+                          onChange={e => setExitLinks(prev => prev.map((r, i) => i === idx ? { ...r, deduct_kg: e.target.value } : r))}
+                        />
+                        <Button variant="ghost" size="icon" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs"
+                    onClick={() => setExitLinks(prev => [...prev, { entry_invoice_id: '', yarn_type_id: null, deduct_kg: '' }])}>
+                    <Plus className="h-3 w-3" /> Adicionar NF de entrada
+                  </Button>
+                  {exitLinks.length > 0 && (
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Total descontado: {exitLinks.reduce((s, l) => s + (parseFloat(l.deduct_kg) || 0), 0).toFixed(3)} kg
+                      {weightKg && ` / ${parseFloat(weightKg).toFixed(3)} kg da saída`}
+                    </p>
+                  )}
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -590,32 +808,44 @@ export default function ClientInvoices() {
                   <TableHead>Data</TableHead>
                   <TableHead>NF Saída</TableHead>
                   <TableHead>Artigo</TableHead>
-                  <TableHead className="text-right">Peso (kg)</TableHead>
+                  <TableHead className="text-right">Peso Saída</TableHead>
+                  <TableHead className="text-right">Descontado desta NF</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clientInvoices
-                  .filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent?.id)
-                  .map(s => (
-                    <TableRow key={s.id}>
-                      <TableCell className="text-xs">{format(new Date(s.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</TableCell>
-                      <TableCell className="font-medium">{s.invoice_number}</TableCell>
-                      <TableCell className="text-xs">{allArticles.find(a => a.id === s.items?.[0]?.article_id)?.name || '-'}</TableCell>
-                      <TableCell className="text-right font-medium">{formatWeight(s.items?.[0]?.weight_kg || 0)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => { setLinkedDialogOpen(false); handleEditInvoice(s); }}>
-                          <Edit2 className="h-3.5 w-3.5 text-primary" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(s.id)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                {clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent?.id).length === 0 && (
+                {(() => {
+                  if (!linkedParent) return null;
+                  const linksHere = exitLinksAll.filter((l: any) => l.entry_invoice_id === linkedParent.id);
+                  const linkedExitIds = new Set(linksHere.map((l: any) => l.exit_invoice_id));
+                  const legacy = clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent.id && !linkedExitIds.has(i.id));
+                  const linked = clientInvoices.filter(i => i.type === 'saida' && linkedExitIds.has(i.id));
+                  const rows = [...linked, ...legacy];
+                  return rows.map(s => {
+                    const deducted = linksHere.filter((l: any) => l.exit_invoice_id === s.id).reduce((sum: number, l: any) => sum + Number(l.deduct_kg || 0), 0)
+                      || (s.parent_invoice_id === linkedParent.id ? Number(s.items?.[0]?.weight_kg || 0) : 0);
+                    return (
+                      <TableRow key={s.id}>
+                        <TableCell className="text-xs">{format(new Date(s.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</TableCell>
+                        <TableCell className="font-medium">{s.invoice_number}</TableCell>
+                        <TableCell className="text-xs">{allArticles.find(a => a.id === s.items?.[0]?.article_id)?.name || '-'}</TableCell>
+                        <TableCell className="text-right font-medium">{formatWeight(s.items?.[0]?.weight_kg || 0)}</TableCell>
+                        <TableCell className="text-right text-amber-700 font-medium">{formatWeight(deducted)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => { setLinkedDialogOpen(false); handleEditInvoice(s); }}>
+                            <Edit2 className="h-3.5 w-3.5 text-primary" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(s.id)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  });
+                })()}
+                {linkedParent && exitLinksAll.filter((l: any) => l.entry_invoice_id === linkedParent.id).length === 0 && clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent?.id).length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-xs">
+                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-xs">
                       Nenhuma saída de malha vinculada a esta entrada.
                     </TableCell>
                   </TableRow>
@@ -642,7 +872,7 @@ export default function ClientInvoices() {
   );
 }
 
-function ClientDetailView({ clientId, invoices, allInvoices, allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd, onViewLinked }: any) {
+function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd, onViewLinked }: any) {
   const [activeSubTab, setActiveSubTab] = useState('aberto');
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
@@ -662,8 +892,15 @@ function ClientDetailView({ clientId, invoices, allInvoices, allClients, allArti
     return invoices
       .filter((inv: any) => inv.type === 'entrada')
       .map((inv: any) => {
-        const relatedSaidas = invoices.filter((i: any) => i.type === 'saida' && i.parent_invoice_id === inv.id);
-        const weightSaida = relatedSaidas.reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
+        // Novos vínculos (multi-NF + por tipo de fio)
+        const links = (exitLinksAll || []).filter((l: any) => l.entry_invoice_id === inv.id);
+        const weightFromLinks = links.reduce((s: number, l: any) => s + Number(l.deduct_kg || 0), 0);
+        const linkedExitIds = new Set(links.map((l: any) => l.exit_invoice_id));
+        // Legado: saídas que ainda usam parent_invoice_id sem nenhum vínculo na nova tabela
+        const legacySaidas = invoices.filter((i: any) => i.type === 'saida' && i.parent_invoice_id === inv.id && !linkedExitIds.has(i.id));
+        const weightLegacy = legacySaidas.reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
+        const weightSaida = weightFromLinks + weightLegacy;
+        const relatedSaidas = [...legacySaidas, ...invoices.filter((i: any) => i.type === 'saida' && linkedExitIds.has(i.id))];
         const weightEntrada = inv.items?.[0]?.weight_kg || 0;
         const saldo = Math.max(0, Number((weightEntrada - weightSaida).toFixed(3)));
         return {
@@ -676,7 +913,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, allClients, allArti
         };
       });
 
-  }, [invoices]);
+  }, [invoices, exitLinksAll]);
 
   const [localSearch, setLocalSearch] = useState('');
 
