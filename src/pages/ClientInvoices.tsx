@@ -482,9 +482,19 @@ export default function ClientInvoices() {
               <TableBody>
                 {clientInvoices
                   .filter(inv => {
-                    const q = searchTerm.toLowerCase();
+                    const q = searchTerm.toLowerCase().trim();
+                    if (!q && filterMonth === 'all') return true;
                     const client = allClients.find(c => c.id === inv.client_id)?.name || '';
-                    const matchSearch = inv.invoice_number.includes(q) || client.toLowerCase().includes(q);
+                    const itemName = inv.items?.[0]
+                      ? (inv.type === 'entrada'
+                          ? (yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name || '')
+                          : (allArticles.find(a => a.id === inv.items[0].article_id)?.name || ''))
+                      : '';
+                    const matchSearch = !q
+                      || inv.invoice_number.toLowerCase().includes(q)
+                      || client.toLowerCase().includes(q)
+                      || itemName.toLowerCase().includes(q)
+                      || (inv.supplier_name || '').toLowerCase().includes(q);
                     return matchSearch && (filterMonth === 'all' || inv.issue_date.startsWith(filterMonth));
                   })
                   .map(inv => (
