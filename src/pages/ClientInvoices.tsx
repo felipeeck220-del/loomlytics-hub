@@ -598,19 +598,149 @@ export default function ClientInvoices() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
-                <Label>Artigo de Malha</Label>
-                <SearchableSelect
-                  options={allArticles.filter(a => a.client_id === selectedClientId).map(a => ({ value: a.id, label: a.name }))}
-                  value={articleId}
-                  onValueChange={setArticleId}
-                  placeholder={allArticles.filter(a => a.client_id === selectedClientId).length === 0 ? "Nenhum artigo cadastrado para este cliente" : "Selecione o artigo..."}
-                  disabled={allArticles.filter(a => a.client_id === selectedClientId).length === 0}
-                />
-                {allArticles.filter(a => a.client_id === selectedClientId).length === 0 && (
-                  <p className="text-[10px] text-destructive italic">Cadastre artigos para este cliente no menu Artigos</p>
-                )}
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label>Artigo de Malha</Label>
+                  <SearchableSelect
+                    options={allArticles.filter(a => a.client_id === selectedClientId).map(a => ({ value: a.id, label: a.name }))}
+                    value={articleId}
+                    onValueChange={setArticleId}
+                    placeholder={allArticles.filter(a => a.client_id === selectedClientId).length === 0 ? "Nenhum artigo cadastrado para este cliente" : "Selecione o artigo..."}
+                    disabled={allArticles.filter(a => a.client_id === selectedClientId).length === 0}
+                  />
+                  {allArticles.filter(a => a.client_id === selectedClientId).length === 0 && (
+                    <p className="text-[10px] text-destructive italic">Cadastre artigos para este cliente no menu Artigos</p>
+                  )}
+                </div>
+
+                {/* Composição de Fios (porcentagens) */}
+                <div className="space-y-2 border rounded-md p-3 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">Composição do Fio (%)</Label>
+                    <span className={cn(
+                      "text-[10px] font-medium",
+                      Math.abs(composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0) - 100) < 0.01
+                        ? "text-emerald-600" : "text-amber-600"
+                    )}>
+                      Total: {composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0).toFixed(2)}%
+                    </span>
+                  </div>
+                  {composition.map((c, idx) => (
+                    <div key={idx} className="grid grid-cols-[1fr_90px_32px] gap-2 items-center">
+                      <SearchableSelect
+                        options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
+                        value={c.yarn_type_id}
+                        onValueChange={(v) => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, yarn_type_id: v } : r))}
+                        placeholder="Tipo de fio..."
+                      />
+                      <Input
+                        type="number" step="0.01" placeholder="%"
+                        value={c.percentage}
+                        onChange={e => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, percentage: e.target.value } : r))}
+                      />
+                      <Button variant="ghost" size="icon" onClick={() => setComposition(prev => prev.filter((_, i) => i !== idx))} disabled={composition.length === 1}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setComposition(prev => [...prev, { yarn_type_id: '', percentage: '' }])}>
+                    <Plus className="h-3 w-3" /> Adicionar fio
+                  </Button>
+                </div>
+
+                {/* Vínculos com Notas de Entrada (multi) */}
+                <div className="space-y-2 border rounded-md p-3 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1">
+                      <Link2 className="h-3 w-3" /> Descontar de Notas de Entrada (opcional)
+                    </Label>
+                    <Button
+                      variant="outline" size="sm" className="gap-1 h-7 text-xs"
+                      onClick={() => {
+                        const totalKg = parseFloat(weightKg) || 0;
+                        const validComp = composition.filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0);
+                        if (totalKg <= 0 || validComp.length === 0) {
+                          toast.error('Informe o peso total e a composição antes de auto distribuir');
+                          return;
+                        }
+                        const newLinks: LinkRow[] = [];
+                        for (const comp of validComp) {
+                          let need = totalKg * (parseFloat(comp.percentage) / 100);
+                          // entradas do mesmo cliente, mesmo fio, com saldo > 0
+                          const candidates = clientInvoices
+                            .filter(i => i.type === 'entrada' && i.client_id === selectedClientId && i.items?.[0]?.yarn_type_id === comp.yarn_type_id)
+                            .map(i => {
+                              const weightEntrada = i.items?.[0]?.weight_kg || 0;
+                              const used = exitLinksAll
+                                .filter((l: any) => l.entry_invoice_id === i.id && (!editingInvoice || l.exit_invoice_id !== editingInvoice.id))
+                                .reduce((s: number, l: any) => s + Number(l.deduct_kg || 0), 0);
+                              return { id: i.id, saldo: Math.max(0, weightEntrada - used), date: i.issue_date };
+                            })
+                            .filter(c => c.saldo > 0.0001)
+                            .sort((a, b) => a.date.localeCompare(b.date));
+                          for (const cand of candidates) {
+                            if (need <= 0) break;
+                            const take = Math.min(need, cand.saldo);
+                            newLinks.push({ entry_invoice_id: cand.id, yarn_type_id: comp.yarn_type_id, deduct_kg: take.toFixed(3) });
+                            need -= take;
+                          }
+                          if (need > 0.0001) {
+                            toast.warning(`Saldo insuficiente em entradas para ${yarnTypes.find(y => y.id === comp.yarn_type_id)?.name}: faltam ${need.toFixed(3)} kg`);
+                          }
+                        }
+                        setExitLinks(newLinks);
+                      }}
+                    >
+                      <Wand2 className="h-3 w-3" /> Auto distribuir
+                    </Button>
+                  </div>
+
+                  {exitLinks.map((link, idx) => {
+                    const entryInv: any = clientInvoices.find(i => i.id === link.entry_invoice_id);
+                    return (
+                      <div key={idx} className="grid grid-cols-[1fr_100px_100px_32px] gap-2 items-center">
+                        <SearchableSelect
+                          options={clientInvoices
+                            .filter(i => i.type === 'entrada' && i.client_id === selectedClientId)
+                            .map(i => ({
+                              value: i.id,
+                              label: `NF ${i.invoice_number} · ${yarnTypes.find(y => y.id === i.items?.[0]?.yarn_type_id)?.name || '?'}`
+                            }))}
+                          value={link.entry_invoice_id}
+                          onValueChange={(v) => {
+                            const inv: any = clientInvoices.find(i => i.id === v);
+                            setExitLinks(prev => prev.map((r, i) => i === idx ? { ...r, entry_invoice_id: v, yarn_type_id: inv?.items?.[0]?.yarn_type_id || null } : r));
+                          }}
+                          placeholder="NF de entrada..."
+                        />
+                        <Input
+                          value={link.yarn_type_id ? (yarnTypes.find(y => y.id === link.yarn_type_id)?.name || '-') : (entryInv?.items?.[0]?.yarn_type_id ? yarnTypes.find(y => y.id === entryInv.items[0].yarn_type_id)?.name : '-')}
+                          readOnly
+                          className="text-xs bg-muted/40"
+                        />
+                        <Input
+                          type="number" step="0.001" placeholder="kg"
+                          value={link.deduct_kg}
+                          onChange={e => setExitLinks(prev => prev.map((r, i) => i === idx ? { ...r, deduct_kg: e.target.value } : r))}
+                        />
+                        <Button variant="ghost" size="icon" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs"
+                    onClick={() => setExitLinks(prev => [...prev, { entry_invoice_id: '', yarn_type_id: null, deduct_kg: '' }])}>
+                    <Plus className="h-3 w-3" /> Adicionar NF de entrada
+                  </Button>
+                  {exitLinks.length > 0 && (
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Total descontado: {exitLinks.reduce((s, l) => s + (parseFloat(l.deduct_kg) || 0), 0).toFixed(3)} kg
+                      {weightKg && ` / ${parseFloat(weightKg).toFixed(3)} kg da saída`}
+                    </p>
+                  )}
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
