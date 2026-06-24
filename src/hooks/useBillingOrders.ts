@@ -456,6 +456,13 @@ export function useBillingOrders() {
         payload.weight_real = null;
         payload.weight_avg = null;
         payload.separated_by = null;
+        // Limpa NF/Romaneio: se a OF voltar para Aberto, qualquer documento já
+        // registrado deixa de valer (separação vai recomeçar e o admin precisa
+        // lançar um novo documento quando a OF voltar para "Aguardando NF/ROM").
+        payload.delivery_doc_type = null;
+        payload.delivery_doc_number = null;
+        payload.delivery_doc_set_by = null;
+        payload.delivery_doc_set_at = null;
       }
       const { error } = await supabase
         .from('billing_orders')
@@ -527,6 +534,18 @@ export function useBillingOrders() {
     setDeliveryDoc: async ({ id, type, number }: { id: string; type: 'nf' | 'romaneio'; number: string }) => {
       if (!number || number.trim().length < 1) {
         throw new Error('Informe o número do documento');
+      }
+      // Guarda defensiva: só permite registrar NF/Romaneio em OFs que estão
+      // efetivamente prontas (separadas). Evita corrida de cliques entre
+      // abas/usuários onde a OF pode ter sido cancelada/revertida/coletada.
+      const { data: cur } = await supabase
+        .from('billing_orders')
+        .select('status')
+        .eq('id', id)
+        .maybeSingle();
+      if (!cur) throw new Error('OF não encontrada');
+      if ((cur as any).status !== 'ready') {
+        throw new Error('Só é possível lançar NF/Romaneio em OFs prontas (já separadas).');
       }
       const { error } = await supabase
         .from('billing_orders' as any)

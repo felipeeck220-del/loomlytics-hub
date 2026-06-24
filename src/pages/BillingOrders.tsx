@@ -77,9 +77,6 @@ const BillingOrders = () => {
   });
   const [datePreset, setDatePreset] = useState<'7d' | '30d' | 'custom'>('30d');
 
-  // Filtro da aba Pronto: todas / com doc / sem doc
-  const [readyDocFilter, setReadyDocFilter] = useState<'all' | 'with' | 'without'>('all');
-
   // Aviso de saldo negativo ao criar OF
   const [negativeWarning, setNegativeWarning] = useState<null | {
     currentKg: number; currentPieces: number;
@@ -944,7 +941,9 @@ const BillingOrders = () => {
             value="awaiting_doc"
             className={cn(
               'gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial',
-              stats.readyWithoutDoc > 0 && 'text-violet-700 data-[state=active]:bg-violet-600 data-[state=active]:text-white'
+              stats.readyWithoutDoc > 0 && 'text-violet-700 data-[state=active]:bg-violet-600 data-[state=active]:text-white',
+              // Pulsa para o admin enquanto houver OFs aguardando lançamento de NF/Romaneio
+              isAdmin && stats.readyWithoutDoc > 0 && 'animate-pulse'
             )}
           >
             <FileText className="h-3 w-3" /> Aguardando NF/ROM
@@ -1637,8 +1636,12 @@ const BillingOrders = () => {
           </DialogHeader>
           {showEditModal && (showEditModal.status === 'separating' || showEditModal.status === 'ready') && (
             <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200">
-              <strong>Atenção:</strong> esta OF já está em <strong>{showEditModal.status === 'ready' ? 'Pronta' : 'Separação'}</strong>.
-              Ao salvar, ela voltará para <strong>Aberto</strong> para que a expedição faça uma nova separação. Os dados reais já lançados (peças/peso) serão limpos. Informe um motivo claro abaixo.
+              <strong>Atenção:</strong> esta OF já está em <strong>{
+                showEditModal.status === 'ready'
+                  ? ((showEditModal as any).delivery_doc_number ? 'Pronto para Coleta' : 'Aguardando NF/ROM')
+                  : 'Separação'
+              }</strong>.
+              Ao salvar, ela voltará para <strong>Aberto</strong> para que a expedição faça uma nova separação. Os dados reais já lançados (peças/peso){showEditModal.status === 'ready' ? ' e a NF/Romaneio registrada' : ''} serão limpos. Informe um motivo claro abaixo.
             </div>
           )}
           <div className="grid gap-3 py-2 max-h-[60vh] overflow-y-auto pr-1">
