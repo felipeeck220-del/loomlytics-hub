@@ -77,9 +77,6 @@ const BillingOrders = () => {
   });
   const [datePreset, setDatePreset] = useState<'7d' | '30d' | 'custom'>('30d');
 
-  // Filtro da aba Pronto: todas / com doc / sem doc
-  const [readyDocFilter, setReadyDocFilter] = useState<'all' | 'with' | 'without'>('all');
-
   // Aviso de saldo negativo ao criar OF
   const [negativeWarning, setNegativeWarning] = useState<null | {
     currentKg: number; currentPieces: number;
