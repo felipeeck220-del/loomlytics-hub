@@ -427,8 +427,7 @@ async function finalizeShift(supabase: any, device: any, state: any) {
   const brasiliaDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
   const dateStr = brasiliaDate.toISOString().split("T")[0];
 
-  // Insert production record
-  await supabase.from("productions").insert({
+  const payload = {
     company_id: device.company_id,
     machine_id: state.machine_id,
     machine_name: machine?.name || null,
@@ -445,7 +444,14 @@ async function finalizeShift(supabase: any, device: any, state: any) {
     efficiency: Math.round(efficiency * 100) / 100,
     created_by_name: "IoT",
     created_by_code: "IOT",
-  });
+  };
+
+  if (state.production_id) {
+    // Finalize the realtime-mirrored row instead of duplicating
+    await supabase.from("productions").update(payload).eq("id", state.production_id);
+  } else {
+    await supabase.from("productions").insert(payload);
+  }
 }
 
 async function startNewShift(supabase: any, device: any, newShift: string, rollPosition: number) {
