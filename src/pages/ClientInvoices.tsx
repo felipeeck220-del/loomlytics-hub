@@ -860,7 +860,7 @@ export default function ClientInvoices() {
   );
 }
 
-function ClientDetailView({ clientId, invoices, allInvoices, allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd, onViewLinked }: any) {
+function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd, onViewLinked }: any) {
   const [activeSubTab, setActiveSubTab] = useState('aberto');
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
@@ -880,8 +880,15 @@ function ClientDetailView({ clientId, invoices, allInvoices, allClients, allArti
     return invoices
       .filter((inv: any) => inv.type === 'entrada')
       .map((inv: any) => {
-        const relatedSaidas = invoices.filter((i: any) => i.type === 'saida' && i.parent_invoice_id === inv.id);
-        const weightSaida = relatedSaidas.reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
+        // Novos vínculos (multi-NF + por tipo de fio)
+        const links = (exitLinksAll || []).filter((l: any) => l.entry_invoice_id === inv.id);
+        const weightFromLinks = links.reduce((s: number, l: any) => s + Number(l.deduct_kg || 0), 0);
+        const linkedExitIds = new Set(links.map((l: any) => l.exit_invoice_id));
+        // Legado: saídas que ainda usam parent_invoice_id sem nenhum vínculo na nova tabela
+        const legacySaidas = invoices.filter((i: any) => i.type === 'saida' && i.parent_invoice_id === inv.id && !linkedExitIds.has(i.id));
+        const weightLegacy = legacySaidas.reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
+        const weightSaida = weightFromLinks + weightLegacy;
+        const relatedSaidas = [...legacySaidas, ...invoices.filter((i: any) => i.type === 'saida' && linkedExitIds.has(i.id))];
         const weightEntrada = inv.items?.[0]?.weight_kg || 0;
         const saldo = Math.max(0, Number((weightEntrada - weightSaida).toFixed(3)));
         return {
@@ -894,7 +901,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, allClients, allArti
         };
       });
 
-  }, [invoices]);
+  }, [invoices, exitLinksAll]);
 
   const [localSearch, setLocalSearch] = useState('');
 
