@@ -29,7 +29,7 @@ const BillingOrders = () => {
   const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc, linkOrders, unlinkGroup, removeFromGroup } = useBillingOrders() as any;
 
   const isAdmin = role === 'admin';
-  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab'>('open');
+  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab' | 'awaiting_doc'>('open');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
@@ -217,15 +217,24 @@ const BillingOrders = () => {
         return order.status === 'open' && !order.priority && matchesSearch;
       }
 
+      // "Aguardando NF/ROM" = OF pronta (separada) mas sem NF/Romaneio lançado
+      if (activeTab === 'awaiting_doc') {
+        if (order.status !== 'ready') return false;
+        if (!!(order as any).delivery_doc_number) return false;
+        if (!matchesSearch) return false;
+        return true;
+      }
+
+      // "Pronto para coleta" = OF pronta COM NF/Romaneio já lançado
+      if (activeTab === 'ready') {
+        if (order.status !== 'ready') return false;
+        if (!(order as any).delivery_doc_number) return false;
+        if (!matchesSearch) return false;
+        return true;
+      }
+
       if (order.status !== activeTab) return false;
       if (!matchesSearch) return false;
-
-      // Filtro específico para "Pronto": com / sem documento
-      if (activeTab === 'ready') {
-        const hasDoc = !!(order as any).delivery_doc_number;
-        if (readyDocFilter === 'with' && !hasDoc) return false;
-        if (readyDocFilter === 'without' && hasDoc) return false;
-      }
 
       // Filtros específicos para "Coletadas"
       if (activeTab === 'collected') {
@@ -250,7 +259,7 @@ const BillingOrders = () => {
 
       return true;
     });
-  }, [orders, searchTerm, activeTab, filterDateRange, datePreset, readyDocFilter]);
+  }, [orders, searchTerm, activeTab, filterDateRange, datePreset]);
 
   const stats = useMemo(() => {
     return {
@@ -931,8 +940,21 @@ const BillingOrders = () => {
           <TabsTrigger value="separating" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Separando <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.separating}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="ready" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
-            Pronto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.ready}</Badge>
+          <TabsTrigger
+            value="awaiting_doc"
+            className={cn(
+              'gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial',
+              stats.readyWithoutDoc > 0 && 'text-violet-700 data-[state=active]:bg-violet-600 data-[state=active]:text-white'
+            )}
+          >
+            <FileText className="h-3 w-3" /> Aguardando NF/ROM
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithoutDoc}</Badge>
+          </TabsTrigger>
+          <TabsTrigger
+            value="ready"
+            className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+          >
+            Pronto para coleta <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{stats.readyWithDoc}</Badge>
           </TabsTrigger>
           <TabsTrigger value="collected" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Coletadas
@@ -942,38 +964,10 @@ const BillingOrders = () => {
           </TabsTrigger>
         </TabsList>
 
-        {activeTab === 'ready' && (
-          <Card className="mt-4 border-dashed bg-muted/30">
-            <CardContent className="p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Label className="text-xs uppercase text-muted-foreground font-bold mr-2">Documento:</Label>
-                <Button
-                  size="sm"
-                  variant={readyDocFilter === 'all' ? 'default' : 'outline'}
-                  className="h-8 text-xs gap-1.5"
-                  onClick={() => setReadyDocFilter('all')}
-                >
-                  Todos <Badge variant="secondary" className="text-[10px] px-1 h-4">{stats.ready}</Badge>
-                </Button>
-                <Button
-                  size="sm"
-                  variant={readyDocFilter === 'without' ? 'default' : 'outline'}
-                  className={cn('h-8 text-xs gap-1.5', readyDocFilter === 'without' && 'bg-violet-600 hover:bg-violet-700 text-white')}
-                  onClick={() => setReadyDocFilter('without')}
-                >
-                  <FileText className="h-3 w-3" /> Sem NF/Romaneio
-                  <Badge variant="secondary" className="text-[10px] px-1 h-4">{stats.readyWithoutDoc}</Badge>
-                </Button>
-                <Button
-                  size="sm"
-                  variant={readyDocFilter === 'with' ? 'default' : 'outline'}
-                  className={cn('h-8 text-xs gap-1.5', readyDocFilter === 'with' && 'bg-emerald-600 hover:bg-emerald-700 text-white')}
-                  onClick={() => setReadyDocFilter('with')}
-                >
-                  <FileText className="h-3 w-3" /> Com NF/Romaneio
-                  <Badge variant="secondary" className="text-[10px] px-1 h-4">{stats.readyWithDoc}</Badge>
-                </Button>
-              </div>
+        {activeTab === 'awaiting_doc' && (
+          <Card className="mt-4 border-dashed bg-violet-500/5 border-violet-400/40">
+            <CardContent className="p-3 text-xs text-violet-900 dark:text-violet-200">
+              <strong>Aguardando NF/ROM</strong> — OFs já separadas. Lance a <strong>NF</strong> ou o <strong>Romaneio</strong> (apenas admin) para liberar a OF para a aba <strong>Pronto para coleta</strong>.
             </CardContent>
           </Card>
         )}
@@ -1305,7 +1299,7 @@ const BillingOrders = () => {
                             <Boxes className="h-4 w-4" /> Paletes
                           </Button>
                         )}
-                        {order.status === 'ready' && (role === 'expedicao' || isAdmin) && (
+                        {order.status === 'ready' && !!(order as any).delivery_doc_number && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
                             className="gap-1.5 bg-sky-600 hover:bg-sky-700 text-white"
