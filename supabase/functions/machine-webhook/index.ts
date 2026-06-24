@@ -83,11 +83,10 @@ Deno.serve(async (req) => {
       wifi_rssi,
     });
 
-    // 5. Update machine RPM in real-time
-    await supabase
-      .from("machines")
-      .update({ rpm: Math.round(safeRpm) })
-      .eq("id", machine_id);
+    // 5. (Removido) NÃO sobrescrever `machines.rpm` — essa coluna é o RPM-alvo
+    //    configurado pelo usuário. Sobrescrevê-la corrompia o cálculo de eficiência
+    //    (a base do alvo virava o próprio valor instantâneo). O RPM ao vivo já
+    //    é persistido em `machine_readings` neste mesmo POST.
 
     // 6. Get previous reading to calculate delta
     const { data: lastReadings } = await supabase
@@ -178,7 +177,7 @@ Deno.serve(async (req) => {
 
     // 9b. Real-time production upsert (mirrors current shift state into productions)
     if (machine.article_id) {
-      await upsertRealtimeProduction(supabase, device, currentShift);
+      await upsertRealtimeProduction(supabase, device, currentShift, machine.target_rpm);
     }
 
     // 10. Check shift change
@@ -364,10 +363,10 @@ async function finalizeShift(supabase: any, device: any, state: any) {
   const weightKg = fractionalRolls * (article.weight_per_roll || 0);
   const revenue = weightKg * (article.value_per_kg || 0);
 
-  // Get machine info
+  // Get machine info (PostgREST alias = `alias:col`, não SQL `col as alias`)
   const { data: machine } = await supabase
     .from("machines")
-    .select("name, rpm as target_rpm")
+    .select("name, target_rpm:rpm")
     .eq("id", state.machine_id)
     .single();
 
@@ -517,7 +516,7 @@ async function getAssignedWeaver(supabase: any, machineId: string, companyId: st
 // Real-time mirror: write/update a productions row for the current IoT shift state.
 // Uses iot_shift_state.production_id so each shift has exactly one row that grows
 // as turns accumulate. Cleared on shift change in startNewShift (next row created).
-async function upsertRealtimeProduction(supabase: any, device: any, currentShift: string) {
+async function upsertRealtimeProduction(supabase: any, device: any, currentShift: string, targetRpmFromCaller?: number) {
   const { machine_id, company_id } = device;
 
   const { data: state } = await supabase
@@ -553,11 +552,11 @@ async function upsertRealtimeProduction(supabase: any, device: any, currentShift
 
   const { data: machine } = await supabase
     .from("machines")
-    .select("name, rpm")
+    .select("name, target_rpm:rpm")
     .eq("id", machine_id)
     .single();
 
-  const targetRpm = machine?.rpm || 25;
+  const targetRpm = targetRpmFromCaller || (machine as any)?.target_rpm || 25;
   const efficiency = targetRpm > 0 ? Math.min((avgRpm / targetRpm) * 100, 999) : 0;
 
   let weaverName: string | null = null;
