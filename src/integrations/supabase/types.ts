@@ -612,6 +612,7 @@ export type Database = {
           issue_date: string
           observations: string | null
           parent_invoice_id: string | null
+          supplier_name: string | null
           type: Database["public"]["Enums"]["client_invoice_type"]
           updated_at: string
         }
@@ -626,6 +627,7 @@ export type Database = {
           issue_date: string
           observations?: string | null
           parent_invoice_id?: string | null
+          supplier_name?: string | null
           type: Database["public"]["Enums"]["client_invoice_type"]
           updated_at?: string
         }
@@ -640,6 +642,7 @@ export type Database = {
           issue_date?: string
           observations?: string | null
           parent_invoice_id?: string | null
+          supplier_name?: string | null
           type?: Database["public"]["Enums"]["client_invoice_type"]
           updated_at?: string
         }
