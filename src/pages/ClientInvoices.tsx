@@ -152,6 +152,9 @@ export default function ClientInvoices() {
           }
         }
         const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
+        if (validLinks.length === 0) {
+          throw new Error('Selecione ao menos uma NF de entrada para descontar (a primeira é obrigatória).');
+        }
         if (validLinks.length > 0) {
           const totalDeduct = validLinks.reduce((s, l) => s + (parseFloat(l.deduct_kg) || 0), 0);
           const peso = parseFloat(weightKg) || 0;
@@ -591,17 +594,34 @@ export default function ClientInvoices() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Cliente</Label>
-              <SearchableSelect
-                options={allClients.map(c => ({ value: c.id, label: c.name }))}
-                value={selectedClientId}
-                onValueChange={setSelectedClientId}
-                placeholder="Selecione o cliente..."
-                disabled={activeTabId !== 'search'}
-              />
-              {activeTabId !== 'search' && (
-                <p className="text-[10px] text-muted-foreground italic">Cliente fixado pela aba ativa</p>
+            <div className={cn("grid gap-4", formType === 'saida' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1')}>
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <SearchableSelect
+                  options={allClients.map(c => ({ value: c.id, label: c.name }))}
+                  value={selectedClientId}
+                  onValueChange={setSelectedClientId}
+                  placeholder="Selecione o cliente..."
+                  disabled={activeTabId !== 'search'}
+                />
+                {activeTabId !== 'search' && (
+                  <p className="text-[10px] text-muted-foreground italic">Cliente fixado pela aba ativa</p>
+                )}
+              </div>
+              {formType === 'saida' && (
+                <div className="space-y-2">
+                  <Label>Artigo de Malha</Label>
+                  <SearchableSelect
+                    options={allArticles.filter(a => a.client_id === selectedClientId).map(a => ({ value: a.id, label: a.name }))}
+                    value={articleId}
+                    onValueChange={setArticleId}
+                    placeholder={allArticles.filter(a => a.client_id === selectedClientId).length === 0 ? "Nenhum artigo cadastrado para este cliente" : "Selecione o artigo..."}
+                    disabled={allArticles.filter(a => a.client_id === selectedClientId).length === 0}
+                  />
+                  {allArticles.filter(a => a.client_id === selectedClientId).length === 0 && (
+                    <p className="text-[10px] text-destructive italic">Cadastre artigos para este cliente no menu Artigos</p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -648,26 +668,13 @@ export default function ClientInvoices() {
               </div>
             ) : (
               <>
-                <div className="space-y-2">
-                  <Label>Artigo de Malha</Label>
-                  <SearchableSelect
-                    options={allArticles.filter(a => a.client_id === selectedClientId).map(a => ({ value: a.id, label: a.name }))}
-                    value={articleId}
-                    onValueChange={setArticleId}
-                    placeholder={allArticles.filter(a => a.client_id === selectedClientId).length === 0 ? "Nenhum artigo cadastrado para este cliente" : "Selecione o artigo..."}
-                    disabled={allArticles.filter(a => a.client_id === selectedClientId).length === 0}
-                  />
-                  {allArticles.filter(a => a.client_id === selectedClientId).length === 0 && (
-                    <p className="text-[10px] text-destructive italic">Cadastre artigos para este cliente no menu Artigos</p>
-                  )}
-                </div>
-
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {/* Vínculos com Notas de Entrada (multi) — vem PRIMEIRO para alimentar a composição */}
                 <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold flex items-center gap-1">
-                      <Link2 className="h-3 w-3" /> Descontar de Notas de Entrada (opcional)
+                      <Link2 className="h-3 w-3" /> Descontar de Notas de Entrada
+                      <span className="text-[10px] font-normal text-muted-foreground ml-1">(1ª obrigatória · demais opcionais)</span>
                     </Label>
                     <Button
                       variant="outline" size="sm" className="gap-1 h-7 text-xs"
