@@ -504,6 +504,7 @@ export default function ClientInvoices() {
               clientId={tab.id} 
               invoices={clientInvoices.filter(i => i.client_id === tab.id)}
               allInvoices={clientInvoices}
+              exitLinksAll={exitLinksAll}
               allClients={allClients}
               allArticles={allArticles}
               yarnTypes={yarnTypes}
