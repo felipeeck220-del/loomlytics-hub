@@ -520,7 +520,7 @@ export default function ClientInvoices() {
 
       {/* Registration Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={cn(formType === 'saida' ? 'max-w-2xl max-h-[90vh] overflow-y-auto' : 'max-w-md')}>
           <DialogHeader>
             <DialogTitle>
               {editingInvoice ? 'Editar Nota' : (formType === 'entrada' ? 'Nova Entrada de Fio' : 'Nova Saída de Malha')}
