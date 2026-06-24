@@ -1223,8 +1223,8 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
 
             {filteredInvoices.length === 0 && (
               <TableRow>
-                <TableCell colSpan={activeSubTab === 'historico' ? 7 : 9} className="text-center py-8 text-muted-foreground">
-                  Nenhuma nota {activeSubTab === 'aberto' ? 'em aberto' : 'encerrada'} para este cliente.
+                <TableCell colSpan={activeSubTab === 'historico' ? 8 : 9} className="text-center py-8 text-muted-foreground">
+                  Nenhuma nota {activeSubTab === 'aberto' ? 'em aberto' : activeSubTab === 'encerrada' ? 'encerrada' : 'encontrada'} para este cliente.
                 </TableCell>
               </TableRow>
             )}
