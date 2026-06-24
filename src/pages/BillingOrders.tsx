@@ -29,7 +29,7 @@ const BillingOrders = () => {
   const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc, linkOrders, unlinkGroup, removeFromGroup } = useBillingOrders() as any;
 
   const isAdmin = role === 'admin';
-  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab'>('open');
+  const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab' | 'awaiting_doc'>('open');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLaunchModal, setShowLaunchModal] = useState<any>(null);
@@ -217,15 +217,24 @@ const BillingOrders = () => {
         return order.status === 'open' && !order.priority && matchesSearch;
       }
 
+      // "Aguardando NF/ROM" = OF pronta (separada) mas sem NF/Romaneio lançado
+      if (activeTab === 'awaiting_doc') {
+        if (order.status !== 'ready') return false;
+        if (!!(order as any).delivery_doc_number) return false;
+        if (!matchesSearch) return false;
+        return true;
+      }
+
+      // "Pronto para coleta" = OF pronta COM NF/Romaneio já lançado
+      if (activeTab === 'ready') {
+        if (order.status !== 'ready') return false;
+        if (!(order as any).delivery_doc_number) return false;
+        if (!matchesSearch) return false;
+        return true;
+      }
+
       if (order.status !== activeTab) return false;
       if (!matchesSearch) return false;
-
-      // Filtro específico para "Pronto": com / sem documento
-      if (activeTab === 'ready') {
-        const hasDoc = !!(order as any).delivery_doc_number;
-        if (readyDocFilter === 'with' && !hasDoc) return false;
-        if (readyDocFilter === 'without' && hasDoc) return false;
-      }
 
       // Filtros específicos para "Coletadas"
       if (activeTab === 'collected') {
@@ -250,7 +259,7 @@ const BillingOrders = () => {
 
       return true;
     });
-  }, [orders, searchTerm, activeTab, filterDateRange, datePreset, readyDocFilter]);
+  }, [orders, searchTerm, activeTab, filterDateRange, datePreset]);
 
   const stats = useMemo(() => {
     return {
