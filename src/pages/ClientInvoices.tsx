@@ -471,13 +471,15 @@ export default function ClientInvoices() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Número da NF</Label>
-                {parentInvoiceId ? (
-                  <div className="p-2 border rounded-md bg-muted/50 text-sm font-medium flex justify-between items-center">
-                    <span>{invoiceNumber}</span>
-                    <span className="text-[10px] text-amber-600 font-bold uppercase">Trava Ativa</span>
-                  </div>
-                ) : (
-                  <Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} />
+                <Input
+                  value={invoiceNumber}
+                  onChange={e => setInvoiceNumber(e.target.value)}
+                  placeholder={parentInvoiceId ? 'Número da NF de saída' : 'Número da NF'}
+                />
+                {parentInvoiceId && (
+                  <p className="text-[10px] text-muted-foreground italic">
+                    Vinculada à entrada {clientInvoices.find(i => i.id === parentInvoiceId)?.invoice_number} — informe o número da NF de saída.
+                  </p>
                 )}
               </div>
 
@@ -488,14 +490,24 @@ export default function ClientInvoices() {
             </div>
 
             {formType === 'entrada' ? (
-              <div className="space-y-2">
-                <Label>Tipo de Fio</Label>
-                <SearchableSelect
-                  options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
-                  value={yarnTypeId}
-                  onValueChange={setYarnTypeId}
-                  placeholder="Selecione o fio..."
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Tipo de Fio</Label>
+                  <SearchableSelect
+                    options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
+                    value={yarnTypeId}
+                    onValueChange={setYarnTypeId}
+                    placeholder="Selecione o fio..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Fornecedor</Label>
+                  <Input
+                    value={supplierName}
+                    onChange={e => setSupplierName(e.target.value)}
+                    placeholder="Nome do fornecedor do fio"
+                  />
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
