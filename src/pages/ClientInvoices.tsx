@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { formatWeight, getDateLimits } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import {
-  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle, ArrowUpRight, CheckCircle2, Clock, History, List, Truck
+  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle, ArrowUpRight, CheckCircle2, Clock, History, List, Truck, Wand2, Link2
 } from 'lucide-react';
 
 import { format } from 'date-fns';
@@ -68,6 +68,12 @@ export default function ClientInvoices() {
   const [observations, setObservations] = useState('');
   const [supplierName, setSupplierName] = useState('');
 
+  // Saída de Malha: composição de fios (porcentagens) e vínculos com múltiplas entradas
+  type CompRow = { yarn_type_id: string; percentage: string };
+  type LinkRow = { entry_invoice_id: string; yarn_type_id: string | null; deduct_kg: string };
+  const [composition, setComposition] = useState<CompRow[]>([{ yarn_type_id: '', percentage: '100' }]);
+  const [exitLinks, setExitLinks] = useState<LinkRow[]>([]);
+
   // Modal de saídas vinculadas a uma entrada
   const [linkedDialogOpen, setLinkedDialogOpen] = useState(false);
   const [linkedParent, setLinkedParent] = useState<any>(null);
@@ -86,6 +92,20 @@ export default function ClientInvoices() {
         .select('*, items:client_invoice_items(*)')
         .eq('company_id', companyId)
         .order('issue_date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
+  // Vínculos de saídas com entradas (multi-NF + por tipo de fio)
+  const { data: exitLinksAll = [] } = useQuery({
+    queryKey: ['client_invoice_exit_links', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_invoice_exit_links')
+        .select('*')
+        .eq('company_id', companyId);
       if (error) throw error;
       return data || [];
     },
