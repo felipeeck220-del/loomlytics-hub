@@ -357,7 +357,24 @@ export default function Machines() {
                 {STATUS_ICONS[m.status]}
                 <span className="font-display font-bold text-foreground text-lg">{m.name}</span>
               </div>
-              <Badge className={cn("text-xs", MACHINE_STATUS_COLORS[m.status])}>{MACHINE_STATUS_LABELS[m.status]}</Badge>
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                <Badge className={cn("text-xs", MACHINE_STATUS_COLORS[m.status])}>{MACHINE_STATUS_LABELS[m.status]}</Badge>
+                {(m as any).production_mode === 'iot' && (
+                  iotByMachine[m.id]?.online ? (
+                    <Badge className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 gap-1">
+                      <Wifi className="h-3 w-3" /> IoT Online
+                    </Badge>
+                  ) : iotByMachine[m.id] ? (
+                    <Badge variant="outline" className="text-xs text-muted-foreground gap-1">
+                      <WifiOff className="h-3 w-3" /> IoT Offline
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-500/30 gap-1">
+                      <WifiOff className="h-3 w-3" /> IoT sem dispositivo
+                    </Badge>
+                  )
+                )}
+              </div>
             </div>
 
             {/* Card Info */}
