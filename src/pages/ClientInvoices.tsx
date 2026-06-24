@@ -664,11 +664,15 @@ export default function ClientInvoices() {
 
                   {exitLinks.map((link, idx) => {
                     const entryInv: any = clientInvoices.find(i => i.id === link.entry_invoice_id);
+                    const usedEntryIds = exitLinks
+                      .filter((_, i) => i !== idx)
+                      .map(r => r.entry_invoice_id)
+                      .filter(Boolean);
                     return (
                       <div key={idx} className="grid grid-cols-[1fr_100px_100px_32px] gap-2 items-center">
                         <SearchableSelect
                           options={clientInvoices
-                            .filter(i => i.type === 'entrada' && i.client_id === selectedClientId)
+                            .filter(i => i.type === 'entrada' && i.client_id === selectedClientId && (!usedEntryIds.includes(i.id) || i.id === link.entry_invoice_id))
                             .map(i => ({
                               value: i.id,
                               label: `NF ${i.invoice_number} · ${yarnTypes.find(y => y.id === i.items?.[0]?.yarn_type_id)?.name || '?'}`
