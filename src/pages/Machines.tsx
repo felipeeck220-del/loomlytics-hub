@@ -73,6 +73,28 @@ export default function Machines() {
   const [searchTerm, setSearchTerm] = useState('');
   const [maintenanceViewMachine, setMaintenanceViewMachine] = useState<Machine | null>(null);
   const isMobile = useIsMobile();
+  const [iotDevices, setIotDevices] = useState<Array<{ machine_id: string; active: boolean; last_seen_at: string | null }>>([]);
+
+  useEffect(() => {
+    let alive = true;
+    const companyId = (user as any)?.company_id;
+    if (!companyId) return;
+    const load = async () => {
+      const { data } = await (supabase.from as any)('iot_devices')
+        .select('machine_id, active, last_seen_at')
+        .eq('company_id', companyId);
+      if (alive) setIotDevices(data || []);
+    };
+    load();
+    const t = setInterval(load, 15000);
+    return () => { alive = false; clearInterval(t); };
+  }, [user]);
+
+  const iotByMachine: Record<string, { active: boolean; online: boolean }> = {};
+  iotDevices.forEach(d => {
+    const online = !!d.last_seen_at && (Date.now() - new Date(d.last_seen_at).getTime() < 5 * 60 * 1000);
+    iotByMachine[d.machine_id] = { active: d.active, online };
+  });
    const [form, setForm] = useState({ 
      number: '', rpm: '', status: 'ativa' as MachineStatus, article_id: 'none', observations: '',
     model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', serial_number: '', year: '',
