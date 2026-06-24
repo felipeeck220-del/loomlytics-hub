@@ -541,6 +541,51 @@ export type Database = {
           },
         ]
       }
+      client_invoice_exit_links: {
+        Row: {
+          company_id: string
+          created_at: string
+          deduct_kg: number
+          entry_invoice_id: string
+          exit_invoice_id: string
+          id: string
+          yarn_type_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          deduct_kg?: number
+          entry_invoice_id: string
+          exit_invoice_id: string
+          id?: string
+          yarn_type_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          deduct_kg?: number
+          entry_invoice_id?: string
+          exit_invoice_id?: string
+          id?: string
+          yarn_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invoice_exit_links_entry_invoice_id_fkey"
+            columns: ["entry_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "client_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invoice_exit_links_exit_invoice_id_fkey"
+            columns: ["exit_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "client_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_invoice_items: {
         Row: {
           article_id: string | null
@@ -604,6 +649,7 @@ export type Database = {
         Row: {
           client_id: string
           company_id: string
+          composition: Json | null
           created_at: string
           created_by_code: string | null
           created_by_name: string | null
@@ -619,6 +665,7 @@ export type Database = {
         Insert: {
           client_id: string
           company_id: string
+          composition?: Json | null
           created_at?: string
           created_by_code?: string | null
           created_by_name?: string | null
@@ -634,6 +681,7 @@ export type Database = {
         Update: {
           client_id?: string
           company_id?: string
+          composition?: Json | null
           created_at?: string
           created_by_code?: string | null
           created_by_name?: string | null
