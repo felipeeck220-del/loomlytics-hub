@@ -416,6 +416,7 @@ export default function ClientInvoices() {
             <ClientDetailView 
               clientId={tab.id} 
               invoices={clientInvoices.filter(i => i.client_id === tab.id)}
+              allInvoices={clientInvoices}
               allClients={allClients}
               allArticles={allArticles}
               yarnTypes={yarnTypes}
@@ -424,7 +425,7 @@ export default function ClientInvoices() {
               onAdd={(type: 'entrada' | 'saida' = 'entrada', parentId: string | null = null) => 
                 onAddFromClient(type, parentId, tab.id)
               }
-
+              onViewLinked={(inv: any) => { setLinkedParent(inv); setLinkedDialogOpen(true); }}
             />
           </TabsContent>
         ))}
@@ -564,11 +565,84 @@ export default function ClientInvoices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal: Saídas vinculadas a uma Entrada */}
+      <Dialog open={linkedDialogOpen} onOpenChange={setLinkedDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-primary" />
+              Saídas de Malha · NF Entrada {linkedParent?.invoice_number}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            {linkedParent && (
+              <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/40">
+                <div><b>Cliente:</b> {allClients.find(c => c.id === linkedParent.client_id)?.name || '-'}</div>
+                <div><b>Fio:</b> {yarnTypes.find(y => y.id === linkedParent.items?.[0]?.yarn_type_id)?.name || '-'}</div>
+                {linkedParent.supplier_name && <div><b>Fornecedor:</b> {linkedParent.supplier_name}</div>}
+                <div><b>Peso entrada:</b> {formatWeight(linkedParent.items?.[0]?.weight_kg || 0)}</div>
+              </div>
+            )}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>NF Saída</TableHead>
+                  <TableHead>Artigo</TableHead>
+                  <TableHead className="text-right">Peso (kg)</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {clientInvoices
+                  .filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent?.id)
+                  .map(s => (
+                    <TableRow key={s.id}>
+                      <TableCell className="text-xs">{format(new Date(s.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</TableCell>
+                      <TableCell className="font-medium">{s.invoice_number}</TableCell>
+                      <TableCell className="text-xs">{allArticles.find(a => a.id === s.items?.[0]?.article_id)?.name || '-'}</TableCell>
+                      <TableCell className="text-right font-medium">{formatWeight(s.items?.[0]?.weight_kg || 0)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => { setLinkedDialogOpen(false); handleEditInvoice(s); }}>
+                          <Edit2 className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(s.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                {clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent?.id).length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-xs">
+                      Nenhuma saída de malha vinculada a esta entrada.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                if (linkedParent) {
+                  setLinkedDialogOpen(false);
+                  onAddFromClient('saida', linkedParent.id, linkedParent.client_id);
+                }
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" /> Nova Saída de Malha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd }: any) {
+function ClientDetailView({ clientId, invoices, allInvoices, allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd, onViewLinked }: any) {
   const [activeSubTab, setActiveSubTab] = useState('aberto');
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
@@ -698,7 +772,9 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
             <TableRow>
               <TableHead>Data</TableHead>
               <TableHead>NF</TableHead>
+              <TableHead>Cliente</TableHead>
               <TableHead>{activeSubTab === 'historico' ? 'Item' : 'Fio'}</TableHead>
+              {activeSubTab !== 'historico' && <TableHead>Fornecedor</TableHead>}
               <TableHead className="text-right">Peso Entrada</TableHead>
               <TableHead className="text-right">Peso Saída</TableHead>
               <TableHead className="text-right">Saldo</TableHead>
@@ -730,6 +806,9 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                     </Badge>
                   )}
                 </TableCell>
+                <TableCell className="text-xs">
+                  {allClients.find((c: any) => c.id === inv.client_id)?.name || '-'}
+                </TableCell>
                 <TableCell>
                   {inv.items?.[0] ? (
                     inv.type === 'entrada' 
@@ -737,6 +816,9 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
                       : allArticles.find((a: any) => a.id === inv.items[0].article_id)?.name
                   ) : '-'}
                 </TableCell>
+                {activeSubTab !== 'historico' && (
+                  <TableCell className="text-xs">{inv.supplier_name || '-'}</TableCell>
+                )}
                 <TableCell className="text-right font-medium">
                   {activeSubTab === 'historico' 
                     ? (inv.type === 'entrada' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : '-') 
@@ -754,6 +836,16 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
 
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    {activeSubTab !== 'historico' && inv.type === 'entrada' && onViewLinked && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Ver saídas vinculadas"
+                        onClick={() => onViewLinked(inv)}
+                      >
+                        <List className="h-4 w-4 text-primary" />
+                      </Button>
+                    )}
                     {activeSubTab !== 'historico' && !inv.isEncerrada && (
                       <Button 
                         variant="ghost" 
@@ -777,7 +869,7 @@ function ClientDetailView({ clientId, invoices, allClients, allArticles, yarnTyp
 
             {filteredInvoices.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={activeSubTab === 'historico' ? 7 : 9} className="text-center py-8 text-muted-foreground">
                   Nenhuma nota {activeSubTab === 'aberto' ? 'em aberto' : 'encerrada'} para este cliente.
                 </TableCell>
               </TableRow>
