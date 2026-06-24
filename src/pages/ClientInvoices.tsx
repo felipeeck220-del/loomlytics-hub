@@ -808,32 +808,44 @@ export default function ClientInvoices() {
                   <TableHead>Data</TableHead>
                   <TableHead>NF Saída</TableHead>
                   <TableHead>Artigo</TableHead>
-                  <TableHead className="text-right">Peso (kg)</TableHead>
+                  <TableHead className="text-right">Peso Saída</TableHead>
+                  <TableHead className="text-right">Descontado desta NF</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clientInvoices
-                  .filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent?.id)
-                  .map(s => (
-                    <TableRow key={s.id}>
-                      <TableCell className="text-xs">{format(new Date(s.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</TableCell>
-                      <TableCell className="font-medium">{s.invoice_number}</TableCell>
-                      <TableCell className="text-xs">{allArticles.find(a => a.id === s.items?.[0]?.article_id)?.name || '-'}</TableCell>
-                      <TableCell className="text-right font-medium">{formatWeight(s.items?.[0]?.weight_kg || 0)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => { setLinkedDialogOpen(false); handleEditInvoice(s); }}>
-                          <Edit2 className="h-3.5 w-3.5 text-primary" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(s.id)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                {clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent?.id).length === 0 && (
+                {(() => {
+                  if (!linkedParent) return null;
+                  const linksHere = exitLinksAll.filter((l: any) => l.entry_invoice_id === linkedParent.id);
+                  const linkedExitIds = new Set(linksHere.map((l: any) => l.exit_invoice_id));
+                  const legacy = clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent.id && !linkedExitIds.has(i.id));
+                  const linked = clientInvoices.filter(i => i.type === 'saida' && linkedExitIds.has(i.id));
+                  const rows = [...linked, ...legacy];
+                  return rows.map(s => {
+                    const deducted = linksHere.filter((l: any) => l.exit_invoice_id === s.id).reduce((sum: number, l: any) => sum + Number(l.deduct_kg || 0), 0)
+                      || (s.parent_invoice_id === linkedParent.id ? Number(s.items?.[0]?.weight_kg || 0) : 0);
+                    return (
+                      <TableRow key={s.id}>
+                        <TableCell className="text-xs">{format(new Date(s.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</TableCell>
+                        <TableCell className="font-medium">{s.invoice_number}</TableCell>
+                        <TableCell className="text-xs">{allArticles.find(a => a.id === s.items?.[0]?.article_id)?.name || '-'}</TableCell>
+                        <TableCell className="text-right font-medium">{formatWeight(s.items?.[0]?.weight_kg || 0)}</TableCell>
+                        <TableCell className="text-right text-amber-700 font-medium">{formatWeight(deducted)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => { setLinkedDialogOpen(false); handleEditInvoice(s); }}>
+                            <Edit2 className="h-3.5 w-3.5 text-primary" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(s.id)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  });
+                })()}
+                {linkedParent && exitLinksAll.filter((l: any) => l.entry_invoice_id === linkedParent.id).length === 0 && clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent?.id).length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-xs">
+                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-xs">
                       Nenhuma saída de malha vinculada a esta entrada.
                     </TableCell>
                   </TableRow>
