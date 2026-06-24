@@ -910,74 +910,175 @@ export default function ClientInvoices() {
 
       {/* Modal: Saídas vinculadas a uma Entrada */}
       <Dialog open={linkedDialogOpen} onOpenChange={setLinkedDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Truck className="h-5 w-5 text-primary" />
-              Saídas de Malha · NF Entrada {linkedParent?.invoice_number}
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-4 border-b bg-gradient-to-br from-primary/5 via-background to-amber-500/5">
+            <DialogTitle className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                <Truck className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-base font-semibold">Saídas de Malha vinculadas</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  NF Entrada <span className="font-mono font-medium text-foreground">{linkedParent?.invoice_number}</span>
+                </span>
+              </div>
             </DialogTitle>
           </DialogHeader>
-          <div className="py-2 space-y-3">
-            {linkedParent && (
-              <div className="text-xs text-muted-foreground border rounded-md p-2 bg-muted/40">
-                <div><b>Cliente:</b> {allClients.find(c => c.id === linkedParent.client_id)?.name || '-'}</div>
-                <div><b>Fio:</b> {yarnTypes.find(y => y.id === linkedParent.items?.[0]?.yarn_type_id)?.name || '-'}</div>
-                {linkedParent.supplier_name && <div><b>Fornecedor:</b> {linkedParent.supplier_name}</div>}
-                <div><b>Peso entrada:</b> {formatWeight(linkedParent.items?.[0]?.weight_kg || 0)}</div>
-              </div>
-            )}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>NF Saída</TableHead>
-                  <TableHead>Artigo</TableHead>
-                  <TableHead className="text-right">Peso Saída</TableHead>
-                  <TableHead className="text-right">Descontado desta NF</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(() => {
-                  if (!linkedParent) return null;
-                  const linksHere = exitLinksAll.filter((l: any) => l.entry_invoice_id === linkedParent.id);
-                  const linkedExitIds = new Set(linksHere.map((l: any) => l.exit_invoice_id));
-                  const legacy = clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent.id && !linkedExitIds.has(i.id));
-                  const linked = clientInvoices.filter(i => i.type === 'saida' && linkedExitIds.has(i.id));
-                  const rows = [...linked, ...legacy];
-                  return rows.map(s => {
-                    const deducted = linksHere.filter((l: any) => l.exit_invoice_id === s.id).reduce((sum: number, l: any) => sum + Number(l.deduct_kg || 0), 0)
-                      || (s.parent_invoice_id === linkedParent.id ? Number(s.items?.[0]?.weight_kg || 0) : 0);
-                    return (
-                      <TableRow key={s.id}>
-                        <TableCell className="text-xs">{format(new Date(s.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</TableCell>
-                        <TableCell className="font-medium">{s.invoice_number}</TableCell>
-                        <TableCell className="text-xs">{allArticles.find(a => a.id === s.items?.[0]?.article_id)?.name || '-'}</TableCell>
-                        <TableCell className="text-right font-medium">{formatWeight(s.items?.[0]?.weight_kg || 0)}</TableCell>
-                        <TableCell className="text-right text-amber-700 font-medium">{formatWeight(deducted)}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => { setLinkedDialogOpen(false); handleEditInvoice(s); }}>
-                            <Edit2 className="h-3.5 w-3.5 text-primary" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteInvoice(s.id)}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  });
-                })()}
-                {linkedParent && exitLinksAll.filter((l: any) => l.entry_invoice_id === linkedParent.id).length === 0 && clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent?.id).length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-xs">
-                      Nenhuma saída de malha vinculada a esta entrada.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+
+          <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+            {linkedParent && (() => {
+              const linksHere = exitLinksAll.filter((l: any) => l.entry_invoice_id === linkedParent.id);
+              const linkedExitIds = new Set(linksHere.map((l: any) => l.exit_invoice_id));
+              const legacy = clientInvoices.filter(i => i.type === 'saida' && i.parent_invoice_id === linkedParent.id && !linkedExitIds.has(i.id));
+              const linked = clientInvoices.filter(i => i.type === 'saida' && linkedExitIds.has(i.id));
+              const rows = [...linked, ...legacy];
+              const pesoEntrada = Number(linkedParent.items?.[0]?.weight_kg || 0);
+              const totalDescontado = rows.reduce((sum, s) => {
+                const d = linksHere.filter((l: any) => l.exit_invoice_id === s.id).reduce((a: number, l: any) => a + Number(l.deduct_kg || 0), 0)
+                  || (s.parent_invoice_id === linkedParent.id ? Number(s.items?.[0]?.weight_kg || 0) : 0);
+                return sum + d;
+              }, 0);
+              const saldo = Math.max(0, pesoEntrada - totalDescontado);
+              const pct = pesoEntrada > 0 ? Math.min(100, (totalDescontado / pesoEntrada) * 100) : 0;
+
+              return (
+                <>
+                  {/* Resumo da NF de entrada */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-lg overflow-hidden border">
+                    <div className="bg-card px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Cliente</p>
+                      <p className="text-sm font-semibold truncate" title={allClients.find(c => c.id === linkedParent.client_id)?.name}>
+                        {allClients.find(c => c.id === linkedParent.client_id)?.name || '-'}
+                      </p>
+                    </div>
+                    <div className="bg-card px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Fio</p>
+                      <p className="text-sm font-semibold truncate" title={yarnTypes.find(y => y.id === linkedParent.items?.[0]?.yarn_type_id)?.name}>
+                        {yarnTypes.find(y => y.id === linkedParent.items?.[0]?.yarn_type_id)?.name || '-'}
+                      </p>
+                    </div>
+                    <div className="bg-card px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Fornecedor</p>
+                      <p className="text-sm font-semibold truncate" title={linkedParent.supplier_name || '-'}>
+                        {linkedParent.supplier_name || '-'}
+                      </p>
+                    </div>
+                    <div className="bg-card px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Peso entrada</p>
+                      <p className="text-sm font-bold text-primary tabular-nums">{formatWeight(pesoEntrada)}</p>
+                    </div>
+                  </div>
+
+                  {/* Barra de progresso de consumo */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        Consumido <span className="font-semibold text-amber-700 tabular-nums">{formatWeight(totalDescontado)}</span>
+                        <span className="mx-1.5 text-muted-foreground/50">/</span>
+                        Saldo <span className={cn("font-semibold tabular-nums", saldo > 0.001 ? "text-emerald-600" : "text-muted-foreground")}>{formatWeight(saldo)}</span>
+                      </span>
+                      <span className="font-mono font-semibold text-xs tabular-nums">{pct.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          pct >= 99.9 ? "bg-emerald-500" : "bg-gradient-to-r from-amber-400 to-amber-600"
+                        )}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tabela de saídas */}
+                  <div className="rounded-lg border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50 border-b">
+                          <TableHead className="h-9 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground w-[110px]">Data</TableHead>
+                          <TableHead className="h-9 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground w-[120px]">NF Saída</TableHead>
+                          <TableHead className="h-9 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Artigo</TableHead>
+                          <TableHead className="h-9 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground text-right w-[110px]">Peso Saída</TableHead>
+                          <TableHead className="h-9 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground text-right w-[130px]">Descontado</TableHead>
+                          <TableHead className="h-9 w-[80px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map(s => {
+                          const deducted = linksHere.filter((l: any) => l.exit_invoice_id === s.id).reduce((sum: number, l: any) => sum + Number(l.deduct_kg || 0), 0)
+                            || (s.parent_invoice_id === linkedParent.id ? Number(s.items?.[0]?.weight_kg || 0) : 0);
+                          const pesoSaida = Number(s.items?.[0]?.weight_kg || 0);
+                          const isLegacy = !linkedExitIds.has(s.id);
+                          return (
+                            <TableRow key={s.id} className="group hover:bg-muted/40 transition-colors">
+                              <TableCell className="py-2.5 text-xs tabular-nums text-muted-foreground">
+                                {format(new Date(s.issue_date + 'T12:00:00'), 'dd/MM/yyyy')}
+                              </TableCell>
+                              <TableCell className="py-2.5">
+                                <span className="font-mono text-xs font-semibold">{s.invoice_number}</span>
+                                {isLegacy && (
+                                  <Badge variant="outline" className="ml-1.5 text-[9px] py-0 px-1 h-4 border-muted-foreground/30 text-muted-foreground">legado</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="py-2.5 text-xs truncate max-w-[260px]" title={allArticles.find(a => a.id === s.items?.[0]?.article_id)?.name || '-'}>
+                                {allArticles.find(a => a.id === s.items?.[0]?.article_id)?.name || '-'}
+                              </TableCell>
+                              <TableCell className="py-2.5 text-right text-xs font-medium tabular-nums">
+                                {formatWeight(pesoSaida)}
+                              </TableCell>
+                              <TableCell className="py-2.5 text-right">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-semibold tabular-nums border border-amber-500/20">
+                                  {formatWeight(deducted)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-2.5 text-right">
+                                <div className="flex justify-end gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setLinkedDialogOpen(false); handleEditInvoice(s); }}>
+                                    <Edit2 className="h-3.5 w-3.5 text-primary" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteInvoice(s.id)}>
+                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        {rows.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-10 text-muted-foreground text-xs">
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="p-2.5 rounded-full bg-muted/60">
+                                  <Truck className="h-5 w-5 text-muted-foreground/60" />
+                                </div>
+                                Nenhuma saída de malha vinculada a esta entrada.
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {rows.length > 0 && (
+                          <TableRow className="bg-muted/30 hover:bg-muted/30 border-t-2 font-semibold">
+                            <TableCell colSpan={3} className="py-2.5 text-xs uppercase tracking-wider text-muted-foreground">
+                              Total ({rows.length} {rows.length === 1 ? 'nota' : 'notas'})
+                            </TableCell>
+                            <TableCell className="py-2.5 text-right text-xs tabular-nums">
+                              {formatWeight(rows.reduce((s, r) => s + Number(r.items?.[0]?.weight_kg || 0), 0))}
+                            </TableCell>
+                            <TableCell className="py-2.5 text-right text-sm text-amber-700 dark:text-amber-400 tabular-nums">
+                              {formatWeight(totalDescontado)}
+                            </TableCell>
+                            <TableCell />
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              );
+            })()}
           </div>
-          <DialogFooter>
+          <DialogFooter className="px-6 py-3 border-t bg-muted/30">
+            <Button variant="outline" onClick={() => setLinkedDialogOpen(false)}>Fechar</Button>
             <Button
               onClick={() => {
                 if (linkedParent) {
