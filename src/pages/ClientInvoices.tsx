@@ -614,8 +614,9 @@ export default function ClientInvoices() {
                   )}
                 </div>
 
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {/* Composição de Fios (porcentagens) */}
-                <div className="space-y-2 border rounded-md p-3 bg-muted/20">
+                <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold">Composição do Fio (%)</Label>
                     <span className={cn(
@@ -650,7 +651,7 @@ export default function ClientInvoices() {
                 </div>
 
                 {/* Vínculos com Notas de Entrada (multi) */}
-                <div className="space-y-2 border rounded-md p-3 bg-muted/20">
+                <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold flex items-center gap-1">
                       <Link2 className="h-3 w-3" /> Descontar de Notas de Entrada (opcional)
@@ -740,6 +741,7 @@ export default function ClientInvoices() {
                       {weightKg && ` / ${parseFloat(weightKg).toFixed(3)} kg da saída`}
                     </p>
                   )}
+                </div>
                 </div>
               </>
             )}
