@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { formatWeight, getDateLimits } from '@/lib/formatters';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import {
-  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle, ArrowUpRight, CheckCircle2, Clock, History
+  Plus, Trash2, Search, FileText, Package, Scale, X, Filter, ChevronRight, LayoutGrid, Loader2, User, Edit2, AlertTriangle, ArrowUpRight, CheckCircle2, Clock, History, List, Truck
 } from 'lucide-react';
 
 import { format } from 'date-fns';
@@ -66,6 +66,11 @@ export default function ClientInvoices() {
   const [yarnTypeId, setYarnTypeId] = useState('');
   const [articleId, setArticleId] = useState('');
   const [observations, setObservations] = useState('');
+  const [supplierName, setSupplierName] = useState('');
+
+  // Modal de saídas vinculadas a uma entrada
+  const [linkedDialogOpen, setLinkedDialogOpen] = useState(false);
+  const [linkedParent, setLinkedParent] = useState<any>(null);
   
   // Search/Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,8 +132,9 @@ export default function ClientInvoices() {
             invoice_number: invoiceNumber,
             issue_date: issueDate,
             observations: observations || null,
-            parent_invoice_id: parentInvoiceId
-          })
+            parent_invoice_id: parentInvoiceId,
+            supplier_name: formType === 'entrada' ? (supplierName || null) : null,
+          } as any)
           .eq('id', editingInvoice.id);
 
         if (invError) throw invError;
@@ -158,9 +164,10 @@ export default function ClientInvoices() {
             issue_date: issueDate,
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
+            supplier_name: formType === 'entrada' ? (supplierName || null) : null,
             created_by_name: userTrackingInfo.created_by_name,
             created_by_code: userTrackingInfo.created_by_code
-          })
+          } as any)
           .select()
           .single();
 
@@ -206,6 +213,7 @@ export default function ClientInvoices() {
     setObservations('');
     setYarnTypeId('');
     setArticleId('');
+    setSupplierName('');
     setIssueDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
@@ -217,6 +225,7 @@ export default function ClientInvoices() {
     setIssueDate(inv.issue_date);
     setObservations(inv.observations || '');
     setParentInvoiceId(inv.parent_invoice_id || null);
+    setSupplierName(inv.supplier_name || '');
     if (inv.items?.[0]) {
       setWeightKg(inv.items[0].weight_kg.toString());
       setYarnTypeId(inv.items[0].yarn_type_id || '');
@@ -230,10 +239,7 @@ export default function ClientInvoices() {
     setSelectedClientId(clientId);
     setFormType(type);
     setParentInvoiceId(parentId);
-    if (parentId) {
-      const parent = clientInvoices.find(i => i.id === parentId);
-      if (parent) setInvoiceNumber(parent.invoice_number);
-    }
+    // Saída tem número de NF próprio (diferente da entrada). Não pré-preenchemos mais.
     setDialogOpen(true);
   };
 
