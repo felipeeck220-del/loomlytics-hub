@@ -176,6 +176,11 @@ Deno.serve(async (req) => {
       await trackRpm(supabase, device.machine_id, safeRpm);
     }
 
+    // 9b. Real-time production upsert (mirrors current shift state into productions)
+    if (machine.article_id) {
+      await upsertRealtimeProduction(supabase, device, currentShift);
+    }
+
     // 10. Check shift change
     await checkShiftChange(supabase, device, settings, currentShift);
 
@@ -470,6 +475,7 @@ async function startNewShift(supabase: any, device: any, newShift: string, rollP
       last_rpm: 0,
       rpm_sum: 0,
       rpm_count: 0,
+      production_id: null,
       shift_started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
