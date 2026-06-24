@@ -456,6 +456,13 @@ export function useBillingOrders() {
         payload.weight_real = null;
         payload.weight_avg = null;
         payload.separated_by = null;
+        // Limpa NF/Romaneio: se a OF voltar para Aberto, qualquer documento já
+        // registrado deixa de valer (separação vai recomeçar e o admin precisa
+        // lançar um novo documento quando a OF voltar para "Aguardando NF/ROM").
+        payload.delivery_doc_type = null;
+        payload.delivery_doc_number = null;
+        payload.delivery_doc_set_by = null;
+        payload.delivery_doc_set_at = null;
       }
       const { error } = await supabase
         .from('billing_orders')
