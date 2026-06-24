@@ -142,6 +142,30 @@ export default function ClientInvoices() {
 
       console.log('Iniciando salvamento de nota...', { companyId, formType, invoiceNumber });
 
+      // Validações específicas para saída de malha
+      if (formType === 'saida') {
+        const validComp = composition.filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0);
+        if (validComp.length > 0) {
+          const compTotal = validComp.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0);
+          if (Math.abs(compTotal - 100) > 0.01) {
+            throw new Error(`A composição do fio deve somar 100% (atual: ${compTotal.toFixed(2)}%)`);
+          }
+        }
+        const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
+        if (validLinks.length > 0) {
+          const totalDeduct = validLinks.reduce((s, l) => s + (parseFloat(l.deduct_kg) || 0), 0);
+          const peso = parseFloat(weightKg) || 0;
+          if (totalDeduct - peso > 0.001) {
+            throw new Error(`Total descontado (${totalDeduct.toFixed(3)} kg) é maior que o peso da saída (${peso.toFixed(3)} kg)`);
+          }
+          // Detectar duplicidade de NFs de entrada
+          const ids = validLinks.map(l => l.entry_invoice_id);
+          if (new Set(ids).size !== ids.length) {
+            throw new Error('Existem NFs de entrada duplicadas na lista de descontos.');
+          }
+        }
+      }
+
       if (editingInvoice) {
         // Atualizar cabeçalho
         const { error: invError } = await supabase
@@ -154,7 +178,14 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
-            composition: formType === 'saida' ? (composition.filter(c => c.yarn_type_id && c.percentage).map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 })) as any) : null,
+            composition: formType === 'saida'
+              ? (() => {
+                  const arr = composition
+                    .filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0)
+                    .map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 }));
+                  return arr.length > 0 ? (arr as any) : null;
+                })()
+              : null,
           } as any)
           .eq('id', editingInvoice.id);
 
@@ -203,7 +234,14 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
-            composition: formType === 'saida' ? (composition.filter(c => c.yarn_type_id && c.percentage).map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 })) as any) : null,
+            composition: formType === 'saida'
+              ? (() => {
+                  const arr = composition
+                    .filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0)
+                    .map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 }));
+                  return arr.length > 0 ? (arr as any) : null;
+                })()
+              : null,
             created_by_name: userTrackingInfo.created_by_name,
             created_by_code: userTrackingInfo.created_by_code
           } as any)
@@ -444,9 +482,19 @@ export default function ClientInvoices() {
               <TableBody>
                 {clientInvoices
                   .filter(inv => {
-                    const q = searchTerm.toLowerCase();
+                    const q = searchTerm.toLowerCase().trim();
+                    if (!q && filterMonth === 'all') return true;
                     const client = allClients.find(c => c.id === inv.client_id)?.name || '';
-                    const matchSearch = inv.invoice_number.includes(q) || client.toLowerCase().includes(q);
+                    const itemName = inv.items?.[0]
+                      ? (inv.type === 'entrada'
+                          ? (yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name || '')
+                          : (allArticles.find(a => a.id === inv.items[0].article_id)?.name || ''))
+                      : '';
+                    const matchSearch = !q
+                      || inv.invoice_number.toLowerCase().includes(q)
+                      || client.toLowerCase().includes(q)
+                      || itemName.toLowerCase().includes(q)
+                      || (inv.supplier_name || '').toLowerCase().includes(q);
                     return matchSearch && (filterMonth === 'all' || inv.issue_date.startsWith(filterMonth));
                   })
                   .map(inv => (
@@ -1175,8 +1223,8 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
 
             {filteredInvoices.length === 0 && (
               <TableRow>
-                <TableCell colSpan={activeSubTab === 'historico' ? 7 : 9} className="text-center py-8 text-muted-foreground">
-                  Nenhuma nota {activeSubTab === 'aberto' ? 'em aberto' : 'encerrada'} para este cliente.
+                <TableCell colSpan={activeSubTab === 'historico' ? 8 : 9} className="text-center py-8 text-muted-foreground">
+                  Nenhuma nota {activeSubTab === 'aberto' ? 'em aberto' : activeSubTab === 'encerrada' ? 'encerrada' : 'encontrada'} para este cliente.
                 </TableCell>
               </TableRow>
             )}
