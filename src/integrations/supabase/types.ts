@@ -1395,6 +1395,7 @@ export type Database = {
           last_rpm: number | null
           machine_id: string
           partial_turns: number
+          production_id: string | null
           roll_position: number
           rpm_count: number
           rpm_sum: number
@@ -1412,6 +1413,7 @@ export type Database = {
           last_rpm?: number | null
           machine_id: string
           partial_turns?: number
+          production_id?: string | null
           roll_position?: number
           rpm_count?: number
           rpm_sum?: number
@@ -1429,6 +1431,7 @@ export type Database = {
           last_rpm?: number | null
           machine_id?: string
           partial_turns?: number
+          production_id?: string | null
           roll_position?: number
           rpm_count?: number
           rpm_sum?: number
@@ -1457,6 +1460,13 @@ export type Database = {
             columns: ["machine_id"]
             isOneToOne: true
             referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iot_shift_state_production_id_fkey"
+            columns: ["production_id"]
+            isOneToOne: false
+            referencedRelation: "productions"
             referencedColumns: ["id"]
           },
           {
