@@ -535,6 +535,18 @@ export function useBillingOrders() {
       if (!number || number.trim().length < 1) {
         throw new Error('Informe o número do documento');
       }
+      // Guarda defensiva: só permite registrar NF/Romaneio em OFs que estão
+      // efetivamente prontas (separadas). Evita corrida de cliques entre
+      // abas/usuários onde a OF pode ter sido cancelada/revertida/coletada.
+      const { data: cur } = await supabase
+        .from('billing_orders')
+        .select('status')
+        .eq('id', id)
+        .maybeSingle();
+      if (!cur) throw new Error('OF não encontrada');
+      if ((cur as any).status !== 'ready') {
+        throw new Error('Só é possível lançar NF/Romaneio em OFs prontas (já separadas).');
+      }
       const { error } = await supabase
         .from('billing_orders' as any)
         .update({
