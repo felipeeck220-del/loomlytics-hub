@@ -1299,7 +1299,7 @@ const BillingOrders = () => {
                             <Boxes className="h-4 w-4" /> Paletes
                           </Button>
                         )}
-                        {order.status === 'ready' && (role === 'expedicao' || isAdmin) && (
+                        {order.status === 'ready' && !!(order as any).delivery_doc_number && (role === 'expedicao' || isAdmin) && (
                           <Button
                             size="sm"
                             className="gap-1.5 bg-sky-600 hover:bg-sky-700 text-white"
