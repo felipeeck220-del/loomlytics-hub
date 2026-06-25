@@ -389,14 +389,15 @@ async function finalizeShift(supabase: any, device: any, state: any) {
   // Get downtime during this shift (unjustified only — machine was 'ativa')
   const { data: downtimes } = await supabase
     .from("iot_downtime_events")
-    .select("duration_seconds")
+    .select("started_at, ended_at, duration_seconds")
     .eq("machine_id", state.machine_id)
-    .gte("started_at", state.shift_started_at)
-    .not("duration_seconds", "is", null);
+    .gte("started_at", state.shift_started_at);
 
-  const downtimeMinutes = (downtimes || []).reduce(
-    (sum: number, d: any) => sum + (d.duration_seconds || 0) / 60, 0
-  );
+  const downtimeMinutes = (downtimes || []).reduce((sum: number, d: any) => {
+    if (d.duration_seconds != null) return sum + d.duration_seconds / 60;
+    const start = new Date(d.started_at);
+    return sum + Math.max((now.getTime() - start.getTime()) / 60000, 0);
+  }, 0);
 
   // Get maintenance time from machine_logs (justified stops)
   const { data: maintenanceLogs } = await supabase
