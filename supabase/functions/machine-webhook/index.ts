@@ -72,6 +72,12 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, ignored: true, reason: "machine_inactive" });
     }
 
+    // Se a máquina não está mais em modo IoT, ignora processamento de produção
+    // (mantém last_seen_at acima para detecção de offline no painel)
+    if (machine.production_mode && machine.production_mode !== "iot") {
+      return jsonResponse({ ok: true, ignored: true, reason: "machine_not_iot_mode" });
+    }
+
     // 4. Save raw reading
     await supabase.from("machine_readings").insert({
       machine_id: device.machine_id,
@@ -132,7 +138,7 @@ Deno.serve(async (req) => {
         .select("id")
         .eq("machine_id", machine_id)
         .is("ended_at", null)
-        .single();
+        .maybeSingle();
 
       if (!openDowntime) {
         // Start new downtime event
@@ -143,14 +149,16 @@ Deno.serve(async (req) => {
           shift: currentShift,
         });
       }
-    } else if (running) {
-      // Close any open downtime
+    } else {
+      // Fecha qualquer downtime IoT aberto quando:
+      //  - a máquina voltou a rodar (running=true), ou
+      //  - o status saiu de 'ativa' (parada virou justificada por manutenção etc.)
       const { data: openDowntime } = await supabase
         .from("iot_downtime_events")
         .select("id, started_at")
         .eq("machine_id", machine_id)
         .is("ended_at", null)
-        .single();
+        .maybeSingle();
 
       if (openDowntime) {
         const endedAt = new Date();
