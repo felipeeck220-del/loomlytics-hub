@@ -505,7 +505,7 @@ async function getAssignedWeaver(supabase: any, machineId: string, companyId: st
     .eq("company_id", companyId)
     .eq("shift", shift)
     .eq("active", true)
-    .single();
+    .maybeSingle();
 
   if (assignment) return assignment;
 
