@@ -428,7 +428,7 @@ async function finalizeShift(supabase: any, device: any, state: any) {
   // FIX: Use average RPM instead of last RPM
   const avgRpm = (state.rpm_count > 0) ? (state.rpm_sum / state.rpm_count) : (state.last_rpm || 0);
   const efficiency = availableMinutes > 0
-    ? (uptimeMinutes / availableMinutes) * (avgRpm / targetRpm) * 100
+    ? Math.min((uptimeMinutes / availableMinutes) * (avgRpm / targetRpm) * 100, 100)
     : 0;
 
   // Today's date in Brasilia
@@ -512,12 +512,12 @@ async function getAssignedWeaver(supabase: any, machineId: string, companyId: st
   // Fallback: find weaver with fixed shift matching
   const { data: weaver } = await supabase
     .from("weavers")
-    .select("id as weaver_id")
+    .select("weaver_id:id")
     .eq("company_id", companyId)
     .eq("shift_type", "fixo")
     .eq("fixed_shift", shift)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   return weaver;
 }
