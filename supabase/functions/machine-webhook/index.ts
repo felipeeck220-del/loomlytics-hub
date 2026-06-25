@@ -557,7 +557,45 @@ async function upsertRealtimeProduction(supabase: any, device: any, currentShift
     .single();
 
   const targetRpm = targetRpmFromCaller || (machine as any)?.target_rpm || 25;
-  const efficiency = targetRpm > 0 ? Math.min((avgRpm / targetRpm) * 100, 999) : 0;
+
+  // Eficiência em tempo real desconta paradas (downtime + manutenção) durante o turno
+  const now = new Date();
+  const shiftStarted = state.shift_started_at ? new Date(state.shift_started_at) : now;
+  const shiftMinutes = Math.max((now.getTime() - shiftStarted.getTime()) / 60000, 1);
+
+  // Downtime IoT do turno (eventos fechados + aberto em andamento)
+  const { data: downtimes } = await supabase
+    .from("iot_downtime_events")
+    .select("started_at, ended_at, duration_seconds")
+    .eq("machine_id", machine_id)
+    .gte("started_at", shiftStarted.toISOString());
+
+  const downtimeMinutes = (downtimes || []).reduce((sum: number, d: any) => {
+    if (d.duration_seconds != null) return sum + d.duration_seconds / 60;
+    // evento aberto: conta até agora
+    const start = new Date(d.started_at);
+    return sum + Math.max((now.getTime() - start.getTime()) / 60000, 0);
+  }, 0);
+
+  // Paradas justificadas (manutenção, etc.) — não penalizam
+  const { data: maintenanceLogs } = await supabase
+    .from("machine_logs")
+    .select("started_at, ended_at")
+    .eq("machine_id", machine_id)
+    .neq("status", "ativa")
+    .gte("started_at", shiftStarted.toISOString());
+
+  const maintenanceMinutes = (maintenanceLogs || []).reduce((sum: number, log: any) => {
+    const start = new Date(log.started_at);
+    const end = log.ended_at ? new Date(log.ended_at) : now;
+    return sum + Math.max((end.getTime() - start.getTime()) / 60000, 0);
+  }, 0);
+
+  const availableMinutes = Math.max(shiftMinutes - maintenanceMinutes, 1);
+  const uptimeMinutes = Math.max(availableMinutes - downtimeMinutes, 0);
+  const efficiency = targetRpm > 0 && availableMinutes > 0
+    ? Math.min((uptimeMinutes / availableMinutes) * (avgRpm / targetRpm) * 100, 100)
+    : 0;
 
   let weaverName: string | null = null;
   if (state.weaver_id) {
@@ -565,7 +603,6 @@ async function upsertRealtimeProduction(supabase: any, device: any, currentShift
     weaverName = w?.name ?? null;
   }
 
-  const now = new Date();
   const brasiliaDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
   const dateStr = brasiliaDate.toISOString().split("T")[0];
 
