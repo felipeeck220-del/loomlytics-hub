@@ -20,6 +20,7 @@ import {
 import { exportClientInvoicesGeneralPdf, exportClientInvoiceByNfPdf } from '@/lib/clientInvoicePdf';
 
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
 import { useAuditLog } from '@/hooks/useAuditLog';
