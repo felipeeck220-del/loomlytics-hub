@@ -1430,7 +1430,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
 
       {/* Export PDF Modal */}
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
-        <DialogContent className="sm:max-w-[640px]">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[900px] overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileDown className="h-5 w-5 text-primary" /> Exportar Notas Fiscais
