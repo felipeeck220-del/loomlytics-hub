@@ -778,8 +778,8 @@ export default function ClientInvoices() {
                       .map(r => r.entry_invoice_id)
                       .filter(Boolean);
                     return (
-                      <div key={idx} className="grid grid-cols-[1fr_32px] sm:grid-cols-[1fr_110px_110px_32px] gap-2 items-center">
-                        <div className="sm:contents col-span-1">
+                      <div key={idx} className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                        <div className="w-full sm:flex-1 sm:min-w-0">
                         <SearchableSelect
                           options={clientInvoices
                             .filter(i => i.type === 'entrada' && i.client_id === selectedClientId && (!usedEntryIds.includes(i.id) || i.id === link.entry_invoice_id))
@@ -795,20 +795,18 @@ export default function ClientInvoices() {
                           placeholder="NF de entrada..."
                         />
                         </div>
-                        <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
-                          <X className="h-3 w-3" />
-                        </Button>
                         <Input
                           value={link.yarn_type_id ? (yarnTypes.find(y => y.id === link.yarn_type_id)?.name || '-') : (entryInv?.items?.[0]?.yarn_type_id ? yarnTypes.find(y => y.id === entryInv.items[0].yarn_type_id)?.name : '-')}
                           readOnly
-                          className="text-xs bg-muted/40 col-span-1 sm:col-span-1"
+                          className="text-xs bg-muted/40 flex-1 sm:flex-none sm:w-[110px]"
                         />
                         <Input
                           type="number" step="0.001" placeholder="kg"
                           value={link.deduct_kg}
                           onChange={e => setExitLinks(prev => prev.map((r, i) => i === idx ? { ...r, deduct_kg: e.target.value } : r))}
+                          className="flex-1 sm:flex-none sm:w-[110px]"
                         />
-                        <Button variant="ghost" size="icon" className="hidden sm:inline-flex" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
+                        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
