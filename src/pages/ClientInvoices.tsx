@@ -1188,7 +1188,8 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   const [exportNfQuery, setExportNfQuery] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
 
-  
+  const [localSearch, setLocalSearch] = useState('');
+
   const stats = useMemo(() => {
     const q = (localSearch || '').toLowerCase();
     const base = !q ? invoices : invoices.filter((inv: any) => {
@@ -1232,8 +1233,6 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
       });
 
   }, [invoices, exitLinksAll]);
-
-  const [localSearch, setLocalSearch] = useState('');
 
   const filteredInvoices = useMemo(() => {
     const base = activeSubTab === 'aberto' 
