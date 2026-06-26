@@ -1168,10 +1168,24 @@ export default function ClientInvoices() {
   );
 }
 
-function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], allClients, allArticles, yarnTypes, onDelete, onEdit, onAdd, onViewLinked }: any) {
+function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], allClients, allArticles, yarnTypes, companyName = '', companyLogoUrl = null, onDelete, onEdit, onAdd, onViewLinked }: any) {
   const [activeSubTab, setActiveSubTab] = useState('aberto');
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
+
+  // Pagination for Histórico & Encerradas (15 per page)
+  const PAGE_SIZE = 15;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [activeSubTab]);
+
+  // Export PDF modal state
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportMode, setExportMode] = useState<'general' | 'by_nf'>('general');
+  const [exportMonth, setExportMonth] = useState<string>('all');
+  const [exportFrom, setExportFrom] = useState<string>('');
+  const [exportTo, setExportTo] = useState<string>('');
+  const [exportNfQuery, setExportNfQuery] = useState('');
+  const [exportLoading, setExportLoading] = useState(false);
 
   
   const stats = useMemo(() => {
@@ -1229,6 +1243,78 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
       return inv.invoice_number.toLowerCase().includes(q) || itemName.toLowerCase().includes(q);
     });
   }, [invoicesWithBalance, activeSubTab, localSearch, yarnTypes, allArticles, invoices]);
+
+  useEffect(() => { setPage(1); }, [localSearch]);
+
+  // Apply pagination only for Histórico and Encerradas
+  const paginatedInvoices = useMemo(() => {
+    if (activeSubTab === 'aberto') return filteredInvoices;
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredInvoices.slice(start, start + PAGE_SIZE);
+  }, [filteredInvoices, activeSubTab, page]);
+  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+
+  // ---- Build dataset for export based on filters ----
+  const exportInvoices = useMemo(() => {
+    let base = invoices;
+    if (exportMonth && exportMonth !== 'all') {
+      base = base.filter((i: any) => (i.issue_date || '').startsWith(exportMonth));
+    }
+    if (exportFrom) base = base.filter((i: any) => (i.issue_date || '') >= exportFrom);
+    if (exportTo) base = base.filter((i: any) => (i.issue_date || '') <= exportTo);
+    return base;
+  }, [invoices, exportMonth, exportFrom, exportTo]);
+
+  // Available months from invoices
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>();
+    invoices.forEach((i: any) => { if (i.issue_date) set.add(i.issue_date.slice(0, 7)); });
+    return Array.from(set).sort().reverse();
+  }, [invoices]);
+
+  const handleExport = async () => {
+    try {
+      setExportLoading(true);
+      const periodParts: string[] = [];
+      if (exportMonth && exportMonth !== 'all') periodParts.push(`Mês: ${exportMonth}`);
+      if (exportFrom) periodParts.push(`De ${format(new Date(exportFrom + 'T12:00:00'), 'dd/MM/yyyy')}`);
+      if (exportTo) periodParts.push(`Até ${format(new Date(exportTo + 'T12:00:00'), 'dd/MM/yyyy')}`);
+      const periodLabel = periodParts.length ? periodParts.join(' · ') : 'Todo o período';
+
+      if (exportMode === 'general') {
+        if (exportInvoices.length === 0) { toast.error('Nenhuma nota no período selecionado'); return; }
+        await exportClientInvoicesGeneralPdf({
+          companyName, logoUrl: companyLogoUrl, periodLabel,
+          invoices: exportInvoices,
+          exitLinksAll, allClients, allArticles, yarnTypes,
+        });
+        toast.success('PDF gerado com sucesso');
+        setExportOpen(false);
+      }
+    } catch (e: any) {
+      console.error(e); toast.error('Erro ao gerar PDF');
+    } finally { setExportLoading(false); }
+  };
+
+  const handleExportSingleNf = async (entry: any) => {
+    try {
+      setExportLoading(true);
+      const links = (exitLinksAll || []).filter((l: any) => l.entry_invoice_id === entry.id);
+      const exits = allInvoices.filter((i: any) =>
+        i.type === 'saida' && (links.some((l: any) => l.exit_invoice_id === i.id) || i.parent_invoice_id === entry.id)
+      );
+      const client = allClients.find((c: any) => c.id === entry.client_id);
+      await exportClientInvoiceByNfPdf({
+        companyName, logoUrl: companyLogoUrl,
+        entry, exitLinks: links, exits, client, yarnTypes, allArticles,
+      });
+      toast.success('PDF gerado com sucesso');
+      setExportOpen(false);
+    } catch (e: any) {
+      console.error(e); toast.error('Erro ao gerar PDF');
+    } finally { setExportLoading(false); }
+  };
 
 
   return (
