@@ -1378,6 +1378,10 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
             onChange={e => setLocalSearch(e.target.value)}
           />
 
+          <Button variant="outline" onClick={() => setExportOpen(true)} className="gap-2" title="Exportar PDF">
+            <FileDown className="h-4 w-4" /> Exportar PDF
+          </Button>
+
           <Button onClick={() => onAdd('entrada')} className="gap-2">
             <Plus className="h-4 w-4" /> Adicionar Nota
           </Button>
@@ -1402,7 +1406,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredInvoices.map((inv: any) => (
+            {paginatedInvoices.map((inv: any) => (
               <TableRow key={inv.id}>
                 <TableCell>
                   <div className="flex flex-col">
@@ -1496,6 +1500,160 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
           </TableBody>
         </Table>
       </Card>
+
+      {/* Pagination — somente Histórico e Encerradas */}
+      {activeSubTab !== 'aberto' && filteredInvoices.length > PAGE_SIZE && (
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <div className="text-xs text-muted-foreground">
+            Mostrando <strong>{(safePage - 1) * PAGE_SIZE + 1}</strong>–<strong>{Math.min(safePage * PAGE_SIZE, filteredInvoices.length)}</strong> de <strong>{filteredInvoices.length}</strong>
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
+            <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+              <ChevronLeft className="h-3 w-3" /> Anterior
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
+              .reduce<Array<number | 'gap'>>((acc, p, idx, arr) => {
+                if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('gap');
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) => p === 'gap' ? (
+                <span key={`gap-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+              ) : (
+                <Button key={p} size="sm" variant={p === safePage ? 'default' : 'outline'} className="h-8 min-w-[2rem] px-2 text-xs" onClick={() => setPage(p as number)}>
+                  {p}
+                </Button>
+              ))}
+            <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={safePage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
+              Próxima <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Export PDF Modal */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileDown className="h-5 w-5 text-primary" /> Exportar Notas Fiscais
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-2 p-1 bg-muted/40 rounded-md">
+              <button
+                type="button"
+                onClick={() => setExportMode('general')}
+                className={cn('rounded px-3 py-2 text-sm font-medium transition-colors',
+                  exportMode === 'general' ? 'bg-background shadow-sm border' : 'text-muted-foreground hover:text-foreground')}
+              >
+                Exportação Geral
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportMode('by_nf')}
+                className={cn('rounded px-3 py-2 text-sm font-medium transition-colors',
+                  exportMode === 'by_nf' ? 'bg-background shadow-sm border' : 'text-muted-foreground hover:text-foreground')}
+              >
+                Por NF (com saídas)
+              </button>
+            </div>
+
+            {exportMode === 'general' ? (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Gera um PDF com a lista de todas as notas (entradas e saídas) do cliente filtradas por mês e/ou intervalo de datas.
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Mês</Label>
+                    <Select value={exportMonth} onValueChange={setExportMonth}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {monthOptions.map(m => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Data início</Label>
+                    <Input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Data fim</Label>
+                    <Input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} />
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground italic">
+                  Notas selecionadas: <strong>{exportInvoices.length}</strong>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Selecione uma NF de entrada. O PDF inclui dados completos da entrada e todas as saídas de malha vinculadas.
+                </p>
+                <Input
+                  placeholder="Buscar NF..."
+                  value={exportNfQuery}
+                  onChange={e => setExportNfQuery(e.target.value)}
+                />
+                <div className="border rounded-md max-h-[320px] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/50 sticky top-0">
+                      <TableRow>
+                        <TableHead className="h-9">Data</TableHead>
+                        <TableHead className="h-9">NF</TableHead>
+                        <TableHead className="h-9">Fio</TableHead>
+                        <TableHead className="h-9 text-right">Peso</TableHead>
+                        <TableHead className="h-9"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoices
+                        .filter((i: any) => i.type === 'entrada')
+                        .filter((i: any) => !exportNfQuery || (i.invoice_number || '').toLowerCase().includes(exportNfQuery.toLowerCase()))
+                        .sort((a: any, b: any) => (b.issue_date || '').localeCompare(a.issue_date || ''))
+                        .slice(0, 50)
+                        .map((inv: any) => (
+                          <TableRow key={inv.id}>
+                            <TableCell className="text-xs">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                            <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
+                            <TableCell className="text-xs">{yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '-'}</TableCell>
+                            <TableCell className="text-xs text-right">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
+                            <TableCell className="text-right">
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" disabled={exportLoading} onClick={() => handleExportSingleNf(inv)}>
+                                <FileDown className="h-3 w-3" /> Exportar
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      {invoices.filter((i: any) => i.type === 'entrada').length === 0 && (
+                        <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">Nenhuma NF de entrada.</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportOpen(false)}>Fechar</Button>
+            {exportMode === 'general' && (
+              <Button onClick={handleExport} disabled={exportLoading} className="gap-2">
+                {exportLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                Gerar PDF
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
