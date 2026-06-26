@@ -379,13 +379,15 @@ export default function ClientInvoices() {
     
     // Check if it's an entrance with linked outputs
     const invoice = clientInvoices.find(i => i.id === invoiceToDelete);
-    const hasLinked = invoice?.type === 'entrada' && clientInvoices.some(i => i.parent_invoice_id === invoiceToDelete);
-    
+    const hasLinkedLegacy = invoice?.type === 'entrada' && clientInvoices.some(i => i.parent_invoice_id === invoiceToDelete);
+    const hasLinkedNew = invoice?.type === 'entrada' && (exitLinksAll || []).some((l: any) => l.entry_invoice_id === invoiceToDelete);
+    const hasLinked = hasLinkedLegacy || hasLinkedNew;
+
     const { error } = await supabase.from('client_invoices').delete().eq('id', invoiceToDelete);
     if (error) toast.error('Erro ao excluir');
     else {
       logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete, was_parent: hasLinked });
-      toast.success(hasLinked ? 'Nota e saídas vinculadas excluídas' : 'Nota excluída');
+      toast.success(hasLinked ? 'Nota excluída — saídas vinculadas podem precisar ser revisadas' : 'Nota excluída');
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
     }
     setDeleteDialogOpen(false);
@@ -754,10 +756,19 @@ export default function ClientInvoices() {
                           return;
                         }
                         let remaining = totalKg;
+                        // Índice do ÚLTIMO link válido (com entry_invoice_id) — assim
+                        // o saldo restante é todo creditado nele em vez de ser perdido
+                        // quando o último item do array é uma linha vazia.
+                        let lastValidIdx = -1;
+                        for (let i = exitLinks.length - 1; i >= 0; i--) {
+                          if (exitLinks[i].entry_invoice_id && saldos.some(s => s.id === exitLinks[i].entry_invoice_id)) {
+                            lastValidIdx = i; break;
+                          }
+                        }
                         const newLinks: LinkRow[] = exitLinks.map((l, idx) => {
                           const s = saldos.find(x => x.id === l.entry_invoice_id);
                           if (!s) return l;
-                          let take = idx === exitLinks.length - 1
+                          let take = idx === lastValidIdx
                             ? Math.min(remaining, s.saldo)
                             : Math.min((totalKg * s.saldo) / totalSaldo, s.saldo);
                           take = Math.max(0, Number(take.toFixed(3)));
@@ -995,7 +1006,7 @@ export default function ClientInvoices() {
                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setLinkedDialogOpen(false); handleEditInvoice(s); }}>
                                     <Edit2 className="h-3.5 w-3.5 text-primary" />
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteInvoice(s.id)}>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setLinkedDialogOpen(false); handleDeleteInvoice(s.id); }}>
                                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                   </Button>
                                 </div>
@@ -1348,7 +1359,14 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                     ? (inv.type === 'saida' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : '-') 
                     : formatWeight(inv.weightSaida)}
                 </TableCell>
-                <TableCell className={cn("text-right font-bold", inv.saldo > 0 ? "text-red-400" : "text-muted-foreground")}>
+                <TableCell className={cn(
+                  "text-right font-bold",
+                  inv.saldo > 0.001
+                    ? "text-amber-600 dark:text-amber-400"
+                    : inv.saldo < -0.001
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                )}>
                   {activeSubTab === 'historico' ? '-' : formatWeight(inv.saldo)}
                 </TableCell>
 

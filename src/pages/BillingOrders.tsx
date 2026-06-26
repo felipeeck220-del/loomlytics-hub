@@ -531,8 +531,29 @@ const BillingOrders = () => {
       order_type: editForm.order_type,
     };
     const note = editForm.edit_note.trim() || `Editado por admin em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
-    await editOrder.mutateAsync({ id: showEditModal.id, changes, note, revertToOpen: wasActive });
-    setShowEditModal(null);
+    try {
+      await editOrder.mutateAsync({
+        id: showEditModal.id,
+        changes,
+        note,
+        revertToOpen: wasActive,
+        // Garantia anti-race: se outro usuário mudou o status enquanto este
+        // modal estava aberto, o UPDATE não atinge nenhuma linha e cai no
+        // catch — evitando que uma reserva já criada nunca seja liberada.
+        expectedStatus: showEditModal.status,
+      });
+      setShowEditModal(null);
+    } catch (err: any) {
+      if (err?.code === 'CONFLICT') {
+        toast({
+          title: 'OF foi alterada por outro usuário',
+          description: 'Os dados foram atualizados — feche e abra a edição novamente.',
+          variant: 'destructive',
+        });
+        setShowEditModal(null);
+      }
+      // demais erros já são tratados no onError do hook
+    }
   };
 
   const handleCancel = async () => {
@@ -2180,7 +2201,18 @@ const BillingOrders = () => {
                         const order = showPalletsModal;
                         setPalletBusy(true);
                         try {
-                          const nextNumber = (pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0) || 0) + 1;
+                          // Calcula o próximo número diretamente do banco (não do
+                          // estado local) — evita paletes duplicados quando dois
+                          // usuários estão registrando paletes da mesma OF.
+                          const { data: maxRow } = await (supabase.from as any)('billing_order_pallets')
+                            .select('pallet_number')
+                            .eq('billing_order_id', order.id)
+                            .order('pallet_number', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                          const localMax = pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0);
+                          const dbMax = Number((maxRow as any)?.pallet_number ?? 0);
+                          const nextNumber = Math.max(localMax, dbMax) + 1;
                           const palletMachineId = palletInput.machine_id;
                           // 1. Cria movimento de reserva
                           const { data: mv, error: mvErr } = await (supabase.from as any)('stock_movements').insert({
