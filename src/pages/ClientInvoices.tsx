@@ -628,6 +628,8 @@ export default function ClientInvoices() {
               allClients={allClients}
               allArticles={allArticles}
               yarnTypes={yarnTypes}
+              companyName={companyName}
+              companyLogoUrl={companyLogoUrl}
               onDelete={handleDeleteInvoice}
               onEdit={handleEditInvoice}
               onAdd={(type: 'entrada' | 'saida' = 'entrada', parentId: string | null = null) => 
