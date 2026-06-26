@@ -754,10 +754,19 @@ export default function ClientInvoices() {
                           return;
                         }
                         let remaining = totalKg;
+                        // Índice do ÚLTIMO link válido (com entry_invoice_id) — assim
+                        // o saldo restante é todo creditado nele em vez de ser perdido
+                        // quando o último item do array é uma linha vazia.
+                        let lastValidIdx = -1;
+                        for (let i = exitLinks.length - 1; i >= 0; i--) {
+                          if (exitLinks[i].entry_invoice_id && saldos.some(s => s.id === exitLinks[i].entry_invoice_id)) {
+                            lastValidIdx = i; break;
+                          }
+                        }
                         const newLinks: LinkRow[] = exitLinks.map((l, idx) => {
                           const s = saldos.find(x => x.id === l.entry_invoice_id);
                           if (!s) return l;
-                          let take = idx === exitLinks.length - 1
+                          let take = idx === lastValidIdx
                             ? Math.min(remaining, s.saldo)
                             : Math.min((totalKg * s.saldo) / totalSaldo, s.saldo);
                           take = Math.max(0, Number(take.toFixed(3)));
