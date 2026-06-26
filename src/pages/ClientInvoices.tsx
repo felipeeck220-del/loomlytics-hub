@@ -1284,7 +1284,10 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
     try {
       setExportLoading(true);
       const periodParts: string[] = [];
-      if (exportMonth && exportMonth !== 'all') periodParts.push(`Mês: ${exportMonth}`);
+      if (exportMonth && exportMonth !== 'all') {
+        const label = format(new Date(exportMonth + '-02T12:00:00'), 'MMM-yyyy', { locale: ptBR }).replace('.', '');
+        periodParts.push(`Mês: ${label}`);
+      }
       if (exportFrom) periodParts.push(`De ${format(new Date(exportFrom + 'T12:00:00'), 'dd/MM/yyyy')}`);
       if (exportTo) periodParts.push(`Até ${format(new Date(exportTo + 'T12:00:00'), 'dd/MM/yyyy')}`);
       const periodLabel = periodParts.length ? periodParts.join(' · ') : 'Todo o período';
