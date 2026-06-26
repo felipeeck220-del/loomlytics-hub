@@ -623,7 +623,7 @@ export default function ClientInvoices() {
 
       {/* Registration Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={cn(formType === 'saida' ? 'sm:max-w-[80vw] max-h-[90vh] overflow-y-auto' : 'max-w-md')}>
+        <DialogContent className={cn(formType === 'saida' ? 'w-[95vw] max-w-[95vw] sm:max-w-[80vw] max-h-[90vh] overflow-y-auto overflow-x-hidden' : 'max-w-md')}>
           <DialogHeader>
             <DialogTitle>
               {editingInvoice ? 'Editar Nota' : (formType === 'entrada' ? 'Nova Entrada de Fio' : 'Nova Saída de Malha')}
@@ -778,7 +778,8 @@ export default function ClientInvoices() {
                       .map(r => r.entry_invoice_id)
                       .filter(Boolean);
                     return (
-                      <div key={idx} className="grid grid-cols-[1fr_100px_100px_32px] gap-2 items-center">
+                      <div key={idx} className="grid grid-cols-[1fr_32px] sm:grid-cols-[1fr_110px_110px_32px] gap-2 items-center">
+                        <div className="sm:contents col-span-1">
                         <SearchableSelect
                           options={clientInvoices
                             .filter(i => i.type === 'entrada' && i.client_id === selectedClientId && (!usedEntryIds.includes(i.id) || i.id === link.entry_invoice_id))
@@ -793,17 +794,21 @@ export default function ClientInvoices() {
                           }}
                           placeholder="NF de entrada..."
                         />
+                        </div>
+                        <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
+                          <X className="h-3 w-3" />
+                        </Button>
                         <Input
                           value={link.yarn_type_id ? (yarnTypes.find(y => y.id === link.yarn_type_id)?.name || '-') : (entryInv?.items?.[0]?.yarn_type_id ? yarnTypes.find(y => y.id === entryInv.items[0].yarn_type_id)?.name : '-')}
                           readOnly
-                          className="text-xs bg-muted/40"
+                          className="text-xs bg-muted/40 col-span-1 sm:col-span-1"
                         />
                         <Input
                           type="number" step="0.001" placeholder="kg"
                           value={link.deduct_kg}
                           onChange={e => setExitLinks(prev => prev.map((r, i) => i === idx ? { ...r, deduct_kg: e.target.value } : r))}
                         />
-                        <Button variant="ghost" size="icon" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
+                        <Button variant="ghost" size="icon" className="hidden sm:inline-flex" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
