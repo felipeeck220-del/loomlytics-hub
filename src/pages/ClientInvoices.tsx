@@ -192,14 +192,7 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
-            composition: formType === 'saida'
-              ? (() => {
-                  const arr = composition
-                    .filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0)
-                    .map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 }));
-                  return arr.length > 0 ? (arr as any) : null;
-                })()
-              : null,
+            composition: null,
           } as any)
           .eq('id', editingInvoice.id);
 
@@ -248,14 +241,7 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
-            composition: formType === 'saida'
-              ? (() => {
-                  const arr = composition
-                    .filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0)
-                    .map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 }));
-                  return arr.length > 0 ? (arr as any) : null;
-                })()
-              : null,
+            composition: null,
             created_by_name: userTrackingInfo.created_by_name,
             created_by_code: userTrackingInfo.created_by_code
           } as any)
