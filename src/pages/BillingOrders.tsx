@@ -77,6 +77,10 @@ const BillingOrders = () => {
   });
   const [datePreset, setDatePreset] = useState<'7d' | '30d' | 'custom'>('30d');
 
+  // Paginação da aba Coletadas (10 por página)
+  const [collectedPage, setCollectedPage] = useState(1);
+  const COLLECTED_PAGE_SIZE = 10;
+
   // Aviso de saldo negativo ao criar OF
   const [negativeWarning, setNegativeWarning] = useState<null | {
     currentKg: number; currentPieces: number;
@@ -201,7 +205,8 @@ const BillingOrders = () => {
         order.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.dyehouse.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.of_number.includes(searchTerm) ||
-        (order.article?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+        (order.article?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+        (((order as any).delivery_doc_number || '').toLowerCase().includes(searchTerm.toLowerCase()));
       
       if (activeTab === 'all') return matchesSearch;
       
@@ -235,7 +240,10 @@ const BillingOrders = () => {
 
       // Filtros específicos para "Coletadas"
       if (activeTab === 'collected') {
-        const orderDate = new Date(order.created_at);
+        // Usa a data/hora da COLETA (collected_at). Fallback para updated_at em
+        // registros antigos sem backfill.
+        const ref = (order as any).collected_at || order.updated_at || order.created_at;
+        const orderDate = new Date(ref);
         const today = new Date();
 
         if (datePreset === '7d') {
@@ -257,6 +265,29 @@ const BillingOrders = () => {
       return true;
     });
   }, [orders, searchTerm, activeTab, filterDateRange, datePreset]);
+
+  // Resetar página ao mudar filtros/aba
+  useEffect(() => { setCollectedPage(1); }, [activeTab, datePreset, filterDateRange.from, filterDateRange.to, searchTerm]);
+
+  // Ordena Coletadas pela data da coleta (mais recente primeiro) e pagina
+  const sortedCollected = useMemo(() => {
+    if (activeTab !== 'collected') return filteredOrders;
+    return [...filteredOrders].sort((a: any, b: any) => {
+      const da = new Date(a.collected_at || a.updated_at || a.created_at).getTime();
+      const db = new Date(b.collected_at || b.updated_at || b.created_at).getTime();
+      return db - da;
+    });
+  }, [filteredOrders, activeTab]);
+
+  const collectedTotalPages = activeTab === 'collected'
+    ? Math.max(1, Math.ceil(sortedCollected.length / COLLECTED_PAGE_SIZE))
+    : 1;
+
+  const visibleOrders = useMemo(() => {
+    if (activeTab !== 'collected') return filteredOrders;
+    const start = (collectedPage - 1) * COLLECTED_PAGE_SIZE;
+    return sortedCollected.slice(start, start + COLLECTED_PAGE_SIZE);
+  }, [activeTab, filteredOrders, sortedCollected, collectedPage]);
 
   const stats = useMemo(() => {
     return {
@@ -916,7 +947,7 @@ const BillingOrders = () => {
       <div className="flex items-center gap-2 bg-card p-3 rounded-lg border shadow-sm">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input 
-          placeholder="Pesquisar por cliente, tinturaria ou OF..." 
+          placeholder="Pesquisar por cliente, tinturaria, OF, artigo ou NF/Romaneio..." 
           className="border-none shadow-none focus-visible:ring-0"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -1025,7 +1056,7 @@ const BillingOrders = () => {
         )}
 
         <div className="mt-6 space-y-3">
-          {filteredOrders.map((order) => {
+          {visibleOrders.map((order) => {
             const hasDoc = !!(order as any).delivery_doc_number;
             const style = getStatusStyle(order.status, order.priority, hasDoc);
             return (
@@ -1318,6 +1349,57 @@ const BillingOrders = () => {
           {filteredOrders.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               Nenhuma ordem de faturamento encontrada nesta aba.
+            </div>
+          )}
+
+          {/* Paginação — somente na aba Coletadas */}
+          {activeTab === 'collected' && sortedCollected.length > COLLECTED_PAGE_SIZE && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-2">
+              <div className="text-xs text-muted-foreground">
+                Mostrando <strong>{(collectedPage - 1) * COLLECTED_PAGE_SIZE + 1}</strong>–
+                <strong>{Math.min(collectedPage * COLLECTED_PAGE_SIZE, sortedCollected.length)}</strong> de{' '}
+                <strong>{sortedCollected.length}</strong>
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs"
+                  disabled={collectedPage <= 1}
+                  onClick={() => setCollectedPage(p => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </Button>
+                {Array.from({ length: collectedTotalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === collectedTotalPages || Math.abs(p - collectedPage) <= 2)
+                  .reduce<Array<number | 'gap'>>((acc, p, idx, arr) => {
+                    if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('gap');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) => p === 'gap' ? (
+                    <span key={`gap-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      size="sm"
+                      variant={p === collectedPage ? 'default' : 'outline'}
+                      className="h-8 min-w-[2rem] px-2 text-xs"
+                      onClick={() => setCollectedPage(p as number)}
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs"
+                  disabled={collectedPage >= collectedTotalPages}
+                  onClick={() => setCollectedPage(p => Math.min(collectedTotalPages, p + 1))}
+                >
+                  Próxima
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -2415,6 +2497,11 @@ const BillingOrders = () => {
               Marque duas ou mais OFs que serão enviadas juntas (ex.: malha + ribana complementar).
               Apenas OFs <strong>Aberto</strong>, <strong>Separando</strong> e <strong>Pronto</strong> aparecem aqui — Coletadas e Canceladas ficam fora.
               Se selecionar uma OF já atrelada, todos os grupos envolvidos serão mesclados em um único.
+              {!isAdmin && (
+                <div className="mt-2 text-amber-700 dark:text-amber-300 font-semibold">
+                  Modo somente leitura — apenas administradores podem atrelar ou desfazer grupos.
+                </div>
+              )}
             </div>
 
             {/* Grupos existentes */}
@@ -2432,37 +2519,55 @@ const BillingOrders = () => {
                           <span className="text-xs text-muted-foreground">{list.length} OFs</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {list.map((o: any) => (
-                            <span key={o.id} className="inline-flex items-center gap-1 rounded bg-card border px-2 py-0.5 text-xs">
-                              <strong>#{o.of_number}</strong>
-                              <span className="text-muted-foreground">{o.client?.name}</span>
-                              <button
-                                title="Remover do grupo"
-                                className="text-muted-foreground hover:text-red-600"
-                                onClick={async () => {
-                                  try { await removeFromGroup(o.id); } catch (e: any) {
-                                    toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
-                                  }
-                                }}
+                          {list.map((o: any) => {
+                            const hasDoc = !!o.delivery_doc_number;
+                            const st = getStatusStyle(o.status, o.priority, hasDoc);
+                            return (
+                              <span
+                                key={o.id}
+                                className={cn(
+                                  'inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs text-white',
+                                  st.stripe
+                                )}
+                                title={st.label}
                               >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ))}
+                                <strong>#{o.of_number}</strong>
+                                <span className="opacity-90">{o.client?.name}</span>
+                                <span className="text-[9px] font-bold uppercase opacity-90 bg-black/20 rounded px-1 py-[1px]">
+                                  {st.label}
+                                </span>
+                                {isAdmin && (
+                                  <button
+                                    title="Remover do grupo"
+                                    className="text-white/80 hover:text-white"
+                                    onClick={async () => {
+                                      try { await removeFromGroup(o.id); } catch (e: any) {
+                                        toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5 text-red-700 border-red-300 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
-                        onClick={async () => {
-                          try { await unlinkGroup(gid); } catch (e: any) {
-                            toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
-                          }
-                        }}
-                      >
-                        <Link2Off className="h-4 w-4" /> Desfazer
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-red-700 border-red-300 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
+                          onClick={async () => {
+                            try { await unlinkGroup(gid); } catch (e: any) {
+                              toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
+                            }
+                          }}
+                        >
+                          <Link2Off className="h-4 w-4" /> Desfazer
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2470,7 +2575,7 @@ const BillingOrders = () => {
             )}
 
             {/* Lista de OFs elegíveis */}
-            <div className="space-y-2">
+            {isAdmin && (<div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs uppercase font-bold text-muted-foreground">Selecione as OFs para atrelar</Label>
                 <span className="text-xs text-muted-foreground">
@@ -2532,21 +2637,23 @@ const BillingOrders = () => {
                   })}
                 </div>
               )}
-            </div>
+            </div>)}
           </div>
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => { setShowLinkModal(false); setLinkSelected(new Set()); }}>
               Fechar
             </Button>
-            <Button
-              className="gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
-              disabled={linkSelected.size < 2 || linkBusy}
-              onClick={handleLink}
-            >
-              <Link2 className="h-4 w-4" />
-              {linkBusy ? 'Atrelando...' : `Atrelar ${linkSelected.size} OFs`}
-            </Button>
+            {isAdmin && (
+              <Button
+                className="gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                disabled={linkSelected.size < 2 || linkBusy}
+                onClick={handleLink}
+              >
+                <Link2 className="h-4 w-4" />
+                {linkBusy ? 'Atrelando...' : `Atrelar ${linkSelected.size} OFs`}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -25,6 +25,7 @@ export interface BillingOrder {
   created_by: string;
   separated_by?: string;
   collected_by?: string;
+  collected_at?: string | null;
   created_at: string;
   updated_at: string;
   priority: boolean;
@@ -194,7 +195,10 @@ export function useBillingOrders() {
       }
       
       if (status === 'separating') updatePayload.separated_by = profile?.id;
-      if (status === 'collected') updatePayload.collected_by = profile?.id;
+      if (status === 'collected') {
+        updatePayload.collected_by = profile?.id;
+        updatePayload.collected_at = new Date().toISOString();
+      }
       if (status === 'cancelled') {
         updatePayload.cancelled_by = profile?.id;
         updatePayload.cancelled_at = new Date().toISOString();
