@@ -85,6 +85,20 @@ export default function ClientInvoices() {
   const SEARCH_PAGE_SIZE = 15;
   const [filterMonth, setFilterMonth] = useState('all');
 
+  // Company branding for PDF exports
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string>('');
+  useEffect(() => {
+    if (!companyId) return;
+    (supabase.from as any)('companies')
+      .select('logo_url, name')
+      .eq('id', companyId)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
+        if (data?.name) setCompanyName(data.name);
+      });
+  }, [companyId]);
 
   // Fetch Client Invoices
   const { data: clientInvoices = [], isLoading: loadingInvoices } = useQuery({
