@@ -454,10 +454,10 @@ export default function ClientInvoices() {
                 placeholder="Buscar por NF, cliente, fio ou artigo..."
                 className="pl-9"
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
+                onChange={e => { setSearchTerm(e.target.value); setSearchPage(1); }}
               />
             </div>
-            <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <Select value={filterMonth} onValueChange={(v) => { setFilterMonth(v); setSearchPage(1); }}>
               <SelectTrigger>
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filtrar Mês" />
@@ -471,6 +471,29 @@ export default function ClientInvoices() {
             </Select>
           </div>
 
+          {(() => {
+            const filteredInvoices = clientInvoices.filter(inv => {
+              const q = searchTerm.toLowerCase().trim();
+              if (!q && filterMonth === 'all') return true;
+              const client = allClients.find(c => c.id === inv.client_id)?.name || '';
+              const itemName = inv.items?.[0]
+                ? (inv.type === 'entrada'
+                    ? (yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name || '')
+                    : (allArticles.find(a => a.id === inv.items[0].article_id)?.name || ''))
+                : '';
+              const matchSearch = !q
+                || inv.invoice_number.toLowerCase().includes(q)
+                || client.toLowerCase().includes(q)
+                || itemName.toLowerCase().includes(q)
+                || (inv.supplier_name || '').toLowerCase().includes(q);
+              return matchSearch && (filterMonth === 'all' || inv.issue_date.startsWith(filterMonth));
+            });
+            const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / SEARCH_PAGE_SIZE));
+            const safePage = Math.min(searchPage, totalPages);
+            const start = (safePage - 1) * SEARCH_PAGE_SIZE;
+            const pageItems = filteredInvoices.slice(start, start + SEARCH_PAGE_SIZE);
+            return (
+              <>
           <Card>
             <Table>
               <TableHeader>
@@ -485,24 +508,7 @@ export default function ClientInvoices() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clientInvoices
-                  .filter(inv => {
-                    const q = searchTerm.toLowerCase().trim();
-                    if (!q && filterMonth === 'all') return true;
-                    const client = allClients.find(c => c.id === inv.client_id)?.name || '';
-                    const itemName = inv.items?.[0]
-                      ? (inv.type === 'entrada'
-                          ? (yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name || '')
-                          : (allArticles.find(a => a.id === inv.items[0].article_id)?.name || ''))
-                      : '';
-                    const matchSearch = !q
-                      || inv.invoice_number.toLowerCase().includes(q)
-                      || client.toLowerCase().includes(q)
-                      || itemName.toLowerCase().includes(q)
-                      || (inv.supplier_name || '').toLowerCase().includes(q);
-                    return matchSearch && (filterMonth === 'all' || inv.issue_date.startsWith(filterMonth));
-                  })
-                  .map(inv => (
+                {pageItems.map(inv => (
                   <TableRow key={inv.id}>
                     <TableCell>
                       <div className="flex flex-col">
@@ -546,9 +552,55 @@ export default function ClientInvoices() {
                     </TableCell>
                   </TableRow>
                 ))}
+                {pageItems.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      Nenhuma nota encontrada.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </Card>
+
+          {filteredInvoices.length > SEARCH_PAGE_SIZE && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+              <div className="text-xs text-muted-foreground">
+                Mostrando <strong>{start + 1}</strong>–<strong>{Math.min(start + SEARCH_PAGE_SIZE, filteredInvoices.length)}</strong> de <strong>{filteredInvoices.length}</strong>
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={safePage <= 1} onClick={() => setSearchPage(p => Math.max(1, p - 1))}>
+                  Anterior
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
+                  .reduce<Array<number | 'gap'>>((acc, p, idx, arr) => {
+                    if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('gap');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) => p === 'gap' ? (
+                    <span key={`gap-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      size="sm"
+                      variant={p === safePage ? 'default' : 'outline'}
+                      className="h-8 min-w-[2rem] px-2 text-xs"
+                      onClick={() => setSearchPage(p as number)}
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={safePage >= totalPages} onClick={() => setSearchPage(p => Math.min(totalPages, p + 1))}>
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
+              </>
+            );
+          })()}
         </TabsContent>
 
         {openTabs.map(tab => (
