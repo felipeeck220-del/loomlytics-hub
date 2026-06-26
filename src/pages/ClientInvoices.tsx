@@ -162,13 +162,6 @@ export default function ClientInvoices() {
 
       // Validações específicas para saída de malha
       if (formType === 'saida') {
-        const validComp = composition.filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0);
-        if (validComp.length > 0) {
-          const compTotal = validComp.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0);
-          if (Math.abs(compTotal - 100) > 0.01) {
-            throw new Error(`A composição do fio deve somar 100% (atual: ${compTotal.toFixed(2)}%)`);
-          }
-        }
         const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
         if (validLinks.length === 0) {
           throw new Error('Selecione ao menos uma NF de entrada para descontar (a primeira é obrigatória).');
