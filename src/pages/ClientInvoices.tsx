@@ -1251,9 +1251,9 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
         </Card>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full sm:w-auto">
-          <TabsList>
+      <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+        <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full lg:w-auto">
+          <TabsList className="w-full lg:w-auto grid grid-cols-3 lg:flex">
               <TabsTrigger value="aberto" className="gap-2">
                 <Clock className="h-4 w-4" /> Em Aberto
               </TabsTrigger>
@@ -1267,22 +1267,21 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
           </TabsList>
         </Tabs>
         
-        <div className="flex gap-2 w-full sm:w-auto items-center">
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto sm:items-center">
           <Input 
             placeholder={activeSubTab === 'historico' ? "Buscar por número da NF..." : "Buscar nota ou fio..."} 
             className="w-full sm:w-64"
             value={localSearch}
             onChange={e => setLocalSearch(e.target.value)}
           />
-
-          <Button variant="outline" onClick={() => setExportOpen(true)} className="gap-2" title="Exportar PDF">
-            <FileDown className="h-4 w-4" /> Exportar PDF
-          </Button>
-
-          <Button onClick={() => onAdd('entrada')} className="gap-2">
-            <Plus className="h-4 w-4" /> Adicionar Nota
-          </Button>
-
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => setExportOpen(true)} className="gap-2 flex-1 sm:flex-none" title="Exportar PDF">
+              <FileDown className="h-4 w-4" /> Exportar PDF
+            </Button>
+            <Button onClick={() => onAdd('entrada')} className="gap-2 flex-1 sm:flex-none">
+              <Plus className="h-4 w-4" /> Adicionar Nota
+            </Button>
+          </div>
         </div>
       </div>
 
