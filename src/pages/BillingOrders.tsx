@@ -1351,6 +1351,57 @@ const BillingOrders = () => {
               Nenhuma ordem de faturamento encontrada nesta aba.
             </div>
           )}
+
+          {/* Paginação — somente na aba Coletadas */}
+          {activeTab === 'collected' && sortedCollected.length > COLLECTED_PAGE_SIZE && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 pb-2">
+              <div className="text-xs text-muted-foreground">
+                Mostrando <strong>{(collectedPage - 1) * COLLECTED_PAGE_SIZE + 1}</strong>–
+                <strong>{Math.min(collectedPage * COLLECTED_PAGE_SIZE, sortedCollected.length)}</strong> de{' '}
+                <strong>{sortedCollected.length}</strong>
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs"
+                  disabled={collectedPage <= 1}
+                  onClick={() => setCollectedPage(p => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </Button>
+                {Array.from({ length: collectedTotalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === collectedTotalPages || Math.abs(p - collectedPage) <= 2)
+                  .reduce<Array<number | 'gap'>>((acc, p, idx, arr) => {
+                    if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('gap');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) => p === 'gap' ? (
+                    <span key={`gap-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      size="sm"
+                      variant={p === collectedPage ? 'default' : 'outline'}
+                      className="h-8 min-w-[2rem] px-2 text-xs"
+                      onClick={() => setCollectedPage(p as number)}
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs"
+                  disabled={collectedPage >= collectedTotalPages}
+                  onClick={() => setCollectedPage(p => Math.min(collectedTotalPages, p + 1))}
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </Tabs>
 
