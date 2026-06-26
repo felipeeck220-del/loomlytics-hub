@@ -77,6 +77,10 @@ const BillingOrders = () => {
   });
   const [datePreset, setDatePreset] = useState<'7d' | '30d' | 'custom'>('30d');
 
+  // Paginação da aba Coletadas (10 por página)
+  const [collectedPage, setCollectedPage] = useState(1);
+  const COLLECTED_PAGE_SIZE = 10;
+
   // Aviso de saldo negativo ao criar OF
   const [negativeWarning, setNegativeWarning] = useState<null | {
     currentKg: number; currentPieces: number;
@@ -201,7 +205,8 @@ const BillingOrders = () => {
         order.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.dyehouse.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.of_number.includes(searchTerm) ||
-        (order.article?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+        (order.article?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+        (((order as any).delivery_doc_number || '').toLowerCase().includes(searchTerm.toLowerCase()));
       
       if (activeTab === 'all') return matchesSearch;
       
@@ -235,7 +240,10 @@ const BillingOrders = () => {
 
       // Filtros específicos para "Coletadas"
       if (activeTab === 'collected') {
-        const orderDate = new Date(order.created_at);
+        // Usa a data/hora da COLETA (collected_at). Fallback para updated_at em
+        // registros antigos sem backfill.
+        const ref = (order as any).collected_at || order.updated_at || order.created_at;
+        const orderDate = new Date(ref);
         const today = new Date();
 
         if (datePreset === '7d') {
@@ -257,6 +265,29 @@ const BillingOrders = () => {
       return true;
     });
   }, [orders, searchTerm, activeTab, filterDateRange, datePreset]);
+
+  // Resetar página ao mudar filtros/aba
+  useEffect(() => { setCollectedPage(1); }, [activeTab, datePreset, filterDateRange.from, filterDateRange.to, searchTerm]);
+
+  // Ordena Coletadas pela data da coleta (mais recente primeiro) e pagina
+  const sortedCollected = useMemo(() => {
+    if (activeTab !== 'collected') return filteredOrders;
+    return [...filteredOrders].sort((a: any, b: any) => {
+      const da = new Date(a.collected_at || a.updated_at || a.created_at).getTime();
+      const db = new Date(b.collected_at || b.updated_at || b.created_at).getTime();
+      return db - da;
+    });
+  }, [filteredOrders, activeTab]);
+
+  const collectedTotalPages = activeTab === 'collected'
+    ? Math.max(1, Math.ceil(sortedCollected.length / COLLECTED_PAGE_SIZE))
+    : 1;
+
+  const visibleOrders = useMemo(() => {
+    if (activeTab !== 'collected') return filteredOrders;
+    const start = (collectedPage - 1) * COLLECTED_PAGE_SIZE;
+    return sortedCollected.slice(start, start + COLLECTED_PAGE_SIZE);
+  }, [activeTab, filteredOrders, sortedCollected, collectedPage]);
 
   const stats = useMemo(() => {
     return {
