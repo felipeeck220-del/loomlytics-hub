@@ -2497,6 +2497,11 @@ const BillingOrders = () => {
               Marque duas ou mais OFs que serão enviadas juntas (ex.: malha + ribana complementar).
               Apenas OFs <strong>Aberto</strong>, <strong>Separando</strong> e <strong>Pronto</strong> aparecem aqui — Coletadas e Canceladas ficam fora.
               Se selecionar uma OF já atrelada, todos os grupos envolvidos serão mesclados em um único.
+              {!isAdmin && (
+                <div className="mt-2 text-amber-700 dark:text-amber-300 font-semibold">
+                  Modo somente leitura — apenas administradores podem atrelar ou desfazer grupos.
+                </div>
+              )}
             </div>
 
             {/* Grupos existentes */}
@@ -2514,37 +2519,55 @@ const BillingOrders = () => {
                           <span className="text-xs text-muted-foreground">{list.length} OFs</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {list.map((o: any) => (
-                            <span key={o.id} className="inline-flex items-center gap-1 rounded bg-card border px-2 py-0.5 text-xs">
-                              <strong>#{o.of_number}</strong>
-                              <span className="text-muted-foreground">{o.client?.name}</span>
-                              <button
-                                title="Remover do grupo"
-                                className="text-muted-foreground hover:text-red-600"
-                                onClick={async () => {
-                                  try { await removeFromGroup(o.id); } catch (e: any) {
-                                    toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
-                                  }
-                                }}
+                          {list.map((o: any) => {
+                            const hasDoc = !!o.delivery_doc_number;
+                            const st = getStatusStyle(o.status, o.priority, hasDoc);
+                            return (
+                              <span
+                                key={o.id}
+                                className={cn(
+                                  'inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs text-white',
+                                  st.stripe
+                                )}
+                                title={st.label}
                               >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ))}
+                                <strong>#{o.of_number}</strong>
+                                <span className="opacity-90">{o.client?.name}</span>
+                                <span className="text-[9px] font-bold uppercase opacity-90 bg-black/20 rounded px-1 py-[1px]">
+                                  {st.label}
+                                </span>
+                                {isAdmin && (
+                                  <button
+                                    title="Remover do grupo"
+                                    className="text-white/80 hover:text-white"
+                                    onClick={async () => {
+                                      try { await removeFromGroup(o.id); } catch (e: any) {
+                                        toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5 text-red-700 border-red-300 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
-                        onClick={async () => {
-                          try { await unlinkGroup(gid); } catch (e: any) {
-                            toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
-                          }
-                        }}
-                      >
-                        <Link2Off className="h-4 w-4" /> Desfazer
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-red-700 border-red-300 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
+                          onClick={async () => {
+                            try { await unlinkGroup(gid); } catch (e: any) {
+                              toast({ title: 'Erro', description: e?.message, variant: 'destructive' });
+                            }
+                          }}
+                        >
+                          <Link2Off className="h-4 w-4" /> Desfazer
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2552,7 +2575,7 @@ const BillingOrders = () => {
             )}
 
             {/* Lista de OFs elegíveis */}
-            <div className="space-y-2">
+            {isAdmin && (<div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs uppercase font-bold text-muted-foreground">Selecione as OFs para atrelar</Label>
                 <span className="text-xs text-muted-foreground">
@@ -2614,21 +2637,23 @@ const BillingOrders = () => {
                   })}
                 </div>
               )}
-            </div>
+            </div>)}
           </div>
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => { setShowLinkModal(false); setLinkSelected(new Set()); }}>
               Fechar
             </Button>
-            <Button
-              className="gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
-              disabled={linkSelected.size < 2 || linkBusy}
-              onClick={handleLink}
-            >
-              <Link2 className="h-4 w-4" />
-              {linkBusy ? 'Atrelando...' : `Atrelar ${linkSelected.size} OFs`}
-            </Button>
+            {isAdmin && (
+              <Button
+                className="gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                disabled={linkSelected.size < 2 || linkBusy}
+                onClick={handleLink}
+              >
+                <Link2 className="h-4 w-4" />
+                {linkBusy ? 'Atrelando...' : `Atrelar ${linkSelected.size} OFs`}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
