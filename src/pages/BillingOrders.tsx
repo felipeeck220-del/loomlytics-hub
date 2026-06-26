@@ -947,7 +947,7 @@ const BillingOrders = () => {
       <div className="flex items-center gap-2 bg-card p-3 rounded-lg border shadow-sm">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input 
-          placeholder="Pesquisar por cliente, tinturaria ou OF..." 
+          placeholder="Pesquisar por cliente, tinturaria, OF, artigo ou NF/Romaneio..." 
           className="border-none shadow-none focus-visible:ring-0"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
