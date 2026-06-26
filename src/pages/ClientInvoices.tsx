@@ -623,7 +623,7 @@ export default function ClientInvoices() {
 
       {/* Registration Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={cn(formType === 'saida' ? 'sm:max-w-[80vw] max-h-[90vh] overflow-y-auto' : 'max-w-md')}>
+        <DialogContent className={cn(formType === 'saida' ? 'w-[95vw] max-w-[95vw] sm:max-w-[80vw] max-h-[90vh] overflow-y-auto overflow-x-hidden' : 'max-w-md')}>
           <DialogHeader>
             <DialogTitle>
               {editingInvoice ? 'Editar Nota' : (formType === 'entrada' ? 'Nova Entrada de Fio' : 'Nova Saída de Malha')}
@@ -778,7 +778,8 @@ export default function ClientInvoices() {
                       .map(r => r.entry_invoice_id)
                       .filter(Boolean);
                     return (
-                      <div key={idx} className="grid grid-cols-[1fr_100px_100px_32px] gap-2 items-center">
+                      <div key={idx} className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                        <div className="w-full sm:flex-1 sm:min-w-0">
                         <SearchableSelect
                           options={clientInvoices
                             .filter(i => i.type === 'entrada' && i.client_id === selectedClientId && (!usedEntryIds.includes(i.id) || i.id === link.entry_invoice_id))
@@ -793,17 +794,19 @@ export default function ClientInvoices() {
                           }}
                           placeholder="NF de entrada..."
                         />
+                        </div>
                         <Input
                           value={link.yarn_type_id ? (yarnTypes.find(y => y.id === link.yarn_type_id)?.name || '-') : (entryInv?.items?.[0]?.yarn_type_id ? yarnTypes.find(y => y.id === entryInv.items[0].yarn_type_id)?.name : '-')}
                           readOnly
-                          className="text-xs bg-muted/40"
+                          className="text-xs bg-muted/40 flex-1 sm:flex-none sm:w-[110px]"
                         />
                         <Input
                           type="number" step="0.001" placeholder="kg"
                           value={link.deduct_kg}
                           onChange={e => setExitLinks(prev => prev.map((r, i) => i === idx ? { ...r, deduct_kg: e.target.value } : r))}
+                          className="flex-1 sm:flex-none sm:w-[110px]"
                         />
-                        <Button variant="ghost" size="icon" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
+                        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => setExitLinks(prev => prev.filter((_, i) => i !== idx))}>
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
@@ -1248,9 +1251,9 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
         </Card>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full sm:w-auto">
-          <TabsList>
+      <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+        <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full lg:w-auto">
+          <TabsList className="w-full lg:w-auto grid grid-cols-3 lg:flex">
               <TabsTrigger value="aberto" className="gap-2">
                 <Clock className="h-4 w-4" /> Em Aberto
               </TabsTrigger>
@@ -1264,22 +1267,21 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
           </TabsList>
         </Tabs>
         
-        <div className="flex gap-2 w-full sm:w-auto items-center">
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto sm:items-center">
           <Input 
             placeholder={activeSubTab === 'historico' ? "Buscar por número da NF..." : "Buscar nota ou fio..."} 
             className="w-full sm:w-64"
             value={localSearch}
             onChange={e => setLocalSearch(e.target.value)}
           />
-
-          <Button variant="outline" onClick={() => setExportOpen(true)} className="gap-2" title="Exportar PDF">
-            <FileDown className="h-4 w-4" /> Exportar PDF
-          </Button>
-
-          <Button onClick={() => onAdd('entrada')} className="gap-2">
-            <Plus className="h-4 w-4" /> Adicionar Nota
-          </Button>
-
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => setExportOpen(true)} className="gap-2 flex-1 sm:flex-none" title="Exportar PDF">
+              <FileDown className="h-4 w-4" /> Exportar PDF
+            </Button>
+            <Button onClick={() => onAdd('entrada')} className="gap-2 flex-1 sm:flex-none">
+              <Plus className="h-4 w-4" /> Adicionar Nota
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -1506,6 +1508,8 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                         <TableHead className="h-9">NF</TableHead>
                         <TableHead className="h-9">Fio</TableHead>
                         <TableHead className="h-9 text-right">Peso</TableHead>
+                        <TableHead className="h-9 text-right">Saldo</TableHead>
+                        <TableHead className="h-9">Status</TableHead>
                         <TableHead className="h-9"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1515,21 +1519,34 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                         .filter((i: any) => !exportNfQuery || (i.invoice_number || '').toLowerCase().includes(exportNfQuery.toLowerCase()))
                         .sort((a: any, b: any) => (b.issue_date || '').localeCompare(a.issue_date || ''))
                         .slice(0, 50)
-                        .map((inv: any) => (
+                        .map((inv: any) => {
+                          const withBal: any = invoicesWithBalance.find((x: any) => x.id === inv.id);
+                          const saldo = withBal?.saldo ?? 0;
+                          const isEncerrada = withBal?.isEncerrada ?? false;
+                          return (
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                             <TableCell className="text-xs">{yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '-'}</TableCell>
                             <TableCell className="text-xs text-right">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
+                            <TableCell className={cn("text-xs text-right font-medium", isEncerrada ? "text-muted-foreground" : "text-sky-700")}>
+                              {isEncerrada ? '—' : formatWeight(saldo)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={isEncerrada ? 'outline' : 'default'} className={cn("text-[10px]", !isEncerrada && "bg-sky-500/15 text-sky-700 hover:bg-sky-500/15 border-sky-500/30")}>
+                                {isEncerrada ? 'Encerrada' : 'Em Aberto'}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="text-right">
                               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" disabled={exportLoading} onClick={() => handleExportSingleNf(inv)}>
                                 <FileDown className="h-3 w-3" /> Exportar
                               </Button>
                             </TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       {invoices.filter((i: any) => i.type === 'entrada').length === 0 && (
-                        <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">Nenhuma NF de entrada.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">Nenhuma NF de entrada.</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
