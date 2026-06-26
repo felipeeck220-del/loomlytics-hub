@@ -1190,14 +1190,21 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
 
   
   const stats = useMemo(() => {
-    const entrada = invoices.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
-    const saida = invoices.filter((i: any) => i.type === 'saida').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
+    const q = (localSearch || '').toLowerCase();
+    const base = !q ? invoices : invoices.filter((inv: any) => {
+      const itemName = inv.type === 'entrada'
+        ? (yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '')
+        : (allArticles.find((a: any) => a.id === inv.items?.[0]?.article_id)?.name || '');
+      return (inv.invoice_number || '').toLowerCase().includes(q) || itemName.toLowerCase().includes(q);
+    });
+    const entrada = base.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
+    const saida = base.filter((i: any) => i.type === 'saida').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
     return {
       entrada,
       saida,
       saldo: entrada - saida
     };
-  }, [invoices]);
+  }, [invoices, localSearch, yarnTypes, allArticles]);
 
   const invoicesWithBalance = useMemo(() => {
     return invoices
