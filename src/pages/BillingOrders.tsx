@@ -531,8 +531,29 @@ const BillingOrders = () => {
       order_type: editForm.order_type,
     };
     const note = editForm.edit_note.trim() || `Editado por admin em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
-    await editOrder.mutateAsync({ id: showEditModal.id, changes, note, revertToOpen: wasActive });
-    setShowEditModal(null);
+    try {
+      await editOrder.mutateAsync({
+        id: showEditModal.id,
+        changes,
+        note,
+        revertToOpen: wasActive,
+        // Garantia anti-race: se outro usuário mudou o status enquanto este
+        // modal estava aberto, o UPDATE não atinge nenhuma linha e cai no
+        // catch — evitando que uma reserva já criada nunca seja liberada.
+        expectedStatus: showEditModal.status,
+      });
+      setShowEditModal(null);
+    } catch (err: any) {
+      if (err?.code === 'CONFLICT') {
+        toast({
+          title: 'OF foi alterada por outro usuário',
+          description: 'Os dados foram atualizados — feche e abra a edição novamente.',
+          variant: 'destructive',
+        });
+        setShowEditModal(null);
+      }
+      // demais erros já são tratados no onError do hook
+    }
   };
 
   const handleCancel = async () => {
