@@ -253,7 +253,6 @@ export async function exportClientInvoiceByNfPdf(params: {
       art,
       fmt(exit.items?.[0]?.weight_kg || 0),
       fmt(link.deduct_kg || 0),
-      'Vinculada',
     ]);
   });
   // Legacy exits
@@ -267,20 +266,19 @@ export async function exportClientInvoiceByNfPdf(params: {
         art,
         fmt(exit.items?.[0]?.weight_kg || 0),
         fmt(exit.items?.[0]?.weight_kg || 0),
-        'Legado',
       ]);
     });
 
   autoTable(pdf, {
     startY: y + 2,
-    head: [['Data', 'NF Saída', 'Artigo de Malha', 'Peso Saída (kg)', 'Descontado (kg)', 'Tipo']],
-    body: exitRows.length ? exitRows.map(r => r.map((c: any) => sanitizePdfText(String(c ?? '')))) : [['-', '-', 'Nenhuma saída vinculada', '-', '-', '-']],
+    head: [['Data', 'NF Saída', 'Artigo de Malha', 'Peso Saída (kg)', 'Descontado (kg)']],
+    body: exitRows.length ? exitRows.map(r => r.map((c: any) => sanitizePdfText(String(c ?? '')))) : [['-', '-', 'Nenhuma saída vinculada', '-', '-']],
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: colors.headerFill, textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } },
     margin: { left: margin, right: margin },
-    foot: exitRows.length ? [['', '', 'TOTAL', fmt(exitRows.reduce((s, r) => s + (parseFloat(String(r[3]).replace(/\./g, '').replace(',', '.')) || 0), 0)), fmt(totalSaida), '']] : undefined,
+    foot: exitRows.length ? [['', '', 'TOTAL', fmt(exitRows.reduce((s, r) => s + (parseFloat(String(r[3]).replace(/\./g, '').replace(',', '.')) || 0), 0)), fmt(totalSaida)]] : undefined,
     footStyles: { fillColor: [255, 251, 235], textColor: colors.textDark, fontStyle: 'bold' },
   });
 
