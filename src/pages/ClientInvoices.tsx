@@ -80,6 +80,8 @@ export default function ClientInvoices() {
   
   // Search/Filter State
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchPage, setSearchPage] = useState(1);
+  const SEARCH_PAGE_SIZE = 15;
   const [filterMonth, setFilterMonth] = useState('all');
 
 
