@@ -1581,7 +1581,9 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                       <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
                         {monthOptions.map(m => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                          <SelectItem key={m} value={m}>
+                            {format(new Date(m + '-02T12:00:00'), 'MMM-yyyy', { locale: ptBR }).replace('.', '')}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
