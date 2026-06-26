@@ -1006,7 +1006,7 @@ export default function ClientInvoices() {
                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setLinkedDialogOpen(false); handleEditInvoice(s); }}>
                                     <Edit2 className="h-3.5 w-3.5 text-primary" />
                                   </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteInvoice(s.id)}>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setLinkedDialogOpen(false); handleDeleteInvoice(s.id); }}>
                                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
                                   </Button>
                                 </div>
