@@ -379,13 +379,15 @@ export default function ClientInvoices() {
     
     // Check if it's an entrance with linked outputs
     const invoice = clientInvoices.find(i => i.id === invoiceToDelete);
-    const hasLinked = invoice?.type === 'entrada' && clientInvoices.some(i => i.parent_invoice_id === invoiceToDelete);
-    
+    const hasLinkedLegacy = invoice?.type === 'entrada' && clientInvoices.some(i => i.parent_invoice_id === invoiceToDelete);
+    const hasLinkedNew = invoice?.type === 'entrada' && (exitLinksAll || []).some((l: any) => l.entry_invoice_id === invoiceToDelete);
+    const hasLinked = hasLinkedLegacy || hasLinkedNew;
+
     const { error } = await supabase.from('client_invoices').delete().eq('id', invoiceToDelete);
     if (error) toast.error('Erro ao excluir');
     else {
       logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete, was_parent: hasLinked });
-      toast.success(hasLinked ? 'Nota e saídas vinculadas excluídas' : 'Nota excluída');
+      toast.success(hasLinked ? 'Nota excluída — saídas vinculadas podem precisar ser revisadas' : 'Nota excluída');
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
     }
     setDeleteDialogOpen(false);
