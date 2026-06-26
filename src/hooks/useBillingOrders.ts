@@ -373,12 +373,42 @@ export function useBillingOrders() {
           // collected -> cancelled: estorno (devolve ao físico)
           if (status === 'cancelled' && expectedStatus === 'collected' && (pieces > 0 || weight > 0)) {
             const isSecondQ = reversalQuality === 'second';
-            mvs.push({
-              ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
-              type: 'in', pieces, weight_kg: weight,
-              is_second_quality: isSecondQ,
-              reason: `OF #${ofRow.of_number} estornada — ${isSecondQ ? '2ª QUALIDADE' : '1ª qualidade'} — ${updatePayload.cancellation_reason || 'sem motivo'}`,
-            });
+            // Estorna preservando a distribuição por máquina vinda dos paletes
+            // (mesma lógica usada na baixa `out` em ready→collected). Sem isso,
+            // o saldo por máquina em /estoque-malha fica incorreto quando a OF
+            // foi separada com paletes em múltiplas máquinas.
+            const { data: palletRowsRev } = await (supabase.from as any)('billing_order_pallets')
+              .select('pieces, weight_kg, machine_id')
+              .eq('billing_order_id', id);
+            const reasonStr = `OF #${ofRow.of_number} estornada — ${isSecondQ ? '2ª QUALIDADE' : '1ª qualidade'} — ${updatePayload.cancellation_reason || 'sem motivo'}`;
+            if (palletRowsRev && palletRowsRev.length > 0) {
+              const inByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
+              for (const pr of palletRowsRev) {
+                const k = (pr.machine_id as string | null) || '__none__';
+                const cur = inByMachine.get(k) || { p: 0, w: 0, mid: (pr.machine_id as string | null) || null };
+                cur.p += Number(pr.pieces || 0);
+                cur.w += Number(pr.weight_kg || 0);
+                inByMachine.set(k, cur);
+              }
+              for (const cur of inByMachine.values()) {
+                if (cur.p > 0 || cur.w > 0) {
+                  mvs.push({
+                    ...baseMov, machine_id: cur.mid, type: 'in',
+                    pieces: Math.max(0, Math.round(cur.p)),
+                    weight_kg: Math.max(0, cur.w),
+                    is_second_quality: isSecondQ,
+                    reason: reasonStr,
+                  });
+                }
+              }
+            } else {
+              mvs.push({
+                ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
+                type: 'in', pieces, weight_kg: weight,
+                is_second_quality: isSecondQ,
+                reason: reasonStr,
+              });
+            }
           }
 
           if (mvs.length > 0) {
