@@ -453,11 +453,12 @@ export function useBillingOrders() {
   });
 
   const editOrder = useMutation({
-    mutationFn: async ({ id, changes, note, revertToOpen }: {
+    mutationFn: async ({ id, changes, note, revertToOpen, expectedStatus }: {
       id: string;
       changes: Partial<BillingOrder>;
       note: string;
       revertToOpen: boolean;
+      expectedStatus?: BillingOrderStatus;
     }) => {
       // Snapshot do que será revertido para emitir 'release' depois
       let preReleaseSnapshot: { pieces: number; weight: number; article_id: string | null; client_id: string | null; of_number: string | null; prev_status: string | null } | null = null;
@@ -498,11 +499,17 @@ export function useBillingOrders() {
         payload.delivery_doc_set_by = null;
         payload.delivery_doc_set_at = null;
       }
-      const { error } = await supabase
-        .from('billing_orders')
-        .update(payload)
-        .eq('id', id);
+      // UPDATE condicional para evitar overwrite silencioso quando outro
+      // usuário mudou o status no meio do caminho (modal aberto há tempo).
+      let q = supabase.from('billing_orders').update(payload).eq('id', id);
+      if (expectedStatus) q = q.eq('status', expectedStatus);
+      const { data: updatedRows, error } = await q.select('id');
       if (error) throw error;
+      if (expectedStatus && (!updatedRows || updatedRows.length === 0)) {
+        const err: any = new Error('OF foi alterada por outro usuário — recarregue a página.');
+        err.code = 'CONFLICT';
+        throw err;
+      }
 
       // Revert para 'open': libera APENAS o que está efetivamente reservado
       // (soma de reserves − releases já feitos para esta OF). Evita release
@@ -569,19 +576,11 @@ export function useBillingOrders() {
       if (!number || number.trim().length < 1) {
         throw new Error('Informe o número do documento');
       }
-      // Guarda defensiva: só permite registrar NF/Romaneio em OFs que estão
-      // efetivamente prontas (separadas). Evita corrida de cliques entre
-      // abas/usuários onde a OF pode ter sido cancelada/revertida/coletada.
-      const { data: cur } = await supabase
-        .from('billing_orders')
-        .select('status')
-        .eq('id', id)
-        .maybeSingle();
-      if (!cur) throw new Error('OF não encontrada');
-      if ((cur as any).status !== 'ready') {
-        throw new Error('Só é possível lançar NF/Romaneio em OFs prontas (já separadas).');
-      }
-      const { error } = await supabase
+      // UPDATE condicional (ready) — fecha a race condition entre a leitura
+      // do status e a escrita do documento. Se a OF saiu de 'ready' nesse
+      // intervalo (cancelada/revertida/coletada), o update não atinge nenhuma
+      // linha e abortamos com mensagem amigável.
+      const { data: updRows, error } = await supabase
         .from('billing_orders' as any)
         .update({
           delivery_doc_type: type,
@@ -589,8 +588,13 @@ export function useBillingOrders() {
           delivery_doc_set_by: profile?.id,
           delivery_doc_set_at: new Date().toISOString(),
         } as any)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('status', 'ready')
+        .select('id');
       if (error) throw error;
+      if (!updRows || updRows.length === 0) {
+        throw new Error('OF não está mais pronta para receber NF/Romaneio — recarregue a página.');
+      }
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
       toast({ title: `${type === 'nf' ? 'NF' : 'Romaneio'} registrado` });
     },
@@ -627,7 +631,8 @@ export function useBillingOrders() {
       const { data: existing } = await supabase
         .from('billing_orders')
         .select('id, link_group_id')
-        .in('id', ids);
+        .in('id', ids)
+        .eq('company_id', user.company_id);
       const existingGroups = Array.from(new Set((existing || []).map((r: any) => r.link_group_id).filter(Boolean)));
       const groupId: string = existingGroups[0] || (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
       // Coleta TODOS os ids que devem ficar no grupo final (selecionados + qualquer um que já pertença a grupos sendo mesclados)
