@@ -719,7 +719,6 @@ export default function ClientInvoices() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {/* Vínculos com Notas de Entrada (multi) — vem PRIMEIRO para alimentar a composição */}
                 <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
                   <div className="flex items-center justify-between">
@@ -731,36 +730,40 @@ export default function ClientInvoices() {
                       variant="outline" size="sm" className="gap-1 h-7 text-xs"
                       onClick={() => {
                         const totalKg = parseFloat(weightKg) || 0;
-                        const validComp = composition.filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0);
-                        if (totalKg <= 0 || validComp.length === 0) {
-                          toast.error('Informe o peso total e a composição antes de auto distribuir');
+                        if (totalKg <= 0) {
+                          toast.error('Informe o peso total antes de auto distribuir');
                           return;
                         }
-                        const newLinks: LinkRow[] = [];
-                        for (const comp of validComp) {
-                          let need = totalKg * (parseFloat(comp.percentage) / 100);
-                          // entradas do mesmo cliente, mesmo fio, com saldo > 0
-                          const candidates = clientInvoices
-                            .filter(i => i.type === 'entrada' && i.client_id === selectedClientId && i.items?.[0]?.yarn_type_id === comp.yarn_type_id)
-                            .map(i => {
-                              const weightEntrada = i.items?.[0]?.weight_kg || 0;
-                              const used = exitLinksAll
-                                .filter((l: any) => l.entry_invoice_id === i.id && (!editingInvoice || l.exit_invoice_id !== editingInvoice.id))
-                                .reduce((s: number, l: any) => s + Number(l.deduct_kg || 0), 0);
-                              return { id: i.id, saldo: Math.max(0, weightEntrada - used), date: i.issue_date };
-                            })
-                            .filter(c => c.saldo > 0.0001)
-                            .sort((a, b) => a.date.localeCompare(b.date));
-                          for (const cand of candidates) {
-                            if (need <= 0) break;
-                            const take = Math.min(need, cand.saldo);
-                            newLinks.push({ entry_invoice_id: cand.id, yarn_type_id: comp.yarn_type_id, deduct_kg: take.toFixed(3) });
-                            need -= take;
-                          }
-                          if (need > 0.0001) {
-                            toast.warning(`Saldo insuficiente em entradas para ${yarnTypes.find(y => y.id === comp.yarn_type_id)?.name}: faltam ${need.toFixed(3)} kg`);
-                          }
+                        // Distribui o peso proporcionalmente entre as NFs vinculadas (pelo saldo disponível)
+                        const validIds = exitLinks.filter(l => l.entry_invoice_id).map(l => l.entry_invoice_id);
+                        if (validIds.length === 0) {
+                          toast.error('Adicione ao menos uma NF de entrada para distribuir');
+                          return;
                         }
+                        const saldos = validIds.map(id => {
+                          const inv: any = clientInvoices.find(i => i.id === id);
+                          const weightEntrada = inv?.items?.[0]?.weight_kg || 0;
+                          const used = exitLinksAll
+                            .filter((l: any) => l.entry_invoice_id === id && (!editingInvoice || l.exit_invoice_id !== editingInvoice.id))
+                            .reduce((s: number, l: any) => s + Number(l.deduct_kg || 0), 0);
+                          return { id, saldo: Math.max(0, weightEntrada - used) };
+                        });
+                        const totalSaldo = saldos.reduce((s, x) => s + x.saldo, 0);
+                        if (totalSaldo <= 0) {
+                          toast.error('Sem saldo disponível nas NFs selecionadas');
+                          return;
+                        }
+                        let remaining = totalKg;
+                        const newLinks: LinkRow[] = exitLinks.map((l, idx) => {
+                          const s = saldos.find(x => x.id === l.entry_invoice_id);
+                          if (!s) return l;
+                          let take = idx === exitLinks.length - 1
+                            ? Math.min(remaining, s.saldo)
+                            : Math.min((totalKg * s.saldo) / totalSaldo, s.saldo);
+                          take = Math.max(0, Number(take.toFixed(3)));
+                          remaining -= take;
+                          return { ...l, deduct_kg: take.toFixed(3) };
+                        });
                         setExitLinks(newLinks);
                       }}
                     >
