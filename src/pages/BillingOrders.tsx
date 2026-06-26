@@ -1056,7 +1056,7 @@ const BillingOrders = () => {
         )}
 
         <div className="mt-6 space-y-3">
-          {filteredOrders.map((order) => {
+          {visibleOrders.map((order) => {
             const hasDoc = !!(order as any).delivery_doc_number;
             const style = getStatusStyle(order.status, order.priority, hasDoc);
             return (
