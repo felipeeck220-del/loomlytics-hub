@@ -1508,6 +1508,8 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                         <TableHead className="h-9">NF</TableHead>
                         <TableHead className="h-9">Fio</TableHead>
                         <TableHead className="h-9 text-right">Peso</TableHead>
+                        <TableHead className="h-9 text-right">Saldo</TableHead>
+                        <TableHead className="h-9">Status</TableHead>
                         <TableHead className="h-9"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1517,21 +1519,34 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                         .filter((i: any) => !exportNfQuery || (i.invoice_number || '').toLowerCase().includes(exportNfQuery.toLowerCase()))
                         .sort((a: any, b: any) => (b.issue_date || '').localeCompare(a.issue_date || ''))
                         .slice(0, 50)
-                        .map((inv: any) => (
+                        .map((inv: any) => {
+                          const withBal: any = invoicesWithBalance.find((x: any) => x.id === inv.id);
+                          const saldo = withBal?.saldo ?? 0;
+                          const isEncerrada = withBal?.isEncerrada ?? false;
+                          return (
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                             <TableCell className="text-xs">{yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '-'}</TableCell>
                             <TableCell className="text-xs text-right">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
+                            <TableCell className={cn("text-xs text-right font-medium", isEncerrada ? "text-muted-foreground" : "text-sky-700")}>
+                              {isEncerrada ? '—' : formatWeight(saldo)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={isEncerrada ? 'outline' : 'default'} className={cn("text-[10px]", !isEncerrada && "bg-sky-500/15 text-sky-700 hover:bg-sky-500/15 border-sky-500/30")}>
+                                {isEncerrada ? 'Encerrada' : 'Em Aberto'}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="text-right">
                               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" disabled={exportLoading} onClick={() => handleExportSingleNf(inv)}>
                                 <FileDown className="h-3 w-3" /> Exportar
                               </Button>
                             </TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       {invoices.filter((i: any) => i.type === 'entrada').length === 0 && (
-                        <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">Nenhuma NF de entrada.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">Nenhuma NF de entrada.</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
