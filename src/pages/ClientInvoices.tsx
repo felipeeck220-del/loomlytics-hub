@@ -20,6 +20,7 @@ import {
 import { exportClientInvoicesGeneralPdf, exportClientInvoiceByNfPdf } from '@/lib/clientInvoicePdf';
 
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -161,13 +162,6 @@ export default function ClientInvoices() {
 
       // Validações específicas para saída de malha
       if (formType === 'saida') {
-        const validComp = composition.filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0);
-        if (validComp.length > 0) {
-          const compTotal = validComp.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0);
-          if (Math.abs(compTotal - 100) > 0.01) {
-            throw new Error(`A composição do fio deve somar 100% (atual: ${compTotal.toFixed(2)}%)`);
-          }
-        }
         const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
         if (validLinks.length === 0) {
           throw new Error('Selecione ao menos uma NF de entrada para descontar (a primeira é obrigatória).');
@@ -198,14 +192,7 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
-            composition: formType === 'saida'
-              ? (() => {
-                  const arr = composition
-                    .filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0)
-                    .map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 }));
-                  return arr.length > 0 ? (arr as any) : null;
-                })()
-              : null,
+            composition: null,
           } as any)
           .eq('id', editingInvoice.id);
 
@@ -254,14 +241,7 @@ export default function ClientInvoices() {
             observations: observations || null,
             parent_invoice_id: parentInvoiceId,
             supplier_name: formType === 'entrada' ? (supplierName || null) : null,
-            composition: formType === 'saida'
-              ? (() => {
-                  const arr = composition
-                    .filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0)
-                    .map(c => ({ yarn_type_id: c.yarn_type_id, percentage: parseFloat(c.percentage) || 0 }));
-                  return arr.length > 0 ? (arr as any) : null;
-                })()
-              : null,
+            composition: null,
             created_by_name: userTrackingInfo.created_by_name,
             created_by_code: userTrackingInfo.created_by_code
           } as any)
@@ -739,7 +719,6 @@ export default function ClientInvoices() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {/* Vínculos com Notas de Entrada (multi) — vem PRIMEIRO para alimentar a composição */}
                 <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
                   <div className="flex items-center justify-between">
@@ -751,36 +730,40 @@ export default function ClientInvoices() {
                       variant="outline" size="sm" className="gap-1 h-7 text-xs"
                       onClick={() => {
                         const totalKg = parseFloat(weightKg) || 0;
-                        const validComp = composition.filter(c => c.yarn_type_id && parseFloat(c.percentage) > 0);
-                        if (totalKg <= 0 || validComp.length === 0) {
-                          toast.error('Informe o peso total e a composição antes de auto distribuir');
+                        if (totalKg <= 0) {
+                          toast.error('Informe o peso total antes de auto distribuir');
                           return;
                         }
-                        const newLinks: LinkRow[] = [];
-                        for (const comp of validComp) {
-                          let need = totalKg * (parseFloat(comp.percentage) / 100);
-                          // entradas do mesmo cliente, mesmo fio, com saldo > 0
-                          const candidates = clientInvoices
-                            .filter(i => i.type === 'entrada' && i.client_id === selectedClientId && i.items?.[0]?.yarn_type_id === comp.yarn_type_id)
-                            .map(i => {
-                              const weightEntrada = i.items?.[0]?.weight_kg || 0;
-                              const used = exitLinksAll
-                                .filter((l: any) => l.entry_invoice_id === i.id && (!editingInvoice || l.exit_invoice_id !== editingInvoice.id))
-                                .reduce((s: number, l: any) => s + Number(l.deduct_kg || 0), 0);
-                              return { id: i.id, saldo: Math.max(0, weightEntrada - used), date: i.issue_date };
-                            })
-                            .filter(c => c.saldo > 0.0001)
-                            .sort((a, b) => a.date.localeCompare(b.date));
-                          for (const cand of candidates) {
-                            if (need <= 0) break;
-                            const take = Math.min(need, cand.saldo);
-                            newLinks.push({ entry_invoice_id: cand.id, yarn_type_id: comp.yarn_type_id, deduct_kg: take.toFixed(3) });
-                            need -= take;
-                          }
-                          if (need > 0.0001) {
-                            toast.warning(`Saldo insuficiente em entradas para ${yarnTypes.find(y => y.id === comp.yarn_type_id)?.name}: faltam ${need.toFixed(3)} kg`);
-                          }
+                        // Distribui o peso proporcionalmente entre as NFs vinculadas (pelo saldo disponível)
+                        const validIds = exitLinks.filter(l => l.entry_invoice_id).map(l => l.entry_invoice_id);
+                        if (validIds.length === 0) {
+                          toast.error('Adicione ao menos uma NF de entrada para distribuir');
+                          return;
                         }
+                        const saldos = validIds.map(id => {
+                          const inv: any = clientInvoices.find(i => i.id === id);
+                          const weightEntrada = inv?.items?.[0]?.weight_kg || 0;
+                          const used = exitLinksAll
+                            .filter((l: any) => l.entry_invoice_id === id && (!editingInvoice || l.exit_invoice_id !== editingInvoice.id))
+                            .reduce((s: number, l: any) => s + Number(l.deduct_kg || 0), 0);
+                          return { id, saldo: Math.max(0, weightEntrada - used) };
+                        });
+                        const totalSaldo = saldos.reduce((s, x) => s + x.saldo, 0);
+                        if (totalSaldo <= 0) {
+                          toast.error('Sem saldo disponível nas NFs selecionadas');
+                          return;
+                        }
+                        let remaining = totalKg;
+                        const newLinks: LinkRow[] = exitLinks.map((l, idx) => {
+                          const s = saldos.find(x => x.id === l.entry_invoice_id);
+                          if (!s) return l;
+                          let take = idx === exitLinks.length - 1
+                            ? Math.min(remaining, s.saldo)
+                            : Math.min((totalKg * s.saldo) / totalSaldo, s.saldo);
+                          take = Math.max(0, Number(take.toFixed(3)));
+                          remaining -= take;
+                          return { ...l, deduct_kg: take.toFixed(3) };
+                        });
                         setExitLinks(newLinks);
                       }}
                     >
@@ -838,104 +821,6 @@ export default function ClientInvoices() {
                   )}
                 </div>
 
-                {/* Composição de Fios (porcentagens) — derivada das NFs de entrada selecionadas */}
-                {(() => {
-                  // Tipos de fio disponíveis = união dos yarn_type_id das entradas vinculadas
-                  const availableYarnIds = Array.from(new Set(
-                    exitLinks
-                      .map(l => {
-                        if (l.yarn_type_id) return l.yarn_type_id;
-                        const inv: any = clientInvoices.find(i => i.id === l.entry_invoice_id);
-                        return inv?.items?.[0]?.yarn_type_id || null;
-                      })
-                      .filter(Boolean)
-                  )) as string[];
-                  const availableYarns = availableYarnIds
-                    .map(id => yarnTypes.find(y => y.id === id))
-                    .filter(Boolean) as typeof yarnTypes;
-                  const compTotal = composition.reduce((s, c) => s + (parseFloat(c.percentage) || 0), 0);
-                  return (
-                    <div className="space-y-2 border rounded-md p-2.5 bg-muted/20">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold">Composição do Fio (%)</Label>
-                        {availableYarns.length > 0 && (
-                          <span className={cn(
-                            "text-[10px] font-medium",
-                            Math.abs(compTotal - 100) < 0.01 ? "text-emerald-600" : "text-amber-600"
-                          )}>
-                            Total: {compTotal.toFixed(2)}%
-                          </span>
-                        )}
-                      </div>
-                      {availableYarns.length === 0 ? (
-                        <p className="text-[10px] text-muted-foreground italic">
-                          Selecione ao menos uma NF de entrada ao lado para listar os fios disponíveis.
-                        </p>
-                      ) : (
-                        <>
-                          {composition
-                            .filter(c => !c.yarn_type_id || availableYarnIds.includes(c.yarn_type_id))
-                            .length === 0 && (
-                            <p className="text-[10px] text-amber-600 italic">
-                              Adicione abaixo a porcentagem de cada fio das NFs selecionadas.
-                            </p>
-                          )}
-                          {composition.map((c, idx) => {
-                            // Para esta linha, mostra apenas fios disponíveis + o já escolhido (mesmo que removido das links)
-                            const usedElsewhere = composition
-                              .filter((_, i) => i !== idx)
-                              .map(r => r.yarn_type_id)
-                              .filter(Boolean);
-                            const opts = availableYarns
-                              .filter(y => !usedElsewhere.includes(y.id) || y.id === c.yarn_type_id)
-                              .map(y => ({ value: y.id, label: y.name }));
-                            return (
-                              <div key={idx} className="grid grid-cols-[1fr_90px_32px] gap-2 items-center">
-                                <SearchableSelect
-                                  options={opts}
-                                  value={c.yarn_type_id}
-                                  onValueChange={(v) => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, yarn_type_id: v } : r))}
-                                  placeholder="Tipo de fio..."
-                                />
-                                <Input
-                                  type="number" step="0.01" placeholder="%"
-                                  value={c.percentage}
-                                  onChange={e => setComposition(prev => prev.map((r, i) => i === idx ? { ...r, percentage: e.target.value } : r))}
-                                />
-                                <Button variant="ghost" size="icon" onClick={() => setComposition(prev => prev.filter((_, i) => i !== idx))} disabled={composition.length === 1}>
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            );
-                          })}
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              variant="outline" size="sm" className="gap-1 h-7 text-xs"
-                              disabled={composition.length >= availableYarns.length}
-                              onClick={() => setComposition(prev => [...prev, { yarn_type_id: '', percentage: '' }])}
-                            >
-                              <Plus className="h-3 w-3" /> Adicionar fio
-                            </Button>
-                            <Button
-                              variant="outline" size="sm" className="gap-1 h-7 text-xs"
-                              onClick={() => {
-                                // Pré-popula uma linha por fio disponível, dividindo 100% igualmente
-                                const each = availableYarns.length > 0 ? (100 / availableYarns.length) : 0;
-                                setComposition(availableYarns.map(y => ({
-                                  yarn_type_id: y.id,
-                                  percentage: each.toFixed(2),
-                                })));
-                              }}
-                            >
-                              <Wand2 className="h-3 w-3" /> Preencher dos vínculos
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })()}
-                </div>
               </>
             )}
 
@@ -1187,16 +1072,24 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   const [exportNfQuery, setExportNfQuery] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
 
-  
+  const [localSearch, setLocalSearch] = useState('');
+
   const stats = useMemo(() => {
-    const entrada = invoices.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
-    const saida = invoices.filter((i: any) => i.type === 'saida').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
+    const q = (localSearch || '').toLowerCase();
+    const base = !q ? invoices : invoices.filter((inv: any) => {
+      const itemName = inv.type === 'entrada'
+        ? (yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '')
+        : (allArticles.find((a: any) => a.id === inv.items?.[0]?.article_id)?.name || '');
+      return (inv.invoice_number || '').toLowerCase().includes(q) || itemName.toLowerCase().includes(q);
+    });
+    const entrada = base.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
+    const saida = base.filter((i: any) => i.type === 'saida').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
     return {
       entrada,
       saida,
       saldo: entrada - saida
     };
-  }, [invoices]);
+  }, [invoices, localSearch, yarnTypes, allArticles]);
 
   const invoicesWithBalance = useMemo(() => {
     return invoices
@@ -1224,8 +1117,6 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
       });
 
   }, [invoices, exitLinksAll]);
-
-  const [localSearch, setLocalSearch] = useState('');
 
   const filteredInvoices = useMemo(() => {
     const base = activeSubTab === 'aberto' 
@@ -1277,7 +1168,10 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
     try {
       setExportLoading(true);
       const periodParts: string[] = [];
-      if (exportMonth && exportMonth !== 'all') periodParts.push(`Mês: ${exportMonth}`);
+      if (exportMonth && exportMonth !== 'all') {
+        const label = format(new Date(exportMonth + '-02T12:00:00'), 'MMM-yyyy', { locale: ptBR }).replace('.', '');
+        periodParts.push(`Mês: ${label}`);
+      }
       if (exportFrom) periodParts.push(`De ${format(new Date(exportFrom + 'T12:00:00'), 'dd/MM/yyyy')}`);
       if (exportTo) periodParts.push(`Até ${format(new Date(exportTo + 'T12:00:00'), 'dd/MM/yyyy')}`);
       const periodLabel = periodParts.length ? periodParts.join(' · ') : 'Todo o período';
@@ -1574,7 +1468,9 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                       <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
                         {monthOptions.map(m => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                          <SelectItem key={m} value={m}>
+                            {format(new Date(m + '-02T12:00:00'), 'MMM-yyyy', { locale: ptBR }).replace('.', '')}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
