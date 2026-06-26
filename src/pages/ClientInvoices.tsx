@@ -1359,7 +1359,14 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                     ? (inv.type === 'saida' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : '-') 
                     : formatWeight(inv.weightSaida)}
                 </TableCell>
-                <TableCell className={cn("text-right font-bold", inv.saldo > 0 ? "text-red-400" : "text-muted-foreground")}>
+                <TableCell className={cn(
+                  "text-right font-bold",
+                  inv.saldo > 0.001
+                    ? "text-amber-600 dark:text-amber-400"
+                    : inv.saldo < -0.001
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                )}>
                   {activeSubTab === 'historico' ? '-' : formatWeight(inv.saldo)}
                 </TableCell>
 
