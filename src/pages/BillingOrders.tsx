@@ -2201,7 +2201,18 @@ const BillingOrders = () => {
                         const order = showPalletsModal;
                         setPalletBusy(true);
                         try {
-                          const nextNumber = (pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0) || 0) + 1;
+                          // Calcula o próximo número diretamente do banco (não do
+                          // estado local) — evita paletes duplicados quando dois
+                          // usuários estão registrando paletes da mesma OF.
+                          const { data: maxRow } = await (supabase.from as any)('billing_order_pallets')
+                            .select('pallet_number')
+                            .eq('billing_order_id', order.id)
+                            .order('pallet_number', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                          const localMax = pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0);
+                          const dbMax = Number((maxRow as any)?.pallet_number ?? 0);
+                          const nextNumber = Math.max(localMax, dbMax) + 1;
                           const palletMachineId = palletInput.machine_id;
                           // 1. Cria movimento de reserva
                           const { data: mv, error: mvErr } = await (supabase.from as any)('stock_movements').insert({
