@@ -325,39 +325,51 @@ export default function StockYarnPage() {
         {/* ============ MÁQUINAS ============ */}
         <TabsContent value="maquinas" className="space-y-3 mt-3">
           <Card className="overflow-x-auto">
+            {(() => null)()}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>MÁQUINA</TableHead>
-                  <TableHead>FIO ATUAL</TableHead>
-                  <TableHead>CLIENTE</TableHead>
+                  <TableHead className="min-w-[280px]">FIO ATUAL (CLIENTE)</TableHead>
                   <TableHead>PALETES NA MÁQUINA</TableHead>
                   <TableHead>ATUALIZADO</TableHead>
                   <TableHead className="text-right">AÇÕES</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {(() => null)()}
                 {machines.map(m => {
                   const cur = machineCurrentMap.get(m.id);
                   const palletsOnMachine = pallets.filter(p => p.current_machine_id === m.id);
+                  // Build option list from entries + pallets (distinct yarn+client combos)
+                  const combos = new Map<string, { value: string; label: string; yarnTypeName: string; clientId: string | null; clientName: string | null }>();
+                  const add = (yarnTypeName?: string | null, clientId?: string | null, clientName?: string | null) => {
+                    const yn = (yarnTypeName || '').trim();
+                    if (!yn) return;
+                    const cid = clientId || '';
+                    const key = `${yn}__${cid}`;
+                    if (combos.has(key)) return;
+                    const label = `${yn}${clientName ? ` (${clientName})` : ''}`;
+                    combos.set(key, { value: key, label, yarnTypeName: yn, clientId: clientId || null, clientName: clientName || null });
+                  };
+                  entries.forEach(e => add(e.yarn_type_name, e.client_id, e.client_name));
+                  pallets.forEach(p => add(p.yarn_type_name, p.client_id, p.client_name));
+                  const options = Array.from(combos.values()).sort((a, b) => a.label.localeCompare(b.label));
+                  const currentKey = cur ? `${(cur.yarn_type_name || '').trim()}__${cur.client_id || ''}` : '';
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="font-semibold">{m.name}</TableCell>
                       <TableCell>
                         <SearchableSelect
-                          value={cur?.yarn_type_id || ''}
-                          onValueChange={(v) => setMachineYarn(m.id, v || null, cur?.client_id || null)}
-                          options={[{ value: '', label: '— Nenhum —' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
-                          placeholder="Selecionar fio"
-                          disabled={!canEntry && role !== 'lider'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <SearchableSelect
-                          value={cur?.client_id || ''}
-                          onValueChange={(v) => setMachineYarn(m.id, cur?.yarn_type_id || null, v || null)}
-                          options={[{ value: '', label: '— Nenhum —' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                          placeholder="Selecionar cliente"
+                          value={currentKey}
+                          onValueChange={(v) => {
+                            if (!v) { setMachineYarn(m.id, null, null, null); return; }
+                            const opt = combos.get(v);
+                            if (!opt) return;
+                            setMachineYarn(m.id, opt.yarnTypeName, opt.clientId, opt.clientName);
+                          }}
+                          options={[{ value: '', label: '— Nenhum —' }, ...options]}
+                          placeholder={options.length ? 'Buscar fio (cliente)...' : 'Cadastre uma entrada primeiro'}
                           disabled={!canEntry && role !== 'lider'}
                         />
                       </TableCell>
@@ -384,7 +396,7 @@ export default function StockYarnPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {cur && (
-                          <Button size="sm" variant="ghost" onClick={() => setMachineYarn(m.id, null, null)}>
+                          <Button size="sm" variant="ghost" onClick={() => setMachineYarn(m.id, null, null, null)}>
                             <X className="h-4 w-4" />
                           </Button>
                         )}
