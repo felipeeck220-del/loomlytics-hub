@@ -315,6 +315,7 @@ export default function StockYarnPage() {
           <PalletsGrouped
             pallets={filteredPallets}
             machines={machines}
+            machineCurrent={machineCurrent}
             companyId={user!.company_id}
             canEdit={canEntry}
             onEditEntry={(entryId) => { setEditingEntryId(entryId); setEntryOpen(true); }}
@@ -586,7 +587,7 @@ interface PalletsGroupedProps {
   companyId: string;
   onOpenPallet: (id: string) => void;
 }
-function PalletsGrouped({ pallets, machines, companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; machines: Machine[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
+function PalletsGrouped({ pallets, machines, machineCurrent, companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; machines: Machine[]; machineCurrent: MachineCurrent[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openNfs, setOpenNfs] = useState<Record<string, boolean>>({});
 
@@ -697,7 +698,15 @@ function PalletsGrouped({ pallets, machines, companyId, canEdit, onEditEntry, on
                             <TableBody>
                               {nf.items.map((p: any) => {
                                 const st = STATUS_BADGE[p.status] || STATUS_BADGE.available;
-                                const machine = machines.find(m => m.id === p.current_machine_id);
+                                // Match machine by yarn assignment (yarn_stock_machine_current): same yarn name + client.
+                                // Fall back to current_machine_id (set after a partial baixa).
+                                const norm = (s: any) => (s || '').toString().trim().toLowerCase();
+                                const assigned = machineCurrent.find(mc =>
+                                  norm(mc.yarn_type_name) === norm(p.yarn_type_name) &&
+                                  (mc.client_id || null) === (p.client_id || null)
+                                );
+                                const machine = (assigned && machines.find(m => m.id === assigned.machine_id))
+                                  || machines.find(m => m.id === p.current_machine_id);
                                 return (
                                   <TableRow key={p.id}>
                                     <TableCell className="font-mono text-xs">{p.code}</TableCell>
