@@ -313,6 +313,8 @@ export default function StockYarnPage() {
             pallets={filteredPallets}
             machines={machines}
             companyId={user!.company_id}
+            canEdit={canEntry}
+            onEditEntry={(entryId) => { setEditingEntryId(entryId); setEntryOpen(true); }}
             onOpenPallet={(id) => { setPalletViewError(null); setPalletViewId(id); }}
           />
         </TabsContent>
