@@ -730,78 +730,166 @@ function PalletsGrouped({ pallets, machines, companyId, canEdit, onEditEntry, on
 interface NewEntryProps {
   open: boolean; onClose: () => void;
   yarnTypes: YarnType[]; clients: YarnClient[];
+  existingPalletCodes: string[];
+  editingEntry: YarnEntry | null;
+  editingPallets: Pallet[];
   companyId: string; userId: string;
   userInfo: { name: string | null; code: string | null; role: string };
-  onCreated: () => void;
+  onSaved: () => void;
+  onCloseAfterSave: () => void;
   onYarnTypeCreated: () => void;
   onClientCreated: () => void;
 }
-function NewEntryModal({ open, onClose, yarnTypes, clients, companyId, userId, userInfo, onCreated, onYarnTypeCreated, onClientCreated }: NewEntryProps) {
-  const [yarnTypeName, setYarnTypeName] = useState('');
-  const [clientId, setClientId] = useState('');
-  const [supplier, setSupplier] = useState('');
-  const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [palletsData, setPalletsData] = useState<{ code: string; boxes: string; notes: string }[]>([
-    { code: generatePalletCode(1), boxes: '', notes: '' },
-  ]);
-  const [saving, setSaving] = useState(false);
+function NewEntryModal({
+  open, onClose, clients, existingPalletCodes, editingEntry, editingPallets,
+  companyId, userId, userInfo, onSaved, onCloseAfterSave,
+}: NewEntryProps) {
+  // Header state
+  const [entryId, setEntryId] = useState<string | null>(editingEntry?.id || null);
+  const [yarnTypeName, setYarnTypeName] = useState(editingEntry?.yarn_type_name || '');
+  const [clientId, setClientId] = useState(editingEntry?.client_id || '');
+  const [supplier, setSupplier] = useState(editingEntry?.supplier_name || '');
+  const [invoiceNumber, setInvoiceNumber] = useState(editingEntry?.invoice_number || '');
+  const [savingHeader, setSavingHeader] = useState(false);
 
-  const addPallet = () => setPalletsData(p => [...p, { code: generatePalletCode(p.length + 1), boxes: '', notes: '' }]);
-  const removePallet = (i: number) => setPalletsData(p => p.filter((_, idx) => idx !== i));
-  const updatePallet = (i: number, k: 'code' | 'boxes' | 'notes', v: string) =>
-    setPalletsData(p => p.map((it, idx) => idx === i ? { ...it, [k]: v } : it));
+  // Pallet form state (one at a time)
+  const [palletBoxes, setPalletBoxes] = useState('');
+  const [palletNotes, setPalletNotes] = useState('');
+  const [savingPallet, setSavingPallet] = useState(false);
+  const [autoCode, setAutoCode] = useState<string>('');
 
-  const submit = async () => {
-    if (!yarnTypeName.trim()) { toast.error('Informe o tipo de fio.'); return; }
+  // Refresh autocode whenever existing codes change
+  useEffect(() => {
+    if (entryId) {
+      const used = new Set(existingPalletCodes);
+      setAutoCode(generateUniquePalletCode(used));
+    }
+  }, [entryId, existingPalletCodes]);
+
+  const headerLocked = !!entryId;
+
+  const saveHeader = async () => {
     if (!clientId) { toast.error('Selecione o cliente.'); return; }
-    const valid = palletsData.filter(p => p.code.trim() && parseInt(p.boxes, 10) > 0);
-    if (valid.length === 0) { toast.error('Adicione ao menos um palete com código e caixas > 0.'); return; }
-    setSaving(true);
-
+    if (!yarnTypeName.trim()) { toast.error('Informe o tipo de fio.'); return; }
+    setSavingHeader(true);
     const cl = clients.find(c => c.id === clientId);
-    const rows = valid.map(p => ({
+    const payload: any = {
       company_id: companyId,
-      code: p.code.trim(),
+      client_id: clientId,
+      client_name: cl?.name || null,
+      yarn_type_name: yarnTypeName.trim(),
+      supplier_name: supplier.trim() || null,
+      invoice_number: invoiceNumber.trim() || null,
+      created_by_name: userInfo.name,
+      created_by_code: userInfo.code,
+    };
+    const { data, error } = await (supabase.from as any)('yarn_stock_entries')
+      .insert(payload).select().single();
+    setSavingHeader(false);
+    if (error) { toast.error('Erro ao salvar cabeçalho: ' + error.message); return; }
+    setEntryId(data.id);
+    toast.success('Cabeçalho salvo. Agora adicione os paletes.');
+    onSaved();
+  };
+
+  const updateHeader = async () => {
+    if (!entryId) return;
+    const cl = clients.find(c => c.id === clientId);
+    const { error } = await (supabase.from as any)('yarn_stock_entries')
+      .update({
+        client_id: clientId,
+        client_name: cl?.name || null,
+        yarn_type_name: yarnTypeName.trim(),
+        supplier_name: supplier.trim() || null,
+        invoice_number: invoiceNumber.trim() || null,
+      })
+      .eq('id', entryId);
+    if (error) { toast.error('Erro ao atualizar: ' + error.message); return; }
+    // Propagate to existing pallets
+    await (supabase.from as any)('yarn_stock_pallets')
+      .update({
+        client_id: clientId,
+        client_name: cl?.name || null,
+        yarn_type_name: yarnTypeName.trim(),
+        supplier_name: supplier.trim() || null,
+        invoice_number: invoiceNumber.trim() || null,
+      })
+      .eq('entry_id', entryId);
+    toast.success('Dados da entrada atualizados.');
+    onSaved();
+  };
+
+  const addPallet = async () => {
+    if (!entryId) { toast.error('Salve o cabeçalho primeiro.'); return; }
+    const boxes = parseInt(palletBoxes, 10);
+    if (!boxes || boxes <= 0) { toast.error('Informe a quantidade de caixas.'); return; }
+    if (!autoCode) { toast.error('Gerando código...'); return; }
+    setSavingPallet(true);
+    const cl = clients.find(c => c.id === clientId);
+    const row = {
+      company_id: companyId,
+      entry_id: entryId,
+      code: autoCode,
       yarn_type_id: null,
       yarn_type_name: yarnTypeName.trim(),
       client_id: clientId,
       client_name: cl?.name || null,
       supplier_name: supplier.trim() || null,
       invoice_number: invoiceNumber.trim() || null,
-      total_boxes: parseInt(p.boxes, 10),
-      remaining_boxes: parseInt(p.boxes, 10),
+      total_boxes: boxes,
+      remaining_boxes: boxes,
       status: 'available',
-      notes: p.notes.trim() || null,
+      notes: palletNotes.trim() || null,
       created_by_name: userInfo.name,
       created_by_code: userInfo.code,
-    }));
-
-    const { data: inserted, error } = await (supabase.from as any)('yarn_stock_pallets')
-      .insert(rows).select();
-    if (error) {
-      toast.error('Erro ao salvar: ' + error.message);
-      setSaving(false); return;
+    };
+    let { data: inserted, error } = await (supabase.from as any)('yarn_stock_pallets')
+      .insert(row).select().single();
+    // Retry once on unique conflict
+    if (error && /yarn_stock_pallets_company_code_unique/i.test(error.message || '')) {
+      row.code = generateUniquePalletCode(new Set([...existingPalletCodes, autoCode]));
+      const r2 = await (supabase.from as any)('yarn_stock_pallets').insert(row).select().single();
+      inserted = r2.data; error = r2.error;
     }
-    for (const ins of inserted || []) {
-      await logYarnMovement(
-        { companyId, userId, userName: userInfo.name, userCode: userInfo.code, userRole: userInfo.role },
-        { pallet_id: ins.id, pallet_code: ins.code, type: 'entry', boxes: ins.total_boxes,
-          notes: `Entrada de ${ins.total_boxes} caixas` },
-      );
-    }
-    toast.success(`${rows.length} palete(s) cadastrado(s).`);
-    setSaving(false);
-    onCreated();
+    if (error) { toast.error('Erro: ' + error.message); setSavingPallet(false); return; }
+    await logYarnMovement(
+      { companyId, userId, userName: userInfo.name, userCode: userInfo.code, userRole: userInfo.role },
+      { pallet_id: inserted.id, pallet_code: inserted.code, type: 'entry', boxes: inserted.total_boxes,
+        notes: `Entrada de ${inserted.total_boxes} caixas` },
+    );
+    toast.success(`Palete ${inserted.code} adicionado (${boxes} cx).`);
+    setPalletBoxes('');
+    setPalletNotes('');
+    setAutoCode(generateUniquePalletCode(new Set([...existingPalletCodes, inserted.code])));
+    setSavingPallet(false);
+    onSaved();
   };
+
+  const removePallet = async (id: string, code: string) => {
+    if (!confirm(`Remover palete ${code}?`)) return;
+    const { error } = await (supabase.from as any)('yarn_stock_pallets').delete().eq('id', id);
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success('Palete removido.');
+    onSaved();
+  };
+
+  const entryPallets = editingPallets;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Plus className="h-5 w-5" /> Nova Entrada de Fio</DialogTitle>
-          <DialogDescription>Cadastre cliente, tipo de fio e os paletes recebidos (com suas caixas).</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" /> {editingEntry ? 'Editar Entrada de Fio' : 'Nova Entrada de Fio'}
+          </DialogTitle>
+          <DialogDescription>
+            {headerLocked
+              ? 'Cabeçalho salvo. Adicione os paletes — cada um é salvo individualmente.'
+              : 'Passo 1 — Salve os dados do fio (cliente, tipo, NF, fornecedor). Em seguida você poderá adicionar paletes.'}
+          </DialogDescription>
         </DialogHeader>
 
+        {/* ===== STEP 1: HEADER ===== */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label>Cliente *</Label>
@@ -811,11 +899,12 @@ function NewEntryModal({ open, onClose, yarnTypes, clients, companyId, userId, u
           </div>
           <div>
             <Label>Tipo de Fio *</Label>
-            <Input value={yarnTypeName} onChange={(e) => setYarnTypeName(e.target.value)} placeholder="Ex.: Algodão 30/1 penteado" />
+            <Input value={yarnTypeName} onChange={(e) => setYarnTypeName(e.target.value)}
+              placeholder="Ex.: Algodão 30/1 penteado" />
           </div>
           <div>
             <Label>NF</Label>
-            <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Número da nota fiscal" />
+            <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Número da NF" />
           </div>
           <div>
             <Label>Fornecedor</Label>
@@ -823,47 +912,80 @@ function NewEntryModal({ open, onClose, yarnTypes, clients, companyId, userId, u
           </div>
         </div>
 
-        <div className="border-t pt-3">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-semibold">Paletes ({palletsData.length})</h4>
-            <Button type="button" size="sm" variant="outline" onClick={addPallet}>
-              <Plus className="h-4 w-4 mr-1" /> Adicionar palete
+        {!headerLocked ? (
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose} disabled={savingHeader}>Cancelar</Button>
+            <Button onClick={saveHeader} disabled={savingHeader}>
+              {savingHeader ? 'Salvando...' : 'Salvar e adicionar paletes'}
             </Button>
-          </div>
-          <div className="space-y-2">
-            {palletsData.map((p, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-start border rounded p-2">
-                <div className="col-span-12 md:col-span-5">
-                  <Label className="text-xs">Código *</Label>
-                  <Input value={p.code} onChange={(e) => updatePallet(i, 'code', e.target.value)} className="font-mono text-xs" />
+          </DialogFooter>
+        ) : (
+          <>
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={updateHeader}>
+                <Edit3 className="h-3 w-3 mr-1" /> Atualizar cabeçalho
+              </Button>
+            </div>
+
+            {/* ===== STEP 2: PALLETS ===== */}
+            <div className="border-t pt-3 space-y-3">
+              <h4 className="font-semibold">Adicionar palete</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                <div>
+                  <Label className="text-xs">Código (auto)</Label>
+                  <Input value={autoCode} readOnly disabled className="font-mono uppercase text-center" />
                 </div>
-                <div className="col-span-6 md:col-span-2">
+                <div>
                   <Label className="text-xs">Caixas *</Label>
-                  <Input type="number" inputMode="numeric" min={1} value={p.boxes}
-                    onChange={(e) => updatePallet(i, 'boxes', e.target.value)} />
+                  <Input type="number" inputMode="numeric" min={1} value={palletBoxes}
+                    onChange={(e) => setPalletBoxes(e.target.value)} placeholder="0" />
                 </div>
-                <div className="col-span-6 md:col-span-4">
+                <div className="md:col-span-2">
                   <Label className="text-xs">Observação</Label>
-                  <Input value={p.notes} onChange={(e) => updatePallet(i, 'notes', e.target.value)} />
-                </div>
-                <div className="col-span-12 md:col-span-1 flex md:justify-end md:pt-5">
-                  {palletsData.length > 1 && (
-                    <Button type="button" size="icon" variant="ghost" onClick={() => removePallet(i)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
+                  <Input value={palletNotes} onChange={(e) => setPalletNotes(e.target.value)} />
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+              <Button onClick={addPallet} disabled={savingPallet} className="w-full">
+                <Plus className="h-4 w-4 mr-1" />
+                {savingPallet ? 'Salvando...' : 'Adicionar palete'}
+              </Button>
+            </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? 'Salvando...' : `Cadastrar ${palletsData.length} palete(s)`}
-          </Button>
-        </DialogFooter>
+            {/* ===== LIST OF PALLETS ALREADY ADDED ===== */}
+            <div className="border-t pt-3">
+              <h4 className="font-semibold mb-2">Paletes desta entrada ({entryPallets.length})</h4>
+              {entryPallets.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum palete cadastrado ainda.</p>
+              ) : (
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  {entryPallets.map(p => (
+                    <div key={p.id} className="flex items-center justify-between border rounded px-3 py-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold">{p.code}</span>
+                        <Badge variant="secondary">{p.remaining_boxes}/{p.total_boxes} cx</Badge>
+                        {p.notes && <span className="text-xs text-muted-foreground">· {p.notes}</span>}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" title="Baixar QR (PDF)"
+                          onClick={() => generatePalletQrPdf(p as any, companyId)}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" title="Remover"
+                          onClick={() => removePallet(p.id, p.code)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button onClick={onCloseAfterSave}>Concluir</Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
