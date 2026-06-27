@@ -159,6 +159,33 @@ export default function StockYarnPage() {
     return m;
   }, [machineCurrent]);
 
+  // ============ KPIs por aba ============
+  const palletKpis = useMemo(() => {
+    const totalPallets = pallets.length;
+    const totalBoxes = pallets.reduce((s, p) => s + (p.total_boxes || 0), 0);
+    const remainingBoxes = pallets.reduce((s, p) => s + (p.remaining_boxes || 0), 0);
+    const inMachine = pallets.filter(p => p.status === 'in_machine').length;
+    const empty = pallets.filter(p => p.status === 'empty').length;
+    const available = pallets.filter(p => p.status === 'available').length;
+    return { totalPallets, totalBoxes, remainingBoxes, inMachine, empty, available };
+  }, [pallets]);
+
+  const machineKpis = useMemo(() => {
+    const total = machines.length;
+    const linked = machineCurrent.length;
+    const unlinked = Math.max(0, total - linked);
+    const distinctYarns = new Set(machineCurrent.map(mc => `${(mc.yarn_type_name || '').trim()}__${mc.client_id || ''}`).filter(k => k !== '__')).size;
+    return { total, linked, unlinked, distinctYarns };
+  }, [machines, machineCurrent]);
+
+  const auditKpis = useMemo(() => {
+    const total = movements.length;
+    const entries = movements.filter(m => m.type === 'entry').length;
+    const exits = movements.filter(m => m.type === 'exit').length;
+    const links = movements.filter(m => m.type === 'assign_machine' || m.type === 'unassign_machine').length;
+    return { total, entries, exits, links };
+  }, [movements]);
+
   // ============ SCANNER HANDLER ============
   const handleScanned = async (code: string) => {
     setScanOpen(false);
