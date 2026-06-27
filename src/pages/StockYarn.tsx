@@ -315,6 +315,7 @@ export default function StockYarnPage() {
 
           <PalletsGrouped
             pallets={filteredPallets}
+            entries={entries}
             machines={machines}
             machineCurrent={machineCurrent}
             companyId={user!.company_id}
@@ -582,12 +583,28 @@ export default function StockYarnPage() {
 // ================ NEW ENTRY MODAL ================
 
 // ================ PALLETS GROUPED BY CLIENT > NF ================
-function PalletsGrouped({ pallets, machines, machineCurrent = [], companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; machines: Machine[]; machineCurrent?: MachineCurrent[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
+function PalletsGrouped({ pallets, entries = [], machines, machineCurrent = [], companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; entries?: any[]; machines: Machine[]; machineCurrent?: MachineCurrent[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openNfs, setOpenNfs] = useState<Record<string, boolean>>({});
 
   const grouped = useMemo(() => {
     const byClient = new Map<string, { name: string; nfs: Map<string, { invoice: string; entryId: string | null; yarnNames: Set<string>; supplierNames: Set<string>; items: any[] }> }>();
+    // First: seed groups from ENTRIES (NF headers), so entries without pallets still show up
+    for (const e of entries) {
+      const ck = e.client_id || `__noclient__::${e.client_name || '—'}`;
+      const cname = e.client_name || 'Sem cliente';
+      if (!byClient.has(ck)) byClient.set(ck, { name: cname, nfs: new Map() });
+      const entry = byClient.get(ck)!;
+      const groupKey = e.id;
+      if (!entry.nfs.has(groupKey)) entry.nfs.set(groupKey, {
+        invoice: (e.invoice_number || '').trim(),
+        entryId: e.id,
+        yarnNames: new Set(), supplierNames: new Set(), items: [],
+      });
+      const nfEntry = entry.nfs.get(groupKey)!;
+      if (e.yarn_type_name) nfEntry.yarnNames.add(e.yarn_type_name);
+      if (e.supplier_name) nfEntry.supplierNames.add(e.supplier_name);
+    }
     for (const p of pallets) {
       const ck = p.client_id || `__noclient__::${p.client_name || '—'}`;
       const cname = p.client_name || 'Sem cliente';
@@ -609,9 +626,9 @@ function PalletsGrouped({ pallets, machines, machineCurrent = [], companyId, can
       key: ck, name: v.name,
       nfs: Array.from(v.nfs.entries()).map(([nfk, nv]) => ({ key: nfk, ...nv })),
     })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [pallets]);
+  }, [pallets, entries]);
 
-  if (pallets.length === 0) {
+  if (pallets.length === 0 && entries.length === 0) {
     return <Card className="p-6 text-center text-muted-foreground">Nenhum palete cadastrado.</Card>;
   }
 
