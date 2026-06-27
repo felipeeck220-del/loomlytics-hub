@@ -635,10 +635,11 @@ function PalletsGrouped({ pallets, machines, companyId, canEdit, onEditEntry, on
                   const nfTotalBoxes = nf.items.reduce((s: number, it: any) => s + (it.total_boxes || 0), 0);
                   return (
                     <div key={nfKey}>
-                      <button
+                      <div className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/30 transition">
+                       <button
                         type="button"
                         onClick={() => setOpenNfs(s => ({ ...s, [nfKey]: !nOpen }))}
-                        className="w-full flex items-center justify-between gap-3 px-4 py-2 hover:bg-muted/30 transition"
+                        className="flex-1 flex items-center justify-between gap-3 text-left"
                       >
                         <div className="flex flex-wrap items-center gap-2 text-sm">
                           <span className="font-medium">
@@ -659,6 +660,12 @@ function PalletsGrouped({ pallets, machines, companyId, canEdit, onEditEntry, on
                         </div>
                         <span className="text-xs text-muted-foreground">{nOpen ? '−' : '+'}</span>
                       </button>
+                        {canEdit && nf.entryId && (
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onEditEntry(nf.entryId!); }}>
+                            <Edit3 className="h-3 w-3 mr-1" /> Editar / + paletes
+                          </Button>
+                        )}
+                      </div>
                       {nOpen && (
                         <div className="overflow-x-auto">
                           <Table>
