@@ -225,11 +225,14 @@ export default function StockYarnPage() {
   };
 
   // ============ ASSIGN YARN TO MACHINE ============
-  const setMachineYarn = async (machineId: string, yarnTypeId: string | null, clientId: string | null) => {
-    const yt = yarnTypes.find(y => y.id === yarnTypeId);
-    const cl = clients.find(c => c.id === clientId);
+  const setMachineYarn = async (
+    machineId: string,
+    yarnTypeName: string | null,
+    clientId: string | null,
+    clientName: string | null,
+  ) => {
     const machine = machines.find(m => m.id === machineId);
-    if (!yarnTypeId && !clientId) {
+    if (!yarnTypeName && !clientId) {
       const { error: delErr } = await (supabase.from as any)('yarn_stock_machine_current')
         .delete().eq('machine_id', machineId).eq('company_id', user!.company_id);
       if (delErr) { toast.error('Erro ao limpar: ' + delErr.message); return; }
@@ -248,10 +251,10 @@ export default function StockYarnPage() {
     const payload = {
       company_id: user!.company_id,
       machine_id: machineId,
-      yarn_type_id: yarnTypeId,
-      yarn_type_name: yt?.name || null,
+      yarn_type_id: null,
+      yarn_type_name: yarnTypeName,
       client_id: clientId,
-      client_name: cl?.name || null,
+      client_name: clientName,
       set_by_name: userTrackingInfo.created_by_name,
       set_by_code: userTrackingInfo.created_by_code,
       updated_at: new Date().toISOString(),
@@ -264,7 +267,7 @@ export default function StockYarnPage() {
         company_id: user!.company_id, user_id: user!.id,
         user_name: userTrackingInfo.created_by_name, user_role: role, user_code: userTrackingInfo.created_by_code,
         action: 'yarn_machine_set_current',
-        details: { machine_id: machineId, machine_name: machine?.name, yarn_type_name: yt?.name, client_name: cl?.name },
+        details: { machine_id: machineId, machine_name: machine?.name, yarn_type_name: yarnTypeName, client_name: clientName },
       });
     } catch {}
     toast.success('Vínculo da máquina atualizado.');
@@ -322,39 +325,51 @@ export default function StockYarnPage() {
         {/* ============ MÁQUINAS ============ */}
         <TabsContent value="maquinas" className="space-y-3 mt-3">
           <Card className="overflow-x-auto">
+            {(() => null)()}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>MÁQUINA</TableHead>
-                  <TableHead>FIO ATUAL</TableHead>
-                  <TableHead>CLIENTE</TableHead>
+                  <TableHead className="min-w-[280px]">FIO ATUAL (CLIENTE)</TableHead>
                   <TableHead>PALETES NA MÁQUINA</TableHead>
                   <TableHead>ATUALIZADO</TableHead>
                   <TableHead className="text-right">AÇÕES</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {(() => null)()}
                 {machines.map(m => {
                   const cur = machineCurrentMap.get(m.id);
                   const palletsOnMachine = pallets.filter(p => p.current_machine_id === m.id);
+                  // Build option list from entries + pallets (distinct yarn+client combos)
+                  const combos = new Map<string, { value: string; label: string; yarnTypeName: string; clientId: string | null; clientName: string | null }>();
+                  const add = (yarnTypeName?: string | null, clientId?: string | null, clientName?: string | null) => {
+                    const yn = (yarnTypeName || '').trim();
+                    if (!yn) return;
+                    const cid = clientId || '';
+                    const key = `${yn}__${cid}`;
+                    if (combos.has(key)) return;
+                    const label = `${yn}${clientName ? ` (${clientName})` : ''}`;
+                    combos.set(key, { value: key, label, yarnTypeName: yn, clientId: clientId || null, clientName: clientName || null });
+                  };
+                  entries.forEach(e => add(e.yarn_type_name, e.client_id, e.client_name));
+                  pallets.forEach(p => add(p.yarn_type_name, p.client_id, p.client_name));
+                  const options = Array.from(combos.values()).sort((a, b) => a.label.localeCompare(b.label));
+                  const currentKey = cur ? `${(cur.yarn_type_name || '').trim()}__${cur.client_id || ''}` : '';
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="font-semibold">{m.name}</TableCell>
                       <TableCell>
                         <SearchableSelect
-                          value={cur?.yarn_type_id || ''}
-                          onValueChange={(v) => setMachineYarn(m.id, v || null, cur?.client_id || null)}
-                          options={[{ value: '', label: '— Nenhum —' }, ...yarnTypes.map(y => ({ value: y.id, label: y.name }))]}
-                          placeholder="Selecionar fio"
-                          disabled={!canEntry && role !== 'lider'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <SearchableSelect
-                          value={cur?.client_id || ''}
-                          onValueChange={(v) => setMachineYarn(m.id, cur?.yarn_type_id || null, v || null)}
-                          options={[{ value: '', label: '— Nenhum —' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
-                          placeholder="Selecionar cliente"
+                          value={currentKey}
+                          onValueChange={(v) => {
+                            if (!v) { setMachineYarn(m.id, null, null, null); return; }
+                            const opt = combos.get(v);
+                            if (!opt) return;
+                            setMachineYarn(m.id, opt.yarnTypeName, opt.clientId, opt.clientName);
+                          }}
+                          options={[{ value: '', label: '— Nenhum —' }, ...options]}
+                          placeholder={options.length ? 'Buscar fio (cliente)...' : 'Cadastre uma entrada primeiro'}
                           disabled={!canEntry && role !== 'lider'}
                         />
                       </TableCell>
@@ -381,7 +396,7 @@ export default function StockYarnPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {cur && (
-                          <Button size="sm" variant="ghost" onClick={() => setMachineYarn(m.id, null, null)}>
+                          <Button size="sm" variant="ghost" onClick={() => setMachineYarn(m.id, null, null, null)}>
                             <X className="h-4 w-4" />
                           </Button>
                         )}
