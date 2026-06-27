@@ -2943,6 +2943,307 @@ export type Database = {
           },
         ]
       }
+      yarn_stock_clients: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      yarn_stock_entries: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          company_id: string
+          created_at: string
+          created_by_code: string | null
+          created_by_name: string | null
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          supplier_name: string | null
+          updated_at: string
+          yarn_type_name: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          company_id: string
+          created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          yarn_type_name: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          company_id?: string
+          created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          yarn_type_name?: string
+        }
+        Relationships: []
+      }
+      yarn_stock_machine_current: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          company_id: string
+          created_at: string
+          id: string
+          machine_id: string
+          set_by_code: string | null
+          set_by_name: string | null
+          updated_at: string
+          yarn_type_id: string | null
+          yarn_type_name: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          machine_id: string
+          set_by_code?: string | null
+          set_by_name?: string | null
+          updated_at?: string
+          yarn_type_id?: string | null
+          yarn_type_name?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          machine_id?: string
+          set_by_code?: string | null
+          set_by_name?: string | null
+          updated_at?: string
+          yarn_type_id?: string | null
+          yarn_type_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yarn_stock_machine_current_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: true
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "yarn_stock_machine_current_yarn_type_id_fkey"
+            columns: ["yarn_type_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_stock_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yarn_stock_movements: {
+        Row: {
+          boxes: number
+          company_id: string
+          created_at: string
+          id: string
+          machine_id: string | null
+          machine_name: string | null
+          notes: string | null
+          pallet_id: string
+          type: string
+          user_code: string | null
+          user_id: string | null
+          user_name: string | null
+          user_role: string | null
+        }
+        Insert: {
+          boxes?: number
+          company_id: string
+          created_at?: string
+          id?: string
+          machine_id?: string | null
+          machine_name?: string | null
+          notes?: string | null
+          pallet_id: string
+          type: string
+          user_code?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          boxes?: number
+          company_id?: string
+          created_at?: string
+          id?: string
+          machine_id?: string | null
+          machine_name?: string | null
+          notes?: string | null
+          pallet_id?: string
+          type?: string
+          user_code?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          user_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yarn_stock_movements_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "yarn_stock_movements_pallet_id_fkey"
+            columns: ["pallet_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_stock_pallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yarn_stock_pallets: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          code: string
+          company_id: string
+          created_at: string
+          created_by_code: string | null
+          created_by_name: string | null
+          current_machine_id: string | null
+          entry_id: string | null
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          remaining_boxes: number
+          status: string
+          supplier_name: string | null
+          total_boxes: number
+          updated_at: string
+          yarn_type_id: string | null
+          yarn_type_name: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          code: string
+          company_id: string
+          created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
+          current_machine_id?: string | null
+          entry_id?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          remaining_boxes?: number
+          status?: string
+          supplier_name?: string | null
+          total_boxes?: number
+          updated_at?: string
+          yarn_type_id?: string | null
+          yarn_type_name?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          code?: string
+          company_id?: string
+          created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
+          current_machine_id?: string | null
+          entry_id?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          remaining_boxes?: number
+          status?: string
+          supplier_name?: string | null
+          total_boxes?: number
+          updated_at?: string
+          yarn_type_id?: string | null
+          yarn_type_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yarn_stock_pallets_current_machine_id_fkey"
+            columns: ["current_machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "yarn_stock_pallets_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_stock_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "yarn_stock_pallets_yarn_type_id_fkey"
+            columns: ["yarn_type_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_stock_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yarn_stock_types: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       yarn_types: {
         Row: {
           color: string | null
