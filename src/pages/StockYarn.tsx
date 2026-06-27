@@ -697,7 +697,15 @@ function PalletsGrouped({ pallets, machines, companyId, canEdit, onEditEntry, on
                             <TableBody>
                               {nf.items.map((p: any) => {
                                 const st = STATUS_BADGE[p.status] || STATUS_BADGE.available;
-                                const machine = machines.find(m => m.id === p.current_machine_id);
+                                // Match machine by yarn assignment (yarn_stock_machine_current): same yarn name + client.
+                                // Fall back to current_machine_id (set after a partial baixa).
+                                const norm = (s: any) => (s || '').toString().trim().toLowerCase();
+                                const assigned = machineCurrent.find(mc =>
+                                  norm(mc.yarn_type_name) === norm(p.yarn_type_name) &&
+                                  (mc.client_id || null) === (p.client_id || null)
+                                );
+                                const machine = (assigned && machines.find(m => m.id === assigned.machine_id))
+                                  || machines.find(m => m.id === p.current_machine_id);
                                 return (
                                   <TableRow key={p.id}>
                                     <TableCell className="font-mono text-xs">{p.code}</TableCell>
