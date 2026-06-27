@@ -744,24 +744,30 @@ function PalletsGrouped({ pallets, entries = [], machines, machineCurrent = [], 
         const cOpen = openClients[client.key] !== false; // default open
         const totalPallets = client.nfs.reduce((s, n) => s + n.items.length, 0);
         const totalBoxes = client.nfs.reduce((s, n) => s + n.items.reduce((ss: number, it: any) => ss + (it.remaining_boxes || 0), 0), 0);
+        const totalCapacity = client.nfs.reduce((s, n) => s + n.items.reduce((ss: number, it: any) => ss + (it.total_boxes || 0), 0), 0);
         return (
-          <Card key={client.key} className="overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setOpenClients(s => ({ ...s, [client.key]: !cOpen }))}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-muted/40 hover:bg-muted/60 transition"
-            >
-              <div className="flex items-center gap-2">
-                <Factory className="h-4 w-4 text-primary" />
-                <span className="font-semibold">{client.name}</span>
-                <Badge variant="secondary" className="ml-2">{client.nfs.length} NF</Badge>
-                <Badge variant="outline">{totalPallets} palete(s)</Badge>
-                <Badge variant="outline">{totalBoxes} cx restantes</Badge>
-              </div>
-              <span className="text-xs text-muted-foreground">{cOpen ? 'Recolher' : 'Expandir'}</span>
-            </button>
-            {cOpen && (
-              <div className="divide-y">
+          <Collapsible
+            key={client.key}
+            open={cOpen}
+            onOpenChange={(v) => setOpenClients(s => ({ ...s, [client.key]: v }))}
+          >
+            <Card>
+              <CollapsibleTrigger className="w-full group" asChild>
+                <CardHeader className="p-4 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90 shrink-0" />
+                    <Factory className="h-4 w-4 text-primary shrink-0" />
+                    <CardTitle className="text-sm font-semibold truncate">{client.name}</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground shrink-0">
+                    <span>NFs: <span className="font-semibold text-foreground">{client.nfs.length}</span></span>
+                    <span>Paletes: <span className="font-semibold text-foreground">{totalPallets}</span></span>
+                    <span>Caixas: <span className="font-semibold text-success">{totalBoxes}</span><span className="opacity-60"> / {totalCapacity}</span></span>
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="p-0 divide-y border-t">
                 {client.nfs.map(nf => {
                   const nfKey = `${client.key}::${nf.key}`;
                   const nOpen = openNfs[nfKey] !== false;
@@ -956,9 +962,10 @@ function PalletsGrouped({ pallets, entries = [], machines, machineCurrent = [], 
                     </div>
                   );
                 })}
-              </div>
-            )}
-          </Card>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         );
       })}
     </div>
