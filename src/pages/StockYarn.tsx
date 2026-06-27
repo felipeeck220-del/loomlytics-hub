@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { Plus, Trash2, Download, QrCode, Eye, Package, ScanLine, Search, Factory, History, X, Edit3 } from 'lucide-react';
@@ -581,12 +582,6 @@ export default function StockYarnPage() {
 // ================ NEW ENTRY MODAL ================
 
 // ================ PALLETS GROUPED BY CLIENT > NF ================
-interface PalletsGroupedProps {
-  pallets: Pallet[] & { invoice_number?: string | null }[];
-  machines: Machine[];
-  companyId: string;
-  onOpenPallet: (id: string) => void;
-}
 function PalletsGrouped({ pallets, machines, machineCurrent = [], companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; machines: Machine[]; machineCurrent?: MachineCurrent[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openNfs, setOpenNfs] = useState<Record<string, boolean>>({});
