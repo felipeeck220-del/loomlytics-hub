@@ -571,20 +571,25 @@ interface PalletsGroupedProps {
   companyId: string;
   onOpenPallet: (id: string) => void;
 }
-function PalletsGrouped({ pallets, machines, companyId, onOpenPallet }: { pallets: any[]; machines: Machine[]; companyId: string; onOpenPallet: (id: string) => void; }) {
+function PalletsGrouped({ pallets, machines, companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; machines: Machine[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openNfs, setOpenNfs] = useState<Record<string, boolean>>({});
 
   const grouped = useMemo(() => {
-    const byClient = new Map<string, { name: string; nfs: Map<string, { invoice: string; yarnNames: Set<string>; supplierNames: Set<string>; items: any[] }> }>();
+    const byClient = new Map<string, { name: string; nfs: Map<string, { invoice: string; entryId: string | null; yarnNames: Set<string>; supplierNames: Set<string>; items: any[] }> }>();
     for (const p of pallets) {
       const ck = p.client_id || `__noclient__::${p.client_name || '—'}`;
       const cname = p.client_name || 'Sem cliente';
       if (!byClient.has(ck)) byClient.set(ck, { name: cname, nfs: new Map() });
       const entry = byClient.get(ck)!;
-      const nf = (p.invoice_number || '').trim() || '__semnf__';
-      if (!entry.nfs.has(nf)) entry.nfs.set(nf, { invoice: nf === '__semnf__' ? '' : nf, yarnNames: new Set(), supplierNames: new Set(), items: [] });
-      const nfEntry = entry.nfs.get(nf)!;
+      // Group preferably by entry_id; fallback to invoice_number; fallback to standalone
+      const groupKey = p.entry_id || ((p.invoice_number || '').trim() ? `nf::${(p.invoice_number || '').trim()}` : `__semnf__::${p.id}`);
+      if (!entry.nfs.has(groupKey)) entry.nfs.set(groupKey, {
+        invoice: (p.invoice_number || '').trim(),
+        entryId: p.entry_id || null,
+        yarnNames: new Set(), supplierNames: new Set(), items: [],
+      });
+      const nfEntry = entry.nfs.get(groupKey)!;
       if (p.yarn_type_name) nfEntry.yarnNames.add(p.yarn_type_name);
       if (p.supplier_name) nfEntry.supplierNames.add(p.supplier_name);
       nfEntry.items.push(p);
