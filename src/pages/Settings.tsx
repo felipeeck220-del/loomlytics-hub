@@ -91,6 +91,7 @@ const ROLES = [
   { value: 'mecanico', label: 'Mecânico', description: 'Acesso apenas às máquinas e mecânica', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'revisador', label: 'Revisador', description: 'Acesso apenas para revisão', color: 'bg-yellow-100 text-yellow-700' },
   { value: 'expedicao', label: 'Expedição Malha', description: 'Controle de Ordem de Faturamento', color: 'bg-blue-100 text-blue-700' },
+  { value: 'expedicao_fio', label: 'Expedição Fio', description: 'Controle total de Estoque de Fio (entradas, saídas e paletes)', color: 'bg-cyan-100 text-cyan-700' },
 ];
 
 const PERMISSIONS = [
