@@ -1254,6 +1254,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 > Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
 
+- **27/06/2026 (Brasília)** — Estoque Fio > Paletes: Listagem de clientes refatorada para replicar exatamente o modelo do Estoque de Malha (Cliente em Collapsible/Card → Tabela interna de NFs → linha expansível com os paletes da NF). Removido o layout antigo de cabeçalho NF em duas linhas e o grid de cards mobile; agora a estrutura é uma única tabela consistente com colunas NF, Fio, Fornecedor, Paletes, Caixas (rest./total) e Ações, com sub-linhas (↳) por palete ao expandir.
+
 - **09/06/2026 15:20 (Brasília)** — Relatórios > Pódio > Exportar PDF Diário: Alterado o rótulo "Eficiência Exigida" para "Meta de Eficiência" no modal de exportação e no cabeçalho da tabela de Resumo Geral do PDF.
 
 - **08/06/2026 13:50 (Brasília)** — Relatórios > Pódio: Refinado o layout da tabela de detalhamento no PDF Diário e na UI. Agora os dados de produção (kg e eficiência) são exibidos com maior visibilidade, incluindo o rótulo "EFICIÊNCIA MÉDIA" em negrito para cada entrada, conforme solicitado pelo usuário, facilitando a leitura rápida dos resultados.
