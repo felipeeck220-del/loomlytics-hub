@@ -164,14 +164,15 @@ export default function StockYarnPage() {
     if (boxesToTake > palletViewing.remaining_boxes) { toast.error('Quantidade maior que o disponível.'); return; }
 
     const newRemaining = palletViewing.remaining_boxes - boxesToTake;
-    const newStatus = newRemaining <= 0 ? 'empty' : (exitMachineId ? 'in_machine' : palletViewing.status);
-    const machine = machines.find(m => m.id === exitMachineId);
+    const targetMachineId = exitMachineId || palletViewing.current_machine_id || null;
+    const newStatus = newRemaining <= 0 ? 'empty' : (targetMachineId ? 'in_machine' : palletViewing.status);
+    const machine = machines.find(m => m.id === (targetMachineId || ''));
 
     const { error } = await (supabase.from as any)('yarn_stock_pallets')
       .update({
         remaining_boxes: newRemaining,
         status: newStatus,
-        current_machine_id: exitMachineId || null,
+        current_machine_id: newRemaining <= 0 ? null : targetMachineId,
       })
       .eq('id', palletViewing.id);
     if (error) { toast.error('Erro ao dar baixa: ' + error.message); return; }
@@ -183,7 +184,7 @@ export default function StockYarnPage() {
         pallet_code: palletViewing.code,
         type: 'exit',
         boxes: boxesToTake,
-        machine_id: exitMachineId || null,
+        machine_id: targetMachineId,
         machine_name: machine?.name || null,
         notes: exitAllBoxes ? 'Baixa total do palete' : `Baixa parcial de ${boxesToTake} caixas`,
       },
@@ -202,6 +203,22 @@ export default function StockYarnPage() {
     const yt = yarnTypes.find(y => y.id === yarnTypeId);
     const cl = clients.find(c => c.id === clientId);
     const machine = machines.find(m => m.id === machineId);
+    if (!yarnTypeId && !clientId) {
+      const { error: delErr } = await (supabase.from as any)('yarn_stock_machine_current')
+        .delete().eq('machine_id', machineId).eq('company_id', user!.company_id);
+      if (delErr) { toast.error('Erro ao limpar: ' + delErr.message); return; }
+      try {
+        await (supabase.from as any)('audit_logs').insert({
+          company_id: user!.company_id, user_id: user!.id,
+          user_name: userTrackingInfo.created_by_name, user_role: role, user_code: userTrackingInfo.created_by_code,
+          action: 'yarn_machine_clear_current',
+          details: { machine_id: machineId, machine_name: machine?.name },
+        });
+      } catch {}
+      toast.success('Vínculo da máquina removido.');
+      await loadAll();
+      return;
+    }
     const payload = {
       company_id: user!.company_id,
       machine_id: machineId,
@@ -211,6 +228,7 @@ export default function StockYarnPage() {
       client_name: cl?.name || null,
       set_by_name: userTrackingInfo.created_by_name,
       set_by_code: userTrackingInfo.created_by_code,
+      updated_at: new Date().toISOString(),
     };
     const { error } = await (supabase.from as any)('yarn_stock_machine_current')
       .upsert(payload, { onConflict: 'machine_id' });
