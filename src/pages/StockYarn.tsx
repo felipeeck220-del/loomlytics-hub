@@ -309,10 +309,15 @@ export default function StockYarnPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Package className="h-6 w-6 text-primary" /> Estoque Fio
+            <Package className="h-6 w-6 text-primary" />
+            {tab === 'maquinas' ? 'Fios por Máquina' : tab === 'auditoria' ? 'Auditoria de Movimentações' : 'Estoque Fio'}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Controle de paletes de fio por entrada, leitura de QR Code e baixa por máquina.
+            {tab === 'maquinas'
+              ? 'Vínculo do fio em uso em cada máquina e paletes na linha de produção.'
+              : tab === 'auditoria'
+              ? 'Histórico detalhado de entradas, baixas e vínculos por usuário.'
+              : 'Controle de paletes de fio por entrada, leitura de QR Code e baixa por máquina.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -326,6 +331,77 @@ export default function StockYarnPage() {
           )}
         </div>
       </div>
+
+      {/* ============ KPI CARDS POR ABA ============ */}
+      {tab === 'paletes' && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Paletes totais</div>
+            <p className="text-xl font-bold text-foreground">{formatNumber(palletKpis.totalPallets)}</p>
+            <p className="text-[10px] text-muted-foreground">{formatNumber(palletKpis.totalBoxes)} caixas no total</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Boxes className="h-3.5 w-3.5" />Caixas em estoque</div>
+            <p className="text-xl font-bold text-success">{formatNumber(palletKpis.remainingBoxes)}</p>
+            <p className="text-[10px] text-muted-foreground">{formatNumber(palletKpis.available)} paletes disponíveis</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Factory className="h-3.5 w-3.5" />Em máquina</div>
+            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatNumber(palletKpis.inMachine)}</p>
+            <p className="text-[10px] text-muted-foreground">paletes em produção</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><AlertCircle className="h-3.5 w-3.5" />Vazios</div>
+            <p className={cn('text-xl font-bold', palletKpis.empty > 0 ? 'text-muted-foreground' : 'text-foreground')}>{formatNumber(palletKpis.empty)}</p>
+            <p className="text-[10px] text-muted-foreground">paletes esgotados</p>
+          </CardContent></Card>
+        </div>
+      )}
+
+      {tab === 'maquinas' && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Factory className="h-3.5 w-3.5" />Máquinas totais</div>
+            <p className="text-xl font-bold text-foreground">{formatNumber(machineKpis.total)}</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Link2 className="h-3.5 w-3.5" />Com fio vinculado</div>
+            <p className="text-xl font-bold text-success">{formatNumber(machineKpis.linked)}</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Unlink className="h-3.5 w-3.5" />Sem vínculo</div>
+            <p className={cn('text-xl font-bold', machineKpis.unlinked > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-foreground')}>{formatNumber(machineKpis.unlinked)}</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Boxes className="h-3.5 w-3.5" />Fios distintos</div>
+            <p className="text-xl font-bold text-foreground">{formatNumber(machineKpis.distinctYarns)}</p>
+            <p className="text-[10px] text-muted-foreground">combinações fio (cliente) em uso</p>
+          </CardContent></Card>
+        </div>
+      )}
+
+      {tab === 'auditoria' && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Activity className="h-3.5 w-3.5" />Movimentos exibidos</div>
+            <p className="text-xl font-bold text-foreground">{formatNumber(auditKpis.total)}</p>
+            <p className="text-[10px] text-muted-foreground">últimos 500 registros</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><ArrowDownCircle className="h-3.5 w-3.5" />Entradas</div>
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatNumber(auditKpis.entries)}</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><ArrowUpCircle className="h-3.5 w-3.5" />Baixas (saída)</div>
+            <p className="text-xl font-bold text-red-600 dark:text-red-400">{formatNumber(auditKpis.exits)}</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Link2 className="h-3.5 w-3.5" />Vínculos máquina</div>
+            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatNumber(auditKpis.links)}</p>
+            <p className="text-[10px] text-muted-foreground">atribuir/desvincular</p>
+          </CardContent></Card>
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid grid-cols-3 w-full md:w-auto">
