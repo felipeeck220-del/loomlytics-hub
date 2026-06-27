@@ -283,66 +283,12 @@ export default function StockYarnPage() {
               placeholder="Buscar código, cliente, fio, fornecedor..." className="pl-9" />
           </div>
 
-          <Card className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>CÓDIGO</TableHead>
-                  <TableHead>FIO</TableHead>
-                  <TableHead>CLIENTE</TableHead>
-                  <TableHead>FORNECEDOR</TableHead>
-                  <TableHead className="text-center">CAIXAS</TableHead>
-                  <TableHead>STATUS</TableHead>
-                  <TableHead>MÁQUINA</TableHead>
-                  <TableHead>ENTRADA</TableHead>
-                  <TableHead className="text-right">AÇÕES</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPallets.length === 0 && (
-                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">
-                    Nenhum palete cadastrado.
-                  </TableCell></TableRow>
-                )}
-                {filteredPallets.map(p => {
-                  const st = STATUS_BADGE[p.status] || STATUS_BADGE.available;
-                  const machine = machines.find(m => m.id === p.current_machine_id);
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-mono text-xs">{p.code}</TableCell>
-                      <TableCell>{p.yarn_type_name || '—'}</TableCell>
-                      <TableCell>{p.client_name || '—'}</TableCell>
-                      <TableCell>{p.supplier_name || '—'}</TableCell>
-                      <TableCell className="text-center">
-                        <span className="font-semibold">{p.remaining_boxes}</span>
-                        <span className="text-xs text-muted-foreground"> / {p.total_boxes}</span>
-                      </TableCell>
-                      <TableCell><Badge className={st.className} variant="secondary">{st.label}</Badge></TableCell>
-                      <TableCell>{machine?.name || '—'}</TableCell>
-                      <TableCell className="text-xs">
-                        <div>{formatDateTime(p.created_at)}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {p.created_by_name ? `${p.created_by_name} #${p.created_by_code || '-'}` : ''}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button size="icon" variant="ghost" title="Ver / Baixa"
-                            onClick={() => { setPalletViewError(null); setPalletViewId(p.id); }}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" title="Baixar QR (PDF)"
-                            onClick={() => generatePalletQrPdf(p, user!.company_id)}>
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </Card>
+          <PalletsGrouped
+            pallets={filteredPallets}
+            machines={machines}
+            companyId={user!.company_id}
+            onOpenPallet={(id) => { setPalletViewError(null); setPalletViewId(id); }}
+          />
         </TabsContent>
 
         {/* ============ MÁQUINAS ============ */}
