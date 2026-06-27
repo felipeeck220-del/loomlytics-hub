@@ -595,14 +595,13 @@ interface NewEntryProps {
   onClientCreated: () => void;
 }
 function NewEntryModal({ open, onClose, yarnTypes, clients, companyId, userId, userInfo, onCreated, onYarnTypeCreated, onClientCreated }: NewEntryProps) {
-  const [yarnTypeId, setYarnTypeId] = useState('');
+  const [yarnTypeName, setYarnTypeName] = useState('');
   const [clientId, setClientId] = useState('');
   const [supplier, setSupplier] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
   const [palletsData, setPalletsData] = useState<{ code: string; boxes: string; notes: string }[]>([
     { code: generatePalletCode(1), boxes: '', notes: '' },
   ]);
-  const [newTypeName, setNewTypeName] = useState('');
-  const [newClientName, setNewClientName] = useState('');
   const [saving, setSaving] = useState(false);
 
   const addPallet = () => setPalletsData(p => [...p, { code: generatePalletCode(p.length + 1), boxes: '', notes: '' }]);
@@ -610,42 +609,23 @@ function NewEntryModal({ open, onClose, yarnTypes, clients, companyId, userId, u
   const updatePallet = (i: number, k: 'code' | 'boxes' | 'notes', v: string) =>
     setPalletsData(p => p.map((it, idx) => idx === i ? { ...it, [k]: v } : it));
 
-  const quickAddType = async () => {
-    if (!newTypeName.trim()) return;
-    const { data, error } = await (supabase.from as any)('yarn_stock_types')
-      .insert({ company_id: companyId, name: newTypeName.trim() })
-      .select().single();
-    if (error) { toast.error(error.message); return; }
-    setNewTypeName(''); setYarnTypeId(data.id);
-    await onYarnTypeCreated();
-  };
-  const quickAddClient = async () => {
-    if (!newClientName.trim()) return;
-    const { data, error } = await (supabase.from as any)('yarn_stock_clients')
-      .insert({ company_id: companyId, name: newClientName.trim() })
-      .select().single();
-    if (error) { toast.error(error.message); return; }
-    setNewClientName(''); setClientId(data.id);
-    await onClientCreated();
-  };
-
   const submit = async () => {
-    if (!yarnTypeId) { toast.error('Selecione o tipo de fio.'); return; }
+    if (!yarnTypeName.trim()) { toast.error('Informe o tipo de fio.'); return; }
     if (!clientId) { toast.error('Selecione o cliente.'); return; }
     const valid = palletsData.filter(p => p.code.trim() && parseInt(p.boxes, 10) > 0);
     if (valid.length === 0) { toast.error('Adicione ao menos um palete com código e caixas > 0.'); return; }
     setSaving(true);
 
-    const yt = yarnTypes.find(y => y.id === yarnTypeId);
     const cl = clients.find(c => c.id === clientId);
     const rows = valid.map(p => ({
       company_id: companyId,
       code: p.code.trim(),
-      yarn_type_id: yarnTypeId,
-      yarn_type_name: yt?.name || null,
+      yarn_type_id: null,
+      yarn_type_name: yarnTypeName.trim(),
       client_id: clientId,
       client_name: cl?.name || null,
       supplier_name: supplier.trim() || null,
+      invoice_number: invoiceNumber.trim() || null,
       total_boxes: parseInt(p.boxes, 10),
       remaining_boxes: parseInt(p.boxes, 10),
       status: 'available',
@@ -680,26 +660,20 @@ function NewEntryModal({ open, onClose, yarnTypes, clients, companyId, userId, u
           <DialogDescription>Cadastre cliente, tipo de fio e os paletes recebidos (com suas caixas).</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label>Cliente *</Label>
             <SearchableSelect value={clientId} onValueChange={setClientId}
               options={clients.map(c => ({ value: c.id, label: c.name }))}
               placeholder="Selecionar cliente" />
-            <div className="flex gap-1 mt-1">
-              <Input placeholder="+ novo cliente" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} className="h-8 text-xs" />
-              <Button type="button" size="sm" variant="outline" onClick={quickAddClient}>+</Button>
-            </div>
           </div>
           <div>
             <Label>Tipo de Fio *</Label>
-            <SearchableSelect value={yarnTypeId} onValueChange={setYarnTypeId}
-              options={yarnTypes.map(y => ({ value: y.id, label: y.name }))}
-              placeholder="Selecionar fio" />
-            <div className="flex gap-1 mt-1">
-              <Input placeholder="+ novo fio" value={newTypeName} onChange={(e) => setNewTypeName(e.target.value)} className="h-8 text-xs" />
-              <Button type="button" size="sm" variant="outline" onClick={quickAddType}>+</Button>
-            </div>
+            <Input value={yarnTypeName} onChange={(e) => setYarnTypeName(e.target.value)} placeholder="Ex.: Algodão 30/1 penteado" />
+          </div>
+          <div>
+            <Label>NF</Label>
+            <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Número da nota fiscal" />
           </div>
           <div>
             <Label>Fornecedor</Label>
