@@ -20,6 +20,10 @@ const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> 
     allowed: ['Ordem de Faturamento', 'Alterar Senha'],
     denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Mecânica', 'Relatórios e Análises', 'Financeiro'],
   },
+  expedicao_fio: {
+    allowed: ['Estoque Fio', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Mecânica', 'Revisão', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
+  },
 };
 
 function RolePermissionsDisplay({ role }: { role: string }) {
