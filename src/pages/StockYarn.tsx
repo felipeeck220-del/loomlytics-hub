@@ -26,6 +26,7 @@ type Machine = { id: string; name: string };
 type Pallet = {
   id: string; code: string; yarn_type_id: string | null; yarn_type_name: string | null;
   client_id: string | null; client_name: string | null; supplier_name: string | null;
+  invoice_number: string | null;
   total_boxes: number; remaining_boxes: number; status: string;
   current_machine_id: string | null; notes: string | null;
   created_by_name: string | null; created_by_code: string | null; created_at: string;
@@ -119,7 +120,8 @@ export default function StockYarnPage() {
       p.code.toLowerCase().includes(s) ||
       (p.client_name || '').toLowerCase().includes(s) ||
       (p.yarn_type_name || '').toLowerCase().includes(s) ||
-      (p.supplier_name || '').toLowerCase().includes(s),
+      (p.supplier_name || '').toLowerCase().includes(s) ||
+      (p.invoice_number || '').toLowerCase().includes(s),
     );
   }, [pallets, search]);
 
@@ -283,66 +285,12 @@ export default function StockYarnPage() {
               placeholder="Buscar código, cliente, fio, fornecedor..." className="pl-9" />
           </div>
 
-          <Card className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>CÓDIGO</TableHead>
-                  <TableHead>FIO</TableHead>
-                  <TableHead>CLIENTE</TableHead>
-                  <TableHead>FORNECEDOR</TableHead>
-                  <TableHead className="text-center">CAIXAS</TableHead>
-                  <TableHead>STATUS</TableHead>
-                  <TableHead>MÁQUINA</TableHead>
-                  <TableHead>ENTRADA</TableHead>
-                  <TableHead className="text-right">AÇÕES</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPallets.length === 0 && (
-                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">
-                    Nenhum palete cadastrado.
-                  </TableCell></TableRow>
-                )}
-                {filteredPallets.map(p => {
-                  const st = STATUS_BADGE[p.status] || STATUS_BADGE.available;
-                  const machine = machines.find(m => m.id === p.current_machine_id);
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-mono text-xs">{p.code}</TableCell>
-                      <TableCell>{p.yarn_type_name || '—'}</TableCell>
-                      <TableCell>{p.client_name || '—'}</TableCell>
-                      <TableCell>{p.supplier_name || '—'}</TableCell>
-                      <TableCell className="text-center">
-                        <span className="font-semibold">{p.remaining_boxes}</span>
-                        <span className="text-xs text-muted-foreground"> / {p.total_boxes}</span>
-                      </TableCell>
-                      <TableCell><Badge className={st.className} variant="secondary">{st.label}</Badge></TableCell>
-                      <TableCell>{machine?.name || '—'}</TableCell>
-                      <TableCell className="text-xs">
-                        <div>{formatDateTime(p.created_at)}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {p.created_by_name ? `${p.created_by_name} #${p.created_by_code || '-'}` : ''}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button size="icon" variant="ghost" title="Ver / Baixa"
-                            onClick={() => { setPalletViewError(null); setPalletViewId(p.id); }}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" title="Baixar QR (PDF)"
-                            onClick={() => generatePalletQrPdf(p, user!.company_id)}>
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </Card>
+          <PalletsGrouped
+            pallets={filteredPallets}
+            machines={machines}
+            companyId={user!.company_id}
+            onOpenPallet={(id) => { setPalletViewError(null); setPalletViewId(id); }}
+          />
         </TabsContent>
 
         {/* ============ MÁQUINAS ============ */}
@@ -585,6 +533,158 @@ export default function StockYarnPage() {
 }
 
 // ================ NEW ENTRY MODAL ================
+
+// ================ PALLETS GROUPED BY CLIENT > NF ================
+interface PalletsGroupedProps {
+  pallets: Pallet[] & { invoice_number?: string | null }[];
+  machines: Machine[];
+  companyId: string;
+  onOpenPallet: (id: string) => void;
+}
+function PalletsGrouped({ pallets, machines, companyId, onOpenPallet }: { pallets: any[]; machines: Machine[]; companyId: string; onOpenPallet: (id: string) => void; }) {
+  const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
+  const [openNfs, setOpenNfs] = useState<Record<string, boolean>>({});
+
+  const grouped = useMemo(() => {
+    const byClient = new Map<string, { name: string; nfs: Map<string, { invoice: string; yarnNames: Set<string>; supplierNames: Set<string>; items: any[] }> }>();
+    for (const p of pallets) {
+      const ck = p.client_id || `__noclient__::${p.client_name || '—'}`;
+      const cname = p.client_name || 'Sem cliente';
+      if (!byClient.has(ck)) byClient.set(ck, { name: cname, nfs: new Map() });
+      const entry = byClient.get(ck)!;
+      const nf = (p.invoice_number || '').trim() || '__semnf__';
+      if (!entry.nfs.has(nf)) entry.nfs.set(nf, { invoice: nf === '__semnf__' ? '' : nf, yarnNames: new Set(), supplierNames: new Set(), items: [] });
+      const nfEntry = entry.nfs.get(nf)!;
+      if (p.yarn_type_name) nfEntry.yarnNames.add(p.yarn_type_name);
+      if (p.supplier_name) nfEntry.supplierNames.add(p.supplier_name);
+      nfEntry.items.push(p);
+    }
+    return Array.from(byClient.entries()).map(([ck, v]) => ({
+      key: ck, name: v.name,
+      nfs: Array.from(v.nfs.entries()).map(([nfk, nv]) => ({ key: nfk, ...nv })),
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [pallets]);
+
+  if (pallets.length === 0) {
+    return <Card className="p-6 text-center text-muted-foreground">Nenhum palete cadastrado.</Card>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {grouped.map(client => {
+        const cOpen = openClients[client.key] !== false; // default open
+        const totalPallets = client.nfs.reduce((s, n) => s + n.items.length, 0);
+        const totalBoxes = client.nfs.reduce((s, n) => s + n.items.reduce((ss: number, it: any) => ss + (it.remaining_boxes || 0), 0), 0);
+        return (
+          <Card key={client.key} className="overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setOpenClients(s => ({ ...s, [client.key]: !cOpen }))}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-muted/40 hover:bg-muted/60 transition"
+            >
+              <div className="flex items-center gap-2">
+                <Factory className="h-4 w-4 text-primary" />
+                <span className="font-semibold">{client.name}</span>
+                <Badge variant="secondary" className="ml-2">{client.nfs.length} NF</Badge>
+                <Badge variant="outline">{totalPallets} palete(s)</Badge>
+                <Badge variant="outline">{totalBoxes} cx restantes</Badge>
+              </div>
+              <span className="text-xs text-muted-foreground">{cOpen ? 'Recolher' : 'Expandir'}</span>
+            </button>
+            {cOpen && (
+              <div className="divide-y">
+                {client.nfs.map(nf => {
+                  const nfKey = `${client.key}::${nf.key}`;
+                  const nOpen = openNfs[nfKey] !== false;
+                  const nfBoxes = nf.items.reduce((s: number, it: any) => s + (it.remaining_boxes || 0), 0);
+                  const nfTotalBoxes = nf.items.reduce((s: number, it: any) => s + (it.total_boxes || 0), 0);
+                  return (
+                    <div key={nfKey}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenNfs(s => ({ ...s, [nfKey]: !nOpen }))}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-2 hover:bg-muted/30 transition"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <span className="font-medium">
+                            NF: <span className="font-mono">{nf.invoice || '—'}</span>
+                          </span>
+                          <span className="text-muted-foreground">·</span>
+                          <span className="text-muted-foreground">
+                            Fio: {Array.from(nf.yarnNames).join(', ') || '—'}
+                          </span>
+                          {nf.supplierNames.size > 0 && (
+                            <>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="text-muted-foreground">Fornecedor: {Array.from(nf.supplierNames).join(', ')}</span>
+                            </>
+                          )}
+                          <Badge variant="outline" className="ml-1">{nf.items.length} palete(s)</Badge>
+                          <Badge variant="outline">{nfBoxes}/{nfTotalBoxes} cx</Badge>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{nOpen ? '−' : '+'}</span>
+                      </button>
+                      {nOpen && (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>CÓDIGO</TableHead>
+                                <TableHead className="text-center">CAIXAS</TableHead>
+                                <TableHead>STATUS</TableHead>
+                                <TableHead>MÁQUINA</TableHead>
+                                <TableHead>ENTRADA</TableHead>
+                                <TableHead className="text-right">AÇÕES</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {nf.items.map((p: any) => {
+                                const st = STATUS_BADGE[p.status] || STATUS_BADGE.available;
+                                const machine = machines.find(m => m.id === p.current_machine_id);
+                                return (
+                                  <TableRow key={p.id}>
+                                    <TableCell className="font-mono text-xs">{p.code}</TableCell>
+                                    <TableCell className="text-center">
+                                      <span className="font-semibold">{p.remaining_boxes}</span>
+                                      <span className="text-xs text-muted-foreground"> / {p.total_boxes}</span>
+                                    </TableCell>
+                                    <TableCell><Badge className={st.className} variant="secondary">{st.label}</Badge></TableCell>
+                                    <TableCell>{machine?.name || '—'}</TableCell>
+                                    <TableCell className="text-xs">
+                                      <div>{formatDateTime(p.created_at)}</div>
+                                      <div className="text-[10px] text-muted-foreground">
+                                        {p.created_by_name ? `${p.created_by_name} #${p.created_by_code || '-'}` : ''}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <div className="flex justify-end gap-1">
+                                        <Button size="icon" variant="ghost" title="Ver / Baixa" onClick={() => onOpenPallet(p.id)}>
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" title="Baixar QR (PDF)" onClick={() => generatePalletQrPdf(p, companyId)}>
+                                          <Download className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 interface NewEntryProps {
   open: boolean; onClose: () => void;
   yarnTypes: YarnType[]; clients: YarnClient[];
