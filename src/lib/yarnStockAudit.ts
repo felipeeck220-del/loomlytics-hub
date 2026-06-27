@@ -59,13 +59,21 @@ export async function logYarnMovement(
   }
 }
 
-/** Generate unique pallet code: YYYYMMDD-XXXXXX */
-export function generatePalletCode(seed?: number) {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const rnd = Math.floor(Math.random() * 1_000_000).toString(36).toUpperCase().padStart(5, '0').slice(0, 5);
-  const suffix = seed != null ? String(seed).padStart(2, '0') : rnd;
-  return `FIO-${y}${m}${day}-${rnd}${seed != null ? '-' + suffix : ''}`;
+/** Generate a 5-char alphanumeric uppercase code (A-Z + 0-9, ambiguous chars removed). */
+export function generatePalletCode(_seed?: number) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
+  let out = '';
+  for (let i = 0; i < 5; i++) {
+    out += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+  }
+  return out;
+}
+
+/** Generate a code that doesn't collide with existing codes (in-memory set). */
+export function generateUniquePalletCode(existing: Set<string>): string {
+  for (let i = 0; i < 50; i++) {
+    const c = generatePalletCode();
+    if (!existing.has(c)) return c;
+  }
+  return generatePalletCode() + Math.floor(Math.random() * 9);
 }
