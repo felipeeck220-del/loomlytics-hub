@@ -587,7 +587,7 @@ interface PalletsGroupedProps {
   companyId: string;
   onOpenPallet: (id: string) => void;
 }
-function PalletsGrouped({ pallets, machines, machineCurrent, companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; machines: Machine[]; machineCurrent: MachineCurrent[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
+function PalletsGrouped({ pallets, machines, machineCurrent = [], companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; machines: Machine[]; machineCurrent?: MachineCurrent[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openNfs, setOpenNfs] = useState<Record<string, boolean>>({});
 
