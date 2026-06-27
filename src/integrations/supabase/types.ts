@@ -3105,6 +3105,7 @@ export type Database = {
           created_by_name: string | null
           current_machine_id: string | null
           id: string
+          invoice_number: string | null
           notes: string | null
           remaining_boxes: number
           status: string
@@ -3124,6 +3125,7 @@ export type Database = {
           created_by_name?: string | null
           current_machine_id?: string | null
           id?: string
+          invoice_number?: string | null
           notes?: string | null
           remaining_boxes?: number
           status?: string
@@ -3143,6 +3145,7 @@ export type Database = {
           created_by_name?: string | null
           current_machine_id?: string | null
           id?: string
+          invoice_number?: string | null
           notes?: string | null
           remaining_boxes?: number
           status?: string

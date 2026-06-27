@@ -1,0 +1,1 @@
+ALTER TABLE public.yarn_stock_pallets ADD COLUMN IF NOT EXISTS invoice_number text;
