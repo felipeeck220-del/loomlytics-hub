@@ -446,13 +446,17 @@ export default function StockYarnPage() {
       {entryOpen && (
         <NewEntryModal
           open={entryOpen}
-          onClose={() => setEntryOpen(false)}
+          onClose={() => { setEntryOpen(false); setEditingEntryId(null); }}
           yarnTypes={yarnTypes}
           clients={clients}
+          existingPalletCodes={pallets.map(p => p.code)}
+          editingEntry={editingEntryId ? entries.find(e => e.id === editingEntryId) || null : null}
+          editingPallets={editingEntryId ? pallets.filter(p => p.entry_id === editingEntryId) : []}
           companyId={user!.company_id}
           userId={user!.id}
           userInfo={{ name: userTrackingInfo.created_by_name, code: userTrackingInfo.created_by_code, role }}
-          onCreated={async () => { await loadAll(); setEntryOpen(false); }}
+          onSaved={async () => { await loadAll(); }}
+          onCloseAfterSave={() => { setEntryOpen(false); setEditingEntryId(null); }}
           onYarnTypeCreated={loadAll}
           onClientCreated={loadAll}
         />
