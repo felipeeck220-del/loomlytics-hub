@@ -4,7 +4,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, QrCode } from 'lucide-react';
 import {
   LayoutDashboard, Settings2, ClipboardList, Factory, Settings, Search, Wrench,
 } from 'lucide-react';
@@ -25,6 +25,7 @@ const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   lider: ['dashboard', 'machines', 'revision'],
   mecanico: ['machines', 'mecanica'],
   revisador: ['production', 'revision'],
+  expedicao_fio: ['estoque-fio'],
 };
 
 export function getMobileFooterKeys(role: string): string[] {
@@ -79,6 +80,16 @@ export function MobileBottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden">
+      {/* Floating QR scan button (center) for users with Estoque Fio access */}
+      {filterNavItems([{ key: 'estoque-fio' } as any]).length > 0 && (
+        <button
+          aria-label="Ler QR Code de palete de fio"
+          onClick={() => navigate(`${slugPrefix}/estoque-fio?scan=1`)}
+          className="absolute left-1/2 -translate-x-1/2 -top-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center border-4 border-background z-10"
+        >
+          <QrCode className="h-6 w-6" />
+        </button>
+      )}
       <div className="flex items-center justify-around h-14 px-1">
         {items.map((item) => {
           const active = isActive(item);
