@@ -18,7 +18,7 @@ import { Plus, Trash2, Download, QrCode, Eye, Package, ScanLine, Search, Factory
 import { toast } from 'sonner';
 import { QrScannerModal } from '@/components/yarn/QrScannerModal';
 import { generatePalletQrPdf } from '@/lib/yarnStockPdf';
-import { logYarnMovement, generatePalletCode } from '@/lib/yarnStockAudit';
+import { logYarnMovement, generatePalletCode, generateUniquePalletCode } from '@/lib/yarnStockAudit';
 
 type YarnType = { id: string; name: string };
 type YarnClient = { id: string; name: string };
@@ -26,10 +26,16 @@ type Machine = { id: string; name: string };
 type Pallet = {
   id: string; code: string; yarn_type_id: string | null; yarn_type_name: string | null;
   client_id: string | null; client_name: string | null; supplier_name: string | null;
-  invoice_number: string | null;
+  invoice_number: string | null; entry_id: string | null;
   total_boxes: number; remaining_boxes: number; status: string;
   current_machine_id: string | null; notes: string | null;
   created_by_name: string | null; created_by_code: string | null; created_at: string;
+};
+type YarnEntry = {
+  id: string; company_id: string;
+  client_id: string | null; client_name: string | null;
+  yarn_type_name: string; supplier_name: string | null; invoice_number: string | null;
+  created_at: string; created_by_name: string | null; created_by_code: string | null;
 };
 type Movement = {
   id: string; pallet_id: string; type: string; boxes: number; machine_name: string | null;
