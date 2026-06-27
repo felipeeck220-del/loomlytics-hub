@@ -3009,13 +3009,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "yarn_stock_machine_current_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "yarn_stock_clients"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "yarn_stock_machine_current_machine_id_fkey"
             columns: ["machine_id"]
             isOneToOne: true
@@ -3156,13 +3149,6 @@ export type Database = {
           yarn_type_name?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "yarn_stock_pallets_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "yarn_stock_clients"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "yarn_stock_pallets_current_machine_id_fkey"
             columns: ["current_machine_id"]

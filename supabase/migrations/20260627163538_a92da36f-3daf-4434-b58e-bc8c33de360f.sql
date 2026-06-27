@@ -1,0 +1,2 @@
+ALTER TABLE public.yarn_stock_pallets DROP CONSTRAINT IF EXISTS yarn_stock_pallets_client_id_fkey;
+ALTER TABLE public.yarn_stock_machine_current DROP CONSTRAINT IF EXISTS yarn_stock_machine_current_client_id_fkey;
