@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { Plus, Trash2, Download, QrCode, Eye, Package, ScanLine, Search, Factory, History, X, Edit3 } from 'lucide-react';
@@ -581,12 +582,6 @@ export default function StockYarnPage() {
 // ================ NEW ENTRY MODAL ================
 
 // ================ PALLETS GROUPED BY CLIENT > NF ================
-interface PalletsGroupedProps {
-  pallets: Pallet[] & { invoice_number?: string | null }[];
-  machines: Machine[];
-  companyId: string;
-  onOpenPallet: (id: string) => void;
-}
 function PalletsGrouped({ pallets, machines, machineCurrent = [], companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; machines: Machine[]; machineCurrent?: MachineCurrent[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openNfs, setOpenNfs] = useState<Record<string, boolean>>({});
@@ -781,14 +776,17 @@ function NewEntryModal({
   const [palletNotes, setPalletNotes] = useState('');
   const [savingPallet, setSavingPallet] = useState(false);
   const [autoCode, setAutoCode] = useState<string>('');
+  const [confirmRemove, setConfirmRemove] = useState<{ id: string; code: string } | null>(null);
 
-  // Refresh autocode whenever existing codes change
+  // Generate an auto-code once when header is saved.
+  // Subsequent codes are regenerated inside addPallet, so we avoid flicker on realtime refreshes.
   useEffect(() => {
-    if (entryId) {
+    if (entryId && !autoCode) {
       const used = new Set(existingPalletCodes);
       setAutoCode(generateUniquePalletCode(used));
     }
-  }, [entryId, existingPalletCodes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entryId]);
 
   const headerLocked = !!entryId;
 
@@ -889,8 +887,7 @@ function NewEntryModal({
     onSaved();
   };
 
-  const removePallet = async (id: string, code: string) => {
-    if (!confirm(`Remover palete ${code}?`)) return;
+  const removePallet = async (id: string) => {
     const { error } = await (supabase.from as any)('yarn_stock_pallets').delete().eq('id', id);
     if (error) { toast.error('Erro: ' + error.message); return; }
     toast.success('Palete removido.');
@@ -995,7 +992,7 @@ function NewEntryModal({
                           <Download className="h-4 w-4" />
                         </Button>
                         <Button size="icon" variant="ghost" title="Remover"
-                          onClick={() => removePallet(p.id, p.code)}>
+                          onClick={() => setConfirmRemove({ id: p.id, code: p.code })}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
@@ -1011,6 +1008,26 @@ function NewEntryModal({
           </>
         )}
       </DialogContent>
+      <AlertDialog open={!!confirmRemove} onOpenChange={(o) => { if (!o) setConfirmRemove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover palete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover o palete <span className="font-mono font-semibold">{confirmRemove?.code}</span>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (confirmRemove) await removePallet(confirmRemove.id);
+                setConfirmRemove(null);
+              }}
+            >Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
