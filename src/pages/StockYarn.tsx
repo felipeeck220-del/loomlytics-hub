@@ -225,11 +225,14 @@ export default function StockYarnPage() {
   };
 
   // ============ ASSIGN YARN TO MACHINE ============
-  const setMachineYarn = async (machineId: string, yarnTypeId: string | null, clientId: string | null) => {
-    const yt = yarnTypes.find(y => y.id === yarnTypeId);
-    const cl = clients.find(c => c.id === clientId);
+  const setMachineYarn = async (
+    machineId: string,
+    yarnTypeName: string | null,
+    clientId: string | null,
+    clientName: string | null,
+  ) => {
     const machine = machines.find(m => m.id === machineId);
-    if (!yarnTypeId && !clientId) {
+    if (!yarnTypeName && !clientId) {
       const { error: delErr } = await (supabase.from as any)('yarn_stock_machine_current')
         .delete().eq('machine_id', machineId).eq('company_id', user!.company_id);
       if (delErr) { toast.error('Erro ao limpar: ' + delErr.message); return; }
@@ -248,10 +251,10 @@ export default function StockYarnPage() {
     const payload = {
       company_id: user!.company_id,
       machine_id: machineId,
-      yarn_type_id: yarnTypeId,
-      yarn_type_name: yt?.name || null,
+      yarn_type_id: null,
+      yarn_type_name: yarnTypeName,
       client_id: clientId,
-      client_name: cl?.name || null,
+      client_name: clientName,
       set_by_name: userTrackingInfo.created_by_name,
       set_by_code: userTrackingInfo.created_by_code,
       updated_at: new Date().toISOString(),
@@ -264,7 +267,7 @@ export default function StockYarnPage() {
         company_id: user!.company_id, user_id: user!.id,
         user_name: userTrackingInfo.created_by_name, user_role: role, user_code: userTrackingInfo.created_by_code,
         action: 'yarn_machine_set_current',
-        details: { machine_id: machineId, machine_name: machine?.name, yarn_type_name: yt?.name, client_name: cl?.name },
+        details: { machine_id: machineId, machine_name: machine?.name, yarn_type_name: yarnTypeName, client_name: clientName },
       });
     } catch {}
     toast.success('Vínculo da máquina atualizado.');
