@@ -96,7 +96,7 @@ export default function StockYarnPage() {
     const cid = user.company_id;
     const [yt, cl, mc, pl, mv, mcur] = await Promise.all([
       (supabase.from as any)('yarn_stock_types').select('*').eq('company_id', cid).order('name'),
-      (supabase.from as any)('yarn_stock_clients').select('*').eq('company_id', cid).order('name'),
+      (supabase.from as any)('clients').select('id,name').eq('company_id', cid).order('name'),
       (supabase.from as any)('machines').select('id,name').eq('company_id', cid).order('name'),
       (supabase.from as any)('yarn_stock_pallets').select('*').eq('company_id', cid).order('created_at', { ascending: false }),
       (supabase.from as any)('yarn_stock_movements').select('*').eq('company_id', cid).order('created_at', { ascending: false }).limit(500),
