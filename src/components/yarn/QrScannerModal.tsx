@@ -16,6 +16,8 @@ export function QrScannerModal({ open, onClose, onResult }: Props) {
   const [manualCode, setManualCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const onResultRef = useRef(onResult);
+  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
   const containerId = 'yarn-qr-scanner-region';
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export function QrScannerModal({ open, onClose, onResult }: Props) {
             if (cancelled) return;
             cancelled = true;
             html5Qrcode.stop().then(() => html5Qrcode.clear()).catch(() => {});
-            onResult(decoded.trim());
+            onResultRef.current(decoded.trim());
           },
           () => {},
         );
@@ -47,11 +49,17 @@ export function QrScannerModal({ open, onClose, onResult }: Props) {
       cancelled = true;
       const s = scannerRef.current;
       if (s) {
-        s.stop().then(() => s.clear()).catch(() => {});
+        try {
+          if ((s as any).getState && (s as any).getState() === 2) {
+            s.stop().then(() => s.clear()).catch(() => {});
+          } else {
+            try { s.clear(); } catch {}
+          }
+        } catch {}
         scannerRef.current = null;
       }
     };
-  }, [open, mode, onResult]);
+  }, [open, mode]);
 
   const handleManual = () => {
     const code = manualCode.trim();
