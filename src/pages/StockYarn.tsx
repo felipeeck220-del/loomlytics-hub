@@ -778,13 +778,15 @@ function NewEntryModal({
   const [autoCode, setAutoCode] = useState<string>('');
   const [confirmRemove, setConfirmRemove] = useState<{ id: string; code: string } | null>(null);
 
-  // Refresh autocode whenever existing codes change
+  // Generate an auto-code once when header is saved.
+  // Subsequent codes are regenerated inside addPallet, so we avoid flicker on realtime refreshes.
   useEffect(() => {
-    if (entryId) {
+    if (entryId && !autoCode) {
       const used = new Set(existingPalletCodes);
       setAutoCode(generateUniquePalletCode(used));
     }
-  }, [entryId, existingPalletCodes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entryId]);
 
   const headerLocked = !!entryId;
 
