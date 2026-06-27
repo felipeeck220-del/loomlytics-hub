@@ -661,94 +661,190 @@ function PalletsGrouped({ pallets, entries = [], machines, machineCurrent = [], 
                   const nOpen = openNfs[nfKey] !== false;
                   const nfBoxes = nf.items.reduce((s: number, it: any) => s + (it.remaining_boxes || 0), 0);
                   const nfTotalBoxes = nf.items.reduce((s: number, it: any) => s + (it.total_boxes || 0), 0);
+                  const consumedPct = nfTotalBoxes > 0 ? Math.round(((nfTotalBoxes - nfBoxes) / nfTotalBoxes) * 100) : 0;
+                  const yarnList = Array.from(nf.yarnNames).join(', ') || '—';
+                  const supplierList = Array.from(nf.supplierNames).join(', ');
                   return (
                     <div key={nfKey}>
-                      <div className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/30 transition">
-                       <button
-                        type="button"
-                        onClick={() => setOpenNfs(s => ({ ...s, [nfKey]: !nOpen }))}
-                        className="flex-1 flex items-center justify-between gap-3 text-left"
-                      >
-                        <div className="flex flex-wrap items-center gap-2 text-sm">
-                          <span className="font-medium">
-                            NF: <span className="font-mono">{nf.invoice || '—'}</span>
-                          </span>
-                          <span className="text-muted-foreground">·</span>
-                          <span className="text-muted-foreground">
-                            Fio: {Array.from(nf.yarnNames).join(', ') || '—'}
-                          </span>
-                          {nf.supplierNames.size > 0 && (
+                      {/* NF HEADER — clean two-line layout */}
+                      <div className="w-full px-3 sm:px-4 py-3 hover:bg-muted/30 transition">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setOpenNfs(s => ({ ...s, [nfKey]: !nOpen }))}
+                            className="flex-1 text-left min-w-0"
+                          >
+                            {/* Line 1: NF# + badges */}
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">NF</span>
+                              <span className="font-mono font-bold text-base">{nf.invoice || '—'}</span>
+                              <Badge variant="secondary" className="text-[10px]">{nf.items.length} palete{nf.items.length !== 1 ? 's' : ''}</Badge>
+                              <Badge variant="outline" className="text-[10px] font-mono">{nfBoxes}/{nfTotalBoxes} cx</Badge>
+                            </div>
+                            {/* Line 2: Fio + Fornecedor (truncated) */}
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              <span className="inline-flex items-center gap-1 min-w-0">
+                                <span className="font-semibold text-foreground/70">Fio:</span>
+                                <span className="truncate max-w-[200px] sm:max-w-none">{yarnList}</span>
+                              </span>
+                              {supplierList && (
+                                <span className="inline-flex items-center gap-1 min-w-0">
+                                  <span className="font-semibold text-foreground/70">Fornecedor:</span>
+                                  <span className="truncate max-w-[180px] sm:max-w-none">{supplierList}</span>
+                                </span>
+                              )}
+                            </div>
+                            {/* Progress bar (consumption) */}
+                            {nfTotalBoxes > 0 && (
+                              <div className="mt-2 h-1 w-full bg-muted rounded-full overflow-hidden max-w-md">
+                                <div
+                                  className="h-full bg-primary/70 transition-all"
+                                  style={{ width: `${consumedPct}%` }}
+                                  title={`${consumedPct}% consumido`}
+                                />
+                              </div>
+                            )}
+                          </button>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            {canEdit && nf.entryId && (
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); onEditEntry(nf.entryId!); }}>
+                                <Edit3 className="h-3 w-3 sm:mr-1" />
+                                <span className="hidden sm:inline">Editar</span>
+                              </Button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setOpenNfs(s => ({ ...s, [nfKey]: !nOpen }))}
+                              className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground px-1"
+                            >
+                              {nOpen ? '− Recolher' : '+ Abrir'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {nOpen && (
+                        <div className="bg-muted/10 border-t">
+                          {nf.items.length === 0 ? (
+                            <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+                              Nenhum palete nesta NF. Use "Editar" para adicionar.
+                            </div>
+                          ) : (
                             <>
-                              <span className="text-muted-foreground">·</span>
-                              <span className="text-muted-foreground">Fornecedor: {Array.from(nf.supplierNames).join(', ')}</span>
+                              {/* DESKTOP TABLE */}
+                              <div className="hidden md:block">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="w-[110px]">CÓDIGO</TableHead>
+                                      <TableHead className="w-[180px]">CAIXAS</TableHead>
+                                      <TableHead className="w-[130px]">STATUS</TableHead>
+                                      <TableHead>MÁQUINA</TableHead>
+                                      <TableHead className="w-[160px]">ENTRADA</TableHead>
+                                      <TableHead className="text-right w-[100px]">AÇÕES</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {nf.items.map((p: any) => {
+                                      const st = STATUS_BADGE[p.status] || STATUS_BADGE.available;
+                                      const norm = (s: any) => (s || '').toString().trim().toLowerCase();
+                                      const assigned = machineCurrent.find(mc =>
+                                        norm(mc.yarn_type_name) === norm(p.yarn_type_name) &&
+                                        (mc.client_id || null) === (p.client_id || null)
+                                      );
+                                      const machine = (assigned && machines.find(m => m.id === assigned.machine_id))
+                                        || machines.find(m => m.id === p.current_machine_id);
+                                      const pct = p.total_boxes > 0 ? Math.round((p.remaining_boxes / p.total_boxes) * 100) : 0;
+                                      return (
+                                        <TableRow key={p.id}>
+                                          <TableCell>
+                                            <span className="font-mono font-bold text-sm bg-muted px-2 py-0.5 rounded">{p.code}</span>
+                                          </TableCell>
+                                          <TableCell>
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-semibold tabular-nums">{p.remaining_boxes}</span>
+                                              <span className="text-xs text-muted-foreground tabular-nums">/ {p.total_boxes}</span>
+                                              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden max-w-[80px]">
+                                                <div className="h-full bg-emerald-500/80" style={{ width: `${pct}%` }} />
+                                              </div>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell><Badge className={st.className} variant="secondary">{st.label}</Badge></TableCell>
+                                          <TableCell className="text-sm">{machine?.name || <span className="text-muted-foreground">—</span>}</TableCell>
+                                          <TableCell className="text-xs">
+                                            <div>{formatDateTime(p.created_at)}</div>
+                                            <div className="text-[10px] text-muted-foreground truncate max-w-[140px]">
+                                              {p.created_by_name ? `${p.created_by_name} #${p.created_by_code || '-'}` : ''}
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            <div className="flex justify-end gap-1">
+                                              <Button size="icon" variant="ghost" title="Ver / Baixa" onClick={() => onOpenPallet(p.id)}>
+                                                <Eye className="h-4 w-4" />
+                                              </Button>
+                                              <Button size="icon" variant="ghost" title="Baixar QR (PDF)" onClick={() => generatePalletQrPdf(p, companyId)}>
+                                                <Download className="h-4 w-4" />
+                                              </Button>
+                                            </div>
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </div>
+
+                              {/* MOBILE CARDS */}
+                              <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-2 p-2">
+                                {nf.items.map((p: any) => {
+                                  const st = STATUS_BADGE[p.status] || STATUS_BADGE.available;
+                                  const norm = (s: any) => (s || '').toString().trim().toLowerCase();
+                                  const assigned = machineCurrent.find(mc =>
+                                    norm(mc.yarn_type_name) === norm(p.yarn_type_name) &&
+                                    (mc.client_id || null) === (p.client_id || null)
+                                  );
+                                  const machine = (assigned && machines.find(m => m.id === assigned.machine_id))
+                                    || machines.find(m => m.id === p.current_machine_id);
+                                  const pct = p.total_boxes > 0 ? Math.round((p.remaining_boxes / p.total_boxes) * 100) : 0;
+                                  return (
+                                    <Card key={p.id} className="p-3 bg-card shadow-sm">
+                                      <div className="flex items-start justify-between gap-2 mb-2">
+                                        <span className="font-mono font-bold text-sm bg-muted px-2 py-1 rounded">{p.code}</span>
+                                        <Badge className={st.className} variant="secondary">{st.label}</Badge>
+                                      </div>
+                                      <div className="space-y-1.5 text-xs">
+                                        <div>
+                                          <div className="flex justify-between mb-0.5">
+                                            <span className="text-muted-foreground uppercase tracking-wide text-[10px]">Caixas</span>
+                                            <span className="font-semibold tabular-nums">{p.remaining_boxes} / {p.total_boxes}</span>
+                                          </div>
+                                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                            <div className="h-full bg-emerald-500/80" style={{ width: `${pct}%` }} />
+                                          </div>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-muted-foreground uppercase tracking-wide text-[10px]">Máquina</span>
+                                          <span className="font-medium truncate max-w-[140px]">{machine?.name || '—'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-muted-foreground uppercase tracking-wide text-[10px]">Entrada</span>
+                                          <span>{formatDateTime(p.created_at)}</span>
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-1 mt-3 pt-2 border-t">
+                                        <Button size="sm" variant="outline" className="flex-1 h-8" onClick={() => onOpenPallet(p.id)}>
+                                          <Eye className="h-3.5 w-3.5 mr-1" /> Ver
+                                        </Button>
+                                        <Button size="sm" variant="outline" className="flex-1 h-8" onClick={() => generatePalletQrPdf(p, companyId)}>
+                                          <Download className="h-3.5 w-3.5 mr-1" /> QR
+                                        </Button>
+                                      </div>
+                                    </Card>
+                                  );
+                                })}
+                              </div>
                             </>
                           )}
-                          <Badge variant="outline" className="ml-1">{nf.items.length} palete(s)</Badge>
-                          <Badge variant="outline">{nfBoxes}/{nfTotalBoxes} cx</Badge>
-                        </div>
-                        <span className="text-xs text-muted-foreground">{nOpen ? '−' : '+'}</span>
-                      </button>
-                        {canEdit && nf.entryId && (
-                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onEditEntry(nf.entryId!); }}>
-                            <Edit3 className="h-3 w-3 mr-1" /> Editar / + paletes
-                          </Button>
-                        )}
-                      </div>
-                      {nOpen && (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>CÓDIGO</TableHead>
-                                <TableHead className="text-center">CAIXAS</TableHead>
-                                <TableHead>STATUS</TableHead>
-                                <TableHead>MÁQUINA</TableHead>
-                                <TableHead>ENTRADA</TableHead>
-                                <TableHead className="text-right">AÇÕES</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {nf.items.map((p: any) => {
-                                const st = STATUS_BADGE[p.status] || STATUS_BADGE.available;
-                                // Match machine by yarn assignment (yarn_stock_machine_current): same yarn name + client.
-                                // Fall back to current_machine_id (set after a partial baixa).
-                                const norm = (s: any) => (s || '').toString().trim().toLowerCase();
-                                const assigned = machineCurrent.find(mc =>
-                                  norm(mc.yarn_type_name) === norm(p.yarn_type_name) &&
-                                  (mc.client_id || null) === (p.client_id || null)
-                                );
-                                const machine = (assigned && machines.find(m => m.id === assigned.machine_id))
-                                  || machines.find(m => m.id === p.current_machine_id);
-                                return (
-                                  <TableRow key={p.id}>
-                                    <TableCell className="font-mono text-xs">{p.code}</TableCell>
-                                    <TableCell className="text-center">
-                                      <span className="font-semibold">{p.remaining_boxes}</span>
-                                      <span className="text-xs text-muted-foreground"> / {p.total_boxes}</span>
-                                    </TableCell>
-                                    <TableCell><Badge className={st.className} variant="secondary">{st.label}</Badge></TableCell>
-                                    <TableCell>{machine?.name || '—'}</TableCell>
-                                    <TableCell className="text-xs">
-                                      <div>{formatDateTime(p.created_at)}</div>
-                                      <div className="text-[10px] text-muted-foreground">
-                                        {p.created_by_name ? `${p.created_by_name} #${p.created_by_code || '-'}` : ''}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <div className="flex justify-end gap-1">
-                                        <Button size="icon" variant="ghost" title="Ver / Baixa" onClick={() => onOpenPallet(p.id)}>
-                                          <Eye className="h-4 w-4" />
-                                        </Button>
-                                        <Button size="icon" variant="ghost" title="Baixar QR (PDF)" onClick={() => generatePalletQrPdf(p, companyId)}>
-                                          <Download className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
                         </div>
                       )}
                     </div>
