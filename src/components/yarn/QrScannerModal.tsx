@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Html5Qrcode } from 'html5-qrcode';
-import { Camera, Keyboard, X } from 'lucide-react';
+import { Camera, Keyboard, X, Loader2, CheckCircle2 } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -15,10 +15,16 @@ export function QrScannerModal({ open, onClose, onResult }: Props) {
   const [mode, setMode] = useState<'camera' | 'manual'>('camera');
   const [manualCode, setManualCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const onResultRef = useRef(onResult);
   useEffect(() => { onResultRef.current = onResult; }, [onResult]);
   const containerId = 'yarn-qr-scanner-region';
+
+  // Reset processing state when modal is closed/opened
+  useEffect(() => {
+    if (!open) setProcessing(null);
+  }, [open]);
 
   useEffect(() => {
     if (!open || mode !== 'camera') return;
@@ -34,8 +40,11 @@ export function QrScannerModal({ open, onClose, onResult }: Props) {
           (decoded) => {
             if (cancelled) return;
             cancelled = true;
+            const code = decoded.trim();
+            setProcessing(code);
             html5Qrcode.stop().then(() => html5Qrcode.clear()).catch(() => {});
-            onResultRef.current(decoded.trim());
+            // Small delay so user sees the "lido" feedback and to avoid UI lock
+            setTimeout(() => onResultRef.current(code), 700);
           },
           () => {},
         );
@@ -64,8 +73,9 @@ export function QrScannerModal({ open, onClose, onResult }: Props) {
   const handleManual = () => {
     const code = manualCode.trim();
     if (!code) return;
-    onResult(code);
+    setProcessing(code);
     setManualCode('');
+    setTimeout(() => onResult(code), 400);
   };
 
   return (
@@ -91,7 +101,19 @@ export function QrScannerModal({ open, onClose, onResult }: Props) {
 
         {mode === 'camera' ? (
           <div className="space-y-2">
-            <div id={containerId} className="w-full rounded-md overflow-hidden bg-black aspect-square" />
+            <div className="relative">
+              <div id={containerId} className="w-full rounded-md overflow-hidden bg-black aspect-square" />
+              {processing && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm rounded-md gap-2 text-white">
+                  <CheckCircle2 className="h-10 w-10 text-emerald-400" />
+                  <p className="text-sm font-semibold">QR lido</p>
+                  <p className="text-xs font-mono opacity-80">{processing}</p>
+                  <div className="flex items-center gap-2 text-xs mt-1">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Processando...
+                  </div>
+                </div>
+              )}
+            </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
         ) : (
@@ -102,8 +124,11 @@ export function QrScannerModal({ open, onClose, onResult }: Props) {
               onChange={(e) => setManualCode(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleManual()}
               autoFocus
+              disabled={!!processing}
             />
-            <Button className="w-full" onClick={handleManual}>Buscar palete</Button>
+            <Button className="w-full" onClick={handleManual} disabled={!!processing}>
+              {processing ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</>) : 'Buscar palete'}
+            </Button>
           </div>
         )}
       </DialogContent>
