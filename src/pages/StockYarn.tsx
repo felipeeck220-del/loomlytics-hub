@@ -84,6 +84,8 @@ export default function StockYarnPage() {
   const [search, setSearch] = useState('');
 
   const [entryOpen, setEntryOpen] = useState(false);
+  const [entries, setEntries] = useState<YarnEntry[]>([]);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
   const [palletViewId, setPalletViewId] = useState<string | null>(null);
   const [palletViewError, setPalletViewError] = useState<string | null>(null);
@@ -101,13 +103,14 @@ export default function StockYarnPage() {
   const loadAll = async () => {
     if (!user?.company_id) return;
     const cid = user.company_id;
-    const [yt, cl, mc, pl, mv, mcur] = await Promise.all([
+    const [yt, cl, mc, pl, mv, mcur, ent] = await Promise.all([
       (supabase.from as any)('yarn_stock_types').select('*').eq('company_id', cid).order('name'),
       (supabase.from as any)('clients').select('id,name').eq('company_id', cid).order('name'),
       (supabase.from as any)('machines').select('id,name').eq('company_id', cid).order('name'),
       (supabase.from as any)('yarn_stock_pallets').select('*').eq('company_id', cid).order('created_at', { ascending: false }),
       (supabase.from as any)('yarn_stock_movements').select('*').eq('company_id', cid).order('created_at', { ascending: false }).limit(500),
       (supabase.from as any)('yarn_stock_machine_current').select('*').eq('company_id', cid),
+      (supabase.from as any)('yarn_stock_entries').select('*').eq('company_id', cid).order('created_at', { ascending: false }),
     ]);
     setYarnTypes(yt.data || []);
     setClients(cl.data || []);
@@ -115,9 +118,24 @@ export default function StockYarnPage() {
     setPallets(pl.data || []);
     setMovements(mv.data || []);
     setMachineCurrent(mcur.data || []);
+    setEntries(ent.data || []);
   };
 
   useEffect(() => { loadAll(); }, [user?.company_id]);
+
+  // Realtime: refresh on any change in yarn stock tables
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const cid = user.company_id;
+    const channel = supabase
+      .channel(`yarn-stock-${cid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yarn_stock_pallets', filter: `company_id=eq.${cid}` }, () => loadAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yarn_stock_movements', filter: `company_id=eq.${cid}` }, () => loadAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yarn_stock_machine_current', filter: `company_id=eq.${cid}` }, () => loadAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yarn_stock_entries', filter: `company_id=eq.${cid}` }, () => loadAll())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.company_id]);
 
   const filteredPallets = useMemo(() => {
     const s = search.trim().toLowerCase();
