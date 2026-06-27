@@ -18,7 +18,7 @@ import { Plus, Trash2, Download, QrCode, Eye, Package, ScanLine, Search, Factory
 import { toast } from 'sonner';
 import { QrScannerModal } from '@/components/yarn/QrScannerModal';
 import { generatePalletQrPdf } from '@/lib/yarnStockPdf';
-import { logYarnMovement, generatePalletCode } from '@/lib/yarnStockAudit';
+import { logYarnMovement, generatePalletCode, generateUniquePalletCode } from '@/lib/yarnStockAudit';
 
 type YarnType = { id: string; name: string };
 type YarnClient = { id: string; name: string };
@@ -26,10 +26,16 @@ type Machine = { id: string; name: string };
 type Pallet = {
   id: string; code: string; yarn_type_id: string | null; yarn_type_name: string | null;
   client_id: string | null; client_name: string | null; supplier_name: string | null;
-  invoice_number: string | null;
+  invoice_number: string | null; entry_id: string | null;
   total_boxes: number; remaining_boxes: number; status: string;
   current_machine_id: string | null; notes: string | null;
   created_by_name: string | null; created_by_code: string | null; created_at: string;
+};
+type YarnEntry = {
+  id: string; company_id: string;
+  client_id: string | null; client_name: string | null;
+  yarn_type_name: string; supplier_name: string | null; invoice_number: string | null;
+  created_at: string; created_by_name: string | null; created_by_code: string | null;
 };
 type Movement = {
   id: string; pallet_id: string; type: string; boxes: number; machine_name: string | null;
@@ -78,6 +84,8 @@ export default function StockYarnPage() {
   const [search, setSearch] = useState('');
 
   const [entryOpen, setEntryOpen] = useState(false);
+  const [entries, setEntries] = useState<YarnEntry[]>([]);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
   const [palletViewId, setPalletViewId] = useState<string | null>(null);
   const [palletViewError, setPalletViewError] = useState<string | null>(null);
@@ -95,13 +103,14 @@ export default function StockYarnPage() {
   const loadAll = async () => {
     if (!user?.company_id) return;
     const cid = user.company_id;
-    const [yt, cl, mc, pl, mv, mcur] = await Promise.all([
+    const [yt, cl, mc, pl, mv, mcur, ent] = await Promise.all([
       (supabase.from as any)('yarn_stock_types').select('*').eq('company_id', cid).order('name'),
       (supabase.from as any)('clients').select('id,name').eq('company_id', cid).order('name'),
       (supabase.from as any)('machines').select('id,name').eq('company_id', cid).order('name'),
       (supabase.from as any)('yarn_stock_pallets').select('*').eq('company_id', cid).order('created_at', { ascending: false }),
       (supabase.from as any)('yarn_stock_movements').select('*').eq('company_id', cid).order('created_at', { ascending: false }).limit(500),
       (supabase.from as any)('yarn_stock_machine_current').select('*').eq('company_id', cid),
+      (supabase.from as any)('yarn_stock_entries').select('*').eq('company_id', cid).order('created_at', { ascending: false }),
     ]);
     setYarnTypes(yt.data || []);
     setClients(cl.data || []);
@@ -109,9 +118,24 @@ export default function StockYarnPage() {
     setPallets(pl.data || []);
     setMovements(mv.data || []);
     setMachineCurrent(mcur.data || []);
+    setEntries(ent.data || []);
   };
 
   useEffect(() => { loadAll(); }, [user?.company_id]);
+
+  // Realtime: refresh on any change in yarn stock tables
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const cid = user.company_id;
+    const channel = supabase
+      .channel(`yarn-stock-${cid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yarn_stock_pallets', filter: `company_id=eq.${cid}` }, () => loadAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yarn_stock_movements', filter: `company_id=eq.${cid}` }, () => loadAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yarn_stock_machine_current', filter: `company_id=eq.${cid}` }, () => loadAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yarn_stock_entries', filter: `company_id=eq.${cid}` }, () => loadAll())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.company_id]);
 
   const filteredPallets = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -289,6 +313,8 @@ export default function StockYarnPage() {
             pallets={filteredPallets}
             machines={machines}
             companyId={user!.company_id}
+            canEdit={canEntry}
+            onEditEntry={(entryId) => { setEditingEntryId(entryId); setEntryOpen(true); }}
             onOpenPallet={(id) => { setPalletViewError(null); setPalletViewId(id); }}
           />
         </TabsContent>
@@ -422,13 +448,17 @@ export default function StockYarnPage() {
       {entryOpen && (
         <NewEntryModal
           open={entryOpen}
-          onClose={() => setEntryOpen(false)}
+          onClose={() => { setEntryOpen(false); setEditingEntryId(null); }}
           yarnTypes={yarnTypes}
           clients={clients}
+          existingPalletCodes={pallets.map(p => p.code)}
+          editingEntry={editingEntryId ? entries.find(e => e.id === editingEntryId) || null : null}
+          editingPallets={editingEntryId ? pallets.filter(p => p.entry_id === editingEntryId) : []}
           companyId={user!.company_id}
           userId={user!.id}
           userInfo={{ name: userTrackingInfo.created_by_name, code: userTrackingInfo.created_by_code, role }}
-          onCreated={async () => { await loadAll(); setEntryOpen(false); }}
+          onSaved={async () => { await loadAll(); }}
+          onCloseAfterSave={() => { setEntryOpen(false); setEditingEntryId(null); }}
           onYarnTypeCreated={loadAll}
           onClientCreated={loadAll}
         />
@@ -541,20 +571,25 @@ interface PalletsGroupedProps {
   companyId: string;
   onOpenPallet: (id: string) => void;
 }
-function PalletsGrouped({ pallets, machines, companyId, onOpenPallet }: { pallets: any[]; machines: Machine[]; companyId: string; onOpenPallet: (id: string) => void; }) {
+function PalletsGrouped({ pallets, machines, companyId, canEdit, onEditEntry, onOpenPallet }: { pallets: any[]; machines: Machine[]; companyId: string; canEdit: boolean; onEditEntry: (entryId: string) => void; onOpenPallet: (id: string) => void; }) {
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openNfs, setOpenNfs] = useState<Record<string, boolean>>({});
 
   const grouped = useMemo(() => {
-    const byClient = new Map<string, { name: string; nfs: Map<string, { invoice: string; yarnNames: Set<string>; supplierNames: Set<string>; items: any[] }> }>();
+    const byClient = new Map<string, { name: string; nfs: Map<string, { invoice: string; entryId: string | null; yarnNames: Set<string>; supplierNames: Set<string>; items: any[] }> }>();
     for (const p of pallets) {
       const ck = p.client_id || `__noclient__::${p.client_name || '—'}`;
       const cname = p.client_name || 'Sem cliente';
       if (!byClient.has(ck)) byClient.set(ck, { name: cname, nfs: new Map() });
       const entry = byClient.get(ck)!;
-      const nf = (p.invoice_number || '').trim() || '__semnf__';
-      if (!entry.nfs.has(nf)) entry.nfs.set(nf, { invoice: nf === '__semnf__' ? '' : nf, yarnNames: new Set(), supplierNames: new Set(), items: [] });
-      const nfEntry = entry.nfs.get(nf)!;
+      // Group preferably by entry_id; fallback to invoice_number; fallback to standalone
+      const groupKey = p.entry_id || ((p.invoice_number || '').trim() ? `nf::${(p.invoice_number || '').trim()}` : `__semnf__::${p.id}`);
+      if (!entry.nfs.has(groupKey)) entry.nfs.set(groupKey, {
+        invoice: (p.invoice_number || '').trim(),
+        entryId: p.entry_id || null,
+        yarnNames: new Set(), supplierNames: new Set(), items: [],
+      });
+      const nfEntry = entry.nfs.get(groupKey)!;
       if (p.yarn_type_name) nfEntry.yarnNames.add(p.yarn_type_name);
       if (p.supplier_name) nfEntry.supplierNames.add(p.supplier_name);
       nfEntry.items.push(p);
@@ -600,10 +635,11 @@ function PalletsGrouped({ pallets, machines, companyId, onOpenPallet }: { pallet
                   const nfTotalBoxes = nf.items.reduce((s: number, it: any) => s + (it.total_boxes || 0), 0);
                   return (
                     <div key={nfKey}>
-                      <button
+                      <div className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/30 transition">
+                       <button
                         type="button"
                         onClick={() => setOpenNfs(s => ({ ...s, [nfKey]: !nOpen }))}
-                        className="w-full flex items-center justify-between gap-3 px-4 py-2 hover:bg-muted/30 transition"
+                        className="flex-1 flex items-center justify-between gap-3 text-left"
                       >
                         <div className="flex flex-wrap items-center gap-2 text-sm">
                           <span className="font-medium">
@@ -624,6 +660,12 @@ function PalletsGrouped({ pallets, machines, companyId, onOpenPallet }: { pallet
                         </div>
                         <span className="text-xs text-muted-foreground">{nOpen ? '−' : '+'}</span>
                       </button>
+                        {canEdit && nf.entryId && (
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onEditEntry(nf.entryId!); }}>
+                            <Edit3 className="h-3 w-3 mr-1" /> Editar / + paletes
+                          </Button>
+                        )}
+                      </div>
                       {nOpen && (
                         <div className="overflow-x-auto">
                           <Table>
@@ -688,78 +730,166 @@ function PalletsGrouped({ pallets, machines, companyId, onOpenPallet }: { pallet
 interface NewEntryProps {
   open: boolean; onClose: () => void;
   yarnTypes: YarnType[]; clients: YarnClient[];
+  existingPalletCodes: string[];
+  editingEntry: YarnEntry | null;
+  editingPallets: Pallet[];
   companyId: string; userId: string;
   userInfo: { name: string | null; code: string | null; role: string };
-  onCreated: () => void;
+  onSaved: () => void;
+  onCloseAfterSave: () => void;
   onYarnTypeCreated: () => void;
   onClientCreated: () => void;
 }
-function NewEntryModal({ open, onClose, yarnTypes, clients, companyId, userId, userInfo, onCreated, onYarnTypeCreated, onClientCreated }: NewEntryProps) {
-  const [yarnTypeName, setYarnTypeName] = useState('');
-  const [clientId, setClientId] = useState('');
-  const [supplier, setSupplier] = useState('');
-  const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [palletsData, setPalletsData] = useState<{ code: string; boxes: string; notes: string }[]>([
-    { code: generatePalletCode(1), boxes: '', notes: '' },
-  ]);
-  const [saving, setSaving] = useState(false);
+function NewEntryModal({
+  open, onClose, clients, existingPalletCodes, editingEntry, editingPallets,
+  companyId, userId, userInfo, onSaved, onCloseAfterSave,
+}: NewEntryProps) {
+  // Header state
+  const [entryId, setEntryId] = useState<string | null>(editingEntry?.id || null);
+  const [yarnTypeName, setYarnTypeName] = useState(editingEntry?.yarn_type_name || '');
+  const [clientId, setClientId] = useState(editingEntry?.client_id || '');
+  const [supplier, setSupplier] = useState(editingEntry?.supplier_name || '');
+  const [invoiceNumber, setInvoiceNumber] = useState(editingEntry?.invoice_number || '');
+  const [savingHeader, setSavingHeader] = useState(false);
 
-  const addPallet = () => setPalletsData(p => [...p, { code: generatePalletCode(p.length + 1), boxes: '', notes: '' }]);
-  const removePallet = (i: number) => setPalletsData(p => p.filter((_, idx) => idx !== i));
-  const updatePallet = (i: number, k: 'code' | 'boxes' | 'notes', v: string) =>
-    setPalletsData(p => p.map((it, idx) => idx === i ? { ...it, [k]: v } : it));
+  // Pallet form state (one at a time)
+  const [palletBoxes, setPalletBoxes] = useState('');
+  const [palletNotes, setPalletNotes] = useState('');
+  const [savingPallet, setSavingPallet] = useState(false);
+  const [autoCode, setAutoCode] = useState<string>('');
 
-  const submit = async () => {
-    if (!yarnTypeName.trim()) { toast.error('Informe o tipo de fio.'); return; }
+  // Refresh autocode whenever existing codes change
+  useEffect(() => {
+    if (entryId) {
+      const used = new Set(existingPalletCodes);
+      setAutoCode(generateUniquePalletCode(used));
+    }
+  }, [entryId, existingPalletCodes]);
+
+  const headerLocked = !!entryId;
+
+  const saveHeader = async () => {
     if (!clientId) { toast.error('Selecione o cliente.'); return; }
-    const valid = palletsData.filter(p => p.code.trim() && parseInt(p.boxes, 10) > 0);
-    if (valid.length === 0) { toast.error('Adicione ao menos um palete com código e caixas > 0.'); return; }
-    setSaving(true);
-
+    if (!yarnTypeName.trim()) { toast.error('Informe o tipo de fio.'); return; }
+    setSavingHeader(true);
     const cl = clients.find(c => c.id === clientId);
-    const rows = valid.map(p => ({
+    const payload: any = {
       company_id: companyId,
-      code: p.code.trim(),
+      client_id: clientId,
+      client_name: cl?.name || null,
+      yarn_type_name: yarnTypeName.trim(),
+      supplier_name: supplier.trim() || null,
+      invoice_number: invoiceNumber.trim() || null,
+      created_by_name: userInfo.name,
+      created_by_code: userInfo.code,
+    };
+    const { data, error } = await (supabase.from as any)('yarn_stock_entries')
+      .insert(payload).select().single();
+    setSavingHeader(false);
+    if (error) { toast.error('Erro ao salvar cabeçalho: ' + error.message); return; }
+    setEntryId(data.id);
+    toast.success('Cabeçalho salvo. Agora adicione os paletes.');
+    onSaved();
+  };
+
+  const updateHeader = async () => {
+    if (!entryId) return;
+    const cl = clients.find(c => c.id === clientId);
+    const { error } = await (supabase.from as any)('yarn_stock_entries')
+      .update({
+        client_id: clientId,
+        client_name: cl?.name || null,
+        yarn_type_name: yarnTypeName.trim(),
+        supplier_name: supplier.trim() || null,
+        invoice_number: invoiceNumber.trim() || null,
+      })
+      .eq('id', entryId);
+    if (error) { toast.error('Erro ao atualizar: ' + error.message); return; }
+    // Propagate to existing pallets
+    await (supabase.from as any)('yarn_stock_pallets')
+      .update({
+        client_id: clientId,
+        client_name: cl?.name || null,
+        yarn_type_name: yarnTypeName.trim(),
+        supplier_name: supplier.trim() || null,
+        invoice_number: invoiceNumber.trim() || null,
+      })
+      .eq('entry_id', entryId);
+    toast.success('Dados da entrada atualizados.');
+    onSaved();
+  };
+
+  const addPallet = async () => {
+    if (!entryId) { toast.error('Salve o cabeçalho primeiro.'); return; }
+    const boxes = parseInt(palletBoxes, 10);
+    if (!boxes || boxes <= 0) { toast.error('Informe a quantidade de caixas.'); return; }
+    if (!autoCode) { toast.error('Gerando código...'); return; }
+    setSavingPallet(true);
+    const cl = clients.find(c => c.id === clientId);
+    const row = {
+      company_id: companyId,
+      entry_id: entryId,
+      code: autoCode,
       yarn_type_id: null,
       yarn_type_name: yarnTypeName.trim(),
       client_id: clientId,
       client_name: cl?.name || null,
       supplier_name: supplier.trim() || null,
       invoice_number: invoiceNumber.trim() || null,
-      total_boxes: parseInt(p.boxes, 10),
-      remaining_boxes: parseInt(p.boxes, 10),
+      total_boxes: boxes,
+      remaining_boxes: boxes,
       status: 'available',
-      notes: p.notes.trim() || null,
+      notes: palletNotes.trim() || null,
       created_by_name: userInfo.name,
       created_by_code: userInfo.code,
-    }));
-
-    const { data: inserted, error } = await (supabase.from as any)('yarn_stock_pallets')
-      .insert(rows).select();
-    if (error) {
-      toast.error('Erro ao salvar: ' + error.message);
-      setSaving(false); return;
+    };
+    let { data: inserted, error } = await (supabase.from as any)('yarn_stock_pallets')
+      .insert(row).select().single();
+    // Retry once on unique conflict
+    if (error && /yarn_stock_pallets_company_code_unique/i.test(error.message || '')) {
+      row.code = generateUniquePalletCode(new Set([...existingPalletCodes, autoCode]));
+      const r2 = await (supabase.from as any)('yarn_stock_pallets').insert(row).select().single();
+      inserted = r2.data; error = r2.error;
     }
-    for (const ins of inserted || []) {
-      await logYarnMovement(
-        { companyId, userId, userName: userInfo.name, userCode: userInfo.code, userRole: userInfo.role },
-        { pallet_id: ins.id, pallet_code: ins.code, type: 'entry', boxes: ins.total_boxes,
-          notes: `Entrada de ${ins.total_boxes} caixas` },
-      );
-    }
-    toast.success(`${rows.length} palete(s) cadastrado(s).`);
-    setSaving(false);
-    onCreated();
+    if (error) { toast.error('Erro: ' + error.message); setSavingPallet(false); return; }
+    await logYarnMovement(
+      { companyId, userId, userName: userInfo.name, userCode: userInfo.code, userRole: userInfo.role },
+      { pallet_id: inserted.id, pallet_code: inserted.code, type: 'entry', boxes: inserted.total_boxes,
+        notes: `Entrada de ${inserted.total_boxes} caixas` },
+    );
+    toast.success(`Palete ${inserted.code} adicionado (${boxes} cx).`);
+    setPalletBoxes('');
+    setPalletNotes('');
+    setAutoCode(generateUniquePalletCode(new Set([...existingPalletCodes, inserted.code])));
+    setSavingPallet(false);
+    onSaved();
   };
+
+  const removePallet = async (id: string, code: string) => {
+    if (!confirm(`Remover palete ${code}?`)) return;
+    const { error } = await (supabase.from as any)('yarn_stock_pallets').delete().eq('id', id);
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success('Palete removido.');
+    onSaved();
+  };
+
+  const entryPallets = editingPallets;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Plus className="h-5 w-5" /> Nova Entrada de Fio</DialogTitle>
-          <DialogDescription>Cadastre cliente, tipo de fio e os paletes recebidos (com suas caixas).</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" /> {editingEntry ? 'Editar Entrada de Fio' : 'Nova Entrada de Fio'}
+          </DialogTitle>
+          <DialogDescription>
+            {headerLocked
+              ? 'Cabeçalho salvo. Adicione os paletes — cada um é salvo individualmente.'
+              : 'Passo 1 — Salve os dados do fio (cliente, tipo, NF, fornecedor). Em seguida você poderá adicionar paletes.'}
+          </DialogDescription>
         </DialogHeader>
 
+        {/* ===== STEP 1: HEADER ===== */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label>Cliente *</Label>
@@ -769,11 +899,12 @@ function NewEntryModal({ open, onClose, yarnTypes, clients, companyId, userId, u
           </div>
           <div>
             <Label>Tipo de Fio *</Label>
-            <Input value={yarnTypeName} onChange={(e) => setYarnTypeName(e.target.value)} placeholder="Ex.: Algodão 30/1 penteado" />
+            <Input value={yarnTypeName} onChange={(e) => setYarnTypeName(e.target.value)}
+              placeholder="Ex.: Algodão 30/1 penteado" />
           </div>
           <div>
             <Label>NF</Label>
-            <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Número da nota fiscal" />
+            <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Número da NF" />
           </div>
           <div>
             <Label>Fornecedor</Label>
@@ -781,47 +912,80 @@ function NewEntryModal({ open, onClose, yarnTypes, clients, companyId, userId, u
           </div>
         </div>
 
-        <div className="border-t pt-3">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-semibold">Paletes ({palletsData.length})</h4>
-            <Button type="button" size="sm" variant="outline" onClick={addPallet}>
-              <Plus className="h-4 w-4 mr-1" /> Adicionar palete
+        {!headerLocked ? (
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose} disabled={savingHeader}>Cancelar</Button>
+            <Button onClick={saveHeader} disabled={savingHeader}>
+              {savingHeader ? 'Salvando...' : 'Salvar e adicionar paletes'}
             </Button>
-          </div>
-          <div className="space-y-2">
-            {palletsData.map((p, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-start border rounded p-2">
-                <div className="col-span-12 md:col-span-5">
-                  <Label className="text-xs">Código *</Label>
-                  <Input value={p.code} onChange={(e) => updatePallet(i, 'code', e.target.value)} className="font-mono text-xs" />
+          </DialogFooter>
+        ) : (
+          <>
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={updateHeader}>
+                <Edit3 className="h-3 w-3 mr-1" /> Atualizar cabeçalho
+              </Button>
+            </div>
+
+            {/* ===== STEP 2: PALLETS ===== */}
+            <div className="border-t pt-3 space-y-3">
+              <h4 className="font-semibold">Adicionar palete</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                <div>
+                  <Label className="text-xs">Código (auto)</Label>
+                  <Input value={autoCode} readOnly disabled className="font-mono uppercase text-center" />
                 </div>
-                <div className="col-span-6 md:col-span-2">
+                <div>
                   <Label className="text-xs">Caixas *</Label>
-                  <Input type="number" inputMode="numeric" min={1} value={p.boxes}
-                    onChange={(e) => updatePallet(i, 'boxes', e.target.value)} />
+                  <Input type="number" inputMode="numeric" min={1} value={palletBoxes}
+                    onChange={(e) => setPalletBoxes(e.target.value)} placeholder="0" />
                 </div>
-                <div className="col-span-6 md:col-span-4">
+                <div className="md:col-span-2">
                   <Label className="text-xs">Observação</Label>
-                  <Input value={p.notes} onChange={(e) => updatePallet(i, 'notes', e.target.value)} />
-                </div>
-                <div className="col-span-12 md:col-span-1 flex md:justify-end md:pt-5">
-                  {palletsData.length > 1 && (
-                    <Button type="button" size="icon" variant="ghost" onClick={() => removePallet(i)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
+                  <Input value={palletNotes} onChange={(e) => setPalletNotes(e.target.value)} />
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+              <Button onClick={addPallet} disabled={savingPallet} className="w-full">
+                <Plus className="h-4 w-4 mr-1" />
+                {savingPallet ? 'Salvando...' : 'Adicionar palete'}
+              </Button>
+            </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? 'Salvando...' : `Cadastrar ${palletsData.length} palete(s)`}
-          </Button>
-        </DialogFooter>
+            {/* ===== LIST OF PALLETS ALREADY ADDED ===== */}
+            <div className="border-t pt-3">
+              <h4 className="font-semibold mb-2">Paletes desta entrada ({entryPallets.length})</h4>
+              {entryPallets.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum palete cadastrado ainda.</p>
+              ) : (
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  {entryPallets.map(p => (
+                    <div key={p.id} className="flex items-center justify-between border rounded px-3 py-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold">{p.code}</span>
+                        <Badge variant="secondary">{p.remaining_boxes}/{p.total_boxes} cx</Badge>
+                        {p.notes && <span className="text-xs text-muted-foreground">· {p.notes}</span>}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" title="Baixar QR (PDF)"
+                          onClick={() => generatePalletQrPdf(p as any, companyId)}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" title="Remover"
+                          onClick={() => removePallet(p.id, p.code)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button onClick={onCloseAfterSave}>Concluir</Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -2967,6 +2967,51 @@ export type Database = {
         }
         Relationships: []
       }
+      yarn_stock_entries: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          company_id: string
+          created_at: string
+          created_by_code: string | null
+          created_by_name: string | null
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          supplier_name: string | null
+          updated_at: string
+          yarn_type_name: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          company_id: string
+          created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          yarn_type_name: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          company_id?: string
+          created_at?: string
+          created_by_code?: string | null
+          created_by_name?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          yarn_type_name?: string
+        }
+        Relationships: []
+      }
       yarn_stock_machine_current: {
         Row: {
           client_id: string | null
@@ -3097,6 +3142,7 @@ export type Database = {
           created_by_code: string | null
           created_by_name: string | null
           current_machine_id: string | null
+          entry_id: string | null
           id: string
           invoice_number: string | null
           notes: string | null
@@ -3117,6 +3163,7 @@ export type Database = {
           created_by_code?: string | null
           created_by_name?: string | null
           current_machine_id?: string | null
+          entry_id?: string | null
           id?: string
           invoice_number?: string | null
           notes?: string | null
@@ -3137,6 +3184,7 @@ export type Database = {
           created_by_code?: string | null
           created_by_name?: string | null
           current_machine_id?: string | null
+          entry_id?: string | null
           id?: string
           invoice_number?: string | null
           notes?: string | null
@@ -3154,6 +3202,13 @@ export type Database = {
             columns: ["current_machine_id"]
             isOneToOne: false
             referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "yarn_stock_pallets_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_stock_entries"
             referencedColumns: ["id"]
           },
           {
