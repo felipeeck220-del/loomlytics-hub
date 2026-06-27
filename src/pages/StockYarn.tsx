@@ -26,6 +26,7 @@ type Machine = { id: string; name: string };
 type Pallet = {
   id: string; code: string; yarn_type_id: string | null; yarn_type_name: string | null;
   client_id: string | null; client_name: string | null; supplier_name: string | null;
+  invoice_number: string | null;
   total_boxes: number; remaining_boxes: number; status: string;
   current_machine_id: string | null; notes: string | null;
   created_by_name: string | null; created_by_code: string | null; created_at: string;
@@ -119,7 +120,8 @@ export default function StockYarnPage() {
       p.code.toLowerCase().includes(s) ||
       (p.client_name || '').toLowerCase().includes(s) ||
       (p.yarn_type_name || '').toLowerCase().includes(s) ||
-      (p.supplier_name || '').toLowerCase().includes(s),
+      (p.supplier_name || '').toLowerCase().includes(s) ||
+      (p.invoice_number || '').toLowerCase().includes(s),
     );
   }, [pallets, search]);
 
