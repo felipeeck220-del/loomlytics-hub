@@ -315,6 +315,7 @@ export default function StockYarnPage() {
           <PalletsGrouped
             pallets={filteredPallets}
             machines={machines}
+            machineCurrent={machineCurrent}
             companyId={user!.company_id}
             canEdit={canEntry}
             onEditEntry={(entryId) => { setEditingEntryId(entryId); setEntryOpen(true); }}
