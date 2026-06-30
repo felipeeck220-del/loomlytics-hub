@@ -290,7 +290,12 @@ export default function ClientInvoices() {
                 deduct_kg: parseFloat(l.deduct_kg) || 0,
               }))
             );
-            if (linksError) throw linksError;
+            if (linksError) {
+              // Rollback: remove a nota recém-criada para não deixar saída órfã sem vínculos
+              await supabase.from('client_invoice_items').delete().eq('invoice_id', invoice.id);
+              await supabase.from('client_invoices').delete().eq('id', invoice.id);
+              throw linksError;
+            }
           }
         }
 
