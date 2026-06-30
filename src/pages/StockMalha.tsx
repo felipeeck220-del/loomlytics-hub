@@ -599,6 +599,12 @@ export default function StockMalha() {
             .sort((x, y) => x.name.localeCompare(y.name))
         : [];
 
+      if (rows.length === 0) {
+        toast.info('Nenhuma máquina com saldo disponível (≥ 1 rolo) para este artigo.');
+        setExportingArticleId(null);
+        return;
+      }
+
       const totalAvailableRolls = rows.reduce((s, r) => s + r.availableRolls, 0);
       const body = rows.map(r => [
         sanitizePdfText(r.name),
