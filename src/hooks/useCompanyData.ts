@@ -647,6 +647,8 @@ export function useCompanyData() {
        machine_id: newRecord.machine_id || null,
        created_by_id: user?.id || null,
        created_by_name: newRecord.created_by_name || null,
+       provider_id: newRecord.provider_id || null,
+       unit_price: newRecord.unit_price ?? null,
      };
      const { error } = await sb('sinker_transactions').insert(row);
      if (error) throw error;
