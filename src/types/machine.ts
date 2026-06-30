@@ -115,6 +115,16 @@ export interface SinkerTransaction {
   created_at: string;
   created_by_id?: string;
   created_by_name?: string;
+  provider_id?: string;
+  unit_price?: number;
+}
+
+export interface MaterialProvider {
+  id: string;
+  company_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
 }
  
  export interface NeedleInventory {
@@ -143,6 +153,8 @@ export interface SinkerTransaction {
    created_at: string;
    created_by_id?: string;
    created_by_name?: string;
+  provider_id?: string;
+  unit_price?: number;
  }
 
 export interface MachineLog {

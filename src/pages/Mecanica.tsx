@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Fragment } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package, Eye, FileDown, Settings } from 'lucide-react';
+  import { Wrench, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package, Eye, FileDown, Settings, Building2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -41,6 +41,7 @@ export default function MecanicaPage() {
      updateSinkerTransaction, deleteSinkerTransaction,
      getCylinders, saveCylinders, assignCylinderToMachine,
      getMachineNeedleRefs, getMachineSinkerRefs,
+     getMaterialProviders, saveMaterialProvider, deleteMaterialProvider,
      loading 
    } = useSharedCompanyData();
    const needles = getNeedles();
@@ -50,6 +51,7 @@ export default function MecanicaPage() {
    const cylinders = getCylinders();
    const machineNeedleRefs = getMachineNeedleRefs();
    const machineSinkerRefs = getMachineSinkerRefs();
+   const materialProviders = getMaterialProviders();
    // Needle Management State
    const [needleSearch, setNeedleSearch] = useState('');
    const [showNeedleModal, setShowNeedleModal] = useState(false);
@@ -57,6 +59,8 @@ export default function MecanicaPage() {
    const [showExitModal, setShowExitModal] = useState(false);
    const [needleForm, setNeedleForm] = useState({ provider: '', brand: '', reference_code: '' });
    const [entryForm, setEntryForm] = useState({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+   const [entryProviderId, setEntryProviderId] = useState('');
+   const [entryUnitPrice, setEntryUnitPrice] = useState('');
    const [exitForm, setExitForm] = useState({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_agulheiro', date: format(new Date(), 'yyyy-MM-dd') });
    const [needleEntrySearch, setNeedleEntrySearch] = useState('');
    const [needleExitSearch, setNeedleExitSearch] = useState('');
@@ -75,6 +79,8 @@ export default function MecanicaPage() {
    const [showSinkerExitModal, setShowSinkerExitModal] = useState(false);
    const [sinkerForm, setSinkerForm] = useState({ provider: '', brand: '', reference_code: '' });
    const [sinkerEntryForm, setSinkerEntryForm] = useState({ sinker_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+   const [sinkerEntryProviderId, setSinkerEntryProviderId] = useState('');
+   const [sinkerEntryUnitPrice, setSinkerEntryUnitPrice] = useState('');
    const [sinkerExitForm, setSinkerExitForm] = useState({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_platinas', date: format(new Date(), 'yyyy-MM-dd') });
    const [sinkerEditTxn, setSinkerEditTxn] = useState<any>(null);
    const [sinkerEditForm, setSinkerEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_platinas' });
@@ -92,6 +98,11 @@ export default function MecanicaPage() {
     });
    const [showAssignModal, setShowAssignModal] = useState(false);
    const [assignForm, setAssignForm] = useState({ machine_id: '', cylinder_id: '' });
+
+  // Material Providers (shared between Agulhas & Platinas)
+  const [providerForm, setProviderForm] = useState({ id: '', name: '' });
+  const [savingProvider, setSavingProvider] = useState(false);
+  const [deleteProviderId, setDeleteProviderId] = useState<string | null>(null);
   
  
   const { canSeeFinancial } = usePermissions();
@@ -718,12 +729,16 @@ export default function MecanicaPage() {
          quantity: Number(entryForm.quantity),
          date: entryForm.date,
          created_at: new Date().toISOString(),
-         created_by_name: userName || undefined
+          created_by_name: userName || undefined,
+          provider_id: entryProviderId || undefined,
+          unit_price: entryUnitPrice ? Number(entryUnitPrice) : undefined,
        });
         logAction('needle_entry', { brand: needle?.brand, code: needle?.reference_code, quantity: entryForm.quantity });
         toast.success('Entrada registrada!');
        setShowEntryModal(false);
        setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+        setEntryProviderId('');
+        setEntryUnitPrice('');
      } catch (e) { toast.error('Erro ao registrar entrada.'); }
    };
  
@@ -801,12 +816,16 @@ export default function MecanicaPage() {
           quantity: Number(sinkerEntryForm.quantity),
           date: sinkerEntryForm.date,
           created_at: new Date().toISOString(),
-          created_by_name: userName || undefined
+          created_by_name: userName || undefined,
+          provider_id: sinkerEntryProviderId || undefined,
+          unit_price: sinkerEntryUnitPrice ? Number(sinkerEntryUnitPrice) : undefined,
         });
          logAction('sinker_entry', { brand: sinker?.brand, code: sinker?.reference_code, quantity: sinkerEntryForm.quantity });
          toast.success('Entrada registrada!');
         setShowSinkerEntryModal(false);
         setSinkerEntryForm({ sinker_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+        setSinkerEntryProviderId('');
+        setSinkerEntryUnitPrice('');
       } catch (e) { toast.error('Erro ao registrar entrada.'); }
     };
   
@@ -846,6 +865,71 @@ export default function MecanicaPage() {
         setSinkerExitForm({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
       } catch (e) { toast.error('Erro ao registrar baixa.'); }
     };
+
+  // ============ Fornecedores (Material Providers) ============
+  const handleSaveProvider = async () => {
+    const name = providerForm.name.trim();
+    if (!name) { toast.error('Informe o nome do fornecedor.'); return; }
+    setSavingProvider(true);
+    try {
+      await saveMaterialProvider({ id: providerForm.id || undefined, name });
+      toast.success(providerForm.id ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
+      setProviderForm({ id: '', name: '' });
+    } catch (e: any) {
+      toast.error('Erro ao salvar fornecedor: ' + (e?.message || ''));
+    } finally {
+      setSavingProvider(false);
+    }
+  };
+
+  const handleDeleteProvider = async (id: string) => {
+    try {
+      await deleteMaterialProvider(id);
+      toast.success('Fornecedor removido.');
+    } catch (e: any) {
+      toast.error('Erro ao remover (pode estar vinculado a entradas).');
+    } finally {
+      setDeleteProviderId(null);
+    }
+  };
+
+  // KPI helpers
+  const totalNeedleEntryValue = needleTransactions
+    .filter(t => t.type === 'entry' && t.unit_price)
+    .reduce((s, t) => s + (t.quantity * (t.unit_price || 0)), 0);
+  const totalSinkerEntryValue = sinkerTransactions
+    .filter(t => t.type === 'entry' && t.unit_price)
+    .reduce((s, t) => s + (t.quantity * (t.unit_price || 0)), 0);
+
+  const needleStockByProvider = (needleId: string) => {
+    const map = new Map<string, { name: string; qty: number; value: number }>();
+    needleTransactions.filter(t => t.needle_id === needleId).forEach(t => {
+      const key = t.provider_id || '__none__';
+      const name = materialProviders.find(p => p.id === t.provider_id)?.name || 'Sem fornecedor';
+      const sign = t.type === 'entry' ? 1 : -1;
+      const cur = map.get(key) || { name, qty: 0, value: 0 };
+      cur.qty += sign * t.quantity;
+      if (t.type === 'entry' && t.unit_price) cur.value += t.quantity * t.unit_price;
+      map.set(key, cur);
+    });
+    return Array.from(map.values()).filter(v => v.qty !== 0 || v.value > 0);
+  };
+  const sinkerStockByProvider = (sinkerId: string) => {
+    const map = new Map<string, { name: string; qty: number; value: number }>();
+    sinkerTransactions.filter(t => t.sinker_id === sinkerId).forEach(t => {
+      const key = t.provider_id || '__none__';
+      const name = materialProviders.find(p => p.id === t.provider_id)?.name || 'Sem fornecedor';
+      const sign = t.type === 'entry' ? 1 : -1;
+      const cur = map.get(key) || { name, qty: 0, value: 0 };
+      cur.qty += sign * t.quantity;
+      if (t.type === 'entry' && t.unit_price) cur.value += t.quantity * t.unit_price;
+      map.set(key, cur);
+    });
+    return Array.from(map.values()).filter(v => v.qty !== 0 || v.value > 0);
+  };
+
+  const [expandedNeedleId, setExpandedNeedleId] = useState<string | null>(null);
+  const [expandedSinkerId, setExpandedSinkerId] = useState<string | null>(null);
 
     const handleSaveCylinder = async () => {
       if (!cylinderForm.brand) {
@@ -978,6 +1062,14 @@ export default function MecanicaPage() {
                   <Package className="h-4 w-4 mr-1.5" />
                   Estoque
                 </TabsTrigger>
+                <TabsTrigger value="cadastro">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Platinas
+                </TabsTrigger>
+                <TabsTrigger value="fornecedores">
+                  <Building2 className="h-4 w-4 mr-1.5" />
+                  Fornecedores
+                </TabsTrigger>
                 <TabsTrigger value="movimentacoes">
                   <History className="h-4 w-4 mr-1.5" />
                   Movimentações
@@ -987,7 +1079,7 @@ export default function MecanicaPage() {
               {/* Estoque Sub-Tab */}
               <TabsContent value="estoque">
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Tipos de Platina</CardTitle>
@@ -1002,6 +1094,16 @@ export default function MecanicaPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{sinkers.reduce((sum, s) => sum + s.current_quantity, 0)}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Valor Total Entradas</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-emerald-600">
+                          R$ {totalSinkerEntryValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
                       </CardContent>
                     </Card>
                     <Card>
@@ -1025,9 +1127,6 @@ export default function MecanicaPage() {
                       />
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowSinkerModal(true)} variant="outline" className="flex-1 sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Cadastrar
-                      </Button>
                       <Button onClick={() => setShowSinkerEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
                         <Plus className="h-4 w-4 mr-2" /> Entrada
                       </Button>
@@ -1043,11 +1142,12 @@ export default function MecanicaPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
-                              <th className="text-left p-4 font-medium">Fornecedor</th>
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
                               <th className="text-right p-4 font-medium">Estoque</th>
+                              <th className="text-right p-4 font-medium">Valor Entradas</th>
                               <th className="text-center p-4 font-medium w-20">Em Uso</th>
+                              <th className="text-center p-4 font-medium w-12"></th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1060,29 +1160,148 @@ export default function MecanicaPage() {
                               )
                               .map(s => {
                                 const usedBy = new Set(machineSinkerRefs.filter(r => r.sinker_id === s.id).map(r => r.machine_id)).size;
+                                const breakdown = sinkerStockByProvider(s.id);
+                                const totalValue = breakdown.reduce((acc, b) => acc + b.value, 0);
+                                const isExpanded = expandedSinkerId === s.id;
                                 return (
+                              <React.Fragment key={s.id}>
                               <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
-                                <td className="p-4">{s.provider}</td>
                                 <td className="p-4">{s.brand}</td>
                                 <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s.reference_code}</code></td>
                                 <td className="p-4 text-right font-bold">{s.current_quantity}</td>
+                                <td className="p-4 text-right text-emerald-600 font-medium">
+                                  {totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                                </td>
                                 <td className="p-4 text-center">
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSinkerUsageView({ id: s.id, brand: s.brand, reference_code: s.reference_code })} title={`${usedBy} máquina(s) usando`}>
                                     <Eye className="h-4 w-4" />
                                     {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
                                   </Button>
                                 </td>
+                                <td className="p-2 text-center">
+                                  {breakdown.length > 0 && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedSinkerId(isExpanded ? null : s.id)} title="Detalhar por fornecedor">
+                                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                    </Button>
+                                  )}
+                                </td>
                               </tr>
+                              {isExpanded && (
+                                <tr className="bg-muted/30">
+                                  <td colSpan={6} className="px-6 py-3">
+                                    <div className="text-xs font-medium text-muted-foreground mb-2 uppercase">Estoque por fornecedor</div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                      {breakdown.map((b, i) => (
+                                        <div key={i} className="bg-background rounded border px-3 py-2 flex justify-between items-center text-sm">
+                                          <span className="font-medium">{b.name}</span>
+                                          <span className="text-right">
+                                            <div className="font-bold">{b.qty}</div>
+                                            {b.value > 0 && <div className="text-xs text-emerald-600">R$ {b.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                              </React.Fragment>
                                 );
                               })}
                             {sinkers.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td>
+                                <td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td>
                               </tr>
                             )}
                           </tbody>
                         </table>
                       </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Cadastro Sub-Tab */}
+              <TabsContent value="cadastro">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold">Cadastro de Platinas</h3>
+                      <p className="text-xs text-muted-foreground">Marca e referência. Fornecedores e preços são definidos na entrada de estoque.</p>
+                    </div>
+                    <Button onClick={() => setShowSinkerModal(true)}>
+                      <Plus className="h-4 w-4 mr-2" /> Nova Platina
+                    </Button>
+                  </div>
+                  <Card>
+                    <CardContent className="p-0">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-4 font-medium">Marca</th>
+                            <th className="text-left p-4 font-medium">Ref. Código</th>
+                            <th className="text-right p-4 font-medium">Estoque Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...sinkers].sort((a, b) => a.brand.localeCompare(b.brand)).map(s => (
+                            <tr key={s.id} className="border-b">
+                              <td className="p-4">{s.brand}</td>
+                              <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s.reference_code}</code></td>
+                              <td className="p-4 text-right font-bold">{s.current_quantity}</td>
+                            </tr>
+                          ))}
+                          {sinkers.length === 0 && <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td></tr>}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Fornecedores Sub-Tab (compartilhado) */}
+              <TabsContent value="fornecedores">
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">{providerForm.id ? 'Editar Fornecedor' : 'Novo Fornecedor'}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col sm:flex-row gap-2">
+                      <Input placeholder="Nome do fornecedor" value={providerForm.name} onChange={e => setProviderForm({ ...providerForm, name: e.target.value })} className="flex-1" />
+                      <Button onClick={handleSaveProvider} disabled={savingProvider}>{providerForm.id ? 'Salvar' : 'Cadastrar'}</Button>
+                      {providerForm.id && <Button variant="outline" onClick={() => setProviderForm({ id: '', name: '' })}>Cancelar</Button>}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-0">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-4 font-medium">Fornecedor</th>
+                            <th className="text-right p-4 font-medium">Entradas (Platinas)</th>
+                            <th className="text-right p-4 font-medium">Valor Total</th>
+                            <th className="text-right p-4 font-medium w-32">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {materialProviders.map(p => {
+                            const txs = sinkerTransactions.filter(t => t.provider_id === p.id && t.type === 'entry');
+                            const qty = txs.reduce((s, t) => s + t.quantity, 0);
+                            const val = txs.reduce((s, t) => s + t.quantity * (t.unit_price || 0), 0);
+                            return (
+                              <tr key={p.id} className="border-b">
+                                <td className="p-4 font-medium">{p.name}</td>
+                                <td className="p-4 text-right">{qty}</td>
+                                <td className="p-4 text-right text-emerald-600">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="p-4 text-right space-x-1">
+                                  <Button variant="ghost" size="sm" onClick={() => setProviderForm({ id: p.id, name: p.name })}>Editar</Button>
+                                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { if (window.confirm(`Excluir fornecedor "${p.name}"?`)) handleDeleteProvider(p.id); }}>Excluir</Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {materialProviders.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhum fornecedor cadastrado</td></tr>}
+                        </tbody>
+                      </table>
                     </CardContent>
                   </Card>
                 </div>
@@ -1341,6 +1560,14 @@ export default function MecanicaPage() {
                   <Package className="h-4 w-4 mr-1.5" />
                   Estoque
                 </TabsTrigger>
+                <TabsTrigger value="cadastro">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Agulhas
+                </TabsTrigger>
+                <TabsTrigger value="fornecedores">
+                  <Building2 className="h-4 w-4 mr-1.5" />
+                  Fornecedores
+                </TabsTrigger>
                 <TabsTrigger value="movimentacoes">
                   <History className="h-4 w-4 mr-1.5" />
                   Movimentações
@@ -1350,7 +1577,7 @@ export default function MecanicaPage() {
               {/* Estoque Sub-Tab */}
               <TabsContent value="estoque">
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Tipos de Agulha</CardTitle>
@@ -1365,6 +1592,16 @@ export default function MecanicaPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{needles.reduce((sum, n) => sum + n.current_quantity, 0)}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Valor Total Entradas</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-emerald-600">
+                          R$ {totalNeedleEntryValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
                       </CardContent>
                     </Card>
                     <Card>
@@ -1388,9 +1625,6 @@ export default function MecanicaPage() {
                       />
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Cadastrar
-                      </Button>
                       <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
                         <Plus className="h-4 w-4 mr-2" /> Entrada
                       </Button>
@@ -1406,11 +1640,12 @@ export default function MecanicaPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
-                              <th className="text-left p-4 font-medium">Fornecedor</th>
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
                               <th className="text-right p-4 font-medium">Estoque</th>
+                              <th className="text-right p-4 font-medium">Valor Entradas</th>
                               <th className="text-center p-4 font-medium w-20">Em Uso</th>
+                              <th className="text-center p-4 font-medium w-12"></th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1423,29 +1658,148 @@ export default function MecanicaPage() {
                               )
                               .map(n => {
                                 const usedBy = new Set(machineNeedleRefs.filter(r => r.needle_id === n.id).map(r => r.machine_id)).size;
+                                const breakdown = needleStockByProvider(n.id);
+                                const totalValue = breakdown.reduce((s, b) => s + b.value, 0);
+                                const isExpanded = expandedNeedleId === n.id;
                                 return (
+                              <React.Fragment key={n.id}>
                               <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
-                                <td className="p-4">{n.provider}</td>
                                 <td className="p-4">{n.brand}</td>
                                 <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
                                 <td className="p-4 text-right font-bold">{n.current_quantity}</td>
+                                <td className="p-4 text-right text-emerald-600 font-medium">
+                                  {totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                                </td>
                                 <td className="p-4 text-center">
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setNeedleUsageView({ id: n.id, brand: n.brand, reference_code: n.reference_code })} title={`${usedBy} máquina(s) usando`}>
                                     <Eye className="h-4 w-4" />
                                     {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
                                   </Button>
                                 </td>
+                                <td className="p-2 text-center">
+                                  {breakdown.length > 0 && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedNeedleId(isExpanded ? null : n.id)} title="Detalhar por fornecedor">
+                                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                    </Button>
+                                  )}
+                                </td>
                               </tr>
+                              {isExpanded && (
+                                <tr className="bg-muted/30">
+                                  <td colSpan={6} className="px-6 py-3">
+                                    <div className="text-xs font-medium text-muted-foreground mb-2 uppercase">Estoque por fornecedor</div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                      {breakdown.map((b, i) => (
+                                        <div key={i} className="bg-background rounded border px-3 py-2 flex justify-between items-center text-sm">
+                                          <span className="font-medium">{b.name}</span>
+                                          <span className="text-right">
+                                            <div className="font-bold">{b.qty}</div>
+                                            {b.value > 0 && <div className="text-xs text-emerald-600">R$ {b.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                              </React.Fragment>
                                 );
                               })}
                             {needles.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
+                                <td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
                               </tr>
                             )}
                           </tbody>
                         </table>
                       </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Cadastro Sub-Tab */}
+              <TabsContent value="cadastro">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold">Cadastro de Agulhas</h3>
+                      <p className="text-xs text-muted-foreground">Marca e referência. Fornecedores e preços são definidos na entrada de estoque.</p>
+                    </div>
+                    <Button onClick={() => setShowNeedleModal(true)}>
+                      <Plus className="h-4 w-4 mr-2" /> Nova Agulha
+                    </Button>
+                  </div>
+                  <Card>
+                    <CardContent className="p-0">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-4 font-medium">Marca</th>
+                            <th className="text-left p-4 font-medium">Ref. Código</th>
+                            <th className="text-right p-4 font-medium">Estoque Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...needles].sort((a, b) => a.brand.localeCompare(b.brand)).map(n => (
+                            <tr key={n.id} className="border-b">
+                              <td className="p-4">{n.brand}</td>
+                              <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
+                              <td className="p-4 text-right font-bold">{n.current_quantity}</td>
+                            </tr>
+                          ))}
+                          {needles.length === 0 && <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td></tr>}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Fornecedores Sub-Tab */}
+              <TabsContent value="fornecedores">
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">{providerForm.id ? 'Editar Fornecedor' : 'Novo Fornecedor'}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col sm:flex-row gap-2">
+                      <Input placeholder="Nome do fornecedor (ex: Groz-Beckert)" value={providerForm.name} onChange={e => setProviderForm({ ...providerForm, name: e.target.value })} className="flex-1" />
+                      <Button onClick={handleSaveProvider} disabled={savingProvider}>{providerForm.id ? 'Salvar' : 'Cadastrar'}</Button>
+                      {providerForm.id && <Button variant="outline" onClick={() => setProviderForm({ id: '', name: '' })}>Cancelar</Button>}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-0">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-4 font-medium">Fornecedor</th>
+                            <th className="text-right p-4 font-medium">Entradas (Agulhas)</th>
+                            <th className="text-right p-4 font-medium">Valor Total</th>
+                            <th className="text-right p-4 font-medium w-32">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {materialProviders.map(p => {
+                            const txs = needleTransactions.filter(t => t.provider_id === p.id && t.type === 'entry');
+                            const qty = txs.reduce((s, t) => s + t.quantity, 0);
+                            const val = txs.reduce((s, t) => s + t.quantity * (t.unit_price || 0), 0);
+                            return (
+                              <tr key={p.id} className="border-b">
+                                <td className="p-4 font-medium">{p.name}</td>
+                                <td className="p-4 text-right">{qty}</td>
+                                <td className="p-4 text-right text-emerald-600">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="p-4 text-right space-x-1">
+                                  <Button variant="ghost" size="sm" onClick={() => setProviderForm({ id: p.id, name: p.name })}>Editar</Button>
+                                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { if (window.confirm(`Excluir fornecedor "${p.name}"?`)) handleDeleteProvider(p.id); }}>Excluir</Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {materialProviders.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhum fornecedor cadastrado</td></tr>}
+                        </tbody>
+                      </table>
                     </CardContent>
                   </Card>
                 </div>
@@ -2206,6 +2560,22 @@ export default function MecanicaPage() {
              <Label>Quantidade</Label>
              <Input type="number" value={entryForm.quantity} onChange={e => setEntryForm({...entryForm, quantity: e.target.value})} placeholder="0" />
            </div>
+           <div className="grid grid-cols-2 gap-2">
+             <div className="space-y-1">
+               <Label>Fornecedor</Label>
+               <Select value={entryProviderId} onValueChange={setEntryProviderId}>
+                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                 <SelectContent>
+                   {materialProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                   {materialProviders.length === 0 && <div className="p-3 text-xs text-muted-foreground">Cadastre fornecedores na aba Fornecedores</div>}
+                 </SelectContent>
+               </Select>
+             </div>
+             <div className="space-y-1">
+               <Label>Preço Unitário (R$)</Label>
+               <Input type="number" step="0.0001" value={entryUnitPrice} onChange={e => setEntryUnitPrice(e.target.value)} placeholder="0,00" />
+             </div>
+           </div>
            <div className="space-y-1">
              <Label>Data</Label>
              <Input type="date" value={entryForm.date} onChange={e => setEntryForm({...entryForm, date: e.target.value})} />
@@ -2455,6 +2825,22 @@ export default function MecanicaPage() {
            <div className="space-y-1">
              <Label>Quantidade</Label>
              <Input type="number" value={sinkerEntryForm.quantity} onChange={e => setSinkerEntryForm({...sinkerEntryForm, quantity: e.target.value})} placeholder="0" />
+           </div>
+           <div className="grid grid-cols-2 gap-2">
+             <div className="space-y-1">
+               <Label>Fornecedor</Label>
+               <Select value={sinkerEntryProviderId} onValueChange={setSinkerEntryProviderId}>
+                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                 <SelectContent>
+                   {materialProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                   {materialProviders.length === 0 && <div className="p-3 text-xs text-muted-foreground">Cadastre fornecedores na aba Fornecedores</div>}
+                 </SelectContent>
+               </Select>
+             </div>
+             <div className="space-y-1">
+               <Label>Preço Unitário (R$)</Label>
+               <Input type="number" step="0.0001" value={sinkerEntryUnitPrice} onChange={e => setSinkerEntryUnitPrice(e.target.value)} placeholder="0,00" />
+             </div>
            </div>
            <div className="space-y-1">
              <Label>Data</Label>
