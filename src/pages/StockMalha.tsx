@@ -858,7 +858,12 @@ export default function StockMalha() {
         </CardContent>
       </Card>
 
-      {malhaEstoque.length === 0 ? (
+      {isStockLoading ? (
+        <Card><CardContent className="py-12 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando estoque...
+        </CardContent></Card>
+      ) : malhaEstoque.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
           Nenhum dado de estoque encontrado.
         </CardContent></Card>
@@ -904,7 +909,19 @@ export default function StockMalha() {
                             <TableCell className="text-xs">
                               <div className="flex items-center gap-1.5">
                                 <ChevronDown className={cn('h-3 w-3 transition-transform', expandedArticle === `${group.clientId}::${a.articleId}` ? '' : '-rotate-90')} />
-                                {a.articleName}
+                                <span className="flex-1">{a.articleName}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  title="Baixar PDF do estoque deste artigo"
+                                  onClick={(e) => { e.stopPropagation(); handleExportArticlePdf(group, a); }}
+                                  disabled={exportingArticleId === `${group.clientId}::${a.articleId}`}
+                                >
+                                  {exportingArticleId === `${group.clientId}::${a.articleId}`
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    : <Download className="h-3.5 w-3.5" />}
+                                </Button>
                               </div>
                             </TableCell>
                             <TableCell className="text-xs text-right">{formatWeight(a.producedKg)}</TableCell>
