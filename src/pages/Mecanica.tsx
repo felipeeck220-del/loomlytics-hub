@@ -866,6 +866,71 @@ export default function MecanicaPage() {
       } catch (e) { toast.error('Erro ao registrar baixa.'); }
     };
 
+  // ============ Fornecedores (Material Providers) ============
+  const handleSaveProvider = async () => {
+    const name = providerForm.name.trim();
+    if (!name) { toast.error('Informe o nome do fornecedor.'); return; }
+    setSavingProvider(true);
+    try {
+      await saveMaterialProvider({ id: providerForm.id || undefined, name });
+      toast.success(providerForm.id ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
+      setProviderForm({ id: '', name: '' });
+    } catch (e: any) {
+      toast.error('Erro ao salvar fornecedor: ' + (e?.message || ''));
+    } finally {
+      setSavingProvider(false);
+    }
+  };
+
+  const handleDeleteProvider = async (id: string) => {
+    try {
+      await deleteMaterialProvider(id);
+      toast.success('Fornecedor removido.');
+    } catch (e: any) {
+      toast.error('Erro ao remover (pode estar vinculado a entradas).');
+    } finally {
+      setDeleteProviderId(null);
+    }
+  };
+
+  // KPI helpers
+  const totalNeedleEntryValue = needleTransactions
+    .filter(t => t.type === 'entry' && t.unit_price)
+    .reduce((s, t) => s + (t.quantity * (t.unit_price || 0)), 0);
+  const totalSinkerEntryValue = sinkerTransactions
+    .filter(t => t.type === 'entry' && t.unit_price)
+    .reduce((s, t) => s + (t.quantity * (t.unit_price || 0)), 0);
+
+  const needleStockByProvider = (needleId: string) => {
+    const map = new Map<string, { name: string; qty: number; value: number }>();
+    needleTransactions.filter(t => t.needle_id === needleId).forEach(t => {
+      const key = t.provider_id || '__none__';
+      const name = materialProviders.find(p => p.id === t.provider_id)?.name || 'Sem fornecedor';
+      const sign = t.type === 'entry' ? 1 : -1;
+      const cur = map.get(key) || { name, qty: 0, value: 0 };
+      cur.qty += sign * t.quantity;
+      if (t.type === 'entry' && t.unit_price) cur.value += t.quantity * t.unit_price;
+      map.set(key, cur);
+    });
+    return Array.from(map.values()).filter(v => v.qty !== 0 || v.value > 0);
+  };
+  const sinkerStockByProvider = (sinkerId: string) => {
+    const map = new Map<string, { name: string; qty: number; value: number }>();
+    sinkerTransactions.filter(t => t.sinker_id === sinkerId).forEach(t => {
+      const key = t.provider_id || '__none__';
+      const name = materialProviders.find(p => p.id === t.provider_id)?.name || 'Sem fornecedor';
+      const sign = t.type === 'entry' ? 1 : -1;
+      const cur = map.get(key) || { name, qty: 0, value: 0 };
+      cur.qty += sign * t.quantity;
+      if (t.type === 'entry' && t.unit_price) cur.value += t.quantity * t.unit_price;
+      map.set(key, cur);
+    });
+    return Array.from(map.values()).filter(v => v.qty !== 0 || v.value > 0);
+  };
+
+  const [expandedNeedleId, setExpandedNeedleId] = useState<string | null>(null);
+  const [expandedSinkerId, setExpandedSinkerId] = useState<string | null>(null);
+
     const handleSaveCylinder = async () => {
       if (!cylinderForm.brand) {
         toast.error('Informe ao menos a marca do cilindro.');
