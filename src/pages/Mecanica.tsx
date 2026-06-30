@@ -1294,7 +1294,7 @@ export default function MecanicaPage() {
                                 <td className="p-4 text-right text-emerald-600">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 <td className="p-4 text-right space-x-1">
                                   <Button variant="ghost" size="sm" onClick={() => setProviderForm({ id: p.id, name: p.name })}>Editar</Button>
-                                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteProviderId(p.id)}>Excluir</Button>
+                                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { if (window.confirm(`Excluir fornecedor "${p.name}"?`)) handleDeleteProvider(p.id); }}>Excluir</Button>
                                 </td>
                               </tr>
                             );
@@ -1792,7 +1792,7 @@ export default function MecanicaPage() {
                                 <td className="p-4 text-right text-emerald-600">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 <td className="p-4 text-right space-x-1">
                                   <Button variant="ghost" size="sm" onClick={() => setProviderForm({ id: p.id, name: p.name })}>Editar</Button>
-                                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteProviderId(p.id)}>Excluir</Button>
+                                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { if (window.confirm(`Excluir fornecedor "${p.name}"?`)) handleDeleteProvider(p.id); }}>Excluir</Button>
                                 </td>
                               </tr>
                             );
