@@ -985,7 +985,7 @@ export default function MecanicaPage() {
             needles={needles}
             sinkers={sinkers}
             cylinders={cylinders}
-            refreshMachines={() => saveMachines(getMachines())}
+            refreshMachines={refreshData}
           />
         </TabsContent>
 
