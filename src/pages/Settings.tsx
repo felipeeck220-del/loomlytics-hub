@@ -8,6 +8,10 @@ const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> 
     allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Gestão de Tecelões', 'Revisão', 'Mecânica', 'Alterar Senha'],
     denied: ['Dashboard e Visão Geral', 'Registro de Produção', 'Terceirização', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
   },
+  lider_mecanica: {
+    allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Ordens de Manutenção (criar/editar)', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
+  },
   mecanico: {
     allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Alterar Senha'],
     denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
