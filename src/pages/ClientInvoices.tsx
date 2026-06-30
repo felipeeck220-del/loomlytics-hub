@@ -1483,7 +1483,18 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                 <p className="text-xs text-muted-foreground">
                   Gera um PDF com a lista de todas as notas (entradas e saídas) do cliente filtradas por mês e/ou intervalo de datas.
                 </p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tipo de Dados</Label>
+                    <Select value={exportType} onValueChange={(v: any) => setExportType(v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ambos">Entrada + Saída</SelectItem>
+                        <SelectItem value="entrada">Somente Entrada</SelectItem>
+                        <SelectItem value="saida">Somente Saída</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Mês</Label>
                     <Select value={exportMonth} onValueChange={setExportMonth}>
