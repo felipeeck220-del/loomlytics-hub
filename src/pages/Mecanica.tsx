@@ -100,7 +100,7 @@ export default function MecanicaPage() {
    const [assignForm, setAssignForm] = useState({ machine_id: '', cylinder_id: '' });
 
   // Material Providers (shared between Agulhas & Platinas)
-  const [providerForm, setProviderForm] = useState({ id: '', name: '' });
+  const [providerForm, setProviderForm] = useState<{ id: string; name: string; needle_id: string; sinker_id: string; unit_price: string }>({ id: '', name: '', needle_id: '', sinker_id: '', unit_price: '' });
   const [savingProvider, setSavingProvider] = useState(false);
   const [deleteProviderId, setDeleteProviderId] = useState<string | null>(null);
   
