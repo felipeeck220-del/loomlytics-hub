@@ -33,6 +33,7 @@ export function useCompanyData() {
      const [cylinders, setCylinders] = useState<Cylinder[]>([]);
      const [machineNeedleRefs, setMachineNeedleRefs] = useState<MachineNeedleRef[]>([]);
      const [machineSinkerRefs, setMachineSinkerRefs] = useState<MachineSinkerRef[]>([]);
+      const [materialProviders, setMaterialProviders] = useState<MaterialProvider[]>([]);
      const [yarnTypes, setYarnTypes] = useState<{ id: string; name: string; company_id: string }[]>([]);
    const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
