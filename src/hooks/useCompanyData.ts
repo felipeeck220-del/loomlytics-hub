@@ -7,7 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
    NeedleInventory, NeedleTransaction,
    SinkerInventory, SinkerTransaction,
    Cylinder,
-   MachineNeedleRef, MachineSinkerRef, NeedleRefPosition
+   MachineNeedleRef, MachineSinkerRef, NeedleRefPosition,
+   MaterialProvider
  } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
