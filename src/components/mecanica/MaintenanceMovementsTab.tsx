@@ -3,8 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Loader2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Machine, MaintenanceOrder, MaintenanceOrderItem, NeedleInventory, SinkerInventory, NeedleTransaction, SinkerTransaction } from '@/types';
 import { SearchableSelect } from '@/components/SearchableSelect';
@@ -31,6 +33,7 @@ type FeedItem = {
   kind: 'om' | 'agulha' | 'platina';
   title: string;
   detail: string;
+  raw?: any;
 };
 
 export default function MaintenanceMovementsTab({ machines, needles, sinkers, needleTransactions, sinkerTransactions }: Props) {
@@ -40,6 +43,7 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMachine, setSelectedMachine] = useState('');
+  const [detail, setDetail] = useState<FeedItem | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -73,6 +77,7 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
         kind: 'om',
         title: `OM #${String(o.om_number).padStart(3, '0')} — ${TYPE_LABELS[o.type] || o.type}`,
         detail: `${machineById[o.machine_id]?.name || ''} · ${its.length} item(ns) trocado(s) · ${o.duration_seconds ? Math.round(o.duration_seconds / 60) + ' min' : '—'}`,
+        raw: { order: o, items: its },
       });
     });
     needleTransactions.forEach(t => {
@@ -84,6 +89,7 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
         kind: 'agulha',
         title: `${t.type === 'entry' ? 'Entrada' : 'Saída'} de agulha — ${n?.reference_code || '—'}`,
         detail: `${t.quantity}× ${n?.brand || ''}${t.machine_id ? ` · ${machineById[t.machine_id]?.name || ''}` : ''}`,
+        raw: { txn: t, needle: n },
       });
     });
     sinkerTransactions.forEach(t => {
@@ -95,6 +101,7 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
         kind: 'platina',
         title: `${t.type === 'entry' ? 'Entrada' : 'Saída'} de platina — ${s?.reference_code || '—'}`,
         detail: `${t.quantity}× ${s?.brand || ''}${t.machine_id ? ` · ${machineById[t.machine_id]?.name || ''}` : ''}`,
+        raw: { txn: t, sinker: s },
       });
     });
     return out.sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -116,14 +123,16 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
             <div className="text-xs text-muted-foreground truncate">{f.detail}</div>
           </div>
           <div className="text-xs text-muted-foreground shrink-0">{f.date ? format(new Date(f.date), 'dd/MM/yyyy HH:mm') : '—'}</div>
+          <Button size="icon" variant="ghost" onClick={() => setDetail(f)}><Eye className="h-4 w-4" /></Button>
         </CardContent></Card>
       ))}
     </div>
   );
 
   return (
+    <>
     <Tabs defaultValue="geral" className="w-full">
-      <TabsList>
+      <TabsList className="flex flex-wrap h-auto justify-start gap-1">
         <TabsTrigger value="geral">Movimentações Gerais</TabsTrigger>
         <TabsTrigger value="por_maquina">Por Máquina</TabsTrigger>
       </TabsList>
@@ -141,5 +150,54 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
         {selectedMachine ? renderList(filteredByMachine) : <div className="text-center text-muted-foreground py-10 border rounded">Selecione uma máquina para ver o histórico.</div>}
       </TabsContent>
     </Tabs>
+
+    <Dialog open={!!detail} onOpenChange={v => !v && setDetail(null)}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>{detail?.title}</DialogTitle></DialogHeader>
+        {detail && (
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Data</span><span className="font-medium">{detail.date ? format(new Date(detail.date), 'dd/MM/yyyy HH:mm') : '—'}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Máquina</span><span className="font-medium">{detail.machine_id ? machineById[detail.machine_id]?.name : '—'}</span></div>
+            {detail.kind === 'om' && detail.raw?.order && (() => {
+              const o = detail.raw.order; const its = detail.raw.items as MaintenanceOrderItem[];
+              return (
+                <>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Tipo</span><span className="font-medium">{TYPE_LABELS[o.type] || o.type}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Início</span><span className="font-medium">{o.started_at ? format(new Date(o.started_at), 'dd/MM/yyyy HH:mm') : '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Fim</span><span className="font-medium">{o.finished_at ? format(new Date(o.finished_at), 'dd/MM/yyyy HH:mm') : '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Duração</span><span className="font-medium">{o.duration_seconds ? Math.round(o.duration_seconds / 60) + ' min' : '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Criada por</span><span className="font-medium">{o.created_by_name || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Finalizada por</span><span className="font-medium">{o.finished_by_name || '—'}</span></div>
+                  {o.description && <div><div className="text-muted-foreground mb-1">Descrição</div><div className="border rounded p-2 text-xs whitespace-pre-wrap">{o.description}</div></div>}
+                  {its.length > 0 && (
+                    <div>
+                      <div className="text-muted-foreground mb-1">Itens trocados</div>
+                      <ul className="list-disc pl-5 text-xs space-y-0.5">
+                        {its.map(it => {
+                          const ref = it.needle_id ? needles.find(n => n.id === it.needle_id)?.reference_code :
+                                      it.sinker_id ? sinkers.find(s => s.id === it.sinker_id)?.reference_code :
+                                      it.cylinder_id ? 'Cilindro' : it.description;
+                          return <li key={it.id}>{it.quantity}× {it.item_type} {ref ? `— ${ref}` : ''}</li>;
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+            {detail.kind !== 'om' && detail.raw?.txn && (
+              <>
+                <div className="flex justify-between"><span className="text-muted-foreground">Tipo</span><span className="font-medium">{detail.raw.txn.type === 'entry' ? 'Entrada' : 'Saída'}{detail.raw.txn.exit_mode ? ` — ${detail.raw.txn.exit_mode}` : ''}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Quantidade</span><span className="font-medium">{detail.raw.txn.quantity}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Referência</span><span className="font-medium">{detail.raw.needle?.reference_code || detail.raw.sinker?.reference_code || '—'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Por</span><span className="font-medium">{detail.raw.txn.created_by_name || '—'}</span></div>
+              </>
+            )}
+          </div>
+        )}
+        <DialogFooter><Button variant="outline" onClick={() => setDetail(null)}>Fechar</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
