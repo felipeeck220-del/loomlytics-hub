@@ -765,6 +765,26 @@ export function useCompanyData() {
        saveShiftSettings,
       getMachineNeedleRefs: useCallback(() => machineNeedleRefs, [machineNeedleRefs]),
       getMachineSinkerRefs: useCallback(() => machineSinkerRefs, [machineSinkerRefs]),
+      getMaterialProviders: useCallback(() => materialProviders, [materialProviders]),
+      saveMaterialProvider: useCallback(async (provider: { id?: string; name: string }) => {
+        if (!companyId) return null;
+        if (provider.id) {
+          const { error } = await sb('material_providers').update({ name: provider.name }).eq('id', provider.id);
+          if (error) throw error;
+          setMaterialProviders(prev => prev.map(p => p.id === provider.id ? { ...p, name: provider.name } : p));
+          return provider.id;
+        }
+        const { data, error } = await sb('material_providers').insert({ company_id: companyId, name: provider.name }).select().single();
+        if (error) throw error;
+        setMaterialProviders(prev => [...prev, data as MaterialProvider].sort((a, b) => a.name.localeCompare(b.name)));
+        return (data as MaterialProvider).id;
+      }, [companyId]),
+      deleteMaterialProvider: useCallback(async (id: string) => {
+        if (!companyId) return;
+        const { error } = await sb('material_providers').delete().eq('id', id);
+        if (error) throw error;
+        setMaterialProviders(prev => prev.filter(p => p.id !== id));
+      }, [companyId]),
       saveMachineRefs: useCallback(async (
         machineId: string,
         needleRefs: { needle_id: string; position: NeedleRefPosition }[],
