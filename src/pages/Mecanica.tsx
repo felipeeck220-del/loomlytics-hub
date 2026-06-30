@@ -2543,7 +2543,11 @@ export default function MecanicaPage() {
          <div className="space-y-4 pt-2">
             <div className="space-y-2">
               <Label>Selecionar Agulha</Label>
-              <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({...entryForm, needle_id: v})}>
+              <Select value={entryForm.needle_id} onValueChange={v => {
+                setEntryForm({...entryForm, needle_id: v});
+                const price = lookupProviderPrice(entryProviderId, { needle_id: v });
+                if (price != null) setEntryUnitPrice(String(price));
+              }}>
                 <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
                 <SelectContent>
                   <div className="px-2 py-2 border-b sticky top-0 bg-popover z-10">
@@ -2585,7 +2589,11 @@ export default function MecanicaPage() {
            <div className="grid grid-cols-2 gap-2">
              <div className="space-y-1">
                <Label>Fornecedor</Label>
-               <Select value={entryProviderId} onValueChange={setEntryProviderId}>
+               <Select value={entryProviderId} onValueChange={v => {
+                 setEntryProviderId(v);
+                 const price = lookupProviderPrice(v, { needle_id: entryForm.needle_id });
+                 if (price != null) setEntryUnitPrice(String(price));
+               }}>
                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                  <SelectContent>
                    {materialProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
