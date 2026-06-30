@@ -105,6 +105,27 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const machineById = useMemo(() => Object.fromEntries(machines.map(m => [m.id, m])), [machines]);
 
+  // Map user_id -> code para complementar nomes de autoria gravados sem "#código"
+  const [profileCodes, setProfileCodes] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!companyId) return;
+    (supabase.from as any)('profiles')
+      .select('user_id, code')
+      .eq('company_id', companyId)
+      .then(({ data }: any) => {
+        const map: Record<string, string> = {};
+        (data || []).forEach((p: any) => { if (p.user_id && p.code) map[p.user_id] = String(p.code); });
+        setProfileCodes(map);
+      });
+  }, [companyId]);
+
+  const renderAuthor = (name?: string | null, userId?: string | null) => {
+    if (!name) return '—';
+    if (name.includes('#')) return name;
+    const code = userId ? profileCodes[userId] : null;
+    return code ? `${name} #${code}` : name;
+  };
+
   // ============ CREATE / EDIT MODAL ============
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<MaintenanceOrder | null>(null);
