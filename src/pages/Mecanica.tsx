@@ -43,7 +43,8 @@ export default function MecanicaPage() {
      updateSinkerTransaction, deleteSinkerTransaction,
      getCylinders, saveCylinders, assignCylinderToMachine,
      getMachineNeedleRefs, getMachineSinkerRefs,
-     loading 
+     loading,
+     refreshData,
    } = useSharedCompanyData();
    const needles = getNeedles();
    const needleTransactions = getNeedleTransactions();
