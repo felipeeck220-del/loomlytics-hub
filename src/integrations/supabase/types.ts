@@ -1873,6 +1873,38 @@ export type Database = {
           },
         ]
       }
+      material_providers: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_providers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       needle_inventory: {
         Row: {
           brand: string
@@ -1925,8 +1957,10 @@ export type Database = {
           id: string
           machine_id: string | null
           needle_id: string
+          provider_id: string | null
           quantity: number
           type: Database["public"]["Enums"]["needle_transaction_type"]
+          unit_price: number | null
         }
         Insert: {
           company_id: string
@@ -1938,8 +1972,10 @@ export type Database = {
           id?: string
           machine_id?: string | null
           needle_id: string
+          provider_id?: string | null
           quantity: number
           type: Database["public"]["Enums"]["needle_transaction_type"]
+          unit_price?: number | null
         }
         Update: {
           company_id?: string
@@ -1951,8 +1987,10 @@ export type Database = {
           id?: string
           machine_id?: string | null
           needle_id?: string
+          provider_id?: string | null
           quantity?: number
           type?: Database["public"]["Enums"]["needle_transaction_type"]
+          unit_price?: number | null
         }
         Relationships: [
           {
@@ -1974,6 +2012,13 @@ export type Database = {
             columns: ["needle_id"]
             isOneToOne: false
             referencedRelation: "needle_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "needle_transactions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "material_providers"
             referencedColumns: ["id"]
           },
         ]
@@ -2682,7 +2727,15 @@ export type Database = {
           reference_code?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sinker_inventory_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sinker_transactions: {
         Row: {
@@ -2694,9 +2747,11 @@ export type Database = {
           exit_mode: string | null
           id: string
           machine_id: string | null
+          provider_id: string | null
           quantity: number
           sinker_id: string
           type: string
+          unit_price: number | null
         }
         Insert: {
           company_id: string
@@ -2707,9 +2762,11 @@ export type Database = {
           exit_mode?: string | null
           id?: string
           machine_id?: string | null
+          provider_id?: string | null
           quantity: number
           sinker_id: string
           type: string
+          unit_price?: number | null
         }
         Update: {
           company_id?: string
@@ -2720,9 +2777,11 @@ export type Database = {
           exit_mode?: string | null
           id?: string
           machine_id?: string | null
+          provider_id?: string | null
           quantity?: number
           sinker_id?: string
           type?: string
+          unit_price?: number | null
         }
         Relationships: [
           {
@@ -2730,6 +2789,13 @@ export type Database = {
             columns: ["machine_id"]
             isOneToOne: false
             referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sinker_transactions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "material_providers"
             referencedColumns: ["id"]
           },
           {
