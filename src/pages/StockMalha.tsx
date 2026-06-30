@@ -627,7 +627,7 @@ export default function StockMalha() {
         bodyStyles: { halign: 'center' },
         columnStyles: {
           0: { halign: 'left', fontStyle: 'bold' },
-          1: { halign: 'right' },
+          1: { halign: 'center' },
           2: { halign: 'left' },
         },
         didParseCell: (d) => {
