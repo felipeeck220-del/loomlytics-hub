@@ -7,8 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
    NeedleInventory, NeedleTransaction,
    SinkerInventory, SinkerTransaction,
    Cylinder,
-   MachineNeedleRef, MachineSinkerRef, NeedleRefPosition,
-   MaterialProvider
+   MachineNeedleRef, MachineSinkerRef, NeedleRefPosition
  } from '@/types';
 import { DEFAULT_SHIFT_SETTINGS } from '@/types';
 
@@ -33,8 +32,6 @@ export function useCompanyData() {
      const [cylinders, setCylinders] = useState<Cylinder[]>([]);
      const [machineNeedleRefs, setMachineNeedleRefs] = useState<MachineNeedleRef[]>([]);
      const [machineSinkerRefs, setMachineSinkerRefs] = useState<MachineSinkerRef[]>([]);
-      const [materialProviders, setMaterialProviders] = useState<MaterialProvider[]>([]);
-      const [materialProviderPrices, setMaterialProviderPrices] = useState<any[]>([]);
      const [yarnTypes, setYarnTypes] = useState<{ id: string; name: string; company_id: string }[]>([]);
    const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
@@ -107,8 +104,6 @@ export function useCompanyData() {
      machine_id: r.machine_id || undefined,
      created_at: r.created_at, created_by_id: r.created_by_id || undefined,
      created_by_name: r.created_by_name || undefined,
-     provider_id: r.provider_id || undefined,
-     unit_price: r.unit_price != null ? Number(r.unit_price) : undefined,
    });
    const mapNeedle = (r: any): NeedleInventory => ({
      id: r.id, company_id: r.company_id, provider: r.provider,
@@ -123,8 +118,6 @@ export function useCompanyData() {
      machine_id: r.machine_id || undefined,
      created_at: r.created_at, created_by_id: r.created_by_id || undefined,
      created_by_name: r.created_by_name || undefined,
-     provider_id: r.provider_id || undefined,
-     unit_price: r.unit_price != null ? Number(r.unit_price) : undefined,
    });
   const mapMachineLog = (r: any): MachineLog => ({
     id: r.id, machine_id: r.machine_id, status: r.status,
@@ -215,8 +208,6 @@ export function useCompanyData() {
           { name: 'yarn_types', fn: () => fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name') },
           { name: 'machine_needle_refs', fn: () => fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at') },
           { name: 'machine_sinker_refs', fn: () => fetchAll('machine_sinker_refs', { column: 'company_id', value: companyId }, 'created_at') },
-          { name: 'material_providers', fn: () => fetchAll('material_providers', { column: 'company_id', value: companyId }, 'name') },
-          { name: 'material_provider_prices', fn: () => fetchAll('material_provider_prices', { column: 'company_id', value: companyId }, 'created_at') },
          ];
  
        let completed = 0;
@@ -227,7 +218,7 @@ export function useCompanyData() {
          return result;
        }));
  
-        const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData, mnrData, msrData, mpData, mppData] = results;
+        const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData, mnrData, msrData] = results;
  
        setMachines(mData.map(mapMachine));
        setMachineLogs(mlRes.map(mapMachineLog));
@@ -245,8 +236,6 @@ export function useCompanyData() {
          setYarnTypes(ytData);
          setMachineNeedleRefs(mnrData as MachineNeedleRef[]);
          setMachineSinkerRefs(msrData as MachineSinkerRef[]);
-         setMaterialProviders(mpData as MaterialProvider[]);
-          setMaterialProviderPrices(mppData as any[]);
        
        if (csRes.data) {
          setShiftSettings({
@@ -578,8 +567,6 @@ export function useCompanyData() {
        machine_id: newRecord.machine_id || null,
        created_by_id: user?.id || null,
        created_by_name: newRecord.created_by_name || null,
-       provider_id: newRecord.provider_id || null,
-       unit_price: newRecord.unit_price ?? null,
      };
      const { error } = await sb('needle_transactions').insert(row);
      if (error) throw error;
@@ -650,8 +637,6 @@ export function useCompanyData() {
        machine_id: newRecord.machine_id || null,
        created_by_id: user?.id || null,
        created_by_name: newRecord.created_by_name || null,
-       provider_id: newRecord.provider_id || null,
-       unit_price: newRecord.unit_price ?? null,
      };
      const { error } = await sb('sinker_transactions').insert(row);
      if (error) throw error;
@@ -768,63 +753,6 @@ export function useCompanyData() {
        saveShiftSettings,
       getMachineNeedleRefs: useCallback(() => machineNeedleRefs, [machineNeedleRefs]),
       getMachineSinkerRefs: useCallback(() => machineSinkerRefs, [machineSinkerRefs]),
-      getMaterialProviders: useCallback(() => materialProviders, [materialProviders]),
-      saveMaterialProvider: useCallback(async (provider: { id?: string; name: string }) => {
-        if (!companyId) return null;
-        if (provider.id) {
-          const { error } = await sb('material_providers').update({ name: provider.name }).eq('id', provider.id);
-          if (error) throw error;
-          setMaterialProviders(prev => prev.map(p => p.id === provider.id ? { ...p, name: provider.name } : p));
-          return provider.id;
-        }
-        const { data, error } = await sb('material_providers').insert({ company_id: companyId, name: provider.name }).select().single();
-        if (error) throw error;
-        setMaterialProviders(prev => [...prev, data as MaterialProvider].sort((a, b) => a.name.localeCompare(b.name)));
-        return (data as MaterialProvider).id;
-      }, [companyId]),
-      deleteMaterialProvider: useCallback(async (id: string) => {
-        if (!companyId) return;
-        const { error } = await sb('material_providers').delete().eq('id', id);
-        if (error) throw error;
-        setMaterialProviders(prev => prev.filter(p => p.id !== id));
-      }, [companyId]),
-      getMaterialProviderPrices: useCallback(() => materialProviderPrices, [materialProviderPrices]),
-      saveMaterialProviderPrice: useCallback(async (price: { id?: string; provider_id: string; needle_id?: string | null; sinker_id?: string | null; unit_price: number }) => {
-        if (!companyId) return null;
-        if (price.id) {
-          const { data, error } = await sb('material_provider_prices').update({ unit_price: price.unit_price }).eq('id', price.id).select().single();
-          if (error) throw error;
-          setMaterialProviderPrices(prev => prev.map(p => p.id === price.id ? data : p));
-          return price.id;
-        }
-        // Upsert: if a price already exists for the (provider, item) pair, update it
-        const filterCol = price.needle_id ? 'needle_id' : 'sinker_id';
-        const filterVal = price.needle_id || price.sinker_id;
-        const { data: existing } = await sb('material_provider_prices')
-          .select('id').eq('provider_id', price.provider_id).eq(filterCol, filterVal).maybeSingle();
-        if (existing?.id) {
-          const { data, error } = await sb('material_provider_prices').update({ unit_price: price.unit_price }).eq('id', existing.id).select().single();
-          if (error) throw error;
-          setMaterialProviderPrices(prev => prev.map(p => p.id === existing.id ? data : p));
-          return existing.id;
-        }
-        const { data, error } = await sb('material_provider_prices').insert({
-          company_id: companyId,
-          provider_id: price.provider_id,
-          needle_id: price.needle_id || null,
-          sinker_id: price.sinker_id || null,
-          unit_price: price.unit_price,
-        }).select().single();
-        if (error) throw error;
-        setMaterialProviderPrices(prev => [...prev, data]);
-        return data.id;
-      }, [companyId]),
-      deleteMaterialProviderPrice: useCallback(async (id: string) => {
-        if (!companyId) return;
-        const { error } = await sb('material_provider_prices').delete().eq('id', id);
-        if (error) throw error;
-        setMaterialProviderPrices(prev => prev.filter(p => p.id !== id));
-      }, [companyId]),
       saveMachineRefs: useCallback(async (
         machineId: string,
         needleRefs: { needle_id: string; position: NeedleRefPosition }[],
