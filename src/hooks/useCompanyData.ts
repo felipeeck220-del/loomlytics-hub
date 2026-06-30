@@ -788,6 +788,43 @@ export function useCompanyData() {
         if (error) throw error;
         setMaterialProviders(prev => prev.filter(p => p.id !== id));
       }, [companyId]),
+      getMaterialProviderPrices: useCallback(() => materialProviderPrices, [materialProviderPrices]),
+      saveMaterialProviderPrice: useCallback(async (price: { id?: string; provider_id: string; needle_id?: string | null; sinker_id?: string | null; unit_price: number }) => {
+        if (!companyId) return null;
+        if (price.id) {
+          const { data, error } = await sb('material_provider_prices').update({ unit_price: price.unit_price }).eq('id', price.id).select().single();
+          if (error) throw error;
+          setMaterialProviderPrices(prev => prev.map(p => p.id === price.id ? data : p));
+          return price.id;
+        }
+        // Upsert: if a price already exists for the (provider, item) pair, update it
+        const filterCol = price.needle_id ? 'needle_id' : 'sinker_id';
+        const filterVal = price.needle_id || price.sinker_id;
+        const { data: existing } = await sb('material_provider_prices')
+          .select('id').eq('provider_id', price.provider_id).eq(filterCol, filterVal).maybeSingle();
+        if (existing?.id) {
+          const { data, error } = await sb('material_provider_prices').update({ unit_price: price.unit_price }).eq('id', existing.id).select().single();
+          if (error) throw error;
+          setMaterialProviderPrices(prev => prev.map(p => p.id === existing.id ? data : p));
+          return existing.id;
+        }
+        const { data, error } = await sb('material_provider_prices').insert({
+          company_id: companyId,
+          provider_id: price.provider_id,
+          needle_id: price.needle_id || null,
+          sinker_id: price.sinker_id || null,
+          unit_price: price.unit_price,
+        }).select().single();
+        if (error) throw error;
+        setMaterialProviderPrices(prev => [...prev, data]);
+        return data.id;
+      }, [companyId]),
+      deleteMaterialProviderPrice: useCallback(async (id: string) => {
+        if (!companyId) return;
+        const { error } = await sb('material_provider_prices').delete().eq('id', id);
+        if (error) throw error;
+        setMaterialProviderPrices(prev => prev.filter(p => p.id !== id));
+      }, [companyId]),
       saveMachineRefs: useCallback(async (
         machineId: string,
         needleRefs: { needle_id: string; position: NeedleRefPosition }[],
