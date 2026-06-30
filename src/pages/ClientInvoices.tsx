@@ -1080,6 +1080,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   // Export PDF modal state
   const [exportOpen, setExportOpen] = useState(false);
   const [exportMode, setExportMode] = useState<'general' | 'by_nf'>('general');
+  const [exportType, setExportType] = useState<'entrada' | 'saida' | 'ambos'>('ambos');
   const [exportMonth, setExportMonth] = useState<string>('all');
   const [exportFrom, setExportFrom] = useState<string>('');
   const [exportTo, setExportTo] = useState<string>('');
@@ -1163,13 +1164,14 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   // ---- Build dataset for export based on filters ----
   const exportInvoices = useMemo(() => {
     let base = invoices;
+    if (exportType !== 'ambos') base = base.filter((i: any) => i.type === exportType);
     if (exportMonth && exportMonth !== 'all') {
       base = base.filter((i: any) => (i.issue_date || '').startsWith(exportMonth));
     }
     if (exportFrom) base = base.filter((i: any) => (i.issue_date || '') >= exportFrom);
     if (exportTo) base = base.filter((i: any) => (i.issue_date || '') <= exportTo);
     return base;
-  }, [invoices, exportMonth, exportFrom, exportTo]);
+  }, [invoices, exportMonth, exportFrom, exportTo, exportType]);
 
   // Available months from invoices
   const monthOptions = useMemo(() => {
@@ -1196,6 +1198,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
           companyName, logoUrl: companyLogoUrl, periodLabel,
           invoices: exportInvoices,
           exitLinksAll, allClients, allArticles, yarnTypes,
+          exportType,
         });
         toast.success('PDF gerado com sucesso');
         setExportOpen(false);
