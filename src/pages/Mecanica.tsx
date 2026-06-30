@@ -2826,6 +2826,22 @@ export default function MecanicaPage() {
              <Label>Quantidade</Label>
              <Input type="number" value={sinkerEntryForm.quantity} onChange={e => setSinkerEntryForm({...sinkerEntryForm, quantity: e.target.value})} placeholder="0" />
            </div>
+           <div className="grid grid-cols-2 gap-2">
+             <div className="space-y-1">
+               <Label>Fornecedor</Label>
+               <Select value={sinkerEntryProviderId} onValueChange={setSinkerEntryProviderId}>
+                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                 <SelectContent>
+                   {materialProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                   {materialProviders.length === 0 && <div className="p-3 text-xs text-muted-foreground">Cadastre fornecedores na aba Fornecedores</div>}
+                 </SelectContent>
+               </Select>
+             </div>
+             <div className="space-y-1">
+               <Label>Preço Unitário (R$)</Label>
+               <Input type="number" step="0.0001" value={sinkerEntryUnitPrice} onChange={e => setSinkerEntryUnitPrice(e.target.value)} placeholder="0,00" />
+             </div>
+           </div>
            <div className="space-y-1">
              <Label>Data</Label>
              <Input type="date" value={sinkerEntryForm.date} onChange={e => setSinkerEntryForm({...sinkerEntryForm, date: e.target.value})} />
