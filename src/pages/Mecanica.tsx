@@ -1003,14 +1003,14 @@ export default function MecanicaPage() {
                         className="pl-9" 
                       />
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowSinkerModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                      <Button onClick={() => setShowSinkerModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
                         <Plus className="h-4 w-4 mr-2" /> Cadastrar
                       </Button>
-                      <Button onClick={() => setShowSinkerEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                      <Button onClick={() => setShowSinkerEntryModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
                         <Plus className="h-4 w-4 mr-2" /> Entrada
                       </Button>
-                      <Button onClick={() => setShowSinkerExitModal(true)} variant="default" className="flex-1 sm:flex-none">
+                      <Button onClick={() => setShowSinkerExitModal(true)} variant="default" className="flex-1 min-w-[30%] sm:flex-none">
                         <Wrench className="h-4 w-4 mr-2" /> Baixa
                       </Button>
                     </div>
@@ -1226,11 +1226,11 @@ export default function MecanicaPage() {
                     className="pl-9" 
                   />
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Button onClick={() => setShowCylinderModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                  <Button onClick={() => setShowCylinderModal(true)} variant="outline" className="flex-1 min-w-[45%] sm:flex-none">
                     <Plus className="h-4 w-4 mr-2" /> Cadastrar Cilindro
                   </Button>
-                  <Button onClick={() => setShowAssignModal(true)} variant="default" className="flex-1 sm:flex-none">
+                  <Button onClick={() => setShowAssignModal(true)} variant="default" className="flex-1 min-w-[45%] sm:flex-none">
                     <Wrench className="h-4 w-4 mr-2" /> Atribuir à Máquina
                   </Button>
                 </div>
@@ -1366,14 +1366,14 @@ export default function MecanicaPage() {
                         className="pl-9" 
                       />
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                      <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
                         <Plus className="h-4 w-4 mr-2" /> Cadastrar
                       </Button>
-                      <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
+                      <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
                         <Plus className="h-4 w-4 mr-2" /> Entrada
                       </Button>
-                      <Button onClick={() => setShowExitModal(true)} variant="default" className="flex-1 sm:flex-none">
+                      <Button onClick={() => setShowExitModal(true)} variant="default" className="flex-1 min-w-[30%] sm:flex-none">
                         <Wrench className="h-4 w-4 mr-2" /> Baixa
                       </Button>
                     </div>
@@ -1555,12 +1555,12 @@ export default function MecanicaPage() {
           <Card className="w-full">
             <CardHeader className="pb-2 px-3 sm:px-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-base sm:text-lg">Programação de Manutenções</CardTitle>
-                  <Button size="sm" onClick={() => setShowAddModal(true)}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <CardTitle className="text-base sm:text-lg w-full sm:w-auto">Programação de Manutenções</CardTitle>
+                  <Button size="sm" onClick={() => setShowAddModal(true)} className="flex-1 sm:flex-none">
                     <Plus className="h-4 w-4 mr-1" /> Adicionar
                   </Button>
-                  <Button size="sm" variant="outline" onClick={handleExportSchedulePdf} disabled={exportingPdf}>
+                  <Button size="sm" variant="outline" onClick={handleExportSchedulePdf} disabled={exportingPdf} className="flex-1 sm:flex-none">
                     {exportingPdf ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
                     Exportar PDF
                   </Button>
