@@ -1080,6 +1080,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   // Export PDF modal state
   const [exportOpen, setExportOpen] = useState(false);
   const [exportMode, setExportMode] = useState<'general' | 'by_nf'>('general');
+  const [exportType, setExportType] = useState<'entrada' | 'saida' | 'ambos'>('ambos');
   const [exportMonth, setExportMonth] = useState<string>('all');
   const [exportFrom, setExportFrom] = useState<string>('');
   const [exportTo, setExportTo] = useState<string>('');
@@ -1163,13 +1164,14 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   // ---- Build dataset for export based on filters ----
   const exportInvoices = useMemo(() => {
     let base = invoices;
+    if (exportType !== 'ambos') base = base.filter((i: any) => i.type === exportType);
     if (exportMonth && exportMonth !== 'all') {
       base = base.filter((i: any) => (i.issue_date || '').startsWith(exportMonth));
     }
     if (exportFrom) base = base.filter((i: any) => (i.issue_date || '') >= exportFrom);
     if (exportTo) base = base.filter((i: any) => (i.issue_date || '') <= exportTo);
     return base;
-  }, [invoices, exportMonth, exportFrom, exportTo]);
+  }, [invoices, exportMonth, exportFrom, exportTo, exportType]);
 
   // Available months from invoices
   const monthOptions = useMemo(() => {
@@ -1196,6 +1198,7 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
           companyName, logoUrl: companyLogoUrl, periodLabel,
           invoices: exportInvoices,
           exitLinksAll, allClients, allArticles, yarnTypes,
+          exportType,
         });
         toast.success('PDF gerado com sucesso');
         setExportOpen(false);
@@ -1480,7 +1483,18 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
                 <p className="text-xs text-muted-foreground">
                   Gera um PDF com a lista de todas as notas (entradas e saídas) do cliente filtradas por mês e/ou intervalo de datas.
                 </p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tipo de Dados</Label>
+                    <Select value={exportType} onValueChange={(v: any) => setExportType(v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ambos">Entrada + Saída</SelectItem>
+                        <SelectItem value="entrada">Somente Entrada</SelectItem>
+                        <SelectItem value="saida">Somente Saída</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Mês</Label>
                     <Select value={exportMonth} onValueChange={setExportMonth}>
