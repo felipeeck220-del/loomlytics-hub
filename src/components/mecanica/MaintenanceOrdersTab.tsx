@@ -224,6 +224,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (!finishOrder || !finishOrder.started_at) return;
     const now = new Date().toISOString();
     const seconds = Math.max(0, Math.floor((Date.now() - new Date(finishOrder.started_at).getTime()) / 1000));
+    // Data local (GMT-3) para registros que usam coluna DATE
+    const localDate = (() => {
+      const d = new Date();
+      const off = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - off).toISOString().slice(0, 10);
+    })();
 
     // 1) fecha machine_log
     if (finishOrder.machine_log_id) {
@@ -264,8 +270,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       if (it.item_type === 'agulha' && it.needle_id) {
         await (supabase.from as any)('needle_transactions').insert({
           company_id: companyId, needle_id: it.needle_id, type: 'exit',
-          exit_mode: finishOrder.type === 'troca_agulhas' ? 'troca_agulheiro' : 'reposicao',
-          quantity: it.quantity, date: now.slice(0, 10), machine_id: finishOrder.machine_id,
+          // SEMPRE 'reposicao' aqui: o OM já criou o machine_log de início/fim.
+          // Usar 'troca_agulheiro' faria o trigger inserir machine_logs duplicados.
+          exit_mode: 'reposicao',
+          quantity: it.quantity, date: localDate, machine_id: finishOrder.machine_id,
           created_by_id: user?.id, created_by_name: authorLabel,
         });
         // Atualiza ref em uso (substitui posição correspondente)
@@ -281,16 +289,18 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       } else if (it.item_type === 'platina' && it.sinker_id) {
         await (supabase.from as any)('sinker_transactions').insert({
           company_id: companyId, sinker_id: it.sinker_id, type: 'exit',
-          exit_mode: 'troca_platinas', quantity: it.quantity, date: now.slice(0, 10),
+          exit_mode: 'troca_platinas', quantity: it.quantity, date: localDate,
           machine_id: finishOrder.machine_id,
           created_by_id: user?.id, created_by_name: authorLabel,
         });
-        await (supabase.from as any)('machine_sinker_refs')
-          .delete()
-          .eq('machine_id', finishOrder.machine_id);
-        await (supabase.from as any)('machine_sinker_refs').insert({
-          company_id: companyId, machine_id: finishOrder.machine_id, sinker_id: it.sinker_id,
-        });
+        // Substitui apenas se a referência ainda não estiver vinculada
+        const { data: existingRef } = await (supabase.from as any)('machine_sinker_refs')
+          .select('id').eq('machine_id', finishOrder.machine_id).eq('sinker_id', it.sinker_id).maybeSingle();
+        if (!existingRef) {
+          await (supabase.from as any)('machine_sinker_refs').insert({
+            company_id: companyId, machine_id: finishOrder.machine_id, sinker_id: it.sinker_id,
+          });
+        }
       } else if (it.item_type === 'cilindro' && it.cylinder_id) {
         // Libera cilindro anterior e atribui o novo
         if (machine?.cylinder_id && machine.cylinder_id !== it.cylinder_id) {
@@ -299,6 +309,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         await (supabase.from as any)('machines').update({ cylinder_id: it.cylinder_id }).eq('id', finishOrder.machine_id);
         await (supabase.from as any)('cylinders').update({ machine_id: finishOrder.machine_id }).eq('id', it.cylinder_id);
       }
+    }
+
+    // Se OM de troca de agulhas, atualiza marcador de última troca manualmente
+    // (já que removemos exit_mode='troca_agulheiro' para evitar log duplicado).
+    if (finishOrder.type === 'troca_agulhas') {
+      await (supabase.from as any)('machines')
+        .update({ last_needle_change_at: now })
+        .eq('id', finishOrder.machine_id);
     }
 
     toast.success('OM finalizada');
