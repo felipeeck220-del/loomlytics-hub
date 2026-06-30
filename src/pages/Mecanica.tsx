@@ -816,12 +816,16 @@ export default function MecanicaPage() {
           quantity: Number(sinkerEntryForm.quantity),
           date: sinkerEntryForm.date,
           created_at: new Date().toISOString(),
-          created_by_name: userName || undefined
+          created_by_name: userName || undefined,
+          provider_id: sinkerEntryProviderId || undefined,
+          unit_price: sinkerEntryUnitPrice ? Number(sinkerEntryUnitPrice) : undefined,
         });
          logAction('sinker_entry', { brand: sinker?.brand, code: sinker?.reference_code, quantity: sinkerEntryForm.quantity });
          toast.success('Entrada registrada!');
         setShowSinkerEntryModal(false);
         setSinkerEntryForm({ sinker_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+        setSinkerEntryProviderId('');
+        setSinkerEntryUnitPrice('');
       } catch (e) { toast.error('Erro ao registrar entrada.'); }
     };
   
