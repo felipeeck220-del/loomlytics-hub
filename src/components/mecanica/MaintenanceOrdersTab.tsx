@@ -105,6 +105,27 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const machineById = useMemo(() => Object.fromEntries(machines.map(m => [m.id, m])), [machines]);
 
+  // Map user_id -> code para complementar nomes de autoria gravados sem "#código"
+  const [profileCodes, setProfileCodes] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!companyId) return;
+    (supabase.from as any)('profiles')
+      .select('user_id, code')
+      .eq('company_id', companyId)
+      .then(({ data }: any) => {
+        const map: Record<string, string> = {};
+        (data || []).forEach((p: any) => { if (p.user_id && p.code) map[p.user_id] = String(p.code); });
+        setProfileCodes(map);
+      });
+  }, [companyId]);
+
+  const renderAuthor = (name?: string | null, userId?: string | null) => {
+    if (!name) return '—';
+    if (name.includes('#')) return name;
+    const code = userId ? profileCodes[userId] : null;
+    return code ? `${name} #${code}` : name;
+  };
+
   // ============ CREATE / EDIT MODAL ============
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<MaintenanceOrder | null>(null);
@@ -370,9 +391,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                       </div>
                       {o.description && <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>}
                       <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>Criada por <strong>{o.created_by_name || '—'}</strong> · {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}</div>
-                        {o.started_by_name && <div>Iniciada por <strong>{o.started_by_name}</strong>{o.started_at ? ` · ${format(new Date(o.started_at), 'dd/MM/yyyy HH:mm')}` : ''}</div>}
-                        {o.finished_by_name && <div>Finalizada por <strong>{o.finished_by_name}</strong>{o.finished_at ? ` · ${format(new Date(o.finished_at), 'dd/MM/yyyy HH:mm')}` : ''}</div>}
+                        <div>Criada por <strong>{renderAuthor(o.created_by_name, o.created_by_id)}</strong> · {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                        {o.started_by_name && <div>Iniciada por <strong>{renderAuthor(o.started_by_name, o.started_by_id)}</strong>{o.started_at ? ` · ${format(new Date(o.started_at), 'dd/MM/yyyy HH:mm')}` : ''}</div>}
+                        {o.finished_by_name && <div>Finalizada por <strong>{renderAuthor(o.finished_by_name, o.finished_by_id)}</strong>{o.finished_at ? ` · ${format(new Date(o.finished_at), 'dd/MM/yyyy HH:mm')}` : ''}</div>}
                       </div>
 
                       {o.status === 'em_curso' && o.started_at && (
@@ -402,7 +423,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                         </div>
                       )}
                       {o.status === 'cancelada' && (
-                        <div className="text-xs text-muted-foreground">Cancelada por {o.cancelled_by_name || '—'} {o.cancellation_reason ? ` · ${o.cancellation_reason}` : ''}</div>
+                        <div className="text-xs text-muted-foreground">Cancelada por {renderAuthor(o.cancelled_by_name, o.cancelled_by_id)} {o.cancellation_reason ? ` · ${o.cancellation_reason}` : ''}</div>
                       )}
 
                       <div className="flex flex-wrap gap-2 pt-1">

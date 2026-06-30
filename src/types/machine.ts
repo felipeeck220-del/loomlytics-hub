@@ -189,6 +189,7 @@ export interface MaintenanceOrder {
   finished_by_name?: string | null;
   duration_seconds?: number | null;
   cancelled_at?: string | null;
+  cancelled_by_id?: string | null;
   cancelled_by_name?: string | null;
   cancellation_reason?: string | null;
   machine_log_id?: string | null;
