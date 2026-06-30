@@ -54,7 +54,7 @@ const FILTER_OPTIONS = [
 
 export default function Machines() {
   const { user } = useAuth();
-  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, getMachineNeedleRefs, getMachineSinkerRefs, saveMachineRefs, loading } = useSharedCompanyData();
+  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, getMachineNeedleRefs, getMachineSinkerRefs, saveMachineRefs, getCylinders, assignCylinderToMachine, loading } = useSharedCompanyData();
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
@@ -62,6 +62,7 @@ export default function Machines() {
   const sinkers = getSinkers();
   const allNeedleRefs = getMachineNeedleRefs();
   const allSinkerRefs = getMachineSinkerRefs();
+  const cylinders = getCylinders();
   const { logAction, userName, userCode } = useAuditLog();
 
   const [showModal, setShowModal] = useState(false);
