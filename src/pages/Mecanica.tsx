@@ -1425,6 +1425,14 @@ export default function MecanicaPage() {
                   <Package className="h-4 w-4 mr-1.5" />
                   Estoque
                 </TabsTrigger>
+                <TabsTrigger value="cadastro">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Agulhas
+                </TabsTrigger>
+                <TabsTrigger value="fornecedores">
+                  <Building2 className="h-4 w-4 mr-1.5" />
+                  Fornecedores
+                </TabsTrigger>
                 <TabsTrigger value="movimentacoes">
                   <History className="h-4 w-4 mr-1.5" />
                   Movimentações
@@ -1434,7 +1442,7 @@ export default function MecanicaPage() {
               {/* Estoque Sub-Tab */}
               <TabsContent value="estoque">
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Tipos de Agulha</CardTitle>
@@ -1449,6 +1457,16 @@ export default function MecanicaPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{needles.reduce((sum, n) => sum + n.current_quantity, 0)}</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Valor Total Entradas</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-emerald-600">
+                          R$ {totalNeedleEntryValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
                       </CardContent>
                     </Card>
                     <Card>
@@ -1472,9 +1490,6 @@ export default function MecanicaPage() {
                       />
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Cadastrar
-                      </Button>
                       <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 sm:flex-none">
                         <Plus className="h-4 w-4 mr-2" /> Entrada
                       </Button>
@@ -1490,11 +1505,12 @@ export default function MecanicaPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
-                              <th className="text-left p-4 font-medium">Fornecedor</th>
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
                               <th className="text-right p-4 font-medium">Estoque</th>
+                              <th className="text-right p-4 font-medium">Valor Entradas</th>
                               <th className="text-center p-4 font-medium w-20">Em Uso</th>
+                              <th className="text-center p-4 font-medium w-12"></th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1507,29 +1523,148 @@ export default function MecanicaPage() {
                               )
                               .map(n => {
                                 const usedBy = new Set(machineNeedleRefs.filter(r => r.needle_id === n.id).map(r => r.machine_id)).size;
+                                const breakdown = needleStockByProvider(n.id);
+                                const totalValue = breakdown.reduce((s, b) => s + b.value, 0);
+                                const isExpanded = expandedNeedleId === n.id;
                                 return (
+                              <React.Fragment key={n.id}>
                               <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
-                                <td className="p-4">{n.provider}</td>
                                 <td className="p-4">{n.brand}</td>
                                 <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
                                 <td className="p-4 text-right font-bold">{n.current_quantity}</td>
+                                <td className="p-4 text-right text-emerald-600 font-medium">
+                                  {totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                                </td>
                                 <td className="p-4 text-center">
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setNeedleUsageView({ id: n.id, brand: n.brand, reference_code: n.reference_code })} title={`${usedBy} máquina(s) usando`}>
                                     <Eye className="h-4 w-4" />
                                     {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
                                   </Button>
                                 </td>
+                                <td className="p-2 text-center">
+                                  {breakdown.length > 0 && (
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedNeedleId(isExpanded ? null : n.id)} title="Detalhar por fornecedor">
+                                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                    </Button>
+                                  )}
+                                </td>
                               </tr>
+                              {isExpanded && (
+                                <tr className="bg-muted/30">
+                                  <td colSpan={6} className="px-6 py-3">
+                                    <div className="text-xs font-medium text-muted-foreground mb-2 uppercase">Estoque por fornecedor</div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                      {breakdown.map((b, i) => (
+                                        <div key={i} className="bg-background rounded border px-3 py-2 flex justify-between items-center text-sm">
+                                          <span className="font-medium">{b.name}</span>
+                                          <span className="text-right">
+                                            <div className="font-bold">{b.qty}</div>
+                                            {b.value > 0 && <div className="text-xs text-emerald-600">R$ {b.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                              </React.Fragment>
                                 );
                               })}
                             {needles.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
+                                <td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
                               </tr>
                             )}
                           </tbody>
                         </table>
                       </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Cadastro Sub-Tab */}
+              <TabsContent value="cadastro">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold">Cadastro de Agulhas</h3>
+                      <p className="text-xs text-muted-foreground">Marca e referência. Fornecedores e preços são definidos na entrada de estoque.</p>
+                    </div>
+                    <Button onClick={() => setShowNeedleModal(true)}>
+                      <Plus className="h-4 w-4 mr-2" /> Nova Agulha
+                    </Button>
+                  </div>
+                  <Card>
+                    <CardContent className="p-0">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-4 font-medium">Marca</th>
+                            <th className="text-left p-4 font-medium">Ref. Código</th>
+                            <th className="text-right p-4 font-medium">Estoque Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...needles].sort((a, b) => a.brand.localeCompare(b.brand)).map(n => (
+                            <tr key={n.id} className="border-b">
+                              <td className="p-4">{n.brand}</td>
+                              <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
+                              <td className="p-4 text-right font-bold">{n.current_quantity}</td>
+                            </tr>
+                          ))}
+                          {needles.length === 0 && <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td></tr>}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Fornecedores Sub-Tab */}
+              <TabsContent value="fornecedores">
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">{providerForm.id ? 'Editar Fornecedor' : 'Novo Fornecedor'}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col sm:flex-row gap-2">
+                      <Input placeholder="Nome do fornecedor (ex: Groz-Beckert)" value={providerForm.name} onChange={e => setProviderForm({ ...providerForm, name: e.target.value })} className="flex-1" />
+                      <Button onClick={handleSaveProvider} disabled={savingProvider}>{providerForm.id ? 'Salvar' : 'Cadastrar'}</Button>
+                      {providerForm.id && <Button variant="outline" onClick={() => setProviderForm({ id: '', name: '' })}>Cancelar</Button>}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-0">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-4 font-medium">Fornecedor</th>
+                            <th className="text-right p-4 font-medium">Entradas (Agulhas)</th>
+                            <th className="text-right p-4 font-medium">Valor Total</th>
+                            <th className="text-right p-4 font-medium w-32">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {materialProviders.map(p => {
+                            const txs = needleTransactions.filter(t => t.provider_id === p.id && t.type === 'entry');
+                            const qty = txs.reduce((s, t) => s + t.quantity, 0);
+                            const val = txs.reduce((s, t) => s + t.quantity * (t.unit_price || 0), 0);
+                            return (
+                              <tr key={p.id} className="border-b">
+                                <td className="p-4 font-medium">{p.name}</td>
+                                <td className="p-4 text-right">{qty}</td>
+                                <td className="p-4 text-right text-emerald-600">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="p-4 text-right space-x-1">
+                                  <Button variant="ghost" size="sm" onClick={() => setProviderForm({ id: p.id, name: p.name })}>Editar</Button>
+                                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteProviderId(p.id)}>Excluir</Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {materialProviders.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhum fornecedor cadastrado</td></tr>}
+                        </tbody>
+                      </table>
                     </CardContent>
                   </Card>
                 </div>
