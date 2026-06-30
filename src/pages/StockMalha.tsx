@@ -20,7 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ManualStockEntryModal } from '@/components/ManualStockEntryModal';
-import { Plus, CalendarDays } from 'lucide-react';
+import { Plus, CalendarDays, Download, Loader2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, Lock } from 'lucide-react';
@@ -28,6 +28,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { sanitizePdfText } from '@/lib/pdfUtils';
+import { toast } from 'sonner';
 
 export default function StockMalha() {
   const { 
@@ -91,7 +93,7 @@ export default function StockMalha() {
   const [segArticle, setSegArticle] = useState('all');
   const [segMonth, setSegMonth] = useState('all');
 
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices_for_stock', companyId],
     queryFn: async () => {
       const { data, error } = await supabase.from('invoices').select('*').eq('company_id', companyId);
@@ -101,7 +103,7 @@ export default function StockMalha() {
     enabled: !!companyId,
   });
 
-  const { data: invoiceItems = [] } = useQuery({
+  const { data: invoiceItems = [], isLoading: invoiceItemsLoading } = useQuery({
     queryKey: ['invoice_items_for_stock', companyId],
     queryFn: async () => {
       const { data, error } = await supabase.from('invoice_items').select('*').eq('company_id', companyId);
@@ -111,7 +113,7 @@ export default function StockMalha() {
     enabled: !!companyId,
   });
 
-  const { data: stockMovements = [] } = useQuery({
+  const { data: stockMovements = [], isLoading: stockMovementsLoading } = useQuery({
     queryKey: ['stock_movements_for_stock', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('stock_movements')
@@ -125,7 +127,7 @@ export default function StockMalha() {
 
   // Data de corte do estoque: produções/movimentações anteriores são ignoradas no cálculo
   // (mas continuam preservadas no histórico para relatórios/dashboard).
-  const { data: stockCutoffDate } = useQuery({
+  const { data: stockCutoffDate, isLoading: cutoffLoading } = useQuery({
     queryKey: ['stock_cutoff_date', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('company_settings')
@@ -137,6 +139,21 @@ export default function StockMalha() {
     },
     enabled: !!companyId,
   });
+
+  // Empresa (logo + nome) para o PDF
+  const { data: companyInfo } = useQuery({
+    queryKey: ['company_info_for_stock_pdf', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('companies').select('name, logo_url').eq('id', companyId).maybeSingle();
+      if (error) throw error;
+      return data as { name: string | null; logo_url: string | null } | null;
+    },
+    enabled: !!companyId,
+  });
+
+  // Aguardar TODAS as fontes de dados do estoque antes de renderizar, para não exibir
+  // valores "intermediários" (ex.: Produzido sem o desconto de Entregue) que mudam após o load.
+  const isStockLoading = stockMovementsLoading || cutoffLoading || invoicesLoading || invoiceItemsLoading;
 
   // Re-implementing the malhaEstoque logic from Invoices.tsx
   const malhaEstoque = useMemo(() => {
@@ -476,6 +493,176 @@ export default function StockMalha() {
     setMovPage(1);
   }, [movFilterType]);
 
+  // ============== EXPORT PDF (estoque por artigo) ==============
+  const [exportingArticleId, setExportingArticleId] = useState<string | null>(null);
+  const handleExportArticlePdf = async (group: any, article: any) => {
+    const key = `${group.clientId}::${article.articleId}`;
+    if (exportingArticleId) return;
+    setExportingArticleId(key);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 12;
+      const dateStr = new Date().toLocaleString('pt-BR');
+
+      // Carregar logo
+      const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0);
+              resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+            } catch { resolve(null); }
+          };
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+      const logoInfo = companyInfo?.logo_url ? await loadLogo(companyInfo.logo_url) : null;
+      const fitWithinBox = (w: number, h: number, mw: number, mh: number) => {
+        if (!w || !h) return { width: mw, height: mh };
+        const s = Math.min(mw / w, mh / h);
+        return { width: w * s, height: h * s };
+      };
+
+      const colors = {
+        grayBg: [249, 250, 251] as [number, number, number],
+        border: [229, 231, 235] as [number, number, number],
+        textDark: [17, 24, 39] as [number, number, number],
+        textMid: [75, 85, 99] as [number, number, number],
+      };
+      const headerH = 25;
+      const leftX = margin + 5;
+      const rightX = pageWidth - margin - 5;
+      const y = margin;
+      const titleMaxWidth = pageWidth - 2 * margin - 90;
+
+      pdf.setFillColor(...colors.grayBg);
+      pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'F');
+      pdf.setDrawColor(...colors.border);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin, y, pageWidth - 2 * margin, headerH, 'S');
+
+      if (logoInfo) {
+        try {
+          const ls = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
+          pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, ls.width, ls.height);
+        } catch {
+          if (companyInfo?.name) {
+            pdf.setFontSize(10); pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(...colors.textDark);
+            pdf.text(sanitizePdfText(companyInfo.name), leftX, y + 10);
+          }
+        }
+      } else if (companyInfo?.name) {
+        pdf.setFontSize(10); pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...colors.textDark);
+        pdf.text(sanitizePdfText(companyInfo.name), leftX, y + 10);
+      }
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...colors.textMid);
+      pdf.text(sanitizePdfText(dateStr), leftX, y + 22);
+
+      pdf.setFontSize(13); pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      const title = 'ESTOQUE DE MALHA POR ARTIGO';
+      const titleLines = pdf.splitTextToSize(sanitizePdfText(title), titleMaxWidth) as string[];
+      let titleY = y + 9;
+      titleLines.forEach((line) => {
+        const tw = pdf.getTextWidth(line);
+        pdf.text(line, (pageWidth - tw) / 2, titleY);
+        titleY += 6;
+      });
+      pdf.setFontSize(9); pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...colors.textMid);
+      const subtitle = sanitizePdfText(`${article.articleName} — ${group.clientName}`);
+      const sw = pdf.getTextWidth(subtitle);
+      pdf.text(subtitle, (pageWidth - sw) / 2, titleY + 1);
+
+      // Quebra por máquina
+      const inner = byMachineMap.get(key);
+      const rows = inner
+        ? Array.from(inner.entries())
+            .filter(([mk]) => mk !== '__none__')
+            .map(([mk, v]) => ({
+              name: machineNameById.get(mk) || 'Máquina removida',
+              producedKg: v.producedKg,
+              producedRolls: v.producedRolls,
+              deliveredKg: v.deliveredKgTotal,
+              deliveredRolls: v.deliveredRollsTotal,
+              reservedKg: v.reservedKg,
+              reservedRolls: v.reservedRolls,
+              availableKg: (v.producedKg - v.deliveredKgTotal) - v.reservedKg,
+              availableRolls: (v.producedRolls - v.deliveredRollsTotal) - v.reservedRolls,
+            }))
+            .sort((x, y) => x.name.localeCompare(y.name))
+        : [];
+
+      const body = rows.map(r => [
+        sanitizePdfText(r.name),
+        formatWeight(r.producedKg),
+        formatNumber(r.producedRolls),
+        formatWeight(r.deliveredKg),
+        formatNumber(r.deliveredRolls),
+        formatWeight(r.reservedKg),
+        formatNumber(r.reservedRolls),
+        formatWeight(r.availableKg),
+        formatNumber(r.availableRolls),
+      ]);
+
+      // Total do artigo
+      body.push([
+        'TOTAL',
+        formatWeight(article.producedKg),
+        formatNumber(article.producedRolls),
+        formatWeight(article.deliveredKgTotal ?? article.deliveredKg),
+        formatNumber(article.deliveredRollsTotal ?? article.deliveredRolls),
+        formatWeight(article.reservedKg),
+        formatNumber(article.reservedRolls),
+        formatWeight(article.availableKg),
+        formatNumber(article.availableRolls),
+      ]);
+
+      autoTable(pdf, {
+        head: [[
+          'MÁQUINA',
+          'PRODUZIDO (kg)', 'ROLOS PROD.',
+          'ENTREGUE (kg)', 'ROLOS ENTR.',
+          'RESERVADO (kg)', 'ROLOS RES.',
+          'DISPONÍVEL (kg)', 'DISP. ROLOS',
+        ]],
+        body,
+        startY: y + headerH + 10,
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', valign: 'middle' },
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', halign: 'center' },
+        bodyStyles: { halign: 'right' },
+        columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } },
+        didParseCell: (d) => {
+          if (d.section === 'body' && d.row.index === body.length - 1) {
+            d.cell.styles.fillColor = [243, 244, 246];
+            d.cell.styles.fontStyle = 'bold';
+          }
+        },
+      });
+
+      const safeName = (article.articleName || 'artigo').replace(/[^a-zA-Z0-9-_]+/g, '_').slice(0, 40);
+      pdf.save(`estoque_${safeName}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Falha ao gerar PDF: ' + (e?.message || 'erro desconhecido'));
+    } finally {
+      setExportingArticleId(null);
+    }
+  };
+
   const movementLabel: Record<string, { label: string; color: string }> = {
     reserve: { label: 'Reserva', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' },
     release: { label: 'Libera reserva', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
@@ -671,7 +858,12 @@ export default function StockMalha() {
         </CardContent>
       </Card>
 
-      {malhaEstoque.length === 0 ? (
+      {isStockLoading ? (
+        <Card><CardContent className="py-12 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando estoque...
+        </CardContent></Card>
+      ) : malhaEstoque.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
           Nenhum dado de estoque encontrado.
         </CardContent></Card>
@@ -717,7 +909,19 @@ export default function StockMalha() {
                             <TableCell className="text-xs">
                               <div className="flex items-center gap-1.5">
                                 <ChevronDown className={cn('h-3 w-3 transition-transform', expandedArticle === `${group.clientId}::${a.articleId}` ? '' : '-rotate-90')} />
-                                {a.articleName}
+                                <span className="flex-1">{a.articleName}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  title="Baixar PDF do estoque deste artigo"
+                                  onClick={(e) => { e.stopPropagation(); handleExportArticlePdf(group, a); }}
+                                  disabled={exportingArticleId === `${group.clientId}::${a.articleId}`}
+                                >
+                                  {exportingArticleId === `${group.clientId}::${a.articleId}`
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    : <Download className="h-3.5 w-3.5" />}
+                                </Button>
                               </div>
                             </TableCell>
                             <TableCell className="text-xs text-right">{formatWeight(a.producedKg)}</TableCell>
