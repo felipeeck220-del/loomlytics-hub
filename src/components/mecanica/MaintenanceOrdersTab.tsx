@@ -70,9 +70,10 @@ interface Props {
 
 export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylinders, refreshMachines }: Props) {
   const { user } = useAuth();
-  const { logAction, userName } = useAuditLog();
+  const { logAction, userName, userCode } = useAuditLog();
   const { role } = usePermissions();
   const companyId = user?.company_id || '';
+  const authorLabel = userName ? (userCode ? `${userName} #${userCode}` : userName) : null;
 
   const canManage = role === 'admin' || role === 'lider_mecanica';
   const canExecute = canManage || role === 'mecanico' || role === 'lider';
@@ -125,6 +126,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
   const saveOrder = async () => {
     if (!form.machine_id) { toast.error('Selecione uma máquina'); return; }
+    // Bloqueia criar nova OM para uma máquina que já tem OM aberta ou em curso
+    if (!editing) {
+      const busy = orders.find(o => o.machine_id === form.machine_id && (o.status === 'aberto' || o.status === 'em_curso'));
+      if (busy) {
+        const m = machineById[form.machine_id];
+        toast.error(`${m?.name || 'Máquina'} já tem a OM #${String(busy.om_number).padStart(3, '0')} ${busy.status === 'aberto' ? 'em aberto' : 'em curso'}. Finalize ou cancele antes de criar outra.`);
+        return;
+      }
+    }
     if (editing) {
       const { error } = await (supabase.from as any)('maintenance_orders').update({
         machine_id: form.machine_id, type: form.type, priority: form.priority, description: form.description || null,
@@ -140,7 +150,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         priority: form.priority,
         description: form.description || null,
         created_by_id: user?.id,
-        created_by_name: userName || null,
+        created_by_name: authorLabel,
       }).select().single();
       if (error) { toast.error('Erro ao criar OM'); return; }
       toast.success(`OM #${String((data as any).om_number).padStart(3, '0')} criada`);
@@ -160,14 +170,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       company_id: companyId,
       status: o.type,
       started_at: now,
-      started_by_name: userName || null,
+      started_by_name: authorLabel,
     }).select().single();
     if (logErr) { toast.error('Erro ao registrar início'); return; }
     // 2) atualiza machines.status
     await (supabase.from as any)('machines').update({ status: o.type }).eq('id', o.machine_id);
     // 3) atualiza OM
     const { error } = await (supabase.from as any)('maintenance_orders').update({
-      status: 'em_curso', started_at: now, started_by_id: user?.id, started_by_name: userName || null,
+      status: 'em_curso', started_at: now, started_by_id: user?.id, started_by_name: authorLabel,
       machine_log_id: (log as any).id,
     }).eq('id', o.id);
     if (error) { toast.error('Erro ao iniciar OM'); return; }
@@ -197,7 +207,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     // 1) fecha machine_log
     if (finishOrder.machine_log_id) {
       await (supabase.from as any)('machine_logs').update({
-        ended_at: now, ended_by_name: userName || null,
+        ended_at: now, ended_by_name: authorLabel,
       }).eq('id', finishOrder.machine_log_id);
     }
     // 2) máquina volta a ativa
@@ -205,7 +215,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
     // 3) atualiza OM
     const { error } = await (supabase.from as any)('maintenance_orders').update({
-      status: 'finalizada', finished_at: now, finished_by_id: user?.id, finished_by_name: userName || null,
+      status: 'finalizada', finished_at: now, finished_by_id: user?.id, finished_by_name: authorLabel,
       duration_seconds: seconds,
     }).eq('id', finishOrder.id);
     if (error) { toast.error('Erro ao finalizar OM'); return; }
@@ -235,7 +245,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           company_id: companyId, needle_id: it.needle_id, type: 'exit',
           exit_mode: finishOrder.type === 'troca_agulhas' ? 'troca_agulheiro' : 'reposicao',
           quantity: it.quantity, date: now.slice(0, 10), machine_id: finishOrder.machine_id,
-          created_by_id: user?.id, created_by_name: userName || null,
+          created_by_id: user?.id, created_by_name: authorLabel,
         });
         // Atualiza ref em uso (substitui posição correspondente)
         const position = isDupla ? 'cilindro' : 'mono';
@@ -252,7 +262,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           company_id: companyId, sinker_id: it.sinker_id, type: 'exit',
           exit_mode: 'troca_platinas', quantity: it.quantity, date: now.slice(0, 10),
           machine_id: finishOrder.machine_id,
-          created_by_id: user?.id, created_by_name: userName || null,
+          created_by_id: user?.id, created_by_name: authorLabel,
         });
         await (supabase.from as any)('machine_sinker_refs')
           .delete()
@@ -282,7 +292,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (!canManage) return;
     if (o.status !== 'aberto') { toast.error('Só é possível cancelar OMs em aberto'); return; }
     const { error } = await (supabase.from as any)('maintenance_orders').update({
-      status: 'cancelada', cancelled_at: new Date().toISOString(), cancelled_by_id: user?.id, cancelled_by_name: userName || null,
+      status: 'cancelada', cancelled_at: new Date().toISOString(), cancelled_by_id: user?.id, cancelled_by_name: authorLabel,
       cancellation_reason: reason,
     }).eq('id', o.id);
     if (error) { toast.error('Erro ao cancelar'); return; }
@@ -331,7 +341,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as MaintenanceOrderStatus)}>
-        <TabsList className="flex flex-wrap h-auto justify-start gap-1">
+        <TabsList className="flex flex-wrap h-auto justify-center sm:justify-start gap-1 w-full sm:w-auto">
           <TabsTrigger value="aberto">Aberto <Badge className="ml-2" variant="secondary">{counts.aberto}</Badge></TabsTrigger>
           <TabsTrigger value="em_curso">Em Curso <Badge className="ml-2" variant="secondary">{counts.em_curso}</Badge></TabsTrigger>
           <TabsTrigger value="finalizada">Finalizadas <Badge className="ml-2" variant="secondary">{counts.finalizada}</Badge></TabsTrigger>
@@ -359,7 +369,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                         <Badge variant="outline" className={cn(TYPE_COLORS[o.type])}>{TYPE_LABELS[o.type]}</Badge>
                       </div>
                       {o.description && <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>}
-                      <div className="text-xs text-muted-foreground">Criada por {o.created_by_name || '—'} · {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                      <div className="text-xs text-muted-foreground space-y-0.5">
+                        <div>Criada por <strong>{o.created_by_name || '—'}</strong> · {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                        {o.started_by_name && <div>Iniciada por <strong>{o.started_by_name}</strong>{o.started_at ? ` · ${format(new Date(o.started_at), 'dd/MM/yyyy HH:mm')}` : ''}</div>}
+                        {o.finished_by_name && <div>Finalizada por <strong>{o.finished_by_name}</strong>{o.finished_at ? ` · ${format(new Date(o.finished_at), 'dd/MM/yyyy HH:mm')}` : ''}</div>}
+                      </div>
 
                       {o.status === 'em_curso' && o.started_at && (
                         <div className="flex items-center gap-2 text-sm bg-warning/10 text-warning rounded px-2 py-1.5">
