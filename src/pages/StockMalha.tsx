@@ -593,58 +593,37 @@ export default function StockMalha() {
             .filter(([mk]) => mk !== '__none__')
             .map(([mk, v]) => ({
               name: machineNameById.get(mk) || 'Máquina removida',
-              producedKg: v.producedKg,
-              producedRolls: v.producedRolls,
-              deliveredKg: v.deliveredKgTotal,
-              deliveredRolls: v.deliveredRollsTotal,
-              reservedKg: v.reservedKg,
-              reservedRolls: v.reservedRolls,
-              availableKg: (v.producedKg - v.deliveredKgTotal) - v.reservedKg,
               availableRolls: (v.producedRolls - v.deliveredRollsTotal) - v.reservedRolls,
             }))
+            .filter(r => r.availableRolls >= 1)
             .sort((x, y) => x.name.localeCompare(y.name))
         : [];
 
+      const totalAvailableRolls = rows.reduce((s, r) => s + r.availableRolls, 0);
       const body = rows.map(r => [
         sanitizePdfText(r.name),
-        formatWeight(r.producedKg),
-        formatNumber(r.producedRolls),
-        formatWeight(r.deliveredKg),
-        formatNumber(r.deliveredRolls),
-        formatWeight(r.reservedKg),
-        formatNumber(r.reservedRolls),
-        formatWeight(r.availableKg),
         formatNumber(r.availableRolls),
+        sanitizePdfText(article.articleName),
       ]);
-
-      // Total do artigo
       body.push([
         'TOTAL',
-        formatWeight(article.producedKg),
-        formatNumber(article.producedRolls),
-        formatWeight(article.deliveredKgTotal ?? article.deliveredKg),
-        formatNumber(article.deliveredRollsTotal ?? article.deliveredRolls),
-        formatWeight(article.reservedKg),
-        formatNumber(article.reservedRolls),
-        formatWeight(article.availableKg),
-        formatNumber(article.availableRolls),
+        formatNumber(totalAvailableRolls),
+        sanitizePdfText(article.articleName),
       ]);
 
       autoTable(pdf, {
-        head: [[
-          'MÁQUINA',
-          'PRODUZIDO (kg)', 'ROLOS PROD.',
-          'ENTREGUE (kg)', 'ROLOS ENTR.',
-          'RESERVADO (kg)', 'ROLOS RES.',
-          'DISPONÍVEL (kg)', 'DISP. ROLOS',
-        ]],
+        head: [[ 'MÁQUINA', 'DISP. ROLOS', 'ARTIGO' ]],
         body,
         startY: y + headerH + 10,
         margin: { left: margin, right: margin },
-        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', valign: 'middle' },
+        styles: { fontSize: 9, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle' },
         headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', halign: 'center' },
-        bodyStyles: { halign: 'right' },
-        columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } },
+        bodyStyles: { halign: 'center' },
+        columnStyles: {
+          0: { halign: 'left', fontStyle: 'bold' },
+          1: { halign: 'right' },
+          2: { halign: 'left' },
+        },
         didParseCell: (d) => {
           if (d.section === 'body' && d.row.index === body.length - 1) {
             d.cell.styles.fillColor = [243, 244, 246];
