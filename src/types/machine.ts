@@ -143,6 +143,8 @@ export interface SinkerTransaction {
    created_at: string;
    created_by_id?: string;
    created_by_name?: string;
+  provider_id?: string;
+  unit_price?: number;
  }
 
 export interface MachineLog {
