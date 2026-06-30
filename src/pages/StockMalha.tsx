@@ -747,10 +747,19 @@ export default function StockMalha() {
                               );
                             }
                             const rows = Array.from(inner.entries())
-                              .filter(([mk]) => mk !== '__none__')
+                              .filter(([mk, v]) => {
+                                // Só esconder "Sem máquina" quando não tem nenhum impacto
+                                // (evita ocultar dados e quebrar a conferência do saldo do artigo)
+                                if (mk !== '__none__') return true;
+                                return (
+                                  v.producedKg !== 0 || v.producedRolls !== 0 ||
+                                  v.deliveredKgTotal !== 0 || v.deliveredRollsTotal !== 0 ||
+                                  v.reservedKg !== 0 || v.reservedRolls !== 0
+                                );
+                              })
                               .map(([mk, v]) => ({
                               mk,
-                              name: mk === '__none__' ? 'Sem máquina' : (machineNameById.get(mk) || 'Máquina removida'),
+                              name: mk === '__none__' ? 'Sem máquina (paletes/OF sem origem)' : (machineNameById.get(mk) || 'Máquina removida'),
                               ...v,
                               stockKg: v.producedKg - v.deliveredKgTotal,
                               stockRolls: v.producedRolls - v.deliveredRollsTotal,
