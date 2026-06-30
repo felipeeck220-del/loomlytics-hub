@@ -874,7 +874,17 @@ export default function MecanicaPage() {
     if (!name) { toast.error('Informe o nome do fornecedor.'); return; }
     setSavingProvider(true);
     try {
-      await saveMaterialProvider({ id: providerForm.id || undefined, name });
+      const providerId = await saveMaterialProvider({ id: providerForm.id || undefined, name });
+      const itemId = providerForm.needle_id || providerForm.sinker_id;
+      const price = parseFloat(providerForm.unit_price.replace(',', '.'));
+      if (providerId && itemId && !isNaN(price) && price > 0) {
+        await saveMaterialProviderPrice({
+          provider_id: providerId,
+          needle_id: providerForm.needle_id || null,
+          sinker_id: providerForm.sinker_id || null,
+          unit_price: price,
+        });
+      }
       toast.success(providerForm.id ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
       setProviderForm({ id: '', name: '', needle_id: '', sinker_id: '', unit_price: '' });
     } catch (e: any) {
