@@ -105,6 +105,16 @@ export default function MecanicaPage() {
   const [providerForm, setProviderForm] = useState<{ id: string; name: string; needle_id: string; sinker_id: string; unit_price: string }>({ id: '', name: '', needle_id: '', sinker_id: '', unit_price: '' });
   const [savingProvider, setSavingProvider] = useState(false);
   const [deleteProviderId, setDeleteProviderId] = useState<string | null>(null);
+
+  // Helper to look up cadastrado unit price for a provider × item
+  const lookupProviderPrice = (providerId: string, opts: { needle_id?: string; sinker_id?: string }) => {
+    if (!providerId) return null;
+    const match = materialProviderPrices.find(p => p.provider_id === providerId && (
+      (opts.needle_id && p.needle_id === opts.needle_id) ||
+      (opts.sinker_id && p.sinker_id === opts.sinker_id)
+    ));
+    return match ? Number(match.unit_price) : null;
+  };
   
  
   const { canSeeFinancial } = usePermissions();
