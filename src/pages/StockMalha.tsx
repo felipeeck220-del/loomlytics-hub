@@ -746,7 +746,9 @@ export default function StockMalha() {
                                 </TableRow>
                               );
                             }
-                            const rows = Array.from(inner.entries()).map(([mk, v]) => ({
+                            const rows = Array.from(inner.entries())
+                              .filter(([mk]) => mk !== '__none__')
+                              .map(([mk, v]) => ({
                               mk,
                               name: mk === '__none__' ? 'Sem máquina' : (machineNameById.get(mk) || 'Máquina removida'),
                               ...v,
