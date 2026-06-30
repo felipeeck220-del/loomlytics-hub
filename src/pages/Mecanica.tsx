@@ -59,6 +59,8 @@ export default function MecanicaPage() {
    const [showExitModal, setShowExitModal] = useState(false);
    const [needleForm, setNeedleForm] = useState({ provider: '', brand: '', reference_code: '' });
    const [entryForm, setEntryForm] = useState({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+   const [entryProviderId, setEntryProviderId] = useState('');
+   const [entryUnitPrice, setEntryUnitPrice] = useState('');
    const [exitForm, setExitForm] = useState({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_agulheiro', date: format(new Date(), 'yyyy-MM-dd') });
    const [needleEntrySearch, setNeedleEntrySearch] = useState('');
    const [needleExitSearch, setNeedleExitSearch] = useState('');
@@ -77,6 +79,8 @@ export default function MecanicaPage() {
    const [showSinkerExitModal, setShowSinkerExitModal] = useState(false);
    const [sinkerForm, setSinkerForm] = useState({ provider: '', brand: '', reference_code: '' });
    const [sinkerEntryForm, setSinkerEntryForm] = useState({ sinker_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+   const [sinkerEntryProviderId, setSinkerEntryProviderId] = useState('');
+   const [sinkerEntryUnitPrice, setSinkerEntryUnitPrice] = useState('');
    const [sinkerExitForm, setSinkerExitForm] = useState({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao' as 'reposicao' | 'troca_platinas', date: format(new Date(), 'yyyy-MM-dd') });
    const [sinkerEditTxn, setSinkerEditTxn] = useState<any>(null);
    const [sinkerEditForm, setSinkerEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_platinas' });
