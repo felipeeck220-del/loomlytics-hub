@@ -154,6 +154,8 @@ export default function StockMalha() {
     for (const prod of productions) {
       if (!matchMonth(prod.date)) continue;
       if (!afterCutoffDate(prod.date)) continue;
+      // Ignorar produções sem máquina nas contas de estoque
+      if (!prod.machine_id) continue;
       const art = articles.find(a => a.id === prod.article_id);
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
@@ -183,6 +185,8 @@ export default function StockMalha() {
       // Movimentos de 2ª qualidade não afetam o estoque principal
       if (mv.is_second_quality) continue;
       if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
+      // Ignorar movimentos sem máquina nas contas de estoque
+      if (!mv.machine_id) continue;
       const art = articles.find(a => a.id === mv.article_id);
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
@@ -307,6 +311,7 @@ export default function StockMalha() {
     for (const prod of productions) {
       if (!matchMonth(prod.date)) continue;
       if (!afterCutoffDate(prod.date)) continue;
+      if (!prod.machine_id) continue;
       const art = articles.find(a => a.id === prod.article_id);
       if (!art || !art.client_id) continue;
       const k = `${art.client_id}::${prod.article_id}`;
@@ -320,6 +325,7 @@ export default function StockMalha() {
       if (!afterCutoffTs(mv.created_at)) continue;
       if (mv.is_second_quality) continue;
       if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
+      if (!mv.machine_id) continue;
       const art = articles.find(a => a.id === mv.article_id);
       if (!art || !art.client_id) continue;
       const k = `${art.client_id}::${mv.article_id}`;
@@ -747,19 +753,10 @@ export default function StockMalha() {
                               );
                             }
                             const rows = Array.from(inner.entries())
-                              .filter(([mk, v]) => {
-                                // Só esconder "Sem máquina" quando não tem nenhum impacto
-                                // (evita ocultar dados e quebrar a conferência do saldo do artigo)
-                                if (mk !== '__none__') return true;
-                                return (
-                                  v.producedKg !== 0 || v.producedRolls !== 0 ||
-                                  v.deliveredKgTotal !== 0 || v.deliveredRollsTotal !== 0 ||
-                                  v.reservedKg !== 0 || v.reservedRolls !== 0
-                                );
-                              })
+                              .filter(([mk]) => mk !== '__none__')
                               .map(([mk, v]) => ({
                               mk,
-                              name: mk === '__none__' ? 'Sem máquina (paletes/OF sem origem)' : (machineNameById.get(mk) || 'Máquina removida'),
+                              name: machineNameById.get(mk) || 'Máquina removida',
                               ...v,
                               stockKg: v.producedKg - v.deliveredKgTotal,
                               stockRolls: v.producedRolls - v.deliveredRollsTotal,
