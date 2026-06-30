@@ -34,6 +34,7 @@ export function useCompanyData() {
      const [machineNeedleRefs, setMachineNeedleRefs] = useState<MachineNeedleRef[]>([]);
      const [machineSinkerRefs, setMachineSinkerRefs] = useState<MachineSinkerRef[]>([]);
       const [materialProviders, setMaterialProviders] = useState<MaterialProvider[]>([]);
+      const [materialProviderPrices, setMaterialProviderPrices] = useState<any[]>([]);
      const [yarnTypes, setYarnTypes] = useState<{ id: string; name: string; company_id: string }[]>([]);
    const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
@@ -215,6 +216,7 @@ export function useCompanyData() {
           { name: 'machine_needle_refs', fn: () => fetchAll('machine_needle_refs', { column: 'company_id', value: companyId }, 'created_at') },
           { name: 'machine_sinker_refs', fn: () => fetchAll('machine_sinker_refs', { column: 'company_id', value: companyId }, 'created_at') },
           { name: 'material_providers', fn: () => fetchAll('material_providers', { column: 'company_id', value: companyId }, 'name') },
+          { name: 'material_provider_prices', fn: () => fetchAll('material_provider_prices', { column: 'company_id', value: companyId }, 'created_at') },
          ];
  
        let completed = 0;
@@ -225,7 +227,7 @@ export function useCompanyData() {
          return result;
        }));
  
-        const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData, mnrData, msrData, mpData] = results;
+        const [mData, cData, aData, wData, pData, mlRes, amtData, csRes, drRes, nData, ntData, sData, stData, cylData, ytData, mnrData, msrData, mpData, mppData] = results;
  
        setMachines(mData.map(mapMachine));
        setMachineLogs(mlRes.map(mapMachineLog));
@@ -244,6 +246,7 @@ export function useCompanyData() {
          setMachineNeedleRefs(mnrData as MachineNeedleRef[]);
          setMachineSinkerRefs(msrData as MachineSinkerRef[]);
          setMaterialProviders(mpData as MaterialProvider[]);
+          setMaterialProviderPrices(mppData as any[]);
        
        if (csRes.data) {
          setShiftSettings({
@@ -784,6 +787,43 @@ export function useCompanyData() {
         const { error } = await sb('material_providers').delete().eq('id', id);
         if (error) throw error;
         setMaterialProviders(prev => prev.filter(p => p.id !== id));
+      }, [companyId]),
+      getMaterialProviderPrices: useCallback(() => materialProviderPrices, [materialProviderPrices]),
+      saveMaterialProviderPrice: useCallback(async (price: { id?: string; provider_id: string; needle_id?: string | null; sinker_id?: string | null; unit_price: number }) => {
+        if (!companyId) return null;
+        if (price.id) {
+          const { data, error } = await sb('material_provider_prices').update({ unit_price: price.unit_price }).eq('id', price.id).select().single();
+          if (error) throw error;
+          setMaterialProviderPrices(prev => prev.map(p => p.id === price.id ? data : p));
+          return price.id;
+        }
+        // Upsert: if a price already exists for the (provider, item) pair, update it
+        const filterCol = price.needle_id ? 'needle_id' : 'sinker_id';
+        const filterVal = price.needle_id || price.sinker_id;
+        const { data: existing } = await sb('material_provider_prices')
+          .select('id').eq('provider_id', price.provider_id).eq(filterCol, filterVal).maybeSingle();
+        if (existing?.id) {
+          const { data, error } = await sb('material_provider_prices').update({ unit_price: price.unit_price }).eq('id', existing.id).select().single();
+          if (error) throw error;
+          setMaterialProviderPrices(prev => prev.map(p => p.id === existing.id ? data : p));
+          return existing.id;
+        }
+        const { data, error } = await sb('material_provider_prices').insert({
+          company_id: companyId,
+          provider_id: price.provider_id,
+          needle_id: price.needle_id || null,
+          sinker_id: price.sinker_id || null,
+          unit_price: price.unit_price,
+        }).select().single();
+        if (error) throw error;
+        setMaterialProviderPrices(prev => [...prev, data]);
+        return data.id;
+      }, [companyId]),
+      deleteMaterialProviderPrice: useCallback(async (id: string) => {
+        if (!companyId) return;
+        const { error } = await sb('material_provider_prices').delete().eq('id', id);
+        if (error) throw error;
+        setMaterialProviderPrices(prev => prev.filter(p => p.id !== id));
       }, [companyId]),
       saveMachineRefs: useCallback(async (
         machineId: string,

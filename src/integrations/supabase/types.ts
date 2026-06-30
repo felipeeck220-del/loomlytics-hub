@@ -1873,6 +1873,68 @@ export type Database = {
           },
         ]
       }
+      material_provider_prices: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          needle_id: string | null
+          provider_id: string
+          sinker_id: string | null
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          needle_id?: string | null
+          provider_id: string
+          sinker_id?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          needle_id?: string | null
+          provider_id?: string
+          sinker_id?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_provider_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_provider_prices_needle_id_fkey"
+            columns: ["needle_id"]
+            isOneToOne: false
+            referencedRelation: "needle_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_provider_prices_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "material_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_provider_prices_sinker_id_fkey"
+            columns: ["sinker_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_providers: {
         Row: {
           company_id: string
