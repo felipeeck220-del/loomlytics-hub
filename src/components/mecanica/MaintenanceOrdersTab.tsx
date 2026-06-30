@@ -81,6 +81,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<MaintenanceOrderStatus>('aberto');
+  // Confirm dialogs
+  const [confirmStart, setConfirmStart] = useState<MaintenanceOrder | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState<MaintenanceOrder | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<MaintenanceOrder | null>(null);
+  const [confirmFinishGate, setConfirmFinishGate] = useState(false);
 
   const load = async () => {
     if (!companyId) return;
@@ -220,6 +226,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     }
 
     // 5) trocas de agulha/platina viram transações de estoque (saída)
+    //    + atualizam automaticamente as referências em USO da máquina
+    const machine = machines.find(m => m.id === finishOrder.machine_id);
+    const isDupla = machine?.machine_type === 'dupla';
     for (const it of itemsToInsert) {
       if (it.item_type === 'agulha' && it.needle_id) {
         await (supabase.from as any)('needle_transactions').insert({
@@ -228,6 +237,16 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           quantity: it.quantity, date: now.slice(0, 10), machine_id: finishOrder.machine_id,
           created_by_id: user?.id, created_by_name: userName || null,
         });
+        // Atualiza ref em uso (substitui posição correspondente)
+        const position = isDupla ? 'cilindro' : 'mono';
+        await (supabase.from as any)('machine_needle_refs')
+          .delete()
+          .eq('machine_id', finishOrder.machine_id)
+          .eq('position', position);
+        await (supabase.from as any)('machine_needle_refs').insert({
+          company_id: companyId, machine_id: finishOrder.machine_id,
+          needle_id: it.needle_id, position,
+        });
       } else if (it.item_type === 'platina' && it.sinker_id) {
         await (supabase.from as any)('sinker_transactions').insert({
           company_id: companyId, sinker_id: it.sinker_id, type: 'exit',
@@ -235,6 +254,19 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           machine_id: finishOrder.machine_id,
           created_by_id: user?.id, created_by_name: userName || null,
         });
+        await (supabase.from as any)('machine_sinker_refs')
+          .delete()
+          .eq('machine_id', finishOrder.machine_id);
+        await (supabase.from as any)('machine_sinker_refs').insert({
+          company_id: companyId, machine_id: finishOrder.machine_id, sinker_id: it.sinker_id,
+        });
+      } else if (it.item_type === 'cilindro' && it.cylinder_id) {
+        // Libera cilindro anterior e atribui o novo
+        if (machine?.cylinder_id && machine.cylinder_id !== it.cylinder_id) {
+          await (supabase.from as any)('cylinders').update({ machine_id: null }).eq('id', machine.cylinder_id);
+        }
+        await (supabase.from as any)('machines').update({ cylinder_id: it.cylinder_id }).eq('id', finishOrder.machine_id);
+        await (supabase.from as any)('cylinders').update({ machine_id: finishOrder.machine_id }).eq('id', it.cylinder_id);
       }
     }
 
@@ -246,10 +278,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
 
   // ============ CANCEL ============
-  const cancelOrder = async (o: MaintenanceOrder) => {
+  const cancelOrder = async (o: MaintenanceOrder, reason: string | null) => {
     if (!canManage) return;
     if (o.status !== 'aberto') { toast.error('Só é possível cancelar OMs em aberto'); return; }
-    const reason = window.prompt('Motivo do cancelamento (opcional):') ?? null;
     const { error } = await (supabase.from as any)('maintenance_orders').update({
       status: 'cancelada', cancelled_at: new Date().toISOString(), cancelled_by_id: user?.id, cancelled_by_name: userName || null,
       cancellation_reason: reason,
@@ -262,7 +293,6 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const deleteOrder = async (o: MaintenanceOrder) => {
     if (!canManage) return;
-    if (!confirm(`Excluir OM #${String(o.om_number).padStart(3, '0')}?`)) return;
     await (supabase.from as any)('maintenance_order_items').delete().eq('order_id', o.id);
     await (supabase.from as any)('maintenance_orders').delete().eq('id', o.id);
     toast.success('OM excluída');
@@ -301,7 +331,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as MaintenanceOrderStatus)}>
-        <TabsList>
+        <TabsList className="flex flex-wrap h-auto justify-start gap-1">
           <TabsTrigger value="aberto">Aberto <Badge className="ml-2" variant="secondary">{counts.aberto}</Badge></TabsTrigger>
           <TabsTrigger value="em_curso">Em Curso <Badge className="ml-2" variant="secondary">{counts.em_curso}</Badge></TabsTrigger>
           <TabsTrigger value="finalizada">Finalizadas <Badge className="ml-2" variant="secondary">{counts.finalizada}</Badge></TabsTrigger>
@@ -363,19 +393,19 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
                       <div className="flex flex-wrap gap-2 pt-1">
                         {o.status === 'aberto' && canExecute && (
-                          <Button size="sm" onClick={() => startOrder(o)}><Play className="h-3.5 w-3.5 mr-1" /> Iniciar</Button>
+                          <Button size="sm" onClick={() => setConfirmStart(o)}><Play className="h-3.5 w-3.5 mr-1" /> Iniciar</Button>
                         )}
                         {o.status === 'aberto' && canManage && (
                           <>
                             <Button size="sm" variant="outline" onClick={() => openEdit(o)}><Pencil className="h-3.5 w-3.5" /></Button>
-                            <Button size="sm" variant="outline" onClick={() => cancelOrder(o)}><X className="h-3.5 w-3.5 mr-1" /> Cancelar</Button>
+                            <Button size="sm" variant="outline" onClick={() => { setCancelReason(''); setConfirmCancel(o); }}><X className="h-3.5 w-3.5 mr-1" /> Cancelar</Button>
                           </>
                         )}
                         {o.status === 'em_curso' && canExecute && (
                           <Button size="sm" onClick={() => openFinish(o)}><Square className="h-3.5 w-3.5 mr-1" /> Finalizar</Button>
                         )}
                         {canManage && (o.status === 'cancelada' || o.status === 'finalizada') && (
-                          <Button size="sm" variant="ghost" onClick={() => deleteOrder(o)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(o)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                         )}
                       </div>
                     </CardContent>
@@ -454,8 +484,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 {finishItems.length === 0 && <p className="text-xs text-muted-foreground">Nenhum item — pode finalizar sem trocar peças.</p>}
                 <div className="space-y-2">
                   {finishItems.map((it, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded p-2">
-                      <div className="col-span-3 space-y-1">
+                    <div key={idx} className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end border rounded p-2">
+                      <div className="col-span-1 md:col-span-3 space-y-1">
                         <Label className="text-xs">Tipo</Label>
                         <Select value={it.item_type} onValueChange={v => updateItem(idx, { item_type: v as MaintenanceOrderItemType, ref_id: '' })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -467,7 +497,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-6 space-y-1">
+                      <div className="col-span-2 md:col-span-6 space-y-1 order-last md:order-none">
                         <Label className="text-xs">Referência</Label>
                         {it.item_type === 'outro' ? (
                           <Input value={it.description} onChange={e => updateItem(idx, { description: e.target.value })} placeholder="Descreva o item" />
@@ -485,11 +515,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                           />
                         )}
                       </div>
-                      <div className="col-span-2 space-y-1">
+                      <div className="col-span-1 md:col-span-2 space-y-1">
                         <Label className="text-xs">Qtd</Label>
                         <Input type="number" inputMode="numeric" min={1} value={it.quantity} onChange={e => updateItem(idx, { quantity: Number(e.target.value) || 0 })} />
                       </div>
-                      <div className="col-span-1">
+                      <div className="col-span-2 md:col-span-1 flex md:block justify-end">
                         <Button size="icon" variant="ghost" onClick={() => removeItem(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </div>
@@ -500,7 +530,64 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setFinishOrder(null)}>Cancelar</Button>
-            <Button onClick={confirmFinish}>Confirmar finalização</Button>
+            <Button onClick={() => setConfirmFinishGate(true)}>Confirmar finalização</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm: Start */}
+      <Dialog open={!!confirmStart} onOpenChange={v => !v && setConfirmStart(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Iniciar OM?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Iniciar a OM #{confirmStart ? String(confirmStart.om_number).padStart(3, '0') : ''} parará a máquina e começará o cronômetro.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmStart(null)}>Cancelar</Button>
+            <Button onClick={async () => { const o = confirmStart!; setConfirmStart(null); await startOrder(o); }}>Iniciar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm: Cancel */}
+      <Dialog open={!!confirmCancel} onOpenChange={v => !v && setConfirmCancel(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Cancelar OM?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground mb-2">
+            Cancelar a OM #{confirmCancel ? String(confirmCancel.om_number).padStart(3, '0') : ''}? Esta ação não pode ser desfeita.
+          </p>
+          <Textarea rows={2} placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmCancel(null)}>Voltar</Button>
+            <Button variant="destructive" onClick={async () => { const o = confirmCancel!; const r = cancelReason || null; setConfirmCancel(null); await cancelOrder(o, r); }}>Cancelar OM</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm: Delete */}
+      <Dialog open={!!confirmDelete} onOpenChange={v => !v && setConfirmDelete(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Excluir OM?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Excluir definitivamente a OM #{confirmDelete ? String(confirmDelete.om_number).padStart(3, '0') : ''} e seus itens?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Voltar</Button>
+            <Button variant="destructive" onClick={async () => { const o = confirmDelete!; setConfirmDelete(null); await deleteOrder(o); }}>Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm: Finish */}
+      <Dialog open={confirmFinishGate} onOpenChange={setConfirmFinishGate}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Confirmar finalização?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            A máquina voltará a "Ativa", o histórico será fechado e os itens trocados aplicados (referências em uso e estoque).
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmFinishGate(false)}>Voltar</Button>
+            <Button onClick={async () => { setConfirmFinishGate(false); await confirmFinish(); }}>Finalizar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -54,7 +54,7 @@ const FILTER_OPTIONS = [
 
 export default function Machines() {
   const { user } = useAuth();
-  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, getMachineNeedleRefs, getMachineSinkerRefs, saveMachineRefs, loading } = useSharedCompanyData();
+  const { getMachines, saveMachines, getMachineLogs, saveMachineLogs, getArticles, getNeedles, getSinkers, getMachineNeedleRefs, getMachineSinkerRefs, saveMachineRefs, getCylinders, assignCylinderToMachine, loading } = useSharedCompanyData();
   const machines = getMachines();
   const logs = getMachineLogs();
   const articles = getArticles();
@@ -62,6 +62,7 @@ export default function Machines() {
   const sinkers = getSinkers();
   const allNeedleRefs = getMachineNeedleRefs();
   const allSinkerRefs = getMachineSinkerRefs();
+  const cylinders = getCylinders();
   const { logAction, userName, userCode } = useAuditLog();
 
   const [showModal, setShowModal] = useState(false);
@@ -509,14 +510,40 @@ export default function Machines() {
                    <Label className="text-xs font-semibold">Modelo</Label>
                    <Input value={form.model} onChange={e => setForm(p => ({ ...p, model: e.target.value }))} placeholder="Ex: Mayer & Cie" />
                  </div>
-                 <div className="space-y-2">
-                   <Label className="text-xs font-semibold">Diâmetro</Label>
-                   <Input value={form.diameter} onChange={e => setForm(p => ({ ...p, diameter: e.target.value }))} placeholder="Ex: 30\" />
-                 </div>
-                 <div className="space-y-2">
-                   <Label className="text-xs font-semibold">Finura</Label>
-                   <Input value={form.fineness} onChange={e => setForm(p => ({ ...p, fineness: e.target.value }))} placeholder="Ex: 24G" />
-                 </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label className="text-xs font-semibold">Cilindro (Diâmetro/Finura)</Label>
+                    <Select
+                      value={editing?.cylinder_id || '__none__'}
+                      onValueChange={async v => {
+                        if (!editing) { toast.info('Salve a máquina primeiro para vincular um cilindro.'); return; }
+                        const cylId = v === '__none__' ? null : v;
+                        const cyl = cylinders.find(c => c.id === cylId);
+                        await assignCylinderToMachine(cylId, editing.id);
+                        // Atualiza diâmetro/finura no form a partir do cilindro
+                        setForm(p => ({
+                          ...p,
+                          diameter: cyl?.diameter || '',
+                          fineness: cyl?.fineness || '',
+                        }));
+                        toast.success(cylId ? 'Cilindro vinculado' : 'Cilindro removido');
+                      }}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Selecione um cilindro cadastrado" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Nenhum —</SelectItem>
+                        {cylinders
+                          .filter(c => !c.machine_id || c.machine_id === editing?.id)
+                          .map(c => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.brand}{c.model ? ` ${c.model}` : ''} · {c.diameter || '?'}" / {c.fineness || '?'}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      Cadastre cilindros em <strong>Mecânica → Cilindros</strong>. Diâmetro e finura serão preenchidos automaticamente.
+                    </p>
+                  </div>
                </div>
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                  <div className="space-y-2">

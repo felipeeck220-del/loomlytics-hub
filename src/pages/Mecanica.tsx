@@ -915,60 +915,9 @@ export default function MecanicaPage() {
         </div>
       </div>
 
-      {/* Machine selector */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <div className="w-full sm:w-72">
-              <label className="text-sm font-medium text-foreground mb-1 block">Selecionar Máquina</label>
-              <Select value={selectedMachineId} onValueChange={setSelectedMachineId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma máquina" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as Máquinas</SelectItem>
-                  {activeMachines.map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedMachineId !== 'all' && (
-              <div className="flex gap-6 flex-wrap">
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium">Última Manutenção Preventiva</span>
-                  <p className="text-sm font-semibold text-foreground">
-                    {lastPreventive
-                      ? format(new Date(lastPreventive.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                      : 'Nenhum registro'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium">Última Troca de Agulheiro</span>
-                  <p className="text-sm font-semibold text-foreground">
-                    {lastNeedleChange
-                      ? format(new Date(lastNeedleChange.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                      : 'Nenhum registro'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium">Última Troca de Platinas</span>
-                  <p className="text-sm font-semibold text-foreground">
-                    {lastSinkerChange
-                      ? format(new Date(lastSinkerChange.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                      : 'Nenhum registro'}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Tabs */}
       <Tabs defaultValue="om" className="w-full">
-         <TabsList>
+         <TabsList className="flex flex-wrap h-auto justify-start gap-1">
            <TabsTrigger value="om">OM</TabsTrigger>
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
