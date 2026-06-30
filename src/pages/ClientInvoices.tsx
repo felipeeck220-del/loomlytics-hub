@@ -211,6 +211,12 @@ export default function ClientInvoices() {
         if (itemError) throw itemError;
 
         if (formType === 'saida') {
+          // Snapshot dos vínculos atuais para permitir restaurar caso o insert falhe
+          // (delete+insert não é atômico; sem snapshot, uma falha apaga os vínculos).
+          const { data: previousLinks } = await supabase
+            .from('client_invoice_exit_links')
+            .select('entry_invoice_id, yarn_type_id, deduct_kg, company_id, exit_invoice_id')
+            .eq('exit_invoice_id', editingInvoice.id);
           await supabase.from('client_invoice_exit_links').delete().eq('exit_invoice_id', editingInvoice.id);
           const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
           if (validLinks.length > 0) {
@@ -223,7 +229,13 @@ export default function ClientInvoices() {
                 deduct_kg: parseFloat(l.deduct_kg) || 0,
               }))
             );
-            if (linksError) throw linksError;
+            if (linksError) {
+              // Tenta restaurar os vínculos anteriores para evitar perda silenciosa
+              if (previousLinks && previousLinks.length > 0) {
+                await supabase.from('client_invoice_exit_links').insert(previousLinks as any);
+              }
+              throw linksError;
+            }
           }
         }
 
