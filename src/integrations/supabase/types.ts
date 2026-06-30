@@ -1873,6 +1873,100 @@ export type Database = {
           },
         ]
       }
+      material_provider_prices: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          needle_id: string | null
+          provider_id: string
+          sinker_id: string | null
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          needle_id?: string | null
+          provider_id: string
+          sinker_id?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          needle_id?: string | null
+          provider_id?: string
+          sinker_id?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_provider_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_provider_prices_needle_id_fkey"
+            columns: ["needle_id"]
+            isOneToOne: false
+            referencedRelation: "needle_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_provider_prices_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "material_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_provider_prices_sinker_id_fkey"
+            columns: ["sinker_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_providers: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_providers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       needle_inventory: {
         Row: {
           brand: string
@@ -1925,8 +2019,10 @@ export type Database = {
           id: string
           machine_id: string | null
           needle_id: string
+          provider_id: string | null
           quantity: number
           type: Database["public"]["Enums"]["needle_transaction_type"]
+          unit_price: number | null
         }
         Insert: {
           company_id: string
@@ -1938,8 +2034,10 @@ export type Database = {
           id?: string
           machine_id?: string | null
           needle_id: string
+          provider_id?: string | null
           quantity: number
           type: Database["public"]["Enums"]["needle_transaction_type"]
+          unit_price?: number | null
         }
         Update: {
           company_id?: string
@@ -1951,8 +2049,10 @@ export type Database = {
           id?: string
           machine_id?: string | null
           needle_id?: string
+          provider_id?: string | null
           quantity?: number
           type?: Database["public"]["Enums"]["needle_transaction_type"]
+          unit_price?: number | null
         }
         Relationships: [
           {
@@ -1974,6 +2074,13 @@ export type Database = {
             columns: ["needle_id"]
             isOneToOne: false
             referencedRelation: "needle_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "needle_transactions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "material_providers"
             referencedColumns: ["id"]
           },
         ]
@@ -2682,7 +2789,15 @@ export type Database = {
           reference_code?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sinker_inventory_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sinker_transactions: {
         Row: {
@@ -2694,9 +2809,11 @@ export type Database = {
           exit_mode: string | null
           id: string
           machine_id: string | null
+          provider_id: string | null
           quantity: number
           sinker_id: string
           type: string
+          unit_price: number | null
         }
         Insert: {
           company_id: string
@@ -2707,9 +2824,11 @@ export type Database = {
           exit_mode?: string | null
           id?: string
           machine_id?: string | null
+          provider_id?: string | null
           quantity: number
           sinker_id: string
           type: string
+          unit_price?: number | null
         }
         Update: {
           company_id?: string
@@ -2720,9 +2839,11 @@ export type Database = {
           exit_mode?: string | null
           id?: string
           machine_id?: string | null
+          provider_id?: string | null
           quantity?: number
           sinker_id?: string
           type?: string
+          unit_price?: number | null
         }
         Relationships: [
           {
@@ -2730,6 +2851,13 @@ export type Database = {
             columns: ["machine_id"]
             isOneToOne: false
             referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sinker_transactions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "material_providers"
             referencedColumns: ["id"]
           },
           {
