@@ -42,6 +42,7 @@ export default function MecanicaPage() {
      getCylinders, saveCylinders, assignCylinderToMachine,
      getMachineNeedleRefs, getMachineSinkerRefs,
      getMaterialProviders, saveMaterialProvider, deleteMaterialProvider,
+     getMaterialProviderPrices, saveMaterialProviderPrice, deleteMaterialProviderPrice,
      loading 
    } = useSharedCompanyData();
    const needles = getNeedles();
@@ -52,6 +53,7 @@ export default function MecanicaPage() {
    const machineNeedleRefs = getMachineNeedleRefs();
    const machineSinkerRefs = getMachineSinkerRefs();
    const materialProviders = getMaterialProviders();
+   const materialProviderPrices = getMaterialProviderPrices();
    // Needle Management State
    const [needleSearch, setNeedleSearch] = useState('');
    const [showNeedleModal, setShowNeedleModal] = useState(false);
