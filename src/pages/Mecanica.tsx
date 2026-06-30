@@ -98,6 +98,11 @@ export default function MecanicaPage() {
     });
    const [showAssignModal, setShowAssignModal] = useState(false);
    const [assignForm, setAssignForm] = useState({ machine_id: '', cylinder_id: '' });
+
+  // Material Providers (shared between Agulhas & Platinas)
+  const [providerForm, setProviderForm] = useState({ id: '', name: '' });
+  const [savingProvider, setSavingProvider] = useState(false);
+  const [deleteProviderId, setDeleteProviderId] = useState<string | null>(null);
   
  
   const { canSeeFinancial } = usePermissions();
