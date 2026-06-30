@@ -783,7 +783,10 @@ export default function MecanicaPage() {
         toast.success('Platina cadastrada!');
         setShowSinkerModal(false);
         setSinkerForm({ provider: '', brand: '', reference_code: '' });
-      } catch (e) { toast.error('Erro ao cadastrar.'); }
+      } catch (e: any) {
+        console.error('[Mecanica] sinker create error', e);
+        toast.error(e?.message || 'Erro ao cadastrar.');
+      }
     };
   
     const handleSinkerEntry = async () => {
