@@ -729,12 +729,16 @@ export default function MecanicaPage() {
          quantity: Number(entryForm.quantity),
          date: entryForm.date,
          created_at: new Date().toISOString(),
-         created_by_name: userName || undefined
+          created_by_name: userName || undefined,
+          provider_id: entryProviderId || undefined,
+          unit_price: entryUnitPrice ? Number(entryUnitPrice) : undefined,
        });
         logAction('needle_entry', { brand: needle?.brand, code: needle?.reference_code, quantity: entryForm.quantity });
         toast.success('Entrada registrada!');
        setShowEntryModal(false);
        setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+        setEntryProviderId('');
+        setEntryUnitPrice('');
      } catch (e) { toast.error('Erro ao registrar entrada.'); }
    };
  
