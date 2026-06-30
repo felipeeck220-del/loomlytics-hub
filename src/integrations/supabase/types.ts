@@ -1873,6 +1873,184 @@ export type Database = {
           },
         ]
       }
+      maintenance_order_items: {
+        Row: {
+          company_id: string
+          created_at: string
+          cylinder_id: string | null
+          description: string | null
+          id: string
+          item_type: string
+          needle_id: string | null
+          order_id: string
+          quantity: number
+          sinker_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          cylinder_id?: string | null
+          description?: string | null
+          id?: string
+          item_type: string
+          needle_id?: string | null
+          order_id: string
+          quantity?: number
+          sinker_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          cylinder_id?: string | null
+          description?: string | null
+          id?: string
+          item_type?: string
+          needle_id?: string | null
+          order_id?: string
+          quantity?: number
+          sinker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_order_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_order_items_cylinder_id_fkey"
+            columns: ["cylinder_id"]
+            isOneToOne: false
+            referencedRelation: "cylinders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_order_items_needle_id_fkey"
+            columns: ["needle_id"]
+            isOneToOne: false
+            referencedRelation: "needle_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_order_items_sinker_id_fkey"
+            columns: ["sinker_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_orders: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by_id: string | null
+          cancelled_by_name: string | null
+          company_id: string
+          created_at: string
+          created_by_id: string | null
+          created_by_name: string | null
+          description: string | null
+          duration_seconds: number | null
+          finished_at: string | null
+          finished_by_id: string | null
+          finished_by_name: string | null
+          id: string
+          machine_id: string
+          machine_log_id: string | null
+          om_number: number | null
+          priority: string
+          started_at: string | null
+          started_by_id: string | null
+          started_by_name: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by_id?: string | null
+          cancelled_by_name?: string | null
+          company_id: string
+          created_at?: string
+          created_by_id?: string | null
+          created_by_name?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          finished_at?: string | null
+          finished_by_id?: string | null
+          finished_by_name?: string | null
+          id?: string
+          machine_id: string
+          machine_log_id?: string | null
+          om_number?: number | null
+          priority?: string
+          started_at?: string | null
+          started_by_id?: string | null
+          started_by_name?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by_id?: string | null
+          cancelled_by_name?: string | null
+          company_id?: string
+          created_at?: string
+          created_by_id?: string | null
+          created_by_name?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          finished_at?: string | null
+          finished_by_id?: string | null
+          finished_by_name?: string | null
+          id?: string
+          machine_id?: string
+          machine_log_id?: string | null
+          om_number?: number | null
+          priority?: string
+          started_at?: string | null
+          started_by_id?: string | null
+          started_by_name?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_orders_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_orders_machine_log_id_fkey"
+            columns: ["machine_log_id"]
+            isOneToOne: false
+            referencedRelation: "machine_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_provider_prices: {
         Row: {
           company_id: string

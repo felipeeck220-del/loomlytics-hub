@@ -23,6 +23,8 @@ import { sanitizePdfText } from '@/lib/pdfUtils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import MaintenanceOrdersTab from '@/components/mecanica/MaintenanceOrdersTab';
+import MaintenanceMovementsTab from '@/components/mecanica/MaintenanceMovementsTab';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
   'manutencao_preventiva',
@@ -41,7 +43,8 @@ export default function MecanicaPage() {
      updateSinkerTransaction, deleteSinkerTransaction,
      getCylinders, saveCylinders, assignCylinderToMachine,
      getMachineNeedleRefs, getMachineSinkerRefs,
-     loading 
+     loading,
+     refreshData,
    } = useSharedCompanyData();
    const needles = getNeedles();
    const needleTransactions = getNeedleTransactions();
@@ -964,14 +967,38 @@ export default function MecanicaPage() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="calendario" className="w-full">
+      <Tabs defaultValue="om" className="w-full">
          <TabsList>
+           <TabsTrigger value="om">OM</TabsTrigger>
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
             <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
             <TabsTrigger value="platinas">Platinas</TabsTrigger>
             <TabsTrigger value="cilindros">Cilindros</TabsTrigger>
+            <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>
           </TabsList>
+
+        {/* OM Tab */}
+        <TabsContent value="om">
+          <MaintenanceOrdersTab
+            machines={getMachines()}
+            needles={needles}
+            sinkers={sinkers}
+            cylinders={cylinders}
+            refreshMachines={refreshData}
+          />
+        </TabsContent>
+
+        {/* Movimentações Tab */}
+        <TabsContent value="movimentacoes">
+          <MaintenanceMovementsTab
+            machines={getMachines()}
+            needles={needles}
+            sinkers={sinkers}
+            needleTransactions={needleTransactions}
+            sinkerTransactions={sinkerTransactions}
+          />
+        </TabsContent>
          
          {/* Platinas Tab */}
          <TabsContent value="platinas">

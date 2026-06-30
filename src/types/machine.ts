@@ -156,3 +156,55 @@ export interface MachineLog {
   ended_by_name?: string;
   ended_by_code?: string;
 }
+
+// =============== Ordem de Manutenção (OM) ===============
+export type MaintenanceOrderStatus = 'aberto' | 'em_curso' | 'finalizada' | 'cancelada';
+export type MaintenanceOrderType = 'manutencao_preventiva' | 'manutencao_corretiva' | 'troca_artigo' | 'troca_agulhas';
+export type MaintenanceOrderPriority = 'normal' | 'prioritaria';
+
+export const MAINTENANCE_ORDER_STATUS_LABELS: Record<MaintenanceOrderStatus, string> = {
+  aberto: 'Aberto',
+  em_curso: 'Em Curso',
+  finalizada: 'Finalizada',
+  cancelada: 'Cancelada',
+};
+
+export interface MaintenanceOrder {
+  id: string;
+  company_id: string;
+  om_number: number;
+  machine_id: string;
+  type: MaintenanceOrderType;
+  priority: MaintenanceOrderPriority;
+  status: MaintenanceOrderStatus;
+  description?: string | null;
+  created_by_id?: string | null;
+  created_by_name?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  started_by_id?: string | null;
+  started_by_name?: string | null;
+  finished_at?: string | null;
+  finished_by_id?: string | null;
+  finished_by_name?: string | null;
+  duration_seconds?: number | null;
+  cancelled_at?: string | null;
+  cancelled_by_name?: string | null;
+  cancellation_reason?: string | null;
+  machine_log_id?: string | null;
+}
+
+export type MaintenanceOrderItemType = 'agulha' | 'platina' | 'cilindro' | 'outro';
+
+export interface MaintenanceOrderItem {
+  id: string;
+  company_id: string;
+  order_id: string;
+  item_type: MaintenanceOrderItemType;
+  needle_id?: string | null;
+  sinker_id?: string | null;
+  cylinder_id?: string | null;
+  description?: string | null;
+  quantity: number;
+  created_at: string;
+}

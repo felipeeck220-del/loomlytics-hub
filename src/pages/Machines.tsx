@@ -458,19 +458,16 @@ export default function Machines() {
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Status</Label>
-                <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v as MachineStatus }))}>
-                  <SelectTrigger>
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "h-2 w-2 rounded-full",
-                        form.status === 'ativa' ? 'bg-emerald-500' :
-                        form.status === 'inativa' ? 'bg-destructive' : 'bg-orange-400'
-                      )} />
-                      <SelectValue />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>{ALL_STATUSES.map(s => <SelectItem key={s} value={s}>{MACHINE_STATUS_LABELS[s]}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-muted/30">
+                  <span className={cn(
+                    "h-2 w-2 rounded-full",
+                    form.status === 'ativa' ? 'bg-emerald-500' :
+                    form.status === 'inativa' ? 'bg-destructive' : 'bg-orange-400'
+                  )} />
+                  <span className="text-sm">{MACHINE_STATUS_LABELS[form.status]}</span>
+                  <span className="ml-auto text-[10px] uppercase text-muted-foreground">via OM</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Status é controlado pelas Ordens de Manutenção (Mecânica · OM).</p>
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Artigo Atual</Label>

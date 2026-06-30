@@ -8,6 +8,10 @@ const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> 
     allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Gestão de Tecelões', 'Revisão', 'Mecânica', 'Alterar Senha'],
     denied: ['Dashboard e Visão Geral', 'Registro de Produção', 'Terceirização', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
   },
+  lider_mecanica: {
+    allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Ordens de Manutenção (criar/editar)', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
+  },
   mecanico: {
     allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Alterar Senha'],
     denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
@@ -84,6 +88,7 @@ interface Profile {
 const ROLES = [
   { value: 'admin', label: 'Administrador', description: 'Acesso total ao sistema', color: 'bg-red-100 text-red-700' },
   { value: 'lider', label: 'Líder', description: 'Máquinas, artigos, revisão e mecânica', color: 'bg-purple-100 text-purple-700' },
+  { value: 'lider_mecanica', label: 'Líder de Mecânica', description: 'Cria e gerencia Ordens de Manutenção (OM)', color: 'bg-orange-100 text-orange-700' },
   { value: 'mecanico', label: 'Mecânico', description: 'Acesso apenas às máquinas e mecânica', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'revisador', label: 'Revisador', description: 'Acesso apenas para revisão', color: 'bg-yellow-100 text-yellow-700' },
   { value: 'expedicao', label: 'Expedição Malha', description: 'Controle de Ordem de Faturamento', color: 'bg-blue-100 text-blue-700' },

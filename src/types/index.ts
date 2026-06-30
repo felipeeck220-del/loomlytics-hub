@@ -5,9 +5,11 @@ export type { Company } from './company';
    NeedleInventory, NeedleTransaction, NeedleTransactionType, NeedleExitMode,
    SinkerInventory, SinkerTransaction, SinkerTransactionType, SinkerExitMode,
    Cylinder,
-   MachineNeedleRef, MachineSinkerRef, NeedleRefPosition
+  MachineNeedleRef, MachineSinkerRef, NeedleRefPosition,
+  MaintenanceOrder, MaintenanceOrderItem, MaintenanceOrderItemType,
+  MaintenanceOrderType, MaintenanceOrderPriority, MaintenanceOrderStatus
  } from './machine';
-export { PRODUCTION_MODE_LABELS, MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS } from './machine';
+export { PRODUCTION_MODE_LABELS, MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS, MAINTENANCE_ORDER_STATUS_LABELS } from './machine';
 export type { Client, Article, ArticleMachineTurns } from './client';
 export type { ShiftType, CompanyShiftSettings } from './shift';
 export { SHIFT_LABELS, SHIFT_MINUTES, DEFAULT_SHIFT_SETTINGS, getShiftMinutes, getCompanyShiftMinutes, getCompanyShiftLabels } from './shift';
