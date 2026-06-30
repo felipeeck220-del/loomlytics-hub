@@ -154,6 +154,8 @@ export default function StockMalha() {
     for (const prod of productions) {
       if (!matchMonth(prod.date)) continue;
       if (!afterCutoffDate(prod.date)) continue;
+      // Ignorar produções sem máquina nas contas de estoque
+      if (!prod.machine_id) continue;
       const art = articles.find(a => a.id === prod.article_id);
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
