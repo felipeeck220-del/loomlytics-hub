@@ -1286,11 +1286,33 @@ export default function MecanicaPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base">{providerForm.id ? 'Editar Fornecedor' : 'Novo Fornecedor'}</CardTitle>
+                      <p className="text-xs text-muted-foreground">Cadastre o nome, a platina e o valor unitário. O preço será sugerido automaticamente na entrada de estoque.</p>
                     </CardHeader>
-                    <CardContent className="flex flex-col sm:flex-row gap-2">
-                      <Input placeholder="Nome do fornecedor" value={providerForm.name} onChange={e => setProviderForm({ ...providerForm, name: e.target.value })} className="flex-1" />
-                      <Button onClick={handleSaveProvider} disabled={savingProvider}>{providerForm.id ? 'Salvar' : 'Cadastrar'}</Button>
-                      {providerForm.id && <Button variant="outline" onClick={() => setProviderForm({ id: '', name: '', needle_id: '', sinker_id: '', unit_price: '' })}>Cancelar</Button>}
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Nome do fornecedor *</Label>
+                          <Input placeholder="Ex: Fornecedor X" value={providerForm.name} onChange={e => setProviderForm({ ...providerForm, name: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Platina (opcional)</Label>
+                          <Select value={providerForm.sinker_id} onValueChange={v => setProviderForm({ ...providerForm, sinker_id: v })}>
+                            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              {sinkers.map(s => <SelectItem key={s.id} value={s.id}>{s.brand} ({s.reference_code})</SelectItem>)}
+                              {sinkers.length === 0 && <div className="p-3 text-xs text-muted-foreground">Cadastre platinas primeiro</div>}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Valor unidade (R$)</Label>
+                          <Input type="number" step="0.0001" value={providerForm.unit_price} onChange={e => setProviderForm({ ...providerForm, unit_price: e.target.value })} placeholder="0,00" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSaveProvider} disabled={savingProvider}>{providerForm.id ? 'Salvar' : 'Cadastrar'}</Button>
+                        {providerForm.id && <Button variant="outline" onClick={() => setProviderForm({ id: '', name: '', needle_id: '', sinker_id: '', unit_price: '' })}>Cancelar</Button>}
+                      </div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -1299,6 +1321,7 @@ export default function MecanicaPage() {
                         <thead>
                           <tr className="border-b bg-muted/50">
                             <th className="text-left p-4 font-medium">Fornecedor</th>
+                            <th className="text-left p-4 font-medium">Preços por Platina</th>
                             <th className="text-right p-4 font-medium">Entradas (Platinas)</th>
                             <th className="text-right p-4 font-medium">Valor Total</th>
                             <th className="text-right p-4 font-medium w-32">Ações</th>
@@ -1309,9 +1332,25 @@ export default function MecanicaPage() {
                             const txs = sinkerTransactions.filter(t => t.provider_id === p.id && t.type === 'entry');
                             const qty = txs.reduce((s, t) => s + t.quantity, 0);
                             const val = txs.reduce((s, t) => s + t.quantity * (t.unit_price || 0), 0);
+                            const prices = materialProviderPrices.filter(mp => mp.provider_id === p.id && mp.sinker_id);
                             return (
                               <tr key={p.id} className="border-b">
                                 <td className="p-4 font-medium">{p.name}</td>
+                                <td className="p-4">
+                                  {prices.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+                                  <div className="space-y-1">
+                                    {prices.map(pr => {
+                                      const item = sinkers.find(s => s.id === pr.sinker_id);
+                                      return (
+                                        <div key={pr.id} className="flex items-center gap-2 text-xs">
+                                          <Badge variant="outline">{item ? `${item.brand} (${item.reference_code})` : 'Platina removida'}</Badge>
+                                          <span className="text-emerald-600 font-medium">R$ {Number(pr.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-destructive" onClick={() => { if (window.confirm('Remover este preço?')) deleteMaterialProviderPrice(pr.id); }}>×</Button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </td>
                                 <td className="p-4 text-right">{qty}</td>
                                 <td className="p-4 text-right text-emerald-600">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 <td className="p-4 text-right space-x-1">
@@ -1321,7 +1360,7 @@ export default function MecanicaPage() {
                               </tr>
                             );
                           })}
-                          {materialProviders.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhum fornecedor cadastrado</td></tr>}
+                          {materialProviders.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhum fornecedor cadastrado</td></tr>}
                         </tbody>
                       </table>
                     </CardContent>
