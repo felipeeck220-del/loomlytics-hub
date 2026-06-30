@@ -106,6 +106,8 @@ export function useCompanyData() {
      machine_id: r.machine_id || undefined,
      created_at: r.created_at, created_by_id: r.created_by_id || undefined,
      created_by_name: r.created_by_name || undefined,
+     provider_id: r.provider_id || undefined,
+     unit_price: r.unit_price != null ? Number(r.unit_price) : undefined,
    });
    const mapNeedle = (r: any): NeedleInventory => ({
      id: r.id, company_id: r.company_id, provider: r.provider,
@@ -120,6 +122,8 @@ export function useCompanyData() {
      machine_id: r.machine_id || undefined,
      created_at: r.created_at, created_by_id: r.created_by_id || undefined,
      created_by_name: r.created_by_name || undefined,
+     provider_id: r.provider_id || undefined,
+     unit_price: r.unit_price != null ? Number(r.unit_price) : undefined,
    });
   const mapMachineLog = (r: any): MachineLog => ({
     id: r.id, machine_id: r.machine_id, status: r.status,
