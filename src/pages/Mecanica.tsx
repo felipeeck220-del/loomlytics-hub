@@ -874,7 +874,7 @@ export default function MecanicaPage() {
     try {
       await saveMaterialProvider({ id: providerForm.id || undefined, name });
       toast.success(providerForm.id ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
-      setProviderForm({ id: '', name: '' });
+      setProviderForm({ id: '', name: '', needle_id: '', sinker_id: '', unit_price: '' });
     } catch (e: any) {
       toast.error('Erro ao salvar fornecedor: ' + (e?.message || ''));
     } finally {
@@ -1268,7 +1268,7 @@ export default function MecanicaPage() {
                     <CardContent className="flex flex-col sm:flex-row gap-2">
                       <Input placeholder="Nome do fornecedor" value={providerForm.name} onChange={e => setProviderForm({ ...providerForm, name: e.target.value })} className="flex-1" />
                       <Button onClick={handleSaveProvider} disabled={savingProvider}>{providerForm.id ? 'Salvar' : 'Cadastrar'}</Button>
-                      {providerForm.id && <Button variant="outline" onClick={() => setProviderForm({ id: '', name: '' })}>Cancelar</Button>}
+                      {providerForm.id && <Button variant="outline" onClick={() => setProviderForm({ id: '', name: '', needle_id: '', sinker_id: '', unit_price: '' })}>Cancelar</Button>}
                     </CardContent>
                   </Card>
                   <Card>
@@ -1293,7 +1293,7 @@ export default function MecanicaPage() {
                                 <td className="p-4 text-right">{qty}</td>
                                 <td className="p-4 text-right text-emerald-600">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 <td className="p-4 text-right space-x-1">
-                                  <Button variant="ghost" size="sm" onClick={() => setProviderForm({ id: p.id, name: p.name })}>Editar</Button>
+                                  <Button variant="ghost" size="sm" onClick={() => setProviderForm({ id: p.id, name: p.name, needle_id: '', sinker_id: '', unit_price: '' })}>Editar</Button>
                                   <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { if (window.confirm(`Excluir fornecedor "${p.name}"?`)) handleDeleteProvider(p.id); }}>Excluir</Button>
                                 </td>
                               </tr>
@@ -1766,7 +1766,7 @@ export default function MecanicaPage() {
                     <CardContent className="flex flex-col sm:flex-row gap-2">
                       <Input placeholder="Nome do fornecedor (ex: Groz-Beckert)" value={providerForm.name} onChange={e => setProviderForm({ ...providerForm, name: e.target.value })} className="flex-1" />
                       <Button onClick={handleSaveProvider} disabled={savingProvider}>{providerForm.id ? 'Salvar' : 'Cadastrar'}</Button>
-                      {providerForm.id && <Button variant="outline" onClick={() => setProviderForm({ id: '', name: '' })}>Cancelar</Button>}
+                      {providerForm.id && <Button variant="outline" onClick={() => setProviderForm({ id: '', name: '', needle_id: '', sinker_id: '', unit_price: '' })}>Cancelar</Button>}
                     </CardContent>
                   </Card>
                   <Card>
@@ -1791,7 +1791,7 @@ export default function MecanicaPage() {
                                 <td className="p-4 text-right">{qty}</td>
                                 <td className="p-4 text-right text-emerald-600">R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 <td className="p-4 text-right space-x-1">
-                                  <Button variant="ghost" size="sm" onClick={() => setProviderForm({ id: p.id, name: p.name })}>Editar</Button>
+                                  <Button variant="ghost" size="sm" onClick={() => setProviderForm({ id: p.id, name: p.name, needle_id: '', sinker_id: '', unit_price: '' })}>Editar</Button>
                                   <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { if (window.confirm(`Excluir fornecedor "${p.name}"?`)) handleDeleteProvider(p.id); }}>Excluir</Button>
                                 </td>
                               </tr>
