@@ -2406,20 +2406,47 @@ const BillingOrders = () => {
                                   const order = showPalletsModal;
                                   setPalletBusy(true);
                                   try {
-                                    // 1. Libera reserva (movimento contrário)
-                                    const { error: relErr } = await (supabase.from as any)('stock_movements').insert({
-                                      company_id: user.company_id,
-                                      article_id: order.article_id,
-                                      client_id: order.client_id,
-                                      billing_order_id: order.id,
-                                      machine_id: p.machine_id ?? null,
-                                      type: 'release',
-                                      pieces: p.pieces || 0,
-                                      weight_kg: p.weight || 0,
-                                      reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva)`,
-                                      created_by: profile?.id ?? null,
-                                    });
-                                    if (relErr) throw relErr;
+                                    if (p.machine_id) {
+                                      // Palete com máquina: uma reserva → uma liberação
+                                      const { error: relErr } = await (supabase.from as any)('stock_movements').insert({
+                                        company_id: user.company_id,
+                                        article_id: order.article_id,
+                                        client_id: order.client_id,
+                                        billing_order_id: order.id,
+                                        machine_id: p.machine_id,
+                                        type: 'release',
+                                        pieces: p.pieces || 0,
+                                        weight_kg: p.weight || 0,
+                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva)`,
+                                        created_by: profile?.id ?? null,
+                                      });
+                                      if (relErr) throw relErr;
+                                    } else {
+                                      // SEM MÁQUINA: busca todas as reservas deste palete e libera uma por máquina
+                                      const { data: reservas, error: qErr } = await (supabase.from as any)('stock_movements')
+                                        .select('id, machine_id, pieces, weight_kg')
+                                        .eq('company_id', user.company_id)
+                                        .eq('billing_order_id', order.id)
+                                        .eq('type', 'reserve')
+                                        .eq('reason', `OF #${order.of_number} · Palete ${p.pallet_number} (reserva · sem máquina)`);
+                                      if (qErr) throw qErr;
+                                      const releases = (reservas || []).map((r: any) => ({
+                                        company_id: user.company_id,
+                                        article_id: order.article_id,
+                                        client_id: order.client_id,
+                                        billing_order_id: order.id,
+                                        machine_id: r.machine_id,
+                                        type: 'release',
+                                        pieces: Number(r.pieces) || 0,
+                                        weight_kg: Number(r.weight_kg) || 0,
+                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva · sem máquina)`,
+                                        created_by: profile?.id ?? null,
+                                      }));
+                                      if (releases.length > 0) {
+                                        const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releases);
+                                        if (relErr) throw relErr;
+                                      }
+                                    }
                                     // 2. Apaga palete
                                     const { error: delErr } = await (supabase.from as any)('billing_order_pallets').delete().eq('id', p.id);
                                     if (delErr) throw delErr;
