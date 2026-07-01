@@ -390,13 +390,11 @@ export default function Machines() {
               )}
               {(() => {
                 const cyl = m.cylinder_id ? cylinders.find(c => c.id === m.cylinder_id) : null;
-                const diam = cyl?.diameter || m.diameter;
-                const fin = cyl?.fineness || m.fineness;
-                if (!diam && !fin) return null;
+                if (!cyl || (!cyl.diameter && !cyl.fineness)) return null;
                 return (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Diâmetro/Finura:</span>
-                    <span className="font-semibold text-foreground">{diam || '—'}" / {fin || '—'}</span>
+                    <span className="font-semibold text-foreground">{cyl.diameter || '—'}" / {cyl.fineness || '—'}</span>
                   </div>
                 );
               })()}

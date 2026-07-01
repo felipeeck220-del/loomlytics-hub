@@ -522,8 +522,8 @@ export default function MecanicaPage() {
         const obsList = last ? (obsByLogId[last.id] || []) : [];
         const obsText = obsList.map(o => o.observation).join(' • ');
         const cyl = machine.cylinder_id ? cylinders.find(c => c.id === machine.cylinder_id) : null;
-        const diam = cyl?.diameter || machine.diameter;
-        const fin = cyl?.fineness || machine.fineness;
+        const diam = cyl?.diameter;
+        const fin = cyl?.fineness;
         return [
           sanitizePdfText(machine.name),
           sanitizePdfText(machine.model || '—'),
@@ -1621,8 +1621,8 @@ export default function MecanicaPage() {
                       const obsList = last ? (obsByLogId[last.id] || []) : [];
                       const obsText = obsList.map(o => o.observation).join(' • ');
                       const cyl = machine.cylinder_id ? cylinders.find(c => c.id === machine.cylinder_id) : null;
-                      const diam = cyl?.diameter || machine.diameter;
-                      const fin = cyl?.fineness || machine.fineness;
+                      const diam = cyl?.diameter;
+                      const fin = cyl?.fineness;
                       return (
                         <TableRow key={machine.id} className="text-xs">
                           <TableCell className="text-center font-semibold">{machine.name}</TableCell>
