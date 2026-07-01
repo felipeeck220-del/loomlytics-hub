@@ -312,13 +312,16 @@ export default function MecanicaPage() {
   const filteredScheduleRows = useMemo(() => {
     const q = scheduleSearch.trim().toLowerCase();
     if (!q) return scheduleRows;
-    return scheduleRows.filter(r =>
-      r.machine.name.toLowerCase().includes(q) ||
-      (r.machine.model || '').toLowerCase().includes(q) ||
-      (r.machine.diameter || '').toLowerCase().includes(q) ||
-      (r.machine.fineness || '').toLowerCase().includes(q)
-    );
-  }, [scheduleRows, scheduleSearch]);
+    return scheduleRows.filter(r => {
+      const cyl = r.machine.cylinder_id ? cylinders.find(c => c.id === r.machine.cylinder_id) : null;
+      return (
+        r.machine.name.toLowerCase().includes(q) ||
+        (r.machine.model || '').toLowerCase().includes(q) ||
+        (cyl?.diameter || '').toLowerCase().includes(q) ||
+        (cyl?.fineness || '').toLowerCase().includes(q)
+      );
+    });
+  }, [scheduleRows, scheduleSearch, cylinders]);
 
   const scheduleHistoryRows = useMemo(() => {
     if (!scheduleHistoryMachineId) return [];
@@ -2698,7 +2701,11 @@ export default function MecanicaPage() {
                 if (grouped.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
                 return (
                   <div className="max-h-80 overflow-auto space-y-2">
-                    {grouped.map(({ machine: m, position }) => (
+                    {grouped.map(({ machine: m, position }) => {
+                      const cyl = m.cylinder_id ? cylinders.find(c => c.id === m.cylinder_id) : null;
+                      const diam = cyl?.diameter;
+                      const fin = cyl?.fineness;
+                      return (
                       <div key={`${m.id}-${position}`} className="flex items-center justify-between p-3 rounded bg-muted/50">
                         <div>
                           <p className="font-semibold flex items-center gap-2">
@@ -2707,11 +2714,11 @@ export default function MecanicaPage() {
                               <Badge variant="outline" className="text-[10px] uppercase">{position}</Badge>
                             )}
                           </p>
-                          <p className="text-xs text-muted-foreground">{m.machine_type === 'mono' ? 'Mono Frontura' : m.machine_type === 'dupla' ? 'Dupla Frontura' : 'Tipo não definido'} {m.model ? `· ${m.model}` : ''} {m.diameter ? `· Ø ${m.diameter}` : ''} {m.fineness ? `· ${m.fineness}` : ''}</p>
+                          <p className="text-xs text-muted-foreground">{m.machine_type === 'mono' ? 'Mono Frontura' : m.machine_type === 'dupla' ? 'Dupla Frontura' : 'Tipo não definido'} {m.model ? `· ${m.model}` : ''} {diam ? `· Ø ${diam}` : ''} {fin ? `· ${fin}` : ''}</p>
                         </div>
                         <Badge variant="outline">{m.status}</Badge>
                       </div>
-                    ))}
+                    );})}
                   </div>
                 );
               })()}
@@ -2740,15 +2747,19 @@ export default function MecanicaPage() {
                 if (list.length === 0) return <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma máquina utilizando esta referência.</p>;
                 return (
                   <div className="max-h-80 overflow-auto space-y-2">
-                    {list.map(m => (
+                    {list.map(m => {
+                      const cyl = m.cylinder_id ? cylinders.find(c => c.id === m.cylinder_id) : null;
+                      const diam = cyl?.diameter;
+                      const fin = cyl?.fineness;
+                      return (
                       <div key={m.id} className="flex items-center justify-between p-3 rounded bg-muted/50">
                         <div>
                           <p className="font-semibold">{m.name}</p>
-                          <p className="text-xs text-muted-foreground">Mono Frontura {m.model ? `· ${m.model}` : ''} {m.diameter ? `· Ø ${m.diameter}` : ''} {m.fineness ? `· ${m.fineness}` : ''}</p>
+                          <p className="text-xs text-muted-foreground">Mono Frontura {m.model ? `· ${m.model}` : ''} {diam ? `· Ø ${diam}` : ''} {fin ? `· ${fin}` : ''}</p>
                         </div>
                         <Badge variant="outline">{m.status}</Badge>
                       </div>
-                    ))}
+                    );})}
                   </div>
                 );
               })()}

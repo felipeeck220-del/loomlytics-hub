@@ -705,19 +705,28 @@ export function useCompanyData() {
    const assignCylinderToMachine = useCallback(async (cylinderId: string | null, machineId: string) => {
      if (!companyId) return;
      try {
-       // 1. If a cylinder was previously on this machine, unassign it
-       const prevMachine = machines.find(m => m.id === machineId);
-       if (prevMachine?.cylinder_id) {
+        // 1. If this machine already had a cylinder, unassign that cylinder
+        const prevMachine = machines.find(m => m.id === machineId);
+        if (prevMachine?.cylinder_id && prevMachine.cylinder_id !== cylinderId) {
           await sb('cylinders').update({ machine_id: null }).eq('id', prevMachine.cylinder_id);
-       }
+        }
 
-       // 2. Update machine with new cylinder
-       await sb('machines').update({ cylinder_id: cylinderId }).eq('id', machineId);
+        // 2. If the new cylinder is currently linked to a DIFFERENT machine,
+        //    clear that machine's cylinder_id first (avoid orphan link).
+        if (cylinderId) {
+          const otherMachine = machines.find(m => m.cylinder_id === cylinderId && m.id !== machineId);
+          if (otherMachine) {
+            await sb('machines').update({ cylinder_id: null }).eq('id', otherMachine.id);
+          }
+        }
 
-       // 3. Update cylinder with new machine
-       if (cylinderId) {
-         await sb('cylinders').update({ machine_id: machineId }).eq('id', cylinderId);
-       }
+        // 3. Update machine with new cylinder
+        await sb('machines').update({ cylinder_id: cylinderId }).eq('id', machineId);
+
+        // 4. Update cylinder with new machine
+        if (cylinderId) {
+          await sb('cylinders').update({ machine_id: machineId }).eq('id', cylinderId);
+        }
 
        // Refresh data
        const mData = await fetchAll('machines', { column: 'company_id', value: companyId }, 'number');
