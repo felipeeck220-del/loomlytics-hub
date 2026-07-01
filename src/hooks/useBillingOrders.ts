@@ -311,31 +311,50 @@ export function useBillingOrders() {
                   reason: `OF #${ofRow.of_number} coletada (libera reserva)` });
               }
             }
-            // Baixa do físico: prefere agrupar por máquina a partir dos paletes
-            const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
-              .select('pieces, weight_kg, machine_id')
-              .eq('billing_order_id', id);
-            if (palletRows && palletRows.length > 0) {
-              const outByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
-              for (const pr of palletRows) {
-                const k = (pr.machine_id as string | null) || '__none__';
-                const cur = outByMachine.get(k) || { p: 0, w: 0, mid: (pr.machine_id as string | null) || null };
-                cur.p += Number(pr.pieces || 0);
-                cur.w += Number(pr.weight_kg || 0);
-                outByMachine.set(k, cur);
+            // Baixa do físico: usa a MESMA quebra por máquina das reservas líquidas.
+            // Isso garante que paletes SEM MÁQUINA (cujas reservas foram distribuídas
+            // automaticamente por máquina com saldo) baixem o estoque físico das
+            // mesmas máquinas — evitando que a baixa caia em machine_id NULL e seja
+            // ignorada pelo cálculo de estoque em /estoque-malha.
+            let hadReserveOut = false;
+            for (const cur of netByMachine.values()) {
+              if (cur.p > 0 || cur.w > 0) {
+                mvs.push({ ...baseMov, machine_id: cur.mid, type: 'out',
+                  pieces: Math.max(0, Math.round(cur.p)),
+                  weight_kg: Math.max(0, cur.w),
+                  reason: `OF #${ofRow.of_number} coletada` });
+                hadReserveOut = true;
               }
-              for (const cur of outByMachine.values()) {
-                if (cur.p > 0 || cur.w > 0) {
-                  mvs.push({ ...baseMov, machine_id: cur.mid, type: 'out',
-                    pieces: Math.max(0, Math.round(cur.p)),
-                    weight_kg: Math.max(0, cur.w),
-                    reason: `OF #${ofRow.of_number} coletada` });
+            }
+            // Fallback (OFs sem nenhuma reserva registrada — legado): baixa pelo
+            // total previsto, mantendo compatibilidade com OFs anteriores à
+            // integração com estoque.
+            if (!hadReserveOut) {
+              const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
+                .select('pieces, weight_kg, machine_id')
+                .eq('billing_order_id', id);
+              if (palletRows && palletRows.length > 0) {
+                const outByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
+                for (const pr of palletRows) {
+                  const k = (pr.machine_id as string | null) || '__none__';
+                  const cur = outByMachine.get(k) || { p: 0, w: 0, mid: (pr.machine_id as string | null) || null };
+                  cur.p += Number(pr.pieces || 0);
+                  cur.w += Number(pr.weight_kg || 0);
+                  outByMachine.set(k, cur);
                 }
+                for (const cur of outByMachine.values()) {
+                  if (cur.p > 0 || cur.w > 0) {
+                    mvs.push({ ...baseMov, machine_id: cur.mid, type: 'out',
+                      pieces: Math.max(0, Math.round(cur.p)),
+                      weight_kg: Math.max(0, cur.w),
+                      reason: `OF #${ofRow.of_number} coletada` });
+                  }
+                }
+              } else {
+                mvs.push({ ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
+                  type: 'out', pieces, weight_kg: weight,
+                  reason: `OF #${ofRow.of_number} coletada` });
               }
-            } else {
-              mvs.push({ ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
-                type: 'out', pieces, weight_kg: weight,
-                reason: `OF #${ofRow.of_number} coletada` });
             }
           }
 
