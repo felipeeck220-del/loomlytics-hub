@@ -354,6 +354,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const deleteOrder = async (o: MaintenanceOrder) => {
     if (!canManage) return;
+    if (o.status === 'em_curso') {
+      toast.error('Não é possível excluir uma OM em curso. Finalize ou cancele primeiro.');
+      return;
+    }
     await (supabase.from as any)('maintenance_order_items').delete().eq('order_id', o.id);
     await (supabase.from as any)('maintenance_orders').delete().eq('id', o.id);
     toast.success('OM excluída');
