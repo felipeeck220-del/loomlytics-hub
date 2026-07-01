@@ -314,12 +314,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           });
         }
       } else if (it.item_type === 'cilindro' && it.cylinder_id) {
-        // Libera cilindro anterior e atribui o novo
-        if (machine?.cylinder_id && machine.cylinder_id !== it.cylinder_id) {
-          await (supabase.from as any)('cylinders').update({ machine_id: null }).eq('id', machine.cylinder_id);
-        }
-        await (supabase.from as any)('machines').update({ cylinder_id: it.cylinder_id }).eq('id', finishOrder.machine_id);
-        await (supabase.from as any)('cylinders').update({ machine_id: finishOrder.machine_id }).eq('id', it.cylinder_id);
+        // Libera cilindro anterior desta máquina, remove o cilindro novo
+        // de qualquer outra máquina que o esteja usando, e atribui.
+        await assignCylinderToMachine(it.cylinder_id, finishOrder.machine_id);
       }
     }
 
