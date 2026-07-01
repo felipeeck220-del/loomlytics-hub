@@ -312,13 +312,16 @@ export default function MecanicaPage() {
   const filteredScheduleRows = useMemo(() => {
     const q = scheduleSearch.trim().toLowerCase();
     if (!q) return scheduleRows;
-    return scheduleRows.filter(r =>
-      r.machine.name.toLowerCase().includes(q) ||
-      (r.machine.model || '').toLowerCase().includes(q) ||
-      (r.machine.diameter || '').toLowerCase().includes(q) ||
-      (r.machine.fineness || '').toLowerCase().includes(q)
-    );
-  }, [scheduleRows, scheduleSearch]);
+    return scheduleRows.filter(r => {
+      const cyl = r.machine.cylinder_id ? cylinders.find(c => c.id === r.machine.cylinder_id) : null;
+      return (
+        r.machine.name.toLowerCase().includes(q) ||
+        (r.machine.model || '').toLowerCase().includes(q) ||
+        (cyl?.diameter || '').toLowerCase().includes(q) ||
+        (cyl?.fineness || '').toLowerCase().includes(q)
+      );
+    });
+  }, [scheduleRows, scheduleSearch, cylinders]);
 
   const scheduleHistoryRows = useMemo(() => {
     if (!scheduleHistoryMachineId) return [];
