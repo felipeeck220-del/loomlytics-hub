@@ -185,7 +185,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const startOrder = async (o: MaintenanceOrder) => {
     if (!canExecute) return;
     const now = new Date().toISOString();
-    // 1) cria machine_log
+    // 0) fecha qualquer machine_log em aberto dessa máquina (evita 2 logs abertos)
+    await (supabase.from as any)('machine_logs')
+      .update({ ended_at: now, ended_by_name: authorLabel })
+      .eq('machine_id', o.machine_id)
+      .is('ended_at', null);
+    // 1) cria machine_log da OM
     const { data: log, error: logErr } = await (supabase.from as any)('machine_logs').insert({
       machine_id: o.machine_id,
       company_id: companyId,
@@ -237,8 +242,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         ended_at: now, ended_by_name: authorLabel,
       }).eq('id', finishOrder.machine_log_id);
     }
-    // 2) máquina volta a ativa
+    // 2) máquina volta a ativa + abre novo log "ativa" para manter a linha do tempo
     await (supabase.from as any)('machines').update({ status: 'ativa' }).eq('id', finishOrder.machine_id);
+    await (supabase.from as any)('machine_logs').insert({
+      machine_id: finishOrder.machine_id,
+      company_id: companyId,
+      status: 'ativa',
+      started_at: now,
+      started_by_name: authorLabel,
+    });
 
     // 3) atualiza OM
     const { error } = await (supabase.from as any)('maintenance_orders').update({
