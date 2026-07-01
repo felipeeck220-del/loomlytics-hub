@@ -521,11 +521,14 @@ export default function MecanicaPage() {
         const { machine, last, lastDate, nextDate, daysLeft, durationMin, intervalDays, kgTarget, kgLeft } = r;
         const obsList = last ? (obsByLogId[last.id] || []) : [];
         const obsText = obsList.map(o => o.observation).join(' • ');
+        const cyl = machine.cylinder_id ? cylinders.find(c => c.id === machine.cylinder_id) : null;
+        const diam = cyl?.diameter || machine.diameter;
+        const fin = cyl?.fineness || machine.fineness;
         return [
           sanitizePdfText(machine.name),
           sanitizePdfText(machine.model || '—'),
-          sanitizePdfText(((machine.diameter || machine.fineness)
-            ? `${machine.diameter || '—'} / ${machine.fineness || '—'}`
+          sanitizePdfText(((diam || fin)
+            ? `${diam || '—'} / ${fin || '—'}`
             : '—')),
           lastDate ? format(lastDate, 'dd/MM/yyyy') : '—',
           `${intervalDays} dias`,
@@ -1617,13 +1620,16 @@ export default function MecanicaPage() {
                       const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount, kgTarget, kgLeft, kgSince, intervalDays, isCustomized } = row;
                       const obsList = last ? (obsByLogId[last.id] || []) : [];
                       const obsText = obsList.map(o => o.observation).join(' • ');
+                      const cyl = machine.cylinder_id ? cylinders.find(c => c.id === machine.cylinder_id) : null;
+                      const diam = cyl?.diameter || machine.diameter;
+                      const fin = cyl?.fineness || machine.fineness;
                       return (
                         <TableRow key={machine.id} className="text-xs">
                           <TableCell className="text-center font-semibold">{machine.name}</TableCell>
                           <TableCell className="text-center">{machine.model || '—'}</TableCell>
                           <TableCell className="text-center whitespace-nowrap tabular-nums">
-                            {(machine.diameter || machine.fineness)
-                              ? `${machine.diameter || '—'} / ${machine.fineness || '—'}`
+                            {(diam || fin)
+                              ? `${diam || '—'} / ${fin || '—'}`
                               : '—'}
                           </TableCell>
                           <TableCell className="text-center">

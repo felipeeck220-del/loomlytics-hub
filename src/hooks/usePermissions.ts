@@ -7,7 +7,7 @@ export type AppRole = 'admin' | 'lider' | 'lider_mecanica' | 'mecanico' | 'revis
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
   admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
   lider: ['machines', 'clients-articles', 'revision', 'mecanica', 'weavers'],
-  lider_mecanica: ['machines', 'mecanica'],
+  lider_mecanica: ['mecanica'],
   mecanico: ['machines', 'mecanica'],
   revisador: ['revision'],
   expedicao: ['billing-orders', 'estoque-malha'],

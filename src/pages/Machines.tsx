@@ -388,12 +388,18 @@ export default function Machines() {
                   <span className="font-semibold text-foreground">{m.model}</span>
                 </div>
               )}
-              {m.diameter && m.fineness && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Diâmetro/Finura:</span>
-                  <span className="font-semibold text-foreground">{m.diameter}" / {m.fineness}</span>
-                </div>
-              )}
+              {(() => {
+                const cyl = m.cylinder_id ? cylinders.find(c => c.id === m.cylinder_id) : null;
+                const diam = cyl?.diameter || m.diameter;
+                const fin = cyl?.fineness || m.fineness;
+                if (!diam && !fin) return null;
+                return (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Diâmetro/Finura:</span>
+                    <span className="font-semibold text-foreground">{diam || '—'}" / {fin || '—'}</span>
+                  </div>
+                );
+              })()}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Cadastrada:</span>
                 <span className="font-semibold text-foreground">{format(new Date(m.created_at), 'dd/MM/yyyy')}</span>
