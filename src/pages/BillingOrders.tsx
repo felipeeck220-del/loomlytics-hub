@@ -2178,7 +2178,10 @@ const BillingOrders = () => {
                       <SearchableSelect
                         value={palletInput.machine_id}
                         onValueChange={v => setPalletInput({ ...palletInput, machine_id: v })}
-                        options={getMachines().map(m => ({ value: m.id, label: m.name }))}
+                        options={[
+                          ...getMachines().map(m => ({ value: m.id, label: m.name })),
+                          { value: '__none__', label: 'SEM MÁQUINA' },
+                        ]}
                         placeholder="Selecione a máquina"
                       />
                     </div>
@@ -2193,8 +2196,8 @@ const BillingOrders = () => {
                           toast({ title: 'Informe o peso do palete (kg)', variant: 'destructive' });
                           return;
                         }
-                        if (!palletInput.machine_id || palletInput.machine_id === 'none') {
-                          toast({ title: 'Selecione a máquina do palete', description: 'A máquina é obrigatória para separar o estoque corretamente.', variant: 'destructive' });
+                        if (!palletInput.machine_id) {
+                          toast({ title: 'Selecione a máquina do palete', description: 'Escolha uma máquina ou "SEM MÁQUINA" para descontar do estoque total do artigo.', variant: 'destructive' });
                           return;
                         }
                         if (!user?.company_id) return;
@@ -2213,35 +2216,122 @@ const BillingOrders = () => {
                           const localMax = pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0);
                           const dbMax = Number((maxRow as any)?.pallet_number ?? 0);
                           const nextNumber = Math.max(localMax, dbMax) + 1;
-                          const palletMachineId = palletInput.machine_id;
-                          // 1. Cria movimento de reserva
-                          const { data: mv, error: mvErr } = await (supabase.from as any)('stock_movements').insert({
-                            company_id: user.company_id,
-                            article_id: order.article_id,
-                            client_id: order.client_id,
-                            billing_order_id: order.id,
-                            machine_id: palletMachineId,
-                            type: 'reserve',
-                            pieces: pc || 0,
-                            weight_kg: wt || 0,
-                            reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva)`,
-                            created_by: profile?.id ?? null,
-                          }).select('id').single();
+                          const isNoMachine = palletInput.machine_id === '__none__';
+                          const palletMachineId = isNoMachine ? null : palletInput.machine_id;
+
+                          // Se SEM MÁQUINA: computa saldo por máquina do artigo e distribui a baixa.
+                          type Alloc = { machine_id: string; pieces: number; weight_kg: number };
+                          const allocations: Alloc[] = [];
+                          if (isNoMachine) {
+                            const [prodRes, mvRes] = await Promise.all([
+                              (supabase.from as any)('productions')
+                                .select('machine_id, rolls_produced, weight_kg')
+                                .eq('company_id', user.company_id)
+                                .eq('article_id', order.article_id),
+                              (supabase.from as any)('stock_movements')
+                                .select('machine_id, type, pieces, weight_kg, is_second_quality, billing_order_id')
+                                .eq('company_id', user.company_id)
+                                .eq('article_id', order.article_id),
+                            ]);
+                            const bal = new Map<string, { pieces: number; weight: number }>();
+                            for (const p of (prodRes.data || [])) {
+                              if (!p.machine_id) continue;
+                              const cur = bal.get(p.machine_id) || { pieces: 0, weight: 0 };
+                              cur.pieces += Number(p.rolls_produced) || 0;
+                              cur.weight += Number(p.weight_kg) || 0;
+                              bal.set(p.machine_id, cur);
+                            }
+                            for (const mv of (mvRes.data || [])) {
+                              if (mv.is_second_quality) continue;
+                              if (!mv.machine_id) continue;
+                              if (!['adjust_in','adjust_out','in','out','reserve','release'].includes(mv.type)) continue;
+                              const cur = bal.get(mv.machine_id) || { pieces: 0, weight: 0 };
+                              const kg = Number(mv.weight_kg) || 0;
+                              const pcs = Number(mv.pieces) || 0;
+                              if (mv.type === 'adjust_in') { cur.pieces += pcs; cur.weight += kg; }
+                              else if (mv.type === 'adjust_out') { cur.pieces -= pcs; cur.weight -= kg; }
+                              else if (mv.type === 'in') {
+                                if (mv.billing_order_id) { /* estorno afeta entregue, não estoque produzido */ }
+                                else { cur.pieces += pcs; cur.weight += kg; }
+                              }
+                              else if (mv.type === 'out') { cur.pieces -= pcs; cur.weight -= kg; }
+                              else if (mv.type === 'reserve') { cur.pieces -= pcs; cur.weight -= kg; }
+                              else if (mv.type === 'release') { cur.pieces += pcs; cur.weight += kg; }
+                              bal.set(mv.machine_id, cur);
+                            }
+                            // Ordena por peso disponível decrescente
+                            const sorted = Array.from(bal.entries())
+                              .filter(([, v]) => v.weight > 0.0001 || v.pieces > 0)
+                              .sort((a, b) => b[1].weight - a[1].weight);
+                            let remPc = pc || 0;
+                            let remKg = wt || 0;
+                            for (const [mid, v] of sorted) {
+                              if (remKg <= 0.0001 && remPc <= 0) break;
+                              const takePc = Math.min(Math.max(v.pieces, 0), remPc);
+                              const takeKg = Math.min(Math.max(v.weight, 0), remKg);
+                              if (takePc <= 0 && takeKg <= 0.0001) continue;
+                              allocations.push({ machine_id: mid, pieces: takePc, weight_kg: Number(takeKg.toFixed(3)) });
+                              remPc -= takePc;
+                              remKg -= takeKg;
+                            }
+                            // Sobra: joga na máquina com maior saldo restante (ou última) para preservar total exato
+                            if ((remKg > 0.0001 || remPc > 0)) {
+                              if (allocations.length > 0) {
+                                const last = allocations[allocations.length - 1];
+                                last.pieces += Math.max(remPc, 0);
+                                last.weight_kg = Number((last.weight_kg + Math.max(remKg, 0)).toFixed(3));
+                              } else {
+                                toast({ title: 'Sem estoque em nenhuma máquina', description: 'Não há saldo positivo para descontar. Selecione uma máquina específica.', variant: 'destructive' });
+                                setPalletBusy(false);
+                                return;
+                              }
+                            }
+                          }
+
+                          // 1. Cria movimento(s) de reserva
+                          const reserveRows = isNoMachine
+                            ? allocations.map(a => ({
+                                company_id: user.company_id,
+                                article_id: order.article_id,
+                                client_id: order.client_id,
+                                billing_order_id: order.id,
+                                machine_id: a.machine_id,
+                                type: 'reserve',
+                                pieces: a.pieces,
+                                weight_kg: a.weight_kg,
+                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva · sem máquina)`,
+                                created_by: profile?.id ?? null,
+                              }))
+                            : [{
+                                company_id: user.company_id,
+                                article_id: order.article_id,
+                                client_id: order.client_id,
+                                billing_order_id: order.id,
+                                machine_id: palletMachineId,
+                                type: 'reserve',
+                                pieces: pc || 0,
+                                weight_kg: wt || 0,
+                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva)`,
+                                created_by: profile?.id ?? null,
+                              }];
+                          const { data: mvRows, error: mvErr } = await (supabase.from as any)('stock_movements').insert(reserveRows).select('id');
                           if (mvErr) throw mvErr;
-                          // 2. Persiste palete
+                          const firstMvId = (mvRows && mvRows[0]?.id) || null;
+                          // 2. Persiste palete (machine_id=null quando SEM MÁQUINA)
                           const { data: row, error: pErr } = await (supabase.from as any)('billing_order_pallets').insert({
                             billing_order_id: order.id,
                             company_id: user.company_id,
                             pallet_number: nextNumber,
                             pieces: pc || 0,
                             weight_kg: wt || 0,
-                            reserve_movement_id: mv?.id ?? null,
+                            reserve_movement_id: firstMvId,
                             machine_id: palletMachineId,
                             created_by: profile?.id ?? null,
                           }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id').single();
                           if (pErr) {
-                            // rollback do movimento se persistência falhar
-                            if (mv?.id) await (supabase.from as any)('stock_movements').delete().eq('id', mv.id);
+                            // rollback dos movimentos se persistência falhar
+                            const ids = (mvRows || []).map((r: any) => r.id).filter(Boolean);
+                            if (ids.length) await (supabase.from as any)('stock_movements').delete().in('id', ids);
                             throw pErr;
                           }
                           setPallets(prev => [...prev, {
@@ -2254,7 +2344,12 @@ const BillingOrders = () => {
                           }]);
                           setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id });
                           refreshStockCaches();
-                          toast({ title: `Palete ${nextNumber} salvo e reservado no estoque` });
+                          toast({
+                            title: `Palete ${nextNumber} salvo e reservado no estoque`,
+                            description: isNoMachine
+                              ? `SEM MÁQUINA: distribuído em ${allocations.length} máquina${allocations.length !== 1 ? 's' : ''} com saldo positivo.`
+                              : undefined,
+                          });
                         } catch (e: any) {
                           toast({ title: 'Erro ao salvar palete', description: e.message, variant: 'destructive' });
                         } finally {
@@ -2311,20 +2406,47 @@ const BillingOrders = () => {
                                   const order = showPalletsModal;
                                   setPalletBusy(true);
                                   try {
-                                    // 1. Libera reserva (movimento contrário)
-                                    const { error: relErr } = await (supabase.from as any)('stock_movements').insert({
-                                      company_id: user.company_id,
-                                      article_id: order.article_id,
-                                      client_id: order.client_id,
-                                      billing_order_id: order.id,
-                                      machine_id: p.machine_id ?? null,
-                                      type: 'release',
-                                      pieces: p.pieces || 0,
-                                      weight_kg: p.weight || 0,
-                                      reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva)`,
-                                      created_by: profile?.id ?? null,
-                                    });
-                                    if (relErr) throw relErr;
+                                    if (p.machine_id) {
+                                      // Palete com máquina: uma reserva → uma liberação
+                                      const { error: relErr } = await (supabase.from as any)('stock_movements').insert({
+                                        company_id: user.company_id,
+                                        article_id: order.article_id,
+                                        client_id: order.client_id,
+                                        billing_order_id: order.id,
+                                        machine_id: p.machine_id,
+                                        type: 'release',
+                                        pieces: p.pieces || 0,
+                                        weight_kg: p.weight || 0,
+                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva)`,
+                                        created_by: profile?.id ?? null,
+                                      });
+                                      if (relErr) throw relErr;
+                                    } else {
+                                      // SEM MÁQUINA: busca todas as reservas deste palete e libera uma por máquina
+                                      const { data: reservas, error: qErr } = await (supabase.from as any)('stock_movements')
+                                        .select('id, machine_id, pieces, weight_kg')
+                                        .eq('company_id', user.company_id)
+                                        .eq('billing_order_id', order.id)
+                                        .eq('type', 'reserve')
+                                        .eq('reason', `OF #${order.of_number} · Palete ${p.pallet_number} (reserva · sem máquina)`);
+                                      if (qErr) throw qErr;
+                                      const releases = (reservas || []).map((r: any) => ({
+                                        company_id: user.company_id,
+                                        article_id: order.article_id,
+                                        client_id: order.client_id,
+                                        billing_order_id: order.id,
+                                        machine_id: r.machine_id,
+                                        type: 'release',
+                                        pieces: Number(r.pieces) || 0,
+                                        weight_kg: Number(r.weight_kg) || 0,
+                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva · sem máquina)`,
+                                        created_by: profile?.id ?? null,
+                                      }));
+                                      if (releases.length > 0) {
+                                        const { error: relErr } = await (supabase.from as any)('stock_movements').insert(releases);
+                                        if (relErr) throw relErr;
+                                      }
+                                    }
                                     // 2. Apaga palete
                                     const { error: delErr } = await (supabase.from as any)('billing_order_pallets').delete().eq('id', p.id);
                                     if (delErr) throw delErr;
