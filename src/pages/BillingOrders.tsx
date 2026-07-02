@@ -1613,6 +1613,19 @@ const BillingOrders = () => {
               <Label className="text-right">Tinturaria</Label>
               <Input className="col-span-3" value={form.dyehouse} onChange={e => setForm({...form, dyehouse: e.target.value.toUpperCase()})} placeholder="Ex: LITORAL" />
             </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right pt-2">Observações</Label>
+              <div className="col-span-3 space-y-1">
+                <Textarea
+                  value={form.admin_notes}
+                  onChange={e => setForm({ ...form, admin_notes: e.target.value.slice(0, 1000) })}
+                  placeholder="Instruções do admin para a expedição (opcional). Ex.: separar em paletes menores, priorizar cliente X, embalar em plástico bolha..."
+                  rows={3}
+                  className="text-sm resize-y"
+                />
+                <div className="text-[10px] text-muted-foreground text-right">{form.admin_notes.length}/1000</div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button>
