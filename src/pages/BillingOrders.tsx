@@ -2267,11 +2267,25 @@ const BillingOrders = () => {
                     </div>
                   </div>
                   <div className="rounded-md bg-muted/40 border-dashed border p-2 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="use_alt" checked={palletInput.use_alt} onCheckedChange={(v) => setPalletInput({ ...palletInput, use_alt: !!v, alt_client_id: '', alt_article_id: '' })} />
-                      <Label htmlFor="use_alt" className="text-xs cursor-pointer">Este palete usa <strong>outro artigo</strong> (fecha esta OF descontando estoque de outro cliente/artigo)</Label>
+                    <div className="text-[10px] uppercase text-muted-foreground font-semibold">Origem do estoque deste palete</div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="flex items-start gap-2 text-xs cursor-pointer">
+                        <input type="radio" name="pallet-src" className="mt-0.5" checked={palletInput.source_mode === 'default'}
+                          onChange={() => setPalletInput({ ...palletInput, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' })} />
+                        <span>Estoque do <strong>cliente/artigo da OF</strong> (padrão)</span>
+                      </label>
+                      <label className="flex items-start gap-2 text-xs cursor-pointer">
+                        <input type="radio" name="pallet-src" className="mt-0.5" checked={palletInput.source_mode === 'alt'}
+                          onChange={() => setPalletInput({ ...palletInput, source_mode: 'alt', alt_client_id: '', alt_article_id: '', own_article_id: '' })} />
+                        <span>Usar <strong>outro artigo</strong> (fecha esta OF descontando estoque de outro cliente/artigo)</span>
+                      </label>
+                      <label className="flex items-start gap-2 text-xs cursor-pointer">
+                        <input type="radio" name="pallet-src" className="mt-0.5" checked={palletInput.source_mode === 'own'}
+                          onChange={() => setPalletInput({ ...palletInput, source_mode: 'own', alt_client_id: '', alt_article_id: '', own_article_id: '' })} />
+                        <span>Usar <strong>Estoque {companyFirstName}</strong> (baixa direta do estoque próprio da empresa)</span>
+                      </label>
                     </div>
-                    {palletInput.use_alt && (
+                    {palletInput.source_mode === 'alt' && (
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label className="text-[10px] uppercase">Cliente (alternativo) *</Label>
@@ -2280,6 +2294,7 @@ const BillingOrders = () => {
                             onValueChange={v => setPalletInput({ ...palletInput, alt_client_id: v, alt_article_id: '' })}
                             options={getClients().map(c => ({ value: c.id, label: c.name }))}
                             placeholder="Selecione o cliente"
+                            autoFocusSearch={false}
                           />
                         </div>
                         <div>
@@ -2289,8 +2304,21 @@ const BillingOrders = () => {
                             onValueChange={v => setPalletInput({ ...palletInput, alt_article_id: v })}
                             options={getArticles().filter(a => a.client_id === palletInput.alt_client_id).map(a => ({ value: a.id, label: a.name }))}
                             placeholder={palletInput.alt_client_id ? 'Selecione o artigo' : 'Selecione o cliente antes'}
+                            autoFocusSearch={false}
                           />
                         </div>
+                      </div>
+                    )}
+                    {palletInput.source_mode === 'own' && (
+                      <div>
+                        <Label className="text-[10px] uppercase">Artigo em Estoque {companyFirstName} *</Label>
+                        <SearchableSelect
+                          value={palletInput.own_article_id}
+                          onValueChange={v => setPalletInput({ ...palletInput, own_article_id: v })}
+                          options={ownArticles.map(a => ({ value: a.id, label: a.name }))}
+                          placeholder={ownArticles.length ? `Selecione o artigo em Estoque ${companyFirstName}` : `Cadastre um artigo em Estoque ${companyFirstName}`}
+                          autoFocusSearch={false}
+                        />
                       </div>
                     )}
                   </div>
