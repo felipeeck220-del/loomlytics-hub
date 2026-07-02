@@ -625,6 +625,7 @@ export function useBillingOrders() {
 
       // Em qualquer revert para Aberto, apaga paletes salvos (usuário recomeça a separação do zero)
       if (revertToOpen) {
+        await restoreOwnStockForOrder(id, preReleaseSnapshot?.of_number ?? '', 'OF revertida para Aberto (devolve estoque próprio)');
         await (supabase.from as any)('billing_order_pallets').delete().eq('billing_order_id', id);
       }
     },
