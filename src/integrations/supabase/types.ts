@@ -256,6 +256,8 @@ export type Database = {
           created_by: string | null
           id: string
           machine_id: string | null
+          own_article_id: string | null
+          own_stock_movement_id: string | null
           pallet_number: number
           pieces: number
           reserve_movement_id: string | null
@@ -270,6 +272,8 @@ export type Database = {
           created_by?: string | null
           id?: string
           machine_id?: string | null
+          own_article_id?: string | null
+          own_stock_movement_id?: string | null
           pallet_number: number
           pieces?: number
           reserve_movement_id?: string | null
@@ -284,6 +288,8 @@ export type Database = {
           created_by?: string | null
           id?: string
           machine_id?: string | null
+          own_article_id?: string | null
+          own_stock_movement_id?: string | null
           pallet_number?: number
           pieces?: number
           reserve_movement_id?: string | null
@@ -330,6 +336,20 @@ export type Database = {
             columns: ["machine_id"]
             isOneToOne: false
             referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_order_pallets_own_article_id_fkey"
+            columns: ["own_article_id"]
+            isOneToOne: false
+            referencedRelation: "own_stock_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_order_pallets_own_stock_movement_id_fkey"
+            columns: ["own_stock_movement_id"]
+            isOneToOne: false
+            referencedRelation: "own_stock_movements"
             referencedColumns: ["id"]
           },
           {
@@ -2584,33 +2604,45 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          of_number: string | null
+          outsource_company_id: string | null
           own_article_id: string
           pieces: number
           reason: string | null
+          source: string | null
           type: string
           weight_kg: number
+          yarn_type: string | null
         }
         Insert: {
           company_id: string
           created_at?: string
           created_by?: string | null
           id?: string
+          of_number?: string | null
+          outsource_company_id?: string | null
           own_article_id: string
           pieces?: number
           reason?: string | null
+          source?: string | null
           type: string
           weight_kg?: number
+          yarn_type?: string | null
         }
         Update: {
           company_id?: string
           created_at?: string
           created_by?: string | null
           id?: string
+          of_number?: string | null
+          outsource_company_id?: string | null
           own_article_id?: string
           pieces?: number
           reason?: string | null
+          source?: string | null
           type?: string
           weight_kg?: number
+          yarn_type?: string | null
         }
         Relationships: [
           {
@@ -2625,6 +2657,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "own_stock_movements_outsource_company_id_fkey"
+            columns: ["outsource_company_id"]
+            isOneToOne: false
+            referencedRelation: "outsource_companies"
             referencedColumns: ["id"]
           },
           {
