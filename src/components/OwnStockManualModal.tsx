@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { Warehouse, Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 interface OwnArticle { id: string; name: string }
 interface Props {
@@ -32,11 +33,29 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
   const [weight, setWeight] = useState('');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
+  const [source, setSource] = useState<'internal' | 'outsource'>('internal');
+  const [outsourceCompanyId, setOutsourceCompanyId] = useState('');
+  const [yarnType, setYarnType] = useState('');
+  const [ofNumber, setOfNumber] = useState('');
+
+  const { data: outsourceCompanies = [] } = useQuery({
+    queryKey: ['outsource_companies_min', user?.company_id],
+    enabled: !!user?.company_id && open,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)('outsource_companies')
+        .select('id, name')
+        .eq('company_id', user!.company_id)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name: string }>;
+    },
+  });
 
   useEffect(() => {
     if (open) {
       setType('in'); setArticleId(''); setCreatingNew(false);
       setNewName(''); setPieces(''); setWeight(''); setReason('');
+      setSource('internal'); setOutsourceCompanyId(''); setYarnType(''); setOfNumber('');
     }
   }, [open]);
 
@@ -64,6 +83,10 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
       }
       if (!finalArticleId) { setSaving(false); return toast({ title: 'Selecione ou crie um artigo', variant: 'destructive' }); }
       if (!(weightNum > 0) && !(piecesNum > 0)) { setSaving(false); return toast({ title: 'Informe peças ou peso', variant: 'destructive' }); }
+      if (type === 'in' && source === 'outsource' && !outsourceCompanyId) {
+        setSaving(false);
+        return toast({ title: 'Selecione a malharia terceirizada', variant: 'destructive' });
+      }
 
       const { error: mvErr } = await (supabase.from as any)('own_stock_movements').insert({
         company_id: user.company_id,
@@ -73,6 +96,10 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
         weight_kg: weightNum,
         reason: reason.trim() || null,
         created_by: profile?.id ?? null,
+        source: type === 'in' ? source : null,
+        outsource_company_id: type === 'in' && source === 'outsource' ? outsourceCompanyId : null,
+        yarn_type: type === 'in' ? (yarnType.trim() || null) : null,
+        of_number: type === 'in' ? (ofNumber.trim() || null) : null,
       });
       if (mvErr) throw mvErr;
 
@@ -86,6 +113,11 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
       setSaving(false);
     }
   };
+
+  const outsourceOptions = useMemo(
+    () => outsourceCompanies.map(o => ({ value: o.id, label: o.name })),
+    [outsourceCompanies]
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,6 +140,47 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
               </label>
             </RadioGroup>
           </div>
+
+          {type === 'in' && (
+            <div className="space-y-2 rounded-md border border-dashed p-3">
+              <Label className="text-xs">Origem da malha</Label>
+              <RadioGroup value={source} onValueChange={(v) => setSource(v as any)} className="flex flex-col gap-2">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <RadioGroupItem value="internal" id="src-internal" className="mt-0.5" />
+                  <span><strong>Produção interna</strong> — malha produzida dentro da empresa</span>
+                </label>
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <RadioGroupItem value="outsource" id="src-outsource" className="mt-0.5" />
+                  <span><strong>Terceirizado</strong> — malha veio de uma malharia terceirizada</span>
+                </label>
+              </RadioGroup>
+              {source === 'outsource' && (
+                <div className="space-y-1 pt-1">
+                  <Label className="text-[11px]">Malharia terceirizada *</Label>
+                  <SearchableSelect
+                    value={outsourceCompanyId}
+                    onValueChange={setOutsourceCompanyId}
+                    options={outsourceOptions}
+                    placeholder={outsourceOptions.length ? 'Selecione a malharia' : 'Cadastre em Terceirizado → Malharias'}
+                    searchPlaceholder="Buscar malharia..."
+                    autoFocusSearch={false}
+                  />
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Tipo de fio</Label>
+                  <Input value={yarnType} onChange={(e) => setYarnType(e.target.value)}
+                    placeholder="Ex.: 30/1 Penteado" className="h-8 text-xs" maxLength={80} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Nº OF / ROM de entrada</Label>
+                  <Input value={ofNumber} onChange={(e) => setOfNumber(e.target.value)}
+                    placeholder="Ex.: 12345" className="h-8 text-xs" maxLength={40} />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">

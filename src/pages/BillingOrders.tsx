@@ -137,10 +137,24 @@ const BillingOrders = () => {
   // Modal de Detalhes (olho)
   const [showDetailsModal, setShowDetailsModal] = useState<any>(null);
   const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null; alt_client_id?: string | null; alt_article_id?: string | null }>>([]);
-  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null }>>([]);
-  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; use_alt: boolean; alt_client_id: string; alt_article_id: string }>({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' });
+  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null; own_article_id?: string | null; own_stock_movement_id?: string | null }>>([]);
+  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; source_mode: 'default' | 'alt' | 'own'; alt_client_id: string; alt_article_id: string; own_article_id: string }>({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
   const [palletBusy, setPalletBusy] = useState(false);
   const [palletsLoading, setPalletsLoading] = useState(false);
+  const [ownArticles, setOwnArticles] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    if (!user?.company_id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase.from as any)('own_stock_articles')
+        .select('id, name')
+        .eq('company_id', user.company_id)
+        .order('name');
+      if (!cancelled) setOwnArticles((data || []).map((r: any) => ({ id: r.id, name: r.name })));
+    })();
+    return () => { cancelled = true; };
+  }, [user?.company_id, showPalletsModal]);
+  const companyFirstName = (user as any)?.company_name?.split(/\s+/)[0] || 'Fábrica';
 
   // Modal de Atrelar OFs
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -155,7 +169,7 @@ const BillingOrders = () => {
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
-        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id')
+        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id')
         .eq('billing_order_id', showPalletsModal.id)
         .order('pallet_number', { ascending: true });
       if (cancelled) { setPalletsLoading(false); return; }
@@ -173,6 +187,8 @@ const BillingOrders = () => {
         machine_id: r.machine_id ?? null,
         alt_client_id: r.alt_client_id ?? null,
         alt_article_id: r.alt_article_id ?? null,
+        own_article_id: r.own_article_id ?? null,
+        own_stock_movement_id: r.own_stock_movement_id ?? null,
       })));
       setPalletsLoading(false);
     })();
@@ -1402,7 +1418,7 @@ const BillingOrders = () => {
                             className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
                             onClick={() => {
                               setPallets([]);
-                              setPalletInput({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' });
+                              setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
                               setPalletsLoading(true);
                               setShowPalletsModal(order);
                             }}
@@ -2179,7 +2195,7 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Paletes — separação por paletes */}
-      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' }); } }}>
+      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); } }}>
         <DialogContent
           className="sm:max-w-[560px] w-screen h-screen max-w-none rounded-none p-4 sm:w-auto sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:p-6 [&>button.absolute]:hidden overflow-y-auto"
           onOpenAutoFocus={(e) => e.preventDefault()}
@@ -2253,11 +2269,25 @@ const BillingOrders = () => {
                     </div>
                   </div>
                   <div className="rounded-md bg-muted/40 border-dashed border p-2 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="use_alt" checked={palletInput.use_alt} onCheckedChange={(v) => setPalletInput({ ...palletInput, use_alt: !!v, alt_client_id: '', alt_article_id: '' })} />
-                      <Label htmlFor="use_alt" className="text-xs cursor-pointer">Este palete usa <strong>outro artigo</strong> (fecha esta OF descontando estoque de outro cliente/artigo)</Label>
+                    <div className="text-[10px] uppercase text-muted-foreground font-semibold">Origem do estoque deste palete</div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="flex items-start gap-2 text-xs cursor-pointer">
+                        <input type="radio" name="pallet-src" className="mt-0.5" checked={palletInput.source_mode === 'default'}
+                          onChange={() => setPalletInput({ ...palletInput, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' })} />
+                        <span>Estoque do <strong>cliente/artigo da OF</strong> (padrão)</span>
+                      </label>
+                      <label className="flex items-start gap-2 text-xs cursor-pointer">
+                        <input type="radio" name="pallet-src" className="mt-0.5" checked={palletInput.source_mode === 'alt'}
+                          onChange={() => setPalletInput({ ...palletInput, source_mode: 'alt', alt_client_id: '', alt_article_id: '', own_article_id: '' })} />
+                        <span>Usar <strong>outro artigo</strong> (fecha esta OF descontando estoque de outro cliente/artigo)</span>
+                      </label>
+                      <label className="flex items-start gap-2 text-xs cursor-pointer">
+                        <input type="radio" name="pallet-src" className="mt-0.5" checked={palletInput.source_mode === 'own'}
+                          onChange={() => setPalletInput({ ...palletInput, source_mode: 'own', alt_client_id: '', alt_article_id: '', own_article_id: '' })} />
+                        <span>Usar <strong>Estoque {companyFirstName}</strong> (baixa direta do estoque próprio da empresa)</span>
+                      </label>
                     </div>
-                    {palletInput.use_alt && (
+                    {palletInput.source_mode === 'alt' && (
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label className="text-[10px] uppercase">Cliente (alternativo) *</Label>
@@ -2266,6 +2296,7 @@ const BillingOrders = () => {
                             onValueChange={v => setPalletInput({ ...palletInput, alt_client_id: v, alt_article_id: '' })}
                             options={getClients().map(c => ({ value: c.id, label: c.name }))}
                             placeholder="Selecione o cliente"
+                            autoFocusSearch={false}
                           />
                         </div>
                         <div>
@@ -2275,8 +2306,21 @@ const BillingOrders = () => {
                             onValueChange={v => setPalletInput({ ...palletInput, alt_article_id: v })}
                             options={getArticles().filter(a => a.client_id === palletInput.alt_client_id).map(a => ({ value: a.id, label: a.name }))}
                             placeholder={palletInput.alt_client_id ? 'Selecione o artigo' : 'Selecione o cliente antes'}
+                            autoFocusSearch={false}
                           />
                         </div>
+                      </div>
+                    )}
+                    {palletInput.source_mode === 'own' && (
+                      <div>
+                        <Label className="text-[10px] uppercase">Artigo em Estoque {companyFirstName} *</Label>
+                        <SearchableSelect
+                          value={palletInput.own_article_id}
+                          onValueChange={v => setPalletInput({ ...palletInput, own_article_id: v })}
+                          options={ownArticles.map(a => ({ value: a.id, label: a.name }))}
+                          placeholder={ownArticles.length ? `Selecione o artigo em Estoque ${companyFirstName}` : `Cadastre um artigo em Estoque ${companyFirstName}`}
+                          autoFocusSearch={false}
+                        />
                       </div>
                     )}
                   </div>
@@ -2292,12 +2336,18 @@ const BillingOrders = () => {
                           toast({ title: 'Informe o peso do palete (kg)', variant: 'destructive' });
                           return;
                         }
-                        if (!palletInput.machine_id) {
+                        const useOwn = palletInput.source_mode === 'own';
+                        const useAlt = palletInput.source_mode === 'alt';
+                        if (!useOwn && !palletInput.machine_id) {
                           toast({ title: 'Selecione a máquina do palete', description: 'Escolha uma máquina ou "SEM MÁQUINA" para descontar do estoque total do artigo.', variant: 'destructive' });
                           return;
                         }
-                        if (palletInput.use_alt && (!palletInput.alt_client_id || !palletInput.alt_article_id)) {
+                        if (useAlt && (!palletInput.alt_client_id || !palletInput.alt_article_id)) {
                           toast({ title: 'Selecione cliente e artigo alternativos', variant: 'destructive' });
+                          return;
+                        }
+                        if (useOwn && !palletInput.own_article_id) {
+                          toast({ title: `Selecione o artigo em Estoque ${companyFirstName}`, variant: 'destructive' });
                           return;
                         }
                         if (!user?.company_id) return;
@@ -2316,10 +2366,61 @@ const BillingOrders = () => {
                           const localMax = pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0);
                           const dbMax = Number((maxRow as any)?.pallet_number ?? 0);
                           const nextNumber = Math.max(localMax, dbMax) + 1;
-                          const isNoMachine = palletInput.machine_id === '__none__';
-                          const palletMachineId = isNoMachine ? null : palletInput.machine_id;
-                          const effArticleId = palletInput.use_alt ? palletInput.alt_article_id : order.article_id;
-                          const effClientId = palletInput.use_alt ? palletInput.alt_client_id : order.client_id;
+                          const isNoMachine = !useOwn && palletInput.machine_id === '__none__';
+                          const palletMachineId = useOwn ? null : (isNoMachine ? null : palletInput.machine_id);
+                          const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
+                          const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
+
+                          // ============ MODO ESTOQUE PRÓPRIO ============
+                          // Baixa direto do own_stock (sem passar por stock_movements/reserve)
+                          if (useOwn) {
+                            const { data: ownMv, error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
+                              company_id: user.company_id,
+                              own_article_id: palletInput.own_article_id,
+                              type: 'out',
+                              pieces: pc || 0,
+                              weight_kg: wt || 0,
+                              reason: `OF #${order.of_number} · Palete ${nextNumber} (Estoque ${companyFirstName})`,
+                              created_by: profile?.id ?? null,
+                            }).select('id').single();
+                            if (ownErr) throw ownErr;
+                            const { data: row, error: pErr } = await (supabase.from as any)('billing_order_pallets').insert({
+                              billing_order_id: order.id,
+                              company_id: user.company_id,
+                              pallet_number: nextNumber,
+                              pieces: pc || 0,
+                              weight_kg: wt || 0,
+                              reserve_movement_id: null,
+                              machine_id: null,
+                              alt_client_id: null,
+                              alt_article_id: null,
+                              own_article_id: palletInput.own_article_id,
+                              own_stock_movement_id: ownMv?.id ?? null,
+                              created_by: profile?.id ?? null,
+                            }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id').single();
+                            if (pErr) {
+                              // rollback do movimento próprio
+                              if (ownMv?.id) await (supabase.from as any)('own_stock_movements').delete().eq('id', ownMv.id);
+                              throw pErr;
+                            }
+                            setPallets(prev => [...prev, {
+                              id: row.id,
+                              pallet_number: row.pallet_number,
+                              pieces: Number(row.pieces),
+                              weight: Number(row.weight_kg),
+                              reserve_movement_id: null,
+                              machine_id: null,
+                              alt_client_id: null,
+                              alt_article_id: null,
+                              own_article_id: row.own_article_id ?? null,
+                              own_stock_movement_id: row.own_stock_movement_id ?? null,
+                            }]);
+                            setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                            refreshStockCaches();
+                            toast({ title: `Palete ${nextNumber} salvo (Estoque ${companyFirstName})` });
+                            setPalletBusy(false);
+                            return;
+                          }
 
                           // Se SEM MÁQUINA: computa saldo por máquina do artigo e distribui a baixa.
                           type Alloc = { machine_id: string; pieces: number; weight_kg: number };
@@ -2401,7 +2502,7 @@ const BillingOrders = () => {
                                 type: 'reserve',
                                 pieces: a.pieces,
                                 weight_kg: a.weight_kg,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva · sem máquina${palletInput.use_alt ? ' · outro artigo' : ''})`,
+                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva · sem máquina${useAlt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }))
                             : [{
@@ -2413,7 +2514,7 @@ const BillingOrders = () => {
                                 type: 'reserve',
                                 pieces: pc || 0,
                                 weight_kg: wt || 0,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva${palletInput.use_alt ? ' · outro artigo' : ''})`,
+                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva${useAlt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }];
                           const { data: mvRows, error: mvErr } = await (supabase.from as any)('stock_movements').insert(reserveRows).select('id');
@@ -2428,10 +2529,10 @@ const BillingOrders = () => {
                             weight_kg: wt || 0,
                             reserve_movement_id: firstMvId,
                             machine_id: palletMachineId,
-                            alt_client_id: palletInput.use_alt ? palletInput.alt_client_id : null,
-                            alt_article_id: palletInput.use_alt ? palletInput.alt_article_id : null,
+                            alt_client_id: useAlt ? palletInput.alt_client_id : null,
+                            alt_article_id: useAlt ? palletInput.alt_article_id : null,
                             created_by: profile?.id ?? null,
-                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id').single();
+                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id').single();
                           if (pErr) {
                             // rollback dos movimentos se persistência falhar
                             const ids = (mvRows || []).map((r: any) => r.id).filter(Boolean);
@@ -2447,8 +2548,10 @@ const BillingOrders = () => {
                             machine_id: row.machine_id ?? null,
                             alt_client_id: row.alt_client_id ?? null,
                             alt_article_id: row.alt_article_id ?? null,
+                            own_article_id: row.own_article_id ?? null,
+                            own_stock_movement_id: row.own_stock_movement_id ?? null,
                           }]);
-                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, use_alt: false, alt_client_id: '', alt_article_id: '' });
+                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
                           refreshStockCaches();
                           toast({
                             title: `Palete ${nextNumber} salvo e reservado no estoque`,
@@ -2512,7 +2615,19 @@ const BillingOrders = () => {
                                   const order = showPalletsModal;
                                   setPalletBusy(true);
                                   try {
-                                    if (p.machine_id) {
+                                    if (p.own_article_id) {
+                                      // Palete de Estoque Próprio: reverte a saída
+                                      const { error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
+                                        company_id: user.company_id,
+                                        own_article_id: p.own_article_id,
+                                        type: 'in',
+                                        pieces: p.pieces || 0,
+                                        weight_kg: p.weight || 0,
+                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (devolve Estoque ${companyFirstName})`,
+                                        created_by: profile?.id ?? null,
+                                      });
+                                      if (ownErr) throw ownErr;
+                                    } else if (p.machine_id) {
                                       // Palete com máquina: uma reserva → uma liberação
                                       const { error: relErr } = await (supabase.from as any)('stock_movements').insert({
                                         company_id: user.company_id,
@@ -2627,7 +2742,7 @@ const BillingOrders = () => {
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' }); }}>Fechar</Button>
+            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); }}>Fechar</Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
               disabled={pallets.length === 0 || updateStatus.isPending}
@@ -2725,7 +2840,7 @@ const BillingOrders = () => {
                   setConfirmFinalizePallets(false);
                   setShowPalletsModal(null);
                   setPallets([]);
-                  setPalletInput({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' });
+                  setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
                 } catch (err: any) {
                   if (err?.code === 'CONFLICT') {
                     setConfirmFinalizePallets(false);
