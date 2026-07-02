@@ -1044,29 +1044,38 @@ const BillingOrders = () => {
                         }}
                         onSelect={() => { /* handled manually em onDayClick */ }}
                         onDayClick={(day) => {
-                          const now = Date.now();
                           const key = format(day, 'yyyy-MM-dd');
-                          const last = (window as any).__ofFilterLastClick as { key: string; ts: number } | undefined;
-                          if (last && last.key === key && now - last.ts < 400) {
-                            setFilterDateRange({ from: key, to: key });
-                            (window as any).__ofFilterLastClick = null;
-                            return;
-                          }
-                          (window as any).__ofFilterLastClick = { key, ts: now };
                           setFilterDateRange((prev) => {
-                            // Sem seleção OU já tem intervalo completo distinto → começa novo (dia único)
-                            if (!prev.from || (prev.from && prev.to && prev.from !== prev.to)) {
-                              return { from: key, to: key };
-                            }
-                            // Tem 1 dia selecionado → estende intervalo (ordena)
-                            const start = prev.from;
-                            if (key === start) return { from: key, to: key };
-                            return key < start ? { from: key, to: start } : { from: start, to: key };
+                            // Sem seleção → dia único
+                            if (!prev.from) return { from: key, to: key };
+                            const from = prev.from;
+                            const to = prev.to || prev.from;
+                            // Clique dentro/no meio do intervalo → mantém (2º+ clique no mesmo dia = aquele dia)
+                            if (key === from && key === to) return { from: key, to: key };
+                            if (key >= from && key <= to) return { from: key, to: key };
+                            // Estende para frente ou para trás
+                            if (key < from) return { from: key, to };
+                            return { from, to: key };
                           });
                         }}
                         initialFocus
                         className="p-3 pointer-events-auto"
                         numberOfMonths={1}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-9 text-xs">Filtrar por mês</Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-3" align="start">
+                      <MonthPicker
+                        onPick={(d) => {
+                          setFilterDateRange({
+                            from: format(startOfMonth(d), 'yyyy-MM-dd'),
+                            to: format(endOfMonth(d), 'yyyy-MM-dd'),
+                          });
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
