@@ -1049,6 +1049,15 @@ const BillingOrders = () => {
                             to: range.to ? format(range.to, 'yyyy-MM-dd') : (range.from ? format(range.from, 'yyyy-MM-dd') : ''),
                           });
                         }}
+                        onDayClick={(day) => {
+                          const now = Date.now();
+                          const key = format(day, 'yyyy-MM-dd');
+                          const last = (window as any).__ofFilterLastClick as { key: string; ts: number } | undefined;
+                          if (last && last.key === key && now - last.ts < 400) {
+                            setFilterDateRange({ from: key, to: key });
+                          }
+                          (window as any).__ofFilterLastClick = { key, ts: now };
+                        }}
                         initialFocus
                         className="p-3 pointer-events-auto"
                         numberOfMonths={1}
