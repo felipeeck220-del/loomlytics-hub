@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
@@ -75,7 +77,6 @@ const BillingOrders = () => {
     from: '',
     to: ''
   });
-  const [datePreset, setDatePreset] = useState<'7d' | '30d' | 'custom'>('30d');
 
   // Paginação da aba Coletadas (10 por página)
   const [collectedPage, setCollectedPage] = useState(1);
@@ -94,9 +95,9 @@ const BillingOrders = () => {
   const [showPalletsModal, setShowPalletsModal] = useState<any>(null);
   // Modal de Detalhes (olho)
   const [showDetailsModal, setShowDetailsModal] = useState<any>(null);
-  const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null }>>([]);
-  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null }>>([]);
-  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string }>({ pieces: '', weight: '', machine_id: '' });
+  const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null; alt_client_id?: string | null; alt_article_id?: string | null }>>([]);
+  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null }>>([]);
+  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; use_alt: boolean; alt_client_id: string; alt_article_id: string }>({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' });
   const [palletBusy, setPalletBusy] = useState(false);
   const [palletsLoading, setPalletsLoading] = useState(false);
 
@@ -113,7 +114,7 @@ const BillingOrders = () => {
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
-        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id')
+        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id')
         .eq('billing_order_id', showPalletsModal.id)
         .order('pallet_number', { ascending: true });
       if (cancelled) { setPalletsLoading(false); return; }
@@ -129,6 +130,8 @@ const BillingOrders = () => {
         weight: Number(r.weight_kg || 0),
         reserve_movement_id: r.reserve_movement_id,
         machine_id: r.machine_id ?? null,
+        alt_client_id: r.alt_client_id ?? null,
+        alt_article_id: r.alt_article_id ?? null,
       })));
       setPalletsLoading(false);
     })();
@@ -142,7 +145,7 @@ const BillingOrders = () => {
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
-        .select('id, pallet_number, pieces, weight_kg, machine_id')
+        .select('id, pallet_number, pieces, weight_kg, machine_id, alt_client_id, alt_article_id')
         .eq('billing_order_id', showDetailsModal.id)
         .order('pallet_number', { ascending: true });
       if (cancelled || error || !data) return;
@@ -152,6 +155,8 @@ const BillingOrders = () => {
         pieces: Number(r.pieces || 0),
         weight: Number(r.weight_kg || 0),
         machine_id: r.machine_id ?? null,
+        alt_client_id: r.alt_client_id ?? null,
+        alt_article_id: r.alt_article_id ?? null,
       })));
     })();
     return () => { cancelled = true; };
@@ -244,30 +249,21 @@ const BillingOrders = () => {
         // registros antigos sem backfill.
         const ref = (order as any).collected_at || order.updated_at || order.created_at;
         const orderDate = new Date(ref);
-        const today = new Date();
-
-        if (datePreset === '7d') {
-          return isWithinInterval(orderDate, { start: subDays(today, 7), end: today });
-        }
-        if (datePreset === '30d') {
-          return isWithinInterval(orderDate, { start: subDays(today, 30), end: today });
-        }
-        if (datePreset === 'custom') {
-          if (filterDateRange.from && filterDateRange.to) {
-            return isWithinInterval(orderDate, { 
-              start: startOfDay(new Date(filterDateRange.from)), 
-              end: endOfDay(new Date(filterDateRange.to)) 
-            });
-          }
+        if (filterDateRange.from) {
+          const end = filterDateRange.to || filterDateRange.from;
+          return isWithinInterval(orderDate, {
+            start: startOfDay(new Date(filterDateRange.from)),
+            end: endOfDay(new Date(end)),
+          });
         }
       }
 
       return true;
     });
-  }, [orders, searchTerm, activeTab, filterDateRange, datePreset]);
+  }, [orders, searchTerm, activeTab, filterDateRange]);
 
   // Resetar página ao mudar filtros/aba
-  useEffect(() => { setCollectedPage(1); }, [activeTab, datePreset, filterDateRange.from, filterDateRange.to, searchTerm]);
+  useEffect(() => { setCollectedPage(1); }, [activeTab, filterDateRange.from, filterDateRange.to, searchTerm]);
 
   // Ordena Coletadas pela data da coleta (mais recente primeiro) e pagina
   const sortedCollected = useMemo(() => {
@@ -919,8 +915,8 @@ const BillingOrders = () => {
         return { stripe: 'bg-amber-500', label: 'SEPARANDO', badgeClass: 'bg-amber-500 text-white border-amber-600' };
       case 'ready':
         return hasDoc
-          ? { stripe: 'bg-emerald-600', label: 'PRONTO', badgeClass: 'bg-emerald-600 text-white border-emerald-700' }
-          : { stripe: 'bg-violet-600', label: 'PRONTO PARA COLETA', badgeClass: 'bg-violet-600 text-white border-violet-700' };
+          ? { stripe: 'bg-emerald-600', label: 'PRONTO PARA COLETA', badgeClass: 'bg-emerald-600 text-white border-emerald-700' }
+          : { stripe: 'bg-violet-600', label: 'AGUARDANDO NF/ROM', badgeClass: 'bg-violet-600 text-white border-violet-700' };
       case 'collected':
         return { stripe: 'bg-slate-500', label: 'COLETADA', badgeClass: 'bg-slate-600 text-white border-slate-700' };
       case 'cancelled':
@@ -1027,51 +1023,43 @@ const BillingOrders = () => {
           <Card className="mt-4 border-dashed bg-muted/30">
             <CardContent className="p-4 space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs uppercase text-muted-foreground font-bold">Filtrar Período</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button 
-                    variant={datePreset === '7d' ? 'default' : 'outline'} 
-                    size="sm" 
-                    onClick={() => setDatePreset('7d')}
-                    className="h-9 text-xs"
-                  >7 dias</Button>
-                  <Button 
-                    variant={datePreset === '30d' ? 'default' : 'outline'} 
-                    size="sm" 
-                    onClick={() => setDatePreset('30d')}
-                    className="h-9 text-xs"
-                  >30 dias</Button>
-                  <Button 
-                    variant={datePreset === 'custom' ? 'default' : 'outline'} 
-                    size="sm" 
-                    onClick={() => setDatePreset('custom')}
-                    className="h-9 text-xs"
-                  >Custom</Button>
+                <Label className="text-xs uppercase text-muted-foreground font-bold">Filtrar Período (Coleta)</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn('h-9 text-xs justify-start text-left font-normal w-[260px]', !filterDateRange.from && 'text-muted-foreground')}>
+                        {filterDateRange.from
+                          ? (filterDateRange.to && filterDateRange.to !== filterDateRange.from
+                              ? `${format(new Date(filterDateRange.from), 'dd/MM/yyyy')} → ${format(new Date(filterDateRange.to), 'dd/MM/yyyy')}`
+                              : format(new Date(filterDateRange.from), 'dd/MM/yyyy'))
+                          : 'Selecionar dia ou intervalo'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="range"
+                        selected={{
+                          from: filterDateRange.from ? new Date(filterDateRange.from) : undefined,
+                          to: filterDateRange.to ? new Date(filterDateRange.to) : undefined,
+                        }}
+                        onSelect={(range) => {
+                          if (!range) { setFilterDateRange({ from: '', to: '' }); return; }
+                          setFilterDateRange({
+                            from: range.from ? format(range.from, 'yyyy-MM-dd') : '',
+                            to: range.to ? format(range.to, 'yyyy-MM-dd') : (range.from ? format(range.from, 'yyyy-MM-dd') : ''),
+                          });
+                        }}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                        numberOfMonths={1}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {filterDateRange.from && (
+                    <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => setFilterDateRange({ from: '', to: '' })}>Limpar</Button>
+                  )}
                 </div>
               </div>
-
-              {datePreset === 'custom' && (
-                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase text-muted-foreground">De</Label>
-                    <Input 
-                      type="date" 
-                      className="h-9"
-                      value={filterDateRange.from} 
-                      onChange={e => setFilterDateRange({...filterDateRange, from: e.target.value})} 
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase text-muted-foreground">Até</Label>
-                    <Input 
-                      type="date" 
-                      className="h-9"
-                      value={filterDateRange.to} 
-                      onChange={e => setFilterDateRange({...filterDateRange, to: e.target.value})} 
-                    />
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         )}
@@ -1235,7 +1223,11 @@ const BillingOrders = () => {
                           <div className="mt-0.5"><span className="font-semibold">Separado:</span> {order.separator?.name} #{order.separator?.code}</div>
                         )}
                         {order.collected_by && (
-                          <div className="mt-0.5"><span className="font-semibold">Coletado:</span> {order.collector?.name} #{order.collector?.code}</div>
+                          <div className="mt-0.5"><span className="font-semibold">Coletado:</span> {order.collector?.name} #{order.collector?.code}
+                            {(order as any).collected_at && (
+                              <span className="text-muted-foreground"> · {format(new Date((order as any).collected_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                            )}
+                          </div>
                         )}
                       </div>
 
@@ -1342,7 +1334,7 @@ const BillingOrders = () => {
                             className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
                             onClick={() => {
                               setPallets([]);
-                              setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
+                              setPalletInput({ pieces: '', weight: '', machine_id: 'none', use_alt: false, alt_client_id: '', alt_article_id: '' });
                               setPalletsLoading(true);
                               setShowPalletsModal(order);
                             }}
@@ -2119,7 +2111,7 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Paletes — separação por paletes */}
-      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none' }); } }}>
+      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none', use_alt: false, alt_client_id: '', alt_article_id: '' }); } }}>
         <DialogContent
           className="sm:max-w-[560px]"
           onOpenAutoFocus={(e) => e.preventDefault()}
@@ -2185,6 +2177,36 @@ const BillingOrders = () => {
                         placeholder="Selecione a máquina"
                       />
                     </div>
+                  </div>
+                  <div className="rounded-md bg-muted/40 border-dashed border p-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="use_alt" checked={palletInput.use_alt} onCheckedChange={(v) => setPalletInput({ ...palletInput, use_alt: !!v, alt_client_id: '', alt_article_id: '' })} />
+                      <Label htmlFor="use_alt" className="text-xs cursor-pointer">Este palete usa <strong>outro artigo</strong> (fecha esta OF descontando estoque de outro cliente/artigo)</Label>
+                    </div>
+                    {palletInput.use_alt && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] uppercase">Cliente (alternativo) *</Label>
+                          <SearchableSelect
+                            value={palletInput.alt_client_id}
+                            onValueChange={v => setPalletInput({ ...palletInput, alt_client_id: v, alt_article_id: '' })}
+                            options={getClients().map(c => ({ value: c.id, label: c.name }))}
+                            placeholder="Selecione o cliente"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] uppercase">Artigo (alternativo) *</Label>
+                          <SearchableSelect
+                            value={palletInput.alt_article_id}
+                            onValueChange={v => setPalletInput({ ...palletInput, alt_article_id: v })}
+                            options={getArticles().filter(a => a.client_id === palletInput.alt_client_id).map(a => ({ value: a.id, label: a.name }))}
+                            placeholder={palletInput.alt_client_id ? 'Selecione o artigo' : 'Selecione o cliente antes'}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end">
                     <Button
                       size="sm"
                       className="bg-indigo-600 hover:bg-indigo-700 text-white"
@@ -2198,6 +2220,10 @@ const BillingOrders = () => {
                         }
                         if (!palletInput.machine_id) {
                           toast({ title: 'Selecione a máquina do palete', description: 'Escolha uma máquina ou "SEM MÁQUINA" para descontar do estoque total do artigo.', variant: 'destructive' });
+                          return;
+                        }
+                        if (palletInput.use_alt && (!palletInput.alt_client_id || !palletInput.alt_article_id)) {
+                          toast({ title: 'Selecione cliente e artigo alternativos', variant: 'destructive' });
                           return;
                         }
                         if (!user?.company_id) return;
@@ -2218,6 +2244,8 @@ const BillingOrders = () => {
                           const nextNumber = Math.max(localMax, dbMax) + 1;
                           const isNoMachine = palletInput.machine_id === '__none__';
                           const palletMachineId = isNoMachine ? null : palletInput.machine_id;
+                          const effArticleId = palletInput.use_alt ? palletInput.alt_article_id : order.article_id;
+                          const effClientId = palletInput.use_alt ? palletInput.alt_client_id : order.client_id;
 
                           // Se SEM MÁQUINA: computa saldo por máquina do artigo e distribui a baixa.
                           type Alloc = { machine_id: string; pieces: number; weight_kg: number };
@@ -2227,11 +2255,11 @@ const BillingOrders = () => {
                               (supabase.from as any)('productions')
                                 .select('machine_id, rolls_produced, weight_kg')
                                 .eq('company_id', user.company_id)
-                                .eq('article_id', order.article_id),
+                                .eq('article_id', effArticleId),
                               (supabase.from as any)('stock_movements')
                                 .select('machine_id, type, pieces, weight_kg, is_second_quality, billing_order_id')
                                 .eq('company_id', user.company_id)
-                                .eq('article_id', order.article_id),
+                                .eq('article_id', effArticleId),
                             ]);
                             const bal = new Map<string, { pieces: number; weight: number }>();
                             for (const p of (prodRes.data || [])) {
@@ -2292,26 +2320,26 @@ const BillingOrders = () => {
                           const reserveRows = isNoMachine
                             ? allocations.map(a => ({
                                 company_id: user.company_id,
-                                article_id: order.article_id,
-                                client_id: order.client_id,
+                                article_id: effArticleId,
+                                client_id: effClientId,
                                 billing_order_id: order.id,
                                 machine_id: a.machine_id,
                                 type: 'reserve',
                                 pieces: a.pieces,
                                 weight_kg: a.weight_kg,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva · sem máquina)`,
+                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva · sem máquina${palletInput.use_alt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }))
                             : [{
                                 company_id: user.company_id,
-                                article_id: order.article_id,
-                                client_id: order.client_id,
+                                article_id: effArticleId,
+                                client_id: effClientId,
                                 billing_order_id: order.id,
                                 machine_id: palletMachineId,
                                 type: 'reserve',
                                 pieces: pc || 0,
                                 weight_kg: wt || 0,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva)`,
+                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva${palletInput.use_alt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }];
                           const { data: mvRows, error: mvErr } = await (supabase.from as any)('stock_movements').insert(reserveRows).select('id');
@@ -2326,8 +2354,10 @@ const BillingOrders = () => {
                             weight_kg: wt || 0,
                             reserve_movement_id: firstMvId,
                             machine_id: palletMachineId,
+                            alt_client_id: palletInput.use_alt ? palletInput.alt_client_id : null,
+                            alt_article_id: palletInput.use_alt ? palletInput.alt_article_id : null,
                             created_by: profile?.id ?? null,
-                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id').single();
+                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id').single();
                           if (pErr) {
                             // rollback dos movimentos se persistência falhar
                             const ids = (mvRows || []).map((r: any) => r.id).filter(Boolean);
@@ -2341,8 +2371,10 @@ const BillingOrders = () => {
                             weight: Number(row.weight_kg),
                             reserve_movement_id: row.reserve_movement_id,
                             machine_id: row.machine_id ?? null,
+                            alt_client_id: row.alt_client_id ?? null,
+                            alt_article_id: row.alt_article_id ?? null,
                           }]);
-                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id });
+                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, use_alt: false, alt_client_id: '', alt_article_id: '' });
                           refreshStockCaches();
                           toast({
                             title: `Palete ${nextNumber} salvo e reservado no estoque`,
@@ -2521,7 +2553,7 @@ const BillingOrders = () => {
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none' }); }}>Fechar</Button>
+            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: 'none', use_alt: false, alt_client_id: '', alt_article_id: '' }); }}>Fechar</Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
               disabled={pallets.length === 0 || updateStatus.isPending}
@@ -2619,7 +2651,7 @@ const BillingOrders = () => {
                   setConfirmFinalizePallets(false);
                   setShowPalletsModal(null);
                   setPallets([]);
-                  setPalletInput({ pieces: '', weight: '', machine_id: 'none' });
+                  setPalletInput({ pieces: '', weight: '', machine_id: 'none', use_alt: false, alt_client_id: '', alt_article_id: '' });
                 } catch (err: any) {
                   if (err?.code === 'CONFLICT') {
                     setConfirmFinalizePallets(false);
