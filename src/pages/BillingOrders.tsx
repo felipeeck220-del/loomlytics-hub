@@ -2248,6 +2248,7 @@ const BillingOrders = () => {
                           { value: '__none__', label: 'SEM MÁQUINA' },
                         ]}
                         placeholder="Selecione a máquina"
+                        autoFocusSearch={false}
                       />
                     </div>
                   </div>
