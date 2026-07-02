@@ -412,6 +412,8 @@ export function useBillingOrders() {
               }
             }
             // Limpa paletes vinculados (se houver) — OF cancelada não retém paletes
+            // Antes de apagar, restaura estoque próprio consumido por paletes 'own'
+            await restoreOwnStockForOrder(id, ofRow.of_number, 'OF cancelada (devolve estoque próprio)');
             await (supabase.from as any)('billing_order_pallets').delete().eq('billing_order_id', id);
           }
 
@@ -423,12 +425,26 @@ export function useBillingOrders() {
             // o saldo por máquina em /estoque-malha fica incorreto quando a OF
             // foi separada com paletes em múltiplas máquinas.
             const { data: palletRowsRev } = await (supabase.from as any)('billing_order_pallets')
-              .select('pieces, weight_kg, machine_id, alt_article_id, alt_client_id')
+              .select('pieces, weight_kg, machine_id, alt_article_id, alt_client_id, own_article_id, pallet_number')
               .eq('billing_order_id', id);
             const reasonStr = `OF #${ofRow.of_number} estornada — ${isSecondQ ? '2ª QUALIDADE' : '1ª qualidade'} — ${updatePayload.cancellation_reason || 'sem motivo'}`;
             if (palletRowsRev && palletRowsRev.length > 0) {
               const inByKey = new Map<string, { p: number; w: number; mid: string | null; article_id: string; client_id: string | null }>();
+              const ownIns: any[] = [];
               for (const pr of palletRowsRev) {
+                if ((pr as any).own_article_id) {
+                  // Palete de estoque próprio: devolve ao own_stock, NÃO ao stock_movements
+                  ownIns.push({
+                    company_id: user.company_id,
+                    own_article_id: (pr as any).own_article_id,
+                    type: 'in',
+                    pieces: Number(pr.pieces || 0),
+                    weight_kg: Number(pr.weight_kg || 0),
+                    reason: `OF #${ofRow.of_number} estornada — devolve estoque próprio (Palete ${(pr as any).pallet_number})`,
+                    created_by: profile?.id ?? null,
+                  });
+                  continue;
+                }
                 const aid = ((pr as any).alt_article_id as string | null) || (ofRow as any).article_id;
                 const cid = ((pr as any).alt_client_id as string | null) ?? ((ofRow as any).client_id ?? null);
                 const mid = (pr.machine_id as string | null) || null;
@@ -437,6 +453,9 @@ export function useBillingOrders() {
                 cur.p += Number(pr.pieces || 0);
                 cur.w += Number(pr.weight_kg || 0);
                 inByKey.set(k, cur);
+              }
+              if (ownIns.length > 0) {
+                await (supabase.from as any)('own_stock_movements').insert(ownIns);
               }
               for (const cur of inByKey.values()) {
                 if (cur.p > 0 || cur.w > 0) {
