@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
   import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History, FileText, User as UserIcon, Boxes, Trash2, Link2, Link2Off, Eye } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
