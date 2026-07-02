@@ -472,7 +472,7 @@ const BillingOrders = () => {
     try {
       await createOrder.mutateAsync(payload);
       setShowCreateModal(false);
-      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces' });
+      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces', admin_notes: '' });
       setCreateDupError(null);
     } catch (err: any) {
       if (err?.code === 'DUPLICATE_OF') {
@@ -511,6 +511,7 @@ const BillingOrders = () => {
       piece_weight_target: form.order_type === 'all' ? null : (form.piece_weight_target ? parseFloat(form.piece_weight_target) : null),
       dyehouse: form.dyehouse,
       order_type: form.order_type as 'pieces' | 'weight' | 'all',
+      admin_notes: form.admin_notes?.trim() || null,
     };
     // Checa saldo do artigo e avisa se já estiver negativo ou se for ficar negativo.
     try {
