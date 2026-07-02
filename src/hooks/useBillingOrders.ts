@@ -354,11 +354,14 @@ export function useBillingOrders() {
             // integração com estoque.
             if (!hadReserveOut) {
               const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
-                .select('pieces, weight_kg, machine_id')
+                .select('pieces, weight_kg, machine_id, own_article_id')
                 .eq('billing_order_id', id);
               if (palletRows && palletRows.length > 0) {
                 const outByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
                 for (const pr of palletRows) {
+                  // Paletes de Estoque Próprio já foram debitados no
+                  // own_stock_movements quando o palete foi criado — não gera 'out' em stock_movements
+                  if ((pr as any).own_article_id) continue;
                   const k = (pr.machine_id as string | null) || '__none__';
                   const cur = outByMachine.get(k) || { p: 0, w: 0, mid: (pr.machine_id as string | null) || null };
                   cur.p += Number(pr.pieces || 0);
