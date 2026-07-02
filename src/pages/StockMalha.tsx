@@ -771,7 +771,7 @@ export default function StockMalha() {
             <p className={cn('text-xl font-bold', segundaKpis.saldoRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(segundaKpis.saldoRolls)}</p>
           </CardContent></Card>
         </div>
-      ) : (
+      ) : activeStockTab === 'estoque' ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card><CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Produzido</div>
@@ -790,9 +790,9 @@ export default function StockMalha() {
             <p className={cn('text-xl font-bold', estoqueKpis.availableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(estoqueKpis.availableKg)}</p>
           </CardContent></Card>
         </div>
-      )}
+      ) : null}
 
-      {activeStockTab !== 'segunda' && (
+      {activeStockTab === 'estoque' && (
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
