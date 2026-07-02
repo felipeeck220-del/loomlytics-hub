@@ -1416,7 +1416,7 @@ const BillingOrders = () => {
                             className="gap-1.5 text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
                             onClick={() => {
                               setPallets([]);
-                              setPalletInput({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' });
+                              setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
                               setPalletsLoading(true);
                               setShowPalletsModal(order);
                             }}
@@ -2193,7 +2193,7 @@ const BillingOrders = () => {
       </Dialog>
 
       {/* Modal Paletes — separação por paletes */}
-      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' }); } }}>
+      <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); } }}>
         <DialogContent
           className="sm:max-w-[560px] w-screen h-screen max-w-none rounded-none p-4 sm:w-auto sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:p-6 [&>button.absolute]:hidden overflow-y-auto"
           onOpenAutoFocus={(e) => e.preventDefault()}
@@ -2462,7 +2462,7 @@ const BillingOrders = () => {
                             alt_client_id: row.alt_client_id ?? null,
                             alt_article_id: row.alt_article_id ?? null,
                           }]);
-                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, use_alt: false, alt_client_id: '', alt_article_id: '' });
+                          setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
                           refreshStockCaches();
                           toast({
                             title: `Palete ${nextNumber} salvo e reservado no estoque`,
@@ -2641,7 +2641,7 @@ const BillingOrders = () => {
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' }); }}>Fechar</Button>
+            <Button variant="outline" onClick={() => { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' }); }}>Fechar</Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
               disabled={pallets.length === 0 || updateStatus.isPending}
@@ -2739,7 +2739,7 @@ const BillingOrders = () => {
                   setConfirmFinalizePallets(false);
                   setShowPalletsModal(null);
                   setPallets([]);
-                  setPalletInput({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' });
+                  setPalletInput({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
                 } catch (err: any) {
                   if (err?.code === 'CONFLICT') {
                     setConfirmFinalizePallets(false);
