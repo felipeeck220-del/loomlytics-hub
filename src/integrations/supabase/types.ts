@@ -363,6 +363,7 @@ export type Database = {
       }
       billing_orders: {
         Row: {
+          admin_notes: string | null
           article_id: string
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -408,6 +409,7 @@ export type Database = {
           weight_real: number | null
         }
         Insert: {
+          admin_notes?: string | null
           article_id: string
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -453,6 +455,7 @@ export type Database = {
           weight_real?: number | null
         }
         Update: {
+          admin_notes?: string | null
           article_id?: string
           cancellation_reason?: string | null
           cancelled_at?: string | null

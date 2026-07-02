@@ -176,6 +176,7 @@ export function useBillingOrders() {
           weight_expected: newOrder.weight_expected,
           piece_weight_target: newOrder.piece_weight_target ?? null,
           order_type: orderType,
+          admin_notes: (newOrder as any).admin_notes ?? null,
           company_id: user?.company_id as string,
           created_by: profile?.id as string,
           status: 'open' as any

@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
   import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History, FileText, User as UserIcon, Boxes, Trash2, Link2, Link2Off, Eye } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
@@ -238,6 +239,7 @@ const BillingOrders = () => {
     weight_expected: '',
     piece_weight_target: '',
     order_type: 'pieces' as 'pieces' | 'weight' | 'all',
+    admin_notes: '',
   });
 
   // Ao abrir o modal de criação, busca o último número gerado e sugere o próximo.
@@ -471,7 +473,7 @@ const BillingOrders = () => {
     try {
       await createOrder.mutateAsync(payload);
       setShowCreateModal(false);
-      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces' });
+      setForm({ of_number: '', client_id: '', article_id: '', machine_id: '', pieces_expected: '', dyehouse: '', weight_expected: '', piece_weight_target: '', order_type: 'pieces', admin_notes: '' });
       setCreateDupError(null);
     } catch (err: any) {
       if (err?.code === 'DUPLICATE_OF') {
@@ -510,6 +512,7 @@ const BillingOrders = () => {
       piece_weight_target: form.order_type === 'all' ? null : (form.piece_weight_target ? parseFloat(form.piece_weight_target) : null),
       dyehouse: form.dyehouse,
       order_type: form.order_type as 'pieces' | 'weight' | 'all',
+      admin_notes: form.admin_notes?.trim() || null,
     };
     // Checa saldo do artigo e avisa se já estiver negativo ou se for ficar negativo.
     try {
@@ -1610,6 +1613,19 @@ const BillingOrders = () => {
               <Label className="text-right">Tinturaria</Label>
               <Input className="col-span-3" value={form.dyehouse} onChange={e => setForm({...form, dyehouse: e.target.value.toUpperCase()})} placeholder="Ex: LITORAL" />
             </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right pt-2">Observações</Label>
+              <div className="col-span-3 space-y-1">
+                <Textarea
+                  value={form.admin_notes}
+                  onChange={e => setForm({ ...form, admin_notes: e.target.value.slice(0, 1000) })}
+                  placeholder="Instruções do admin para a expedição (opcional). Ex.: separar em paletes menores, priorizar cliente X, embalar em plástico bolha..."
+                  rows={3}
+                  className="text-sm resize-y"
+                />
+                <div className="text-[10px] text-muted-foreground text-right">{form.admin_notes.length}/1000</div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button>
@@ -2239,6 +2255,12 @@ const BillingOrders = () => {
                     )}
                   </div>
                 </div>
+                {(order as any).admin_notes && (
+                  <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs space-y-1">
+                    <div className="text-[10px] uppercase font-semibold text-amber-800 dark:text-amber-300">📋 Observações do admin</div>
+                    <div className="whitespace-pre-wrap text-amber-900 dark:text-amber-100">{(order as any).admin_notes}</div>
+                  </div>
+                )}
 
                 {/* Adicionar palete */}
                 <div className="rounded-md border p-3 space-y-2">
@@ -2318,7 +2340,7 @@ const BillingOrders = () => {
                           value={palletInput.own_article_id}
                           onValueChange={v => setPalletInput({ ...palletInput, own_article_id: v })}
                           options={ownArticles.map(a => ({ value: a.id, label: a.name }))}
-                          placeholder={ownArticles.length ? `Selecione o artigo em Estoque ${companyFirstName}` : `Cadastre um artigo em Estoque ${companyFirstName}`}
+                          placeholder={ownArticles.length ? `Selecione o artigo em Estoque ${companyFirstName}` : 'Nenhum artigo'}
                           autoFocusSearch={false}
                         />
                       </div>
