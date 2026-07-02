@@ -396,22 +396,25 @@ export function useBillingOrders() {
             // o saldo por máquina em /estoque-malha fica incorreto quando a OF
             // foi separada com paletes em múltiplas máquinas.
             const { data: palletRowsRev } = await (supabase.from as any)('billing_order_pallets')
-              .select('pieces, weight_kg, machine_id')
+              .select('pieces, weight_kg, machine_id, alt_article_id, alt_client_id')
               .eq('billing_order_id', id);
             const reasonStr = `OF #${ofRow.of_number} estornada — ${isSecondQ ? '2ª QUALIDADE' : '1ª qualidade'} — ${updatePayload.cancellation_reason || 'sem motivo'}`;
             if (palletRowsRev && palletRowsRev.length > 0) {
-              const inByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
+              const inByKey = new Map<string, { p: number; w: number; mid: string | null; article_id: string; client_id: string | null }>();
               for (const pr of palletRowsRev) {
-                const k = (pr.machine_id as string | null) || '__none__';
-                const cur = inByMachine.get(k) || { p: 0, w: 0, mid: (pr.machine_id as string | null) || null };
+                const aid = ((pr as any).alt_article_id as string | null) || (ofRow as any).article_id;
+                const cid = ((pr as any).alt_client_id as string | null) ?? ((ofRow as any).client_id ?? null);
+                const mid = (pr.machine_id as string | null) || null;
+                const k = `${aid}|${cid ?? ''}|${mid ?? '__none__'}`;
+                const cur = inByKey.get(k) || { p: 0, w: 0, mid, article_id: aid, client_id: cid };
                 cur.p += Number(pr.pieces || 0);
                 cur.w += Number(pr.weight_kg || 0);
-                inByMachine.set(k, cur);
+                inByKey.set(k, cur);
               }
-              for (const cur of inByMachine.values()) {
+              for (const cur of inByKey.values()) {
                 if (cur.p > 0 || cur.w > 0) {
                   mvs.push({
-                    ...baseMov, machine_id: cur.mid, type: 'in',
+                    ...baseMov, article_id: cur.article_id, client_id: cur.client_id, machine_id: cur.mid, type: 'in',
                     pieces: Math.max(0, Math.round(cur.p)),
                     weight_kg: Math.max(0, cur.w),
                     is_second_quality: isSecondQ,
