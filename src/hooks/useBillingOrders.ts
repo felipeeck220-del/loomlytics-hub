@@ -540,25 +540,28 @@ export function useBillingOrders() {
       // fantasma em OFs antigas sem reserva prévia.
       if (revertToOpen && preReleaseSnapshot && preReleaseSnapshot.article_id && user?.company_id) {
         const { data: existingMvs } = await (supabase.from as any)('stock_movements')
-          .select('type, pieces, weight_kg, machine_id')
+          .select('type, pieces, weight_kg, machine_id, article_id, client_id')
           .eq('billing_order_id', id)
           .in('type', ['reserve', 'release']);
-        const netByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
+        const netByKey = new Map<string, { p: number; w: number; mid: string | null; article_id: string; client_id: string | null }>();
         for (const m of (existingMvs || [])) {
-          const k = (m.machine_id as string | null) || '__none__';
-          const cur = netByMachine.get(k) || { p: 0, w: 0, mid: (m.machine_id as string | null) || null };
+          const aid = ((m as any).article_id as string) || preReleaseSnapshot.article_id;
+          const cid = ((m as any).client_id as string | null) ?? (preReleaseSnapshot.client_id ?? null);
+          const mid = (m.machine_id as string | null) || null;
+          const k = `${aid}|${cid ?? ''}|${mid ?? '__none__'}`;
+          const cur = netByKey.get(k) || { p: 0, w: 0, mid, article_id: aid, client_id: cid };
           const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
           if (m.type === 'reserve') { cur.p += p; cur.w += w; }
           else if (m.type === 'release') { cur.p -= p; cur.w -= w; }
-          netByMachine.set(k, cur);
+          netByKey.set(k, cur);
         }
         const rels: any[] = [];
-        for (const cur of netByMachine.values()) {
+        for (const cur of netByKey.values()) {
           if (cur.p > 0 || cur.w > 0) {
             rels.push({
               company_id: user.company_id,
-              article_id: preReleaseSnapshot.article_id,
-              client_id: preReleaseSnapshot.client_id,
+              article_id: cur.article_id,
+              client_id: cur.client_id,
               billing_order_id: id,
               machine_id: cur.mid,
               type: 'release',
