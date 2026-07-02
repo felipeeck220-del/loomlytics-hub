@@ -2261,10 +2261,6 @@ const BillingOrders = () => {
                     <div className="whitespace-pre-wrap text-amber-900 dark:text-amber-100">{(order as any).admin_notes}</div>
                   </div>
                 )}
-                {false && (
-                  <div>
-                  </div>
-                </div>
 
                 {/* Adicionar palete */}
                 <div className="rounded-md border p-3 space-y-2">
