@@ -137,10 +137,24 @@ const BillingOrders = () => {
   // Modal de Detalhes (olho)
   const [showDetailsModal, setShowDetailsModal] = useState<any>(null);
   const [detailsPallets, setDetailsPallets] = useState<Array<{ id: string; pallet_number: number; pieces: number; weight: number; machine_id: string | null; alt_client_id?: string | null; alt_article_id?: string | null }>>([]);
-  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null }>>([]);
-  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; use_alt: boolean; alt_client_id: string; alt_article_id: string }>({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' });
+  const [pallets, setPallets] = useState<Array<{ id: string; pieces: number; weight: number; pallet_number: number; reserve_movement_id?: string | null; machine_id?: string | null; alt_client_id?: string | null; alt_article_id?: string | null; own_article_id?: string | null; own_stock_movement_id?: string | null }>>([]);
+  const [palletInput, setPalletInput] = useState<{ pieces: string; weight: string; machine_id: string; source_mode: 'default' | 'alt' | 'own'; alt_client_id: string; alt_article_id: string; own_article_id: string }>({ pieces: '', weight: '', machine_id: '', source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
   const [palletBusy, setPalletBusy] = useState(false);
   const [palletsLoading, setPalletsLoading] = useState(false);
+  const [ownArticles, setOwnArticles] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    if (!user?.company_id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase.from as any)('own_stock_articles')
+        .select('id, name')
+        .eq('company_id', user.company_id)
+        .order('name');
+      if (!cancelled) setOwnArticles((data || []).map((r: any) => ({ id: r.id, name: r.name })));
+    })();
+    return () => { cancelled = true; };
+  }, [user?.company_id, showPalletsModal]);
+  const companyFirstName = (user as any)?.company_name?.split(/\s+/)[0] || 'Fábrica';
 
   // Modal de Atrelar OFs
   const [showLinkModal, setShowLinkModal] = useState(false);
