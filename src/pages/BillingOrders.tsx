@@ -2334,12 +2334,18 @@ const BillingOrders = () => {
                           toast({ title: 'Informe o peso do palete (kg)', variant: 'destructive' });
                           return;
                         }
-                        if (!palletInput.machine_id) {
+                        const useOwn = palletInput.source_mode === 'own';
+                        const useAlt = palletInput.source_mode === 'alt';
+                        if (!useOwn && !palletInput.machine_id) {
                           toast({ title: 'Selecione a máquina do palete', description: 'Escolha uma máquina ou "SEM MÁQUINA" para descontar do estoque total do artigo.', variant: 'destructive' });
                           return;
                         }
-                        if (palletInput.use_alt && (!palletInput.alt_client_id || !palletInput.alt_article_id)) {
+                        if (useAlt && (!palletInput.alt_client_id || !palletInput.alt_article_id)) {
                           toast({ title: 'Selecione cliente e artigo alternativos', variant: 'destructive' });
+                          return;
+                        }
+                        if (useOwn && !palletInput.own_article_id) {
+                          toast({ title: `Selecione o artigo em Estoque ${companyFirstName}`, variant: 'destructive' });
                           return;
                         }
                         if (!user?.company_id) return;
@@ -2358,10 +2364,61 @@ const BillingOrders = () => {
                           const localMax = pallets.reduce((m, p) => Math.max(m, p.pallet_number || 0), 0);
                           const dbMax = Number((maxRow as any)?.pallet_number ?? 0);
                           const nextNumber = Math.max(localMax, dbMax) + 1;
-                          const isNoMachine = palletInput.machine_id === '__none__';
-                          const palletMachineId = isNoMachine ? null : palletInput.machine_id;
-                          const effArticleId = palletInput.use_alt ? palletInput.alt_article_id : order.article_id;
-                          const effClientId = palletInput.use_alt ? palletInput.alt_client_id : order.client_id;
+                          const isNoMachine = !useOwn && palletInput.machine_id === '__none__';
+                          const palletMachineId = useOwn ? null : (isNoMachine ? null : palletInput.machine_id);
+                          const effArticleId = useAlt ? palletInput.alt_article_id : order.article_id;
+                          const effClientId = useAlt ? palletInput.alt_client_id : order.client_id;
+
+                          // ============ MODO ESTOQUE PRÓPRIO ============
+                          // Baixa direto do own_stock (sem passar por stock_movements/reserve)
+                          if (useOwn) {
+                            const { data: ownMv, error: ownErr } = await (supabase.from as any)('own_stock_movements').insert({
+                              company_id: user.company_id,
+                              own_article_id: palletInput.own_article_id,
+                              type: 'out',
+                              pieces: pc || 0,
+                              weight_kg: wt || 0,
+                              reason: `OF #${order.of_number} · Palete ${nextNumber} (Estoque ${companyFirstName})`,
+                              created_by: profile?.id ?? null,
+                            }).select('id').single();
+                            if (ownErr) throw ownErr;
+                            const { data: row, error: pErr } = await (supabase.from as any)('billing_order_pallets').insert({
+                              billing_order_id: order.id,
+                              company_id: user.company_id,
+                              pallet_number: nextNumber,
+                              pieces: pc || 0,
+                              weight_kg: wt || 0,
+                              reserve_movement_id: null,
+                              machine_id: null,
+                              alt_client_id: null,
+                              alt_article_id: null,
+                              own_article_id: palletInput.own_article_id,
+                              own_stock_movement_id: ownMv?.id ?? null,
+                              created_by: profile?.id ?? null,
+                            }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id').single();
+                            if (pErr) {
+                              // rollback do movimento próprio
+                              if (ownMv?.id) await (supabase.from as any)('own_stock_movements').delete().eq('id', ownMv.id);
+                              throw pErr;
+                            }
+                            setPallets(prev => [...prev, {
+                              id: row.id,
+                              pallet_number: row.pallet_number,
+                              pieces: Number(row.pieces),
+                              weight: Number(row.weight_kg),
+                              reserve_movement_id: null,
+                              machine_id: null,
+                              alt_client_id: null,
+                              alt_article_id: null,
+                              own_article_id: row.own_article_id ?? null,
+                              own_stock_movement_id: row.own_stock_movement_id ?? null,
+                            }]);
+                            setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
+                            refreshStockCaches();
+                            toast({ title: `Palete ${nextNumber} salvo (Estoque ${companyFirstName})` });
+                            setPalletBusy(false);
+                            return;
+                          }
 
                           // Se SEM MÁQUINA: computa saldo por máquina do artigo e distribui a baixa.
                           type Alloc = { machine_id: string; pieces: number; weight_kg: number };
@@ -2443,7 +2500,7 @@ const BillingOrders = () => {
                                 type: 'reserve',
                                 pieces: a.pieces,
                                 weight_kg: a.weight_kg,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva · sem máquina${palletInput.use_alt ? ' · outro artigo' : ''})`,
+                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva · sem máquina${useAlt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }))
                             : [{
@@ -2455,7 +2512,7 @@ const BillingOrders = () => {
                                 type: 'reserve',
                                 pieces: pc || 0,
                                 weight_kg: wt || 0,
-                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva${palletInput.use_alt ? ' · outro artigo' : ''})`,
+                                reason: `OF #${order.of_number} · Palete ${nextNumber} (reserva${useAlt ? ' · outro artigo' : ''})`,
                                 created_by: profile?.id ?? null,
                               }];
                           const { data: mvRows, error: mvErr } = await (supabase.from as any)('stock_movements').insert(reserveRows).select('id');
@@ -2470,10 +2527,10 @@ const BillingOrders = () => {
                             weight_kg: wt || 0,
                             reserve_movement_id: firstMvId,
                             machine_id: palletMachineId,
-                            alt_client_id: palletInput.use_alt ? palletInput.alt_client_id : null,
-                            alt_article_id: palletInput.use_alt ? palletInput.alt_article_id : null,
+                            alt_client_id: useAlt ? palletInput.alt_client_id : null,
+                            alt_article_id: useAlt ? palletInput.alt_article_id : null,
                             created_by: profile?.id ?? null,
-                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id').single();
+                          }).select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id').single();
                           if (pErr) {
                             // rollback dos movimentos se persistência falhar
                             const ids = (mvRows || []).map((r: any) => r.id).filter(Boolean);
@@ -2489,6 +2546,8 @@ const BillingOrders = () => {
                             machine_id: row.machine_id ?? null,
                             alt_client_id: row.alt_client_id ?? null,
                             alt_article_id: row.alt_article_id ?? null,
+                            own_article_id: row.own_article_id ?? null,
+                            own_stock_movement_id: row.own_stock_movement_id ?? null,
                           }]);
                           setPalletInput({ pieces: '', weight: '', machine_id: palletInput.machine_id, source_mode: 'default', alt_client_id: '', alt_article_id: '', own_article_id: '' });
                           refreshStockCaches();
