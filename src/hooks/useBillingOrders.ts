@@ -288,38 +288,37 @@ export function useBillingOrders() {
 
           // ready -> collected: libera a reserva e baixa do físico
           if (status === 'collected' && expectedStatus === 'ready' && (pieces > 0 || weight > 0)) {
-            // Libera APENAS o que foi realmente reservado, agrupando por máquina
-            // — assim a baixa do estoque mantém a separação por máquina.
+            // Libera APENAS o que foi realmente reservado, agrupando por
+            // (article, client, máquina) — respeita paletes com artigo
+            // alternativo (outro cliente/artigo) e a distribuição SEM MÁQUINA.
             const { data: existingMvs } = await (supabase.from as any)('stock_movements')
-              .select('type, pieces, weight_kg, machine_id')
+              .select('type, pieces, weight_kg, machine_id, article_id, client_id')
               .eq('billing_order_id', id)
               .in('type', ['reserve', 'release']);
-            const netByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
+            const netByKey = new Map<string, { p: number; w: number; mid: string | null; article_id: string; client_id: string | null }>();
             for (const m of (existingMvs || [])) {
-              const k = (m.machine_id as string | null) || '__none__';
-              const cur = netByMachine.get(k) || { p: 0, w: 0, mid: (m.machine_id as string | null) || null };
+              const aid = (m as any).article_id as string;
+              const cid = ((m as any).client_id as string | null) ?? null;
+              const mid = (m.machine_id as string | null) || null;
+              const k = `${aid}|${cid ?? ''}|${mid ?? '__none__'}`;
+              const cur = netByKey.get(k) || { p: 0, w: 0, mid, article_id: aid, client_id: cid };
               const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
               if (m.type === 'reserve') { cur.p += p; cur.w += w; }
               else if (m.type === 'release') { cur.p -= p; cur.w -= w; }
-              netByMachine.set(k, cur);
+              netByKey.set(k, cur);
             }
-            for (const cur of netByMachine.values()) {
+            for (const cur of netByKey.values()) {
               if (cur.p > 0 || cur.w > 0) {
-                mvs.push({ ...baseMov, machine_id: cur.mid, type: 'release',
+                mvs.push({ ...baseMov, article_id: cur.article_id, client_id: cur.client_id, machine_id: cur.mid, type: 'release',
                   pieces: Math.max(0, Math.round(cur.p)),
                   weight_kg: Math.max(0, cur.w),
                   reason: `OF #${ofRow.of_number} coletada (libera reserva)` });
               }
             }
-            // Baixa do físico: usa a MESMA quebra por máquina das reservas líquidas.
-            // Isso garante que paletes SEM MÁQUINA (cujas reservas foram distribuídas
-            // automaticamente por máquina com saldo) baixem o estoque físico das
-            // mesmas máquinas — evitando que a baixa caia em machine_id NULL e seja
-            // ignorada pelo cálculo de estoque em /estoque-malha.
             let hadReserveOut = false;
-            for (const cur of netByMachine.values()) {
+            for (const cur of netByKey.values()) {
               if (cur.p > 0 || cur.w > 0) {
-                mvs.push({ ...baseMov, machine_id: cur.mid, type: 'out',
+                mvs.push({ ...baseMov, article_id: cur.article_id, client_id: cur.client_id, machine_id: cur.mid, type: 'out',
                   pieces: Math.max(0, Math.round(cur.p)),
                   weight_kg: Math.max(0, cur.w),
                   reason: `OF #${ofRow.of_number} coletada` });
