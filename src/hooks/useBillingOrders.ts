@@ -58,6 +58,30 @@ export interface BillingOrder {
 
 export function useBillingOrders() {
   const { user, profile } = useAuth();
+  // Helper: restaura estoque próprio (own_stock_movements 'in') para todos os
+  // paletes desta OF que consumiram estoque próprio. Retorna a lista de paletes
+  // "próprios" (com own_article_id) para que quem chamou possa excluir/filtrar.
+  async function restoreOwnStockForOrder(orderId: string, ofNumber: string | number, tag: string) {
+    if (!user?.company_id) return [] as any[];
+    const { data: ownPallets } = await (supabase.from as any)('billing_order_pallets')
+      .select('id, pallet_number, pieces, weight_kg, own_article_id, own_stock_movement_id')
+      .eq('billing_order_id', orderId)
+      .not('own_article_id', 'is', null);
+    if (!ownPallets || ownPallets.length === 0) return [];
+    const rows = (ownPallets as any[]).map(p => ({
+      company_id: user.company_id,
+      own_article_id: p.own_article_id,
+      type: 'in',
+      pieces: Number(p.pieces || 0),
+      weight_kg: Number(p.weight_kg || 0),
+      reason: `OF #${ofNumber} · Palete ${p.pallet_number} ${tag}`,
+      created_by: profile?.id ?? null,
+    }));
+    if (rows.length > 0) {
+      await (supabase.from as any)('own_stock_movements').insert(rows);
+    }
+    return ownPallets as any[];
+  }
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
