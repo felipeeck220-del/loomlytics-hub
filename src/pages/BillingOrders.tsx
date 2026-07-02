@@ -169,7 +169,7 @@ const BillingOrders = () => {
     (async () => {
       const { data, error } = await supabase
         .from('billing_order_pallets' as any)
-        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id')
+        .select('id, pallet_number, pieces, weight_kg, reserve_movement_id, machine_id, alt_client_id, alt_article_id, own_article_id, own_stock_movement_id')
         .eq('billing_order_id', showPalletsModal.id)
         .order('pallet_number', { ascending: true });
       if (cancelled) { setPalletsLoading(false); return; }
@@ -187,6 +187,8 @@ const BillingOrders = () => {
         machine_id: r.machine_id ?? null,
         alt_client_id: r.alt_client_id ?? null,
         alt_article_id: r.alt_article_id ?? null,
+        own_article_id: r.own_article_id ?? null,
+        own_stock_movement_id: r.own_stock_movement_id ?? null,
       })));
       setPalletsLoading(false);
     })();
