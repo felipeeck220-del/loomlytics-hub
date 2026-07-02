@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
   import { Search, Plus, Play, CheckCircle2, Truck, Loader2, AlertTriangle, MessageSquare, Printer, Pencil, Ban, History, FileText, User as UserIcon, Boxes, Trash2, Link2, Link2Off, Eye } from 'lucide-react';
-import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, isWithinInterval, startOfDay, endOfDay, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,34 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
 import { sanitizePdfText } from '@/lib/pdfUtils';
+
+const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const MonthPicker = ({ onPick }: { onPick: (d: Date) => void }) => {
+  const [year, setYear] = React.useState(new Date().getFullYear());
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setYear((y) => y - 1)}>‹</Button>
+        <span className="font-semibold text-sm">{year}</span>
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setYear((y) => y + 1)}>›</Button>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {MONTH_NAMES.map((name, idx) => (
+          <Button
+            key={idx}
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => onPick(new Date(year, idx, 1))}
+          >
+            {name}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const BillingOrders = () => {
   const { user, profile } = useAuth();
@@ -1044,29 +1072,38 @@ const BillingOrders = () => {
                         }}
                         onSelect={() => { /* handled manually em onDayClick */ }}
                         onDayClick={(day) => {
-                          const now = Date.now();
                           const key = format(day, 'yyyy-MM-dd');
-                          const last = (window as any).__ofFilterLastClick as { key: string; ts: number } | undefined;
-                          if (last && last.key === key && now - last.ts < 400) {
-                            setFilterDateRange({ from: key, to: key });
-                            (window as any).__ofFilterLastClick = null;
-                            return;
-                          }
-                          (window as any).__ofFilterLastClick = { key, ts: now };
                           setFilterDateRange((prev) => {
-                            // Sem seleção OU já tem intervalo completo distinto → começa novo (dia único)
-                            if (!prev.from || (prev.from && prev.to && prev.from !== prev.to)) {
-                              return { from: key, to: key };
-                            }
-                            // Tem 1 dia selecionado → estende intervalo (ordena)
-                            const start = prev.from;
-                            if (key === start) return { from: key, to: key };
-                            return key < start ? { from: key, to: start } : { from: start, to: key };
+                            // Sem seleção → dia único
+                            if (!prev.from) return { from: key, to: key };
+                            const from = prev.from;
+                            const to = prev.to || prev.from;
+                            // Clique dentro/no meio do intervalo → mantém (2º+ clique no mesmo dia = aquele dia)
+                            if (key === from && key === to) return { from: key, to: key };
+                            if (key >= from && key <= to) return { from: key, to: key };
+                            // Estende para frente ou para trás
+                            if (key < from) return { from: key, to };
+                            return { from, to: key };
                           });
                         }}
                         initialFocus
                         className="p-3 pointer-events-auto"
                         numberOfMonths={1}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-9 text-xs">Filtrar por mês</Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-3" align="start">
+                      <MonthPicker
+                        onPick={(d) => {
+                          setFilterDateRange({
+                            from: format(startOfMonth(d), 'yyyy-MM-dd'),
+                            to: format(endOfMonth(d), 'yyyy-MM-dd'),
+                          });
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
