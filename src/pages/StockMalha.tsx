@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ManualStockEntryModal } from '@/components/ManualStockEntryModal';
+import { OwnStockManualModal } from '@/components/OwnStockManualModal';
 import { Plus, CalendarDays, Download, Loader2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -75,8 +76,63 @@ export default function StockMalha() {
   const isAdmin = role === 'admin';
   const [manualOpen, setManualOpen] = useState(false);
   const [manual2qOpen, setManual2qOpen] = useState(false);
-  const [activeStockTab, setActiveStockTab] = useState<'estoque' | 'segunda' | 'movimentos'>('estoque');
+  const [ownManualOpen, setOwnManualOpen] = useState(false);
+  const [activeStockTab, setActiveStockTab] = useState<'estoque' | 'propria' | 'segunda' | 'movimentos'>('estoque');
   const queryClient = useQueryClient();
+  const companyFirstName = (user?.company_name || 'Fábrica').split(/\s+/)[0];
+  const canOwnStock = role === 'admin' || (role as any) === 'expedicao';
+
+  // Own stock data
+  const { data: ownArticles = [] } = useQuery({
+    queryKey: ['own_stock_articles', companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)('own_stock_articles')
+        .select('id, name, observations, created_at')
+        .eq('company_id', companyId)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as { id: string; name: string; observations: string | null; created_at: string }[];
+    },
+    enabled: !!companyId,
+  });
+  const { data: ownMovements = [] } = useQuery({
+    queryKey: ['own_stock_movements', companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)('own_stock_movements')
+        .select('id, own_article_id, type, pieces, weight_kg, reason, created_at, author:profiles!own_stock_movements_created_by_fkey(name, code)')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!companyId,
+  });
+  const refreshOwnStock = () => {
+    queryClient.invalidateQueries({ queryKey: ['own_stock_articles', companyId] });
+    queryClient.invalidateQueries({ queryKey: ['own_stock_movements', companyId] });
+  };
+  const ownSummary = useMemo(() => {
+    const map = new Map<string, { articleId: string; name: string; inPc: number; inKg: number; outPc: number; outKg: number }>();
+    for (const a of ownArticles) map.set(a.id, { articleId: a.id, name: a.name, inPc: 0, inKg: 0, outPc: 0, outKg: 0 });
+    for (const mv of ownMovements) {
+      const e = map.get(mv.own_article_id);
+      if (!e) continue;
+      const pc = Number(mv.pieces) || 0;
+      const kg = Number(mv.weight_kg) || 0;
+      if (mv.type === 'in') { e.inPc += pc; e.inKg += kg; }
+      else if (mv.type === 'out') { e.outPc += pc; e.outKg += kg; }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [ownArticles, ownMovements]);
+  const ownKpis = useMemo(() => ownSummary.reduce((acc, r) => ({
+    entradaKg: acc.entradaKg + r.inKg,
+    entradaPc: acc.entradaPc + r.inPc,
+    saidaKg: acc.saidaKg + r.outKg,
+    saidaPc: acc.saidaPc + r.outPc,
+    saldoKg: acc.saldoKg + (r.inKg - r.outKg),
+    saldoPc: acc.saldoPc + (r.inPc - r.outPc),
+  }), { entradaKg: 0, entradaPc: 0, saidaKg: 0, saidaPc: 0, saldoKg: 0, saldoPc: 0 }), [ownSummary]);
+
   const refreshAllStock = () => {
     queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock', companyId] });
     queryClient.invalidateQueries({ queryKey: ['stock_movements_history', companyId] });
@@ -668,7 +724,9 @@ export default function StockMalha() {
           <p className="text-sm text-muted-foreground">
             {activeStockTab === 'segunda'
               ? 'Peças retornadas como 2ª qualidade — saldo independente do estoque principal'
-              : 'Visão consolidada do saldo de artigos por cliente'}
+              : activeStockTab === 'propria'
+                ? `Estoque próprio de ${companyFirstName} — malha da fábrica, sem cliente vinculado`
+                : 'Visão consolidada do saldo de artigos por cliente'}
           </p>
         </div>
         {isAdmin && (
@@ -683,6 +741,12 @@ export default function StockMalha() {
               Lançamento Manual
             </Button>
           ) : null
+        )}
+        {canOwnStock && activeStockTab === 'propria' && (
+          <Button size="sm" onClick={() => setOwnManualOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Lançamento Manual ({companyFirstName})
+          </Button>
         )}
       </div>
 
@@ -741,7 +805,8 @@ export default function StockMalha() {
 
       <Tabs value={activeStockTab} onValueChange={(v) => setActiveStockTab(v as any)} className="w-full">
         <TabsList>
-          <TabsTrigger value="estoque">Estoque</TabsTrigger>
+          <TabsTrigger value="estoque">Estoque (Clientes)</TabsTrigger>
+          <TabsTrigger value="propria">Estoque ({companyFirstName})</TabsTrigger>
           <TabsTrigger value="segunda">Estoque de 2ª</TabsTrigger>
           <TabsTrigger value="movimentos">Movimentações</TabsTrigger>
         </TabsList>
@@ -982,6 +1047,67 @@ export default function StockMalha() {
       )}
         </TabsContent>
 
+        <TabsContent value="propria" className="space-y-3 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Entradas</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.entradaKg)}</p>
+              <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.entradaPc)} pç</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Saídas</div>
+              <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.saidaKg)}</p>
+              <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saidaPc)} pç</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Saldo</div>
+              <p className={cn('text-xl font-bold', ownKpis.saldoKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(ownKpis.saldoKg)}</p>
+              <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saldoPc)} pç</p>
+            </CardContent></Card>
+          </div>
+
+          {ownSummary.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Nenhum artigo próprio cadastrado. Use "Lançamento Manual ({companyFirstName})" para começar.
+            </CardContent></Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Artigo</TableHead>
+                      <TableHead className="text-xs text-right">Entradas (kg)</TableHead>
+                      <TableHead className="text-xs text-right">Entradas (pç)</TableHead>
+                      <TableHead className="text-xs text-right">Saídas (kg)</TableHead>
+                      <TableHead className="text-xs text-right">Saídas (pç)</TableHead>
+                      <TableHead className="text-xs text-right font-bold">Saldo (kg)</TableHead>
+                      <TableHead className="text-xs text-right font-bold">Saldo (pç)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ownSummary.map(r => {
+                      const saldoKg = r.inKg - r.outKg;
+                      const saldoPc = r.inPc - r.outPc;
+                      return (
+                        <TableRow key={r.articleId}>
+                          <TableCell className="text-xs font-medium">{r.name}</TableCell>
+                          <TableCell className="text-xs text-right">{formatWeight(r.inKg)}</TableCell>
+                          <TableCell className="text-xs text-right">{formatNumber(r.inPc)}</TableCell>
+                          <TableCell className="text-xs text-right">{formatWeight(r.outKg)}</TableCell>
+                          <TableCell className="text-xs text-right">{formatNumber(r.outPc)}</TableCell>
+                          <TableCell className={cn('text-xs text-right font-bold', saldoKg < 0 ? 'text-destructive' : saldoKg === 0 ? 'text-muted-foreground' : 'text-success')}>{formatWeight(saldoKg)}</TableCell>
+                          <TableCell className={cn('text-xs text-right font-bold', saldoPc < 0 ? 'text-destructive' : saldoPc === 0 ? 'text-muted-foreground' : 'text-success')}>{formatNumber(saldoPc)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
         <TabsContent value="segunda" className="space-y-3 mt-4">
           <Card>
             <CardContent className="p-4">
@@ -1204,6 +1330,14 @@ export default function StockMalha() {
           machines={machines}
           isSecondQuality
           onSaved={refreshAllStock}
+        />
+      )}
+      {canOwnStock && (
+        <OwnStockManualModal
+          open={ownManualOpen}
+          onOpenChange={setOwnManualOpen}
+          ownArticles={ownArticles as any}
+          onSaved={refreshOwnStock}
         />
       )}
     </div>

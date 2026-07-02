@@ -248,6 +248,8 @@ export type Database = {
       }
       billing_order_pallets: {
         Row: {
+          alt_article_id: string | null
+          alt_client_id: string | null
           billing_order_id: string
           company_id: string
           created_at: string
@@ -260,6 +262,8 @@ export type Database = {
           weight_kg: number
         }
         Insert: {
+          alt_article_id?: string | null
+          alt_client_id?: string | null
           billing_order_id: string
           company_id: string
           created_at?: string
@@ -272,6 +276,8 @@ export type Database = {
           weight_kg?: number
         }
         Update: {
+          alt_article_id?: string | null
+          alt_client_id?: string | null
           billing_order_id?: string
           company_id?: string
           created_at?: string
@@ -284,6 +290,20 @@ export type Database = {
           weight_kg?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_order_pallets_alt_article_id_fkey"
+            columns: ["alt_article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_order_pallets_alt_client_id_fkey"
+            columns: ["alt_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "billing_order_pallets_billing_order_id_fkey"
             columns: ["billing_order_id"]
@@ -2512,6 +2532,106 @@ export type Database = {
             columns: ["yarn_type_id"]
             isOneToOne: false
             referencedRelation: "yarn_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      own_stock_articles: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          observations: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          observations?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          observations?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "own_stock_articles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "own_stock_articles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      own_stock_movements: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          own_article_id: string
+          pieces: number
+          reason: string | null
+          type: string
+          weight_kg: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          own_article_id: string
+          pieces?: number
+          reason?: string | null
+          type: string
+          weight_kg?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          own_article_id?: string
+          pieces?: number
+          reason?: string | null
+          type?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "own_stock_movements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "own_stock_movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "own_stock_movements_own_article_id_fkey"
+            columns: ["own_article_id"]
+            isOneToOne: false
+            referencedRelation: "own_stock_articles"
             referencedColumns: ["id"]
           },
         ]
