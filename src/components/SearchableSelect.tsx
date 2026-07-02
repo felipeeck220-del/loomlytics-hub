@@ -23,6 +23,8 @@ interface SearchableSelectProps {
   /** Optional icon to display in the trigger button */
   icon?: ReactNode;
   disabled?: boolean;
+  /** When false, the search input inside the popover is not auto-focused on open. Defaults to true. */
+  autoFocusSearch?: boolean;
 }
 
 export function SearchableSelect({
@@ -36,6 +38,7 @@ export function SearchableSelect({
   filterFn,
   icon,
   disabled = false,
+  autoFocusSearch = true,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -44,15 +47,16 @@ export function SearchableSelect({
   // Auto-focus the search input when popover opens
   useEffect(() => {
     if (open) {
-      // Small delay to ensure the popover is rendered
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
-      return () => clearTimeout(timer);
+      if (autoFocusSearch) {
+        const timer = setTimeout(() => {
+          inputRef.current?.focus();
+        }, 50);
+        return () => clearTimeout(timer);
+      }
     } else {
       setSearch('');
     }
-  }, [open]);
+  }, [open, autoFocusSearch]);
 
   const selectedLabel = options.find(o => o.value === value)?.label;
 
