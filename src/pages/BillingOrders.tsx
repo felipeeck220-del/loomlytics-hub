@@ -1905,6 +1905,19 @@ const BillingOrders = () => {
               <Input className="col-span-3 h-9" value={editForm.dyehouse} onChange={e => setEditForm({...editForm, dyehouse: e.target.value.toUpperCase()})} />
             </div>
             <div className="grid grid-cols-4 items-start gap-3">
+              <Label className="text-right text-xs pt-2">Observações</Label>
+              <div className="col-span-3 space-y-1">
+                <Textarea
+                  value={editForm.admin_notes || ''}
+                  onChange={e => setEditForm({ ...editForm, admin_notes: e.target.value.slice(0, 1000) })}
+                  placeholder="Instruções do admin para a expedição (opcional)."
+                  rows={2}
+                  className="text-sm resize-y"
+                />
+                <div className="text-[10px] text-muted-foreground text-right">{(editForm.admin_notes || '').length}/1000</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-start gap-3">
               <Label className="text-right text-xs pt-2">
                 Motivo da edição
                 {showEditModal && (showEditModal.status === 'separating' || showEditModal.status === 'ready') && <span className="text-red-600"> *</span>}
