@@ -555,6 +555,7 @@ const BillingOrders = () => {
       dyehouse: order.dyehouse || '',
       order_type: order.order_type || 'pieces',
       edit_note: '',
+      admin_notes: order.admin_notes || '',
     });
     setShowEditModal(order);
   };
@@ -588,6 +589,7 @@ const BillingOrders = () => {
       piece_weight_target: editForm.order_type === 'all' ? null : (editForm.piece_weight_target ? parseFloat(editForm.piece_weight_target) : null),
       dyehouse: editForm.dyehouse,
       order_type: editForm.order_type,
+      admin_notes: (editForm.admin_notes || '').trim() || null,
     };
     const note = editForm.edit_note.trim() || `Editado por admin em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`;
     try {
