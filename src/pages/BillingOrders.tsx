@@ -24,6 +24,19 @@ import jsPDF from 'jspdf';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const parseDateKey = (value?: string): Date | undefined => {
+  if (!value) return undefined;
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day);
+};
+
+const formatDateKey = (value: string) => {
+  const date = parseDateKey(value);
+  return date ? format(date, 'dd/MM/yyyy') : '';
+};
+
 const MonthPicker = ({ onPick }: { onPick: (d: Date) => void }) => {
   const [year, setYear] = React.useState(new Date().getFullYear());
   return (
@@ -279,9 +292,12 @@ const BillingOrders = () => {
         const orderDate = new Date(ref);
         if (filterDateRange.from) {
           const end = filterDateRange.to || filterDateRange.from;
+          const startDate = parseDateKey(filterDateRange.from);
+          const endDate = parseDateKey(end);
+          if (!startDate || !endDate) return true;
           return isWithinInterval(orderDate, {
-            start: startOfDay(new Date(filterDateRange.from)),
-            end: endOfDay(new Date(end)),
+            start: startOfDay(startDate),
+            end: endOfDay(endDate),
           });
         }
       }
@@ -1058,8 +1074,8 @@ const BillingOrders = () => {
                       <Button variant="outline" size="sm" className={cn('h-9 text-xs justify-start text-left font-normal w-[260px]', !filterDateRange.from && 'text-muted-foreground')}>
                         {filterDateRange.from
                           ? (filterDateRange.to && filterDateRange.to !== filterDateRange.from
-                              ? `${format(new Date(filterDateRange.from), 'dd/MM/yyyy')} → ${format(new Date(filterDateRange.to), 'dd/MM/yyyy')}`
-                              : format(new Date(filterDateRange.from), 'dd/MM/yyyy'))
+                              ? `${formatDateKey(filterDateRange.from)} → ${formatDateKey(filterDateRange.to)}`
+                              : formatDateKey(filterDateRange.from))
                           : 'Selecionar dia ou intervalo'}
                       </Button>
                     </PopoverTrigger>
@@ -1067,8 +1083,8 @@ const BillingOrders = () => {
                       <Calendar
                         mode="range"
                         selected={{
-                          from: filterDateRange.from ? new Date(filterDateRange.from) : undefined,
-                          to: filterDateRange.to ? new Date(filterDateRange.to) : undefined,
+                          from: parseDateKey(filterDateRange.from),
+                          to: parseDateKey(filterDateRange.to),
                         }}
                         onSelect={() => { /* handled manually em onDayClick */ }}
                         onDayClick={(day) => {
