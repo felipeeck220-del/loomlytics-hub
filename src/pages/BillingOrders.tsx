@@ -2510,36 +2510,36 @@ const BillingOrders = () => {
                                       // Palete com máquina: uma reserva → uma liberação
                                       const { error: relErr } = await (supabase.from as any)('stock_movements').insert({
                                         company_id: user.company_id,
-                                        article_id: order.article_id,
-                                        client_id: order.client_id,
+                                        article_id: p.alt_article_id || order.article_id,
+                                        client_id: p.alt_client_id || order.client_id,
                                         billing_order_id: order.id,
                                         machine_id: p.machine_id,
                                         type: 'release',
                                         pieces: p.pieces || 0,
                                         weight_kg: p.weight || 0,
-                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva)`,
+                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva${p.alt_article_id ? ' · outro artigo' : ''})`,
                                         created_by: profile?.id ?? null,
                                       });
                                       if (relErr) throw relErr;
                                     } else {
                                       // SEM MÁQUINA: busca todas as reservas deste palete e libera uma por máquina
                                       const { data: reservas, error: qErr } = await (supabase.from as any)('stock_movements')
-                                        .select('id, machine_id, pieces, weight_kg')
+                                        .select('id, machine_id, pieces, weight_kg, article_id, client_id')
                                         .eq('company_id', user.company_id)
                                         .eq('billing_order_id', order.id)
                                         .eq('type', 'reserve')
-                                        .eq('reason', `OF #${order.of_number} · Palete ${p.pallet_number} (reserva · sem máquina)`);
+                                        .like('reason', `OF #${order.of_number} · Palete ${p.pallet_number} (reserva · sem máquina%`);
                                       if (qErr) throw qErr;
                                       const releases = (reservas || []).map((r: any) => ({
                                         company_id: user.company_id,
-                                        article_id: order.article_id,
-                                        client_id: order.client_id,
+                                        article_id: r.article_id || p.alt_article_id || order.article_id,
+                                        client_id: r.client_id || p.alt_client_id || order.client_id,
                                         billing_order_id: order.id,
                                         machine_id: r.machine_id,
                                         type: 'release',
                                         pieces: Number(r.pieces) || 0,
                                         weight_kg: Number(r.weight_kg) || 0,
-                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva · sem máquina)`,
+                                        reason: `OF #${order.of_number} · Palete ${p.pallet_number} removido (libera reserva · sem máquina${p.alt_article_id ? ' · outro artigo' : ''})`,
                                         created_by: profile?.id ?? null,
                                       }));
                                       if (releases.length > 0) {
