@@ -23,6 +23,34 @@ import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 
+const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const MonthPicker = ({ onPick }: { onPick: (d: Date) => void }) => {
+  const [year, setYear] = React.useState(new Date().getFullYear());
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setYear((y) => y - 1)}>‹</Button>
+        <span className="font-semibold text-sm">{year}</span>
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setYear((y) => y + 1)}>›</Button>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {MONTH_NAMES.map((name, idx) => (
+          <Button
+            key={idx}
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => onPick(new Date(year, idx, 1))}
+          >
+            {name}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const BillingOrders = () => {
   const { user, profile } = useAuth();
   const { role } = usePermissions();
