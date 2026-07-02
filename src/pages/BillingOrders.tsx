@@ -2334,7 +2334,7 @@ const BillingOrders = () => {
                           value={palletInput.own_article_id}
                           onValueChange={v => setPalletInput({ ...palletInput, own_article_id: v })}
                           options={ownArticles.map(a => ({ value: a.id, label: a.name }))}
-                          placeholder={ownArticles.length ? `Selecione o artigo em Estoque ${companyFirstName}` : `Cadastre um artigo em Estoque ${companyFirstName}`}
+                          placeholder={ownArticles.length ? `Selecione o artigo em Estoque ${companyFirstName}` : 'Nenhum artigo'}
                           autoFocusSearch={false}
                         />
                       </div>
