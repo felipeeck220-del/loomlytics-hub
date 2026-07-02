@@ -1042,21 +1042,27 @@ const BillingOrders = () => {
                           from: filterDateRange.from ? new Date(filterDateRange.from) : undefined,
                           to: filterDateRange.to ? new Date(filterDateRange.to) : undefined,
                         }}
-                        onSelect={(range) => {
-                          if (!range) { setFilterDateRange({ from: '', to: '' }); return; }
-                          setFilterDateRange({
-                            from: range.from ? format(range.from, 'yyyy-MM-dd') : '',
-                            to: range.to ? format(range.to, 'yyyy-MM-dd') : (range.from ? format(range.from, 'yyyy-MM-dd') : ''),
-                          });
-                        }}
+                        onSelect={() => { /* handled manually em onDayClick */ }}
                         onDayClick={(day) => {
                           const now = Date.now();
                           const key = format(day, 'yyyy-MM-dd');
                           const last = (window as any).__ofFilterLastClick as { key: string; ts: number } | undefined;
                           if (last && last.key === key && now - last.ts < 400) {
                             setFilterDateRange({ from: key, to: key });
+                            (window as any).__ofFilterLastClick = null;
+                            return;
                           }
                           (window as any).__ofFilterLastClick = { key, ts: now };
+                          setFilterDateRange((prev) => {
+                            // Sem seleção OU já tem intervalo completo distinto → começa novo (dia único)
+                            if (!prev.from || (prev.from && prev.to && prev.from !== prev.to)) {
+                              return { from: key, to: key };
+                            }
+                            // Tem 1 dia selecionado → estende intervalo (ordena)
+                            const start = prev.from;
+                            if (key === start) return { from: key, to: key };
+                            return key < start ? { from: key, to: start } : { from: start, to: key };
+                          });
                         }}
                         initialFocus
                         className="p-3 pointer-events-auto"
