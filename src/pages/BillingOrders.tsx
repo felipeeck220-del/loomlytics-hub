@@ -14,7 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { SearchableSelect } from '@/components/SearchableSelect';
@@ -2181,13 +2181,18 @@ const BillingOrders = () => {
       {/* Modal Paletes — separação por paletes */}
       <Dialog open={!!showPalletsModal} onOpenChange={(o) => { if (!o) { setShowPalletsModal(null); setPallets([]); setPalletInput({ pieces: '', weight: '', machine_id: '', use_alt: false, alt_client_id: '', alt_article_id: '' }); } }}>
         <DialogContent
-          className="sm:max-w-[560px]"
+          className="sm:max-w-[560px] w-screen h-screen max-w-none rounded-none p-4 sm:w-auto sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:p-6 [&>button.absolute]:hidden overflow-y-auto"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-indigo-700">
-              <Boxes className="h-5 w-5" /> Paletes · OF #{showPalletsModal?.of_number}
-            </DialogTitle>
+            <div className="flex items-center justify-between gap-2 pr-1">
+              <DialogTitle className="flex items-center gap-2 text-indigo-700">
+                <Boxes className="h-5 w-5" /> Paletes · OF #{showPalletsModal?.of_number}
+              </DialogTitle>
+              <DialogClose asChild>
+                <Button variant="outline" size="sm" className="h-8 px-3 text-xs">Fechar</Button>
+              </DialogClose>
+            </div>
           </DialogHeader>
           {showPalletsModal && palletsLoading && (
             <div className="py-10 flex flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -2243,6 +2248,7 @@ const BillingOrders = () => {
                           { value: '__none__', label: 'SEM MÁQUINA' },
                         ]}
                         placeholder="Selecione a máquina"
+                        autoFocusSearch={false}
                       />
                     </div>
                   </div>
