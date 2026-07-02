@@ -2255,6 +2255,16 @@ const BillingOrders = () => {
                     )}
                   </div>
                 </div>
+                {(order as any).admin_notes && (
+                  <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs space-y-1">
+                    <div className="text-[10px] uppercase font-semibold text-amber-800 dark:text-amber-300">📋 Observações do admin</div>
+                    <div className="whitespace-pre-wrap text-amber-900 dark:text-amber-100">{(order as any).admin_notes}</div>
+                  </div>
+                )}
+                {false && (
+                  <div>
+                  </div>
+                </div>
 
                 {/* Adicionar palete */}
                 <div className="rounded-md border p-3 space-y-2">
