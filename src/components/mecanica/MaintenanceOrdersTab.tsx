@@ -368,8 +368,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     toast.success('OM finalizada');
     logAction('om_finish', { om: finishOrder.om_number, duration_s: seconds, items: itemsToInsert.length });
     setFinishOrder(null);
-    refreshMachines();
     await load();
+    await Promise.resolve(refreshMachines());
   };
 
   // ============ CANCEL ============
