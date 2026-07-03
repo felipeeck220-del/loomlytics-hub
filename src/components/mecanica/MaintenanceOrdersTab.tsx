@@ -809,12 +809,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                           </div>
 
                           <div className="flex flex-wrap gap-2 xl:justify-end">
-                            {o.status === 'aberto' && canExecute && (
+                            {o.status === 'aberto' && canExecuteOrder(o) && (
                               <Button size="sm" onClick={() => setConfirmStart(o)} className="gap-1.5">
                                 <Play className="h-3.5 w-3.5" /> Iniciar
                               </Button>
                             )}
-                            {o.status === 'aberto' && canManage && (
+                            {o.status === 'aberto' && canManageOrder(o) && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => openEdit(o)} className="gap-1.5">
                                   <Pencil className="h-3.5 w-3.5" /> Editar
@@ -824,7 +824,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                 </Button>
                               </>
                             )}
-                            {o.status === 'em_curso' && canExecute && (
+                            {o.status === 'em_curso' && canExecuteOrder(o) && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => openProgress(o)} className="gap-1.5 border-blue-500/40 text-blue-600 hover:bg-blue-500/10">
                                   <StickyNote className="h-3.5 w-3.5" /> Notas/Itens
@@ -842,7 +842,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                 <Download className="h-3.5 w-3.5" /> Baixar Relatório
                               </Button>
                             )}
-                            {canManage && o.status === 'cancelada' && (
+                            {canManageOrder(o) && o.status === 'cancelada' && (
                               <Button size="sm" variant="outline" onClick={() => setConfirmDelete(o)} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
                                 <Trash2 className="h-3.5 w-3.5" /> Excluir
                               </Button>
