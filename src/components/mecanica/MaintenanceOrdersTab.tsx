@@ -766,9 +766,24 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             <Badge variant="outline" className={cn('font-semibold uppercase text-[10px]', TYPE_COLORS[o.type])}>
                               {TYPE_LABELS[o.type]}
                             </Badge>
-                            {o.priority === 'prioritaria' && o.status === 'aberto' && (
+                            {o.type === 'manutencao_corretiva' && o.status === 'aberto' ? (
+                              o.priority === 'prioritaria' ? (
+                                <Badge variant="destructive" className="animate-pulse gap-1 text-[10px] font-bold">
+                                  <AlertTriangle className="h-3 w-3" /> MÁQUINA PARADA
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-emerald-600 text-white border-emerald-700 gap-1 text-[10px] font-bold">
+                                  <Play className="h-3 w-3" /> EM OPERAÇÃO
+                                </Badge>
+                              )
+                            ) : o.priority === 'prioritaria' && o.status === 'aberto' && (
                               <Badge variant="destructive" className="animate-pulse gap-1 text-[10px]">
                                 <AlertTriangle className="h-3 w-3" /> PRIORITÁRIA
+                              </Badge>
+                            )}
+                            {o.status === 'aberto' && (
+                              <Badge variant="outline" className="gap-1 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-400">
+                                <Clock className="h-3 w-3" /> Aguardando início <LiveTimer startedAt={o.created_at} />
                               </Badge>
                             )}
                             {o.status === 'em_curso' && o.started_at && (
@@ -998,8 +1013,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 <Select value={form.priority} onValueChange={v => setForm(p => ({ ...p, priority: v as MaintenanceOrderPriority }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="prioritaria">Prioritária</SelectItem>
+                    {correctiveMode ? (
+                      <>
+                        <SelectItem value="normal">Em operação</SelectItem>
+                        <SelectItem value="prioritaria">Máquina parada</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="prioritaria">Prioritária</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
