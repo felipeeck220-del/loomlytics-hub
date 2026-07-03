@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import { Lock } from 'lucide-react';
 import {
-  LayoutDashboard, Settings2, ClipboardList, Factory, Settings, Search, Wrench,
+  LayoutDashboard, Settings2, ClipboardList, Factory, Settings, Search, Wrench, AlertTriangle,
 } from 'lucide-react';
 
 const allItems = [
@@ -15,6 +15,8 @@ const allItems = [
   { title: 'Produção', path: 'production', icon: ClipboardList, key: 'production' },
   { title: 'Revisão', path: 'revision', icon: Search, key: 'revision' },
   { title: 'Mecânica', path: 'mecanica', icon: Wrench, key: 'mecanica' },
+  { title: 'OM', path: 'mecanica/om', icon: ClipboardList, key: 'mecanica-om' },
+  { title: 'OC', path: 'mecanica/oc', icon: AlertTriangle, key: 'mecanica-oc' },
   { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
   { title: 'Configurações', path: 'settings', icon: Settings, key: 'settings' },
 ];
@@ -23,7 +25,7 @@ const allItems = [
 const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   admin: ['dashboard', 'production', 'outsource', 'settings'],
   lider: ['dashboard', 'machines', 'revision'],
-  mecanico: ['machines', 'mecanica'],
+  mecanico: ['machines', 'mecanica-om', 'mecanica-oc'],
   revisador: ['production', 'revision'],
 };
 
