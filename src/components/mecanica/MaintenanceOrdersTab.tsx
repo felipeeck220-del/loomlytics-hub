@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X } from 'lucide-react';
+import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,18 @@ import type {
   NeedleInventory, SinkerInventory, Cylinder,
 } from '@/types';
 import { SearchableSelect } from '@/components/SearchableSelect';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { sanitizePdfText } from '@/lib/pdfUtils';
+import { loadLogoForPdf } from '@/lib/clientInvoicePdf';
+
+type ProgressNote = {
+  id: string;
+  ts: string;
+  author: string | null;
+  kind: 'observacao' | 'item';
+  text: string;
+};
 
 const TYPE_LABELS: Record<MaintenanceOrderType, string> = {
   manutencao_preventiva: 'Manutenção Preventiva',
@@ -96,6 +108,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [cancelReason, setCancelReason] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<MaintenanceOrder | null>(null);
   const [confirmFinishGate, setConfirmFinishGate] = useState(false);
+  // Progress notes modal (Em Curso)
+  const [progressOrder, setProgressOrder] = useState<MaintenanceOrder | null>(null);
+  const [progressDraft, setProgressDraft] = useState<{ kind: 'observacao' | 'item'; text: string }>({ kind: 'observacao', text: '' });
+  const [progressSaving, setProgressSaving] = useState(false);
 
   const load = async () => {
     if (!companyId) return;
@@ -227,7 +243,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const openFinish = (o: MaintenanceOrder) => {
     setFinishOrder(o);
     setFinishItems([]);
+    setFinishNotes(o.finish_notes || '');
   };
+  const [finishNotes, setFinishNotes] = useState('');
   const addItem = () => setFinishItems(p => [...p, { item_type: 'agulha', ref_id: '', description: '', quantity: 1 }]);
   const removeItem = (idx: number) => setFinishItems(p => p.filter((_, i) => i !== idx));
   const updateItem = (idx: number, patch: Partial<{ item_type: MaintenanceOrderItemType; ref_id: string; description: string; quantity: number }>) =>
@@ -264,6 +282,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const { error } = await (supabase.from as any)('maintenance_orders').update({
       status: 'finalizada', finished_at: now, finished_by_id: user?.id, finished_by_name: authorLabel,
       duration_seconds: seconds,
+      finish_notes: finishNotes || null,
     }).eq('id', finishOrder.id);
     if (error) { toast.error('Erro ao finalizar OM'); return; }
 
