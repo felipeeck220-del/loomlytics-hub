@@ -59,9 +59,13 @@ export function MobileBottomNav() {
     const footerKeys = getMobileFooterKeys(role);
     const footerItems = allItems.filter(i => footerKeys.includes(i.key));
 
-    // Apply company-level filtering
+    // Apply company-level filtering (mecanica-om/oc herdam do toggle 'mecanica')
+    const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
-      ? footerItems.filter(i => enabledNavItems.includes(i.key))
+      ? footerItems.filter(i => {
+          if (i.key === 'mecanica-om' || i.key === 'mecanica-oc') return mecanicaEnabled;
+          return enabledNavItems.includes(i.key);
+        })
       : footerItems;
 
     // Apply role-level filtering
