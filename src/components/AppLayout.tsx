@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMemo, useState, useEffect } from 'react';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 import type { ShiftType } from '@/types';
 import { AlertTriangle } from 'lucide-react';
@@ -55,6 +56,7 @@ function formatDate(date: Date): string {
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  usePushNotifications();
    const { refreshData, loading: companyLoading, loadingProgress } = useSharedCompanyData();
    const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();

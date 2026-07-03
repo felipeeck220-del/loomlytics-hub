@@ -34,9 +34,9 @@ const allItems = [
   { title: 'Clientes & Artigos', path: 'clients-articles', icon: Users, key: 'clients-articles' },
   { title: 'Produção', path: 'production', icon: ClipboardList, key: 'production' },
   { title: 'Revisão', path: 'revision', icon: Search, key: 'revision' },
-  { title: 'Mecânica', path: 'mecanica', icon: Wrench, key: 'mecanica' },
-  { title: 'OM', path: 'mecanica/om', icon: ClipboardList, key: 'mecanica-om', nonAdminOnly: true },
-  { title: 'OC', path: 'mecanica/oc', icon: AlertTriangle, key: 'mecanica-oc', nonAdminOnly: true },
+  { title: 'Mecânica', path: 'mecanica', icon: Wrench, key: 'mecanica', end: true },
+  { title: 'OM', path: 'mecanica/om', icon: ClipboardList, key: 'mecanica-om', nonAdminOnly: true, end: true },
+  { title: 'OC', path: 'mecanica/oc', icon: AlertTriangle, key: 'mecanica-oc', nonAdminOnly: true, end: true },
   { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
   { title: 'Tecelões', path: 'weavers', icon: HardHat, key: 'weavers' },
   { title: 'Relatórios', path: 'reports', icon: FileText, key: 'reports' },
@@ -60,6 +60,8 @@ export function AppSidebar() {
   const [companyName, setCompanyName] = useState<string>('');
   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [openOMCount, setOpenOMCount] = useState(0);
+  const [openOCCount, setOpenOCCount] = useState(0);
   const isAdmin = role === 'admin';
   const { canInstall, platform, install, showIOSInstructions, setShowIOSInstructions } = useInstallApp();
 
@@ -85,6 +87,34 @@ export function AppSidebar() {
           setEnabledNavItems(data.enabled_nav_items);
         }
       });
+  }, [user?.company_id]);
+
+  // Contagem em tempo real de OMs/OCs em aberto (status = 'aberto')
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const companyId = user.company_id;
+    let cancelled = false;
+
+    const load = async () => {
+      const { data } = await (supabase.from as any)('maintenance_orders')
+        .select('type,status')
+        .eq('company_id', companyId)
+        .eq('status', 'aberto');
+      if (cancelled) return;
+      const rows = (data || []) as Array<{ type: string; status: string }>;
+      const oc = rows.filter(r => r.type === 'manutencao_corretiva').length;
+      const om = rows.length - oc;
+      setOpenOMCount(om);
+      setOpenOCCount(oc);
+    };
+
+    load();
+    const channel = (supabase as any)
+      .channel(`sidebar-mo-${companyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_orders', filter: `company_id=eq.${companyId}` }, () => load())
+      .subscribe();
+
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [user?.company_id]);
 
   const items = useMemo(() => {
@@ -178,18 +208,28 @@ export function AppSidebar() {
                       ) : (
                         <NavLink
                           to={item.url}
-                          end={item.path === ''}
+                          end={item.path === '' || (item as any).end === true}
                           onClick={() => { if (isMobile) setOpenMobile(false); }}
                           className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-3'} py-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-150 text-[13px]`}
                           activeClassName="bg-primary/10 text-primary font-medium"
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
                           {!collapsed && (
-                            <span className="flex items-center gap-2">
+                            <span className="flex items-center gap-2 flex-1">
                               {item.title}
                               {isTesting && (
                                 <span className="text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-medium leading-none">
                                   Em teste
+                                </span>
+                              )}
+                              {item.key === 'mecanica-om' && openOMCount > 0 && (
+                                <span className="ml-auto text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-semibold leading-none">
+                                  {openOMCount}
+                                </span>
+                              )}
+                              {item.key === 'mecanica-oc' && openOCCount > 0 && (
+                                <span className="ml-auto text-[10px] bg-red-500/15 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full font-semibold leading-none">
+                                  {openOCCount}
                                 </span>
                               )}
                             </span>
