@@ -76,7 +76,13 @@ export function usePermissions() {
         return allowedKeys.includes(key);
       },
       /** The default route for this role (first allowed key) */
-      defaultRoute: allowedKeys[0] === 'dashboard' ? '' : allowedKeys[0],
+      defaultRoute: (() => {
+        const first = allowedKeys[0];
+        if (!first || first === 'dashboard') return '';
+        // Reverse-map nav key back to its route path
+        const entry = Object.entries(ROUTE_KEY_MAP).find(([, k]) => k === first);
+        return entry ? entry[0] : first;
+      })(),
       allowedKeys,
     };
   }, [role, overrides]);
