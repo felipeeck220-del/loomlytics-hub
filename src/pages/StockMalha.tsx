@@ -135,6 +135,37 @@ export default function StockMalha() {
   }), { entradaKg: 0, entradaPc: 0, saidaKg: 0, saidaPc: 0, saldoKg: 0, saldoPc: 0 }), [ownSummary]);
   const isOwnLoading = ownArticlesLoading || ownMovementsLoading;
 
+  // Detalhamento por artigo → (tipo de fio + origem) agregando entradas em lotes.
+  // Saídas ficam agregadas por artigo (não têm origem/tipo de fio).
+  const ownDetailByArticle = useMemo(() => {
+    const map = new Map<string, Array<{
+      key: string; yarn_type: string; of_number: string; source: string; origin_label: string;
+      inKg: number; inPc: number;
+    }>>();
+    for (const a of ownArticles) map.set(a.id, []);
+    for (const mv of ownMovements) {
+      if (mv.type !== 'in') continue;
+      const list = map.get(mv.own_article_id);
+      if (!list) continue;
+      const yarn = (mv.yarn_type || '—').trim() || '—';
+      const of = (mv.of_number || '—').trim() || '—';
+      const src = mv.source === 'outsource' ? 'outsource' : (mv.source === 'internal' ? 'internal' : 'unknown');
+      const originLabel = src === 'outsource'
+        ? `Terceirizado${mv.outsource?.name ? ` — ${mv.outsource.name}` : ''}`
+        : src === 'internal' ? 'Produção interna' : '—';
+      const key = `${yarn}||${of}||${src}||${mv.outsource_company_id || ''}`;
+      let row = list.find(r => r.key === key);
+      if (!row) {
+        row = { key, yarn_type: yarn, of_number: of, source: src, origin_label: originLabel, inKg: 0, inPc: 0 };
+        list.push(row);
+      }
+      row.inKg += Number(mv.weight_kg) || 0;
+      row.inPc += Number(mv.pieces) || 0;
+    }
+    return map;
+  }, [ownArticles, ownMovements]);
+  const [expandedOwnArticle, setExpandedOwnArticle] = useState<string | null>(null);
+
   const refreshAllStock = () => {
     queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock', companyId] });
     queryClient.invalidateQueries({ queryKey: ['stock_movements_history', companyId] });
