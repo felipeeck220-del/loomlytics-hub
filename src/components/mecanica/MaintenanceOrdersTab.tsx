@@ -548,7 +548,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           ['Máquina', sanitizePdfText(machine?.name || '—'), 'Nº', String(machine?.number ?? '—')],
           ['Tipo de Máquina', machine?.machine_type === 'dupla' ? 'Dupla' : (machine?.machine_type === 'mono' ? 'Mono' : '—'), 'Modelo', sanitizePdfText(machine?.model || '—')],
           ['Marca (Cilindro)', sanitizePdfText(cyl?.brand || '—'), 'Modelo (Cilindro)', sanitizePdfText(cyl?.model || '—')],
-          ['Diâmetro', sanitizePdfText((cyl?.diameter || machine?.diameter || '—') + (cyl?.diameter || machine?.diameter ? '"' : '')), 'Finura', sanitizePdfText(cyl?.fineness || machine?.fineness || '—')],
+          ['Diâmetro', cyl?.diameter ? sanitizePdfText(`${cyl.diameter}"`) : '', 'Finura', cyl?.fineness ? sanitizePdfText(cyl.fineness) : ''],
           ['Qtd. Agulhas', String(cyl?.needle_quantity ?? machine?.needle_quantity ?? '—'), 'Alimentadores', String(cyl?.feeder_quantity ?? machine?.feeder_quantity ?? '—')],
           ['Nº de Série', sanitizePdfText(machine?.serial_number || '—'), 'Ano', String(machine?.year || '—')],
           ['RPM Alvo', String(machine?.rpm ?? '—'), 'Modo de Produção', machine?.production_mode === 'iot' ? 'IoT (Automático)' : (machine?.production_mode === 'voltas' ? 'Voltas' : 'Rolos')],
