@@ -649,6 +649,24 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             {m?.name || '—'}
                           </div>
 
+                          {/* Urgência de manutenção (Aberto) — puxada do Calendário por máquina */}
+                          {u && (
+                            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase text-muted-foreground font-semibold">Dias p/ próxima</span>
+                                <Badge variant="outline" className={cn('text-[10px] font-bold px-2 py-0.5', daysBadgeClass(u.daysLeft))}>
+                                  {daysLabel(u.daysLeft)}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase text-muted-foreground font-semibold">Kg restantes</span>
+                                <Badge variant="outline" className={cn('text-[10px] font-bold px-2 py-0.5 tabular-nums', kgBadgeClass(u.kgLeft, u.kgTarget))}>
+                                  {kgLabel(u.kgLeft, u.kgTarget)}
+                                </Badge>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Descrição */}
                           {o.description && (
                             <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>
