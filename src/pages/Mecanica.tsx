@@ -98,7 +98,8 @@ export default function MecanicaPage() {
    const [assignForm, setAssignForm] = useState({ machine_id: '', cylinder_id: '' });
   
  
-  const { canSeeFinancial } = usePermissions();
+  const { canSeeFinancial, role } = usePermissions();
+  const isAdmin = role === 'admin';
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
@@ -1058,11 +1059,11 @@ export default function MecanicaPage() {
            <TabsTrigger value="om">OM</TabsTrigger>
            <TabsTrigger value="oc" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">OC</TabsTrigger>
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
-           <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-            <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
-            <TabsTrigger value="platinas">Platinas</TabsTrigger>
+           {isAdmin && <TabsTrigger value="detalhes">Detalhes</TabsTrigger>}
+           {isAdmin && <TabsTrigger value="agulhas">Agulhas</TabsTrigger>}
+           {isAdmin && <TabsTrigger value="platinas">Platinas</TabsTrigger>}
             <TabsTrigger value="cilindros">Cilindros</TabsTrigger>
-            <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>
+           {isAdmin && <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>}
           </TabsList>
 
         {/* OM Tab */}
