@@ -125,6 +125,38 @@ export default function MecanicaPage() {
   const [scheduleSearch, setScheduleSearch] = useState('');
   const [scheduleHistoryMachineId, setScheduleHistoryMachineId] = useState<string | null>(null);
   const [obsByLogId, setObsByLogId] = useState<Record<string, { observation: string; created_at: string }[]>>({});
+  const [loadingReportMachineId, setLoadingReportMachineId] = useState<string | null>(null);
+
+  const authorLabel = userName ? (userCode ? `${userName} #${userCode}` : userName) : null;
+
+  const handleDownloadLastOmReport = async (machine: any) => {
+    if (!user?.company_id) return;
+    setLoadingReportMachineId(machine.id);
+    try {
+      const result = await fetchLastFinalizedOmForMachine(user.company_id, machine.id);
+      if (!result) {
+        toast.error('Nenhuma OM finalizada para esta máquina.');
+        return;
+      }
+      await generateOmReportPdf({
+        order: result.order,
+        items: result.items,
+        machine,
+        needles,
+        sinkers,
+        cylinders,
+        companyId: user.company_id,
+        authorLabel,
+      });
+      logAction('om_report_download_from_calendar', { om: result.order.om_number, machine: machine.name });
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar relatório da OM');
+    } finally {
+      setLoadingReportMachineId(null);
+    }
+  };
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [addMachineId, setAddMachineId] = useState('');
   const [addStatus, setAddStatus] = useState<string>('manutencao_preventiva');
