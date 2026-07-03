@@ -669,9 +669,11 @@ export default function MecanicaPage() {
           kgTarget != null ? `${kgTarget.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : '—',
           kgTarget == null
             ? '—'
-            : kgLeft! <= 0
-              ? sanitizePdfText(`Atingido (${Math.abs(kgLeft!).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`)
-              : `${kgLeft!.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`,
+            : kgLeft == null
+              ? 'Sem histórico'
+              : kgLeft <= 0
+                ? sanitizePdfText(`Atingido (${Math.abs(kgLeft).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`)
+                : `${kgLeft.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`,
           last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—',
           last?.ended_at ? format(new Date(last.ended_at), 'HH:mm') : '—',
           sanitizePdfText(formatDuration(durationMin)),
