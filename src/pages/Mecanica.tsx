@@ -147,6 +147,7 @@ export default function MecanicaPage() {
       'cylinders', 'machine_needle_refs', 'machine_sinker_refs',
       'maintenance_orders', 'maintenance_order_items',
       'machine_maintenance_observations',
+      'article_change_orders', 'article_change_yarns',
     ];
     const channel = supabase.channel(`mecanica-rt-${cid}`);
     for (const t of tables) {
