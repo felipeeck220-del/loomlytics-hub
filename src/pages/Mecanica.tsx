@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
   import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package, Eye, FileDown, Settings } from 'lucide-react';
@@ -100,6 +101,13 @@ export default function MecanicaPage() {
  
   const { canSeeFinancial, role } = usePermissions();
   const isAdmin = role === 'admin';
+  const location = useLocation();
+  const pathTab = location.pathname.endsWith('/mecanica/om')
+    ? 'om'
+    : location.pathname.endsWith('/mecanica/oc')
+      ? 'oc'
+      : null;
+  const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
