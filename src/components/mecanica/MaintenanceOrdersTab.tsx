@@ -725,7 +725,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             <Badge className={cn(style.badgeClass, 'font-bold text-[10px] tracking-wide uppercase px-2 py-0.5')}>
                               {style.label}
                             </Badge>
-                            <span className="font-bold text-lg text-foreground">OM #{String(o.om_number).padStart(3, '0')}</span>
+                            <span className={cn('font-bold text-lg', o.type === 'manutencao_corretiva' ? 'text-destructive' : 'text-foreground')}>{labelOf(o)} #{displayNumber(o)}</span>
                             <Badge variant="outline" className={cn('font-semibold uppercase text-[10px]', TYPE_COLORS[o.type])}>
                               {TYPE_LABELS[o.type]}
                             </Badge>
@@ -859,7 +859,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                 </Button>
                               </>
                             )}
-                            {o.status === 'em_curso' && canExecuteOrder(o) && (
+                            {o.status === 'em_curso' && canViewProgressNotes(o) && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => openProgress(o)} className="gap-1.5 border-blue-500/40 text-blue-600 hover:bg-blue-500/10">
                                   <StickyNote className="h-3.5 w-3.5" /> Notas/Itens
@@ -867,9 +867,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                     <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{o.progress_notes.length}</Badge>
                                   )}
                                 </Button>
-                                <Button size="sm" onClick={() => openFinish(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
-                                  <Square className="h-3.5 w-3.5" /> Finalizar
-                                </Button>
+                                {canExecuteOrder(o) && (
+                                  <Button size="sm" onClick={() => openFinish(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                                    <Square className="h-3.5 w-3.5" /> Finalizar
+                                  </Button>
+                                )}
                               </>
                             )}
                             {o.status === 'finalizada' && (
@@ -905,7 +907,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           <DialogHeader>
             <DialogTitle>
               {editing
-                ? `Editar ${correctiveMode ? 'OC' : 'OM'} #${String(editing.om_number).padStart(3, '0')}`
+                ? `Editar ${labelOf(editing)} #${displayNumber(editing)}`
                 : correctiveMode ? 'Nova OC — Ordem de Corretiva' : 'Nova OM'}
             </DialogTitle>
           </DialogHeader>
@@ -977,7 +979,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           <DialogHeader className="p-4 border-b flex flex-row items-center justify-between sm:justify-between space-y-0 shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Square className="h-5 w-5 text-emerald-600" />
-              Finalizar OM #{finishOrder ? String(finishOrder.om_number).padStart(3, '0') : ''}
+              Finalizar {finishOrder ? labelOf(finishOrder) : 'OM'} #{finishOrder ? displayNumber(finishOrder) : ''}
               {finishOrder && (
                 <Badge variant="outline" className="ml-2">{TYPE_LABELS[finishOrder.type]} · {machineById[finishOrder.machine_id]?.name || ''}</Badge>
               )}
