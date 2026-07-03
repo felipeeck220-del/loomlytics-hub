@@ -100,7 +100,7 @@ export default function StockMalha() {
     queryKey: ['own_stock_movements', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('own_stock_movements')
-        .select('id, own_article_id, type, pieces, weight_kg, reason, created_at, author:profiles!own_stock_movements_created_by_fkey(name, code)')
+        .select('id, own_article_id, type, pieces, weight_kg, reason, source, outsource_company_id, yarn_type, of_number, created_at, author:profiles!own_stock_movements_created_by_fkey(name, code), outsource:outsource_companies(name)')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
       if (error) throw error;
