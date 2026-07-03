@@ -75,7 +75,12 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
         date: o.finished_at || o.created_at,
         machine_id: o.machine_id,
         kind: 'om',
-        title: `OM #${String(o.om_number).padStart(3, '0')} — ${TYPE_LABELS[o.type] || o.type}`,
+        title: (() => {
+          const isC = o.type === 'manutencao_corretiva';
+          const lbl = isC ? 'OC' : 'OM';
+          const num = isC ? ((o as any).oc_number ?? o.om_number) : o.om_number;
+          return `${lbl} #${num != null ? String(num).padStart(3, '0') : '—'} — ${TYPE_LABELS[o.type] || o.type}`;
+        })(),
         detail: `${machineById[o.machine_id]?.name || ''} · ${its.length} item(ns) trocado(s) · ${o.duration_seconds ? Math.round(o.duration_seconds / 60) + ' min' : '—'}`,
         raw: { order: o, items: its },
       });
