@@ -603,14 +603,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           </TabsTrigger>
         </TabsList>
         <TabsContent value={tab} className="mt-4">
-          {filtered.length === 0 ? (
+          {displayed.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma OM nessa lista.</div>
           ) : (
             <div className="space-y-3">
-              {filtered.map(o => {
+              {displayed.map(o => {
                 const m = machineById[o.machine_id];
                 const its = itemsByOrder[o.id] || [];
                 const style = STATUS_STYLE[o.status];
+                const u = o.status === 'aberto' ? urgencyByMachine.get(o.machine_id) : null;
                 return (
                   <Card
                     key={o.id}
