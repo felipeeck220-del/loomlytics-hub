@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square } from 'lucide-react';
+import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { generateOtReportPdf } from '@/lib/otReportPdf';
 
 type OTStatus =
   | 'aberto'
@@ -248,6 +249,26 @@ export default function ArticleChangeOrdersTab() {
     toast.success(`OT #${o.ot_number} excluída`);
   };
 
+  const authorLabel = userCode ? `${userName} #${userCode}` : (userName || null);
+  const downloadReport = async (o: OT) => {
+    if (!user?.company_id) return;
+    try {
+      await generateOtReportPdf({
+        order: o as any,
+        machineName: machineById[o.machine_id]?.name || '—',
+        currentArticleName: o.current_article_id ? (articleById[o.current_article_id]?.name || '—') : '—',
+        nextArticleName: o.next_article_id ? (articleById[o.next_article_id]?.name || '—') : '—',
+        yarnName: (id) => id ? (yarnById[id]?.name || '—') : '—',
+        companyId: user.company_id,
+        authorLabel,
+      });
+      logAction('ot_report_download', { ot: o.ot_number });
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar relatório');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -329,6 +350,7 @@ export default function ArticleChangeOrdersTab() {
                   onFinalize={() => setFinalizeTarget(o)}
                   onCancel={() => cancelOrder(o)}
                   onDelete={() => setDeleteTarget(o)}
+                  onDownload={() => downloadReport(o)}
                 />
               ))}
             </div>
