@@ -26,6 +26,7 @@ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import MaintenanceOrdersTab from '@/components/mecanica/MaintenanceOrdersTab';
 import MaintenanceMovementsTab from '@/components/mecanica/MaintenanceMovementsTab';
+import ArticleChangeOrdersTab from '@/components/mecanica/ArticleChangeOrdersTab';
 import { generateOmReportPdf, fetchLastFinalizedOmForMachine } from '@/lib/omReportPdf';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
@@ -106,7 +107,9 @@ export default function MecanicaPage() {
     ? 'om'
     : location.pathname.endsWith('/mecanica/oc')
       ? 'oc'
-      : null;
+      : location.pathname.endsWith('/mecanica/ot')
+        ? 'ot'
+        : null;
   const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
   const machines = getMachines();
   const machineLogs = getMachineLogs();
