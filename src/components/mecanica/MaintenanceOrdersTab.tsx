@@ -641,6 +641,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   // Ordena a lista de Aberto por urgência (mais urgente primeiro)
   const displayed = useMemo(() => {
     if (tab !== 'aberto') return filtered;
+    // OC não segue meta preventiva — ordena por Prioritária primeiro, depois mais recente.
+    if (isOC) {
+      return [...filtered].sort((a, b) => {
+        const pa = a.priority === 'prioritaria' ? 0 : 1;
+        const pb = b.priority === 'prioritaria' ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    }
     const score = (o: MaintenanceOrder) => {
       const u = urgencyByMachine.get(o.machine_id);
       if (!u) return Number.POSITIVE_INFINITY;
@@ -649,7 +658,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       return Math.min(dScore, kScore);
     };
     return [...filtered].sort((a, b) => score(a) - score(b));
-  }, [filtered, tab, urgencyByMachine]);
+  }, [filtered, tab, urgencyByMachine, isOC]);
 
   const itemsByOrder = useMemo(() => {
     const m: Record<string, MaintenanceOrderItem[]> = {};
