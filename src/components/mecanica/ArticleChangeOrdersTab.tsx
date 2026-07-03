@@ -405,6 +405,7 @@ function OTCard(props: {
   onFinalize: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  onDownload: () => void;
 }) {
   const { o, machineName, currentArticleName, nextArticleName, yarnName, isAdmin, isLider, isMecanico } = props;
   const waitTimer = useLiveTimer(o.status === 'aberto' ? o.created_at : null);
@@ -599,6 +600,11 @@ function OTCard(props: {
               {isAdmin && (o.status === 'concluida' || o.status === 'cancelada') && (
                 <Button size="sm" variant="outline" onClick={props.onDelete} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
                   <Trash2 className="h-3.5 w-3.5" /> Excluir
+                </Button>
+              )}
+              {o.status === 'concluida' && (
+                <Button size="sm" variant="outline" onClick={props.onDownload} className="gap-1.5">
+                  <Download className="h-3.5 w-3.5" /> Baixar Relatório
                 </Button>
               )}
             </div>
