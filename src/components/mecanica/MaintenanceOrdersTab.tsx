@@ -23,6 +23,9 @@ import type {
 } from '@/types';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { generateOmReportPdf } from '@/lib/omReportPdf';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+
+const DEFAULT_MAINTENANCE_INTERVAL_DAYS = 30;
 
 type ProgressNote = {
   id: string;
