@@ -23,6 +23,9 @@ import type {
 } from '@/types';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { generateOmReportPdf } from '@/lib/omReportPdf';
+import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+
+const DEFAULT_MAINTENANCE_INTERVAL_DAYS = 30;
 
 type ProgressNote = {
   id: string;
@@ -88,6 +91,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const { user } = useAuth();
   const { logAction, userName, userCode } = useAuditLog();
   const { role } = usePermissions();
+  const { getMachineLogs, getProductions } = useSharedCompanyData();
+  const machineLogs = getMachineLogs();
+  const productions = getProductions();
   const companyId = user?.company_id || '';
   const authorLabel = userName ? (userCode ? `${userName} #${userCode}` : userName) : null;
 
@@ -468,6 +474,74 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     cancelada: orders.filter(o => o.status === 'cancelada').length,
   }), [orders]);
 
+  // Urgência de manutenção por máquina (mesma lógica do Calendário)
+  const urgencyByMachine = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const map = new Map<string, { daysLeft: number | null; kgLeft: number | null; kgTarget: number | null; intervalDays: number }>();
+    for (const m of machines) {
+      const prev = machineLogs
+        .filter((l: any) => l.machine_id === m.id && l.status === 'manutencao_preventiva')
+        .sort((a: any, b: any) => new Date(b.ended_at || b.started_at).getTime() - new Date(a.ended_at || a.started_at).getTime());
+      const last = prev[0] || null;
+      const lastDate = last ? new Date((last as any).ended_at || (last as any).started_at) : null;
+      const intervalDays = (m as any).maintenance_interval_days && (m as any).maintenance_interval_days > 0
+        ? (m as any).maintenance_interval_days
+        : DEFAULT_MAINTENANCE_INTERVAL_DAYS;
+      const nextDate = lastDate ? new Date(lastDate.getTime() + intervalDays * 86400000) : null;
+      const daysLeft = nextDate ? Math.ceil((nextDate.getTime() - today.getTime()) / 86400000) : null;
+      const fromDateStr = lastDate
+        ? `${lastDate.getFullYear()}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(lastDate.getDate()).padStart(2, '0')}`
+        : null;
+      const kgSince = productions
+        .filter((p: any) => p.machine_id === m.id && (!fromDateStr || String(p.date) >= fromDateStr))
+        .reduce((s: number, p: any) => s + (Number(p.weight_kg) || 0), 0);
+      const kgTarget = (m as any).maintenance_kg_target && (m as any).maintenance_kg_target > 0 ? (m as any).maintenance_kg_target : null;
+      const kgLeft = kgTarget != null ? kgTarget - kgSince : null;
+      map.set(m.id, { daysLeft, kgLeft, kgTarget, intervalDays });
+    }
+    return map;
+  }, [machines, machineLogs, productions]);
+
+  const daysBadgeClass = (d: number | null) => {
+    if (d == null) return 'bg-muted text-muted-foreground border-muted-foreground/30';
+    if (d <= 0) return 'bg-destructive text-destructive-foreground border-destructive';
+    if (d <= 3) return 'bg-destructive/20 text-destructive border-destructive/40';
+    if (d <= 7) return 'bg-warning/25 text-warning-foreground border-warning/40';
+    return 'bg-success/20 text-success-foreground border-success/40';
+  };
+  const daysLabel = (d: number | null) => {
+    if (d == null) return 'Sem histórico';
+    if (d <= 0) return `Vencida (${Math.abs(d)}d)`;
+    if (d === 1) return '1 dia';
+    return `${d} dias`;
+  };
+  const kgBadgeClass = (kgLeft: number | null, kgTarget: number | null) => {
+    if (kgTarget == null || kgLeft == null) return 'bg-muted text-muted-foreground border-muted-foreground/30';
+    if (kgLeft <= 0) return 'bg-destructive text-destructive-foreground border-destructive';
+    if (kgLeft <= kgTarget * 0.1) return 'bg-warning/25 text-warning-foreground border-warning/40';
+    return 'bg-success/20 text-success-foreground border-success/40';
+  };
+  const kgLabel = (kgLeft: number | null, kgTarget: number | null) => {
+    if (kgTarget == null) return 'Sem meta';
+    if (kgLeft == null) return '—';
+    const fmt = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+    if (kgLeft <= 0) return `Atingido (${fmt(Math.abs(kgLeft))} kg acima)`;
+    return `${fmt(kgLeft)} kg restantes`;
+  };
+
+  // Ordena a lista de Aberto por urgência (mais urgente primeiro)
+  const displayed = useMemo(() => {
+    if (tab !== 'aberto') return filtered;
+    const score = (o: MaintenanceOrder) => {
+      const u = urgencyByMachine.get(o.machine_id);
+      if (!u) return Number.POSITIVE_INFINITY;
+      const dScore = u.daysLeft ?? 9999;
+      const kScore = u.kgTarget != null && u.kgLeft != null ? (u.kgLeft / u.kgTarget) * 30 : 9999;
+      return Math.min(dScore, kScore);
+    };
+    return [...filtered].sort((a, b) => score(a) - score(b));
+  }, [filtered, tab, urgencyByMachine]);
+
   const itemsByOrder = useMemo(() => {
     const m: Record<string, MaintenanceOrderItem[]> = {};
     items.forEach(it => { (m[it.order_id] ||= []).push(it); });
@@ -529,14 +603,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           </TabsTrigger>
         </TabsList>
         <TabsContent value={tab} className="mt-4">
-          {filtered.length === 0 ? (
+          {displayed.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma OM nessa lista.</div>
           ) : (
             <div className="space-y-3">
-              {filtered.map(o => {
+              {displayed.map(o => {
                 const m = machineById[o.machine_id];
                 const its = itemsByOrder[o.id] || [];
                 const style = STATUS_STYLE[o.status];
+                const u = o.status === 'aberto' ? urgencyByMachine.get(o.machine_id) : null;
                 return (
                   <Card
                     key={o.id}
@@ -573,6 +648,24 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                           <div className="text-base font-semibold text-foreground">
                             {m?.name || '—'}
                           </div>
+
+                          {/* Urgência de manutenção (Aberto) — puxada do Calendário por máquina */}
+                          {u && (
+                            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase text-muted-foreground font-semibold">Dias p/ próxima</span>
+                                <Badge variant="outline" className={cn('text-[10px] font-bold px-2 py-0.5', daysBadgeClass(u.daysLeft))}>
+                                  {daysLabel(u.daysLeft)}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase text-muted-foreground font-semibold">Kg restantes</span>
+                                <Badge variant="outline" className={cn('text-[10px] font-bold px-2 py-0.5 tabular-nums', kgBadgeClass(u.kgLeft, u.kgTarget))}>
+                                  {kgLabel(u.kgLeft, u.kgTarget)}
+                                </Badge>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Descrição */}
                           {o.description && (
