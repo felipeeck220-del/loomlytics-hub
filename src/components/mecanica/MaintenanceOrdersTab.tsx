@@ -267,7 +267,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   // ============ START ============
   const startOrder = async (o: MaintenanceOrder) => {
-    if (!canExecute) return;
+    if (!canExecuteOrder(o)) { toast.error(o.type === 'manutencao_corretiva' ? 'Apenas mecânico ou líder de mecânica podem iniciar OCs' : 'Sem permissão para iniciar OM'); return; }
     const now = new Date().toISOString();
     // 0) fecha qualquer machine_log em aberto dessa máquina (evita 2 logs abertos)
     await (supabase.from as any)('machine_logs')
@@ -432,8 +432,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   // ============ CANCEL ============
   const cancelOrder = async (o: MaintenanceOrder, reason: string | null) => {
-    if (!canManage) return;
-    if (o.status !== 'aberto') { toast.error('Só é possível cancelar OMs em aberto'); return; }
+    if (!canManageOrder(o)) { toast.error('Sem permissão para cancelar esta ordem'); return; }
+    const label = o.type === 'manutencao_corretiva' ? 'OC' : 'OM';
+    if (o.status !== 'aberto') { toast.error(`Só é possível cancelar ${label}s em aberto`); return; }
     const { error } = await (supabase.from as any)('maintenance_orders').update({
       status: 'cancelada', cancelled_at: new Date().toISOString(), cancelled_by_id: user?.id, cancelled_by_name: authorLabel,
       cancellation_reason: reason,
