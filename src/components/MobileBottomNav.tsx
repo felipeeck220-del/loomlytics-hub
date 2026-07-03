@@ -43,6 +43,8 @@ export function MobileBottomNav() {
   const [enabledNavItems, setEnabledNavItems] = useState<string[] | null>(null);
 
   const slugPrefix = `/${user?.company_slug || ''}`;
+  const [openOMCount, setOpenOMCount] = useState(0);
+  const [openOCCount, setOpenOCCount] = useState(0);
 
   useEffect(() => {
     if (!user?.company_id) return;
@@ -53,6 +55,34 @@ export function MobileBottomNav() {
       .then(({ data }: any) => {
         if (data?.enabled_nav_items) setEnabledNavItems(data.enabled_nav_items);
       });
+  }, [user?.company_id]);
+
+  // Contagem em tempo real de OMs/OCs em aberto (status = 'aberto')
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const companyId = user.company_id;
+    let cancelled = false;
+
+    const load = async () => {
+      const { data } = await (supabase.from as any)('maintenance_orders')
+        .select('type,status')
+        .eq('company_id', companyId)
+        .eq('status', 'aberto');
+      if (cancelled) return;
+      const rows = (data || []) as Array<{ type: string; status: string }>;
+      const oc = rows.filter(r => r.type === 'manutencao_corretiva').length;
+      const om = rows.length - oc;
+      setOpenOMCount(om);
+      setOpenOCCount(oc);
+    };
+
+    load();
+    const channel = (supabase as any)
+      .channel(`footer-mo-${companyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_orders', filter: `company_id=eq.${companyId}` }, () => load())
+      .subscribe();
+
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [user?.company_id]);
 
   const items = useMemo(() => {
@@ -81,7 +111,12 @@ export function MobileBottomNav() {
     if (item.path === '') {
       return location.pathname === slugPrefix || location.pathname === `${slugPrefix}/`;
     }
-    return location.pathname.startsWith(`${slugPrefix}/${item.path}`);
+    const fullPath = `${slugPrefix}/${item.path}`;
+    // Rotas de mecanica precisam de match exato para não destacar Mecânica junto com OM/OC
+    if (item.key === 'mecanica' || item.key === 'mecanica-om' || item.key === 'mecanica-oc') {
+      return location.pathname === fullPath;
+    }
+    return location.pathname.startsWith(fullPath);
   };
 
   return (
@@ -90,6 +125,8 @@ export function MobileBottomNav() {
         {items.map((item) => {
           const active = isActive(item);
           const locked = sidebarLocked && item.key !== 'settings';
+          const badgeCount = item.key === 'mecanica-om' ? openOMCount : item.key === 'mecanica-oc' ? openOCCount : 0;
+          const badgeColor = item.key === 'mecanica-oc' ? 'bg-red-500' : 'bg-primary';
           return (
             <button
               key={item.key}
@@ -103,11 +140,18 @@ export function MobileBottomNav() {
                     : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {locked ? (
-                <Lock className="h-5 w-5" />
-              ) : (
-                <item.icon className="h-5 w-5" />
-              )}
+              <div className="relative">
+                {locked ? (
+                  <Lock className="h-5 w-5" />
+                ) : (
+                  <item.icon className="h-5 w-5" />
+                )}
+                {!locked && badgeCount > 0 && (
+                  <span className={`absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full ${badgeColor} text-white text-[9px] font-bold flex items-center justify-center leading-none`}>
+                    {badgeCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-medium leading-tight truncate max-w-[60px]">
                 {item.title}
               </span>
