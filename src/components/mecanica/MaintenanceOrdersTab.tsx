@@ -122,6 +122,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     o.type === 'manutencao_corretiva' ? canCreateCorrective : canManage;
   // Permissões efetivas para o botão "Nova ..." no cabeçalho da aba atual
   const canCreateInThisMode = isOC ? canCreateCorrective : canManage;
+  // Nº exibido (OM usa om_number; OC usa oc_number; fallback para o legado)
+  const displayNumber = (o: MaintenanceOrder) => {
+    const raw = o.type === 'manutencao_corretiva'
+      ? ((o.oc_number ?? o.om_number) as number | null | undefined)
+      : (o.om_number as number | null | undefined);
+    return raw != null ? String(raw).padStart(3, '0') : '—';
+  };
+  const labelOf = (o: MaintenanceOrder) => (o.type === 'manutencao_corretiva' ? 'OC' : 'OM');
+  // Quem pode abrir o modal "Notas/Itens" (leitura em tempo real p/ admin e criadores)
+  const canViewProgressNotes = (o: MaintenanceOrder) =>
+    canExecuteOrder(o) || canManageOrder(o) || isAdmin;
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
@@ -234,8 +245,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       const busy = orders.find(o => o.machine_id === form.machine_id && (o.status === 'aberto' || o.status === 'em_curso'));
       if (busy) {
         const m = machineById[form.machine_id];
-        const busyLabel = busy.type === 'manutencao_corretiva' ? 'OC' : 'OM';
-        toast.error(`${m?.name || 'Máquina'} já tem a ${busyLabel} #${String(busy.om_number).padStart(3, '0')} ${busy.status === 'aberto' ? 'em aberto' : 'em curso'}. Finalize ou cancele antes de criar outra.`);
+        toast.error(`${m?.name || 'Máquina'} já tem a ${labelOf(busy)} #${displayNumber(busy)} ${busy.status === 'aberto' ? 'em aberto' : 'em curso'}. Finalize ou cancele antes de criar outra.`);
         return;
       }
     }
@@ -245,8 +255,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         machine_id: form.machine_id, type: form.type, priority: form.priority, description: form.description || null,
       }).eq('id', editing.id);
       if (error) { toast.error(`Erro ao atualizar ${orderLabel}`); return; }
-      toast.success(`${orderLabel} #${String(editing.om_number).padStart(3, '0')} atualizada`);
-      logAction('om_update', { om: editing.om_number });
+      toast.success(`${orderLabel} #${displayNumber(editing)} atualizada`);
+      logAction(isCorrective ? 'oc_update' : 'om_update', { om: editing.om_number, oc: editing.oc_number });
     } else {
       const { data, error } = await (supabase.from as any)('maintenance_orders').insert({
         company_id: companyId,
@@ -258,8 +268,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         created_by_name: authorLabel,
       }).select().single();
       if (error) { toast.error(`Erro ao criar ${orderLabel}`); return; }
-      toast.success(`${orderLabel} #${String((data as any).om_number).padStart(3, '0')} criada`);
-      logAction(isCorrective ? 'oc_create' : 'om_create', { om: (data as any).om_number, type: form.type });
+      const created = data as any;
+      const createdNum = isCorrective ? (created.oc_number ?? created.om_number) : created.om_number;
+      toast.success(`${orderLabel} #${String(createdNum).padStart(3, '0')} criada`);
+      logAction(isCorrective ? 'oc_create' : 'om_create', { number: createdNum, type: form.type });
     }
     setCreateOpen(false);
     await load();
