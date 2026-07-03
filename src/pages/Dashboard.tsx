@@ -485,6 +485,132 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Máquinas Paradas (OMs abertas / em curso) — tempo real */}
+      {openOMs.length > 0 && (
+        <Card className="shadow-material border-0 border-l-4 border-l-warning">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <PauseCircle className="h-4 w-4 text-warning" />
+              Máquinas Paradas ({openOMs.length})
+              <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-normal text-muted-foreground">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                </span>
+                ao vivo
+              </span>
+            </CardTitle>
+            <CardDescription className="text-xs">Ordens de Manutenção abertas ou em curso · atualização em tempo real</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {openOMs.map(om => {
+                const machine = machines.find(mm => mm.id === om.machine_id);
+                const startedAt = om.started_at || om.created_at;
+                const elapsed = startedAt ? Math.floor((nowTick.getTime() - new Date(startedAt).getTime()) / 1000) : 0;
+                const hours = Math.floor(elapsed / 3600);
+                const minutes = Math.floor((elapsed % 3600) / 60);
+                const seconds = elapsed % 60;
+                const timeStr = `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+
+                const typeLabels: Record<string, string> = {
+                  manutencao_preventiva: 'Manutenção Preventiva',
+                  manutencao_corretiva: 'Manutenção Corretiva',
+                  troca_artigo: 'Troca de Artigo',
+                  troca_agulhas: 'Troca de Agulheiro',
+                };
+                const typeIcons: Record<string, React.ReactNode> = {
+                  manutencao_preventiva: <Wrench className="h-4 w-4" />,
+                  manutencao_corretiva: <AlertTriangle className="h-4 w-4" />,
+                  troca_artigo: <RefreshCw className="h-4 w-4" />,
+                  troca_agulhas: <Settings2 className="h-4 w-4" />,
+                };
+                const typeColors: Record<string, string> = {
+                  manutencao_preventiva: 'border-l-warning bg-warning/5',
+                  manutencao_corretiva: 'border-l-destructive bg-destructive/5',
+                  troca_artigo: 'border-l-info bg-info/5',
+                  troca_agulhas: 'border-l-primary bg-primary/5',
+                };
+                const badgeColors: Record<string, string> = {
+                  manutencao_preventiva: 'bg-warning/10 text-warning border-warning/20',
+                  manutencao_corretiva: 'bg-destructive/10 text-destructive border-destructive/20',
+                  troca_artigo: 'bg-info/10 text-info border-info/20',
+                  troca_agulhas: 'bg-primary/10 text-primary border-primary/20',
+                };
+                const statusBadge = om.status === 'em_curso'
+                  ? 'bg-success/10 text-success border-success/20'
+                  : 'bg-muted text-muted-foreground border-border';
+                const statusLabel = om.status === 'em_curso' ? 'Em curso' : 'Aberta';
+                const colorClass = typeColors[om.type] || 'border-l-muted bg-muted/5';
+                const isPriority = om.priority === 'prioritaria';
+
+                return (
+                  <div
+                    key={om.id}
+                    className={cn(
+                      'rounded-xl border border-border/50 border-l-4 p-4 hover:shadow-md transition-shadow',
+                      colorClass
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-xs font-mono font-semibold text-muted-foreground">OM #{om.om_number}</span>
+                          {isPriority && (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1 bg-destructive/10 text-destructive border-destructive/20">
+                              PRIORITÁRIA
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="font-bold text-base text-foreground truncate">{machine?.name || 'Máquina'}</p>
+                      </div>
+                      <Badge variant="outline" className={cn('text-[10px] shrink-0', statusBadge)}>
+                        {statusLabel}
+                      </Badge>
+                    </div>
+
+                    <div className={cn('inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium mb-3', badgeColors[om.type])}>
+                      {typeIcons[om.type]}
+                      <span>{typeLabels[om.type] || om.type}</span>
+                    </div>
+
+                    <div className="space-y-1.5 mb-3 text-xs">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <UserCircle2 className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">
+                          <span className="opacity-70">Criada por:</span>{' '}
+                          <span className="font-medium text-foreground">{om.created_by_name || '—'}</span>
+                        </span>
+                      </div>
+                      {om.started_by_name && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <PlayCircle className="h-3.5 w-3.5 shrink-0 text-success" />
+                          <span className="truncate">
+                            <span className="opacity-70">Iniciada por:</span>{' '}
+                            <span className="font-medium text-foreground">{om.started_by_name}</span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                        {om.status === 'em_curso' ? 'Tempo em curso' : 'Aberta há'}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-mono text-base font-bold tracking-wider tabular-nums text-foreground">{timeStr}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filters */}
       <Card className="shadow-material border-0">
         <CardContent className="py-4">
