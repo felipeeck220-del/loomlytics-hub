@@ -2003,6 +2003,7 @@ export type Database = {
           created_by_name: string | null
           description: string | null
           duration_seconds: number | null
+          finish_notes: string | null
           finished_at: string | null
           finished_by_id: string | null
           finished_by_name: string | null
@@ -2011,6 +2012,7 @@ export type Database = {
           machine_log_id: string | null
           om_number: number | null
           priority: string
+          progress_notes: Json
           started_at: string | null
           started_by_id: string | null
           started_by_name: string | null
@@ -2029,6 +2031,7 @@ export type Database = {
           created_by_name?: string | null
           description?: string | null
           duration_seconds?: number | null
+          finish_notes?: string | null
           finished_at?: string | null
           finished_by_id?: string | null
           finished_by_name?: string | null
@@ -2037,6 +2040,7 @@ export type Database = {
           machine_log_id?: string | null
           om_number?: number | null
           priority?: string
+          progress_notes?: Json
           started_at?: string | null
           started_by_id?: string | null
           started_by_name?: string | null
@@ -2055,6 +2059,7 @@ export type Database = {
           created_by_name?: string | null
           description?: string | null
           duration_seconds?: number | null
+          finish_notes?: string | null
           finished_at?: string | null
           finished_by_id?: string | null
           finished_by_name?: string | null
@@ -2063,6 +2068,7 @@ export type Database = {
           machine_log_id?: string | null
           om_number?: number | null
           priority?: string
+          progress_notes?: Json
           started_at?: string | null
           started_by_id?: string | null
           started_by_name?: string | null
