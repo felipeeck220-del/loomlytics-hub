@@ -41,6 +41,12 @@ const TYPE_LABELS: Record<MaintenanceOrderType, string> = {
   troca_artigo: 'Troca de Artigo',
   troca_agulhas: 'Troca de Agulheiro',
 };
+// Tipos disponíveis no modal "Nova OM" (corretiva foi movida para "Nova OC")
+const OM_TYPE_LABELS: Partial<Record<MaintenanceOrderType, string>> = {
+  manutencao_preventiva: 'Manutenção Preventiva',
+  troca_artigo: 'Troca de Artigo',
+  troca_agulhas: 'Troca de Agulheiro',
+};
 const TYPE_COLORS: Record<MaintenanceOrderType, string> = {
   manutencao_preventiva: 'bg-warning/15 text-warning border-warning/30',
   manutencao_corretiva: 'bg-destructive/15 text-destructive border-destructive/30',
@@ -100,6 +106,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const canManage = role === 'admin' || role === 'lider_mecanica';
   const canExecute = canManage || role === 'mecanico' || role === 'lider';
   const isAdmin = role === 'admin';
+  // OC (Ordem de Corretiva): apenas admin e líder criam
+  const canCreateCorrective = role === 'admin' || role === 'lider';
+  // OC: apenas mecânicos e líder de mecânica iniciam/finalizam
+  const canExecuteCorrective = role === 'mecanico' || role === 'lider_mecanica';
+  const canExecuteOrder = (o: MaintenanceOrder) =>
+    o.type === 'manutencao_corretiva' ? canExecuteCorrective : canExecute;
+  const canManageOrder = (o: MaintenanceOrder) =>
+    o.type === 'manutencao_corretiva' ? canCreateCorrective : canManage;
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
@@ -177,6 +191,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   // ============ CREATE / EDIT MODAL ============
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<MaintenanceOrder | null>(null);
+  const [correctiveMode, setCorrectiveMode] = useState(false);
   const [form, setForm] = useState({
     machine_id: '',
     type: 'manutencao_preventiva' as MaintenanceOrderType,
@@ -185,11 +200,19 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   });
   const openCreate = () => {
     setEditing(null);
+    setCorrectiveMode(false);
     setForm({ machine_id: '', type: 'manutencao_preventiva', priority: 'normal', description: '' });
+    setCreateOpen(true);
+  };
+  const openCreateCorrective = () => {
+    setEditing(null);
+    setCorrectiveMode(true);
+    setForm({ machine_id: '', type: 'manutencao_corretiva', priority: 'prioritaria', description: '' });
     setCreateOpen(true);
   };
   const openEdit = (o: MaintenanceOrder) => {
     setEditing(o);
+    setCorrectiveMode(o.type === 'manutencao_corretiva');
     setForm({ machine_id: o.machine_id, type: o.type, priority: o.priority, description: o.description || '' });
     setCreateOpen(true);
   };
