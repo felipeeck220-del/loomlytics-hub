@@ -84,13 +84,14 @@ export default function Dashboard() {
 
   // Ordens de Manutenção abertas (aberto/em_curso) — em tempo real
   const [openOMs, setOpenOMs] = useState<any[]>([]);
+  const [omsExpanded, setOmsExpanded] = useState(true);
 
   const fetchOpenOMs = useCallback(async () => {
     if (!dbCompanyId) return;
     const { data, error } = await (supabase.from as any)('maintenance_orders')
       .select('*')
       .eq('company_id', dbCompanyId)
-      .in('status', ['aberto', 'em_curso'])
+      .eq('status', 'em_curso')
       .order('created_at', { ascending: false });
     if (!error) setOpenOMs(data || []);
   }, [dbCompanyId]);
