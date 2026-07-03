@@ -1084,7 +1084,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             <div className="flex items-center justify-between gap-2">
               <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <StickyNote className="h-5 w-5 text-blue-600 shrink-0" />
-                <span>Notas & Itens — OM #{progressOrder ? String(progressOrder.om_number).padStart(3, '0') : ''}</span>
+                <span>Notas & Itens — {progressOrder ? labelOf(progressOrder) : 'OM'} #{progressOrder ? displayNumber(progressOrder) : ''}</span>
               </DialogTitle>
               <Button variant="outline" size="sm" onClick={() => setProgressOrder(null)}>Fechar</Button>
             </div>
@@ -1101,7 +1101,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 <div className="text-xs text-muted-foreground mt-0.5">Cada anotação é salva na OM imediatamente. Feche o modal quando quiser — nada se perde. Estas anotações também entram no relatório em PDF ao finalizar a OM.</div>
               </div>
 
-              {/* Adicionar */}
+              {/* Adicionar (somente quem executa a ordem) */}
+              {canExecuteOrder(progressOrder) ? (
               <div className="border rounded-lg p-4 space-y-3 bg-card">
                 <Label className="font-semibold">Nova anotação</Label>
                 <div className="flex gap-2">
@@ -1138,6 +1139,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                   </Button>
                 </div>
               </div>
+              ) : (
+                <div className="rounded-md border border-muted bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Visualização somente leitura. Apenas mecânico ou líder de mecânica podem registrar/remover anotações desta ordem.
+                </div>
+              )}
 
               {/* Lista */}
               <div className="space-y-2">
@@ -1167,7 +1173,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             {format(new Date(n.ts), 'dd/MM/yyyy HH:mm')} · {n.author || '—'}
                           </div>
                         </div>
-                        {canExecute && (
+                        {canExecuteOrder(progressOrder) && (
                           <Button size="icon" variant="ghost" onClick={() => removeProgressNote(n.id)} className="shrink-0 h-8 w-8">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -1188,9 +1194,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       {/* Confirm: Start */}
       <Dialog open={!!confirmStart} onOpenChange={v => !v && setConfirmStart(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Iniciar OM?</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Iniciar {confirmStart ? labelOf(confirmStart) : 'OM'}?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Iniciar a OM #{confirmStart ? String(confirmStart.om_number).padStart(3, '0') : ''} parará a máquina e começará o cronômetro.
+            Iniciar a {confirmStart ? labelOf(confirmStart) : 'OM'} #{confirmStart ? displayNumber(confirmStart) : ''} parará a máquina e começará o cronômetro.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmStart(null)}>Cancelar</Button>
@@ -1202,14 +1208,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       {/* Confirm: Cancel */}
       <Dialog open={!!confirmCancel} onOpenChange={v => !v && setConfirmCancel(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Cancelar OM?</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Cancelar {confirmCancel ? labelOf(confirmCancel) : 'OM'}?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground mb-2">
-            Cancelar a OM #{confirmCancel ? String(confirmCancel.om_number).padStart(3, '0') : ''}? Esta ação não pode ser desfeita.
+            Cancelar a {confirmCancel ? labelOf(confirmCancel) : 'OM'} #{confirmCancel ? displayNumber(confirmCancel) : ''}? Esta ação não pode ser desfeita.
           </p>
           <Textarea rows={2} placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmCancel(null)}>Voltar</Button>
-            <Button variant="destructive" onClick={async () => { const o = confirmCancel!; const r = cancelReason || null; setConfirmCancel(null); await cancelOrder(o, r); }}>Cancelar OM</Button>
+            <Button variant="destructive" onClick={async () => { const o = confirmCancel!; const r = cancelReason || null; setConfirmCancel(null); await cancelOrder(o, r); }}>Cancelar {confirmCancel ? labelOf(confirmCancel) : 'OM'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1217,9 +1223,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       {/* Confirm: Delete */}
       <Dialog open={!!confirmDelete} onOpenChange={v => !v && setConfirmDelete(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Excluir OM?</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Excluir {confirmDelete ? labelOf(confirmDelete) : 'OM'}?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Excluir definitivamente a OM #{confirmDelete ? String(confirmDelete.om_number).padStart(3, '0') : ''} e seus itens?
+            Excluir definitivamente a {confirmDelete ? labelOf(confirmDelete) : 'OM'} #{confirmDelete ? displayNumber(confirmDelete) : ''} e seus itens?
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDelete(null)}>Voltar</Button>
