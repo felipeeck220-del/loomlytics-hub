@@ -361,11 +361,14 @@ export default function MecanicaPage() {
       const fromDateStr = lastDate
         ? `${lastDate.getFullYear()}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(lastDate.getDate()).padStart(2, '0')}`
         : null;
-      const kgSince = productions
-        .filter(p => p.machine_id === m.id && (!fromDateStr || String(p.date) >= fromDateStr))
-        .reduce((s, p) => s + (Number(p.weight_kg) || 0), 0);
       const kgTarget = m.maintenance_kg_target && m.maintenance_kg_target > 0 ? m.maintenance_kg_target : null;
-      const kgLeft = kgTarget != null ? kgTarget - kgSince : null;
+      // Sem histórico de preventiva → não somamos a produção lifetime (evita "Atingido" falso)
+      const kgSince: number | null = fromDateStr
+        ? productions
+            .filter(p => p.machine_id === m.id && String(p.date) >= fromDateStr)
+            .reduce((s, p) => s + (Number(p.weight_kg) || 0), 0)
+        : null;
+      const kgLeft = kgTarget != null && kgSince != null ? kgTarget - kgSince : null;
       return {
         machine: m, last, lastDate, nextDate, daysLeft, durationMin,
         historyCount: allPrev.length,
@@ -666,9 +669,11 @@ export default function MecanicaPage() {
           kgTarget != null ? `${kgTarget.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : '—',
           kgTarget == null
             ? '—'
-            : kgLeft! <= 0
-              ? sanitizePdfText(`Atingido (${Math.abs(kgLeft!).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`)
-              : `${kgLeft!.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`,
+            : kgLeft == null
+              ? 'Sem histórico'
+              : kgLeft <= 0
+                ? sanitizePdfText(`Atingido (${Math.abs(kgLeft).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`)
+                : `${kgLeft.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`,
           last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—',
           last?.ended_at ? format(new Date(last.ended_at), 'HH:mm') : '—',
           sanitizePdfText(formatDuration(durationMin)),
@@ -1775,10 +1780,14 @@ export default function MecanicaPage() {
                           <TableCell className="text-center tabular-nums">
                             {kgTarget != null ? `${kgTarget.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : <span className="text-muted-foreground">—</span>}
                           </TableCell>
-                          <TableCell className={cn('text-center tabular-nums', kgTarget == null ? 'bg-muted/30 text-muted-foreground' : kgLeft != null && kgLeft <= 0 ? 'bg-destructive/25 text-destructive font-bold' : kgLeft != null && kgLeft <= kgTarget * 0.1 ? 'bg-warning/25 text-warning-foreground font-semibold' : 'bg-success/20 text-success-foreground font-semibold')}>
-                            {kgTarget == null ? '—' : kgLeft! <= 0
-                              ? `Atingido (${Math.abs(kgLeft!).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`
-                              : `${kgLeft!.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`}
+                          <TableCell className={cn('text-center tabular-nums', kgTarget == null || kgLeft == null ? 'bg-muted/30 text-muted-foreground' : kgLeft <= 0 ? 'bg-destructive/25 text-destructive font-bold' : kgLeft <= kgTarget * 0.1 ? 'bg-warning/25 text-warning-foreground font-semibold' : 'bg-success/20 text-success-foreground font-semibold')}>
+                            {kgTarget == null
+                              ? '—'
+                              : kgLeft == null
+                                ? 'Sem histórico'
+                                : kgLeft <= 0
+                                  ? `Atingido (${Math.abs(kgLeft).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`
+                                  : `${kgLeft.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`}
                           </TableCell>
                           <TableCell className="text-center tabular-nums">
                             {last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—'}
