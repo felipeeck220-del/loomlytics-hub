@@ -126,6 +126,8 @@ export default function MecanicaPage() {
   const [scheduleHistoryMachineId, setScheduleHistoryMachineId] = useState<string | null>(null);
   const [obsByLogId, setObsByLogId] = useState<Record<string, { observation: string; created_at: string }[]>>({});
   const [loadingReportMachineId, setLoadingReportMachineId] = useState<string | null>(null);
+  const [omByLogId, setOmByLogId] = useState<Record<string, { order: any; items: any[] } | null>>({});
+  const [loadingReportLogId, setLoadingReportLogId] = useState<string | null>(null);
 
   const authorLabel = userName ? (userCode ? `${userName} #${userCode}` : userName) : null;
 
