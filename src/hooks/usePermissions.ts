@@ -6,7 +6,7 @@ export type AppRole = 'admin' | 'lider' | 'lider_mecanica' | 'mecanico' | 'revis
 /** Which sidebar/route keys each role can access by default */
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
   admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
-  lider: ['machines', 'revision', 'mecanica-oc'],
+  lider: ['mecanica-oc'],
   lider_mecanica: ['mecanica', 'mecanica-om', 'mecanica-oc'],
   mecanico: ['machines', 'mecanica', 'mecanica-om', 'mecanica-oc'],
   revisador: ['revision'],
@@ -76,7 +76,13 @@ export function usePermissions() {
         return allowedKeys.includes(key);
       },
       /** The default route for this role (first allowed key) */
-      defaultRoute: allowedKeys[0] === 'dashboard' ? '' : allowedKeys[0],
+      defaultRoute: (() => {
+        const first = allowedKeys[0];
+        if (!first || first === 'dashboard') return '';
+        // Reverse-map nav key back to its route path
+        const entry = Object.entries(ROUTE_KEY_MAP).find(([, k]) => k === first);
+        return entry ? entry[0] : first;
+      })(),
       allowedKeys,
     };
   }, [role, overrides]);
