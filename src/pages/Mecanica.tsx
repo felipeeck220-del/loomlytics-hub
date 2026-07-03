@@ -1778,10 +1778,14 @@ export default function MecanicaPage() {
                           <TableCell className="text-center tabular-nums">
                             {kgTarget != null ? `${kgTarget.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : <span className="text-muted-foreground">—</span>}
                           </TableCell>
-                          <TableCell className={cn('text-center tabular-nums', kgTarget == null ? 'bg-muted/30 text-muted-foreground' : kgLeft != null && kgLeft <= 0 ? 'bg-destructive/25 text-destructive font-bold' : kgLeft != null && kgLeft <= kgTarget * 0.1 ? 'bg-warning/25 text-warning-foreground font-semibold' : 'bg-success/20 text-success-foreground font-semibold')}>
-                            {kgTarget == null ? '—' : kgLeft! <= 0
-                              ? `Atingido (${Math.abs(kgLeft!).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`
-                              : `${kgLeft!.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`}
+                          <TableCell className={cn('text-center tabular-nums', kgTarget == null || kgLeft == null ? 'bg-muted/30 text-muted-foreground' : kgLeft <= 0 ? 'bg-destructive/25 text-destructive font-bold' : kgLeft <= kgTarget * 0.1 ? 'bg-warning/25 text-warning-foreground font-semibold' : 'bg-success/20 text-success-foreground font-semibold')}>
+                            {kgTarget == null
+                              ? '—'
+                              : kgLeft == null
+                                ? 'Sem histórico'
+                                : kgLeft <= 0
+                                  ? `Atingido (${Math.abs(kgLeft).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg acima)`
+                                  : `${kgLeft.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`}
                           </TableCell>
                           <TableCell className="text-center tabular-nums">
                             {last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—'}
