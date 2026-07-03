@@ -126,6 +126,8 @@ export default function MecanicaPage() {
   const [scheduleHistoryMachineId, setScheduleHistoryMachineId] = useState<string | null>(null);
   const [obsByLogId, setObsByLogId] = useState<Record<string, { observation: string; created_at: string }[]>>({});
   const [loadingReportMachineId, setLoadingReportMachineId] = useState<string | null>(null);
+  const [omByLogId, setOmByLogId] = useState<Record<string, { order: any; items: any[] } | null>>({});
+  const [loadingReportLogId, setLoadingReportLogId] = useState<string | null>(null);
 
   const authorLabel = userName ? (userCode ? `${userName} #${userCode}` : userName) : null;
 
@@ -387,6 +389,66 @@ export default function MecanicaPage() {
     })();
     return () => { cancelled = true; };
   }, [scheduleRows, scheduleHistoryRows]);
+
+  // Carrega OMs finalizadas vinculadas aos logs do histórico aberto
+  useEffect(() => {
+    if (!scheduleHistoryMachineId || scheduleHistoryRows.length === 0) return;
+    const logIds = scheduleHistoryRows.map(l => l.id).filter(id => !(id in omByLogId));
+    if (logIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data: orders } = await (supabase.from as any)('maintenance_orders')
+        .select('*')
+        .in('machine_log_id', logIds);
+      if (cancelled) return;
+      const orderIds = (orders || []).map((o: any) => o.id);
+      let itemsByOrder: Record<string, any[]> = {};
+      if (orderIds.length > 0) {
+        const { data: items } = await (supabase.from as any)('maintenance_order_items')
+          .select('*')
+          .in('order_id', orderIds);
+        (items || []).forEach((it: any) => {
+          if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
+          itemsByOrder[it.order_id].push(it);
+        });
+      }
+      setOmByLogId(prev => {
+        const next = { ...prev };
+        logIds.forEach(id => { next[id] = null; });
+        (orders || []).forEach((o: any) => {
+          if (o.machine_log_id) next[o.machine_log_id] = { order: o, items: itemsByOrder[o.id] || [] };
+        });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [scheduleHistoryMachineId, scheduleHistoryRows]);
+
+  const handleDownloadOmForLog = async (log: any) => {
+    const entry = omByLogId[log.id];
+    if (!entry) { toast.error('Nenhuma OM vinculada a este registro.'); return; }
+    const machine = machines.find(m => m.id === log.machine_id);
+    if (!machine || !user?.company_id) return;
+    setLoadingReportLogId(log.id);
+    try {
+      await generateOmReportPdf({
+        order: entry.order,
+        items: entry.items,
+        machine,
+        needles,
+        sinkers,
+        cylinders,
+        companyId: user.company_id,
+        authorLabel,
+      });
+      logAction('om_report_download_from_history', { om: entry.order.om_number, machine: machine.name });
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar relatório da OM');
+    } finally {
+      setLoadingReportLogId(null);
+    }
+  };
 
   const formatDuration = (mins: number | null) => {
     if (mins == null) return '—';
@@ -1696,17 +1758,15 @@ export default function MecanicaPage() {
                           <TableCell className="text-center tabular-nums">{formatDuration(durationMin)}</TableCell>
                           <TableCell className="max-w-[260px]">
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className="flex-1 min-w-0">
-                                {obsText ? (
+                              {obsText ? (
+                                <div className="flex-1 min-w-0">
                                   <span className="block truncate" title={obsText}>{obsText}</span>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
-                              </div>
+                                </div>
+                              ) : null}
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-7 px-2 text-[11px] shrink-0"
+                                className="h-7 px-2 text-[11px] shrink-0 ml-auto"
                                 onClick={() => handleDownloadLastOmReport(machine)}
                                 disabled={loadingReportMachineId === machine.id}
                                 title="Baixar relatório da última OM finalizada desta máquina"
@@ -2061,6 +2121,7 @@ export default function MecanicaPage() {
                       <TableHead>HORA FIM</TableHead>
                       <TableHead>DURAÇÃO</TableHead>
                       <TableHead>RESPONSÁVEL</TableHead>
+                      <TableHead>OM</TableHead>
                       <TableHead className="min-w-[260px]">OBSERVAÇÃO</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -2070,6 +2131,7 @@ export default function MecanicaPage() {
                       const end = log.ended_at ? new Date(log.ended_at) : null;
                       const dur = end ? Math.max(0, (end.getTime() - start.getTime()) / 60000) : null;
                       const obs = (obsByLogId[log.id] || []).map(o => o.observation).join(' • ');
+                      const om = omByLogId[log.id];
                       return (
                         <TableRow key={log.id} className="text-xs">
                           <TableCell>{format(start, 'dd/MM/yyyy')}</TableCell>
@@ -2081,8 +2143,33 @@ export default function MecanicaPage() {
                               ? `${log.started_by_name}${log.started_by_code ? ` #${log.started_by_code}` : ''}`
                               : '—'}
                           </TableCell>
+                          <TableCell className="tabular-nums font-semibold">
+                            {om ? `#${String(om.order.om_number).padStart(3, '0')}` : <span className="text-muted-foreground font-normal">—</span>}
+                          </TableCell>
                           <TableCell className="max-w-[400px]">
-                            {obs ? <span className="block whitespace-pre-wrap">{obs}</span> : <span className="text-muted-foreground">—</span>}
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                {obs ? <span className="block whitespace-pre-wrap">{obs}</span> : null}
+                              </div>
+                              {om && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2 text-[11px] shrink-0 ml-auto"
+                                  onClick={() => handleDownloadOmForLog(log)}
+                                  disabled={loadingReportLogId === log.id}
+                                  title="Baixar relatório desta OM"
+                                >
+                                  {loadingReportLogId === log.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <FileDown className="h-3 w-3 mr-1" /> Relatório OM
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
