@@ -343,6 +343,7 @@ export default function ArticleChangeOrdersTab() {
           machines={machines}
           articles={articles}
           yarnTypes={yarnTypes}
+          orders={orders}
         />
       )}
 
