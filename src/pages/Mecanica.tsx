@@ -2121,6 +2121,7 @@ export default function MecanicaPage() {
                       <TableHead>HORA FIM</TableHead>
                       <TableHead>DURAÇÃO</TableHead>
                       <TableHead>RESPONSÁVEL</TableHead>
+                      <TableHead>OM</TableHead>
                       <TableHead className="min-w-[260px]">OBSERVAÇÃO</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -2130,6 +2131,7 @@ export default function MecanicaPage() {
                       const end = log.ended_at ? new Date(log.ended_at) : null;
                       const dur = end ? Math.max(0, (end.getTime() - start.getTime()) / 60000) : null;
                       const obs = (obsByLogId[log.id] || []).map(o => o.observation).join(' • ');
+                      const om = omByLogId[log.id];
                       return (
                         <TableRow key={log.id} className="text-xs">
                           <TableCell>{format(start, 'dd/MM/yyyy')}</TableCell>
@@ -2141,8 +2143,33 @@ export default function MecanicaPage() {
                               ? `${log.started_by_name}${log.started_by_code ? ` #${log.started_by_code}` : ''}`
                               : '—'}
                           </TableCell>
+                          <TableCell className="tabular-nums font-semibold">
+                            {om ? `#${String(om.order.om_number).padStart(3, '0')}` : <span className="text-muted-foreground font-normal">—</span>}
+                          </TableCell>
                           <TableCell className="max-w-[400px]">
-                            {obs ? <span className="block whitespace-pre-wrap">{obs}</span> : <span className="text-muted-foreground">—</span>}
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                {obs ? <span className="block whitespace-pre-wrap">{obs}</span> : null}
+                              </div>
+                              {om && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2 text-[11px] shrink-0 ml-auto"
+                                  onClick={() => handleDownloadOmForLog(log)}
+                                  disabled={loadingReportLogId === log.id}
+                                  title="Baixar relatório desta OM"
+                                >
+                                  {loadingReportLogId === log.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <FileDown className="h-3 w-3 mr-1" /> Relatório OM
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
