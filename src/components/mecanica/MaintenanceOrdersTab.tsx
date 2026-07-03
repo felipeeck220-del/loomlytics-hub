@@ -27,6 +27,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 import { loadLogoForPdf } from '@/lib/clientInvoicePdf';
+import { generateOmReportPdf } from '@/lib/omReportPdf';
 
 type ProgressNote = {
   id: string;
