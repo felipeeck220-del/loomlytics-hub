@@ -305,7 +305,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const isCorr = o.type === 'manutencao_corretiva';
     if (error) { toast.error(`Erro ao iniciar ${isCorr ? 'OC' : 'OM'}`); return; }
     toast.success(`${isCorr ? 'OC' : 'OM'} iniciada`);
-    logAction(isCorr ? 'oc_start' : 'om_start', { om: o.om_number });
+    logAction(isCorr ? 'oc_start' : 'om_start', isCorr ? { oc: o.oc_number } : { om: o.om_number });
     refreshMachines();
     await load();
   };
@@ -438,7 +438,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     }
 
     toast.success(`${isCorr ? 'OC' : 'OM'} finalizada`);
-    logAction(isCorr ? 'oc_finish' : 'om_finish', { om: finishOrder.om_number, duration_s: seconds, items: itemsToInsert.length });
+    logAction(
+      isCorr ? 'oc_finish' : 'om_finish',
+      isCorr
+        ? { oc: finishOrder.oc_number, duration_s: seconds, items: itemsToInsert.length }
+        : { om: finishOrder.om_number, duration_s: seconds, items: itemsToInsert.length },
+    );
     setFinishOrder(null);
     await load();
     await Promise.resolve(refreshMachines());
@@ -455,7 +460,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     }).eq('id', o.id);
     if (error) { toast.error('Erro ao cancelar'); return; }
     toast.success(`${label} cancelada`);
-    logAction(o.type === 'manutencao_corretiva' ? 'oc_cancel' : 'om_cancel', { om: o.om_number, reason });
+    logAction(
+      o.type === 'manutencao_corretiva' ? 'oc_cancel' : 'om_cancel',
+      o.type === 'manutencao_corretiva' ? { oc: o.oc_number, reason } : { om: o.om_number, reason },
+    );
     await load();
   };
 
@@ -535,7 +543,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     await (supabase.from as any)('maintenance_order_items').delete().eq('order_id', o.id);
     await (supabase.from as any)('maintenance_orders').delete().eq('id', o.id);
     toast.success(`${label} excluída`);
-    logAction(o.type === 'manutencao_corretiva' ? 'oc_delete' : 'om_delete', { om: o.om_number });
+    logAction(
+      o.type === 'manutencao_corretiva' ? 'oc_delete' : 'om_delete',
+      o.type === 'manutencao_corretiva' ? { oc: o.oc_number } : { om: o.om_number },
+    );
     await load();
   };
 
