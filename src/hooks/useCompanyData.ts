@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
  import type { 
@@ -36,6 +36,7 @@ export function useCompanyData() {
    const [shiftSettings, setShiftSettings] = useState<CompanyShiftSettings>(DEFAULT_SHIFT_SETTINGS);
    const [loading, setLoading] = useState(true);
    const [loadingProgress, setLoadingProgress] = useState(0);
+   const hasLoadedOnceRef = useRef(false);
 
   // Fetch all rows from a table, paginating past the 1000-row default limit
   const fetchAll = useCallback(async (table: string, query: { column: string; value: string } | null, orderCol: string, ascending = true) => {
@@ -187,8 +188,11 @@ export function useCompanyData() {
        setLoading(false);
        return;
      }
-     setLoading(true);
-     setLoadingProgress(0);
+     const isInitial = !hasLoadedOnceRef.current;
+     if (isInitial) {
+       setLoading(true);
+       setLoadingProgress(0);
+     }
      try {
        const tasks = [
          { name: 'machines', fn: () => fetchAll('machines', { column: 'company_id', value: companyId }, 'number') },
@@ -247,11 +251,14 @@ export function useCompanyData() {
            shift_noite_end: csRes.data.shift_noite_end || DEFAULT_SHIFT_SETTINGS.shift_noite_end,
          });
        }
-       setLoadingProgress(100);
+        if (isInitial) setLoadingProgress(100);
      } catch (err) {
        console.error('Failed to load company data:', err);
      } finally {
-       setTimeout(() => setLoading(false), 300); // Pequeno delay para a barra chegar a 100% suavemente
+       hasLoadedOnceRef.current = true;
+       if (isInitial) {
+         setTimeout(() => setLoading(false), 300); // Pequeno delay para a barra chegar a 100% suavemente
+       }
      }
    }, [companyId]);
 
