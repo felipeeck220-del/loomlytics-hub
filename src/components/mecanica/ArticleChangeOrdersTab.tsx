@@ -471,6 +471,52 @@ function OTCard(props: {
 }
 
 // -------------- New OT modal ----------------
+type Slot = { active: boolean; yarn_type_id: string; lfa: string; stretch: string; observation: string };
+const EMPTY_SLOT: Slot = { active: false, yarn_type_id: '', lfa: '', stretch: '', observation: '' };
+
+function SlotEditor({ label, slot, onChange, yarnOptions }: {
+  label: string;
+  slot: Slot;
+  onChange: (p: Partial<Slot>) => void;
+  yarnOptions: { value: string; label: string }[];
+}) {
+  return (
+    <div className={`border rounded-lg p-3 space-y-2 ${slot.active ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
+      <div className="flex items-center gap-2">
+        <Checkbox checked={slot.active} onCheckedChange={(v) => onChange({ active: !!v })} />
+        <div className="font-medium text-sm">{label}</div>
+      </div>
+      {slot.active && (
+        <div className="space-y-2">
+          <div>
+            <Label className="text-xs">Tipo de fio</Label>
+            <SearchableSelect
+              value={slot.yarn_type_id}
+              onValueChange={(v) => onChange({ yarn_type_id: v })}
+              options={yarnOptions}
+              placeholder="Selecione o fio…"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">LFA</Label>
+              <Input value={slot.lfa} onChange={e => onChange({ lfa: e.target.value })} inputMode="decimal" />
+            </div>
+            <div>
+              <Label className="text-xs">Estiragem</Label>
+              <Input value={slot.stretch} onChange={e => onChange({ stretch: e.target.value })} inputMode="decimal" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Observação</Label>
+            <Input value={slot.observation} onChange={e => onChange({ observation: e.target.value })} placeholder="Opcional" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
   onClose: () => void;
   onSaved: () => void;
@@ -486,10 +532,8 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
   const [observations, setObservations] = useState('');
   const [saving, setSaving] = useState(false);
 
-  type Slot = { active: boolean; yarn_type_id: string; lfa: string; stretch: string; observation: string };
-  const emptySlot: Slot = { active: false, yarn_type_id: '', lfa: '', stretch: '', observation: '' };
-  const [fitas, setFitas] = useState<Slot[]>([{ ...emptySlot }, { ...emptySlot }, { ...emptySlot }, { ...emptySlot }]);
-  const [elastano, setElastano] = useState<Slot>({ ...emptySlot });
+  const [fitas, setFitas] = useState<Slot[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
+  const [elastano, setElastano] = useState<Slot>({ ...EMPTY_SLOT });
 
   const updateFita = (i: number, patch: Partial<Slot>) => {
     setFitas(prev => prev.map((f, idx) => idx === i ? { ...f, ...patch } : f));
@@ -560,45 +604,9 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
     onSaved();
   };
 
-  const yarnOptions = yarnTypes.map(y => ({ value: y.id, label: y.name }));
-  const machineOptions = machines.map(m => ({ value: m.id, label: m.name }));
-  const articleOptions = articles.map(a => ({ value: a.id, label: a.client_name ? `${a.name} (${a.client_name})` : a.name }));
-
-  const SlotEditor = ({ label, slot, onChange }: { label: string; slot: Slot; onChange: (p: Partial<Slot>) => void }) => (
-    <div className={`border rounded-lg p-3 space-y-2 ${slot.active ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
-      <div className="flex items-center gap-2">
-        <Checkbox checked={slot.active} onCheckedChange={(v) => onChange({ active: !!v })} />
-        <div className="font-medium text-sm">{label}</div>
-      </div>
-      {slot.active && (
-        <div className="space-y-2">
-          <div>
-            <Label className="text-xs">Tipo de fio</Label>
-            <SearchableSelect
-              value={slot.yarn_type_id}
-              onValueChange={(v) => onChange({ yarn_type_id: v })}
-              options={yarnOptions}
-              placeholder="Selecione o fio…"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs">LFA</Label>
-              <Input value={slot.lfa} onChange={e => onChange({ lfa: e.target.value })} inputMode="decimal" />
-            </div>
-            <div>
-              <Label className="text-xs">Estiragem</Label>
-              <Input value={slot.stretch} onChange={e => onChange({ stretch: e.target.value })} inputMode="decimal" />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs">Observação</Label>
-            <Input value={slot.observation} onChange={e => onChange({ observation: e.target.value })} placeholder="Opcional" />
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const yarnOptions = useMemo(() => yarnTypes.map(y => ({ value: y.id, label: y.name })), [yarnTypes]);
+  const machineOptions = useMemo(() => machines.map(m => ({ value: m.id, label: m.name })), [machines]);
+  const articleOptions = useMemo(() => articles.map(a => ({ value: a.id, label: a.client_name ? `${a.name} (${a.client_name})` : a.name })), [articles]);
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
@@ -628,9 +636,9 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
             <div className="text-sm font-semibold mb-2">Fitas de fio (até 4) + Elastano</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {fitas.map((f, i) => (
-                <SlotEditor key={i} label={`Fita ${i + 1}`} slot={f} onChange={(p) => updateFita(i, p)} />
+                <SlotEditor key={i} label={`Fita ${i + 1}`} slot={f} onChange={(p) => updateFita(i, p)} yarnOptions={yarnOptions} />
               ))}
-              <SlotEditor label="Elastano" slot={elastano} onChange={(p) => setElastano(s => ({ ...s, ...p }))} />
+              <SlotEditor label="Elastano" slot={elastano} onChange={(p) => setElastano(s => ({ ...s, ...p }))} yarnOptions={yarnOptions} />
             </div>
           </div>
 
