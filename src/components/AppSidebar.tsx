@@ -118,8 +118,6 @@ export function AppSidebar() {
   }, [user?.company_id]);
 
   const items = useMemo(() => {
-    // Aguarda role do usuário para evitar flicker (renderizaria como admin e depois filtraria)
-    if (!user?.role) return [];
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? allItems.filter(item => {
@@ -130,8 +128,8 @@ export function AppSidebar() {
     const adminFiltered = companyFiltered.filter(item => !((item as any).nonAdminOnly && isAdmin));
     const roleFiltered = filterNavItems(adminFiltered);
 
-    // Mecânico e Líder de Mecânica acessam OM/OC exclusivamente pelo footer fixo
-    const mecanicoFiltered = (user?.role === 'mecanico' || user?.role === 'lider_mecanica')
+    // Mecânico acessa OM/OC exclusivamente pelo footer fixo
+    const mecanicoFiltered = user?.role === 'mecanico'
       ? roleFiltered.filter(item => item.key !== 'mecanica-om' && item.key !== 'mecanica-oc')
       : roleFiltered;
 
