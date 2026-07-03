@@ -24,7 +24,7 @@ const allItems = [
 /** Keys shown in the mobile footer per role */
 const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   admin: ['dashboard', 'production', 'outsource', 'settings'],
-  lider: ['dashboard', 'machines', 'revision'],
+  lider: ['dashboard', 'mecanica-om', 'mecanica-oc'],
   mecanico: ['machines', 'mecanica-om', 'mecanica-oc'],
   revisador: ['production', 'revision'],
 };
