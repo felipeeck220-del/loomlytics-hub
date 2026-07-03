@@ -384,6 +384,184 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     await load();
   };
 
+  // ============ PROGRESS NOTES (em curso) ============
+  const openProgress = (o: MaintenanceOrder) => {
+    setProgressOrder(o);
+    setProgressDraft({ kind: 'observacao', text: '' });
+  };
+  const currentProgressList: ProgressNote[] = useMemo(() => {
+    if (!progressOrder) return [];
+    const fresh = orders.find(o => o.id === progressOrder.id) || progressOrder;
+    return Array.isArray(fresh.progress_notes) ? (fresh.progress_notes as ProgressNote[]) : [];
+  }, [orders, progressOrder]);
+
+  const addProgressNote = async () => {
+    if (!progressOrder) return;
+    const text = progressDraft.text.trim();
+    if (!text) { toast.error('Escreva uma observação ou item'); return; }
+    setProgressSaving(true);
+    const note: ProgressNote = {
+      id: (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`,
+      ts: new Date().toISOString(),
+      author: authorLabel,
+      kind: progressDraft.kind,
+      text,
+    };
+    const next = [...currentProgressList, note];
+    const { error } = await (supabase.from as any)('maintenance_orders')
+      .update({ progress_notes: next })
+      .eq('id', progressOrder.id);
+    setProgressSaving(false);
+    if (error) { toast.error('Erro ao salvar'); return; }
+    // atualiza estado local
+    setOrders(prev => prev.map(o => o.id === progressOrder.id ? { ...o, progress_notes: next } : o));
+    setProgressDraft({ kind: progressDraft.kind, text: '' });
+    toast.success('Registrado');
+    logAction('om_progress_note_add', { om: progressOrder.om_number, kind: note.kind });
+  };
+
+  const removeProgressNote = async (noteId: string) => {
+    if (!progressOrder) return;
+    const next = currentProgressList.filter(n => n.id !== noteId);
+    const { error } = await (supabase.from as any)('maintenance_orders')
+      .update({ progress_notes: next })
+      .eq('id', progressOrder.id);
+    if (error) { toast.error('Erro ao remover'); return; }
+    setOrders(prev => prev.map(o => o.id === progressOrder.id ? { ...o, progress_notes: next } : o));
+  };
+
+  // ============ PDF RELATÓRIO (finalizada) ============
+  const downloadReport = async (o: MaintenanceOrder) => {
+    try {
+      const its = itemsByOrder[o.id] || [];
+      const machine = machineById[o.machine_id];
+      // Buscar dados da empresa
+      const { data: company } = await (supabase.from as any)('companies')
+        .select('name, logo_url').eq('id', companyId).maybeSingle();
+      const logo = await loadLogoForPdf(company?.logo_url || null);
+
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const margin = 12;
+      let y = margin;
+
+      // Cabeçalho
+      pdf.setFillColor(30, 41, 59);
+      pdf.rect(margin, y, pageW - margin * 2, 22, 'F');
+      if (logo) {
+        try {
+          const ratio = logo.width / logo.height;
+          const h = 16; const w = Math.min(30, h * ratio);
+          pdf.addImage(logo.data, 'PNG', margin + 3, y + 3, w, h);
+        } catch { /* ignore */ }
+      }
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
+      pdf.text(sanitizePdfText(company?.name || 'Empresa'), pageW - margin - 3, y + 9, { align: 'right' });
+      pdf.setFontSize(10); pdf.setFont('helvetica', 'normal');
+      pdf.text(sanitizePdfText(`RELATÓRIO DE ORDEM DE MANUTENÇÃO`), pageW - margin - 3, y + 15, { align: 'right' });
+      pdf.text(sanitizePdfText(`Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`), pageW - margin - 3, y + 19.5, { align: 'right' });
+      y += 28;
+      pdf.setTextColor(17, 24, 39);
+
+      // Título OM
+      pdf.setFontSize(16); pdf.setFont('helvetica', 'bold');
+      pdf.text(sanitizePdfText(`OM #${String(o.om_number).padStart(3, '0')} — ${TYPE_LABELS[o.type]}`), margin, y);
+      y += 7;
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(75, 85, 99);
+      pdf.text(sanitizePdfText(`Máquina: ${machine?.name || '—'}   ·   Prioridade: ${o.priority === 'prioritaria' ? 'Prioritária' : 'Normal'}   ·   Status: FINALIZADA`), margin, y);
+      y += 8;
+      pdf.setTextColor(17, 24, 39);
+
+      // Bloco dados
+      autoTable(pdf, {
+        startY: y,
+        theme: 'grid',
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 10, cellPadding: 2 },
+        headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+        body: [
+          ['Criada por', sanitizePdfText(renderAuthor(o.created_by_name, o.created_by_id)), 'Criada em', format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')],
+          ['Iniciada por', sanitizePdfText(renderAuthor(o.started_by_name, o.started_by_id)), 'Início', o.started_at ? format(new Date(o.started_at), 'dd/MM/yyyy HH:mm') : '—'],
+          ['Finalizada por', sanitizePdfText(renderAuthor(o.finished_by_name, o.finished_by_id)), 'Fim', o.finished_at ? format(new Date(o.finished_at), 'dd/MM/yyyy HH:mm') : '—'],
+          ['Duração total', fmtDuration(o.duration_seconds || 0), 'Itens trocados', String(its.length)],
+        ],
+      });
+      y = (pdf as any).lastAutoTable.finalY + 6;
+
+      // Descrição
+      if (o.description) {
+        pdf.setFontSize(11); pdf.setFont('helvetica', 'bold');
+        pdf.text('Descrição / Serviço', margin, y); y += 5;
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+        const desc = pdf.splitTextToSize(sanitizePdfText(o.description), pageW - margin * 2);
+        pdf.text(desc, margin, y); y += desc.length * 5 + 4;
+      }
+
+      // Itens trocados
+      if (its.length > 0) {
+        autoTable(pdf, {
+          startY: y,
+          head: [['Tipo', 'Referência', 'Qtd']],
+          body: its.map(it => {
+            const ref = it.needle_id ? `Agulha ${needles.find(n => n.id === it.needle_id)?.reference_code || ''}` :
+                        it.sinker_id ? `Platina ${sinkers.find(s => s.id === it.sinker_id)?.reference_code || ''}` :
+                        it.cylinder_id ? `Cilindro ${cylinders.find(c => c.id === it.cylinder_id)?.brand || ''}` :
+                        it.description || '—';
+            return [it.item_type, sanitizePdfText(ref), String(it.quantity)];
+          }),
+          theme: 'striped',
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 10, cellPadding: 2 },
+          headStyles: { fillColor: [16, 185, 129], textColor: 255 },
+        });
+        y = (pdf as any).lastAutoTable.finalY + 6;
+      }
+
+      // Anotações registradas em curso
+      const notes = Array.isArray(o.progress_notes) ? o.progress_notes as ProgressNote[] : [];
+      if (notes.length > 0) {
+        autoTable(pdf, {
+          startY: y,
+          head: [['Data/Hora', 'Tipo', 'Autor', 'Descrição']],
+          body: notes.map(n => [
+            format(new Date(n.ts), 'dd/MM/yyyy HH:mm'),
+            n.kind === 'item' ? 'Item' : 'Observação',
+            sanitizePdfText(n.author || '—'),
+            sanitizePdfText(n.text),
+          ]),
+          theme: 'striped',
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 9, cellPadding: 2 },
+          headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+          columnStyles: { 3: { cellWidth: 'auto' } },
+        });
+        y = (pdf as any).lastAutoTable.finalY + 6;
+      }
+
+      // Observações finais
+      if (o.finish_notes) {
+        pdf.setFontSize(11); pdf.setFont('helvetica', 'bold');
+        pdf.text('Observações Finais', margin, y); y += 5;
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+        const t = pdf.splitTextToSize(sanitizePdfText(o.finish_notes), pageW - margin * 2);
+        pdf.text(t, margin, y);
+      }
+
+      // Rodapé
+      const pageH = pdf.internal.pageSize.getHeight();
+      pdf.setFontSize(8); pdf.setTextColor(120, 120, 120);
+      pdf.text(sanitizePdfText(`Relatório gerado por ${authorLabel || '—'} em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`), margin, pageH - 6);
+
+      pdf.save(`OM-${String(o.om_number).padStart(3, '0')}-${(machine?.name || 'maquina').replace(/\s+/g, '_')}.pdf`);
+      logAction('om_report_download', { om: o.om_number });
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar relatório');
+    }
+  };
+
   const deleteOrder = async (o: MaintenanceOrder) => {
     if (!canManage) return;
     if (o.status === 'finalizada' && !isAdmin) {
