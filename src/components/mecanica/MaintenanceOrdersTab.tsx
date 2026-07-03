@@ -789,8 +789,21 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                               </>
                             )}
                             {o.status === 'em_curso' && canExecute && (
-                              <Button size="sm" onClick={() => openFinish(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
-                                <Square className="h-3.5 w-3.5" /> Finalizar
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => openProgress(o)} className="gap-1.5 border-blue-500/40 text-blue-600 hover:bg-blue-500/10">
+                                  <StickyNote className="h-3.5 w-3.5" /> Notas/Itens
+                                  {Array.isArray(o.progress_notes) && o.progress_notes.length > 0 && (
+                                    <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{o.progress_notes.length}</Badge>
+                                  )}
+                                </Button>
+                                <Button size="sm" onClick={() => openFinish(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                                  <Square className="h-3.5 w-3.5" /> Finalizar
+                                </Button>
+                              </>
+                            )}
+                            {o.status === 'finalizada' && (
+                              <Button size="sm" variant="outline" onClick={() => downloadReport(o)} className="gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10">
+                                <Download className="h-3.5 w-3.5" /> Baixar Relatório
                               </Button>
                             )}
                             {canManage && o.status === 'cancelada' && (
