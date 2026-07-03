@@ -56,12 +56,17 @@ export function MobileBottomNav() {
   }, [user?.company_id]);
 
   const items = useMemo(() => {
+    if (!user?.role) return [];
     const footerKeys = getMobileFooterKeys(role);
     const footerItems = allItems.filter(i => footerKeys.includes(i.key));
 
-    // Apply company-level filtering
+    // Apply company-level filtering. OM/OC inherit the company toggle from Mecânica.
+    const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
-      ? footerItems.filter(i => enabledNavItems.includes(i.key))
+      ? footerItems.filter(i => {
+          if (i.key === 'mecanica-om' || i.key === 'mecanica-oc') return mecanicaEnabled;
+          return enabledNavItems.includes(i.key);
+        })
       : footerItems;
 
     // Apply role-level filtering
@@ -71,7 +76,7 @@ export function MobileBottomNav() {
       ...item,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [role, enabledNavItems, slugPrefix, filterNavItems]);
+  }, [role, enabledNavItems, slugPrefix, filterNavItems, user?.role]);
 
   const isActive = (item: typeof items[0]) => {
     if (item.path === '') {
