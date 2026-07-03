@@ -267,7 +267,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   // ============ START ============
   const startOrder = async (o: MaintenanceOrder) => {
-    if (!canExecute) return;
+    if (!canExecuteOrder(o)) { toast.error(o.type === 'manutencao_corretiva' ? 'Apenas mecânico ou líder de mecânica podem iniciar OCs' : 'Sem permissão para iniciar OM'); return; }
     const now = new Date().toISOString();
     // 0) fecha qualquer machine_log em aberto dessa máquina (evita 2 logs abertos)
     await (supabase.from as any)('machine_logs')
@@ -290,9 +290,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       status: 'em_curso', started_at: now, started_by_id: user?.id, started_by_name: authorLabel,
       machine_log_id: (log as any).id,
     }).eq('id', o.id);
-    if (error) { toast.error('Erro ao iniciar OM'); return; }
-    toast.success('OM iniciada');
-    logAction('om_start', { om: o.om_number });
+    const isCorr = o.type === 'manutencao_corretiva';
+    if (error) { toast.error(`Erro ao iniciar ${isCorr ? 'OC' : 'OM'}`); return; }
+    toast.success(`${isCorr ? 'OC' : 'OM'} iniciada`);
+    logAction(isCorr ? 'oc_start' : 'om_start', { om: o.om_number });
     refreshMachines();
     await load();
   };
@@ -344,7 +345,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       duration_seconds: seconds,
       finish_notes: finishNotes || null,
     }).eq('id', finishOrder.id);
-    if (error) { toast.error('Erro ao finalizar OM'); return; }
+    const isCorr = finishOrder.type === 'manutencao_corretiva';
+    if (error) { toast.error(`Erro ao finalizar ${isCorr ? 'OC' : 'OM'}`); return; }
 
     // 4) insere itens
     const itemsToInsert = finishItems.filter(it => it.quantity > 0 && (it.ref_id || it.description)).map(it => ({
@@ -423,8 +425,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         .eq('id', finishOrder.machine_id);
     }
 
-    toast.success('OM finalizada');
-    logAction('om_finish', { om: finishOrder.om_number, duration_s: seconds, items: itemsToInsert.length });
+    toast.success(`${isCorr ? 'OC' : 'OM'} finalizada`);
+    logAction(isCorr ? 'oc_finish' : 'om_finish', { om: finishOrder.om_number, duration_s: seconds, items: itemsToInsert.length });
     setFinishOrder(null);
     await load();
     await Promise.resolve(refreshMachines());
@@ -432,15 +434,16 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   // ============ CANCEL ============
   const cancelOrder = async (o: MaintenanceOrder, reason: string | null) => {
-    if (!canManage) return;
-    if (o.status !== 'aberto') { toast.error('Só é possível cancelar OMs em aberto'); return; }
+    if (!canManageOrder(o)) { toast.error('Sem permissão para cancelar esta ordem'); return; }
+    const label = o.type === 'manutencao_corretiva' ? 'OC' : 'OM';
+    if (o.status !== 'aberto') { toast.error(`Só é possível cancelar ${label}s em aberto`); return; }
     const { error } = await (supabase.from as any)('maintenance_orders').update({
       status: 'cancelada', cancelled_at: new Date().toISOString(), cancelled_by_id: user?.id, cancelled_by_name: authorLabel,
       cancellation_reason: reason,
     }).eq('id', o.id);
     if (error) { toast.error('Erro ao cancelar'); return; }
-    toast.success('OM cancelada');
-    logAction('om_cancel', { om: o.om_number, reason });
+    toast.success(`${label} cancelada`);
+    logAction(o.type === 'manutencao_corretiva' ? 'oc_cancel' : 'om_cancel', { om: o.om_number, reason });
     await load();
   };
 
@@ -507,19 +510,20 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
 
   const deleteOrder = async (o: MaintenanceOrder) => {
-    if (!canManage) return;
+    if (!canManageOrder(o)) { toast.error('Sem permissão para excluir esta ordem'); return; }
+    const label = o.type === 'manutencao_corretiva' ? 'OC' : 'OM';
     if (o.status === 'finalizada' && !isAdmin) {
-      toast.error('Apenas administradores podem excluir OMs finalizadas.');
+      toast.error(`Apenas administradores podem excluir ${label}s finalizadas.`);
       return;
     }
     if (o.status === 'em_curso') {
-      toast.error('Não é possível excluir uma OM em curso. Finalize ou cancele primeiro.');
+      toast.error(`Não é possível excluir uma ${label} em curso. Finalize ou cancele primeiro.`);
       return;
     }
     await (supabase.from as any)('maintenance_order_items').delete().eq('order_id', o.id);
     await (supabase.from as any)('maintenance_orders').delete().eq('id', o.id);
-    toast.success('OM excluída');
-    logAction('om_delete', { om: o.om_number });
+    toast.success(`${label} excluída`);
+    logAction(o.type === 'manutencao_corretiva' ? 'oc_delete' : 'om_delete', { om: o.om_number });
     await load();
   };
 
@@ -685,7 +689,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         </TabsList>
         <TabsContent value={tab} className="mt-4">
           {displayed.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma OM nessa lista.</div>
+            <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma {labelShort} nessa lista.</div>
           ) : (
             <div className="space-y-3">
               {displayed.map(o => {
