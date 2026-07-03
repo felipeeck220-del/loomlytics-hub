@@ -1,7 +1,7 @@
 {
-  "name": "MalhaGest - Gestão Têxtil",
-  "short_name": "MalhaGest",
-  "description": "Sistema completo de gerenciamento para malharias",
+  "name": "Trama Certa",
+  "short_name": "Trama Certa",
+  "description": "Trama Certa — gestão têxtil",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
