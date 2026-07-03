@@ -138,16 +138,16 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [progressDraft, setProgressDraft] = useState<{ kind: 'observacao' | 'item'; text: string }>({ kind: 'observacao', text: '' });
   const [progressSaving, setProgressSaving] = useState(false);
 
-  const load = async () => {
+  const load = async (opts?: { silent?: boolean }) => {
     if (!companyId) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     const [{ data: o }, { data: i }] = await Promise.all([
       (supabase.from as any)('maintenance_orders').select('*').eq('company_id', companyId).order('created_at', { ascending: false }),
       (supabase.from as any)('maintenance_order_items').select('*').eq('company_id', companyId),
     ]);
     setOrders((o as MaintenanceOrder[]) || []);
     setItems((i as MaintenanceOrderItem[]) || []);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   };
 
   useEffect(() => { load(); }, [companyId]);
