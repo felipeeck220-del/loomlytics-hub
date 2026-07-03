@@ -25,6 +25,7 @@ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import MaintenanceOrdersTab from '@/components/mecanica/MaintenanceOrdersTab';
 import MaintenanceMovementsTab from '@/components/mecanica/MaintenanceMovementsTab';
+import { generateOmReportPdf, fetchLastFinalizedOmForMachine } from '@/lib/omReportPdf';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
   'manutencao_preventiva',
