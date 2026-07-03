@@ -1164,9 +1164,25 @@ export default function StockMalha() {
                     {ownSummary.map(r => {
                       const saldoKg = r.inKg - r.outKg;
                       const saldoPc = r.inPc - r.outPc;
+                      const details = ownDetailByArticle.get(r.articleId) || [];
+                      const isOpen = expandedOwnArticle === r.articleId;
                       return (
-                        <TableRow key={r.articleId}>
-                          <TableCell className="text-xs font-medium">{r.name}</TableCell>
+                        <React.Fragment key={r.articleId}>
+                        <TableRow
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setExpandedOwnArticle(isOpen ? null : r.articleId)}
+                        >
+                          <TableCell className="text-xs font-medium">
+                            <div className="flex items-center gap-1.5">
+                              <ChevronDown className={cn('h-3 w-3 transition-transform', isOpen ? '' : '-rotate-90')} />
+                              <span>{r.name}</span>
+                              {details.length > 0 && (
+                                <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0">
+                                  {details.length} lote{details.length > 1 ? 's' : ''}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-xs text-right">{formatWeight(r.inKg)}</TableCell>
                           <TableCell className="text-xs text-right">{formatNumber(r.inPc)}</TableCell>
                           <TableCell className="text-xs text-right">{formatWeight(r.outKg)}</TableCell>
@@ -1174,6 +1190,53 @@ export default function StockMalha() {
                           <TableCell className={cn('text-xs text-right font-bold', saldoKg < 0 ? 'text-destructive' : saldoKg === 0 ? 'text-muted-foreground' : 'text-success')}>{formatWeight(saldoKg)}</TableCell>
                           <TableCell className={cn('text-xs text-right font-bold', saldoPc < 0 ? 'text-destructive' : saldoPc === 0 ? 'text-muted-foreground' : 'text-success')}>{formatNumber(saldoPc)}</TableCell>
                         </TableRow>
+                        {isOpen && (
+                          <TableRow className="bg-muted/30">
+                            <TableCell colSpan={7} className="p-0">
+                              {details.length === 0 ? (
+                                <div className="px-4 py-3 text-[11px] text-muted-foreground">
+                                  Sem entradas registradas com Tipo de Fio / Origem / Nº OF-ROM.
+                                </div>
+                              ) : (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="text-[10px] uppercase tracking-wide">Tipo de fio</TableHead>
+                                      <TableHead className="text-[10px] uppercase tracking-wide">Origem da malha</TableHead>
+                                      <TableHead className="text-[10px] uppercase tracking-wide">Nº OF / ROM de entrada</TableHead>
+                                      <TableHead className="text-[10px] uppercase tracking-wide text-right">Entradas (kg)</TableHead>
+                                      <TableHead className="text-[10px] uppercase tracking-wide text-right">Entradas (pç)</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {details
+                                      .slice()
+                                      .sort((a, b) => a.yarn_type.localeCompare(b.yarn_type) || a.origin_label.localeCompare(b.origin_label) || a.of_number.localeCompare(b.of_number))
+                                      .map(d => (
+                                        <TableRow key={d.key}>
+                                          <TableCell className="text-[11px]">{d.yarn_type}</TableCell>
+                                          <TableCell className="text-[11px]">
+                                            <span className={cn(
+                                              'inline-block rounded px-1.5 py-0.5 text-[10px]',
+                                              d.source === 'outsource' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                                                : d.source === 'internal' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                                : 'bg-muted text-muted-foreground'
+                                            )}>
+                                              {d.origin_label}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell className="text-[11px] font-mono">{d.of_number}</TableCell>
+                                          <TableCell className="text-[11px] text-right">{formatWeight(d.inKg)}</TableCell>
+                                          <TableCell className="text-[11px] text-right">{formatNumber(d.inPc)}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                  </TableBody>
+                                </Table>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </TableBody>
