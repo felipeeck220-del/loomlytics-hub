@@ -1696,17 +1696,15 @@ export default function MecanicaPage() {
                           <TableCell className="text-center tabular-nums">{formatDuration(durationMin)}</TableCell>
                           <TableCell className="max-w-[260px]">
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className="flex-1 min-w-0">
-                                {obsText ? (
+                              {obsText ? (
+                                <div className="flex-1 min-w-0">
                                   <span className="block truncate" title={obsText}>{obsText}</span>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
-                              </div>
+                                </div>
+                              ) : null}
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-7 px-2 text-[11px] shrink-0"
+                                className="h-7 px-2 text-[11px] shrink-0 ml-auto"
                                 onClick={() => handleDownloadLastOmReport(machine)}
                                 disabled={loadingReportMachineId === machine.id}
                                 title="Baixar relatório da última OM finalizada desta máquina"
