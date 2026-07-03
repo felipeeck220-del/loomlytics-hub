@@ -36,6 +36,13 @@ const TYPE_COLORS: Record<MaintenanceOrderType, string> = {
   troca_agulhas: 'bg-purple-500/15 text-purple-600 border-purple-500/30',
 };
 
+const STATUS_STYLE: Record<MaintenanceOrderStatus, { stripe: string; label: string; badgeClass: string }> = {
+  aberto: { stripe: 'bg-amber-500', label: 'ABERTO', badgeClass: 'bg-amber-500 text-white border-amber-600' },
+  em_curso: { stripe: 'bg-blue-600', label: 'EM CURSO', badgeClass: 'bg-blue-600 text-white border-blue-700' },
+  finalizada: { stripe: 'bg-emerald-600', label: 'FINALIZADA', badgeClass: 'bg-emerald-600 text-white border-emerald-700' },
+  cancelada: { stripe: 'bg-zinc-500', label: 'CANCELADA', badgeClass: 'bg-zinc-500 text-white border-zinc-600' },
+};
+
 function fmtDuration(seconds: number) {
   if (!seconds || seconds < 0) return '0s';
   const h = Math.floor(seconds / 3600);
@@ -447,79 +454,160 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           {filtered.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma OM nessa lista.</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-3">
               {filtered.map(o => {
                 const m = machineById[o.machine_id];
                 const its = itemsByOrder[o.id] || [];
+                const style = STATUS_STYLE[o.status];
                 return (
-                  <Card key={o.id} className={cn('overflow-hidden', o.priority === 'prioritaria' && 'border-destructive/50')}>
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">OM #{String(o.om_number).padStart(3, '0')}</span>
-                            {o.priority === 'prioritaria' && <Badge className="bg-destructive/15 text-destructive border-destructive/30"><AlertTriangle className="h-3 w-3 mr-1" /> Prioritária</Badge>}
+                  <Card
+                    key={o.id}
+                    className="relative overflow-hidden border bg-card hover:shadow-md transition-shadow"
+                  >
+                    {/* Faixa lateral de status */}
+                    <div className={cn('absolute left-0 top-0 bottom-0 w-1.5', style.stripe)} />
+                    <CardContent className="p-4 pl-5">
+                      <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+                        {/* Coluna principal */}
+                        <div className="flex-1 min-w-0 space-y-2">
+                          {/* Linha 1: Status + OM# + Tipo + Prioridade */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className={cn(style.badgeClass, 'font-bold text-[10px] tracking-wide uppercase px-2 py-0.5')}>
+                              {style.label}
+                            </Badge>
+                            <span className="font-bold text-lg text-foreground">OM #{String(o.om_number).padStart(3, '0')}</span>
+                            <Badge variant="outline" className={cn('font-semibold uppercase text-[10px]', TYPE_COLORS[o.type])}>
+                              {TYPE_LABELS[o.type]}
+                            </Badge>
+                            {o.priority === 'prioritaria' && o.status === 'aberto' && (
+                              <Badge variant="destructive" className="animate-pulse gap-1 text-[10px]">
+                                <AlertTriangle className="h-3 w-3" /> PRIORITÁRIA
+                              </Badge>
+                            )}
+                            {o.status === 'em_curso' && o.started_at && (
+                              <Badge className="bg-blue-600 text-white border-blue-700 gap-1 text-[10px] px-2 py-0.5">
+                                <Clock className="h-3 w-3" /> <LiveTimer startedAt={o.started_at} />
+                              </Badge>
+                            )}
                           </div>
-                          <div className="text-sm font-medium">{m?.name || '—'}</div>
-                        </div>
-                        <Badge variant="outline" className={cn(TYPE_COLORS[o.type])}>{TYPE_LABELS[o.type]}</Badge>
-                      </div>
-                      {o.description && <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>}
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>Criada por <strong>{renderAuthor(o.created_by_name, o.created_by_id)}</strong> · {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}</div>
-                        {o.started_by_name && <div>Iniciada por <strong>{renderAuthor(o.started_by_name, o.started_by_id)}</strong>{o.started_at ? ` · ${format(new Date(o.started_at), 'dd/MM/yyyy HH:mm')}` : ''}</div>}
-                        {o.finished_by_name && <div>Finalizada por <strong>{renderAuthor(o.finished_by_name, o.finished_by_id)}</strong>{o.finished_at ? ` · ${format(new Date(o.finished_at), 'dd/MM/yyyy HH:mm')}` : ''}</div>}
-                      </div>
 
-                      {o.status === 'em_curso' && o.started_at && (
-                        <div className="flex items-center gap-2 text-sm bg-warning/10 text-warning rounded px-2 py-1.5">
-                          <Clock className="h-4 w-4" /> Em andamento — <LiveTimer startedAt={o.started_at} />
-                        </div>
-                      )}
-                      {o.status === 'finalizada' && (
-                        <div className="text-xs space-y-1">
-                          <div>Início: {o.started_at ? format(new Date(o.started_at), 'dd/MM HH:mm') : '—'} · Fim: {o.finished_at ? format(new Date(o.finished_at), 'dd/MM HH:mm') : '—'}</div>
-                          <div>Tempo total: <strong>{fmtDuration(o.duration_seconds || 0)}</strong></div>
-                          {its.length > 0 && (
-                            <div className="pt-1">
-                              <div className="font-medium">Itens trocados:</div>
-                              <ul className="list-disc pl-4">
+                          {/* Linha 2: Máquina em destaque */}
+                          <div className="text-base font-semibold text-foreground">
+                            {m?.name || '—'}
+                          </div>
+
+                          {/* Descrição */}
+                          {o.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>
+                          )}
+
+                          {/* Motivo do cancelamento */}
+                          {o.status === 'cancelada' && o.cancellation_reason && (
+                            <div className="rounded-md border border-zinc-400 bg-zinc-100 dark:bg-zinc-900/60 p-2 flex items-start gap-2">
+                              <X className="h-4 w-4 text-zinc-700 dark:text-zinc-300 mt-0.5 shrink-0" />
+                              <div className="text-xs text-zinc-900 dark:text-zinc-100">
+                                <div className="font-bold uppercase text-[10px] tracking-wide">Motivo do cancelamento</div>
+                                <div className="mt-0.5">{o.cancellation_reason}</div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Grid de dados técnicos */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
+                            <div className="min-w-0">
+                              <div className="text-[10px] uppercase text-muted-foreground font-semibold">Início</div>
+                              <div className="text-foreground font-medium tabular-nums">
+                                {o.started_at ? format(new Date(o.started_at), 'dd/MM HH:mm') : '—'}
+                              </div>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[10px] uppercase text-muted-foreground font-semibold">Fim</div>
+                              <div className="text-foreground font-medium tabular-nums">
+                                {o.finished_at ? format(new Date(o.finished_at), 'dd/MM HH:mm') : '—'}
+                              </div>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[10px] uppercase text-muted-foreground font-semibold">Duração</div>
+                              <div className="text-foreground font-medium tabular-nums">
+                                {o.status === 'finalizada' ? fmtDuration(o.duration_seconds || 0) : '—'}
+                              </div>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[10px] uppercase text-muted-foreground font-semibold">Itens Trocados</div>
+                              <div className="text-foreground font-medium">
+                                {its.length > 0 ? `${its.length} item(s)` : '—'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Itens trocados detalhado (apenas finalizada) */}
+                          {o.status === 'finalizada' && its.length > 0 && (
+                            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2">
+                              <div className="font-semibold text-[10px] uppercase text-emerald-700 dark:text-emerald-400 tracking-wide mb-1">Itens trocados</div>
+                              <ul className="text-xs space-y-0.5">
                                 {its.map(it => (
-                                  <li key={it.id}>
-                                    {it.quantity}× {it.item_type} {it.needle_id ? `(agulha ${needles.find(n => n.id === it.needle_id)?.reference_code || ''})` :
-                                      it.sinker_id ? `(platina ${sinkers.find(s => s.id === it.sinker_id)?.reference_code || ''})` :
-                                      it.cylinder_id ? `(cilindro ${cylinders.find(c => c.id === it.cylinder_id)?.brand || ''})` :
-                                      it.description ? `(${it.description})` : ''}
+                                  <li key={it.id} className="text-foreground">
+                                    <span className="font-semibold">{it.quantity}×</span> {it.item_type}
+                                    {it.needle_id ? ` — agulha ${needles.find(n => n.id === it.needle_id)?.reference_code || ''}` :
+                                      it.sinker_id ? ` — platina ${sinkers.find(s => s.id === it.sinker_id)?.reference_code || ''}` :
+                                      it.cylinder_id ? ` — cilindro ${cylinders.find(c => c.id === it.cylinder_id)?.brand || ''}` :
+                                      it.description ? ` — ${it.description}` : ''}
                                   </li>
                                 ))}
                               </ul>
                             </div>
                           )}
                         </div>
-                      )}
-                      {o.status === 'cancelada' && (
-                        <div className="text-xs text-muted-foreground">Cancelada por {renderAuthor(o.cancelled_by_name, o.cancelled_by_id)} {o.cancellation_reason ? ` · ${o.cancellation_reason}` : ''}</div>
-                      )}
 
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {o.status === 'aberto' && canExecute && (
-                          <Button size="sm" onClick={() => setConfirmStart(o)}><Play className="h-3.5 w-3.5 mr-1" /> Iniciar</Button>
-                        )}
-                        {o.status === 'aberto' && canManage && (
-                          <>
-                            <Button size="sm" variant="outline" onClick={() => openEdit(o)}><Pencil className="h-3.5 w-3.5" /></Button>
-                            <Button size="sm" variant="outline" onClick={() => { setCancelReason(''); setConfirmCancel(o); }}><X className="h-3.5 w-3.5 mr-1" /> Cancelar</Button>
-                          </>
-                        )}
-                        {o.status === 'em_curso' && canExecute && (
-                          <Button size="sm" onClick={() => openFinish(o)}><Square className="h-3.5 w-3.5 mr-1" /> Finalizar</Button>
-                        )}
-                        {canManage && o.status === 'cancelada' && (
-                          <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(o)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                        )}
-                        {isAdmin && o.status === 'finalizada' && (
-                          <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(o)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                        )}
+                        {/* Coluna ações + auditoria */}
+                        <div className="flex flex-col items-stretch xl:items-end gap-2 xl:min-w-[240px]">
+                          <div className="text-[10px] text-muted-foreground leading-tight xl:text-right">
+                            <div><span className="font-semibold">Criada:</span> {renderAuthor(o.created_by_name, o.created_by_id)}</div>
+                            <div>{format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                            {o.started_by_name && (
+                              <div className="mt-0.5"><span className="font-semibold">Iniciada:</span> {renderAuthor(o.started_by_name, o.started_by_id)}</div>
+                            )}
+                            {o.finished_by_name && (
+                              <div className="mt-0.5"><span className="font-semibold">Finalizada:</span> {renderAuthor(o.finished_by_name, o.finished_by_id)}</div>
+                            )}
+                            {o.cancelled_by_name && (
+                              <div className="mt-0.5"><span className="font-semibold">Cancelada:</span> {renderAuthor(o.cancelled_by_name, o.cancelled_by_id)}</div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 xl:justify-end">
+                            {o.status === 'aberto' && canExecute && (
+                              <Button size="sm" onClick={() => setConfirmStart(o)} className="gap-1.5">
+                                <Play className="h-3.5 w-3.5" /> Iniciar
+                              </Button>
+                            )}
+                            {o.status === 'aberto' && canManage && (
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => openEdit(o)} className="gap-1.5">
+                                  <Pencil className="h-3.5 w-3.5" /> Editar
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => { setCancelReason(''); setConfirmCancel(o); }} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
+                                  <X className="h-3.5 w-3.5" /> Cancelar
+                                </Button>
+                              </>
+                            )}
+                            {o.status === 'em_curso' && canExecute && (
+                              <Button size="sm" onClick={() => openFinish(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                                <Square className="h-3.5 w-3.5" /> Finalizar
+                              </Button>
+                            )}
+                            {canManage && o.status === 'cancelada' && (
+                              <Button size="sm" variant="outline" onClick={() => setConfirmDelete(o)} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
+                                <Trash2 className="h-3.5 w-3.5" /> Excluir
+                              </Button>
+                            )}
+                            {isAdmin && o.status === 'finalizada' && (
+                              <Button size="sm" variant="outline" onClick={() => setConfirmDelete(o)} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
+                                <Trash2 className="h-3.5 w-3.5" /> Excluir
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
