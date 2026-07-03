@@ -1056,6 +1056,7 @@ export default function MecanicaPage() {
       <Tabs defaultValue="om" className="w-full">
          <TabsList className="flex flex-wrap h-auto justify-start gap-1">
            <TabsTrigger value="om">OM</TabsTrigger>
+           <TabsTrigger value="oc" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">OC</TabsTrigger>
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
             <TabsTrigger value="agulhas">Agulhas</TabsTrigger>
@@ -1072,6 +1073,19 @@ export default function MecanicaPage() {
             sinkers={sinkers}
             cylinders={cylinders}
             refreshMachines={refreshData}
+            mode="om"
+          />
+        </TabsContent>
+
+        {/* OC Tab (Ordem de Corretiva) */}
+        <TabsContent value="oc">
+          <MaintenanceOrdersTab
+            machines={getMachines()}
+            needles={needles}
+            sinkers={sinkers}
+            cylinders={cylinders}
+            refreshMachines={refreshData}
+            mode="oc"
           />
         </TabsContent>
 

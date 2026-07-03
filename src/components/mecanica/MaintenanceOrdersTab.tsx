@@ -91,9 +91,15 @@ interface Props {
   sinkers: SinkerInventory[];
   cylinders: Cylinder[];
   refreshMachines: () => void;
+  /** 'om' = ordens não-corretivas (preventiva, troca de artigo, troca de agulheiro).
+   *  'oc' = ordens de corretiva. Default 'om'. */
+  mode?: 'om' | 'oc';
 }
 
-export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylinders, refreshMachines }: Props) {
+export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylinders, refreshMachines, mode = 'om' }: Props) {
+  const isOC = mode === 'oc';
+  const labelShort = isOC ? 'OC' : 'OM';
+  const labelLong = isOC ? 'Ordens de Corretiva' : 'Ordens de Manutenção';
   const { user } = useAuth();
   const { logAction, userName, userCode } = useAuditLog();
   const { role } = usePermissions();
@@ -114,6 +120,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     o.type === 'manutencao_corretiva' ? canExecuteCorrective : canExecute;
   const canManageOrder = (o: MaintenanceOrder) =>
     o.type === 'manutencao_corretiva' ? canCreateCorrective : canManage;
+  // Permissões efetivas para o botão "Nova ..." no cabeçalho da aba atual
+  const canCreateInThisMode = isOC ? canCreateCorrective : canManage;
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
@@ -515,13 +523,18 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     await load();
   };
 
-  const filtered = useMemo(() => orders.filter(o => o.status === tab), [orders, tab]);
+  // Filtra por modo (OM = não-corretivas; OC = apenas corretivas)
+  const modeOrders = useMemo(
+    () => orders.filter(o => (isOC ? o.type === 'manutencao_corretiva' : o.type !== 'manutencao_corretiva')),
+    [orders, isOC],
+  );
+  const filtered = useMemo(() => modeOrders.filter(o => o.status === tab), [modeOrders, tab]);
   const counts = useMemo(() => ({
-    aberto: orders.filter(o => o.status === 'aberto').length,
-    em_curso: orders.filter(o => o.status === 'em_curso').length,
-    finalizada: orders.filter(o => o.status === 'finalizada').length,
-    cancelada: orders.filter(o => o.status === 'cancelada').length,
-  }), [orders]);
+    aberto: modeOrders.filter(o => o.status === 'aberto').length,
+    em_curso: modeOrders.filter(o => o.status === 'em_curso').length,
+    finalizada: modeOrders.filter(o => o.status === 'finalizada').length,
+    cancelada: modeOrders.filter(o => o.status === 'cancelada').length,
+  }), [modeOrders]);
 
   // Urgência de manutenção por máquina (mesma lógica do Calendário)
   const urgencyByMachine = useMemo(() => {
@@ -601,29 +614,35 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   }, [items]);
 
   if (loading) {
-    return <div className="flex items-center justify-center p-12 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando OMs…</div>;
+    return <div className="flex items-center justify-center p-12 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando {labelShort}s…</div>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2"><Wrench className="h-5 w-5" /> Ordens de Manutenção</h2>
-          <p className="text-sm text-muted-foreground">Fluxo Aberto → Em curso → Finalizada. OM: admin/líder mecânica cria. OC (corretiva): admin/líder cria; mecânico e líder de mecânica iniciam/finalizam.</p>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {isOC ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Wrench className="h-5 w-5" />}
+            {labelLong}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {isOC
+              ? 'Ordem de Corretiva — máquina apresentou problema. Admin/líder criam; mecânico e líder de mecânica iniciam e finalizam.'
+              : 'Fluxo Aberto → Em curso → Finalizada. Criada por admin/líder mecânica; mecânico inicia e finaliza.'}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {canManage && (
-            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova OM</Button>
-          )}
-          {canCreateCorrective && (
+        {canCreateInThisMode && (
+          isOC ? (
             <Button
               onClick={openCreateCorrective}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               <AlertTriangle className="h-4 w-4 mr-1" /> Nova OC
             </Button>
-          )}
-        </div>
+          ) : (
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova OM</Button>
+          )
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as MaintenanceOrderStatus)}>
