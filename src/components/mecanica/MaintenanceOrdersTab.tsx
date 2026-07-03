@@ -983,18 +983,19 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       {/* Progress Notes Modal (Em Curso) */}
       <Dialog open={!!progressOrder} onOpenChange={v => !v && setProgressOrder(null)}>
         <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none p-0 flex flex-col sm:rounded-none [&>button.absolute]:hidden">
-          <DialogHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0 shrink-0">
-            <DialogTitle className="flex items-center gap-2">
-              <StickyNote className="h-5 w-5 text-blue-600" />
-              Notas & Itens — OM #{progressOrder ? String(progressOrder.om_number).padStart(3, '0') : ''}
-              {progressOrder && (
-                <Badge variant="outline" className="ml-2">{machineById[progressOrder.machine_id]?.name || ''}</Badge>
-              )}
-              {progressOrder?.started_at && (
-                <Badge className="bg-blue-600 text-white gap-1"><Clock className="h-3 w-3" /><LiveTimer startedAt={progressOrder.started_at} /></Badge>
-              )}
-            </DialogTitle>
-            <Button variant="outline" size="sm" onClick={() => setProgressOrder(null)}>Fechar</Button>
+          <DialogHeader className="p-4 border-b space-y-2 shrink-0">
+            <div className="flex items-center justify-between gap-2">
+              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <StickyNote className="h-5 w-5 text-blue-600 shrink-0" />
+                <span>Notas & Itens — OM #{progressOrder ? String(progressOrder.om_number).padStart(3, '0') : ''}</span>
+              </DialogTitle>
+              <Button variant="outline" size="sm" onClick={() => setProgressOrder(null)}>Fechar</Button>
+            </div>
+            {progressOrder && (
+              <div className="text-sm text-muted-foreground">
+                {machineById[progressOrder.machine_id]?.name || ''}
+              </div>
+            )}
           </DialogHeader>
           {progressOrder && (
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl w-full mx-auto space-y-5">
