@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X } from 'lucide-react';
+import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,18 @@ import type {
   NeedleInventory, SinkerInventory, Cylinder,
 } from '@/types';
 import { SearchableSelect } from '@/components/SearchableSelect';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { sanitizePdfText } from '@/lib/pdfUtils';
+import { loadLogoForPdf } from '@/lib/clientInvoicePdf';
+
+type ProgressNote = {
+  id: string;
+  ts: string;
+  author: string | null;
+  kind: 'observacao' | 'item';
+  text: string;
+};
 
 const TYPE_LABELS: Record<MaintenanceOrderType, string> = {
   manutencao_preventiva: 'Manutenção Preventiva',
@@ -96,6 +108,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [cancelReason, setCancelReason] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<MaintenanceOrder | null>(null);
   const [confirmFinishGate, setConfirmFinishGate] = useState(false);
+  // Progress notes modal (Em Curso)
+  const [progressOrder, setProgressOrder] = useState<MaintenanceOrder | null>(null);
+  const [progressDraft, setProgressDraft] = useState<{ kind: 'observacao' | 'item'; text: string }>({ kind: 'observacao', text: '' });
+  const [progressSaving, setProgressSaving] = useState(false);
 
   const load = async () => {
     if (!companyId) return;
@@ -227,7 +243,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const openFinish = (o: MaintenanceOrder) => {
     setFinishOrder(o);
     setFinishItems([]);
+    setFinishNotes(o.finish_notes || '');
   };
+  const [finishNotes, setFinishNotes] = useState('');
   const addItem = () => setFinishItems(p => [...p, { item_type: 'agulha', ref_id: '', description: '', quantity: 1 }]);
   const removeItem = (idx: number) => setFinishItems(p => p.filter((_, i) => i !== idx));
   const updateItem = (idx: number, patch: Partial<{ item_type: MaintenanceOrderItemType; ref_id: string; description: string; quantity: number }>) =>
@@ -264,6 +282,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const { error } = await (supabase.from as any)('maintenance_orders').update({
       status: 'finalizada', finished_at: now, finished_by_id: user?.id, finished_by_name: authorLabel,
       duration_seconds: seconds,
+      finish_notes: finishNotes || null,
     }).eq('id', finishOrder.id);
     if (error) { toast.error('Erro ao finalizar OM'); return; }
 
@@ -363,6 +382,184 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     toast.success('OM cancelada');
     logAction('om_cancel', { om: o.om_number, reason });
     await load();
+  };
+
+  // ============ PROGRESS NOTES (em curso) ============
+  const openProgress = (o: MaintenanceOrder) => {
+    setProgressOrder(o);
+    setProgressDraft({ kind: 'observacao', text: '' });
+  };
+  const currentProgressList: ProgressNote[] = useMemo(() => {
+    if (!progressOrder) return [];
+    const fresh = orders.find(o => o.id === progressOrder.id) || progressOrder;
+    return Array.isArray(fresh.progress_notes) ? (fresh.progress_notes as ProgressNote[]) : [];
+  }, [orders, progressOrder]);
+
+  const addProgressNote = async () => {
+    if (!progressOrder) return;
+    const text = progressDraft.text.trim();
+    if (!text) { toast.error('Escreva uma observação ou item'); return; }
+    setProgressSaving(true);
+    const note: ProgressNote = {
+      id: (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`,
+      ts: new Date().toISOString(),
+      author: authorLabel,
+      kind: progressDraft.kind,
+      text,
+    };
+    const next = [...currentProgressList, note];
+    const { error } = await (supabase.from as any)('maintenance_orders')
+      .update({ progress_notes: next })
+      .eq('id', progressOrder.id);
+    setProgressSaving(false);
+    if (error) { toast.error('Erro ao salvar'); return; }
+    // atualiza estado local
+    setOrders(prev => prev.map(o => o.id === progressOrder.id ? { ...o, progress_notes: next } : o));
+    setProgressDraft({ kind: progressDraft.kind, text: '' });
+    toast.success('Registrado');
+    logAction('om_progress_note_add', { om: progressOrder.om_number, kind: note.kind });
+  };
+
+  const removeProgressNote = async (noteId: string) => {
+    if (!progressOrder) return;
+    const next = currentProgressList.filter(n => n.id !== noteId);
+    const { error } = await (supabase.from as any)('maintenance_orders')
+      .update({ progress_notes: next })
+      .eq('id', progressOrder.id);
+    if (error) { toast.error('Erro ao remover'); return; }
+    setOrders(prev => prev.map(o => o.id === progressOrder.id ? { ...o, progress_notes: next } : o));
+  };
+
+  // ============ PDF RELATÓRIO (finalizada) ============
+  const downloadReport = async (o: MaintenanceOrder) => {
+    try {
+      const its = itemsByOrder[o.id] || [];
+      const machine = machineById[o.machine_id];
+      // Buscar dados da empresa
+      const { data: company } = await (supabase.from as any)('companies')
+        .select('name, logo_url').eq('id', companyId).maybeSingle();
+      const logo = await loadLogoForPdf(company?.logo_url || null);
+
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const margin = 12;
+      let y = margin;
+
+      // Cabeçalho
+      pdf.setFillColor(30, 41, 59);
+      pdf.rect(margin, y, pageW - margin * 2, 22, 'F');
+      if (logo) {
+        try {
+          const ratio = logo.width / logo.height;
+          const h = 16; const w = Math.min(30, h * ratio);
+          pdf.addImage(logo.data, 'PNG', margin + 3, y + 3, w, h);
+        } catch { /* ignore */ }
+      }
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
+      pdf.text(sanitizePdfText(company?.name || 'Empresa'), pageW - margin - 3, y + 9, { align: 'right' });
+      pdf.setFontSize(10); pdf.setFont('helvetica', 'normal');
+      pdf.text(sanitizePdfText(`RELATÓRIO DE ORDEM DE MANUTENÇÃO`), pageW - margin - 3, y + 15, { align: 'right' });
+      pdf.text(sanitizePdfText(`Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`), pageW - margin - 3, y + 19.5, { align: 'right' });
+      y += 28;
+      pdf.setTextColor(17, 24, 39);
+
+      // Título OM
+      pdf.setFontSize(16); pdf.setFont('helvetica', 'bold');
+      pdf.text(sanitizePdfText(`OM #${String(o.om_number).padStart(3, '0')} — ${TYPE_LABELS[o.type]}`), margin, y);
+      y += 7;
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(75, 85, 99);
+      pdf.text(sanitizePdfText(`Máquina: ${machine?.name || '—'}   ·   Prioridade: ${o.priority === 'prioritaria' ? 'Prioritária' : 'Normal'}   ·   Status: FINALIZADA`), margin, y);
+      y += 8;
+      pdf.setTextColor(17, 24, 39);
+
+      // Bloco dados
+      autoTable(pdf, {
+        startY: y,
+        theme: 'grid',
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 10, cellPadding: 2 },
+        headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+        body: [
+          ['Criada por', sanitizePdfText(renderAuthor(o.created_by_name, o.created_by_id)), 'Criada em', format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')],
+          ['Iniciada por', sanitizePdfText(renderAuthor(o.started_by_name, o.started_by_id)), 'Início', o.started_at ? format(new Date(o.started_at), 'dd/MM/yyyy HH:mm') : '—'],
+          ['Finalizada por', sanitizePdfText(renderAuthor(o.finished_by_name, o.finished_by_id)), 'Fim', o.finished_at ? format(new Date(o.finished_at), 'dd/MM/yyyy HH:mm') : '—'],
+          ['Duração total', fmtDuration(o.duration_seconds || 0), 'Itens trocados', String(its.length)],
+        ],
+      });
+      y = (pdf as any).lastAutoTable.finalY + 6;
+
+      // Descrição
+      if (o.description) {
+        pdf.setFontSize(11); pdf.setFont('helvetica', 'bold');
+        pdf.text('Descrição / Serviço', margin, y); y += 5;
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+        const desc = pdf.splitTextToSize(sanitizePdfText(o.description), pageW - margin * 2);
+        pdf.text(desc, margin, y); y += desc.length * 5 + 4;
+      }
+
+      // Itens trocados
+      if (its.length > 0) {
+        autoTable(pdf, {
+          startY: y,
+          head: [['Tipo', 'Referência', 'Qtd']],
+          body: its.map(it => {
+            const ref = it.needle_id ? `Agulha ${needles.find(n => n.id === it.needle_id)?.reference_code || ''}` :
+                        it.sinker_id ? `Platina ${sinkers.find(s => s.id === it.sinker_id)?.reference_code || ''}` :
+                        it.cylinder_id ? `Cilindro ${cylinders.find(c => c.id === it.cylinder_id)?.brand || ''}` :
+                        it.description || '—';
+            return [it.item_type, sanitizePdfText(ref), String(it.quantity)];
+          }),
+          theme: 'striped',
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 10, cellPadding: 2 },
+          headStyles: { fillColor: [16, 185, 129], textColor: 255 },
+        });
+        y = (pdf as any).lastAutoTable.finalY + 6;
+      }
+
+      // Anotações registradas em curso
+      const notes = Array.isArray(o.progress_notes) ? o.progress_notes as ProgressNote[] : [];
+      if (notes.length > 0) {
+        autoTable(pdf, {
+          startY: y,
+          head: [['Data/Hora', 'Tipo', 'Autor', 'Descrição']],
+          body: notes.map(n => [
+            format(new Date(n.ts), 'dd/MM/yyyy HH:mm'),
+            n.kind === 'item' ? 'Item' : 'Observação',
+            sanitizePdfText(n.author || '—'),
+            sanitizePdfText(n.text),
+          ]),
+          theme: 'striped',
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 9, cellPadding: 2 },
+          headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+          columnStyles: { 3: { cellWidth: 'auto' } },
+        });
+        y = (pdf as any).lastAutoTable.finalY + 6;
+      }
+
+      // Observações finais
+      if (o.finish_notes) {
+        pdf.setFontSize(11); pdf.setFont('helvetica', 'bold');
+        pdf.text('Observações Finais', margin, y); y += 5;
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+        const t = pdf.splitTextToSize(sanitizePdfText(o.finish_notes), pageW - margin * 2);
+        pdf.text(t, margin, y);
+      }
+
+      // Rodapé
+      const pageH = pdf.internal.pageSize.getHeight();
+      pdf.setFontSize(8); pdf.setTextColor(120, 120, 120);
+      pdf.text(sanitizePdfText(`Relatório gerado por ${authorLabel || '—'} em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`), margin, pageH - 6);
+
+      pdf.save(`OM-${String(o.om_number).padStart(3, '0')}-${(machine?.name || 'maquina').replace(/\s+/g, '_')}.pdf`);
+      logAction('om_report_download', { om: o.om_number });
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar relatório');
+    }
   };
 
   const deleteOrder = async (o: MaintenanceOrder) => {
@@ -592,8 +789,21 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                               </>
                             )}
                             {o.status === 'em_curso' && canExecute && (
-                              <Button size="sm" onClick={() => openFinish(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
-                                <Square className="h-3.5 w-3.5" /> Finalizar
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => openProgress(o)} className="gap-1.5 border-blue-500/40 text-blue-600 hover:bg-blue-500/10">
+                                  <StickyNote className="h-3.5 w-3.5" /> Notas/Itens
+                                  {Array.isArray(o.progress_notes) && o.progress_notes.length > 0 && (
+                                    <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{o.progress_notes.length}</Badge>
+                                  )}
+                                </Button>
+                                <Button size="sm" onClick={() => openFinish(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                                  <Square className="h-3.5 w-3.5" /> Finalizar
+                                </Button>
+                              </>
+                            )}
+                            {o.status === 'finalizada' && (
+                              <Button size="sm" variant="outline" onClick={() => downloadReport(o)} className="gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10">
+                                <Download className="h-3.5 w-3.5" /> Baixar Relatório
                               </Button>
                             )}
                             {canManage && o.status === 'cancelada' && (
@@ -668,15 +878,41 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
       {/* Finish Modal */}
       <Dialog open={!!finishOrder} onOpenChange={v => !v && setFinishOrder(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Finalizar OM #{finishOrder ? String(finishOrder.om_number).padStart(3, '0') : ''}</DialogTitle></DialogHeader>
+        <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none p-0 flex flex-col sm:rounded-none [&>button.absolute]:hidden">
+          <DialogHeader className="p-4 border-b flex flex-row items-center justify-between sm:justify-between space-y-0 shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Square className="h-5 w-5 text-emerald-600" />
+              Finalizar OM #{finishOrder ? String(finishOrder.om_number).padStart(3, '0') : ''}
+              {finishOrder && (
+                <Badge variant="outline" className="ml-2">{TYPE_LABELS[finishOrder.type]} · {machineById[finishOrder.machine_id]?.name || ''}</Badge>
+              )}
+            </DialogTitle>
+            <Button variant="outline" size="sm" onClick={() => setFinishOrder(null)}>Fechar</Button>
+          </DialogHeader>
           {finishOrder && (
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-4xl w-full mx-auto">
               <div className="grid grid-cols-3 gap-3 text-sm">
-                <div><div className="text-xs text-muted-foreground">Início</div><div className="font-medium">{finishOrder.started_at ? format(new Date(finishOrder.started_at), 'dd/MM/yyyy HH:mm:ss') : '—'}</div></div>
-                <div><div className="text-xs text-muted-foreground">Fim (agora)</div><div className="font-medium">{format(new Date(), 'dd/MM/yyyy HH:mm:ss')}</div></div>
-                <div><div className="text-xs text-muted-foreground">Tempo total</div><div className="font-medium"><LiveTimer startedAt={finishOrder.started_at} /></div></div>
+                <div className="border rounded p-3"><div className="text-xs text-muted-foreground">Início</div><div className="font-medium">{finishOrder.started_at ? format(new Date(finishOrder.started_at), 'dd/MM/yyyy HH:mm:ss') : '—'}</div></div>
+                <div className="border rounded p-3"><div className="text-xs text-muted-foreground">Fim (agora)</div><div className="font-medium">{format(new Date(), 'dd/MM/yyyy HH:mm:ss')}</div></div>
+                <div className="border rounded p-3"><div className="text-xs text-muted-foreground">Tempo total</div><div className="font-medium text-emerald-600"><LiveTimer startedAt={finishOrder.started_at} /></div></div>
               </div>
+
+              {/* Anotações já registradas em curso (readonly aqui) */}
+              {Array.isArray(finishOrder.progress_notes) && finishOrder.progress_notes.length > 0 && (
+                <div className="border rounded p-3 bg-muted/30">
+                  <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Anotações registradas em curso ({finishOrder.progress_notes.length})</div>
+                  <ul className="space-y-1 text-xs max-h-40 overflow-y-auto">
+                    {(finishOrder.progress_notes as ProgressNote[]).map(n => (
+                      <li key={n.id} className="flex gap-2 items-start">
+                        <Badge variant="outline" className="text-[9px] shrink-0">{n.kind === 'item' ? 'ITEM' : 'OBS'}</Badge>
+                        <span className="flex-1">{n.text}</span>
+                        <span className="text-muted-foreground shrink-0">{format(new Date(n.ts), 'dd/MM HH:mm')}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="border-t pt-3">
                 <div className="flex items-center justify-between mb-2">
                   <Label className="font-semibold">Itens trocados</Label>
@@ -727,12 +963,127 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                   ))}
                 </div>
               </div>
+
+              <div className="border-t pt-3 space-y-2">
+                <Label className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Observações finais</Label>
+                <p className="text-xs text-muted-foreground">Registre aqui um resumo final: itens trocados que não estão na lista acima, observações do serviço, causa raiz, recomendações etc. Este texto fica salvo na OM e aparece no relatório em PDF.</p>
+                <Textarea rows={8} value={finishNotes} onChange={e => setFinishNotes(e.target.value)} placeholder="Ex.: Realizada troca completa de agulhas. Verificada folga no cilindro — recomenda-se preventiva em 30 dias..." />
+              </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFinishOrder(null)}>Cancelar</Button>
-            <Button onClick={() => setConfirmFinishGate(true)}>Confirmar finalização</Button>
-          </DialogFooter>
+          <div className="border-t p-4 flex justify-end gap-2 shrink-0">
+            <Button variant="outline" onClick={() => setFinishOrder(null)}>Fechar</Button>
+            <Button onClick={() => setConfirmFinishGate(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+              <Square className="h-4 w-4" /> Confirmar finalização
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Progress Notes Modal (Em Curso) */}
+      <Dialog open={!!progressOrder} onOpenChange={v => !v && setProgressOrder(null)}>
+        <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none p-0 flex flex-col sm:rounded-none [&>button.absolute]:hidden">
+          <DialogHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0 shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="h-5 w-5 text-blue-600" />
+              Notas & Itens — OM #{progressOrder ? String(progressOrder.om_number).padStart(3, '0') : ''}
+              {progressOrder && (
+                <Badge variant="outline" className="ml-2">{machineById[progressOrder.machine_id]?.name || ''}</Badge>
+              )}
+              {progressOrder?.started_at && (
+                <Badge className="bg-blue-600 text-white gap-1"><Clock className="h-3 w-3" /><LiveTimer startedAt={progressOrder.started_at} /></Badge>
+              )}
+            </DialogTitle>
+            <Button variant="outline" size="sm" onClick={() => setProgressOrder(null)}>Fechar</Button>
+          </DialogHeader>
+          {progressOrder && (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl w-full mx-auto space-y-5">
+              <div className="rounded-md border-l-4 border-blue-500 bg-blue-500/5 p-3 text-sm">
+                <div className="font-semibold text-foreground">Relatório temporário</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Cada anotação é salva na OM imediatamente. Feche o modal quando quiser — nada se perde. Estas anotações também entram no relatório em PDF ao finalizar a OM.</div>
+              </div>
+
+              {/* Adicionar */}
+              <div className="border rounded-lg p-4 space-y-3 bg-card">
+                <Label className="font-semibold">Nova anotação</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={progressDraft.kind === 'observacao' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setProgressDraft(p => ({ ...p, kind: 'observacao' }))}
+                    className="gap-1.5"
+                  >
+                    <FileText className="h-3.5 w-3.5" /> Observação
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={progressDraft.kind === 'item' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setProgressDraft(p => ({ ...p, kind: 'item' }))}
+                    className="gap-1.5"
+                  >
+                    <Wrench className="h-3.5 w-3.5" /> Item trocado
+                  </Button>
+                </div>
+                <Textarea
+                  rows={5}
+                  value={progressDraft.text}
+                  onChange={e => setProgressDraft(p => ({ ...p, text: e.target.value }))}
+                  placeholder={progressDraft.kind === 'item'
+                    ? 'Ex.: Troquei 24 agulhas ref. 100 na cabeça 3'
+                    : 'Ex.: Cilindro apresentando folga leve, verificar próxima preventiva'}
+                />
+                <div className="flex justify-end">
+                  <Button onClick={addProgressNote} disabled={progressSaving} className="gap-1.5">
+                    {progressSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Salvar anotação
+                  </Button>
+                </div>
+              </div>
+
+              {/* Lista */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold">Anotações registradas ({currentProgressList.length})</Label>
+                </div>
+                {currentProgressList.length === 0 ? (
+                  <div className="border rounded-lg p-8 text-center text-sm text-muted-foreground">
+                    Nenhuma anotação ainda. Registre acima o que for feito ou observado durante a manutenção.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {[...currentProgressList].reverse().map(n => (
+                      <div key={n.id} className={cn(
+                        'border rounded-lg p-3 flex gap-3 items-start',
+                        n.kind === 'item' ? 'border-l-4 border-l-amber-500 bg-amber-500/5' : 'border-l-4 border-l-blue-500 bg-blue-500/5'
+                      )}>
+                        <Badge variant="outline" className={cn(
+                          'shrink-0 uppercase text-[10px]',
+                          n.kind === 'item' ? 'border-amber-500 text-amber-700 dark:text-amber-400' : 'border-blue-500 text-blue-700 dark:text-blue-400'
+                        )}>
+                          {n.kind === 'item' ? 'Item' : 'Obs'}
+                        </Badge>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm whitespace-pre-wrap break-words">{n.text}</div>
+                          <div className="text-[11px] text-muted-foreground mt-1">
+                            {format(new Date(n.ts), 'dd/MM/yyyy HH:mm')} · {n.author || '—'}
+                          </div>
+                        </div>
+                        {canExecute && (
+                          <Button size="icon" variant="ghost" onClick={() => removeProgressNote(n.id)} className="shrink-0 h-8 w-8">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="border-t p-4 flex justify-end shrink-0">
+            <Button variant="outline" onClick={() => setProgressOrder(null)}>Fechar</Button>
+          </div>
         </DialogContent>
       </Dialog>
 

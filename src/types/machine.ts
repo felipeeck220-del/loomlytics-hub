@@ -193,6 +193,8 @@ export interface MaintenanceOrder {
   cancelled_by_name?: string | null;
   cancellation_reason?: string | null;
   machine_log_id?: string | null;
+  progress_notes?: Array<{ id: string; ts: string; author: string | null; kind: 'observacao' | 'item'; text: string }> | null;
+  finish_notes?: string | null;
 }
 
 export type MaintenanceOrderItemType = 'agulha' | 'platina' | 'cilindro' | 'outro';
