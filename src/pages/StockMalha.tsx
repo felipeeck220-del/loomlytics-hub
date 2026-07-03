@@ -34,7 +34,7 @@ import { toast } from 'sonner';
 
 export default function StockMalha() {
   const { 
-    getProductions, getClients, getArticles, getYarnTypes, getMachines 
+    getProductions, getClients, getArticles, getYarnTypes, getMachines, refreshData
   } = useSharedCompanyData();
   
   const productions = getProductions();
@@ -142,6 +142,26 @@ export default function StockMalha() {
     const handler = () => refreshAllStock();
     window.addEventListener('stock-movements-changed', handler);
     return () => window.removeEventListener('stock-movements-changed', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId]);
+
+  // Realtime: reage a produção registrada em Produção (por qualquer usuário) e
+  // a movimentações de estoque (próprio e regular) feitas em outros módulos.
+  useEffect(() => {
+    if (!companyId) return;
+    const channel = supabase
+      .channel(`stock-malha-realtime-${companyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'productions', filter: `company_id=eq.${companyId}` }, () => {
+        refreshData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_movements', filter: `company_id=eq.${companyId}` }, () => {
+        refreshAllStock();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'own_stock_movements', filter: `company_id=eq.${companyId}` }, () => {
+        refreshOwnStock();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId]);
   // Filtros independentes para 2ª qualidade
