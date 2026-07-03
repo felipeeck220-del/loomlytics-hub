@@ -1695,11 +1695,31 @@ export default function MecanicaPage() {
                           </TableCell>
                           <TableCell className="text-center tabular-nums">{formatDuration(durationMin)}</TableCell>
                           <TableCell className="max-w-[260px]">
-                            {obsText ? (
-                              <span className="block truncate" title={obsText}>{obsText}</span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="flex-1 min-w-0">
+                                {obsText ? (
+                                  <span className="block truncate" title={obsText}>{obsText}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-[11px] shrink-0"
+                                onClick={() => handleDownloadLastOmReport(machine)}
+                                disabled={loadingReportMachineId === machine.id}
+                                title="Baixar relatório da última OM finalizada desta máquina"
+                              >
+                                {loadingReportMachineId === machine.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <FileDown className="h-3 w-3 mr-1" /> Última OM
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
                             <Button
