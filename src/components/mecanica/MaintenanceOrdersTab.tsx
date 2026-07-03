@@ -21,6 +21,7 @@ import type {
   MaintenanceOrderType, MaintenanceOrderPriority, MaintenanceOrderStatus,
   NeedleInventory, SinkerInventory, Cylinder,
 } from '@/types';
+import { MACHINE_STATUS_LABELS } from '@/types/machine';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -435,52 +436,141 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     try {
       const its = itemsByOrder[o.id] || [];
       const machine = machineById[o.machine_id];
-      // Buscar dados da empresa
-      const { data: company } = await (supabase.from as any)('companies')
-        .select('name, logo_url').eq('id', companyId).maybeSingle();
+      // Dados da empresa + cilindro + referências em uso + artigo
+      const [{ data: company }, needleRefsRes, sinkerRefsRes, articleRes] = await Promise.all([
+        (supabase.from as any)('companies').select('name, logo_url').eq('id', companyId).maybeSingle(),
+        (supabase.from as any)('machine_needle_refs').select('needle_id, position').eq('machine_id', o.machine_id),
+        (supabase.from as any)('machine_sinker_refs').select('sinker_id').eq('machine_id', o.machine_id),
+        machine?.article_id
+          ? (supabase.from as any)('articles').select('name, clients(name)').eq('id', machine.article_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
       const logo = await loadLogoForPdf(company?.logo_url || null);
+      const cyl = machine?.cylinder_id ? cylinders.find(c => c.id === machine.cylinder_id) : null;
+      const usedNeedles = ((needleRefsRes?.data as any[]) || []).map(r => {
+        const n = needles.find(x => x.id === r.needle_id);
+        return n ? `${n.brand} ${n.reference_code}${r.position ? ` (${r.position})` : ''}` : '';
+      }).filter(Boolean);
+      const usedSinkers = ((sinkerRefsRes?.data as any[]) || []).map(r => {
+        const s = sinkers.find(x => x.id === r.sinker_id);
+        return s ? `${s.brand} ${s.reference_code}` : '';
+      }).filter(Boolean);
+      const articleLabel = (articleRes as any)?.data
+        ? `${(articleRes as any).data.name}${(articleRes as any).data.clients?.name ? ` (${(articleRes as any).data.clients.name})` : ''}`
+        : '—';
 
       const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
       const pageW = pdf.internal.pageSize.getWidth();
-      const margin = 12;
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 15;
       let y = margin;
 
-      // Cabeçalho
-      pdf.setFillColor(30, 41, 59);
-      pdf.rect(margin, y, pageW - margin * 2, 22, 'F');
+      // ========= CABEÇALHO PADRÃO (igual /reports) =========
+      const colors = {
+        grayBg: [249, 250, 251] as [number, number, number],
+        border: [229, 231, 235] as [number, number, number],
+        textDark: [17, 24, 39] as [number, number, number],
+        textMid: [75, 85, 99] as [number, number, number],
+      };
+      const fitBox = (w: number, h: number, mw: number, mh: number) => {
+        if (!w || !h) return { width: mw, height: mh };
+        const s = Math.min(mw / w, mh / h);
+        return { width: w * s, height: h * s };
+      };
+      const dateStr = new Date().toLocaleString('pt-BR');
+      const reportTitle = `RELATÓRIO DE ORDEM DE MANUTENÇÃO — OM #${String(o.om_number).padStart(3, '0')}`;
+      const cName = company?.name || '';
+      const headerH = 25;
+      const leftX = margin + 5;
+      const rightX = pageW - margin - 5;
+      const titleMaxWidth = pageW - 2 * margin - 90;
+
+      pdf.setFillColor(...colors.grayBg);
+      pdf.rect(margin, y, pageW - 2 * margin, headerH, 'F');
+      pdf.setDrawColor(...colors.border);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin, y, pageW - 2 * margin, headerH, 'S');
+
       if (logo) {
         try {
-          const ratio = logo.width / logo.height;
-          const h = 16; const w = Math.min(30, h * ratio);
-          pdf.addImage(logo.data, 'PNG', margin + 3, y + 3, w, h);
+          const ls = fitBox(logo.width, logo.height, 24, 14);
+          pdf.addImage(logo.data, 'PNG', leftX, y + 2.5, ls.width, ls.height);
         } catch { /* ignore */ }
+      } else if (cName) {
+        pdf.setFontSize(10); pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...colors.textDark);
+        pdf.text(sanitizePdfText(cName), leftX, y + 10);
       }
-      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...colors.textMid);
+      pdf.text(dateStr, leftX, y + 22);
+
       pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
-      pdf.text(sanitizePdfText(company?.name || 'Empresa'), pageW - margin - 3, y + 9, { align: 'right' });
+      pdf.setTextColor(...colors.textDark);
+      const titleLines = pdf.splitTextToSize(sanitizePdfText(reportTitle), titleMaxWidth) as string[];
+      let titleY = y + 10;
+      titleLines.forEach(line => {
+        const tw = pdf.getTextWidth(line);
+        pdf.text(line, (pageW - tw) / 2, titleY);
+        titleY += 6;
+      });
+
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...colors.textMid);
+      const periodText = `Status: FINALIZADA`;
+      const pW = pdf.getTextWidth(periodText);
+      pdf.text(periodText, rightX - pW, y + 22);
+
+      y += headerH + 8;
+      pdf.setTextColor(...colors.textDark);
+
+      // ========= TÍTULO OM =========
+      pdf.setFontSize(13); pdf.setFont('helvetica', 'bold');
+      pdf.text(sanitizePdfText(`${TYPE_LABELS[o.type]}   ·   ${machine?.name || 'Máquina'}`), margin, y);
+      y += 5;
       pdf.setFontSize(10); pdf.setFont('helvetica', 'normal');
-      pdf.text(sanitizePdfText(`RELATÓRIO DE ORDEM DE MANUTENÇÃO`), pageW - margin - 3, y + 15, { align: 'right' });
-      pdf.text(sanitizePdfText(`Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`), pageW - margin - 3, y + 19.5, { align: 'right' });
-      y += 28;
-      pdf.setTextColor(17, 24, 39);
+      pdf.setTextColor(...colors.textMid);
+      pdf.text(sanitizePdfText(`Prioridade: ${o.priority === 'prioritaria' ? 'Prioritária' : 'Normal'}`), margin, y);
+      y += 6;
+      pdf.setTextColor(...colors.textDark);
 
-      // Título OM
-      pdf.setFontSize(16); pdf.setFont('helvetica', 'bold');
-      pdf.text(sanitizePdfText(`OM #${String(o.om_number).padStart(3, '0')} — ${TYPE_LABELS[o.type]}`), margin, y);
-      y += 7;
-      pdf.setFontSize(11); pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(75, 85, 99);
-      pdf.text(sanitizePdfText(`Máquina: ${machine?.name || '—'}   ·   Prioridade: ${o.priority === 'prioritaria' ? 'Prioritária' : 'Normal'}   ·   Status: FINALIZADA`), margin, y);
-      y += 8;
-      pdf.setTextColor(17, 24, 39);
-
-      // Bloco dados
+      // ========= DADOS DA MÁQUINA (completo) =========
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'bold');
+      pdf.text('Dados da Máquina', margin, y); y += 2;
       autoTable(pdf, {
         startY: y,
         theme: 'grid',
         margin: { left: margin, right: margin },
-        styles: { fontSize: 10, cellPadding: 2 },
+        styles: { fontSize: 9, cellPadding: 1.8 },
+        headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 9 },
+        columnStyles: { 0: { fontStyle: 'bold', fillColor: [249, 250, 251], cellWidth: 42 }, 2: { fontStyle: 'bold', fillColor: [249, 250, 251], cellWidth: 42 } },
+        body: [
+          ['Máquina', sanitizePdfText(machine?.name || '—'), 'Nº', String(machine?.number ?? '—')],
+          ['Tipo de Máquina', machine?.machine_type === 'dupla' ? 'Dupla' : (machine?.machine_type === 'mono' ? 'Mono' : '—'), 'Modelo', sanitizePdfText(machine?.model || '—')],
+          ['Marca (Cilindro)', sanitizePdfText(cyl?.brand || '—'), 'Modelo (Cilindro)', sanitizePdfText(cyl?.model || '—')],
+          ['Diâmetro', sanitizePdfText((cyl?.diameter || machine?.diameter || '—') + (cyl?.diameter || machine?.diameter ? '"' : '')), 'Finura', sanitizePdfText(cyl?.fineness || machine?.fineness || '—')],
+          ['Qtd. Agulhas', String(cyl?.needle_quantity ?? machine?.needle_quantity ?? '—'), 'Alimentadores', String(cyl?.feeder_quantity ?? machine?.feeder_quantity ?? '—')],
+          ['Nº de Série', sanitizePdfText(machine?.serial_number || '—'), 'Ano', String(machine?.year || '—')],
+          ['RPM Alvo', String(machine?.rpm ?? '—'), 'Modo de Produção', machine?.production_mode === 'iot' ? 'IoT (Automático)' : (machine?.production_mode === 'voltas' ? 'Voltas' : 'Rolos')],
+          ['Status Atual', sanitizePdfText(machine ? MACHINE_STATUS_LABELS[machine.status] : '—'), 'Artigo Atual', sanitizePdfText(articleLabel)],
+          ['Ref. Agulhas em Uso', sanitizePdfText(usedNeedles.join(' · ') || '—'), 'Ref. Platinas em Uso', sanitizePdfText(usedSinkers.join(' · ') || '—')],
+          ['Última Troca Agulha', machine?.last_needle_change_at ? format(new Date(machine.last_needle_change_at), 'dd/MM/yyyy') : '—', 'Última Troca Platina', machine?.last_sinker_change_at ? format(new Date(machine.last_sinker_change_at), 'dd/MM/yyyy') : '—'],
+          ['Intervalo Manut. (dias)', String(machine?.maintenance_interval_days ?? '—'), 'Meta Manut. (kg)', String(machine?.maintenance_kg_target ?? '—')],
+        ],
+      });
+      y = (pdf as any).lastAutoTable.finalY + 6;
+
+      // ========= DADOS DA OM =========
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      pdf.text('Dados da Ordem', margin, y); y += 2;
+      autoTable(pdf, {
+        startY: y,
+        theme: 'grid',
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9, cellPadding: 1.8 },
         headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+        columnStyles: { 0: { fontStyle: 'bold', fillColor: [249, 250, 251], cellWidth: 42 }, 2: { fontStyle: 'bold', fillColor: [249, 250, 251], cellWidth: 42 } },
         body: [
           ['Criada por', sanitizePdfText(renderAuthor(o.created_by_name, o.created_by_id)), 'Criada em', format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')],
           ['Iniciada por', sanitizePdfText(renderAuthor(o.started_by_name, o.started_by_id)), 'Início', o.started_at ? format(new Date(o.started_at), 'dd/MM/yyyy HH:mm') : '—'],
@@ -550,7 +640,6 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       }
 
       // Rodapé
-      const pageH = pdf.internal.pageSize.getHeight();
       pdf.setFontSize(8); pdf.setTextColor(120, 120, 120);
       pdf.text(sanitizePdfText(`Relatório gerado por ${authorLabel || '—'} em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`), margin, pageH - 6);
 
