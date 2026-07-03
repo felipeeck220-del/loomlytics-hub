@@ -84,7 +84,7 @@ export default function Dashboard() {
 
   // Ordens de Manutenção abertas (aberto/em_curso) — em tempo real
   const [openOMs, setOpenOMs] = useState<any[]>([]);
-  const [omsExpanded, setOmsExpanded] = useState(true);
+  const [omsExpanded, setOmsExpanded] = useState(false);
 
   const fetchOpenOMs = useCallback(async () => {
     if (!dbCompanyId) return;
