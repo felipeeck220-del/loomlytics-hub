@@ -867,8 +867,20 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       {/* Create / Edit Modal */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editing ? `Editar OM #${String(editing.om_number).padStart(3, '0')}` : 'Nova OM'}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>
+              {editing
+                ? `Editar ${correctiveMode ? 'OC' : 'OM'} #${String(editing.om_number).padStart(3, '0')}`
+                : correctiveMode ? 'Nova OC — Ordem de Corretiva' : 'Nova OM'}
+            </DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
+            {correctiveMode && !editing && (
+              <div className="rounded border border-destructive/30 bg-destructive/10 text-destructive text-xs p-2 flex gap-2 items-start">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>Ordem de Corretiva — quando a máquina apresenta um problema. Fica disponível para mecânicos/líder de mecânica iniciarem.</span>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Máquina *</Label>
               <SearchableSelect
@@ -882,10 +894,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Tipo *</Label>
-                <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v as MaintenanceOrderType }))}>
+                <Select
+                  value={form.type}
+                  onValueChange={v => setForm(p => ({ ...p, type: v as MaintenanceOrderType }))}
+                  disabled={correctiveMode}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(TYPE_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                    {correctiveMode
+                      ? <SelectItem value="manutencao_corretiva">Manutenção Corretiva</SelectItem>
+                      : Object.entries(OM_TYPE_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)
+                    }
                   </SelectContent>
                 </Select>
               </div>
@@ -901,13 +920,18 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Descrição / serviço</Label>
-              <Textarea rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="O que precisa ser feito" />
+              <Label>{correctiveMode ? 'Descrição do problema' : 'Descrição / serviço'}</Label>
+              <Textarea
+                rows={3}
+                value={form.description}
+                onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                placeholder={correctiveMode ? 'Descreva o problema apresentado pela máquina' : 'O que precisa ser feito'}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={saveOrder}>{editing ? 'Salvar' : 'Criar OM'}</Button>
+            <Button onClick={saveOrder}>{editing ? 'Salvar' : correctiveMode ? 'Criar OC' : 'Criar OM'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
