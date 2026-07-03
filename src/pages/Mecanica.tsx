@@ -390,6 +390,66 @@ export default function MecanicaPage() {
     return () => { cancelled = true; };
   }, [scheduleRows, scheduleHistoryRows]);
 
+  // Carrega OMs finalizadas vinculadas aos logs do histórico aberto
+  useEffect(() => {
+    if (!scheduleHistoryMachineId || scheduleHistoryRows.length === 0) return;
+    const logIds = scheduleHistoryRows.map(l => l.id).filter(id => !(id in omByLogId));
+    if (logIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data: orders } = await (supabase.from as any)('maintenance_orders')
+        .select('*')
+        .in('machine_log_id', logIds);
+      if (cancelled) return;
+      const orderIds = (orders || []).map((o: any) => o.id);
+      let itemsByOrder: Record<string, any[]> = {};
+      if (orderIds.length > 0) {
+        const { data: items } = await (supabase.from as any)('maintenance_order_items')
+          .select('*')
+          .in('order_id', orderIds);
+        (items || []).forEach((it: any) => {
+          if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
+          itemsByOrder[it.order_id].push(it);
+        });
+      }
+      setOmByLogId(prev => {
+        const next = { ...prev };
+        logIds.forEach(id => { next[id] = null; });
+        (orders || []).forEach((o: any) => {
+          if (o.machine_log_id) next[o.machine_log_id] = { order: o, items: itemsByOrder[o.id] || [] };
+        });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [scheduleHistoryMachineId, scheduleHistoryRows]);
+
+  const handleDownloadOmForLog = async (log: any) => {
+    const entry = omByLogId[log.id];
+    if (!entry) { toast.error('Nenhuma OM vinculada a este registro.'); return; }
+    const machine = machines.find(m => m.id === log.machine_id);
+    if (!machine || !user?.company_id) return;
+    setLoadingReportLogId(log.id);
+    try {
+      await generateOmReportPdf({
+        order: entry.order,
+        items: entry.items,
+        machine,
+        needles,
+        sinkers,
+        cylinders,
+        companyId: user.company_id,
+        authorLabel,
+      });
+      logAction('om_report_download_from_history', { om: entry.order.om_number, machine: machine.name });
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar relatório da OM');
+    } finally {
+      setLoadingReportLogId(null);
+    }
+  };
+
   const formatDuration = (mins: number | null) => {
     if (mins == null) return '—';
     const h = Math.floor(mins / 60);
