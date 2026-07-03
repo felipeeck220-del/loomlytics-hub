@@ -159,7 +159,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const bump = () => {
       if (scheduled) return;
       scheduled = true;
-      setTimeout(() => { scheduled = false; load(); }, 400);
+      setTimeout(() => { scheduled = false; load({ silent: true }); }, 400);
     };
     const channel = supabase.channel(`om-rt-${companyId}`);
     for (const t of ['maintenance_orders', 'maintenance_order_items', 'machine_maintenance_observations']) {
