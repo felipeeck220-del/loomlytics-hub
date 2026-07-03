@@ -30,6 +30,14 @@ const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   revisador: ['production', 'revision'],
 };
 
+type CompanySettingsQuery = {
+  select: (columns: string) => {
+    eq: (column: string, value: string) => {
+      maybeSingle: () => Promise<{ data: { enabled_nav_items?: string[] | null } | null }>;
+    };
+  };
+};
+
 export function getMobileFooterKeys(role: string): string[] {
   return MOBILE_FOOTER_KEYS[role] || MOBILE_FOOTER_KEYS.admin;
 }
@@ -46,22 +54,28 @@ export function MobileBottomNav() {
 
   useEffect(() => {
     if (!user?.company_id) return;
-    (supabase.from as any)('company_settings')
+    const companySettings = (supabase.from as unknown as (table: 'company_settings') => CompanySettingsQuery)('company_settings');
+    companySettings
       .select('enabled_nav_items')
       .eq('company_id', user.company_id)
       .maybeSingle()
-      .then(({ data }: any) => {
+      .then(({ data }) => {
         if (data?.enabled_nav_items) setEnabledNavItems(data.enabled_nav_items);
       });
   }, [user?.company_id]);
 
   const items = useMemo(() => {
+    if (!user?.role) return [];
     const footerKeys = getMobileFooterKeys(role);
     const footerItems = allItems.filter(i => footerKeys.includes(i.key));
 
-    // Apply company-level filtering
+    // Apply company-level filtering. OM/OC inherit the company toggle from Mecânica.
+    const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
-      ? footerItems.filter(i => enabledNavItems.includes(i.key))
+      ? footerItems.filter(i => {
+          if (i.key === 'mecanica-om' || i.key === 'mecanica-oc') return mecanicaEnabled;
+          return enabledNavItems.includes(i.key);
+        })
       : footerItems;
 
     // Apply role-level filtering
@@ -71,7 +85,7 @@ export function MobileBottomNav() {
       ...item,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [role, enabledNavItems, slugPrefix, filterNavItems]);
+  }, [role, enabledNavItems, slugPrefix, filterNavItems, user?.role]);
 
   const isActive = (item: typeof items[0]) => {
     if (item.path === '') {
