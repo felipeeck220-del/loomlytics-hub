@@ -16,7 +16,7 @@ import {
   CalendarIcon, Scale, DollarSign, Gauge, Clock,
   Settings2, Users, FileText, ClipboardList, Loader2,
   Factory, RotateCcw, Plus, Eye, BarChart3 as ChartIcon, Package, TrendingUp,
-  AlertTriangle, Wrench, RefreshCw, PauseCircle, Hash, UserCircle2, PlayCircle,
+  AlertTriangle, Wrench, RefreshCw, PauseCircle, Hash, UserCircle2, PlayCircle, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
@@ -84,13 +84,14 @@ export default function Dashboard() {
 
   // Ordens de Manutenção abertas (aberto/em_curso) — em tempo real
   const [openOMs, setOpenOMs] = useState<any[]>([]);
+  const [omsExpanded, setOmsExpanded] = useState(true);
 
   const fetchOpenOMs = useCallback(async () => {
     if (!dbCompanyId) return;
     const { data, error } = await (supabase.from as any)('maintenance_orders')
       .select('*')
       .eq('company_id', dbCompanyId)
-      .in('status', ['aberto', 'em_curso'])
+      .eq('status', 'em_curso')
       .order('created_at', { ascending: false });
     if (!error) setOpenOMs(data || []);
   }, [dbCompanyId]);
@@ -488,20 +489,37 @@ export default function Dashboard() {
       {/* Máquinas Paradas (OMs abertas / em curso) — tempo real */}
       {openOMs.length > 0 && (
         <Card className="shadow-material border-0 border-l-4 border-l-warning">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <PauseCircle className="h-4 w-4 text-warning" />
-              Máquinas Paradas ({openOMs.length})
-              <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-normal text-muted-foreground">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-                </span>
-                ao vivo
-              </span>
-            </CardTitle>
-            <CardDescription className="text-xs">Ordens de Manutenção abertas ou em curso · atualização em tempo real</CardDescription>
+          <CardHeader
+            className="pb-3 cursor-pointer select-none hover:bg-muted/30 rounded-t-lg transition-colors"
+            onClick={() => setOmsExpanded(v => !v)}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <PauseCircle className="h-4 w-4 text-warning" />
+                  Máquinas Paradas ({openOMs.length})
+                  <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-normal text-muted-foreground">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                    </span>
+                    ao vivo
+                  </span>
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">Ordens de Manutenção em curso · atualização em tempo real</CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={(e) => { e.stopPropagation(); setOmsExpanded(v => !v); }}
+                aria-label={omsExpanded ? 'Recolher lista' : 'Expandir lista'}
+              >
+                {omsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
           </CardHeader>
+          {omsExpanded && (
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {openOMs.map(om => {
@@ -608,6 +626,7 @@ export default function Dashboard() {
               })}
             </div>
           </CardContent>
+          )}
         </Card>
       )}
 

@@ -1267,6 +1267,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 > Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
 
+- **03/07/2026 09:45 (Brasília)** — Dashboard > Máquinas Paradas: agora lista **apenas OMs `em_curso`** (máquinas realmente paradas), ignorando OMs meramente `aberto` (ainda não iniciadas). Adicionado ícone Chevron (↑/↓) no cabeçalho do card para expandir/recolher a lista de máquinas paradas; o cabeçalho inteiro é clicável.
+
 - **03/07/2026 09:20 (Brasília)** — Dashboard > Máquinas Paradas: bloco reposicionado para o topo (logo abaixo do cabeçalho "Dashboard · Visão geral da produção"). Agora usa como fonte as Ordens de Manutenção (OMs) com status `aberto` ou `em_curso` (via Realtime em `maintenance_orders`), aparecendo/sumindo instantaneamente ao iniciar/finalizar uma OM. Cards redesenhados: nº da OM (`OM #123`), badge de prioridade, badge do status (Aberta/Em curso), tipo com ícone e cor semântica, "Criada por" e "Iniciada por" (nomes), cronômetro em tempo real (HH:MM:SS) contando desde `started_at` (ou `created_at` se ainda aberta), indicador "ao vivo" pulsando no cabeçalho.
 
 - **09/06/2026 15:20 (Brasília)** — Relatórios > Pódio > Exportar PDF Diário: Alterado o rótulo "Eficiência Exigida" para "Meta de Eficiência" no modal de exportação e no cabeçalho da tabela de Resumo Geral do PDF.
