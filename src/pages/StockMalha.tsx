@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { sanitizePdfText } from '@/lib/pdfUtils';
@@ -83,7 +84,7 @@ export default function StockMalha() {
   const canOwnStock = role === 'admin' || (role as any) === 'expedicao';
 
   // Own stock data
-  const { data: ownArticles = [] } = useQuery({
+  const { data: ownArticles = [], isLoading: ownArticlesLoading } = useQuery({
     queryKey: ['own_stock_articles', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('own_stock_articles')
@@ -95,7 +96,7 @@ export default function StockMalha() {
     },
     enabled: !!companyId,
   });
-  const { data: ownMovements = [] } = useQuery({
+  const { data: ownMovements = [], isLoading: ownMovementsLoading } = useQuery({
     queryKey: ['own_stock_movements', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('own_stock_movements')
@@ -132,6 +133,7 @@ export default function StockMalha() {
     saldoKg: acc.saldoKg + (r.inKg - r.outKg),
     saldoPc: acc.saldoPc + (r.inPc - r.outPc),
   }), { entradaKg: 0, entradaPc: 0, saidaKg: 0, saidaPc: 0, saldoKg: 0, saldoPc: 0 }), [ownSummary]);
+  const isOwnLoading = ownArticlesLoading || ownMovementsLoading;
 
   const refreshAllStock = () => {
     queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock', companyId] });
