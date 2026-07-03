@@ -128,8 +128,8 @@ export function AppSidebar() {
     const adminFiltered = companyFiltered.filter(item => !((item as any).nonAdminOnly && isAdmin));
     const roleFiltered = filterNavItems(adminFiltered);
 
-    // Mecânico acessa OM/OC exclusivamente pelo footer fixo
-    const mecanicoFiltered = user?.role === 'mecanico'
+    // Mecânico e Líder acessam OM/OC exclusivamente pelo footer fixo
+    const mecanicoFiltered = (user?.role === 'mecanico' || user?.role === 'lider')
       ? roleFiltered.filter(item => item.key !== 'mecanica-om' && item.key !== 'mecanica-oc')
       : roleFiltered;
 
