@@ -272,6 +272,23 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       const createdNum = isCorrective ? (created.oc_number ?? created.om_number) : created.om_number;
       toast.success(`${orderLabel} #${String(createdNum).padStart(3, '0')} criada`);
       logAction(isCorrective ? 'oc_create' : 'om_create', { number: createdNum, type: form.type });
+      // Notificação push para mecânicos/líder de mecânica
+      try {
+        const machineName = machineById[form.machine_id]?.name || 'Máquina';
+        const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+        const targetPath = slug ? `/${slug}/mecanica/${isCorrective ? 'oc' : 'om'}` : '/';
+        supabase.functions.invoke('send-push-notification', {
+          body: {
+            company_id: companyId,
+            title: isCorrective
+              ? `Nova OC #${String(createdNum).padStart(3, '0')} — ${machineName}`
+              : `Nova OM #${String(createdNum).padStart(3, '0')} — ${machineName}`,
+            message: form.description || (isCorrective ? 'Ordem de Corretiva aberta' : 'Ordem de Manutenção aberta'),
+            url: targetPath,
+            roles: ['mecanico', 'lider_mecanica'],
+          },
+        }).catch(() => { /* silencioso */ });
+      } catch { /* silencioso */ }
     }
     setCreateOpen(false);
     await load();
