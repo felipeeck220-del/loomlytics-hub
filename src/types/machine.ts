@@ -173,6 +173,7 @@ export interface MaintenanceOrder {
   id: string;
   company_id: string;
   om_number: number;
+  oc_number?: number | null;
   machine_id: string;
   type: MaintenanceOrderType;
   priority: MaintenanceOrderPriority;
