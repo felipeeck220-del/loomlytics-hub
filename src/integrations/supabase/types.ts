@@ -91,6 +91,216 @@ export type Database = {
           },
         ]
       }
+      article_change_orders: {
+        Row: {
+          adjustment_by_code: string | null
+          adjustment_by_name: string | null
+          adjustment_ended_at: string | null
+          adjustment_finished_by_code: string | null
+          adjustment_finished_by_name: string | null
+          adjustment_started_at: string | null
+          cancelled_at: string | null
+          cancelled_by_code: string | null
+          cancelled_by_name: string | null
+          company_id: string
+          concluded_at: string | null
+          concluded_by_code: string | null
+          concluded_by_name: string | null
+          created_at: string
+          created_by_code: string | null
+          created_by_id: string | null
+          created_by_name: string | null
+          current_article_id: string | null
+          final_report: string | null
+          id: string
+          machine_id: string
+          monitoring_started_at: string | null
+          monitoring_turns: number | null
+          next_article_id: string | null
+          observations: string | null
+          ot_number: number | null
+          piece_defects_flaws: number | null
+          piece_defects_holes: number | null
+          status: Database["public"]["Enums"]["article_change_status"]
+          updated_at: string
+          yarn_change_by_code: string | null
+          yarn_change_by_name: string | null
+          yarn_change_ended_at: string | null
+          yarn_change_finished_by_code: string | null
+          yarn_change_finished_by_name: string | null
+          yarn_change_started_at: string | null
+        }
+        Insert: {
+          adjustment_by_code?: string | null
+          adjustment_by_name?: string | null
+          adjustment_ended_at?: string | null
+          adjustment_finished_by_code?: string | null
+          adjustment_finished_by_name?: string | null
+          adjustment_started_at?: string | null
+          cancelled_at?: string | null
+          cancelled_by_code?: string | null
+          cancelled_by_name?: string | null
+          company_id: string
+          concluded_at?: string | null
+          concluded_by_code?: string | null
+          concluded_by_name?: string | null
+          created_at?: string
+          created_by_code?: string | null
+          created_by_id?: string | null
+          created_by_name?: string | null
+          current_article_id?: string | null
+          final_report?: string | null
+          id?: string
+          machine_id: string
+          monitoring_started_at?: string | null
+          monitoring_turns?: number | null
+          next_article_id?: string | null
+          observations?: string | null
+          ot_number?: number | null
+          piece_defects_flaws?: number | null
+          piece_defects_holes?: number | null
+          status?: Database["public"]["Enums"]["article_change_status"]
+          updated_at?: string
+          yarn_change_by_code?: string | null
+          yarn_change_by_name?: string | null
+          yarn_change_ended_at?: string | null
+          yarn_change_finished_by_code?: string | null
+          yarn_change_finished_by_name?: string | null
+          yarn_change_started_at?: string | null
+        }
+        Update: {
+          adjustment_by_code?: string | null
+          adjustment_by_name?: string | null
+          adjustment_ended_at?: string | null
+          adjustment_finished_by_code?: string | null
+          adjustment_finished_by_name?: string | null
+          adjustment_started_at?: string | null
+          cancelled_at?: string | null
+          cancelled_by_code?: string | null
+          cancelled_by_name?: string | null
+          company_id?: string
+          concluded_at?: string | null
+          concluded_by_code?: string | null
+          concluded_by_name?: string | null
+          created_at?: string
+          created_by_code?: string | null
+          created_by_id?: string | null
+          created_by_name?: string | null
+          current_article_id?: string | null
+          final_report?: string | null
+          id?: string
+          machine_id?: string
+          monitoring_started_at?: string | null
+          monitoring_turns?: number | null
+          next_article_id?: string | null
+          observations?: string | null
+          ot_number?: number | null
+          piece_defects_flaws?: number | null
+          piece_defects_holes?: number | null
+          status?: Database["public"]["Enums"]["article_change_status"]
+          updated_at?: string
+          yarn_change_by_code?: string | null
+          yarn_change_by_name?: string | null
+          yarn_change_ended_at?: string | null
+          yarn_change_finished_by_code?: string | null
+          yarn_change_finished_by_name?: string | null
+          yarn_change_started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_change_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_change_orders_current_article_id_fkey"
+            columns: ["current_article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_change_orders_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_change_orders_next_article_id_fkey"
+            columns: ["next_article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      article_change_yarns: {
+        Row: {
+          company_id: string
+          created_at: string
+          feeder_position: number
+          feeder_type: Database["public"]["Enums"]["article_change_feeder_type"]
+          id: string
+          lfa: number | null
+          observation: string | null
+          order_id: string
+          stretch: number | null
+          yarn_label: string | null
+          yarn_type_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          feeder_position: number
+          feeder_type: Database["public"]["Enums"]["article_change_feeder_type"]
+          id?: string
+          lfa?: number | null
+          observation?: string | null
+          order_id: string
+          stretch?: number | null
+          yarn_label?: string | null
+          yarn_type_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          feeder_position?: number
+          feeder_type?: Database["public"]["Enums"]["article_change_feeder_type"]
+          id?: string
+          lfa?: number | null
+          observation?: string | null
+          order_id?: string
+          stretch?: number | null
+          yarn_label?: string | null
+          yarn_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_change_yarns_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_change_yarns_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "article_change_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_change_yarns_yarn_type_id_fkey"
+            columns: ["yarn_type_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       article_machine_turns: {
         Row: {
           article_id: string
@@ -4163,6 +4373,15 @@ export type Database = {
       set_active_company: { Args: { _company_id: string }; Returns: undefined }
     }
     Enums: {
+      article_change_feeder_type: "fio" | "elastano"
+      article_change_status:
+        | "aberto"
+        | "troca_fio_em_curso"
+        | "aguardando_regulagem"
+        | "em_regulagem"
+        | "em_acompanhamento"
+        | "concluida"
+        | "cancelada"
       billing_delivery_doc_type: "nf" | "romaneio"
       billing_order_status:
         | "open"
@@ -4314,6 +4533,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      article_change_feeder_type: ["fio", "elastano"],
+      article_change_status: [
+        "aberto",
+        "troca_fio_em_curso",
+        "aguardando_regulagem",
+        "em_regulagem",
+        "em_acompanhamento",
+        "concluida",
+        "cancelada",
+      ],
       billing_delivery_doc_type: ["nf", "romaneio"],
       billing_order_status: [
         "open",
