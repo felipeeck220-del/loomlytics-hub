@@ -122,6 +122,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     o.type === 'manutencao_corretiva' ? canCreateCorrective : canManage;
   // Permissões efetivas para o botão "Nova ..." no cabeçalho da aba atual
   const canCreateInThisMode = isOC ? canCreateCorrective : canManage;
+  // Nº exibido (OM usa om_number; OC usa oc_number; fallback para o legado)
+  const displayNumber = (o: MaintenanceOrder) => {
+    const raw = o.type === 'manutencao_corretiva'
+      ? ((o.oc_number ?? o.om_number) as number | null | undefined)
+      : (o.om_number as number | null | undefined);
+    return raw != null ? String(raw).padStart(3, '0') : '—';
+  };
+  const labelOf = (o: MaintenanceOrder) => (o.type === 'manutencao_corretiva' ? 'OC' : 'OM');
+  // Quem pode abrir o modal "Notas/Itens" (leitura em tempo real p/ admin e criadores)
+  const canViewProgressNotes = (o: MaintenanceOrder) =>
+    canExecuteOrder(o) || canManageOrder(o) || isAdmin;
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
@@ -138,16 +149,16 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [progressDraft, setProgressDraft] = useState<{ kind: 'observacao' | 'item'; text: string }>({ kind: 'observacao', text: '' });
   const [progressSaving, setProgressSaving] = useState(false);
 
-  const load = async () => {
+  const load = async (opts?: { silent?: boolean }) => {
     if (!companyId) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     const [{ data: o }, { data: i }] = await Promise.all([
       (supabase.from as any)('maintenance_orders').select('*').eq('company_id', companyId).order('created_at', { ascending: false }),
       (supabase.from as any)('maintenance_order_items').select('*').eq('company_id', companyId),
     ]);
     setOrders((o as MaintenanceOrder[]) || []);
     setItems((i as MaintenanceOrderItem[]) || []);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   };
 
   useEffect(() => { load(); }, [companyId]);
@@ -159,7 +170,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const bump = () => {
       if (scheduled) return;
       scheduled = true;
-      setTimeout(() => { scheduled = false; load(); }, 400);
+      setTimeout(() => { scheduled = false; load({ silent: true }); }, 400);
     };
     const channel = supabase.channel(`om-rt-${companyId}`);
     for (const t of ['maintenance_orders', 'maintenance_order_items', 'machine_maintenance_observations']) {
@@ -234,8 +245,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       const busy = orders.find(o => o.machine_id === form.machine_id && (o.status === 'aberto' || o.status === 'em_curso'));
       if (busy) {
         const m = machineById[form.machine_id];
-        const busyLabel = busy.type === 'manutencao_corretiva' ? 'OC' : 'OM';
-        toast.error(`${m?.name || 'Máquina'} já tem a ${busyLabel} #${String(busy.om_number).padStart(3, '0')} ${busy.status === 'aberto' ? 'em aberto' : 'em curso'}. Finalize ou cancele antes de criar outra.`);
+        toast.error(`${m?.name || 'Máquina'} já tem a ${labelOf(busy)} #${displayNumber(busy)} ${busy.status === 'aberto' ? 'em aberto' : 'em curso'}. Finalize ou cancele antes de criar outra.`);
         return;
       }
     }
@@ -245,8 +255,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         machine_id: form.machine_id, type: form.type, priority: form.priority, description: form.description || null,
       }).eq('id', editing.id);
       if (error) { toast.error(`Erro ao atualizar ${orderLabel}`); return; }
-      toast.success(`${orderLabel} #${String(editing.om_number).padStart(3, '0')} atualizada`);
-      logAction('om_update', { om: editing.om_number });
+      toast.success(`${orderLabel} #${displayNumber(editing)} atualizada`);
+      logAction(isCorrective ? 'oc_update' : 'om_update', { om: editing.om_number, oc: editing.oc_number });
     } else {
       const { data, error } = await (supabase.from as any)('maintenance_orders').insert({
         company_id: companyId,
@@ -258,8 +268,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         created_by_name: authorLabel,
       }).select().single();
       if (error) { toast.error(`Erro ao criar ${orderLabel}`); return; }
-      toast.success(`${orderLabel} #${String((data as any).om_number).padStart(3, '0')} criada`);
-      logAction(isCorrective ? 'oc_create' : 'om_create', { om: (data as any).om_number, type: form.type });
+      const created = data as any;
+      const createdNum = isCorrective ? (created.oc_number ?? created.om_number) : created.om_number;
+      toast.success(`${orderLabel} #${String(createdNum).padStart(3, '0')} criada`);
+      logAction(isCorrective ? 'oc_create' : 'om_create', { number: createdNum, type: form.type });
     }
     setCreateOpen(false);
     await load();
@@ -713,7 +725,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             <Badge className={cn(style.badgeClass, 'font-bold text-[10px] tracking-wide uppercase px-2 py-0.5')}>
                               {style.label}
                             </Badge>
-                            <span className="font-bold text-lg text-foreground">OM #{String(o.om_number).padStart(3, '0')}</span>
+                            <span className={cn('font-bold text-lg', o.type === 'manutencao_corretiva' ? 'text-destructive' : 'text-foreground')}>{labelOf(o)} #{displayNumber(o)}</span>
                             <Badge variant="outline" className={cn('font-semibold uppercase text-[10px]', TYPE_COLORS[o.type])}>
                               {TYPE_LABELS[o.type]}
                             </Badge>
@@ -847,7 +859,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                 </Button>
                               </>
                             )}
-                            {o.status === 'em_curso' && canExecuteOrder(o) && (
+                            {o.status === 'em_curso' && canViewProgressNotes(o) && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => openProgress(o)} className="gap-1.5 border-blue-500/40 text-blue-600 hover:bg-blue-500/10">
                                   <StickyNote className="h-3.5 w-3.5" /> Notas/Itens
@@ -855,9 +867,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                     <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{o.progress_notes.length}</Badge>
                                   )}
                                 </Button>
-                                <Button size="sm" onClick={() => openFinish(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
-                                  <Square className="h-3.5 w-3.5" /> Finalizar
-                                </Button>
+                                {canExecuteOrder(o) && (
+                                  <Button size="sm" onClick={() => openFinish(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                                    <Square className="h-3.5 w-3.5" /> Finalizar
+                                  </Button>
+                                )}
                               </>
                             )}
                             {o.status === 'finalizada' && (
@@ -893,7 +907,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           <DialogHeader>
             <DialogTitle>
               {editing
-                ? `Editar ${correctiveMode ? 'OC' : 'OM'} #${String(editing.om_number).padStart(3, '0')}`
+                ? `Editar ${labelOf(editing)} #${displayNumber(editing)}`
                 : correctiveMode ? 'Nova OC — Ordem de Corretiva' : 'Nova OM'}
             </DialogTitle>
           </DialogHeader>
@@ -965,7 +979,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           <DialogHeader className="p-4 border-b flex flex-row items-center justify-between sm:justify-between space-y-0 shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Square className="h-5 w-5 text-emerald-600" />
-              Finalizar OM #{finishOrder ? String(finishOrder.om_number).padStart(3, '0') : ''}
+              Finalizar {finishOrder ? labelOf(finishOrder) : 'OM'} #{finishOrder ? displayNumber(finishOrder) : ''}
               {finishOrder && (
                 <Badge variant="outline" className="ml-2">{TYPE_LABELS[finishOrder.type]} · {machineById[finishOrder.machine_id]?.name || ''}</Badge>
               )}
@@ -1070,7 +1084,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             <div className="flex items-center justify-between gap-2">
               <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <StickyNote className="h-5 w-5 text-blue-600 shrink-0" />
-                <span>Notas & Itens — OM #{progressOrder ? String(progressOrder.om_number).padStart(3, '0') : ''}</span>
+                <span>Notas & Itens — {progressOrder ? labelOf(progressOrder) : 'OM'} #{progressOrder ? displayNumber(progressOrder) : ''}</span>
               </DialogTitle>
               <Button variant="outline" size="sm" onClick={() => setProgressOrder(null)}>Fechar</Button>
             </div>
@@ -1087,7 +1101,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 <div className="text-xs text-muted-foreground mt-0.5">Cada anotação é salva na OM imediatamente. Feche o modal quando quiser — nada se perde. Estas anotações também entram no relatório em PDF ao finalizar a OM.</div>
               </div>
 
-              {/* Adicionar */}
+              {/* Adicionar (somente quem executa a ordem) */}
+              {canExecuteOrder(progressOrder) ? (
               <div className="border rounded-lg p-4 space-y-3 bg-card">
                 <Label className="font-semibold">Nova anotação</Label>
                 <div className="flex gap-2">
@@ -1124,6 +1139,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                   </Button>
                 </div>
               </div>
+              ) : (
+                <div className="rounded-md border border-muted bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Visualização somente leitura. Apenas mecânico ou líder de mecânica podem registrar/remover anotações desta ordem.
+                </div>
+              )}
 
               {/* Lista */}
               <div className="space-y-2">
@@ -1153,7 +1173,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             {format(new Date(n.ts), 'dd/MM/yyyy HH:mm')} · {n.author || '—'}
                           </div>
                         </div>
-                        {canExecute && (
+                        {canExecuteOrder(progressOrder) && (
                           <Button size="icon" variant="ghost" onClick={() => removeProgressNote(n.id)} className="shrink-0 h-8 w-8">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -1174,9 +1194,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       {/* Confirm: Start */}
       <Dialog open={!!confirmStart} onOpenChange={v => !v && setConfirmStart(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Iniciar OM?</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Iniciar {confirmStart ? labelOf(confirmStart) : 'OM'}?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Iniciar a OM #{confirmStart ? String(confirmStart.om_number).padStart(3, '0') : ''} parará a máquina e começará o cronômetro.
+            Iniciar a {confirmStart ? labelOf(confirmStart) : 'OM'} #{confirmStart ? displayNumber(confirmStart) : ''} parará a máquina e começará o cronômetro.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmStart(null)}>Cancelar</Button>
@@ -1188,14 +1208,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       {/* Confirm: Cancel */}
       <Dialog open={!!confirmCancel} onOpenChange={v => !v && setConfirmCancel(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Cancelar OM?</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Cancelar {confirmCancel ? labelOf(confirmCancel) : 'OM'}?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground mb-2">
-            Cancelar a OM #{confirmCancel ? String(confirmCancel.om_number).padStart(3, '0') : ''}? Esta ação não pode ser desfeita.
+            Cancelar a {confirmCancel ? labelOf(confirmCancel) : 'OM'} #{confirmCancel ? displayNumber(confirmCancel) : ''}? Esta ação não pode ser desfeita.
           </p>
           <Textarea rows={2} placeholder="Motivo do cancelamento (opcional)" value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmCancel(null)}>Voltar</Button>
-            <Button variant="destructive" onClick={async () => { const o = confirmCancel!; const r = cancelReason || null; setConfirmCancel(null); await cancelOrder(o, r); }}>Cancelar OM</Button>
+            <Button variant="destructive" onClick={async () => { const o = confirmCancel!; const r = cancelReason || null; setConfirmCancel(null); await cancelOrder(o, r); }}>Cancelar {confirmCancel ? labelOf(confirmCancel) : 'OM'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1203,9 +1223,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       {/* Confirm: Delete */}
       <Dialog open={!!confirmDelete} onOpenChange={v => !v && setConfirmDelete(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Excluir OM?</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Excluir {confirmDelete ? labelOf(confirmDelete) : 'OM'}?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Excluir definitivamente a OM #{confirmDelete ? String(confirmDelete.om_number).padStart(3, '0') : ''} e seus itens?
+            Excluir definitivamente a {confirmDelete ? labelOf(confirmDelete) : 'OM'} #{confirmDelete ? displayNumber(confirmDelete) : ''} e seus itens?
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDelete(null)}>Voltar</Button>

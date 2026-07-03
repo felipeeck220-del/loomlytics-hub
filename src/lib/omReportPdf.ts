@@ -89,7 +89,12 @@ export async function generateOmReportPdf(opts: GenerateOmReportOptions) {
     return { width: w * s, height: h * s };
   };
   const dateStr = new Date().toLocaleString('pt-BR');
-  const reportTitle = `RELATÓRIO DE ORDEM DE MANUTENÇÃO — OM #${String(o.om_number).padStart(3, '0')}`;
+  const isCorrective = (o as any).type === 'manutencao_corretiva';
+  const orderLabel = isCorrective ? 'OC' : 'OM';
+  const orderTitleLong = isCorrective ? 'ORDEM DE CORRETIVA' : 'ORDEM DE MANUTENÇÃO';
+  const orderNumRaw = isCorrective ? ((o as any).oc_number ?? (o as any).om_number) : (o as any).om_number;
+  const orderNumStr = orderNumRaw != null ? String(orderNumRaw).padStart(3, '0') : '—';
+  const reportTitle = `RELATÓRIO DE ${orderTitleLong} — ${orderLabel} #${orderNumStr}`;
   const cName = company?.name || '';
   const headerH = 25;
   const leftX = margin + 5;
@@ -246,7 +251,7 @@ export async function generateOmReportPdf(opts: GenerateOmReportOptions) {
   pdf.setFontSize(8); pdf.setTextColor(120, 120, 120);
   pdf.text(sanitizePdfText(`Relatório gerado por ${authorLabel || '—'} em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`), margin, pageH - 6);
 
-  pdf.save(`OM-${String(o.om_number).padStart(3, '0')}-${(machine?.name || 'maquina').replace(/\s+/g, '_')}.pdf`);
+  pdf.save(`${orderLabel}-${orderNumStr}-${(machine?.name || 'maquina').replace(/\s+/g, '_')}.pdf`);
 }
 
 export async function fetchLastFinalizedOmForMachine(
