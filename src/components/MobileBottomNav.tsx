@@ -26,6 +26,7 @@ const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   admin: ['dashboard', 'production', 'outsource', 'settings'],
   lider: ['dashboard', 'machines', 'revision'],
   mecanico: ['machines', 'mecanica-om', 'mecanica-oc'],
+  lider_mecanica: ['mecanica', 'mecanica-om', 'mecanica-oc'],
   revisador: ['production', 'revision'],
 };
 
