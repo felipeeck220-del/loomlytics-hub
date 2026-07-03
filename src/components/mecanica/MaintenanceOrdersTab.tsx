@@ -36,6 +36,13 @@ const TYPE_COLORS: Record<MaintenanceOrderType, string> = {
   troca_agulhas: 'bg-purple-500/15 text-purple-600 border-purple-500/30',
 };
 
+const STATUS_STYLE: Record<MaintenanceOrderStatus, { stripe: string; label: string; badgeClass: string }> = {
+  aberto: { stripe: 'bg-amber-500', label: 'ABERTO', badgeClass: 'bg-amber-500 text-white border-amber-600' },
+  em_curso: { stripe: 'bg-blue-600', label: 'EM CURSO', badgeClass: 'bg-blue-600 text-white border-blue-700' },
+  finalizada: { stripe: 'bg-emerald-600', label: 'FINALIZADA', badgeClass: 'bg-emerald-600 text-white border-emerald-700' },
+  cancelada: { stripe: 'bg-zinc-500', label: 'CANCELADA', badgeClass: 'bg-zinc-500 text-white border-zinc-600' },
+};
+
 function fmtDuration(seconds: number) {
   if (!seconds || seconds < 0) return '0s';
   const h = Math.floor(seconds / 3600);
