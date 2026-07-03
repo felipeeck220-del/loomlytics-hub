@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Timer, Wrench, ClipboardCheck, FileText } from 'lucide-react';
+import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Timer, Wrench, ClipboardCheck, FileText, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -471,45 +471,81 @@ function OTCard(props: {
 }
 
 // -------------- New OT modal ----------------
-type Slot = { active: boolean; yarn_type_id: string; lfa: string; stretch: string; observation: string };
-const EMPTY_SLOT: Slot = { active: false, yarn_type_id: '', lfa: '', stretch: '', observation: '' };
+type Fita = { yarn_type_id: string; lfa: string };
+type Elast = { active: boolean; yarn_type_id: string; lfa: string; stretch: string };
+const EMPTY_FITA: Fita = { yarn_type_id: '', lfa: '' };
+const EMPTY_ELAST: Elast = { active: false, yarn_type_id: '', lfa: '', stretch: '' };
 
-function SlotEditor({ label, slot, onChange, yarnOptions }: {
-  label: string;
-  slot: Slot;
-  onChange: (p: Partial<Slot>) => void;
+function FitaRow({ index, fita, onChange, onRemove, canRemove, yarnOptions }: {
+  index: number;
+  fita: Fita;
+  onChange: (p: Partial<Fita>) => void;
+  onRemove: () => void;
+  canRemove: boolean;
   yarnOptions: { value: string; label: string }[];
 }) {
   return (
-    <div className={`border rounded-lg p-3 space-y-2 ${slot.active ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
-      <div className="flex items-center gap-2">
-        <Checkbox checked={slot.active} onCheckedChange={(v) => onChange({ active: !!v })} />
-        <div className="font-medium text-sm">{label}</div>
+    <div className="border rounded-lg p-3 grid grid-cols-[auto_1fr_120px_auto] gap-2 items-end">
+      <div className="pb-2">
+        <Badge variant="outline" className="text-[10px]">FITA {index + 1}</Badge>
       </div>
-      {slot.active && (
-        <div className="space-y-2">
-          <div>
+      <div>
+        <Label className="text-xs">Tipo de fio</Label>
+        <SearchableSelect
+          value={fita.yarn_type_id}
+          onValueChange={(v) => onChange({ yarn_type_id: v })}
+          options={yarnOptions}
+          placeholder="Selecione o fio…"
+        />
+      </div>
+      <div>
+        <Label className="text-xs">LFA</Label>
+        <Input value={fita.lfa} onChange={e => onChange({ lfa: e.target.value })} inputMode="decimal" />
+      </div>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="text-destructive"
+        disabled={!canRemove}
+        onClick={onRemove}
+        title={canRemove ? 'Remover fita' : 'Mínimo 1 fita'}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+function ElastanoEditor({ elastano, onChange, yarnOptions }: {
+  elastano: Elast;
+  onChange: (p: Partial<Elast>) => void;
+  yarnOptions: { value: string; label: string }[];
+}) {
+  return (
+    <div className={`border rounded-lg p-3 space-y-2 ${elastano.active ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
+      <div className="flex items-center gap-2">
+        <Checkbox checked={elastano.active} onCheckedChange={(v) => onChange({ active: !!v })} />
+        <div className="font-medium text-sm">Elastano</div>
+      </div>
+      {elastano.active && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="md:col-span-1">
             <Label className="text-xs">Tipo de fio</Label>
             <SearchableSelect
-              value={slot.yarn_type_id}
+              value={elastano.yarn_type_id}
               onValueChange={(v) => onChange({ yarn_type_id: v })}
               options={yarnOptions}
               placeholder="Selecione o fio…"
             />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-xs">LFA</Label>
-              <Input value={slot.lfa} onChange={e => onChange({ lfa: e.target.value })} inputMode="decimal" />
-            </div>
-            <div>
-              <Label className="text-xs">Estiragem</Label>
-              <Input value={slot.stretch} onChange={e => onChange({ stretch: e.target.value })} inputMode="decimal" />
-            </div>
+          <div>
+            <Label className="text-xs">LFA</Label>
+            <Input value={elastano.lfa} onChange={e => onChange({ lfa: e.target.value })} inputMode="decimal" />
           </div>
           <div>
-            <Label className="text-xs">Observação</Label>
-            <Input value={slot.observation} onChange={e => onChange({ observation: e.target.value })} placeholder="Opcional" />
+            <Label className="text-xs">Estiragem</Label>
+            <Input value={elastano.stretch} onChange={e => onChange({ stretch: e.target.value })} inputMode="decimal" />
           </div>
         </div>
       )}
@@ -532,12 +568,15 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
   const [observations, setObservations] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [fitas, setFitas] = useState<Slot[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
-  const [elastano, setElastano] = useState<Slot>({ ...EMPTY_SLOT });
+  const [fitas, setFitas] = useState<Fita[]>([{ ...EMPTY_FITA }]);
+  const [elastano, setElastano] = useState<Elast>({ ...EMPTY_ELAST });
 
-  const updateFita = (i: number, patch: Partial<Slot>) => {
+  const updateFita = (i: number, patch: Partial<Fita>) => {
     setFitas(prev => prev.map((f, idx) => idx === i ? { ...f, ...patch } : f));
   };
+  const addFita = () => setFitas(prev => prev.length < 4 ? [...prev, { ...EMPTY_FITA }] : prev);
+  const removeFita = (i: number) => setFitas(prev => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev);
+  const copyFirstToAll = () => setFitas(prev => prev.map((f, idx) => idx === 0 ? f : { ...prev[0] }));
 
   useEffect(() => {
     // pré-preencher artigo atual pela máquina selecionada
@@ -568,7 +607,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
 
     const yarnRows: any[] = [];
     fitas.forEach((f, i) => {
-      if (!f.active) return;
+      if (!f.yarn_type_id && !f.lfa) return; // pula fita vazia
       yarnRows.push({
         order_id: ins.id,
         company_id: user.company_id,
@@ -576,8 +615,8 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
         feeder_position: i + 1,
         yarn_type_id: f.yarn_type_id || null,
         lfa: f.lfa ? Number(String(f.lfa).replace(',', '.')) : null,
-        stretch: f.stretch ? Number(String(f.stretch).replace(',', '.')) : null,
-        observation: f.observation || null,
+        stretch: null,
+        observation: null,
       });
     });
     if (elastano.active) {
@@ -589,7 +628,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
         yarn_type_id: elastano.yarn_type_id || null,
         lfa: elastano.lfa ? Number(String(elastano.lfa).replace(',', '.')) : null,
         stretch: elastano.stretch ? Number(String(elastano.stretch).replace(',', '.')) : null,
-        observation: elastano.observation || null,
+        observation: null,
       });
     }
     if (yarnRows.length) {
@@ -632,14 +671,34 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
             </div>
           </div>
 
-          <div>
-            <div className="text-sm font-semibold mb-2">Fitas de fio (até 4) + Elastano</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {fitas.map((f, i) => (
-                <SlotEditor key={i} label={`Fita ${i + 1}`} slot={f} onChange={(p) => updateFita(i, p)} yarnOptions={yarnOptions} />
-              ))}
-              <SlotEditor label="Elastano" slot={elastano} onChange={(p) => setElastano(s => ({ ...s, ...p }))} yarnOptions={yarnOptions} />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-semibold">Fitas de fio <span className="text-xs text-muted-foreground font-normal">({fitas.length}/4)</span></div>
+              <div className="flex items-center gap-2">
+                {fitas.length >= 2 && (
+                  <Button type="button" size="sm" variant="outline" onClick={copyFirstToAll}>
+                    <Copy className="h-3.5 w-3.5 mr-1" /> Copiar Fita 1 para as demais
+                  </Button>
+                )}
+                <Button type="button" size="sm" variant="outline" onClick={addFita} disabled={fitas.length >= 4}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar fita
+                </Button>
+              </div>
             </div>
+            <div className="space-y-2">
+              {fitas.map((f, i) => (
+                <FitaRow
+                  key={i}
+                  index={i}
+                  fita={f}
+                  onChange={(p) => updateFita(i, p)}
+                  onRemove={() => removeFita(i)}
+                  canRemove={fitas.length > 1}
+                  yarnOptions={yarnOptions}
+                />
+              ))}
+            </div>
+            <ElastanoEditor elastano={elastano} onChange={(p) => setElastano(s => ({ ...s, ...p }))} yarnOptions={yarnOptions} />
           </div>
 
           <div>
