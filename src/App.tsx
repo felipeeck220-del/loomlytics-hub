@@ -68,6 +68,7 @@ const App = () => (
                 <Route path="mecanica" element={<ProtectedRoute routeKey="mecanica"><MecanicaPage /></ProtectedRoute>} />
                 <Route path="mecanica/om" element={<ProtectedRoute routeKey="mecanica-om"><MecanicaPage /></ProtectedRoute>} />
                 <Route path="mecanica/oc" element={<ProtectedRoute routeKey="mecanica-oc"><MecanicaPage /></ProtectedRoute>} />
+                <Route path="mecanica/ot" element={<ProtectedRoute routeKey="mecanica-ot"><MecanicaPage /></ProtectedRoute>} />
                 <Route path="outsource" element={<ProtectedRoute routeKey="outsource"><Outsource /></ProtectedRoute>} />
                 <Route path="weavers" element={<ProtectedRoute routeKey="weavers"><Weavers /></ProtectedRoute>} />
                 <Route path="reports" element={<ProtectedRoute routeKey="reports"><Reports /></ProtectedRoute>} />
