@@ -118,6 +118,8 @@ export function AppSidebar() {
   }, [user?.company_id]);
 
   const items = useMemo(() => {
+    // Aguarda role do usuário para evitar flicker (renderizaria como admin e depois filtraria)
+    if (!user?.role) return [];
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? allItems.filter(item => {
