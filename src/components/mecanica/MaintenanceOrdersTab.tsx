@@ -77,6 +77,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const canManage = role === 'admin' || role === 'lider_mecanica';
   const canExecute = canManage || role === 'mecanico' || role === 'lider';
+  const isAdmin = role === 'admin';
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
@@ -359,6 +360,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const deleteOrder = async (o: MaintenanceOrder) => {
     if (!canManage) return;
+    if (o.status === 'finalizada' && !isAdmin) {
+      toast.error('Apenas administradores podem excluir OMs finalizadas.');
+      return;
+    }
     if (o.status === 'em_curso') {
       toast.error('Não é possível excluir uma OM em curso. Finalize ou cancele primeiro.');
       return;
@@ -401,11 +406,42 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as MaintenanceOrderStatus)}>
-        <TabsList className="flex flex-wrap h-auto justify-center sm:justify-start gap-1 w-full sm:w-auto">
-          <TabsTrigger value="aberto">Aberto <Badge className="ml-2" variant="secondary">{counts.aberto}</Badge></TabsTrigger>
-          <TabsTrigger value="em_curso">Em Curso <Badge className="ml-2" variant="secondary">{counts.em_curso}</Badge></TabsTrigger>
-          <TabsTrigger value="finalizada">Finalizadas <Badge className="ml-2" variant="secondary">{counts.finalizada}</Badge></TabsTrigger>
-          <TabsTrigger value="cancelada">Canceladas <Badge className="ml-2" variant="secondary">{counts.cancelada}</Badge></TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
+          <TabsTrigger
+            value="aberto"
+            className={cn(
+              'gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial',
+              counts.aberto > 0 && 'data-[state=active]:bg-amber-500 data-[state=active]:text-white'
+            )}
+          >
+            <AlertTriangle className="h-3 w-3" /> Aberto
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.aberto}</Badge>
+          </TabsTrigger>
+          <TabsTrigger
+            value="em_curso"
+            className={cn(
+              'gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial',
+              counts.em_curso > 0 && 'data-[state=active]:bg-blue-600 data-[state=active]:text-white',
+              counts.em_curso > 0 && 'animate-pulse'
+            )}
+          >
+            <Clock className="h-3 w-3" /> Em Curso
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.em_curso}</Badge>
+          </TabsTrigger>
+          <TabsTrigger
+            value="finalizada"
+            className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+          >
+            <Square className="h-3 w-3" /> Finalizadas
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.finalizada}</Badge>
+          </TabsTrigger>
+          <TabsTrigger
+            value="cancelada"
+            className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-muted-foreground data-[state=active]:text-background"
+          >
+            <X className="h-3 w-3" /> Canceladas
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.cancelada}</Badge>
+          </TabsTrigger>
         </TabsList>
         <TabsContent value={tab} className="mt-4">
           {filtered.length === 0 ? (
@@ -478,7 +514,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                         {o.status === 'em_curso' && canExecute && (
                           <Button size="sm" onClick={() => openFinish(o)}><Square className="h-3.5 w-3.5 mr-1" /> Finalizar</Button>
                         )}
-                        {canManage && (o.status === 'cancelada' || o.status === 'finalizada') && (
+                        {canManage && o.status === 'cancelada' && (
+                          <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(o)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                        )}
+                        {isAdmin && o.status === 'finalizada' && (
                           <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(o)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                         )}
                       </div>

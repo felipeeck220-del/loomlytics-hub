@@ -1267,6 +1267,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 > Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
 
+- **03/07/2026 10:25 (Brasília)** — Mecânica > OM: abas redesenhadas no padrão de Ordem de Faturamento (OF) — container `bg-muted/50 p-1 gap-1`, triggers com ícones e badges (Aberto=âmbar, Em Curso=azul + pulse quando houver, Finalizadas=verde esmeralda, Canceladas=muted). Restrição: **apenas admin** pode excluir OMs finalizadas (líder mecânica só pode excluir canceladas); botão da lixeira em Finalizadas só aparece para admin e a função `deleteOrder` bloqueia no servidor.
+
 - **03/07/2026 10:05 (Brasília)** — Dashboard > Máquinas Paradas: card agora inicia sempre **recolhido** por padrão; usuário expande via Chevron quando quiser ver a lista.
 
 - **03/07/2026 09:45 (Brasília)** — Dashboard > Máquinas Paradas: agora lista **apenas OMs `em_curso`** (máquinas realmente paradas), ignorando OMs meramente `aberto` (ainda não iniciadas). Adicionado ícone Chevron (↑/↓) no cabeçalho do card para expandir/recolher a lista de máquinas paradas; o cabeçalho inteiro é clicável.
