@@ -26,6 +26,7 @@ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import MaintenanceOrdersTab from '@/components/mecanica/MaintenanceOrdersTab';
 import MaintenanceMovementsTab from '@/components/mecanica/MaintenanceMovementsTab';
+import ArticleChangeOrdersTab from '@/components/mecanica/ArticleChangeOrdersTab';
 import { generateOmReportPdf, fetchLastFinalizedOmForMachine } from '@/lib/omReportPdf';
 
 const MAINTENANCE_STATUSES: MachineStatus[] = [
@@ -106,7 +107,9 @@ export default function MecanicaPage() {
     ? 'om'
     : location.pathname.endsWith('/mecanica/oc')
       ? 'oc'
-      : null;
+      : location.pathname.endsWith('/mecanica/ot')
+        ? 'ot'
+        : null;
   const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
   const machines = getMachines();
   const machineLogs = getMachineLogs();
@@ -1066,6 +1069,7 @@ export default function MecanicaPage() {
          <TabsList className="flex flex-wrap h-auto justify-start gap-1">
            {isAdmin && <TabsTrigger value="om">OM</TabsTrigger>}
            {isAdmin && <TabsTrigger value="oc" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">OC</TabsTrigger>}
+           {isAdmin && <TabsTrigger value="ot" className="data-[state=active]:bg-amber-500 data-[state=active]:text-white">OT</TabsTrigger>}
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
            {isAdmin && <TabsTrigger value="detalhes">Detalhes</TabsTrigger>}
            {isAdmin && <TabsTrigger value="agulhas">Agulhas</TabsTrigger>}
@@ -1096,6 +1100,11 @@ export default function MecanicaPage() {
             refreshMachines={refreshData}
             mode="oc"
           />
+        </TabsContent>
+
+        {/* OT Tab (Ordem de Troca de Artigo) */}
+        <TabsContent value="ot">
+          <ArticleChangeOrdersTab />
         </TabsContent>
 
         {/* Movimentações Tab */}

@@ -5,10 +5,10 @@ export type AppRole = 'admin' | 'lider' | 'lider_mecanica' | 'mecanico' | 'revis
 
 /** Which sidebar/route keys each role can access by default */
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
-  admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
-  lider: ['mecanica-oc'],
-  lider_mecanica: ['mecanica', 'mecanica-om', 'mecanica-oc'],
-  mecanico: ['machines', 'mecanica', 'mecanica-om', 'mecanica-oc'],
+  admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-ot', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
+  lider: ['mecanica-oc', 'mecanica-ot'],
+  lider_mecanica: ['mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-ot'],
+  mecanico: ['machines', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-ot'],
   revisador: ['revision'],
   expedicao: ['billing-orders', 'estoque-malha'],
 };
@@ -32,6 +32,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   mecanica: 'mecanica',
   'mecanica/om': 'mecanica-om',
   'mecanica/oc': 'mecanica-oc',
+  'mecanica/ot': 'mecanica-ot',
   outsource: 'outsource',
   weavers: 'weavers',
   reports: 'reports',
