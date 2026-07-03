@@ -91,9 +91,15 @@ interface Props {
   sinkers: SinkerInventory[];
   cylinders: Cylinder[];
   refreshMachines: () => void;
+  /** 'om' = ordens não-corretivas (preventiva, troca de artigo, troca de agulheiro).
+   *  'oc' = ordens de corretiva. Default 'om'. */
+  mode?: 'om' | 'oc';
 }
 
-export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylinders, refreshMachines }: Props) {
+export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylinders, refreshMachines, mode = 'om' }: Props) {
+  const isOC = mode === 'oc';
+  const labelShort = isOC ? 'OC' : 'OM';
+  const labelLong = isOC ? 'Ordens de Corretiva' : 'Ordens de Manutenção';
   const { user } = useAuth();
   const { logAction, userName, userCode } = useAuditLog();
   const { role } = usePermissions();
@@ -114,6 +120,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     o.type === 'manutencao_corretiva' ? canExecuteCorrective : canExecute;
   const canManageOrder = (o: MaintenanceOrder) =>
     o.type === 'manutencao_corretiva' ? canCreateCorrective : canManage;
+  // Permissões efetivas para o botão "Nova ..." no cabeçalho da aba atual
+  const canCreateInThisMode = isOC ? canCreateCorrective : canManage;
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
