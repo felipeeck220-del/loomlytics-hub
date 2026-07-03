@@ -92,17 +92,24 @@ const IN_PROGRESS: OTStatus[] = [
   'em_acompanhamento',
 ];
 
+function fmtDuration(seconds: number) {
+  if (!seconds || seconds < 0) return '0s';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return [h ? `${h}h` : '', m ? `${m}m` : '', `${s}s`].filter(Boolean).join(' ');
+}
+
 function useLiveTimer(startIso: string | null | undefined) {
-  const [, setTick] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!startIso) return;
-    const i = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(i);
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
   }, [startIso]);
   if (!startIso) return '';
-  try {
-    return formatDistanceToNow(new Date(startIso), { locale: ptBR, addSuffix: false });
-  } catch { return ''; }
+  const s = Math.max(0, Math.floor((now - new Date(startIso).getTime()) / 1000));
+  return fmtDuration(s);
 }
 
 export default function ArticleChangeOrdersTab() {
