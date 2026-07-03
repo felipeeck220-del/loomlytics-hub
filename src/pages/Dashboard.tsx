@@ -82,12 +82,38 @@ export default function Dashboard() {
     return map;
   }, [stoppedMachines, allMachineLogs]);
 
+  // Ordens de Manutenção abertas (aberto/em_curso) — em tempo real
+  const [openOMs, setOpenOMs] = useState<any[]>([]);
+
+  const fetchOpenOMs = useCallback(async () => {
+    if (!dbCompanyId) return;
+    const { data, error } = await (supabase.from as any)('maintenance_orders')
+      .select('*')
+      .eq('company_id', dbCompanyId)
+      .in('status', ['aberto', 'em_curso'])
+      .order('created_at', { ascending: false });
+    if (!error) setOpenOMs(data || []);
+  }, [dbCompanyId]);
+
+  useEffect(() => { fetchOpenOMs(); }, [fetchOpenOMs]);
+
+  useEffect(() => {
+    if (!dbCompanyId) return;
+    const channel = supabase
+      .channel(`dashboard-oms-${dbCompanyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_orders', filter: `company_id=eq.${dbCompanyId}` }, () => {
+        fetchOpenOMs();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [dbCompanyId, fetchOpenOMs]);
+
   // Real-time tick for elapsed time
   useEffect(() => {
-    if (stoppedMachines.length === 0) return;
+    if (openOMs.length === 0 && stoppedMachines.length === 0) return;
     const interval = setInterval(() => setNowTick(new Date()), 1000);
     return () => clearInterval(interval);
-  }, [stoppedMachines.length]);
+  }, [openOMs.length, stoppedMachines.length]);
 
   const clearFilters = () => {
      setDayRange(15); setFilterMonth('all');
