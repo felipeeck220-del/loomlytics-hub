@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import { Lock } from 'lucide-react';
 import {
-  LayoutDashboard, Settings2, ClipboardList, Factory, Settings, Search, Wrench, AlertTriangle,
+  LayoutDashboard, Settings2, ClipboardList, Factory, Settings, Search, Wrench, AlertTriangle, Repeat,
 } from 'lucide-react';
 
 const allItems = [
@@ -17,6 +17,7 @@ const allItems = [
   { title: 'Mecânica', path: 'mecanica', icon: Wrench, key: 'mecanica' },
   { title: 'OM', path: 'mecanica/om', icon: ClipboardList, key: 'mecanica-om' },
   { title: 'OC', path: 'mecanica/oc', icon: AlertTriangle, key: 'mecanica-oc' },
+  { title: 'OT', path: 'mecanica/ot', icon: Repeat, key: 'mecanica-ot' },
   { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
   { title: 'Configurações', path: 'settings', icon: Settings, key: 'settings' },
 ];
@@ -25,8 +26,8 @@ const allItems = [
 const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   admin: ['dashboard', 'production', 'outsource', 'settings'],
   lider: ['dashboard', 'machines', 'revision'],
-  mecanico: ['machines', 'mecanica-om', 'mecanica-oc'],
-  lider_mecanica: ['mecanica', 'mecanica-om', 'mecanica-oc'],
+  mecanico: ['machines', 'mecanica-om', 'mecanica-oc', 'mecanica-ot'],
+  lider_mecanica: ['mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-ot'],
   revisador: ['production', 'revision'],
 };
 
@@ -45,6 +46,8 @@ export function MobileBottomNav() {
   const slugPrefix = `/${user?.company_slug || ''}`;
   const [openOMCount, setOpenOMCount] = useState(0);
   const [openOCCount, setOpenOCCount] = useState(0);
+  const [openOTCount, setOpenOTCount] = useState(0);
+  const [otReadyCount, setOtReadyCount] = useState(0);
 
   useEffect(() => {
     if (!user?.company_id) return;
@@ -85,6 +88,29 @@ export function MobileBottomNav() {
     return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [user?.company_id]);
 
+  // Contagem OT em tempo real
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const companyId = user.company_id;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await (supabase.from as any)('article_change_orders')
+        .select('status')
+        .eq('company_id', companyId)
+        .in('status', ['aberto', 'aguardando_regulagem', 'em_regulagem']);
+      if (cancelled) return;
+      const rows = (data || []) as Array<{ status: string }>;
+      setOpenOTCount(rows.filter(r => r.status === 'aberto').length);
+      setOtReadyCount(rows.filter(r => r.status === 'aguardando_regulagem' || r.status === 'em_regulagem').length);
+    };
+    load();
+    const channel = (supabase as any)
+      .channel(`footer-ot-${companyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'article_change_orders', filter: `company_id=eq.${companyId}` }, () => load())
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(channel); };
+  }, [user?.company_id]);
+
   const items = useMemo(() => {
     const footerKeys = getMobileFooterKeys(role);
     const footerItems = allItems.filter(i => footerKeys.includes(i.key));
@@ -93,7 +119,7 @@ export function MobileBottomNav() {
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? footerItems.filter(i => {
-          if (i.key === 'mecanica-om' || i.key === 'mecanica-oc') return mecanicaEnabled;
+          if (i.key === 'mecanica-om' || i.key === 'mecanica-oc' || i.key === 'mecanica-ot') return mecanicaEnabled;
           return enabledNavItems.includes(i.key);
         })
       : footerItems;
@@ -101,11 +127,15 @@ export function MobileBottomNav() {
     // Apply role-level filtering
     const roleFiltered = filterNavItems(companyFiltered);
 
-    return roleFiltered.map(item => ({
+    // Mecânico: OT só aparece quando há OT pronta para regulagem
+    const mecanicoOtVisible = role === 'mecanico' ? otReadyCount > 0 : true;
+    const otFiltered = mecanicoOtVisible ? roleFiltered : roleFiltered.filter(i => i.key !== 'mecanica-ot');
+
+    return otFiltered.map(item => ({
       ...item,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [role, enabledNavItems, slugPrefix, filterNavItems]);
+  }, [role, enabledNavItems, slugPrefix, filterNavItems, otReadyCount]);
 
   const isActive = (item: typeof items[0]) => {
     if (item.path === '') {
@@ -113,7 +143,7 @@ export function MobileBottomNav() {
     }
     const fullPath = `${slugPrefix}/${item.path}`;
     // Rotas de mecanica precisam de match exato para não destacar Mecânica junto com OM/OC
-    if (item.key === 'mecanica' || item.key === 'mecanica-om' || item.key === 'mecanica-oc') {
+    if (item.key === 'mecanica' || item.key === 'mecanica-om' || item.key === 'mecanica-oc' || item.key === 'mecanica-ot') {
       return location.pathname === fullPath;
     }
     return location.pathname.startsWith(fullPath);
@@ -125,8 +155,13 @@ export function MobileBottomNav() {
         {items.map((item) => {
           const active = isActive(item);
           const locked = sidebarLocked && item.key !== 'settings';
-          const badgeCount = item.key === 'mecanica-om' ? openOMCount : item.key === 'mecanica-oc' ? openOCCount : 0;
-          const badgeColor = item.key === 'mecanica-oc' ? 'bg-red-500' : 'bg-primary';
+          const badgeCount =
+            item.key === 'mecanica-om' ? openOMCount :
+            item.key === 'mecanica-oc' ? openOCCount :
+            item.key === 'mecanica-ot' ? (openOTCount + otReadyCount) : 0;
+          const badgeColor =
+            item.key === 'mecanica-oc' ? 'bg-red-500' :
+            item.key === 'mecanica-ot' ? 'bg-amber-500' : 'bg-primary';
           return (
             <button
               key={item.key}
