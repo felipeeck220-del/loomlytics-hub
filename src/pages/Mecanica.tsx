@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
   import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package, Eye, FileDown, Settings } from 'lucide-react';
@@ -100,6 +101,13 @@ export default function MecanicaPage() {
  
   const { canSeeFinancial, role } = usePermissions();
   const isAdmin = role === 'admin';
+  const location = useLocation();
+  const pathTab = location.pathname.endsWith('/mecanica/om')
+    ? 'om'
+    : location.pathname.endsWith('/mecanica/oc')
+      ? 'oc'
+      : null;
+  const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
   const machines = getMachines();
   const machineLogs = getMachineLogs();
   const productions = getProductions();
@@ -1054,10 +1062,10 @@ export default function MecanicaPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="om" className="w-full">
+      <Tabs defaultValue={defaultTab} key={defaultTab} className="w-full">
          <TabsList className="flex flex-wrap h-auto justify-start gap-1">
-           <TabsTrigger value="om">OM</TabsTrigger>
-           <TabsTrigger value="oc" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">OC</TabsTrigger>
+           {isAdmin && <TabsTrigger value="om">OM</TabsTrigger>}
+           {isAdmin && <TabsTrigger value="oc" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">OC</TabsTrigger>}
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
            {isAdmin && <TabsTrigger value="detalhes">Detalhes</TabsTrigger>}
            {isAdmin && <TabsTrigger value="agulhas">Agulhas</TabsTrigger>}
