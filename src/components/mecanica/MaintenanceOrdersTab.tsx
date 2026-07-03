@@ -878,15 +878,41 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
       {/* Finish Modal */}
       <Dialog open={!!finishOrder} onOpenChange={v => !v && setFinishOrder(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Finalizar OM #{finishOrder ? String(finishOrder.om_number).padStart(3, '0') : ''}</DialogTitle></DialogHeader>
+        <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none p-0 flex flex-col sm:rounded-none [&>button.absolute]:hidden">
+          <DialogHeader className="p-4 border-b flex flex-row items-center justify-between sm:justify-between space-y-0 shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Square className="h-5 w-5 text-emerald-600" />
+              Finalizar OM #{finishOrder ? String(finishOrder.om_number).padStart(3, '0') : ''}
+              {finishOrder && (
+                <Badge variant="outline" className="ml-2">{TYPE_LABELS[finishOrder.type]} · {machineById[finishOrder.machine_id]?.name || ''}</Badge>
+              )}
+            </DialogTitle>
+            <Button variant="outline" size="sm" onClick={() => setFinishOrder(null)}>Fechar</Button>
+          </DialogHeader>
           {finishOrder && (
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-4xl w-full mx-auto">
               <div className="grid grid-cols-3 gap-3 text-sm">
-                <div><div className="text-xs text-muted-foreground">Início</div><div className="font-medium">{finishOrder.started_at ? format(new Date(finishOrder.started_at), 'dd/MM/yyyy HH:mm:ss') : '—'}</div></div>
-                <div><div className="text-xs text-muted-foreground">Fim (agora)</div><div className="font-medium">{format(new Date(), 'dd/MM/yyyy HH:mm:ss')}</div></div>
-                <div><div className="text-xs text-muted-foreground">Tempo total</div><div className="font-medium"><LiveTimer startedAt={finishOrder.started_at} /></div></div>
+                <div className="border rounded p-3"><div className="text-xs text-muted-foreground">Início</div><div className="font-medium">{finishOrder.started_at ? format(new Date(finishOrder.started_at), 'dd/MM/yyyy HH:mm:ss') : '—'}</div></div>
+                <div className="border rounded p-3"><div className="text-xs text-muted-foreground">Fim (agora)</div><div className="font-medium">{format(new Date(), 'dd/MM/yyyy HH:mm:ss')}</div></div>
+                <div className="border rounded p-3"><div className="text-xs text-muted-foreground">Tempo total</div><div className="font-medium text-emerald-600"><LiveTimer startedAt={finishOrder.started_at} /></div></div>
               </div>
+
+              {/* Anotações já registradas em curso (readonly aqui) */}
+              {Array.isArray(finishOrder.progress_notes) && finishOrder.progress_notes.length > 0 && (
+                <div className="border rounded p-3 bg-muted/30">
+                  <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Anotações registradas em curso ({finishOrder.progress_notes.length})</div>
+                  <ul className="space-y-1 text-xs max-h-40 overflow-y-auto">
+                    {(finishOrder.progress_notes as ProgressNote[]).map(n => (
+                      <li key={n.id} className="flex gap-2 items-start">
+                        <Badge variant="outline" className="text-[9px] shrink-0">{n.kind === 'item' ? 'ITEM' : 'OBS'}</Badge>
+                        <span className="flex-1">{n.text}</span>
+                        <span className="text-muted-foreground shrink-0">{format(new Date(n.ts), 'dd/MM HH:mm')}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="border-t pt-3">
                 <div className="flex items-center justify-between mb-2">
                   <Label className="font-semibold">Itens trocados</Label>
@@ -937,12 +963,127 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                   ))}
                 </div>
               </div>
+
+              <div className="border-t pt-3 space-y-2">
+                <Label className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Observações finais</Label>
+                <p className="text-xs text-muted-foreground">Registre aqui um resumo final: itens trocados que não estão na lista acima, observações do serviço, causa raiz, recomendações etc. Este texto fica salvo na OM e aparece no relatório em PDF.</p>
+                <Textarea rows={8} value={finishNotes} onChange={e => setFinishNotes(e.target.value)} placeholder="Ex.: Realizada troca completa de agulhas. Verificada folga no cilindro — recomenda-se preventiva em 30 dias..." />
+              </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFinishOrder(null)}>Cancelar</Button>
-            <Button onClick={() => setConfirmFinishGate(true)}>Confirmar finalização</Button>
-          </DialogFooter>
+          <div className="border-t p-4 flex justify-end gap-2 shrink-0">
+            <Button variant="outline" onClick={() => setFinishOrder(null)}>Fechar</Button>
+            <Button onClick={() => setConfirmFinishGate(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+              <Square className="h-4 w-4" /> Confirmar finalização
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Progress Notes Modal (Em Curso) */}
+      <Dialog open={!!progressOrder} onOpenChange={v => !v && setProgressOrder(null)}>
+        <DialogContent className="w-screen h-screen max-w-none max-h-none rounded-none p-0 flex flex-col sm:rounded-none [&>button.absolute]:hidden">
+          <DialogHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0 shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="h-5 w-5 text-blue-600" />
+              Notas & Itens — OM #{progressOrder ? String(progressOrder.om_number).padStart(3, '0') : ''}
+              {progressOrder && (
+                <Badge variant="outline" className="ml-2">{machineById[progressOrder.machine_id]?.name || ''}</Badge>
+              )}
+              {progressOrder?.started_at && (
+                <Badge className="bg-blue-600 text-white gap-1"><Clock className="h-3 w-3" /><LiveTimer startedAt={progressOrder.started_at} /></Badge>
+              )}
+            </DialogTitle>
+            <Button variant="outline" size="sm" onClick={() => setProgressOrder(null)}>Fechar</Button>
+          </DialogHeader>
+          {progressOrder && (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl w-full mx-auto space-y-5">
+              <div className="rounded-md border-l-4 border-blue-500 bg-blue-500/5 p-3 text-sm">
+                <div className="font-semibold text-foreground">Relatório temporário</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Cada anotação é salva na OM imediatamente. Feche o modal quando quiser — nada se perde. Estas anotações também entram no relatório em PDF ao finalizar a OM.</div>
+              </div>
+
+              {/* Adicionar */}
+              <div className="border rounded-lg p-4 space-y-3 bg-card">
+                <Label className="font-semibold">Nova anotação</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={progressDraft.kind === 'observacao' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setProgressDraft(p => ({ ...p, kind: 'observacao' }))}
+                    className="gap-1.5"
+                  >
+                    <FileText className="h-3.5 w-3.5" /> Observação
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={progressDraft.kind === 'item' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setProgressDraft(p => ({ ...p, kind: 'item' }))}
+                    className="gap-1.5"
+                  >
+                    <Wrench className="h-3.5 w-3.5" /> Item trocado
+                  </Button>
+                </div>
+                <Textarea
+                  rows={5}
+                  value={progressDraft.text}
+                  onChange={e => setProgressDraft(p => ({ ...p, text: e.target.value }))}
+                  placeholder={progressDraft.kind === 'item'
+                    ? 'Ex.: Troquei 24 agulhas ref. 100 na cabeça 3'
+                    : 'Ex.: Cilindro apresentando folga leve, verificar próxima preventiva'}
+                />
+                <div className="flex justify-end">
+                  <Button onClick={addProgressNote} disabled={progressSaving} className="gap-1.5">
+                    {progressSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Salvar anotação
+                  </Button>
+                </div>
+              </div>
+
+              {/* Lista */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold">Anotações registradas ({currentProgressList.length})</Label>
+                </div>
+                {currentProgressList.length === 0 ? (
+                  <div className="border rounded-lg p-8 text-center text-sm text-muted-foreground">
+                    Nenhuma anotação ainda. Registre acima o que for feito ou observado durante a manutenção.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {[...currentProgressList].reverse().map(n => (
+                      <div key={n.id} className={cn(
+                        'border rounded-lg p-3 flex gap-3 items-start',
+                        n.kind === 'item' ? 'border-l-4 border-l-amber-500 bg-amber-500/5' : 'border-l-4 border-l-blue-500 bg-blue-500/5'
+                      )}>
+                        <Badge variant="outline" className={cn(
+                          'shrink-0 uppercase text-[10px]',
+                          n.kind === 'item' ? 'border-amber-500 text-amber-700 dark:text-amber-400' : 'border-blue-500 text-blue-700 dark:text-blue-400'
+                        )}>
+                          {n.kind === 'item' ? 'Item' : 'Obs'}
+                        </Badge>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm whitespace-pre-wrap break-words">{n.text}</div>
+                          <div className="text-[11px] text-muted-foreground mt-1">
+                            {format(new Date(n.ts), 'dd/MM/yyyy HH:mm')} · {n.author || '—'}
+                          </div>
+                        </div>
+                        {canExecute && (
+                          <Button size="icon" variant="ghost" onClick={() => removeProgressNote(n.id)} className="shrink-0 h-8 w-8">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="border-t p-4 flex justify-end shrink-0">
+            <Button variant="outline" onClick={() => setProgressOrder(null)}>Fechar</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
