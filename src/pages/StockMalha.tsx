@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { sanitizePdfText } from '@/lib/pdfUtils';
@@ -83,7 +84,7 @@ export default function StockMalha() {
   const canOwnStock = role === 'admin' || (role as any) === 'expedicao';
 
   // Own stock data
-  const { data: ownArticles = [] } = useQuery({
+  const { data: ownArticles = [], isLoading: ownArticlesLoading } = useQuery({
     queryKey: ['own_stock_articles', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('own_stock_articles')
@@ -95,7 +96,7 @@ export default function StockMalha() {
     },
     enabled: !!companyId,
   });
-  const { data: ownMovements = [] } = useQuery({
+  const { data: ownMovements = [], isLoading: ownMovementsLoading } = useQuery({
     queryKey: ['own_stock_movements', companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)('own_stock_movements')
@@ -132,6 +133,7 @@ export default function StockMalha() {
     saldoKg: acc.saldoKg + (r.inKg - r.outKg),
     saldoPc: acc.saldoPc + (r.inPc - r.outPc),
   }), { entradaKg: 0, entradaPc: 0, saidaKg: 0, saidaPc: 0, saldoKg: 0, saldoPc: 0 }), [ownSummary]);
+  const isOwnLoading = ownArticlesLoading || ownMovementsLoading;
 
   const refreshAllStock = () => {
     queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock', companyId] });
@@ -774,40 +776,56 @@ export default function StockMalha() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card><CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Entradas 2ª</div>
-            <p className="text-xl font-bold text-foreground">{formatWeight(segundaKpis.entradaKg)}</p>
-            <p className="text-[10px] text-muted-foreground">{formatNumber(segundaKpis.entradaRolls)} pç</p>
+            {isStockLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
+              <p className="text-xl font-bold text-foreground">{formatWeight(segundaKpis.entradaKg)}</p>
+              <p className="text-[10px] text-muted-foreground">{formatNumber(segundaKpis.entradaRolls)} pç</p>
+            </>)}
           </CardContent></Card>
           <Card><CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Saídas 2ª</div>
-            <p className="text-xl font-bold text-foreground">{formatWeight(segundaKpis.saidaKg)}</p>
-            <p className="text-[10px] text-muted-foreground">{formatNumber(segundaKpis.saidaRolls)} pç</p>
+            {isStockLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
+              <p className="text-xl font-bold text-foreground">{formatWeight(segundaKpis.saidaKg)}</p>
+              <p className="text-[10px] text-muted-foreground">{formatNumber(segundaKpis.saidaRolls)} pç</p>
+            </>)}
           </CardContent></Card>
           <Card><CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Layers className="h-3.5 w-3.5" />Saldo 2ª (kg)</div>
-            <p className={cn('text-xl font-bold', segundaKpis.saldoKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(segundaKpis.saldoKg)}</p>
+            {isStockLoading ? (<Skeleton className="h-6 w-24" />) : (
+              <p className={cn('text-xl font-bold', segundaKpis.saldoKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(segundaKpis.saldoKg)}</p>
+            )}
           </CardContent></Card>
           <Card><CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Scale className="h-3.5 w-3.5" />Saldo 2ª (peças)</div>
-            <p className={cn('text-xl font-bold', segundaKpis.saldoRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(segundaKpis.saldoRolls)}</p>
+            {isStockLoading ? (<Skeleton className="h-6 w-24" />) : (
+              <p className={cn('text-xl font-bold', segundaKpis.saldoRolls < 0 ? 'text-destructive' : 'text-success')}>{formatNumber(segundaKpis.saldoRolls)}</p>
+            )}
           </CardContent></Card>
         </div>
       ) : activeStockTab === 'estoque' ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card><CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Produzido</div>
-            <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.producedKg)}</p>
+            {isStockLoading ? (<Skeleton className="h-6 w-24" />) : (
+              <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.producedKg)}</p>
+            )}
           </CardContent></Card>
           <Card><CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Entregue (OF coletadas)</div>
-            <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.deliveredKg)}</p>
+            {isStockLoading ? (<Skeleton className="h-6 w-24" />) : (
+              <p className="text-xl font-bold text-foreground">{formatWeight(estoqueKpis.deliveredKg)}</p>
+            )}
           </CardContent></Card>
           <Card><CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Lock className="h-3.5 w-3.5" />Reservado (OFs Pronto)</div>
-            <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatWeight(estoqueKpis.reservedKg)}</p>
+            {isStockLoading ? (<Skeleton className="h-6 w-24" />) : (
+              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatWeight(estoqueKpis.reservedKg)}</p>
+            )}
           </CardContent></Card>
           <Card><CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Disponível</div>
-            <p className={cn('text-xl font-bold', estoqueKpis.availableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(estoqueKpis.availableKg)}</p>
+            {isStockLoading ? (<Skeleton className="h-6 w-24" />) : (
+              <p className={cn('text-xl font-bold', estoqueKpis.availableKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(estoqueKpis.availableKg)}</p>
+            )}
           </CardContent></Card>
         </div>
       ) : null}
@@ -1071,18 +1089,24 @@ export default function StockMalha() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Entradas</div>
-              <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.entradaKg)}</p>
-              <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.entradaPc)} pç</p>
+              {isOwnLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
+                <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.entradaKg)}</p>
+                <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.entradaPc)} pç</p>
+              </>)}
             </CardContent></Card>
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Saídas</div>
-              <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.saidaKg)}</p>
-              <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saidaPc)} pç</p>
+              {isOwnLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
+                <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.saidaKg)}</p>
+                <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saidaPc)} pç</p>
+              </>)}
             </CardContent></Card>
             <Card><CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Saldo</div>
-              <p className={cn('text-xl font-bold', ownKpis.saldoKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(ownKpis.saldoKg)}</p>
-              <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saldoPc)} pç</p>
+              {isOwnLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
+                <p className={cn('text-xl font-bold', ownKpis.saldoKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(ownKpis.saldoKg)}</p>
+                <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saldoPc)} pç</p>
+              </>)}
             </CardContent></Card>
           </div>
 
