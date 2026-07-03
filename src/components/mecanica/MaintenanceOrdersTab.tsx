@@ -508,19 +508,20 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
 
   const deleteOrder = async (o: MaintenanceOrder) => {
-    if (!canManage) return;
+    if (!canManageOrder(o)) { toast.error('Sem permissão para excluir esta ordem'); return; }
+    const label = o.type === 'manutencao_corretiva' ? 'OC' : 'OM';
     if (o.status === 'finalizada' && !isAdmin) {
-      toast.error('Apenas administradores podem excluir OMs finalizadas.');
+      toast.error(`Apenas administradores podem excluir ${label}s finalizadas.`);
       return;
     }
     if (o.status === 'em_curso') {
-      toast.error('Não é possível excluir uma OM em curso. Finalize ou cancele primeiro.');
+      toast.error(`Não é possível excluir uma ${label} em curso. Finalize ou cancele primeiro.`);
       return;
     }
     await (supabase.from as any)('maintenance_order_items').delete().eq('order_id', o.id);
     await (supabase.from as any)('maintenance_orders').delete().eq('id', o.id);
-    toast.success('OM excluída');
-    logAction('om_delete', { om: o.om_number });
+    toast.success(`${label} excluída`);
+    logAction(o.type === 'manutencao_corretiva' ? 'oc_delete' : 'om_delete', { om: o.om_number });
     await load();
   };
 
