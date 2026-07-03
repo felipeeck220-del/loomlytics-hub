@@ -1062,7 +1062,7 @@ export default function MecanicaPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={defaultTab} defaultValue={defaultTab} key={defaultTab} className="w-full">
+      <Tabs defaultValue={defaultTab} key={defaultTab} className="w-full">
          <TabsList className="flex flex-wrap h-auto justify-start gap-1">
            {isAdmin && <TabsTrigger value="om">OM</TabsTrigger>}
            {isAdmin && <TabsTrigger value="oc" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">OC</TabsTrigger>}
