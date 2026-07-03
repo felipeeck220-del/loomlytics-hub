@@ -547,7 +547,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   };
   const kgLabel = (kgLeft: number | null, kgTarget: number | null) => {
     if (kgTarget == null) return 'Sem meta';
-    if (kgLeft == null) return '—';
+    if (kgLeft == null) return 'Sem histórico';
     const fmt = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
     if (kgLeft <= 0) return `Atingido (${fmt(Math.abs(kgLeft))} kg acima)`;
     return `${fmt(kgLeft)} kg restantes`;
