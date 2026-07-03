@@ -669,12 +669,13 @@ function ElastanoEditor({ elastano, onChange, yarnOptions }: {
   );
 }
 
-function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
+function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }: {
   onClose: () => void;
   onSaved: () => void;
   machines: any[];
   articles: any[];
   yarnTypes: any[];
+  orders: OT[];
 }) {
   const { user } = useAuth();
   const { logAction, userName, userCode } = useAuditLog();
@@ -705,6 +706,26 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes }: {
 
   const save = async () => {
     if (!canSave || !user?.company_id) return;
+
+    // Bloqueio de artigo igual
+    if (currentArticleId && nextArticleId && currentArticleId === nextArticleId) {
+      toast.error('O próximo artigo deve ser diferente do artigo atual.');
+      return;
+    }
+
+    // Bloqueio de OT duplicada na mesma máquina (aberta ou em qualquer etapa em curso)
+    const busy = orders.find(
+      o => o.machine_id === machineId &&
+      (o.status === 'aberto' || IN_PROGRESS.includes(o.status))
+    );
+    if (busy) {
+      const m = machines.find(x => x.id === machineId);
+      toast.error(
+        `${m?.name || 'Máquina'} já tem a OT #${String(busy.ot_number).padStart(3, '0')} ${STATUS_LABEL[busy.status].toLowerCase()}. Finalize ou cancele antes de criar outra.`
+      );
+      return;
+    }
+
     setSaving(true);
     const { data: ins, error } = await (supabase.from as any)('article_change_orders')
       .insert({
