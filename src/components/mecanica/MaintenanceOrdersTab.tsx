@@ -21,12 +21,7 @@ import type {
   MaintenanceOrderType, MaintenanceOrderPriority, MaintenanceOrderStatus,
   NeedleInventory, SinkerInventory, Cylinder,
 } from '@/types';
-import { MACHINE_STATUS_LABELS } from '@/types/machine';
 import { SearchableSelect } from '@/components/SearchableSelect';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { sanitizePdfText } from '@/lib/pdfUtils';
-import { loadLogoForPdf } from '@/lib/clientInvoicePdf';
 import { generateOmReportPdf } from '@/lib/omReportPdf';
 
 type ProgressNote = {
