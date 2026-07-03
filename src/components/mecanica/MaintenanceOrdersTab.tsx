@@ -77,6 +77,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const canManage = role === 'admin' || role === 'lider_mecanica';
   const canExecute = canManage || role === 'mecanico' || role === 'lider';
+  const isAdmin = role === 'admin';
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
@@ -359,6 +360,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   const deleteOrder = async (o: MaintenanceOrder) => {
     if (!canManage) return;
+    if (o.status === 'finalizada' && !isAdmin) {
+      toast.error('Apenas administradores podem excluir OMs finalizadas.');
+      return;
+    }
     if (o.status === 'em_curso') {
       toast.error('Não é possível excluir uma OM em curso. Finalize ou cancele primeiro.');
       return;
