@@ -523,13 +523,18 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     await load();
   };
 
-  const filtered = useMemo(() => orders.filter(o => o.status === tab), [orders, tab]);
+  // Filtra por modo (OM = não-corretivas; OC = apenas corretivas)
+  const modeOrders = useMemo(
+    () => orders.filter(o => (isOC ? o.type === 'manutencao_corretiva' : o.type !== 'manutencao_corretiva')),
+    [orders, isOC],
+  );
+  const filtered = useMemo(() => modeOrders.filter(o => o.status === tab), [modeOrders, tab]);
   const counts = useMemo(() => ({
-    aberto: orders.filter(o => o.status === 'aberto').length,
-    em_curso: orders.filter(o => o.status === 'em_curso').length,
-    finalizada: orders.filter(o => o.status === 'finalizada').length,
-    cancelada: orders.filter(o => o.status === 'cancelada').length,
-  }), [orders]);
+    aberto: modeOrders.filter(o => o.status === 'aberto').length,
+    em_curso: modeOrders.filter(o => o.status === 'em_curso').length,
+    finalizada: modeOrders.filter(o => o.status === 'finalizada').length,
+    cancelada: modeOrders.filter(o => o.status === 'cancelada').length,
+  }), [modeOrders]);
 
   // Urgência de manutenção por máquina (mesma lógica do Calendário)
   const urgencyByMachine = useMemo(() => {
