@@ -128,11 +128,16 @@ export function AppSidebar() {
     const adminFiltered = companyFiltered.filter(item => !((item as any).nonAdminOnly && isAdmin));
     const roleFiltered = filterNavItems(adminFiltered);
 
+    // Mecânico acessa OM/OC exclusivamente pelo footer fixo
+    const mecanicoFiltered = user?.role === 'mecanico'
+      ? roleFiltered.filter(item => item.key !== 'mecanica-om' && item.key !== 'mecanica-oc')
+      : roleFiltered;
+
     // On mobile, hide items that are in the bottom nav
     const mobileFooterKeys = getMobileFooterKeys(user?.role || 'admin');
     const finalItems = isMobile
-      ? roleFiltered.filter(item => !mobileFooterKeys.includes(item.key))
-      : roleFiltered;
+      ? mecanicoFiltered.filter(item => !mobileFooterKeys.includes(item.key))
+      : mecanicoFiltered;
 
     const firstName = companyName.split(' ')[0];
 
