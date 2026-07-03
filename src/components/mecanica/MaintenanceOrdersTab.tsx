@@ -290,9 +290,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       status: 'em_curso', started_at: now, started_by_id: user?.id, started_by_name: authorLabel,
       machine_log_id: (log as any).id,
     }).eq('id', o.id);
-    if (error) { toast.error('Erro ao iniciar OM'); return; }
-    toast.success('OM iniciada');
-    logAction('om_start', { om: o.om_number });
+    const isCorr = o.type === 'manutencao_corretiva';
+    if (error) { toast.error(`Erro ao iniciar ${isCorr ? 'OC' : 'OM'}`); return; }
+    toast.success(`${isCorr ? 'OC' : 'OM'} iniciada`);
+    logAction(isCorr ? 'oc_start' : 'om_start', { om: o.om_number });
     refreshMachines();
     await load();
   };
@@ -344,7 +345,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       duration_seconds: seconds,
       finish_notes: finishNotes || null,
     }).eq('id', finishOrder.id);
-    if (error) { toast.error('Erro ao finalizar OM'); return; }
+    const isCorr = finishOrder.type === 'manutencao_corretiva';
+    if (error) { toast.error(`Erro ao finalizar ${isCorr ? 'OC' : 'OM'}`); return; }
 
     // 4) insere itens
     const itemsToInsert = finishItems.filter(it => it.quantity > 0 && (it.ref_id || it.description)).map(it => ({
@@ -423,8 +425,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         .eq('id', finishOrder.machine_id);
     }
 
-    toast.success('OM finalizada');
-    logAction('om_finish', { om: finishOrder.om_number, duration_s: seconds, items: itemsToInsert.length });
+    toast.success(`${isCorr ? 'OC' : 'OM'} finalizada`);
+    logAction(isCorr ? 'oc_finish' : 'om_finish', { om: finishOrder.om_number, duration_s: seconds, items: itemsToInsert.length });
     setFinishOrder(null);
     await load();
     await Promise.resolve(refreshMachines());
@@ -440,8 +442,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       cancellation_reason: reason,
     }).eq('id', o.id);
     if (error) { toast.error('Erro ao cancelar'); return; }
-    toast.success('OM cancelada');
-    logAction('om_cancel', { om: o.om_number, reason });
+    toast.success(`${label} cancelada`);
+    logAction(o.type === 'manutencao_corretiva' ? 'oc_cancel' : 'om_cancel', { om: o.om_number, reason });
     await load();
   };
 
@@ -687,7 +689,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         </TabsList>
         <TabsContent value={tab} className="mt-4">
           {displayed.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma OM nessa lista.</div>
+            <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma {labelShort} nessa lista.</div>
           ) : (
             <div className="space-y-3">
               {displayed.map(o => {
