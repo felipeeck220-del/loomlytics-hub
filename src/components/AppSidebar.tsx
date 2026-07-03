@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle, Repeat,
 } from 'lucide-react';
 import { useInstallApp } from '@/hooks/useInstallApp';
 import {
@@ -37,6 +37,7 @@ const allItems = [
   { title: 'Mecânica', path: 'mecanica', icon: Wrench, key: 'mecanica', end: true },
   { title: 'OM', path: 'mecanica/om', icon: ClipboardList, key: 'mecanica-om', nonAdminOnly: true, end: true },
   { title: 'OC', path: 'mecanica/oc', icon: AlertTriangle, key: 'mecanica-oc', nonAdminOnly: true, end: true },
+  { title: 'OT', path: 'mecanica/ot', icon: Repeat, key: 'mecanica-ot', nonAdminOnly: true, end: true },
   { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
   { title: 'Tecelões', path: 'weavers', icon: HardHat, key: 'weavers' },
   { title: 'Relatórios', path: 'reports', icon: FileText, key: 'reports' },
@@ -62,6 +63,8 @@ export function AppSidebar() {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [openOMCount, setOpenOMCount] = useState(0);
   const [openOCCount, setOpenOCCount] = useState(0);
+  const [openOTCount, setOpenOTCount] = useState(0);
+  const [otReadyCount, setOtReadyCount] = useState(0);
   const isAdmin = role === 'admin';
   const { canInstall, platform, install, showIOSInstructions, setShowIOSInstructions } = useInstallApp();
 
@@ -117,11 +120,34 @@ export function AppSidebar() {
     return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [user?.company_id]);
 
+  // Contagem em tempo real de OTs (aberto + prontas p/ regulagem)
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const companyId = user.company_id;
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await (supabase.from as any)('article_change_orders')
+        .select('status')
+        .eq('company_id', companyId)
+        .in('status', ['aberto', 'aguardando_regulagem', 'em_regulagem']);
+      if (cancelled) return;
+      const rows = (data || []) as Array<{ status: string }>;
+      setOpenOTCount(rows.filter(r => r.status === 'aberto').length);
+      setOtReadyCount(rows.filter(r => r.status === 'aguardando_regulagem' || r.status === 'em_regulagem').length);
+    };
+    load();
+    const channel = (supabase as any)
+      .channel(`sidebar-ot-${companyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'article_change_orders', filter: `company_id=eq.${companyId}` }, () => load())
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(channel); };
+  }, [user?.company_id]);
+
   const items = useMemo(() => {
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? allItems.filter(item => {
-          if (item.key === 'mecanica-om' || item.key === 'mecanica-oc') return mecanicaEnabled;
+          if (item.key === 'mecanica-om' || item.key === 'mecanica-oc' || item.key === 'mecanica-ot') return mecanicaEnabled;
           return enabledNavItems.includes(item.key);
         })
       : allItems;
@@ -131,14 +157,18 @@ export function AppSidebar() {
     // Mecânico e Líder de Mecânica acessam OM/OC exclusivamente pelo footer fixo
     const footerOnlyOmOc = user?.role === 'mecanico' || user?.role === 'lider_mecanica';
     const mecanicoFiltered = footerOnlyOmOc
-      ? roleFiltered.filter(item => item.key !== 'mecanica-om' && item.key !== 'mecanica-oc')
+      ? roleFiltered.filter(item => item.key !== 'mecanica-om' && item.key !== 'mecanica-oc' && item.key !== 'mecanica-ot')
       : roleFiltered;
+
+    // Mecânico: só vê OT quando existe pelo menos 1 pronta para regulagem
+    const mecanicoOtVisible = user?.role === 'mecanico' ? otReadyCount > 0 : true;
+    const otFiltered = mecanicoOtVisible ? mecanicoFiltered : mecanicoFiltered.filter(i => i.key !== 'mecanica-ot');
 
     // On mobile, hide items that are in the bottom nav
     const mobileFooterKeys = getMobileFooterKeys(user?.role || 'admin');
     const finalItems = isMobile
-      ? mecanicoFiltered.filter(item => !mobileFooterKeys.includes(item.key))
-      : mecanicoFiltered;
+      ? otFiltered.filter(item => !mobileFooterKeys.includes(item.key))
+      : otFiltered;
 
     const firstName = companyName.split(' ')[0];
 
@@ -147,7 +177,7 @@ export function AppSidebar() {
       title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName]);
+  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName, otReadyCount]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -236,6 +266,11 @@ export function AppSidebar() {
                               {item.key === 'mecanica-oc' && openOCCount > 0 && (
                                 <span className="ml-auto text-[10px] bg-red-500/15 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full font-semibold leading-none">
                                   {openOCCount}
+                                </span>
+                              )}
+                              {item.key === 'mecanica-ot' && (openOTCount + otReadyCount) > 0 && (
+                                <span className="ml-auto text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold leading-none">
+                                  {openOTCount + otReadyCount}
                                 </span>
                               )}
                             </span>
