@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { format, formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { format } from 'date-fns';
 import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
