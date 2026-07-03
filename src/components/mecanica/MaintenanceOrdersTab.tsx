@@ -513,11 +513,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       const fromDateStr = lastDate
         ? `${lastDate.getFullYear()}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(lastDate.getDate()).padStart(2, '0')}`
         : null;
-      const kgSince = productions
-        .filter((p: any) => p.machine_id === m.id && (!fromDateStr || String(p.date) >= fromDateStr))
-        .reduce((s: number, p: any) => s + (Number(p.weight_kg) || 0), 0);
       const kgTarget = (m as any).maintenance_kg_target && (m as any).maintenance_kg_target > 0 ? (m as any).maintenance_kg_target : null;
-      const kgLeft = kgTarget != null ? kgTarget - kgSince : null;
+      // Sem histórico de preventiva → kg restantes é desconhecido (evita inflar com produção acumulada de sempre)
+      const kgSince = fromDateStr
+        ? productions
+            .filter((p: any) => p.machine_id === m.id && String(p.date) >= fromDateStr)
+            .reduce((s: number, p: any) => s + (Number(p.weight_kg) || 0), 0)
+        : null;
+      const kgLeft = kgTarget != null && kgSince != null ? kgTarget - kgSince : null;
       map.set(m.id, { daysLeft, kgLeft, kgTarget, intervalDays });
     }
     return map;
@@ -556,8 +559,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const score = (o: MaintenanceOrder) => {
       const u = urgencyByMachine.get(o.machine_id);
       if (!u) return Number.POSITIVE_INFINITY;
-      const dScore = u.daysLeft ?? 9999;
-      const kScore = u.kgTarget != null && u.kgLeft != null ? (u.kgLeft / u.kgTarget) * 30 : 9999;
+      const dScore = u.daysLeft ?? Number.POSITIVE_INFINITY;
+      const kScore = u.kgTarget != null && u.kgLeft != null ? (u.kgLeft / u.kgTarget) * 30 : Number.POSITIVE_INFINITY;
       return Math.min(dScore, kScore);
     };
     return [...filtered].sort((a, b) => score(a) - score(b));
