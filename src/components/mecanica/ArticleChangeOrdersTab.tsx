@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Timer, Wrench, ClipboardCheck, FileText, Copy } from 'lucide-react';
+import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -261,10 +262,40 @@ export default function ArticleChangeOrdersTab() {
       </div>
 
       <Tabs value={tab} onValueChange={(v: any) => setTab(v)}>
-        <TabsList>
-          <TabsTrigger value="aberto">Aberto ({orders.filter(o => o.status === 'aberto').length})</TabsTrigger>
-          <TabsTrigger value="em_curso">Em curso ({orders.filter(o => IN_PROGRESS.includes(o.status)).length})</TabsTrigger>
-          <TabsTrigger value="concluidas">Concluídas / Canceladas</TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
+          <TabsTrigger
+            value="aberto"
+            className={cn(
+              'gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial',
+              orders.filter(o => o.status === 'aberto').length > 0 && 'data-[state=active]:bg-amber-500 data-[state=active]:text-white'
+            )}
+          >
+            <AlertTriangle className="h-3 w-3" /> Aberto
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">
+              {orders.filter(o => o.status === 'aberto').length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger
+            value="em_curso"
+            className={cn(
+              'gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial',
+              orders.filter(o => IN_PROGRESS.includes(o.status)).length > 0 && 'data-[state=active]:bg-blue-600 data-[state=active]:text-white animate-pulse'
+            )}
+          >
+            <Clock className="h-3 w-3" /> Em Curso
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">
+              {orders.filter(o => IN_PROGRESS.includes(o.status)).length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger
+            value="concluidas"
+            className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+          >
+            <Square className="h-3 w-3" /> Concluídas
+            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">
+              {orders.filter(o => o.status === 'concluida' || o.status === 'cancelada').length}
+            </Badge>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={tab} className="mt-4">
@@ -273,7 +304,7 @@ export default function ArticleChangeOrdersTab() {
           ) : filtered.length === 0 ? (
             <div className="text-sm text-muted-foreground py-6 text-center">Nenhuma OT nesta aba.</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-3">
               {filtered.map(o => (
                 <OTCard
                   key={o.id}
@@ -353,117 +384,196 @@ function OTCard(props: {
   const adjTimer = useLiveTimer(o.status === 'em_regulagem' ? o.adjustment_started_at : null);
   const monTimer = useLiveTimer(o.status === 'em_acompanhamento' ? o.monitoring_started_at : null);
 
-  const statusColor: Record<OTStatus, string> = {
-    aberto: 'bg-slate-500/15 text-slate-700 dark:text-slate-300',
-    troca_fio_em_curso: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
-    aguardando_regulagem: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-    em_regulagem: 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
-    em_acompanhamento: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300',
-    concluida: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-    cancelada: 'bg-red-500/15 text-red-700 dark:text-red-300',
+  const STATUS_STYLE: Record<OTStatus, { stripe: string; badge: string; label: string }> = {
+    aberto: { stripe: 'bg-amber-500', badge: 'bg-amber-500 text-white', label: 'ABERTA' },
+    troca_fio_em_curso: { stripe: 'bg-blue-600', badge: 'bg-blue-600 text-white', label: 'TROCA DE FIO' },
+    aguardando_regulagem: { stripe: 'bg-amber-600', badge: 'bg-amber-600 text-white', label: 'AGUARDANDO REGULAGEM' },
+    em_regulagem: { stripe: 'bg-purple-600', badge: 'bg-purple-600 text-white', label: 'EM REGULAGEM' },
+    em_acompanhamento: { stripe: 'bg-cyan-600', badge: 'bg-cyan-600 text-white', label: 'EM ACOMPANHAMENTO' },
+    concluida: { stripe: 'bg-emerald-600', badge: 'bg-emerald-600 text-white', label: 'CONCLUÍDA' },
+    cancelada: { stripe: 'bg-zinc-500', badge: 'bg-zinc-500 text-white', label: 'CANCELADA' },
   };
+  const style = STATUS_STYLE[o.status];
+
+  const renderAuthor = (name?: string | null) => name || '—';
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <CardTitle className="text-base font-bold">OT #{String(o.ot_number).padStart(3, '0')} — {machineName}</CardTitle>
-            <div className="text-xs text-muted-foreground mt-1">
-              Criada por {o.created_by_name || '—'} em {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}
+    <Card className="relative overflow-hidden border bg-card hover:shadow-md transition-shadow">
+      <div className={cn('absolute left-0 top-0 bottom-0 w-1.5', style.stripe)} />
+      <CardContent className="p-4 pl-5">
+        <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+          {/* Coluna principal */}
+          <div className="flex-1 min-w-0 space-y-2">
+            {/* Linha 1: Status + OT# + Tipo + Timer */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className={cn(style.badge, 'font-bold text-[10px] tracking-wide uppercase px-2 py-0.5')}>
+                {style.label}
+              </Badge>
+              <span className="font-bold text-lg text-amber-600 dark:text-amber-400">
+                OT #{String(o.ot_number).padStart(3, '0')}
+              </span>
+              <Badge variant="outline" className="font-semibold uppercase text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-400">
+                TROCA DE ARTIGO
+              </Badge>
+              {o.status === 'aberto' && (
+                <Badge variant="outline" className="gap-1 text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-400">
+                  <Clock className="h-3 w-3" /> Aguardando início {waitTimer}
+                </Badge>
+              )}
+              {o.status === 'troca_fio_em_curso' && (
+                <Badge className="bg-blue-600 text-white border-blue-700 gap-1 text-[10px] px-2 py-0.5">
+                  <Clock className="h-3 w-3" /> Troca de fio {yarnTimer}
+                </Badge>
+              )}
+              {o.status === 'aguardando_regulagem' && (
+                <Badge variant="outline" className="gap-1 text-[10px] border-amber-600/60 text-amber-700 dark:text-amber-400">
+                  <Clock className="h-3 w-3" /> Aguardando regulagem {awaitAdjTimer}
+                </Badge>
+              )}
+              {o.status === 'em_regulagem' && (
+                <Badge className="bg-purple-600 text-white border-purple-700 gap-1 text-[10px] px-2 py-0.5">
+                  <Clock className="h-3 w-3" /> Regulagem {adjTimer}
+                </Badge>
+              )}
+              {o.status === 'em_acompanhamento' && (
+                <Badge className="bg-cyan-600 text-white border-cyan-700 gap-1 text-[10px] px-2 py-0.5">
+                  <Clock className="h-3 w-3" /> Acompanhamento {monTimer}
+                </Badge>
+              )}
             </div>
-          </div>
-          <Badge className={statusColor[o.status]}>{STATUS_LABEL[o.status]}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-2 text-sm p-2 rounded-md bg-muted/40">
-          <span className="font-medium">{currentArticleName}</span>
-          <ArrowRight className="h-4 w-4 text-primary shrink-0" />
-          <span className="font-medium text-primary">{nextArticleName}</span>
-        </div>
 
-        {o.yarns && o.yarns.length > 0 && (
-          <div className="space-y-1">
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Fitas</div>
-            <div className="grid grid-cols-1 gap-1">
-              {o.yarns.map((y, i) => (
-                <div key={i} className="text-xs flex items-center gap-2 p-1.5 rounded border border-border/60">
-                  <Badge variant="outline" className="text-[10px]">
-                    {y.feeder_type === 'elastano' ? 'ELAST' : `FITA ${y.feeder_position}`}
-                  </Badge>
-                  <span className="font-medium truncate">{yarnName(y.yarn_type_id)}</span>
-                  <span className="text-muted-foreground ml-auto">LFA {y.lfa ?? '—'} · Est {y.stretch ?? '—'}</span>
+            {/* Linha 2: Máquina em destaque */}
+            <div className="text-base font-semibold text-foreground">{machineName}</div>
+
+            {/* Linha 3: Artigo atual → próximo */}
+            <div className="flex items-center gap-2 text-sm p-2 rounded-md bg-muted/40 flex-wrap">
+              <span className="text-[10px] uppercase text-muted-foreground font-semibold">Artigo</span>
+              <span className="font-medium truncate">{currentArticleName}</span>
+              <ArrowRight className="h-4 w-4 text-amber-600 shrink-0" />
+              <span className="font-semibold text-amber-700 dark:text-amber-400 truncate">{nextArticleName}</span>
+            </div>
+
+            {/* Fitas */}
+            {o.yarns && o.yarns.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Fitas ({o.yarns.length})</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                  {o.yarns.map((y, i) => (
+                    <div key={i} className="text-xs flex items-center gap-2 p-1.5 rounded border border-border/60 bg-background/60">
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        {y.feeder_type === 'elastano' ? 'ELAST' : `FITA ${y.feeder_position}`}
+                      </Badge>
+                      <span className="font-medium truncate">{yarnName(y.yarn_type_id)}</span>
+                      <span className="text-muted-foreground ml-auto tabular-nums shrink-0">
+                        LFA {y.lfa ?? '—'}{y.feeder_type === 'elastano' ? ` · Est ${y.stretch ?? '—'}` : ''}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        {o.observations && (
-          <div className="text-xs text-muted-foreground border-l-2 border-primary/40 pl-2">
-            {o.observations}
-          </div>
-        )}
+            {/* Observações */}
+            {o.observations && (
+              <p className="text-xs text-muted-foreground line-clamp-2">{o.observations}</p>
+            )}
 
-        {/* Timers */}
-        {o.status === 'aberto' && (
-          <div className="text-xs flex items-center gap-1.5 text-amber-700 dark:text-amber-400"><Timer className="h-3.5 w-3.5" /> Aguardando início · {waitTimer}</div>
-        )}
-        {o.status === 'troca_fio_em_curso' && (
-          <div className="text-xs flex items-center gap-1.5 text-blue-700 dark:text-blue-400"><Timer className="h-3.5 w-3.5" /> Troca de fio · {yarnTimer}</div>
-        )}
-        {o.status === 'aguardando_regulagem' && (
-          <div className="text-xs flex items-center gap-1.5 text-amber-700 dark:text-amber-400"><Timer className="h-3.5 w-3.5" /> Aguardando regulagem · {awaitAdjTimer}</div>
-        )}
-        {o.status === 'em_regulagem' && (
-          <div className="text-xs flex items-center gap-1.5 text-purple-700 dark:text-purple-400"><Timer className="h-3.5 w-3.5" /> Em regulagem · {adjTimer}</div>
-        )}
-        {o.status === 'em_acompanhamento' && (
-          <div className="text-xs flex items-center gap-1.5 text-cyan-700 dark:text-cyan-400"><Timer className="h-3.5 w-3.5" /> Em acompanhamento · {monTimer}</div>
-        )}
+            {/* Grid técnico */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase text-muted-foreground font-semibold">Troca fio</div>
+                <div className="text-foreground font-medium tabular-nums">
+                  {o.yarn_change_started_at ? format(new Date(o.yarn_change_started_at), 'dd/MM HH:mm') : '—'}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase text-muted-foreground font-semibold">Regulagem</div>
+                <div className="text-foreground font-medium tabular-nums">
+                  {o.adjustment_started_at ? format(new Date(o.adjustment_started_at), 'dd/MM HH:mm') : '—'}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase text-muted-foreground font-semibold">Concluída</div>
+                <div className="text-foreground font-medium tabular-nums">
+                  {o.concluded_at ? format(new Date(o.concluded_at), 'dd/MM HH:mm') : '—'}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peça</div>
+                <div className="text-foreground font-medium">
+                  {o.status === 'concluida'
+                    ? `${o.piece_defects_holes ?? 0} furo(s) · ${o.piece_defects_flaws ?? 0} falha(s)`
+                    : '—'}
+                </div>
+              </div>
+            </div>
 
-        {o.status === 'concluida' && (
-          <div className="text-xs space-y-1 border-t pt-2">
-            <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Concluída em {o.concluded_at ? format(new Date(o.concluded_at), 'dd/MM/yyyy HH:mm') : '—'} por {o.concluded_by_name || '—'}
-            </div>
-            <div className="text-muted-foreground">
-              Voltas: <b>{o.monitoring_turns ?? '—'}</b> · Furos: <b>{o.piece_defects_holes ?? 0}</b> · Falhas: <b>{o.piece_defects_flaws ?? 0}</b>
-            </div>
-            {o.final_report && (
-              <div className="border-l-2 border-emerald-500/40 pl-2 text-muted-foreground whitespace-pre-wrap">{o.final_report}</div>
+            {/* Relatório (concluída) */}
+            {o.status === 'concluida' && o.final_report && (
+              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2">
+                <div className="font-semibold text-[10px] uppercase text-emerald-700 dark:text-emerald-400 tracking-wide mb-1">Relatório final</div>
+                <div className="text-xs text-foreground whitespace-pre-wrap">{o.final_report}</div>
+              </div>
             )}
           </div>
-        )}
 
-        {/* Ações */}
-        <div className="flex flex-wrap gap-2 pt-1">
-          {o.status === 'aberto' && isLider && (
-            <Button size="sm" onClick={props.onStartYarn}><PlayCircle className="h-4 w-4 mr-1" /> Iniciar troca de fio</Button>
-          )}
-          {o.status === 'troca_fio_em_curso' && isLider && (
-            <Button size="sm" onClick={props.onFinishYarn}><CheckCircle2 className="h-4 w-4 mr-1" /> Finalizar troca de fio</Button>
-          )}
-          {o.status === 'aguardando_regulagem' && isMecanico && (
-            <Button size="sm" onClick={props.onStartAdj}><Wrench className="h-4 w-4 mr-1" /> Iniciar regulagem</Button>
-          )}
-          {o.status === 'em_regulagem' && isMecanico && (
-            <Button size="sm" onClick={props.onFinishAdj}><CheckCircle2 className="h-4 w-4 mr-1" /> Finalizar regulagem</Button>
-          )}
-          {o.status === 'em_acompanhamento' && (isMecanico || isLider || isAdmin) && (
-            <Button size="sm" onClick={props.onFinalize}><ClipboardCheck className="h-4 w-4 mr-1" /> Revisar peça e finalizar</Button>
-          )}
-          {isAdmin && o.status !== 'concluida' && o.status !== 'cancelada' && (
-            <Button size="sm" variant="outline" onClick={props.onCancel}>
-              <X className="h-4 w-4 mr-1" /> Cancelar
-            </Button>
-          )}
-          {isAdmin && (
-            <Button size="sm" variant="ghost" className="text-destructive" onClick={props.onDelete}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
+          {/* Coluna ações + auditoria */}
+          <div className="flex flex-col items-stretch xl:items-end gap-2 xl:min-w-[240px]">
+            <div className="text-[10px] text-muted-foreground leading-tight xl:text-right">
+              <div><span className="font-semibold">Criada:</span> {renderAuthor(o.created_by_name)}</div>
+              <div>{format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}</div>
+              {o.yarn_change_by_name && (
+                <div className="mt-0.5"><span className="font-semibold">Troca fio:</span> {renderAuthor(o.yarn_change_by_name)}</div>
+              )}
+              {o.adjustment_by_name && (
+                <div className="mt-0.5"><span className="font-semibold">Regulagem:</span> {renderAuthor(o.adjustment_by_name)}</div>
+              )}
+              {o.concluded_by_name && (
+                <div className="mt-0.5"><span className="font-semibold">Concluída:</span> {renderAuthor(o.concluded_by_name)}</div>
+              )}
+              {o.cancelled_by_name && (
+                <div className="mt-0.5"><span className="font-semibold">Cancelada:</span> {renderAuthor(o.cancelled_by_name)}</div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 xl:justify-end">
+              {o.status === 'aberto' && isLider && (
+                <Button size="sm" onClick={props.onStartYarn} className="gap-1.5">
+                  <PlayCircle className="h-3.5 w-3.5" /> Iniciar troca
+                </Button>
+              )}
+              {o.status === 'troca_fio_em_curso' && isLider && (
+                <Button size="sm" onClick={props.onFinishYarn} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar troca
+                </Button>
+              )}
+              {o.status === 'aguardando_regulagem' && isMecanico && (
+                <Button size="sm" onClick={props.onStartAdj} className="gap-1.5">
+                  <Wrench className="h-3.5 w-3.5" /> Iniciar regulagem
+                </Button>
+              )}
+              {o.status === 'em_regulagem' && isMecanico && (
+                <Button size="sm" onClick={props.onFinishAdj} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar regulagem
+                </Button>
+              )}
+              {o.status === 'em_acompanhamento' && (isMecanico || isLider || isAdmin) && (
+                <Button size="sm" onClick={props.onFinalize} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <ClipboardCheck className="h-3.5 w-3.5" /> Revisar e finalizar
+                </Button>
+              )}
+              {isAdmin && o.status !== 'concluida' && o.status !== 'cancelada' && (
+                <Button size="sm" variant="outline" onClick={props.onCancel} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
+                  <X className="h-3.5 w-3.5" /> Cancelar
+                </Button>
+              )}
+              {isAdmin && (o.status === 'concluida' || o.status === 'cancelada') && (
+                <Button size="sm" variant="outline" onClick={props.onDelete} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
+                  <Trash2 className="h-3.5 w-3.5" /> Excluir
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
