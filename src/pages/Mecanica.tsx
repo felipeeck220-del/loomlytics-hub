@@ -1102,6 +1102,11 @@ export default function MecanicaPage() {
           />
         </TabsContent>
 
+        {/* OT Tab (Ordem de Troca de Artigo) */}
+        <TabsContent value="ot">
+          <ArticleChangeOrdersTab />
+        </TabsContent>
+
         {/* Movimentações Tab */}
         <TabsContent value="movimentacoes">
           <MaintenanceMovementsTab
