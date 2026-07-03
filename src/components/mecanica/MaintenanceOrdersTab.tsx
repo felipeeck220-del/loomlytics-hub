@@ -609,11 +609,21 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2"><Wrench className="h-5 w-5" /> Ordens de Manutenção</h2>
-          <p className="text-sm text-muted-foreground">Fluxo Aberto → Em curso → Finalizada. Cria-se por admin/líder mecânica; mecânico inicia e finaliza.</p>
+          <p className="text-sm text-muted-foreground">Fluxo Aberto → Em curso → Finalizada. OM: admin/líder mecânica cria. OC (corretiva): admin/líder cria; mecânico e líder de mecânica iniciam/finalizam.</p>
         </div>
-        {canManage && (
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova OM</Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {canManage && (
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova OM</Button>
+          )}
+          {canCreateCorrective && (
+            <Button
+              onClick={openCreateCorrective}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <AlertTriangle className="h-4 w-4 mr-1" /> Nova OC
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as MaintenanceOrderStatus)}>
