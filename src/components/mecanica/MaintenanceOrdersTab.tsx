@@ -130,6 +130,27 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   useEffect(() => { load(); }, [companyId]);
 
+  // Realtime: recarrega OMs/itens/observações quando qualquer usuário da empresa mexer
+  useEffect(() => {
+    if (!companyId) return;
+    let scheduled = false;
+    const bump = () => {
+      if (scheduled) return;
+      scheduled = true;
+      setTimeout(() => { scheduled = false; load(); }, 400);
+    };
+    const channel = supabase.channel(`om-rt-${companyId}`);
+    for (const t of ['maintenance_orders', 'maintenance_order_items', 'machine_maintenance_observations']) {
+      channel.on(
+        'postgres_changes' as any,
+        { event: '*', schema: 'public', table: t, filter: `company_id=eq.${companyId}` },
+        bump,
+      );
+    }
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [companyId]);
+
   const machineById = useMemo(() => Object.fromEntries(machines.map(m => [m.id, m])), [machines]);
 
   // Map user_id -> code para complementar nomes de autoria gravados sem "#código"

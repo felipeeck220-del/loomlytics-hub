@@ -117,6 +117,37 @@ export default function MecanicaPage() {
         if (data?.name) setCompanyName(data.name);
       });
   }, [user?.company_id]);
+
+  // Realtime: sincroniza automaticamente todas as abas de Mecânica entre usuários
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const cid = user.company_id;
+    let scheduled = false;
+    const bump = () => {
+      if (scheduled) return;
+      scheduled = true;
+      setTimeout(() => { scheduled = false; refreshData(); }, 400);
+    };
+    const tables = [
+      'machines', 'machine_logs',
+      'needle_inventory', 'needle_transactions',
+      'sinker_inventory', 'sinker_transactions',
+      'cylinders', 'machine_needle_refs', 'machine_sinker_refs',
+      'maintenance_orders', 'maintenance_order_items',
+      'machine_maintenance_observations',
+    ];
+    const channel = supabase.channel(`mecanica-rt-${cid}`);
+    for (const t of tables) {
+      channel.on(
+        'postgres_changes' as any,
+        { event: '*', schema: 'public', table: t, filter: `company_id=eq.${cid}` },
+        bump,
+      );
+    }
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.company_id, refreshData]);
+
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
