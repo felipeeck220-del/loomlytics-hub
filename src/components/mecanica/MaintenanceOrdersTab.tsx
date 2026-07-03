@@ -614,29 +614,35 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   }, [items]);
 
   if (loading) {
-    return <div className="flex items-center justify-center p-12 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando OMs…</div>;
+    return <div className="flex items-center justify-center p-12 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando {labelShort}s…</div>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2"><Wrench className="h-5 w-5" /> Ordens de Manutenção</h2>
-          <p className="text-sm text-muted-foreground">Fluxo Aberto → Em curso → Finalizada. OM: admin/líder mecânica cria. OC (corretiva): admin/líder cria; mecânico e líder de mecânica iniciam/finalizam.</p>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {isOC ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Wrench className="h-5 w-5" />}
+            {labelLong}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {isOC
+              ? 'Ordem de Corretiva — máquina apresentou problema. Admin/líder criam; mecânico e líder de mecânica iniciam e finalizam.'
+              : 'Fluxo Aberto → Em curso → Finalizada. Criada por admin/líder mecânica; mecânico inicia e finaliza.'}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {canManage && (
-            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova OM</Button>
-          )}
-          {canCreateCorrective && (
+        {canCreateInThisMode && (
+          isOC ? (
             <Button
               onClick={openCreateCorrective}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               <AlertTriangle className="h-4 w-4 mr-1" /> Nova OC
             </Button>
-          )}
-        </div>
+          ) : (
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova OM</Button>
+          )
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as MaintenanceOrderStatus)}>
