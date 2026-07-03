@@ -998,8 +998,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 <Select value={form.priority} onValueChange={v => setForm(p => ({ ...p, priority: v as MaintenanceOrderPriority }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="prioritaria">Prioritária</SelectItem>
+                    {correctiveMode ? (
+                      <>
+                        <SelectItem value="normal">Em operação</SelectItem>
+                        <SelectItem value="prioritaria">Máquina parada</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="prioritaria">Prioritária</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
