@@ -361,11 +361,14 @@ export default function MecanicaPage() {
       const fromDateStr = lastDate
         ? `${lastDate.getFullYear()}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(lastDate.getDate()).padStart(2, '0')}`
         : null;
-      const kgSince = productions
-        .filter(p => p.machine_id === m.id && (!fromDateStr || String(p.date) >= fromDateStr))
-        .reduce((s, p) => s + (Number(p.weight_kg) || 0), 0);
       const kgTarget = m.maintenance_kg_target && m.maintenance_kg_target > 0 ? m.maintenance_kg_target : null;
-      const kgLeft = kgTarget != null ? kgTarget - kgSince : null;
+      // Sem histórico de preventiva → não somamos a produção lifetime (evita "Atingido" falso)
+      const kgSince: number | null = fromDateStr
+        ? productions
+            .filter(p => p.machine_id === m.id && String(p.date) >= fromDateStr)
+            .reduce((s, p) => s + (Number(p.weight_kg) || 0), 0)
+        : null;
+      const kgLeft = kgTarget != null && kgSince != null ? kgTarget - kgSince : null;
       return {
         machine: m, last, lastDate, nextDate, daysLeft, durationMin,
         historyCount: allPrev.length,
