@@ -774,8 +774,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             {m?.name || '—'}
                           </div>
 
-                          {/* Urgência de manutenção (Aberto) — puxada do Calendário por máquina */}
-                          {u && (
+                          {/* Urgência de manutenção (Aberto) — puxada do Calendário por máquina.
+                              Não exibida para OC (corretiva não segue meta preventiva). */}
+                          {u && o.type !== 'manutencao_corretiva' && (
                             <div className="flex flex-wrap items-center gap-2 pt-0.5">
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[10px] uppercase text-muted-foreground font-semibold">Dias p/ próxima</span>
@@ -792,9 +793,19 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             </div>
                           )}
 
-                          {/* Descrição */}
+                          {/* Descrição do problema — destacada em OC */}
                           {o.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>
+                            o.type === 'manutencao_corretiva' ? (
+                              <div className="rounded-md border-2 border-destructive/40 bg-destructive/5 p-3 flex items-start gap-2 mt-1">
+                                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                                <div className="min-w-0">
+                                  <div className="font-bold uppercase text-[10px] tracking-wide text-destructive">Descrição do problema</div>
+                                  <div className="mt-1 text-sm text-foreground font-medium whitespace-pre-wrap break-words">{o.description}</div>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground line-clamp-2">{o.description}</p>
+                            )
                           )}
 
                           {/* Motivo do cancelamento */}
