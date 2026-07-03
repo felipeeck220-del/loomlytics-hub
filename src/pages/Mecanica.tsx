@@ -2199,7 +2199,11 @@ export default function MecanicaPage() {
                               : '—'}
                           </TableCell>
                           <TableCell className="tabular-nums font-semibold">
-                            {om ? `#${String(om.order.om_number).padStart(3, '0')}` : <span className="text-muted-foreground font-normal">—</span>}
+                            {om ? (() => {
+                              const isC = (om.order as any).type === 'manutencao_corretiva';
+                              const num = isC ? ((om.order as any).oc_number ?? om.order.om_number) : om.order.om_number;
+                              return `${isC ? 'OC' : 'OM'} #${num != null ? String(num).padStart(3, '0') : '—'}`;
+                            })() : <span className="text-muted-foreground font-normal">—</span>}
                           </TableCell>
                           <TableCell className="max-w-[400px]">
                             <div className="flex items-start gap-2">
