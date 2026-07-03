@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle,
 } from 'lucide-react';
 import { useInstallApp } from '@/hooks/useInstallApp';
 import {
@@ -35,6 +35,8 @@ const allItems = [
   { title: 'Produção', path: 'production', icon: ClipboardList, key: 'production' },
   { title: 'Revisão', path: 'revision', icon: Search, key: 'revision' },
   { title: 'Mecânica', path: 'mecanica', icon: Wrench, key: 'mecanica' },
+  { title: 'OM', path: 'mecanica/om', icon: ClipboardList, key: 'mecanica-om', nonAdminOnly: true },
+  { title: 'OC', path: 'mecanica/oc', icon: AlertTriangle, key: 'mecanica-oc', nonAdminOnly: true },
   { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
   { title: 'Tecelões', path: 'weavers', icon: HardHat, key: 'weavers' },
   { title: 'Relatórios', path: 'reports', icon: FileText, key: 'reports' },
@@ -86,10 +88,15 @@ export function AppSidebar() {
   }, [user?.company_id]);
 
   const items = useMemo(() => {
+    const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
-      ? allItems.filter(item => enabledNavItems.includes(item.key))
+      ? allItems.filter(item => {
+          if (item.key === 'mecanica-om' || item.key === 'mecanica-oc') return mecanicaEnabled;
+          return enabledNavItems.includes(item.key);
+        })
       : allItems;
-    const roleFiltered = filterNavItems(companyFiltered);
+    const adminFiltered = companyFiltered.filter(item => !((item as any).nonAdminOnly && isAdmin));
+    const roleFiltered = filterNavItems(adminFiltered);
 
     // On mobile, hide items that are in the bottom nav
     const mobileFooterKeys = getMobileFooterKeys(user?.role || 'admin');
