@@ -2010,6 +2010,7 @@ export type Database = {
           id: string
           machine_id: string
           machine_log_id: string | null
+          oc_number: number | null
           om_number: number | null
           priority: string
           progress_notes: Json
@@ -2038,6 +2039,7 @@ export type Database = {
           id?: string
           machine_id: string
           machine_log_id?: string | null
+          oc_number?: number | null
           om_number?: number | null
           priority?: string
           progress_notes?: Json
@@ -2066,6 +2068,7 @@ export type Database = {
           id?: string
           machine_id?: string
           machine_log_id?: string | null
+          oc_number?: number | null
           om_number?: number | null
           priority?: string
           progress_notes?: Json
