@@ -41,6 +41,12 @@ const TYPE_LABELS: Record<MaintenanceOrderType, string> = {
   troca_artigo: 'Troca de Artigo',
   troca_agulhas: 'Troca de Agulheiro',
 };
+// Tipos disponíveis no modal "Nova OM" (corretiva foi movida para "Nova OC")
+const OM_TYPE_LABELS: Partial<Record<MaintenanceOrderType, string>> = {
+  manutencao_preventiva: 'Manutenção Preventiva',
+  troca_artigo: 'Troca de Artigo',
+  troca_agulhas: 'Troca de Agulheiro',
+};
 const TYPE_COLORS: Record<MaintenanceOrderType, string> = {
   manutencao_preventiva: 'bg-warning/15 text-warning border-warning/30',
   manutencao_corretiva: 'bg-destructive/15 text-destructive border-destructive/30',
@@ -100,6 +106,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const canManage = role === 'admin' || role === 'lider_mecanica';
   const canExecute = canManage || role === 'mecanico' || role === 'lider';
   const isAdmin = role === 'admin';
+  // OC (Ordem de Corretiva): apenas admin e líder criam
+  const canCreateCorrective = role === 'admin' || role === 'lider';
+  // OC: apenas mecânicos e líder de mecânica iniciam/finalizam
+  const canExecuteCorrective = role === 'mecanico' || role === 'lider_mecanica';
+  const canExecuteOrder = (o: MaintenanceOrder) =>
+    o.type === 'manutencao_corretiva' ? canExecuteCorrective : canExecute;
+  const canManageOrder = (o: MaintenanceOrder) =>
+    o.type === 'manutencao_corretiva' ? canCreateCorrective : canManage;
 
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
@@ -177,6 +191,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   // ============ CREATE / EDIT MODAL ============
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<MaintenanceOrder | null>(null);
+  const [correctiveMode, setCorrectiveMode] = useState(false);
   const [form, setForm] = useState({
     machine_id: '',
     type: 'manutencao_preventiva' as MaintenanceOrderType,
@@ -185,31 +200,44 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   });
   const openCreate = () => {
     setEditing(null);
+    setCorrectiveMode(false);
     setForm({ machine_id: '', type: 'manutencao_preventiva', priority: 'normal', description: '' });
+    setCreateOpen(true);
+  };
+  const openCreateCorrective = () => {
+    setEditing(null);
+    setCorrectiveMode(true);
+    setForm({ machine_id: '', type: 'manutencao_corretiva', priority: 'prioritaria', description: '' });
     setCreateOpen(true);
   };
   const openEdit = (o: MaintenanceOrder) => {
     setEditing(o);
+    setCorrectiveMode(o.type === 'manutencao_corretiva');
     setForm({ machine_id: o.machine_id, type: o.type, priority: o.priority, description: o.description || '' });
     setCreateOpen(true);
   };
   const saveOrder = async () => {
     if (!form.machine_id) { toast.error('Selecione uma máquina'); return; }
+    const isCorrective = form.type === 'manutencao_corretiva';
+    if (isCorrective && !canCreateCorrective) { toast.error('Apenas admin ou líder podem criar OC'); return; }
+    if (!isCorrective && !canManage) { toast.error('Sem permissão para criar OM'); return; }
     // Bloqueia criar nova OM para uma máquina que já tem OM aberta ou em curso
     if (!editing) {
       const busy = orders.find(o => o.machine_id === form.machine_id && (o.status === 'aberto' || o.status === 'em_curso'));
       if (busy) {
         const m = machineById[form.machine_id];
-        toast.error(`${m?.name || 'Máquina'} já tem a OM #${String(busy.om_number).padStart(3, '0')} ${busy.status === 'aberto' ? 'em aberto' : 'em curso'}. Finalize ou cancele antes de criar outra.`);
+        const busyLabel = busy.type === 'manutencao_corretiva' ? 'OC' : 'OM';
+        toast.error(`${m?.name || 'Máquina'} já tem a ${busyLabel} #${String(busy.om_number).padStart(3, '0')} ${busy.status === 'aberto' ? 'em aberto' : 'em curso'}. Finalize ou cancele antes de criar outra.`);
         return;
       }
     }
+    const orderLabel = isCorrective ? 'OC' : 'OM';
     if (editing) {
       const { error } = await (supabase.from as any)('maintenance_orders').update({
         machine_id: form.machine_id, type: form.type, priority: form.priority, description: form.description || null,
       }).eq('id', editing.id);
-      if (error) { toast.error('Erro ao atualizar OM'); return; }
-      toast.success(`OM #${String(editing.om_number).padStart(3, '0')} atualizada`);
+      if (error) { toast.error(`Erro ao atualizar ${orderLabel}`); return; }
+      toast.success(`${orderLabel} #${String(editing.om_number).padStart(3, '0')} atualizada`);
       logAction('om_update', { om: editing.om_number });
     } else {
       const { data, error } = await (supabase.from as any)('maintenance_orders').insert({
@@ -221,9 +249,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         created_by_id: user?.id,
         created_by_name: authorLabel,
       }).select().single();
-      if (error) { toast.error('Erro ao criar OM'); return; }
-      toast.success(`OM #${String((data as any).om_number).padStart(3, '0')} criada`);
-      logAction('om_create', { om: (data as any).om_number, type: form.type });
+      if (error) { toast.error(`Erro ao criar ${orderLabel}`); return; }
+      toast.success(`${orderLabel} #${String((data as any).om_number).padStart(3, '0')} criada`);
+      logAction(isCorrective ? 'oc_create' : 'om_create', { om: (data as any).om_number, type: form.type });
     }
     setCreateOpen(false);
     await load();
@@ -581,11 +609,21 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2"><Wrench className="h-5 w-5" /> Ordens de Manutenção</h2>
-          <p className="text-sm text-muted-foreground">Fluxo Aberto → Em curso → Finalizada. Cria-se por admin/líder mecânica; mecânico inicia e finaliza.</p>
+          <p className="text-sm text-muted-foreground">Fluxo Aberto → Em curso → Finalizada. OM: admin/líder mecânica cria. OC (corretiva): admin/líder cria; mecânico e líder de mecânica iniciam/finalizam.</p>
         </div>
-        {canManage && (
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova OM</Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {canManage && (
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova OM</Button>
+          )}
+          {canCreateCorrective && (
+            <Button
+              onClick={openCreateCorrective}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <AlertTriangle className="h-4 w-4 mr-1" /> Nova OC
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={v => setTab(v as MaintenanceOrderStatus)}>
@@ -771,12 +809,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                           </div>
 
                           <div className="flex flex-wrap gap-2 xl:justify-end">
-                            {o.status === 'aberto' && canExecute && (
+                            {o.status === 'aberto' && canExecuteOrder(o) && (
                               <Button size="sm" onClick={() => setConfirmStart(o)} className="gap-1.5">
                                 <Play className="h-3.5 w-3.5" /> Iniciar
                               </Button>
                             )}
-                            {o.status === 'aberto' && canManage && (
+                            {o.status === 'aberto' && canManageOrder(o) && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => openEdit(o)} className="gap-1.5">
                                   <Pencil className="h-3.5 w-3.5" /> Editar
@@ -786,7 +824,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                 </Button>
                               </>
                             )}
-                            {o.status === 'em_curso' && canExecute && (
+                            {o.status === 'em_curso' && canExecuteOrder(o) && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => openProgress(o)} className="gap-1.5 border-blue-500/40 text-blue-600 hover:bg-blue-500/10">
                                   <StickyNote className="h-3.5 w-3.5" /> Notas/Itens
@@ -804,7 +842,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                 <Download className="h-3.5 w-3.5" /> Baixar Relatório
                               </Button>
                             )}
-                            {canManage && o.status === 'cancelada' && (
+                            {canManageOrder(o) && o.status === 'cancelada' && (
                               <Button size="sm" variant="outline" onClick={() => setConfirmDelete(o)} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
                                 <Trash2 className="h-3.5 w-3.5" /> Excluir
                               </Button>
@@ -829,8 +867,20 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       {/* Create / Edit Modal */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editing ? `Editar OM #${String(editing.om_number).padStart(3, '0')}` : 'Nova OM'}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>
+              {editing
+                ? `Editar ${correctiveMode ? 'OC' : 'OM'} #${String(editing.om_number).padStart(3, '0')}`
+                : correctiveMode ? 'Nova OC — Ordem de Corretiva' : 'Nova OM'}
+            </DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
+            {correctiveMode && !editing && (
+              <div className="rounded border border-destructive/30 bg-destructive/10 text-destructive text-xs p-2 flex gap-2 items-start">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>Ordem de Corretiva — quando a máquina apresenta um problema. Fica disponível para mecânicos/líder de mecânica iniciarem.</span>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Máquina *</Label>
               <SearchableSelect
@@ -844,10 +894,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Tipo *</Label>
-                <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v as MaintenanceOrderType }))}>
+                <Select
+                  value={form.type}
+                  onValueChange={v => setForm(p => ({ ...p, type: v as MaintenanceOrderType }))}
+                  disabled={correctiveMode}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(TYPE_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                    {correctiveMode
+                      ? <SelectItem value="manutencao_corretiva">Manutenção Corretiva</SelectItem>
+                      : Object.entries(OM_TYPE_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)
+                    }
                   </SelectContent>
                 </Select>
               </div>
@@ -863,13 +920,18 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Descrição / serviço</Label>
-              <Textarea rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="O que precisa ser feito" />
+              <Label>{correctiveMode ? 'Descrição do problema' : 'Descrição / serviço'}</Label>
+              <Textarea
+                rows={3}
+                value={form.description}
+                onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                placeholder={correctiveMode ? 'Descreva o problema apresentado pela máquina' : 'O que precisa ser feito'}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={saveOrder}>{editing ? 'Salvar' : 'Criar OM'}</Button>
+            <Button onClick={saveOrder}>{editing ? 'Salvar' : correctiveMode ? 'Criar OC' : 'Criar OM'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
