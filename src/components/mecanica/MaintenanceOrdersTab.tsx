@@ -44,7 +44,6 @@ const TYPE_LABELS: Record<MaintenanceOrderType, string> = {
 // Tipos disponíveis no modal "Nova OM" (corretiva foi movida para "Nova OC")
 const OM_TYPE_LABELS: Partial<Record<MaintenanceOrderType, string>> = {
   manutencao_preventiva: 'Manutenção Preventiva',
-  troca_artigo: 'Troca de Artigo',
   troca_agulhas: 'Troca de Agulheiro',
 };
 const TYPE_COLORS: Record<MaintenanceOrderType, string> = {
