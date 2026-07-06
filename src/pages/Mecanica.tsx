@@ -411,7 +411,10 @@ export default function MecanicaPage() {
 
   const scheduleHistoryRows = useMemo(() => {
     if (!scheduleHistoryMachineId) return [];
-    return getLogsByStatus(scheduleHistoryMachineId, 'manutencao_preventiva');
+    // Inclui Troca de Agulheiro no histórico do calendário — conta como preventiva.
+    return machineLogs
+      .filter(l => l.machine_id === scheduleHistoryMachineId && (l.status === 'manutencao_preventiva' || l.status === 'troca_agulhas'))
+      .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
   }, [scheduleHistoryMachineId, machineLogs]);
 
   // Carrega observações dos logs de manutenção preventiva visíveis (linha principal + histórico aberto)
