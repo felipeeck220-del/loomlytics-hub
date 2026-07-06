@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon } from 'lucide-react';
+import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
