@@ -237,7 +237,7 @@ export default function ArticleChangeOrdersTab() {
             title: `OT #${String(o.ot_number).padStart(3, '0')} — Aguardando Regulagem`,
             message: `${machineName} pronta para regulagem`,
             url: targetPath,
-            roles: ['mecanico', 'lider_mecanica'],
+            roles: ['mecanico', 'lider_mecanica', 'lider_noite'],
           },
         }).catch(() => { /* silencioso */ });
       } catch { /* silencioso */ }
@@ -848,7 +848,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
           title: `Nova OT #${String(ins.ot_number).padStart(3, '0')} — ${machineName}`,
           message: `Troca para ${nextName}`,
           url: targetPath,
-          roles: ['lider'],
+          roles: ['lider', 'lider_noite'],
         },
       }).catch(() => { /* silencioso */ });
     } catch { /* silencioso */ }
