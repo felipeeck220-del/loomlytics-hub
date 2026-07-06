@@ -559,7 +559,7 @@ function OTCard(props: {
                 <div className="text-[10px] uppercase text-muted-foreground font-semibold">Peça</div>
                 <div className="text-foreground font-medium">
                   {o.status === 'concluida'
-                    ? `${o.piece_defects_holes ?? 0} furo(s) · ${o.piece_defects_flaws ?? 0} falha(s)`
+                    ? `${o.piece_defects_holes ?? 0} furo(s) · ${o.piece_defects_flaws ?? 0} falha(s) · ${o.monitoring_turns ?? 0} volta(s)`
                     : '—'}
                 </div>
               </div>
