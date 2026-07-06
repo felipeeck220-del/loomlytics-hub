@@ -1134,9 +1134,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                               </>
                             )}
                             {o.status === 'finalizada' && (
-                              <Button size="sm" variant="outline" onClick={() => downloadReport(o)} className="gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10">
-                                <Download className="h-3.5 w-3.5" /> Baixar Relatório
-                              </Button>
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => setViewOrder(o)} className="gap-1.5 border-blue-500/40 text-blue-600 hover:bg-blue-500/10">
+                                  <Eye className="h-3.5 w-3.5" /> Ver Relatório
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => downloadReport(o)} className="gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10">
+                                  <Download className="h-3.5 w-3.5" /> Baixar Relatório
+                                </Button>
+                              </>
                             )}
                             {canManageOrder(o) && o.status === 'cancelada' && (
                               <Button size="sm" variant="outline" onClick={() => setConfirmDelete(o)} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
