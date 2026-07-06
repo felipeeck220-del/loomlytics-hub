@@ -82,8 +82,9 @@ export default function Dashboard() {
     return map;
   }, [stoppedMachines, allMachineLogs]);
 
-  // Ordens de Manutenção abertas (aberto/em_curso) — em tempo real
+  // Ordens em curso (OM/OC em_curso + OT troca_fio_em_curso em diante) — em tempo real
   const [openOMs, setOpenOMs] = useState<any[]>([]);
+  const [openOTs, setOpenOTs] = useState<any[]>([]);
   const [omsExpanded, setOmsExpanded] = useState(false);
 
   const fetchOpenOMs = useCallback(async () => {
@@ -96,7 +97,17 @@ export default function Dashboard() {
     if (!error) setOpenOMs(data || []);
   }, [dbCompanyId]);
 
-  useEffect(() => { fetchOpenOMs(); }, [fetchOpenOMs]);
+  const fetchOpenOTs = useCallback(async () => {
+    if (!dbCompanyId) return;
+    const { data, error } = await (supabase.from as any)('article_change_orders')
+      .select('*')
+      .eq('company_id', dbCompanyId)
+      .in('status', ['troca_fio_em_curso', 'aguardando_regulagem', 'em_regulagem', 'em_acompanhamento'])
+      .order('created_at', { ascending: false });
+    if (!error) setOpenOTs(data || []);
+  }, [dbCompanyId]);
+
+  useEffect(() => { fetchOpenOMs(); fetchOpenOTs(); }, [fetchOpenOMs, fetchOpenOTs]);
 
   useEffect(() => {
     if (!dbCompanyId) return;
@@ -105,16 +116,62 @@ export default function Dashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_orders', filter: `company_id=eq.${dbCompanyId}` }, () => {
         fetchOpenOMs();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'article_change_orders', filter: `company_id=eq.${dbCompanyId}` }, () => {
+        fetchOpenOTs();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [dbCompanyId, fetchOpenOMs]);
+  }, [dbCompanyId, fetchOpenOMs, fetchOpenOTs]);
+
+  // Lista unificada de ordens que estão parando a máquina
+  const stoppedOrders = useMemo(() => {
+    const oms = openOMs.map(om => {
+      const isOC = om.type === 'manutencao_corretiva';
+      const num = isOC ? (om.oc_number ?? om.om_number) : om.om_number;
+      return {
+        kind: isOC ? 'oc' as const : 'om' as const,
+        id: om.id,
+        machine_id: om.machine_id,
+        number: num,
+        type: om.type,
+        priority: om.priority,
+        status: om.status,
+        statusLabel: om.status === 'em_curso' ? 'Em curso' : 'Aberta',
+        startedAt: om.started_at || om.created_at,
+        createdByName: om.created_by_name,
+        startedByName: om.started_by_name,
+        raw: om,
+      };
+    });
+    const OT_STATUS_LABELS: Record<string, string> = {
+      troca_fio_em_curso: 'Troca de Fio',
+      aguardando_regulagem: 'Aguardando Regulagem',
+      em_regulagem: 'Em Regulagem',
+      em_acompanhamento: 'Em Acompanhamento',
+    };
+    const ots = openOTs.map(ot => ({
+      kind: 'ot' as const,
+      id: ot.id,
+      machine_id: ot.machine_id,
+      number: ot.ot_number,
+      type: 'troca_artigo',
+      priority: 'normal',
+      status: ot.status,
+      statusLabel: OT_STATUS_LABELS[ot.status] || ot.status,
+      startedAt: ot.yarn_change_started_at || ot.created_at,
+      createdByName: ot.created_by_name,
+      startedByName: ot.yarn_change_by_name || ot.adjustment_by_name || null,
+      raw: ot,
+    }));
+    return [...oms, ...ots].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+  }, [openOMs, openOTs]);
 
   // Real-time tick for elapsed time
   useEffect(() => {
-    if (openOMs.length === 0 && stoppedMachines.length === 0) return;
+    if (stoppedOrders.length === 0 && stoppedMachines.length === 0) return;
     const interval = setInterval(() => setNowTick(new Date()), 1000);
     return () => clearInterval(interval);
-  }, [openOMs.length, stoppedMachines.length]);
+  }, [stoppedOrders.length, stoppedMachines.length]);
 
   const clearFilters = () => {
      setDayRange(15); setFilterMonth('all');
