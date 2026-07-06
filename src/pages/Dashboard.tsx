@@ -149,20 +149,47 @@ export default function Dashboard() {
       em_regulagem: 'Em Regulagem',
       em_acompanhamento: 'Em Acompanhamento',
     };
-    const ots = openOTs.map(ot => ({
-      kind: 'ot' as const,
-      id: ot.id,
-      machine_id: ot.machine_id,
-      number: ot.ot_number,
-      type: 'troca_artigo',
-      priority: 'normal',
-      status: ot.status,
-      statusLabel: OT_STATUS_LABELS[ot.status] || ot.status,
-      startedAt: ot.yarn_change_started_at || ot.created_at,
-      createdByName: ot.created_by_name,
-      startedByName: ot.yarn_change_by_name || ot.adjustment_by_name || null,
-      raw: ot,
-    }));
+    const ots = openOTs.map(ot => {
+      // Cada etapa do fluxo OT tem seu próprio timer e responsável
+      let stageStartedAt: string | null = null;
+      let stageByName: string | null = null;
+      switch (ot.status) {
+        case 'troca_fio_em_curso':
+          stageStartedAt = ot.yarn_change_started_at || ot.created_at;
+          stageByName = ot.yarn_change_by_name || null;
+          break;
+        case 'aguardando_regulagem':
+          // etapa começa quando a troca de fio foi finalizada
+          stageStartedAt = ot.yarn_change_ended_at || ot.yarn_change_started_at || ot.created_at;
+          stageByName = ot.yarn_change_finished_by_name || ot.yarn_change_by_name || null;
+          break;
+        case 'em_regulagem':
+          stageStartedAt = ot.adjustment_started_at || ot.yarn_change_ended_at || ot.created_at;
+          stageByName = ot.adjustment_by_name || null;
+          break;
+        case 'em_acompanhamento':
+          stageStartedAt = ot.monitoring_started_at || ot.adjustment_ended_at || ot.adjustment_started_at || ot.created_at;
+          stageByName = ot.adjustment_finished_by_name || ot.adjustment_by_name || null;
+          break;
+        default:
+          stageStartedAt = ot.created_at;
+          stageByName = null;
+      }
+      return {
+        kind: 'ot' as const,
+        id: ot.id,
+        machine_id: ot.machine_id,
+        number: ot.ot_number,
+        type: 'troca_artigo',
+        priority: 'normal',
+        status: ot.status,
+        statusLabel: OT_STATUS_LABELS[ot.status] || ot.status,
+        startedAt: stageStartedAt,
+        createdByName: ot.created_by_name,
+        startedByName: stageByName,
+        raw: ot,
+      };
+    });
     return [...oms, ...ots].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
   }, [openOMs, openOTs]);
 
@@ -666,7 +693,15 @@ export default function Dashboard() {
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <PlayCircle className="h-3.5 w-3.5 shrink-0 text-success" />
                           <span className="truncate">
-                            <span className="opacity-70">Iniciada por:</span>{' '}
+                            <span className="opacity-70">
+                              {om.kind === 'ot'
+                                ? (om.status === 'troca_fio_em_curso' ? 'Troca de fio por:'
+                                  : om.status === 'aguardando_regulagem' ? 'Troca finalizada por:'
+                                  : om.status === 'em_regulagem' ? 'Regulagem por:'
+                                  : om.status === 'em_acompanhamento' ? 'Regulagem finalizada por:'
+                                  : 'Iniciada por:')
+                                : 'Iniciada por:'}
+                            </span>{' '}
                             <span className="font-medium text-foreground">{om.startedByName}</span>
                           </span>
                         </div>
@@ -675,7 +710,13 @@ export default function Dashboard() {
 
                     <div className="flex items-center justify-between pt-2 border-t border-border/40">
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                        {om.kind === 'ot' ? 'Tempo em execução' : om.status === 'em_curso' ? 'Tempo em curso' : 'Aberta há'}
+                        {om.kind === 'ot'
+                          ? (om.status === 'troca_fio_em_curso' ? 'Tempo de troca de fio'
+                            : om.status === 'aguardando_regulagem' ? 'Aguardando regulagem há'
+                            : om.status === 'em_regulagem' ? 'Tempo em regulagem'
+                            : om.status === 'em_acompanhamento' ? 'Em acompanhamento há'
+                            : 'Tempo em execução')
+                          : om.status === 'em_curso' ? 'Tempo em curso' : 'Aberta há'}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
