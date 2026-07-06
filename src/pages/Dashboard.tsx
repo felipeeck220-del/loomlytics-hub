@@ -693,7 +693,15 @@ export default function Dashboard() {
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <PlayCircle className="h-3.5 w-3.5 shrink-0 text-success" />
                           <span className="truncate">
-                            <span className="opacity-70">Iniciada por:</span>{' '}
+                            <span className="opacity-70">
+                              {om.kind === 'ot'
+                                ? (om.status === 'troca_fio_em_curso' ? 'Troca de fio por:'
+                                  : om.status === 'aguardando_regulagem' ? 'Troca finalizada por:'
+                                  : om.status === 'em_regulagem' ? 'Regulagem por:'
+                                  : om.status === 'em_acompanhamento' ? 'Regulagem finalizada por:'
+                                  : 'Iniciada por:')
+                                : 'Iniciada por:'}
+                            </span>{' '}
                             <span className="font-medium text-foreground">{om.startedByName}</span>
                           </span>
                         </div>
@@ -702,7 +710,13 @@ export default function Dashboard() {
 
                     <div className="flex items-center justify-between pt-2 border-t border-border/40">
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                        {om.kind === 'ot' ? 'Tempo em execução' : om.status === 'em_curso' ? 'Tempo em curso' : 'Aberta há'}
+                        {om.kind === 'ot'
+                          ? (om.status === 'troca_fio_em_curso' ? 'Tempo de troca de fio'
+                            : om.status === 'aguardando_regulagem' ? 'Aguardando regulagem há'
+                            : om.status === 'em_regulagem' ? 'Tempo em regulagem'
+                            : om.status === 'em_acompanhamento' ? 'Em acompanhamento há'
+                            : 'Tempo em execução')
+                          : om.status === 'em_curso' ? 'Tempo em curso' : 'Aberta há'}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
