@@ -29,16 +29,14 @@ export default function CompanyLogin() {
   // Fetch company info by slug (public query)
   useEffect(() => {
     if (!slug) return;
-    (supabase.from as any)('companies')
-      .select('name, logo_url')
-      .eq('slug', slug)
-      .maybeSingle()
+    (supabase.rpc as any)('get_company_public_by_slug', { _slug: slug })
       .then(({ data, error }: any) => {
-        if (error || !data) {
+        const row = Array.isArray(data) ? data[0] : data;
+        if (error || !row) {
           setNotFound(true);
         } else {
-          setCompanyName(data.name);
-          setCompanyLogo(data.logo_url || null);
+          setCompanyName(row.name);
+          setCompanyLogo(row.logo_url || null);
         }
       });
   }, [slug]);

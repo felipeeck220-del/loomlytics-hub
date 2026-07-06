@@ -4164,6 +4164,15 @@ export type Database = {
               weight_kg: number
             }[]
           }
+      get_company_public_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          id: string
+          logo_url: string
+          name: string
+          slug: string
+        }[]
+      }
       get_dashboard_metrics: {
         Args: {
           p_company_id: string
