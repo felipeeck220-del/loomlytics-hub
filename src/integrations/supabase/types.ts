@@ -2221,6 +2221,7 @@ export type Database = {
           machine_id: string
           machine_log_id: string | null
           oc_number: number | null
+          oc_photos: Json
           om_number: number | null
           priority: string
           progress_notes: Json
@@ -2250,6 +2251,7 @@ export type Database = {
           machine_id: string
           machine_log_id?: string | null
           oc_number?: number | null
+          oc_photos?: Json
           om_number?: number | null
           priority?: string
           progress_notes?: Json
@@ -2279,6 +2281,7 @@ export type Database = {
           machine_id?: string
           machine_log_id?: string | null
           oc_number?: number | null
+          oc_photos?: Json
           om_number?: number | null
           priority?: string
           progress_notes?: Json
