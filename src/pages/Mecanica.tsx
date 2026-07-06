@@ -77,6 +77,26 @@ export default function MecanicaPage() {
    const [sinkerUsageView, setSinkerUsageView] = useState<{ id: string; brand: string; reference_code: string } | null>(null);
    const NEEDLE_HISTORY_PER_PAGE = 15;
 
+   // Needle Providers + Prices (novo modelo tipo Vendas de Resíduos)
+   const [providers, setProviders] = useState<NeedleProvider[]>([]);
+   const [providerPrices, setProviderPrices] = useState<NeedleProviderPrice[]>([]);
+   const [providersRefreshKey, setProvidersRefreshKey] = useState(0);
+   const bumpProviders = () => setProvidersRefreshKey(k => k + 1);
+   const [showProviderModal, setShowProviderModal] = useState(false);
+   const [editingProvider, setEditingProvider] = useState<NeedleProvider | null>(null);
+   const [providerName, setProviderName] = useState('');
+   const [deleteProviderId, setDeleteProviderId] = useState<string | null>(null);
+   const [showPriceModal, setShowPriceModal] = useState(false);
+   const [priceProviderId, setPriceProviderId] = useState('');
+   const [priceNeedleId, setPriceNeedleId] = useState('');
+   const [priceValue, setPriceValue] = useState('');
+   const [editingPrice, setEditingPrice] = useState<NeedleProviderPrice | null>(null);
+   const [deletePriceId, setDeletePriceId] = useState<string | null>(null);
+   // Entrada / Saída — seleção por fornecedor
+   const [entryProviderId, setEntryProviderId] = useState('');
+   const [exitProviderId, setExitProviderId] = useState('');
+   const [exitBrand, setExitBrand] = useState('');
+
    // Sinker Management State (Platinas)
    const [sinkerSearch, setSinkerSearch] = useState('');
    const [showSinkerModal, setShowSinkerModal] = useState(false);
