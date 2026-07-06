@@ -92,7 +92,7 @@ export default function Dashboard() {
     const { data, error } = await (supabase.from as any)('maintenance_orders')
       .select('*')
       .eq('company_id', dbCompanyId)
-      .eq('status', 'em_curso')
+      .in('status', ['em_curso', 'aberto', 'aberta'])
       .order('created_at', { ascending: false });
     if (!error) setOpenOMs(data || []);
   }, [dbCompanyId]);
