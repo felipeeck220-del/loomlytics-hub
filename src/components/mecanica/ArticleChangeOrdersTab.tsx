@@ -915,9 +915,10 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
     setSaving(false);
     if (error) { toast.error(getFriendlyErrorMessage(error.message)); return; }
     // Ao concluir a OT, promove o "próximo artigo" a artigo atual da máquina
+    // (Máquinas > Informações Básicas > Artigo Atual → coluna machines.article_id)
     if (o.next_article_id && o.machine_id) {
       const { error: machErr, data: machUpd } = await (supabase.from as any)('machines')
-        .update({ current_article_id: o.next_article_id })
+        .update({ article_id: o.next_article_id })
         .eq('id', o.machine_id)
         .select('id');
       if (machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0)) {
