@@ -196,6 +196,7 @@ export interface MaintenanceOrder {
   machine_log_id?: string | null;
   progress_notes?: Array<{ id: string; ts: string; author: string | null; kind: 'observacao' | 'item'; text: string }> | null;
   finish_notes?: string | null;
+  oc_photos?: Array<{ id: string; path: string; description: string; author: string | null; ts: string }> | null;
 }
 
 export type MaintenanceOrderItemType = 'agulha' | 'platina' | 'cilindro' | 'outro';

@@ -240,12 +240,92 @@ export async function generateOmReportPdf(opts: GenerateOmReportOptions) {
     y = (pdf as any).lastAutoTable.finalY + 6;
   }
 
-  if (o.finish_notes) {
-    pdf.setFontSize(11); pdf.setFont('helvetica', 'bold');
-    pdf.text('Observações Finais', margin, y); y += 5;
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
-    const t = pdf.splitTextToSize(sanitizePdfText(o.finish_notes), pageW - margin * 2);
-    pdf.text(t, margin, y);
+  // ============ FOTOS (OC) + OBSERVAÇÕES FINAIS na MESMA página ============
+  // Carrega fotos da OC (privadas via signed URL) e converte para dataURL
+  type LoadedPhoto = { dataUrl: string; description: string; author: string | null; ts: string; w: number; h: number };
+  const photos: LoadedPhoto[] = [];
+  const rawPhotos = Array.isArray((o as any).oc_photos) ? ((o as any).oc_photos as Array<{ path: string; description: string; author: string | null; ts: string }>) : [];
+  if (rawPhotos.length > 0) {
+    for (const p of rawPhotos.slice(0, 2)) {
+      try {
+        const { data: signed } = await (supabase as any).storage.from('oc-photos').createSignedUrl(p.path, 300);
+        const url = signed?.signedUrl;
+        if (!url) continue;
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result || ''));
+          r.onerror = reject;
+          r.readAsDataURL(blob);
+        });
+        const dims = await new Promise<{ w: number; h: number }>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+          img.onerror = () => resolve({ w: 0, h: 0 });
+          img.src = dataUrl;
+        });
+        photos.push({ dataUrl, description: p.description || '', author: p.author || null, ts: p.ts, w: dims.w, h: dims.h });
+      } catch (e) { /* pula foto com erro */ }
+    }
+  }
+
+  const hasPhotos = photos.length > 0;
+  const hasFinishNotes = !!o.finish_notes;
+  if (hasPhotos || hasFinishNotes) {
+    // Reserva espaço: fotos ocupam ~70mm em bloco lado-a-lado; notas ocupam ~30mm.
+    const photoBlockH = hasPhotos ? 75 : 0;
+    const notesBlockH = hasFinishNotes ? 40 : 0;
+    const titleH = 8;
+    const needed = titleH + photoBlockH + notesBlockH + 10;
+    if (y + needed > pageH - 15) {
+      pdf.addPage();
+      y = margin;
+    }
+
+    if (hasPhotos) {
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      pdf.text('Fotos do Problema (OC)', margin, y); y += 5;
+
+      const usableW = pageW - margin * 2;
+      const gap = 4;
+      const cellW = photos.length > 1 ? (usableW - gap) / 2 : usableW * 0.55;
+      const imgMaxH = 55;
+      const descH = 15;
+      photos.forEach((ph, idx) => {
+        const x = margin + idx * (cellW + gap);
+        const startY = y;
+        // moldura
+        pdf.setDrawColor(...colors.border);
+        pdf.setLineWidth(0.3);
+        pdf.rect(x, startY, cellW, imgMaxH + descH, 'S');
+        // imagem centralizada
+        const box = fitBox(ph.w, ph.h, cellW - 4, imgMaxH - 4);
+        try {
+          pdf.addImage(ph.dataUrl, 'JPEG', x + (cellW - box.width) / 2, startY + 2, box.width, box.height);
+        } catch { /* ignore */ }
+        // descrição
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+        pdf.setTextColor(...colors.textDark);
+        const descLines = pdf.splitTextToSize(sanitizePdfText(ph.description || '—'), cellW - 4);
+        const shown = (descLines as string[]).slice(0, 3);
+        pdf.text(shown, x + 2, startY + imgMaxH + 4);
+        pdf.setFontSize(7); pdf.setTextColor(...colors.textMid);
+        const meta = `${format(new Date(ph.ts), 'dd/MM/yyyy HH:mm')}${ph.author ? ` · ${sanitizePdfText(ph.author)}` : ''}`;
+        pdf.text(meta, x + 2, startY + imgMaxH + descH - 2);
+      });
+      y += photoBlockH;
+    }
+
+    if (hasFinishNotes) {
+      pdf.setFontSize(11); pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...colors.textDark);
+      pdf.text('Observações Finais', margin, y); y += 5;
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+      const t = pdf.splitTextToSize(sanitizePdfText(o.finish_notes!), pageW - margin * 2);
+      pdf.text(t, margin, y);
+    }
   }
 
   pdf.setFontSize(8); pdf.setTextColor(120, 120, 120);
