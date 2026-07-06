@@ -1057,6 +1057,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 placeholder="Selecione a máquina"
                 searchPlaceholder="Buscar máquina..."
                 options={machines.map(m => ({ value: m.id, label: m.name }))}
+                autoFocusSearch={false}
+                className="max-h-[50vh]"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
