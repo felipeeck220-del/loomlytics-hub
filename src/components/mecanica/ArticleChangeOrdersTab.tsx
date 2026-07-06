@@ -123,7 +123,14 @@ export default function ArticleChangeOrdersTab() {
 
   const [orders, setOrders] = useState<OT[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'aberto' | 'em_curso' | 'concluidas'>('aberto');
+  const [tab, setTab] = useState<
+    | 'aberto'
+    | 'troca_fio_em_curso'
+    | 'aguardando_regulagem'
+    | 'em_regulagem'
+    | 'em_acompanhamento'
+    | 'concluidas'
+  >('aberto');
   const [showNew, setShowNew] = useState(false);
   const [finalizeTarget, setFinalizeTarget] = useState<OT | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OT | null>(null);
@@ -177,8 +184,8 @@ export default function ArticleChangeOrdersTab() {
 
   const filtered = useMemo(() => {
     if (tab === 'aberto') return orders.filter(o => o.status === 'aberto');
-    if (tab === 'em_curso') return orders.filter(o => IN_PROGRESS.includes(o.status));
-    return orders.filter(o => o.status === 'concluida' || o.status === 'cancelada');
+    if (tab === 'concluidas') return orders.filter(o => o.status === 'concluida' || o.status === 'cancelada');
+    return orders.filter(o => o.status === tab);
   }, [orders, tab]);
 
   // Ações de transição
