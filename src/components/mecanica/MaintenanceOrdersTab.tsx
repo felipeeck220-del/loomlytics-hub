@@ -314,6 +314,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   // ============ START ============
   const startOrder = async (o: MaintenanceOrder) => {
     if (!canExecuteOrder(o)) { toast.error(o.type === 'manutencao_corretiva' ? 'Apenas mecânico ou líder de mecânica podem iniciar OCs' : 'Sem permissão para iniciar OM'); return; }
+    // Não permite iniciar se já existe outra ordem em curso na mesma máquina
+    const inProgress = orders.find(x =>
+      x.machine_id === o.machine_id && x.status === 'em_curso' && x.id !== o.id
+    );
+    if (inProgress) {
+      const m = machineById[o.machine_id];
+      toast.error(`${m?.name || 'Máquina'} está com a ${labelOf(inProgress)} #${displayNumber(inProgress)} em curso. Finalize antes de iniciar esta ordem.`);
+      return;
+    }
     const now = new Date().toISOString();
     // 0) fecha qualquer machine_log em aberto dessa máquina (evita 2 logs abertos)
     await (supabase.from as any)('machine_logs')
