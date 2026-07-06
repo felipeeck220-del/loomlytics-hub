@@ -559,6 +559,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const openProgress = (o: MaintenanceOrder) => {
     setProgressOrder(o);
     setProgressDraft({ kind: 'observacao', text: '' });
+    resetPhotoDraft();
   };
   const currentProgressList: ProgressNote[] = useMemo(() => {
     if (!progressOrder) return [];
