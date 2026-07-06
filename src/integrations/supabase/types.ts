@@ -2414,7 +2414,7 @@ export type Database = {
           created_at: string
           current_quantity: number
           id: string
-          provider: string
+          provider: string | null
           reference_code: string
           updated_at: string
         }
@@ -2424,7 +2424,7 @@ export type Database = {
           created_at?: string
           current_quantity?: number
           id?: string
-          provider: string
+          provider?: string | null
           reference_code: string
           updated_at?: string
         }
@@ -2434,13 +2434,97 @@ export type Database = {
           created_at?: string
           current_quantity?: number
           id?: string
-          provider?: string
+          provider?: string | null
           reference_code?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "needle_inventory_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      needle_provider_prices: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          needle_id: string
+          provider_id: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          needle_id: string
+          provider_id: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          needle_id?: string
+          provider_id?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "needle_provider_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "needle_provider_prices_needle_id_fkey"
+            columns: ["needle_id"]
+            isOneToOne: false
+            referencedRelation: "needle_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "needle_provider_prices_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "needle_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      needle_providers: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "needle_providers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
