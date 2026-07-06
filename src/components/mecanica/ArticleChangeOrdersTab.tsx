@@ -296,40 +296,27 @@ export default function ArticleChangeOrdersTab() {
       </div>
 
       <Tabs value={tab} onValueChange={(v: any) => setTab(v)}>
-        <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
-          <TabsTrigger
-            value="aberto"
-            className={cn(
-              'gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial',
-              orders.filter(o => o.status === 'aberto').length > 0 && 'data-[state=active]:bg-amber-500 data-[state=active]:text-white'
-            )}
-          >
-            <AlertTriangle className="h-3 w-3" /> Aberto
-            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">
-              {orders.filter(o => o.status === 'aberto').length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger
-            value="em_curso"
-            className={cn(
-              'gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial',
-              orders.filter(o => IN_PROGRESS.includes(o.status)).length > 0 && 'data-[state=active]:bg-blue-600 data-[state=active]:text-white animate-pulse'
-            )}
-          >
-            <Clock className="h-3 w-3" /> Em Curso
-            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">
-              {orders.filter(o => IN_PROGRESS.includes(o.status)).length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger
-            value="concluidas"
-            className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
-          >
-            <Square className="h-3 w-3" /> Concluídas
-            <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">
-              {orders.filter(o => o.status === 'concluida' || o.status === 'cancelada').length}
-            </Badge>
-          </TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full">
+          {([
+            { key: 'aberto', label: 'Aberto', icon: AlertTriangle, count: orders.filter(o => o.status === 'aberto').length, active: 'data-[state=active]:bg-amber-500 data-[state=active]:text-white' },
+            { key: 'troca_fio_em_curso', label: 'Troca de Fio', icon: Clock, count: orders.filter(o => o.status === 'troca_fio_em_curso').length, active: 'data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
+            { key: 'aguardando_regulagem', label: 'Aguardando Regulagem', icon: Wrench, count: orders.filter(o => o.status === 'aguardando_regulagem').length, active: 'data-[state=active]:bg-amber-600 data-[state=active]:text-white' },
+            { key: 'em_regulagem', label: 'Em Regulagem', icon: Wrench, count: orders.filter(o => o.status === 'em_regulagem').length, active: 'data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
+            { key: 'em_acompanhamento', label: 'Acompanhamento', icon: ClipboardCheck, count: orders.filter(o => o.status === 'em_acompanhamento').length, active: 'data-[state=active]:bg-cyan-600 data-[state=active]:text-white' },
+            { key: 'concluidas', label: 'Concluídas', icon: Square, count: orders.filter(o => o.status === 'concluida' || o.status === 'cancelada').length, active: 'data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
+          ] as const).map(t => {
+            const Icon = t.icon;
+            return (
+              <TabsTrigger
+                key={t.key}
+                value={t.key}
+                className={cn('gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial', t.count > 0 && t.active)}
+              >
+                <Icon className="h-3 w-3" /> {t.label}
+                <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{t.count}</Badge>
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         <TabsContent value={tab} className="mt-4">
