@@ -36,6 +36,9 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
   'troca_agulhas',
 ];
 
+type NeedleProvider = { id: string; company_id: string; name: string };
+type NeedleProviderPrice = { id: string; company_id: string; provider_id: string; needle_id: string; unit_price: number };
+
 export default function MecanicaPage() {
    const { 
      getMachines, getMachineLogs, getProductions, saveMachineLogs, 
@@ -73,6 +76,26 @@ export default function MecanicaPage() {
    const [needleUsageView, setNeedleUsageView] = useState<{ id: string; brand: string; reference_code: string } | null>(null);
    const [sinkerUsageView, setSinkerUsageView] = useState<{ id: string; brand: string; reference_code: string } | null>(null);
    const NEEDLE_HISTORY_PER_PAGE = 15;
+
+   // Needle Providers + Prices (novo modelo tipo Vendas de Resíduos)
+   const [providers, setProviders] = useState<NeedleProvider[]>([]);
+   const [providerPrices, setProviderPrices] = useState<NeedleProviderPrice[]>([]);
+   const [providersRefreshKey, setProvidersRefreshKey] = useState(0);
+   const bumpProviders = () => setProvidersRefreshKey(k => k + 1);
+   const [showProviderModal, setShowProviderModal] = useState(false);
+   const [editingProvider, setEditingProvider] = useState<NeedleProvider | null>(null);
+   const [providerName, setProviderName] = useState('');
+   const [deleteProviderId, setDeleteProviderId] = useState<string | null>(null);
+   const [showPriceModal, setShowPriceModal] = useState(false);
+   const [priceProviderId, setPriceProviderId] = useState('');
+   const [priceNeedleId, setPriceNeedleId] = useState('');
+   const [priceValue, setPriceValue] = useState('');
+   const [editingPrice, setEditingPrice] = useState<NeedleProviderPrice | null>(null);
+   const [deletePriceId, setDeletePriceId] = useState<string | null>(null);
+   // Entrada / Saída — seleção por fornecedor
+   const [entryProviderId, setEntryProviderId] = useState('');
+   const [exitProviderId, setExitProviderId] = useState('');
+   const [exitBrand, setExitBrand] = useState('');
 
    // Sinker Management State (Platinas)
    const [sinkerSearch, setSinkerSearch] = useState('');
@@ -143,6 +166,7 @@ export default function MecanicaPage() {
     const tables = [
       'machines', 'machine_logs',
       'needle_inventory', 'needle_transactions',
+      'needle_providers', 'needle_provider_prices',
       'sinker_inventory', 'sinker_transactions',
       'cylinders', 'machine_needle_refs', 'machine_sinker_refs',
       'maintenance_orders', 'maintenance_order_items',
@@ -160,6 +184,20 @@ export default function MecanicaPage() {
     channel.subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user?.company_id, refreshData]);
+
+  // Carrega Fornecedores + Preços
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const cid = user.company_id;
+    (async () => {
+      const [{ data: prov }, { data: pri }] = await Promise.all([
+        (supabase.from as any)('needle_providers').select('*').eq('company_id', cid).order('name'),
+        (supabase.from as any)('needle_provider_prices').select('*').eq('company_id', cid),
+      ]);
+      setProviders((prov || []) as NeedleProvider[]);
+      setProviderPrices((pri || []) as NeedleProviderPrice[]);
+    })();
+  }, [user?.company_id, providersRefreshKey]);
 
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -847,15 +885,17 @@ export default function MecanicaPage() {
   };
  
    const handleSaveNeedle = async () => {
-     if (!needleForm.provider || !needleForm.brand || !needleForm.reference_code) {
-       toast.error('Preencha todos os campos.');
+     if (!needleForm.brand || !needleForm.reference_code) {
+       toast.error('Informe Marca e Ref. Código.');
        return;
      }
      try {
        const newNeedle = {
          id: crypto.randomUUID(),
          company_id: '',
-         ...needleForm,
+         provider: '',
+         brand: needleForm.brand,
+         reference_code: needleForm.reference_code,
          current_quantity: 0,
          created_at: new Date().toISOString(),
          updated_at: new Date().toISOString()
@@ -928,6 +968,103 @@ export default function MecanicaPage() {
        setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
       } catch (e) { toast.error('Erro ao registrar baixa.'); }
     };
+
+    // ===== Providers CRUD =====
+    const openNewProvider = () => { setEditingProvider(null); setProviderName(''); setShowProviderModal(true); };
+    const openEditProvider = (p: NeedleProvider) => { setEditingProvider(p); setProviderName(p.name); setShowProviderModal(true); };
+    const handleSaveProvider = async () => {
+      if (!providerName.trim()) { toast.error('Informe o nome do fornecedor.'); return; }
+      if (!user?.company_id) return;
+      try {
+        if (editingProvider) {
+          const { error } = await (supabase.from as any)('needle_providers').update({ name: providerName.trim() }).eq('id', editingProvider.id);
+          if (error) throw error;
+          logAction('needle_provider_update', { name: providerName.trim() });
+        } else {
+          const { error } = await (supabase.from as any)('needle_providers').insert({ company_id: user.company_id, name: providerName.trim() });
+          if (error) throw error;
+          logAction('needle_provider_create', { name: providerName.trim() });
+        }
+        toast.success(editingProvider ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
+        setShowProviderModal(false); setProviderName(''); setEditingProvider(null);
+        bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar fornecedor.'); }
+    };
+    const handleDeleteProvider = async () => {
+      if (!deleteProviderId) return;
+      try {
+        const { error } = await (supabase.from as any)('needle_providers').delete().eq('id', deleteProviderId);
+        if (error) throw error;
+        logAction('needle_provider_delete', { id: deleteProviderId });
+        toast.success('Fornecedor removido.');
+        setDeleteProviderId(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // ===== Provider prices CRUD =====
+    const openAddPrice = (providerId: string) => {
+      setEditingPrice(null); setPriceProviderId(providerId); setPriceNeedleId(''); setPriceValue(''); setShowPriceModal(true);
+    };
+    const openEditPrice = (p: NeedleProviderPrice) => {
+      setEditingPrice(p); setPriceProviderId(p.provider_id); setPriceNeedleId(p.needle_id); setPriceValue(String(p.unit_price)); setShowPriceModal(true);
+    };
+    const availableNeedlesForProvider = (providerId: string) => {
+      const used = new Set(providerPrices.filter(p => p.provider_id === providerId && (!editingPrice || p.id !== editingPrice.id)).map(p => p.needle_id));
+      return needles.filter(n => !used.has(n.id));
+    };
+    const handleSavePrice = async () => {
+      if (!priceProviderId || !priceNeedleId) { toast.error('Selecione o fornecedor e a agulha.'); return; }
+      const price = Number(String(priceValue).replace(',', '.'));
+      if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
+      if (!user?.company_id) return;
+      try {
+        if (editingPrice) {
+          const { error } = await (supabase.from as any)('needle_provider_prices').update({ unit_price: price }).eq('id', editingPrice.id);
+          if (error) throw error;
+        } else {
+          const { error } = await (supabase.from as any)('needle_provider_prices').insert({
+            company_id: user.company_id, provider_id: priceProviderId, needle_id: priceNeedleId, unit_price: price,
+          });
+          if (error) throw error;
+        }
+        logAction(editingPrice ? 'needle_price_update' : 'needle_price_create', { provider_id: priceProviderId, needle_id: priceNeedleId, price });
+        toast.success(editingPrice ? 'Preço atualizado!' : 'Agulha vinculada ao fornecedor.');
+        setShowPriceModal(false); setEditingPrice(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar preço.'); }
+    };
+    const handleDeletePrice = async () => {
+      if (!deletePriceId) return;
+      try {
+        const { error } = await (supabase.from as any)('needle_provider_prices').delete().eq('id', deletePriceId);
+        if (error) throw error;
+        logAction('needle_price_delete', { id: deletePriceId });
+        toast.success('Vínculo removido.');
+        setDeletePriceId(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // Helpers de listagem para os modais Entrada/Saída
+    const entryProviderNeedles = useMemo(() => {
+      if (!entryProviderId) return [] as (typeof needles[number] & { unit_price: number; price_id: string })[];
+      return providerPrices
+        .filter(p => p.provider_id === entryProviderId)
+        .map(p => {
+          const n = needles.find(nn => nn.id === p.needle_id);
+          if (!n) return null;
+          return { ...n, unit_price: Number(p.unit_price), price_id: p.id };
+        })
+        .filter(Boolean) as any;
+    }, [entryProviderId, providerPrices, needles]);
+    const exitProviderNeedles = useMemo(() => {
+      if (!exitProviderId) return [] as typeof needles;
+      const ids = new Set(providerPrices.filter(p => p.provider_id === exitProviderId).map(p => p.needle_id));
+      return needles.filter(n => ids.has(n.id));
+    }, [exitProviderId, providerPrices, needles]);
+    const exitBrandsForProvider = useMemo(() => {
+      const arr = Array.from(new Set(exitProviderNeedles.map(n => n.brand)));
+      return arr.sort((a, b) => a.localeCompare(b));
+    }, [exitProviderNeedles]);
+    const exitRefsForBrand = useMemo(() => exitProviderNeedles.filter(n => n.brand === exitBrand), [exitProviderNeedles, exitBrand]);
 
     const handleSaveSinker = async () => {
       if (!sinkerForm.provider || !sinkerForm.brand || !sinkerForm.reference_code) {
@@ -1584,6 +1721,14 @@ export default function MecanicaPage() {
                   <Package className="h-4 w-4 mr-1.5" />
                   Estoque
                 </TabsTrigger>
+                <TabsTrigger value="cadastro">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Agulhas
+                </TabsTrigger>
+                <TabsTrigger value="fornecedores">
+                  <Wrench className="h-4 w-4 mr-1.5" />
+                  Fornecedores
+                </TabsTrigger>
                 <TabsTrigger value="movimentacoes">
                   <History className="h-4 w-4 mr-1.5" />
                   Movimentações
@@ -1631,9 +1776,6 @@ export default function MecanicaPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Cadastrar
-                      </Button>
                       <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
                         <Plus className="h-4 w-4 mr-2" /> Entrada
                       </Button>
@@ -1649,7 +1791,6 @@ export default function MecanicaPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
-                              <th className="text-left p-4 font-medium">Fornecedor</th>
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
                               <th className="text-right p-4 font-medium">Estoque</th>
@@ -1661,14 +1802,12 @@ export default function MecanicaPage() {
                               .sort((a, b) => a.brand.localeCompare(b.brand))
                               .filter(n => 
                                 n.brand.toLowerCase().includes(needleSearch.toLowerCase()) || 
-                                n.provider.toLowerCase().includes(needleSearch.toLowerCase()) || 
                                 n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
                               )
                               .map(n => {
                                 const usedBy = new Set(machineNeedleRefs.filter(r => r.needle_id === n.id).map(r => r.machine_id)).size;
                                 return (
                               <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
-                                <td className="p-4">{n.provider}</td>
                                 <td className="p-4">{n.brand}</td>
                                 <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
                                 <td className="p-4 text-right font-bold">{n.current_quantity}</td>
@@ -1683,7 +1822,7 @@ export default function MecanicaPage() {
                               })}
                             {needles.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
+                                <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
                               </tr>
                             )}
                           </tbody>
@@ -1692,6 +1831,118 @@ export default function MecanicaPage() {
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+
+              {/* Agulhas (Cadastro simples) Sub-Tab */}
+              <TabsContent value="cadastro">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Package className="h-4 w-4" /> Agulhas Cadastradas
+                    </CardTitle>
+                    <Button size="sm" onClick={() => { setNeedleForm({ provider: '', brand: '', reference_code: '' }); setShowNeedleModal(true); }}>
+                      <Plus className="h-4 w-4 mr-1" /> Nova Agulha
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-3 font-medium">Marca</th>
+                            <th className="text-left p-3 font-medium">Ref. Código</th>
+                            <th className="text-right p-3 font-medium w-32">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...needles].sort((a, b) => a.brand.localeCompare(b.brand)).map(n => (
+                            <tr key={n.id} className="border-b hover:bg-muted/30">
+                              <td className="p-3">{n.brand}</td>
+                              <td className="p-3"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
+                              <td className="p-3 text-right text-xs text-muted-foreground">Vincule fornecedores na aba <b>Fornecedores</b></td>
+                            </tr>
+                          ))}
+                          {needles.length === 0 && (
+                            <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada. Use "Nova Agulha".</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Fornecedores Sub-Tab */}
+              <TabsContent value="fornecedores">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Wrench className="h-4 w-4" /> Fornecedores de Agulhas
+                    </CardTitle>
+                    <Button size="sm" onClick={openNewProvider}>
+                      <Plus className="h-4 w-4 mr-1" /> Novo Fornecedor
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {providers.length === 0 && (
+                      <div className="p-8 text-center text-muted-foreground text-sm">Nenhum fornecedor cadastrado.</div>
+                    )}
+                    {providers.map(p => {
+                      const prices = providerPrices.filter(pp => pp.provider_id === p.id);
+                      return (
+                        <Card key={p.id} className="border">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                              <CardTitle className="text-base">{p.name}</CardTitle>
+                              <span className="text-xs text-muted-foreground">{prices.length} agulha{prices.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openAddPrice(p.id)} disabled={availableNeedlesForProvider(p.id).length === 0}>
+                                <Plus className="h-3 w-3 mr-1" /> Agulha
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditProvider(p)}><Pencil className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteProviderId(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-0">
+                            {prices.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b bg-muted/40 text-xs">
+                                      <th className="text-left p-2 font-medium">Marca</th>
+                                      <th className="text-left p-2 font-medium">Ref. Código</th>
+                                      <th className="text-right p-2 font-medium">Preço Unit.</th>
+                                      <th className="text-right p-2 font-medium w-24">Ações</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {prices.map(pp => {
+                                      const n = needles.find(nn => nn.id === pp.needle_id);
+                                      return (
+                                        <tr key={pp.id} className="border-b last:border-b-0">
+                                          <td className="p-2">{n?.brand || '—'}</td>
+                                          <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n?.reference_code || '—'}</code></td>
+                                          <td className="p-2 text-right font-medium">R$ {Number(pp.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                                          <td className="p-2 text-right">
+                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditPrice(pp)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeletePriceId(pp.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma agulha vinculada. Clique em <b>+ Agulha</b>.</div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               {/* Movimentações Sub-Tab */}
@@ -2607,12 +2858,8 @@ export default function MecanicaPage() {
      {/* Cadastro de Agulha */}
      <Dialog open={showNeedleModal} onOpenChange={setShowNeedleModal}>
        <DialogContent className="max-w-md">
-         <DialogHeader><DialogTitle>Cadastrar Tipo de Agulha</DialogTitle></DialogHeader>
+         <DialogHeader><DialogTitle>Nova Agulha</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
-           <div className="space-y-1">
-             <Label>Fornecedor</Label>
-             <Input value={needleForm.provider} onChange={e => setNeedleForm({...needleForm, provider: e.target.value})} placeholder="Ex: Groz-Beckert" />
-           </div>
            <div className="space-y-1">
              <Label>Marca</Label>
              <Input value={needleForm.brand} onChange={e => setNeedleForm({...needleForm, brand: e.target.value})} placeholder="Ex: Vo-Spec" />
@@ -2621,6 +2868,7 @@ export default function MecanicaPage() {
              <Label>Código de Referência</Label>
              <Input value={needleForm.reference_code} onChange={e => setNeedleForm({...needleForm, reference_code: e.target.value})} placeholder="Ex: VO 71.52 G003" />
            </div>
+           <p className="text-xs text-muted-foreground">Vincule esta agulha a um ou mais fornecedores (com preço) na aba <b>Fornecedores</b>.</p>
          </div>
          <DialogFooter>
            <Button variant="outline" onClick={() => setShowNeedleModal(false)}>Cancelar</Button>
@@ -2634,43 +2882,42 @@ export default function MecanicaPage() {
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Entrada</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Selecionar Agulha</Label>
-              <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({...entryForm, needle_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 py-2 border-b sticky top-0 bg-popover z-10">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input 
-                        placeholder="Filtrar..." 
-                        value={needleEntrySearch} 
-                        onChange={e => setNeedleEntrySearch(e.target.value)} 
-                        className="pl-8 h-8 text-xs"
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {needles
-                      .filter(n => 
-                        n.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
-                        n.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
-                        n.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
-                      )
-                      .map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>)
-                    }
-                    {needles.filter(n => 
-                      n.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
-                      n.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
-                      n.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma agulha encontrada</div>
-                    )}
-                  </div>
+            <div className="space-y-1">
+              <Label>Fornecedor *</Label>
+              <Select value={entryProviderId} onValueChange={v => { setEntryProviderId(v); setEntryForm({ ...entryForm, needle_id: '' }); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  {providers.length === 0 && <div className="p-3 text-xs text-muted-foreground">Cadastre um fornecedor na aba Fornecedores.</div>}
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1">
+              <Label>Agulha *</Label>
+              <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({ ...entryForm, needle_id: v })} disabled={!entryProviderId}>
+                <SelectTrigger><SelectValue placeholder={entryProviderId ? 'Selecione a agulha' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+                <SelectContent className="max-h-[280px]">
+                  {entryProviderNeedles.map((n: any) => (
+                    <SelectItem key={n.id} value={n.id}>
+                      {n.brand} ({n.reference_code}) — R$ {Number(n.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}/un.
+                    </SelectItem>
+                  ))}
+                  {entryProviderId && entryProviderNeedles.length === 0 && (
+                    <div className="p-3 text-xs text-muted-foreground">Fornecedor sem agulhas vinculadas.</div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            {entryForm.needle_id && (() => {
+              const n = entryProviderNeedles.find((nn: any) => nn.id === entryForm.needle_id) as any;
+              const qty = Number(entryForm.quantity || 0);
+              const total = n ? qty * Number(n.unit_price) : 0;
+              return (
+                <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
+                  Preço unit.: <b>R$ {Number(n?.unit_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</b> · Total: <b>R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b>
+                </div>
+              );
+            })()}
            <div className="space-y-1">
              <Label>Quantidade</Label>
              <Input type="number" value={entryForm.quantity} onChange={e => setEntryForm({...entryForm, quantity: e.target.value})} placeholder="0" />
@@ -2681,7 +2928,7 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => setShowEntryModal(false)}>Cancelar</Button>
+           <Button variant="outline" onClick={() => { setShowEntryModal(false); setEntryProviderId(''); }}>Cancelar</Button>
            <Button onClick={handleEntry}>Registrar</Button>
          </DialogFooter>
        </DialogContent>
@@ -2711,44 +2958,32 @@ export default function MecanicaPage() {
                </SelectContent>
              </Select>
            </div>
-            <div className="space-y-2">
-              <Label>Selecionar Agulha</Label>
-              <Select value={exitForm.needle_id} onValueChange={v => setExitForm({...exitForm, needle_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 py-2 border-b sticky top-0 bg-popover z-10">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input 
-                        placeholder="Filtrar..." 
-                        value={needleExitSearch} 
-                        onChange={e => setNeedleExitSearch(e.target.value)} 
-                        className="pl-8 h-8 text-xs"
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {needles
-                      .filter(n => 
-                        n.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
-                        n.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
-                        n.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
-                      )
-                      .map(n => (
-                        <SelectItem key={n.id} value={n.id}>
-                          {n.brand} ({n.reference_code}) - Saldo: {n.current_quantity}
-                        </SelectItem>
-                      ))
-                    }
-                    {needles.filter(n => 
-                      n.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
-                      n.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
-                      n.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma agulha encontrada</div>
-                    )}
-                  </div>
+            <div className="space-y-1">
+              <Label>Fornecedor *</Label>
+              <Select value={exitProviderId} onValueChange={v => { setExitProviderId(v); setExitBrand(''); setExitForm({ ...exitForm, needle_id: '' }); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Marca *</Label>
+              <Select value={exitBrand} onValueChange={v => { setExitBrand(v); setExitForm({ ...exitForm, needle_id: '' }); }} disabled={!exitProviderId}>
+                <SelectTrigger><SelectValue placeholder={exitProviderId ? 'Selecione a marca' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  {exitBrandsForProvider.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Ref. Código *</Label>
+              <Select value={exitForm.needle_id} onValueChange={v => setExitForm({ ...exitForm, needle_id: v })} disabled={!exitBrand}>
+                <SelectTrigger><SelectValue placeholder={exitBrand ? 'Selecione a referência' : 'Selecione a marca primeiro'} /></SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  {exitRefsForBrand.map(n => (
+                    <SelectItem key={n.id} value={n.id}>{n.reference_code} — Saldo: {n.current_quantity}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -2762,11 +2997,72 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => setShowExitModal(false)}>Cancelar</Button>
+           <Button variant="outline" onClick={() => { setShowExitModal(false); setExitProviderId(''); setExitBrand(''); }}>Cancelar</Button>
            <Button onClick={handleExit}>Registrar Baixa</Button>
          </DialogFooter>
        </DialogContent>
      </Dialog>
+
+    {/* Fornecedor Modal */}
+    <Dialog open={showProviderModal} onOpenChange={setShowProviderModal}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>{editingProvider ? 'Editar Fornecedor' : 'Novo Fornecedor'}</DialogTitle></DialogHeader>
+        <div className="space-y-1 pt-2">
+          <Label>Nome *</Label>
+          <Input value={providerName} onChange={e => setProviderName(e.target.value)} placeholder="Ex: BAUMGARTNER" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowProviderModal(false)}>Cancelar</Button>
+          <Button onClick={handleSaveProvider}>{editingProvider ? 'Salvar' : 'Cadastrar'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Vincular Preço Fornecedor x Agulha */}
+    <Dialog open={showPriceModal} onOpenChange={setShowPriceModal}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>{editingPrice ? 'Editar Preço' : 'Adicionar Agulha ao Fornecedor'}</DialogTitle></DialogHeader>
+        <div className="space-y-3 pt-2">
+          <div className="space-y-1">
+            <Label>Agulha *</Label>
+            <Select value={priceNeedleId} onValueChange={setPriceNeedleId} disabled={!!editingPrice}>
+              <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+              <SelectContent className="max-h-[280px]">
+                {availableNeedlesForProvider(priceProviderId).map(n => (
+                  <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>
+                ))}
+                {availableNeedlesForProvider(priceProviderId).length === 0 && (
+                  <div className="p-3 text-xs text-muted-foreground">Todas as agulhas já foram vinculadas.</div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Preço por unidade (R$) *</Label>
+            <Input type="number" step="0.0001" value={priceValue} onChange={e => setPriceValue(e.target.value)} placeholder="0.00" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowPriceModal(false)}>Cancelar</Button>
+          <Button onClick={handleSavePrice}>{editingPrice ? 'Salvar' : 'Vincular'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <DeleteConfirmDialog
+      open={!!deleteProviderId}
+      onOpenChange={(o) => !o && setDeleteProviderId(null)}
+      onConfirm={handleDeleteProvider}
+      title="Remover Fornecedor?"
+      description="Isso também remove todos os vínculos de preço deste fornecedor."
+    />
+    <DeleteConfirmDialog
+      open={!!deletePriceId}
+      onOpenChange={(o) => !o && setDeletePriceId(null)}
+      onConfirm={handleDeletePrice}
+      title="Remover Vínculo?"
+      description="A agulha continuará cadastrada, apenas o preço deste fornecedor será removido."
+    />
 
     {/* Edit Needle Transaction Modal */}
     <Dialog open={!!editTxn} onOpenChange={(o) => !o && setEditTxn(null)}>
