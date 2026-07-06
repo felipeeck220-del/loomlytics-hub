@@ -899,6 +899,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
 // -------------- Finalize (peça + relatório) ----------------
 function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onDone: () => void }) {
   const { logAction, userName, userCode } = useAuditLog();
+  const { refreshData } = useSharedCompanyData() as any;
   const [turns, setTurns] = useState('');
   const [holes, setHoles] = useState('0');
   const [flaws, setFlaws] = useState('0');
@@ -932,6 +933,10 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
       if (machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0)) {
         toast.error('OT concluída, mas não foi possível atualizar o Artigo Atual da máquina. Ajuste manualmente em Máquinas.');
         console.error('[FinalizeOT] machine current_article update failed', { machErr, machUpd, machine_id: o.machine_id });
+      } else {
+        // Recarrega o dataset compartilhado para que "Artigo Atual" reflita imediatamente
+        // em Máquinas > Informações Básicas, cards da OT e demais telas sem F5.
+        try { await refreshData?.(); } catch (e) { console.error('[FinalizeOT] refreshData failed', e); }
       }
     }
     logAction('ot_conclude', { ot: o.ot_number });
