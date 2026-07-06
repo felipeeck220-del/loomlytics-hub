@@ -695,7 +695,9 @@ export default function Dashboard() {
                         <UserCircle2 className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">
                           <span className="opacity-70">Criada por:</span>{' '}
-                          <span className="font-medium text-foreground">{om.createdByName || '—'}</span>
+                           <span className="font-medium text-foreground">
+                             {om.createdByName ? (om.createdByCode ? `${om.createdByName} #${om.createdByCode}` : om.createdByName) : '—'}
+                           </span>
                         </span>
                       </div>
                       {om.startedByName && (
@@ -711,7 +713,9 @@ export default function Dashboard() {
                                   : 'Iniciada por:')
                                 : 'Iniciada por:'}
                             </span>{' '}
-                            <span className="font-medium text-foreground">{om.startedByName}</span>
+                            <span className="font-medium text-foreground">
+                              {om.startedByCode ? `${om.startedByName} #${om.startedByCode}` : om.startedByName}
+                            </span>
                           </span>
                         </div>
                       )}
