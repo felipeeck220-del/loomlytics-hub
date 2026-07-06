@@ -566,6 +566,94 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     return Array.isArray(fresh.progress_notes) ? (fresh.progress_notes as ProgressNote[]) : [];
   }, [orders, progressOrder]);
 
+  const currentPhotos: OCPhoto[] = useMemo(() => {
+    if (!progressOrder) return [];
+    const fresh = orders.find(o => o.id === progressOrder.id) || progressOrder;
+    return Array.isArray((fresh as any).oc_photos) ? ((fresh as any).oc_photos as OCPhoto[]) : [];
+  }, [orders, progressOrder]);
+
+  // Gera signed URLs para preview das fotos no modal
+  useEffect(() => {
+    if (!progressOrder || currentPhotos.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const missing = currentPhotos.filter(p => !photoSignedUrls[p.path]);
+      if (missing.length === 0) return;
+      const entries: Array<[string, string]> = [];
+      for (const p of missing) {
+        const { data } = await supabase.storage.from('oc-photos').createSignedUrl(p.path, 3600);
+        if (data?.signedUrl) entries.push([p.path, data.signedUrl]);
+      }
+      if (!cancelled && entries.length) {
+        setPhotoSignedUrls(prev => ({ ...prev, ...Object.fromEntries(entries) }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [progressOrder, currentPhotos, photoSignedUrls]);
+
+  const resetPhotoDraft = () => {
+    setPhotoDraftFile(null);
+    setPhotoDraftDesc('');
+    if (photoDraftPreview) { try { URL.revokeObjectURL(photoDraftPreview); } catch { /* */ } }
+    setPhotoDraftPreview(null);
+  };
+
+  const onPickPhoto = (file: File | null) => {
+    if (photoDraftPreview) { try { URL.revokeObjectURL(photoDraftPreview); } catch { /* */ } }
+    if (!file) { setPhotoDraftFile(null); setPhotoDraftPreview(null); return; }
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+    setPhotoDraftFile(file);
+    setPhotoDraftPreview(URL.createObjectURL(file));
+  };
+
+  const uploadPhoto = async () => {
+    if (!progressOrder || !photoDraftFile) return;
+    if (currentPhotos.length >= 2) { toast.error('Máximo de 2 fotos por OC'); return; }
+    const desc = photoDraftDesc.trim();
+    if (!desc) { toast.error('Adicione uma descrição para a foto'); return; }
+    setPhotoUploading(true);
+    try {
+      const ext = (photoDraftFile.name.split('.').pop() || 'jpg').toLowerCase();
+      const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+      const path = `${companyId}/${progressOrder.id}/${id}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, photoDraftFile, {
+        contentType: photoDraftFile.type || 'image/jpeg',
+        upsert: false,
+      });
+      if (upErr) { toast.error('Erro ao enviar foto'); console.error(upErr); return; }
+      const photo: OCPhoto = { id, path, description: desc, author: authorLabel, ts: new Date().toISOString() };
+      const next = [...currentPhotos, photo];
+      const { error } = await (supabase.from as any)('maintenance_orders')
+        .update({ oc_photos: next })
+        .eq('id', progressOrder.id);
+      if (error) {
+        await supabase.storage.from('oc-photos').remove([path]);
+        toast.error('Erro ao salvar foto');
+        return;
+      }
+      setOrders(prev => prev.map(o => o.id === progressOrder.id ? { ...o, oc_photos: next } as any : o));
+      toast.success('Foto adicionada');
+      logAction('oc_photo_add', { oc: progressOrder.oc_number });
+      resetPhotoDraft();
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const removePhoto = async (photo: OCPhoto) => {
+    if (!progressOrder) return;
+    const next = currentPhotos.filter(p => p.id !== photo.id);
+    const { error } = await (supabase.from as any)('maintenance_orders')
+      .update({ oc_photos: next })
+      .eq('id', progressOrder.id);
+    if (error) { toast.error('Erro ao remover foto'); return; }
+    await supabase.storage.from('oc-photos').remove([photo.path]).catch(() => { /* */ });
+    setOrders(prev => prev.map(o => o.id === progressOrder.id ? { ...o, oc_photos: next } as any : o));
+    setPhotoSignedUrls(prev => { const c = { ...prev }; delete c[photo.path]; return c; });
+    logAction('oc_photo_remove', { oc: progressOrder.oc_number });
+  };
+
   const addProgressNote = async () => {
     if (!progressOrder) return;
     const text = progressDraft.text.trim();
