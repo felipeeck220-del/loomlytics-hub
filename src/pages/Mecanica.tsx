@@ -913,6 +913,10 @@ export default function MecanicaPage() {
        toast.error('Preencha todos os campos.');
        return;
      }
+    if (Number(entryForm.quantity) <= 0) {
+      toast.error('Quantidade deve ser maior que zero.');
+      return;
+    }
      try {
         const needle = needles.find(n => n.id === entryForm.needle_id);
         await addNeedleTransaction({
@@ -929,6 +933,7 @@ export default function MecanicaPage() {
         toast.success('Entrada registrada!');
        setShowEntryModal(false);
        setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+      setEntryProviderId('');
      } catch (e) { toast.error('Erro ao registrar entrada.'); }
    };
  
@@ -937,6 +942,10 @@ export default function MecanicaPage() {
        toast.error('Preencha todos os campos.');
        return;
      }
+    if (Number(exitForm.quantity) <= 0) {
+      toast.error('Quantidade deve ser maior que zero.');
+      return;
+    }
       const targetNeedle = needles.find(n => n.id === exitForm.needle_id);
       if (targetNeedle && targetNeedle.current_quantity < Number(exitForm.quantity)) {
        toast.error('Saldo insuficiente em estoque.');
@@ -966,6 +975,7 @@ export default function MecanicaPage() {
         toast.success('Baixa registrada!');
        setShowExitModal(false);
        setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
+      setExitProviderId(''); setExitBrand('');
       } catch (e) { toast.error('Erro ao registrar baixa.'); }
     };
 
