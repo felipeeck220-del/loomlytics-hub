@@ -2341,7 +2341,71 @@ export default function MecanicaPage() {
             {scheduleHistoryRows.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Nenhuma manutenção preventiva registrada.</p>
             ) : (
-              <div className="rounded-md border border-border overflow-x-auto">
+              <>
+              {/* Mobile: cards */}
+              <div className="md:hidden space-y-2">
+                {scheduleHistoryRows.map(log => {
+                  const start = new Date(log.started_at);
+                  const end = log.ended_at ? new Date(log.ended_at) : null;
+                  const dur = end ? Math.max(0, (end.getTime() - start.getTime()) / 60000) : null;
+                  const obs = (obsByLogId[log.id] || []).map(o => o.observation).join(' • ');
+                  const om = omByLogId[log.id];
+                  const omLabel = om ? (() => {
+                    const isC = (om.order as any).type === 'manutencao_corretiva';
+                    const num = isC ? ((om.order as any).oc_number ?? om.order.om_number) : om.order.om_number;
+                    return `${isC ? 'OC' : 'OM'} #${num != null ? String(num).padStart(3, '0') : '—'}`;
+                  })() : null;
+                  return (
+                    <div key={log.id} className="rounded-md border border-border p-3 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-foreground">{format(start, 'dd/MM/yyyy')}</span>
+                        {omLabel && <span className="tabular-nums font-semibold">{omLabel}</span>}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <div className="text-[10px] text-muted-foreground">Início</div>
+                          <div className="tabular-nums">{format(start, 'HH:mm')}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-muted-foreground">Fim</div>
+                          <div className="tabular-nums">{end ? format(end, 'HH:mm') : '—'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-muted-foreground">Duração</div>
+                          <div className="tabular-nums">{formatDuration(dur)}</div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Responsável</div>
+                        <div>{log.started_by_name ? `${log.started_by_name}${log.started_by_code ? ` #${log.started_by_code}` : ''}` : '—'}</div>
+                      </div>
+                      {obs && (
+                        <div>
+                          <div className="text-[10px] text-muted-foreground">Observação</div>
+                          <div className="whitespace-pre-wrap">{obs}</div>
+                        </div>
+                      )}
+                      {om && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] w-full"
+                          onClick={() => handleDownloadOmForLog(log)}
+                          disabled={loadingReportLogId === log.id}
+                        >
+                          {loadingReportLogId === log.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <><FileDown className="h-3 w-3 mr-1" /> Relatório OM</>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Desktop: table */}
+              <div className="hidden md:block rounded-md border border-border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40">
@@ -2410,6 +2474,7 @@ export default function MecanicaPage() {
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
           </div>
         </DialogContent>
