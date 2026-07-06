@@ -2958,44 +2958,32 @@ export default function MecanicaPage() {
                </SelectContent>
              </Select>
            </div>
-            <div className="space-y-2">
-              <Label>Selecionar Agulha</Label>
-              <Select value={exitForm.needle_id} onValueChange={v => setExitForm({...exitForm, needle_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 py-2 border-b sticky top-0 bg-popover z-10">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input 
-                        placeholder="Filtrar..." 
-                        value={needleExitSearch} 
-                        onChange={e => setNeedleExitSearch(e.target.value)} 
-                        className="pl-8 h-8 text-xs"
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {needles
-                      .filter(n => 
-                        n.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
-                        n.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
-                        n.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
-                      )
-                      .map(n => (
-                        <SelectItem key={n.id} value={n.id}>
-                          {n.brand} ({n.reference_code}) - Saldo: {n.current_quantity}
-                        </SelectItem>
-                      ))
-                    }
-                    {needles.filter(n => 
-                      n.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
-                      n.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
-                      n.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma agulha encontrada</div>
-                    )}
-                  </div>
+            <div className="space-y-1">
+              <Label>Fornecedor *</Label>
+              <Select value={exitProviderId} onValueChange={v => { setExitProviderId(v); setExitBrand(''); setExitForm({ ...exitForm, needle_id: '' }); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Marca *</Label>
+              <Select value={exitBrand} onValueChange={v => { setExitBrand(v); setExitForm({ ...exitForm, needle_id: '' }); }} disabled={!exitProviderId}>
+                <SelectTrigger><SelectValue placeholder={exitProviderId ? 'Selecione a marca' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  {exitBrandsForProvider.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Ref. Código *</Label>
+              <Select value={exitForm.needle_id} onValueChange={v => setExitForm({ ...exitForm, needle_id: v })} disabled={!exitBrand}>
+                <SelectTrigger><SelectValue placeholder={exitBrand ? 'Selecione a referência' : 'Selecione a marca primeiro'} /></SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  {exitRefsForBrand.map(n => (
+                    <SelectItem key={n.id} value={n.id}>{n.reference_code} — Saldo: {n.current_quantity}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -3009,7 +2997,7 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => setShowExitModal(false)}>Cancelar</Button>
+           <Button variant="outline" onClick={() => { setShowExitModal(false); setExitProviderId(''); setExitBrand(''); }}>Cancelar</Button>
            <Button onClick={handleExit}>Registrar Baixa</Button>
          </DialogFooter>
        </DialogContent>
