@@ -359,7 +359,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       }).eq('id', finishOrder.machine_log_id);
     }
     // 2) máquina volta a ativa + abre novo log "ativa" para manter a linha do tempo
-    await (supabase.from as any)('machines').update({ status: 'ativa' }).eq('id', finishOrder.machine_id);
+    const { error: machErr, data: machUpd } = await (supabase.from as any)('machines')
+      .update({ status: 'ativa' })
+      .eq('id', finishOrder.machine_id)
+      .select('id');
+    if (machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0)) {
+      toast.error('Falha ao reativar máquina. Verifique o status em Máquinas.');
+      console.error('[confirmFinish] machine status update failed', { machErr, machUpd, machine_id: finishOrder.machine_id });
+    }
     await (supabase.from as any)('machine_logs').insert({
       machine_id: finishOrder.machine_id,
       company_id: companyId,
