@@ -3003,6 +3003,67 @@ export default function MecanicaPage() {
        </DialogContent>
      </Dialog>
 
+    {/* Fornecedor Modal */}
+    <Dialog open={showProviderModal} onOpenChange={setShowProviderModal}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>{editingProvider ? 'Editar Fornecedor' : 'Novo Fornecedor'}</DialogTitle></DialogHeader>
+        <div className="space-y-1 pt-2">
+          <Label>Nome *</Label>
+          <Input value={providerName} onChange={e => setProviderName(e.target.value)} placeholder="Ex: BAUMGARTNER" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowProviderModal(false)}>Cancelar</Button>
+          <Button onClick={handleSaveProvider}>{editingProvider ? 'Salvar' : 'Cadastrar'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Vincular Preço Fornecedor x Agulha */}
+    <Dialog open={showPriceModal} onOpenChange={setShowPriceModal}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>{editingPrice ? 'Editar Preço' : 'Adicionar Agulha ao Fornecedor'}</DialogTitle></DialogHeader>
+        <div className="space-y-3 pt-2">
+          <div className="space-y-1">
+            <Label>Agulha *</Label>
+            <Select value={priceNeedleId} onValueChange={setPriceNeedleId} disabled={!!editingPrice}>
+              <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+              <SelectContent className="max-h-[280px]">
+                {availableNeedlesForProvider(priceProviderId).map(n => (
+                  <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>
+                ))}
+                {availableNeedlesForProvider(priceProviderId).length === 0 && (
+                  <div className="p-3 text-xs text-muted-foreground">Todas as agulhas já foram vinculadas.</div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Preço por unidade (R$) *</Label>
+            <Input type="number" step="0.0001" value={priceValue} onChange={e => setPriceValue(e.target.value)} placeholder="0.00" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowPriceModal(false)}>Cancelar</Button>
+          <Button onClick={handleSavePrice}>{editingPrice ? 'Salvar' : 'Vincular'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <DeleteConfirmDialog
+      open={!!deleteProviderId}
+      onOpenChange={(o) => !o && setDeleteProviderId(null)}
+      onConfirm={handleDeleteProvider}
+      title="Remover Fornecedor?"
+      description="Isso também remove todos os vínculos de preço deste fornecedor."
+    />
+    <DeleteConfirmDialog
+      open={!!deletePriceId}
+      onOpenChange={(o) => !o && setDeletePriceId(null)}
+      onConfirm={handleDeletePrice}
+      title="Remover Vínculo?"
+      description="A agulha continuará cadastrada, apenas o preço deste fornecedor será removido."
+    />
+
     {/* Edit Needle Transaction Modal */}
     <Dialog open={!!editTxn} onOpenChange={(o) => !o && setEditTxn(null)}>
       <DialogContent className="sm:max-w-md">
