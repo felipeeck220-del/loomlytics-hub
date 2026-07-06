@@ -305,7 +305,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               : `Nova OM #${String(createdNum).padStart(3, '0')} — ${machineName}`,
             message: form.description || (isCorrective ? 'Ordem de Corretiva aberta' : 'Ordem de Manutenção aberta'),
             url: targetPath,
-            roles: ['mecanico', 'lider_mecanica'],
+            roles: ['mecanico', 'lider_mecanica', 'lider_noite'],
           },
         }).catch(() => { /* silencioso */ });
       } catch { /* silencioso */ }
