@@ -303,7 +303,8 @@ export async function generateOmReportPdf(opts: GenerateOmReportOptions) {
         // imagem centralizada
         const box = fitBox(ph.w, ph.h, cellW - 4, imgMaxH - 4);
         try {
-          pdf.addImage(ph.dataUrl, 'JPEG', x + (cellW - box.width) / 2, startY + 2, box.width, box.height);
+          const fmt = ph.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+          pdf.addImage(ph.dataUrl, fmt, x + (cellW - box.width) / 2, startY + 2, box.width, box.height);
         } catch { /* ignore */ }
         // descrição
         pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
