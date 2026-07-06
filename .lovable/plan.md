@@ -1,177 +1,108 @@
+## Objetivo
 
-# OT — Ordem de Troca de Artigo
+Criar o arquivo `docs/correcoes/intomocot.md` documentando 100% detalhadamente a correção "Guarda de Início Inteligente para OM/OC/OT" (modal de conflito antes de iniciar quando a mesma máquina tem múltiplas ordens em aberto). Documento apenas — sem alterações de código nesta etapa.
 
-Nova aba independente no módulo Mecânica, ao lado de OM e OC, com numeração própria (`OT #NNN`) e fluxo em 4 etapas.
+## Estrutura do arquivo `docs/correcoes/intomocot.md`
 
----
+### 1. Cabeçalho
+- Título: "Guarda de Início Inteligente — OM / OC / OT"
+- Status: Proposta / A implementar
+- Data de criação
+- Módulos afetados: Mecânica (`/:slug/mecanica/om|oc|ot`)
 
-## 1. Papéis e permissões
+### 2. Contexto e Problema
+- Descrição do fluxo atual: mecânicos programam OM, OC e OT em aberto para a mesma máquina.
+- Bug operacional: operadores pulam etapas — iniciam OM quando havia uma OT anterior a ser feita, e vice-versa.
+- Regra atual que já existe: bloqueio apenas quando há algo `em_curso` (status corrente). Não há aviso quando há múltiplas ordens em `aberto`.
+- Impacto: histórico bagunçado, `machine_logs` incoerente, produção parada por sequência errada.
 
-| Ação | Admin | Líder | Mecânico | Líder Mecânica |
-|---|---|---|---|---|
-| Criar OT | ✅ | ❌ | ❌ | ❌ |
-| Iniciar troca de fio | ❌ | ✅ | ❌ | ❌ |
-| Finalizar troca de fio | ❌ | ✅ | ❌ | ❌ |
-| Iniciar regulagem | ❌ | ❌ | ✅ | ✅ |
-| Finalizar regulagem (→ acompanhamento) | ❌ | ❌ | ✅ | ✅ |
-| Registrar voltas / revisar peça / finalizar OT | ❌ | ✅ | ✅ | ✅ |
-| Cancelar / Excluir | ✅ | ❌ | ❌ | ❌ |
+### 3. Regra de Negócio
+- Nenhuma ordem pode iniciar se a máquina tem outra `em_curso` (mantém regra existente).
+- Se há apenas 1 ordem em aberto para a máquina → inicia direto, sem modal.
+- Se há 2+ ordens em aberto (somando OM + OC + OT) → abre modal listando todas antes de iniciar.
+- Sistema não escolhe a "ordem correta" — mostra as opções e o operador decide, com registro em auditoria.
 
-**Visibilidade da aba OT:**
-- Sidebar (desktop): admin, líder, líder_mecanica.
-- Footer (mobile): mesma regra de OM/OC (adicionar `mecanica-ot`).
-- **Mecânico**: a aba OT só aparece quando existe **pelo menos 1 OT no status `aguardando_regulagem` ou `em_regulagem`** da sua empresa. Caso contrário, oculta.
+### 4. UX — Modal `StartOrderConflictModal`
+- Wireframe ASCII do modal
+- Comportamento:
+  - Título dinâmico: "TEAR XX tem N ordens em aberto"
+  - Cada linha = uma ordem com badge (OM/OC/OT), número #short_id, tipo humano, descrição/prioridade, autoria "Nome #Código", data de criação.
+  - Ordem cronológica ascendente por `created_at`.
+  - Linha da ordem clicada originalmente com badge "SELECIONADA" e botão primário `Iniciar mesmo assim`.
+  - Outras linhas com botão secundário `Iniciar esta OM/OC/OT`.
+  - Rodapé: apenas `Cancelar`.
+  - Sem ESC (segue padrão de modais de registro — memória `constraints/deletion-safety`).
 
----
+### 5. Arquitetura Técnica
 
-## 2. Fluxo de estados
+#### 5.1. Novos arquivos
+- `src/lib/mecanicaGuards.ts` — função `fetchOpenOrdersForMachine(companyId, machineId)` que cruza `maintenance_orders` e `article_change_orders` filtrando `status='aberto'` e retorna array normalizado.
+- `src/hooks/useStartOrderGuard.tsx` — Provider + hook + componente do modal. Cada tab registra seu starter por tipo (`registerStarter('OM'|'OC'|'OT', fn)`).
 
-```text
-aberto (criada pelo admin)
-   │  [Líder: Iniciar troca de fio]
-   ▼
-troca_fio_em_curso
-   │  [Líder: Finalizar troca de fio]
-   ▼
-aguardando_regulagem  ← nesta fase a aba OT passa a aparecer p/ mecânico
-   │  [Mecânico: Iniciar regulagem]
-   ▼
-em_regulagem
-   │  [Mecânico: Finalizar regulagem]
-   ▼
-em_acompanhamento     ← contador de voltas + revisão de peça obrigatórios
-   │  [Registrar revisão da peça (furos/falhas) + relatório final]
-   ▼
-concluida
+#### 5.2. Contrato do item normalizado
+```ts
+type OpenOrder = {
+  kind: 'OM' | 'OC' | 'OT';
+  id: string;
+  number: string;        // short_id
+  title: string;         // ex.: "Manut. Preventiva", "Troca de Artigo"
+  priority?: 'normal' | 'prioritaria';
+  description?: string;
+  createdAt: string;
+  createdByName?: string;
+  createdByCode?: string;
+};
 ```
 
-Cancelamento (admin) permitido em qualquer estado antes de `concluida`.
+#### 5.3. Arquivos alterados
+- `src/pages/Mecanica.tsx` — envolve tabs no `StartOrderGuardProvider`. Rota-mãe da guarda.
+- `src/components/mecanica/MaintenanceOrdersTab.tsx` — `startOrder(order)` passa por `guard.tryStart(order)`. Registra `starter('OM', startOM)` e `starter('OC', startOC)` no mount.
+- `src/components/mecanica/ArticleChangeOrdersTab.tsx` — só a primeira etapa (`Iniciar Troca de Fio`) passa pelo guard. Registra `starter('OT', startTrocaFio)`. Etapas seguintes (Regulagem, Acompanhamento, Concluir) não abrem o modal — a OT já é a `em_curso`.
 
----
+#### 5.4. Fluxo do `tryStart`
+1. `tryStart({ kind, id })` chamado pelo tab.
+2. Guard consulta `fetchOpenOrdersForMachine(companyId, machineId)`.
+3. Se `list.length <= 1` → chama `starter[kind](id)` direto e retorna.
+4. Se `list.length >= 2` → abre modal com `list`, marcando a `id` como selecionada.
+5. Usuário confirma:
+   - "Iniciar mesmo assim" (mesma ordem) → `starter[kind](id)`.
+   - "Iniciar esta" (outra ordem) → se `kind` diferente da aba atual, `navigate('/:slug/mecanica/{kind}')` e depois `starter[kind](otherId)`. Toast opcional "Aberto na aba correspondente".
+6. Bloqueio duro mantido: se algum item da lista já estiver `em_curso` (não deveria acontecer pois `tryStart` só é chamado quando algo era `aberto`, mas há revalidação), aborta com toast.
 
-## 3. Modelo de dados
+### 6. Cross-tab: navegação e ativação
+- Para iniciar ordem de outro tipo diretamente pelo modal, o guard usa `useNavigate()` com a rota `/${slug}/mecanica/${kind.toLowerCase()}`.
+- Uma `pendingStart` (guardada em ref do provider) dispara o starter após o novo tab montar-se e registrar seu starter — via `useEffect` observando `registeredStarters`.
+- Se o starter alvo não montar em 3s, mostra toast "Abra a aba OT e clique iniciar novamente" e limpa `pendingStart`.
 
-Aproveitar as estruturas de OM/OC quando fizer sentido, mas OT tem campos próprios que não cabem em `maintenance_orders`. Criar tabelas dedicadas.
+### 7. Auditoria
+- Ao iniciar via modal, o starter recebe metadata extra: `{ via_conflict_modal: true, other_open_orders: [{ kind, number }] }`.
+- Cada `logAudit` de start (já existente) recebe `details` extras. Permite ao admin filtrar em `audit_logs` quantos operadores estão pulando sequências.
 
-### 3.1 `article_change_orders` (a OT em si)
+### 8. Casos de borda
+- Máquina inexistente / removida: aborta com toast.
+- Perda de rede na query: aborta o start e mostra toast "Falha ao verificar ordens abertas — tente novamente."
+- Realtime altera status entre o clique e a resposta: revalida antes de enviar `update`; se agora existe `em_curso`, bloqueia.
+- Duas ordens do mesmo tipo em aberto (ex.: 2 OMs) — modal continua funcionando; cada linha tem botão próprio.
+- Usuário sem permissão para iniciar OT/OM/OC: já barrado pelo tab; o guard não escala privilégios.
 
-Campos de domínio:
-- `ot_number` (int, sequência por empresa via trigger, igual ao padrão OM/OC)
-- `machine_id`
-- `current_article_id` (artigo saindo)
-- `next_article_id` (artigo entrando)
-- `status` (enum: `aberto`, `troca_fio_em_curso`, `aguardando_regulagem`, `em_regulagem`, `em_acompanhamento`, `concluida`, `cancelada`)
-- `observations` (livre, opcional na criação)
-- Timestamps de cada transição: `yarn_change_started_at`, `yarn_change_ended_at`, `adjustment_started_at`, `adjustment_ended_at`, `monitoring_started_at`, `concluded_at`, `cancelled_at`
-- Autoria por transição: `created_by_*`, `yarn_change_by_*`, `adjustment_by_*`, `concluded_by_*` (name/code)
-- Acompanhamento: `monitoring_turns` (int, opcional), `piece_defects_holes` (int), `piece_defects_flaws` (int), `final_report` (text)
+### 9. Fora de escopo
+- Priorização automática (o sistema nunca decide qual é "a correta").
+- Impedir criação simultânea (regra existente segue igual).
+- Reordenar `priority` das ordens.
+- Alterações de schema, RLS, triggers ou funções SQL.
 
-### 3.2 `article_change_yarns` (fitas da OT)
+### 10. Plano de teste manual
+- Cenário A: 1 OM em aberto → clicar iniciar → inicia direto (sem modal).
+- Cenário B: 1 OM + 1 OT em aberto na mesma máquina → clicar iniciar OM → modal abre com 2 linhas → confirmar OM → OM inicia, OT permanece aberta.
+- Cenário C: mesmo B, escolher "Iniciar esta OT" pelo modal → app navega para `/mecanica/ot`, dispara start da OT, OM permanece aberta.
+- Cenário D: 1 OC `em_curso` + 1 OM `aberto` → clicar iniciar OM → bloqueio existente com toast "Máquina tem OC em curso" (modal não abre).
+- Cenário E: OT com Troca de Fio já iniciada (em Regulagem) → botão "Iniciar Regulagem" não passa pelo guard.
+- Cenário F: sem rede → toast de falha, nada muda.
 
-Uma máquina roda até 4 fitas de fios + 1 fita de elastano. O admin define, por OT, quais fitas serão usadas e o que vai em cada uma.
+### 11. Documentação relacionada a atualizar depois
+- `docs/mestre.md` — histórico do patch quando implementado.
+- `docs/mecanica.md` — nova seção "Guarda de conflitos ao iniciar".
+- Memória `mem://features/mechanical-maintenance-module` — nota curta sobre a regra.
 
-- `order_id` (FK OT)
-- `feeder_type` (enum: `fio`, `elastano`)
-- `feeder_position` (int 1–4 quando `fio`; 1 quando `elastano`)
-- `yarn_type_id` (FK `yarn_types`) — o tipo de fio nessa fita
-- `lfa` (numeric) — LFA daquela fita
-- `stretch` (numeric) — estiragem daquela fita
-- `observation` (text opcional)
-
-Único `(order_id, feeder_type, feeder_position)`.
-
-### 3.3 Auditoria e realtime
-- Publicar as duas tabelas em `supabase_realtime`.
-- Logar cada transição em `audit_logs` com `ot_*` (`ot_create`, `ot_start_yarn`, `ot_finish_yarn`, `ot_start_adjustment`, `ot_finish_adjustment`, `ot_conclude`, `ot_cancel`, `ot_delete`).
-
-### 3.4 Segurança
-- RLS por `company_id` (padrão da app).
-- GRANT para `authenticated` e `service_role`.
-- Trigger de numeração `assign_ot_number` inspirado no `assign_om_number`.
-
----
-
-## 4. UI
-
-### 4.1 Navegação
-- Nova entrada `mecanica-ot` em `AppSidebar.tsx` e `MobileBottomNav.tsx` com ícone (ex.: `Repeat` ou `ArrowLeftRight`) e badge de OT em aberto.
-- Nova rota `/:slug/mecanica/ot` em `App.tsx` (`routeKey="mecanica-ot"`).
-- Herdar toggle da empresa `mecanica` (mesma regra de OM/OC).
-- Regra especial p/ mecânico: mesmo com o item habilitado, esconder quando não houver OT em `aguardando_regulagem` / `em_regulagem`.
-
-### 4.2 Componente `ArticleChangeOrdersTab.tsx`
-Espelha o layout de `MaintenanceOrdersTab.tsx`:
-- Abas internas: **Aberto**, **Em curso** (agrupa troca_fio + regulagem + acompanhamento), **Concluídas**.
-- Cards com:
-  - Cabeçalho `OT #NNN — MÁQUINA`
-  - Artigo atual → próximo artigo
-  - Lista de fitas configuradas (posição, tipo de fio, LFA, estiragem)
-  - Timers apropriados por estado (aguardando início / troca fio em curso / aguardando regulagem / regulagem em curso / acompanhamento)
-  - Botão de ação principal muda por status e role (Iniciar troca, Finalizar troca, Iniciar regulagem, Finalizar regulagem, Registrar revisão)
-
-### 4.3 Modal “Nova OT” (admin)
-Campos:
-- Máquina (SearchableSelect)
-- Artigo atual (default = artigo da máquina)
-- Próximo artigo (SearchableSelect)
-- Bloco de **Fitas** — até 4 slots “Fita 1/2/3/4” + 1 slot fixo “Elastano”. Cada slot:
-  - Ativar/desativar
-  - Tipo de fio (SearchableSelect em `yarn_types`)
-  - LFA (numeric)
-  - Estiragem (numeric)
-  - Observação (opcional)
-- Observação geral
-
-### 4.4 Modal “Finalizar Regulagem → Acompanhamento” (mecânico)
-Apenas confirma passagem para `em_acompanhamento` + observação do mecânico.
-
-### 4.5 Modal “Revisão de peça + Finalizar OT”
-- Campo **Voltas acompanhadas** (numeric)
-- **Furos** (numeric)
-- **Falhas** (numeric)
-- **Relatório final** (textarea obrigatório)
-- Botão “Finalizar OT” → status `concluida`.
-
-### 4.6 Reaproveitamentos
-- `SearchableSelect`, `BrazilianWeightInput` (não se aplica), formatação padrão, `getFriendlyErrorMessage`, `useAuditLog`, `MOBILE_FOOTER_KEYS` etc.
-
----
-
-## 5. Arquivos afetados
-
-**Novos**
-- Migration Supabase (tabelas + enum + trigger + RLS + realtime).
-- `src/components/mecanica/ArticleChangeOrdersTab.tsx`
-- `src/components/mecanica/NewArticleChangeOrderModal.tsx`
-- `src/components/mecanica/ArticleChangeFinalizeModal.tsx`
-
-**Editados**
-- `src/App.tsx` — rota `/mecanica/ot`.
-- `src/components/AppSidebar.tsx` — item `mecanica-ot`, badge, herança do toggle.
-- `src/components/MobileBottomNav.tsx` — item `mecanica-ot`, badge, visibilidade condicional p/ mecânico.
-- `src/hooks/usePermissions.ts` — incluir `mecanica-ot` nos `ROLE_ALLOWED_KEYS` dos roles corretos e nas defaults quando aplicável.
-- `src/pages/Mecanica.tsx` — nova aba (topo) para admin; renderizar `ArticleChangeOrdersTab` também via rota direta.
-- `docs/mestre.md` — bloco de história descrevendo o módulo OT.
-
-Nenhuma alteração em OM/OC.
-
----
-
-## 6. Notas técnicas
-
-- Enum novo `article_change_status`.
-- Trigger `assign_ot_number` — mesmo padrão do `assign_om_number`, mas usa `MAX(ot_number)+1` por `company_id`.
-- Regra p/ mecânico ver a aba OT: query leve `SELECT count(*) FROM article_change_orders WHERE company_id=? AND status IN ('aguardando_regulagem','em_regulagem')` + subscription realtime; se `0`, item some do footer/sidebar do mecânico.
-- Badge de OT em aberto no sidebar/footer: `status = 'aberto'` (mesma lógica dos existentes), cor secundária (ex.: âmbar) para distinguir de OM (azul) e OC (vermelho).
-- Push notifications: reaproveitar `send-push-notification` (opcional nesta fase — enviar quando cair em `aguardando_regulagem` para mecânico/lider_mecânica). **Fora do escopo desta primeira entrega** salvo indicação contrária.
-
----
-
-## 7. Perguntas antes de eu ir codar
-
-1. **Fitas**: confirmo que a máquina tem **exatamente 4 fitas de fio + 1 fita de elastano**? A fita de elastano é sempre obrigatória ou opcional na OT?
-2. **Iniciar troca de fio**: só o **Líder (role `lider`)** pode iniciar/finalizar essa etapa, correto? (o role `lider_mecanica` fica apenas na regulagem?)
-3. **Revisão de peça (última etapa)**: quem finaliza — mecânico, líder, ou qualquer um dos dois? Você mencionou “acompanhamento” sem citar o papel.
-4. **Voltas**: é um número único informado no fim ou preciso permitir apontamentos parciais ao longo do acompanhamento?
-
-Se qualquer resposta mudar o plano, eu ajusto antes de tocar em código.
+## Entregável desta rodada
+- Apenas o arquivo `docs/correcoes/intomocot.md` com todo o conteúdo acima em Markdown formatado (headings, tabelas, blocos ASCII e code fences). Nenhum outro arquivo é criado ou modificado.
