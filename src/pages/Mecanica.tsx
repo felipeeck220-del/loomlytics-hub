@@ -356,7 +356,11 @@ export default function MecanicaPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return activeMachines.map(m => {
-      const allPrev = getLogsByStatus(m.id, 'manutencao_preventiva');
+      // Troca de Agulheiro também é considerada preventiva (já executamos
+      // uma preventiva junto com a troca de agulheiro).
+      const allPrev = machineLogs
+        .filter(l => l.machine_id === m.id && (l.status === 'manutencao_preventiva' || l.status === 'troca_agulhas'))
+        .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
       const last = allPrev[0] || null;
       const lastDate = last ? new Date(last.ended_at || last.started_at) : null;
       const intervalDays = m.maintenance_interval_days && m.maintenance_interval_days > 0
