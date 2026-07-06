@@ -1776,9 +1776,6 @@ export default function MecanicaPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowNeedleModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Cadastrar
-                      </Button>
                       <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
                         <Plus className="h-4 w-4 mr-2" /> Entrada
                       </Button>
@@ -1794,7 +1791,6 @@ export default function MecanicaPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
-                              <th className="text-left p-4 font-medium">Fornecedor</th>
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
                               <th className="text-right p-4 font-medium">Estoque</th>
@@ -1806,14 +1802,12 @@ export default function MecanicaPage() {
                               .sort((a, b) => a.brand.localeCompare(b.brand))
                               .filter(n => 
                                 n.brand.toLowerCase().includes(needleSearch.toLowerCase()) || 
-                                n.provider.toLowerCase().includes(needleSearch.toLowerCase()) || 
                                 n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
                               )
                               .map(n => {
                                 const usedBy = new Set(machineNeedleRefs.filter(r => r.needle_id === n.id).map(r => r.machine_id)).size;
                                 return (
                               <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
-                                <td className="p-4">{n.provider}</td>
                                 <td className="p-4">{n.brand}</td>
                                 <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
                                 <td className="p-4 text-right font-bold">{n.current_quantity}</td>
@@ -1828,7 +1822,7 @@ export default function MecanicaPage() {
                               })}
                             {needles.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
+                                <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
                               </tr>
                             )}
                           </tbody>
@@ -1837,6 +1831,118 @@ export default function MecanicaPage() {
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+
+              {/* Agulhas (Cadastro simples) Sub-Tab */}
+              <TabsContent value="cadastro">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Package className="h-4 w-4" /> Agulhas Cadastradas
+                    </CardTitle>
+                    <Button size="sm" onClick={() => { setNeedleForm({ provider: '', brand: '', reference_code: '' }); setShowNeedleModal(true); }}>
+                      <Plus className="h-4 w-4 mr-1" /> Nova Agulha
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-3 font-medium">Marca</th>
+                            <th className="text-left p-3 font-medium">Ref. Código</th>
+                            <th className="text-right p-3 font-medium w-32">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...needles].sort((a, b) => a.brand.localeCompare(b.brand)).map(n => (
+                            <tr key={n.id} className="border-b hover:bg-muted/30">
+                              <td className="p-3">{n.brand}</td>
+                              <td className="p-3"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
+                              <td className="p-3 text-right text-xs text-muted-foreground">Vincule fornecedores na aba <b>Fornecedores</b></td>
+                            </tr>
+                          ))}
+                          {needles.length === 0 && (
+                            <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada. Use "Nova Agulha".</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Fornecedores Sub-Tab */}
+              <TabsContent value="fornecedores">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Wrench className="h-4 w-4" /> Fornecedores de Agulhas
+                    </CardTitle>
+                    <Button size="sm" onClick={openNewProvider}>
+                      <Plus className="h-4 w-4 mr-1" /> Novo Fornecedor
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {providers.length === 0 && (
+                      <div className="p-8 text-center text-muted-foreground text-sm">Nenhum fornecedor cadastrado.</div>
+                    )}
+                    {providers.map(p => {
+                      const prices = providerPrices.filter(pp => pp.provider_id === p.id);
+                      return (
+                        <Card key={p.id} className="border">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                              <CardTitle className="text-base">{p.name}</CardTitle>
+                              <span className="text-xs text-muted-foreground">{prices.length} agulha{prices.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openAddPrice(p.id)} disabled={availableNeedlesForProvider(p.id).length === 0}>
+                                <Plus className="h-3 w-3 mr-1" /> Agulha
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditProvider(p)}><Pencil className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteProviderId(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-0">
+                            {prices.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b bg-muted/40 text-xs">
+                                      <th className="text-left p-2 font-medium">Marca</th>
+                                      <th className="text-left p-2 font-medium">Ref. Código</th>
+                                      <th className="text-right p-2 font-medium">Preço Unit.</th>
+                                      <th className="text-right p-2 font-medium w-24">Ações</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {prices.map(pp => {
+                                      const n = needles.find(nn => nn.id === pp.needle_id);
+                                      return (
+                                        <tr key={pp.id} className="border-b last:border-b-0">
+                                          <td className="p-2">{n?.brand || '—'}</td>
+                                          <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n?.reference_code || '—'}</code></td>
+                                          <td className="p-2 text-right font-medium">R$ {Number(pp.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                                          <td className="p-2 text-right">
+                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditPrice(pp)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeletePriceId(pp.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma agulha vinculada. Clique em <b>+ Agulha</b>.</div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               {/* Movimentações Sub-Tab */}
