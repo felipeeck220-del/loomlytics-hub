@@ -36,6 +36,9 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
   'troca_agulhas',
 ];
 
+type NeedleProvider = { id: string; company_id: string; name: string };
+type NeedleProviderPrice = { id: string; company_id: string; provider_id: string; needle_id: string; unit_price: number };
+
 export default function MecanicaPage() {
    const { 
      getMachines, getMachineLogs, getProductions, saveMachineLogs, 
