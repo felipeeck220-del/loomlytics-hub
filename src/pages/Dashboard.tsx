@@ -139,7 +139,9 @@ export default function Dashboard() {
         statusLabel: om.status === 'em_curso' ? 'Em curso' : 'Aberta',
         startedAt: om.started_at || om.created_at,
         createdByName: om.created_by_name,
+        createdByCode: om.created_by_code,
         startedByName: om.started_by_name,
+        startedByCode: om.started_by_code,
         raw: om,
       };
     });
@@ -153,23 +155,28 @@ export default function Dashboard() {
       // Cada etapa do fluxo OT tem seu próprio timer e responsável
       let stageStartedAt: string | null = null;
       let stageByName: string | null = null;
+      let stageByCode: string | null = null;
       switch (ot.status) {
         case 'troca_fio_em_curso':
           stageStartedAt = ot.yarn_change_started_at || ot.created_at;
           stageByName = ot.yarn_change_by_name || null;
+          stageByCode = ot.yarn_change_by_code || null;
           break;
         case 'aguardando_regulagem':
           // etapa começa quando a troca de fio foi finalizada
           stageStartedAt = ot.yarn_change_ended_at || ot.yarn_change_started_at || ot.created_at;
           stageByName = ot.yarn_change_finished_by_name || ot.yarn_change_by_name || null;
+          stageByCode = ot.yarn_change_finished_by_code || ot.yarn_change_by_code || null;
           break;
         case 'em_regulagem':
           stageStartedAt = ot.adjustment_started_at || ot.yarn_change_ended_at || ot.created_at;
           stageByName = ot.adjustment_by_name || null;
+          stageByCode = ot.adjustment_by_code || null;
           break;
         case 'em_acompanhamento':
           stageStartedAt = ot.monitoring_started_at || ot.adjustment_ended_at || ot.adjustment_started_at || ot.created_at;
           stageByName = ot.adjustment_finished_by_name || ot.adjustment_by_name || null;
+          stageByCode = ot.adjustment_finished_by_code || ot.adjustment_by_code || null;
           break;
         default:
           stageStartedAt = ot.created_at;
@@ -186,7 +193,9 @@ export default function Dashboard() {
         statusLabel: OT_STATUS_LABELS[ot.status] || ot.status,
         startedAt: stageStartedAt,
         createdByName: ot.created_by_name,
+        createdByCode: ot.created_by_code,
         startedByName: stageByName,
+        startedByCode: stageByCode,
         raw: ot,
       };
     });
