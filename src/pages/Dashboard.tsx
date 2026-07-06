@@ -481,10 +481,12 @@ export default function Dashboard() {
       if (dashboardMetrics?.charts?.trend?.length) {
         return dashboardMetrics.charts.trend.map((d: any) => ({
           date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+          _rawDate: d.date,
           rolos: Number(d.rolls ?? 0),
           kg: Math.round(d.weight * 100) / 100,
           faturamento: Math.round(d.revenue * 100) / 100,
-          eficiencia: Math.round(Number(d.efficiency ?? 0) * 10) / 10,
+          eficiencia: Math.min(100, Math.round(Number(d.efficiency ?? 0) * 10) / 10),
+          eficienciaReal: Math.round(Number(d.efficiency ?? 0) * 10) / 10,
         }));
       }
       const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
@@ -498,14 +500,26 @@ export default function Dashboard() {
           byDate[p.date].effCount += 1;
         }
       });
-      return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
-        date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-        rolos: d.rolos,
-        kg: Math.round(d.kg * 100) / 100,
-        faturamento: Math.round(d.faturamento * 100) / 100,
-        eficiencia: d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0,
-      }));
+      return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => {
+        const effReal = d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0;
+        return {
+          date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+          _rawDate: date,
+          rolos: d.rolos,
+          kg: Math.round(d.kg * 100) / 100,
+          faturamento: Math.round(d.faturamento * 100) / 100,
+          eficiencia: Math.min(100, effReal),
+          eficienciaReal: effReal,
+        };
+      });
     }, [filtered, dashboardMetrics]);
+
+    const trendPeaks = useMemo(() => {
+      if (!trendData.length) return null;
+      const peakKg = trendData.reduce((a, b) => (b.kg > a.kg ? b : a), trendData[0]);
+      const peakFat = trendData.reduce((a, b) => (b.faturamento > a.faturamento ? b : a), trendData[0]);
+      return { peakKg, peakFat };
+    }, [trendData]);
 
   const periodSummary = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
