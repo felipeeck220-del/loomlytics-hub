@@ -151,10 +151,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const load = async (opts?: { silent?: boolean }) => {
     if (!companyId) return;
     if (!opts?.silent) setLoading(true);
-    const [{ data: o }, { data: i }] = await Promise.all([
+    const [{ data: o, error: oErr }, { data: i, error: iErr }] = await Promise.all([
       (supabase.from as any)('maintenance_orders').select('*').eq('company_id', companyId).order('created_at', { ascending: false }),
       (supabase.from as any)('maintenance_order_items').select('*').eq('company_id', companyId),
     ]);
+    if (oErr || iErr) {
+      console.error('[MaintenanceOrdersTab.load] fetch failed', { oErr, iErr });
+      toast.error('Erro ao carregar ordens de manutenção');
+    }
     setOrders((o as MaintenanceOrder[]) || []);
     setItems((i as MaintenanceOrderItem[]) || []);
     if (!opts?.silent) setLoading(false);
@@ -498,9 +502,13 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     // Se OM de troca de agulhas, atualiza marcador de última troca manualmente
     // (já que removemos exit_mode='troca_agulheiro' para evitar log duplicado).
     if (finishOrder.type === 'troca_agulhas') {
-      await (supabase.from as any)('machines')
+      const { error: needleErr } = await (supabase.from as any)('machines')
         .update({ last_needle_change_at: now })
         .eq('id', finishOrder.machine_id);
+      if (needleErr) {
+        console.error('[confirmFinish] last_needle_change_at update failed', needleErr);
+        toast.error('OM finalizada, mas não foi possível registrar a data da troca de agulhas.');
+      }
     }
 
     toast.success(`${isCorr ? 'OC' : 'OM'} finalizada`);
@@ -646,7 +654,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const map = new Map<string, { daysLeft: number | null; kgLeft: number | null; kgTarget: number | null; intervalDays: number }>();
     for (const m of machines) {
       const prev = machineLogs
-        .filter((l: any) => l.machine_id === m.id && l.status === 'manutencao_preventiva')
+        .filter((l: any) => l.machine_id === m.id && (l.status === 'manutencao_preventiva' || l.status === 'troca_agulhas'))
         .sort((a: any, b: any) => new Date(b.ended_at || b.started_at).getTime() - new Date(a.ended_at || a.started_at).getTime());
       const last = prev[0] || null;
       const lastDate = last ? new Date((last as any).ended_at || (last as any).started_at) : null;
