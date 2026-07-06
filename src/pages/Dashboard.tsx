@@ -481,10 +481,12 @@ export default function Dashboard() {
       if (dashboardMetrics?.charts?.trend?.length) {
         return dashboardMetrics.charts.trend.map((d: any) => ({
           date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+          _rawDate: d.date,
           rolos: Number(d.rolls ?? 0),
           kg: Math.round(d.weight * 100) / 100,
           faturamento: Math.round(d.revenue * 100) / 100,
-          eficiencia: Math.round(Number(d.efficiency ?? 0) * 10) / 10,
+          eficiencia: Math.min(100, Math.round(Number(d.efficiency ?? 0) * 10) / 10),
+          eficienciaReal: Math.round(Number(d.efficiency ?? 0) * 10) / 10,
         }));
       }
       const byDate: Record<string, { rolos: number; kg: number; faturamento: number; effSum: number; effCount: number }> = {};
@@ -498,14 +500,26 @@ export default function Dashboard() {
           byDate[p.date].effCount += 1;
         }
       });
-      return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
-        date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-        rolos: d.rolos,
-        kg: Math.round(d.kg * 100) / 100,
-        faturamento: Math.round(d.faturamento * 100) / 100,
-        eficiencia: d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0,
-      }));
+      return Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => {
+        const effReal = d.effCount > 0 ? Math.round((d.effSum / d.effCount) * 10) / 10 : 0;
+        return {
+          date: format(new Date(date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+          _rawDate: date,
+          rolos: d.rolos,
+          kg: Math.round(d.kg * 100) / 100,
+          faturamento: Math.round(d.faturamento * 100) / 100,
+          eficiencia: Math.min(100, effReal),
+          eficienciaReal: effReal,
+        };
+      });
     }, [filtered, dashboardMetrics]);
+
+    const trendPeaks = useMemo(() => {
+      if (!trendData.length) return null;
+      const peakKg = trendData.reduce((a, b) => (b.kg > a.kg ? b : a), trendData[0]);
+      const peakFat = trendData.reduce((a, b) => (b.faturamento > a.faturamento ? b : a), trendData[0]);
+      return { peakKg, peakFat };
+    }, [trendData]);
 
   const periodSummary = useMemo(() => {
     const toDisplayDate = (value: string) => new Date(`${value}T12:00:00`);
@@ -925,6 +939,20 @@ export default function Dashboard() {
                       <p className="text-[11px] text-muted-foreground font-light">Comparativo diário · clique nas séries para alternar</p>
                     </div>
                   </div>
+                  {trendPeaks && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-success/10 text-success px-2 py-0.5 text-[10.5px] font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                        Pico Kg: {formatNumber(trendPeaks.peakKg.kg, 2)} kg · {trendPeaks.peakKg.date}
+                      </span>
+                      {canSeeFinancial && (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-warning/10 text-warning px-2 py-0.5 text-[10.5px] font-medium">
+                          <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+                          Pico Faturamento: {formatCurrency(trendPeaks.peakFat.faturamento)} · {trendPeaks.peakFat.date}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {([
@@ -1004,6 +1032,7 @@ export default function Dashboard() {
                             faturamento: { label: 'Faturamento', color: 'hsl(38, 92%, 50%)', fmt: (v) => formatCurrency(v) },
                             eficiencia: { label: 'Eficiência', color: 'hsl(0, 84%, 60%)', fmt: (v) => formatPercent(v) },
                           };
+                          const row = payload[0]?.payload ?? {};
                           return (
                             <div className="rounded-xl border border-border/70 bg-background/95 backdrop-blur px-3 py-2.5 shadow-lg min-w-[180px]">
                               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
@@ -1011,13 +1040,16 @@ export default function Dashboard() {
                                 {payload.map((p: any) => {
                                   const cfg = map[p.dataKey];
                                   if (!cfg) return null;
+                                  const displayValue = p.dataKey === 'eficiencia'
+                                    ? (typeof row.eficienciaReal === 'number' ? row.eficienciaReal : Number(p.value) || 0)
+                                    : (Number(p.value) || 0);
                                   return (
                                     <div key={p.dataKey} className="flex items-center justify-between gap-4 text-xs">
                                       <div className="flex items-center gap-2">
                                         <span className="h-2 w-2 rounded-full" style={{ background: cfg.color }} />
                                         <span className="text-muted-foreground">{cfg.label}</span>
                                       </div>
-                                      <span className="font-semibold text-foreground tabular-nums">{cfg.fmt(Number(p.value) || 0)}</span>
+                                      <span className="font-semibold text-foreground tabular-nums">{cfg.fmt(displayValue)}</span>
                                     </div>
                                   );
                                 })}
