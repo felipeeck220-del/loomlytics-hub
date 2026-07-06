@@ -781,6 +781,11 @@ export default function MecanicaPage() {
     try {
       const started_at = new Date(`${addStartDate}T${addStartTime}:00`).toISOString();
       const ended_at = new Date(`${addEndDate}T${addEndTime}:00`).toISOString();
+      if (new Date(ended_at).getTime() < new Date(started_at).getTime()) {
+        toast.error('A data/hora de fim não pode ser anterior à de início.');
+        setSaving(false);
+        return;
+      }
       let updatedLogs: MachineLog[];
       if (editingLogId) {
         updatedLogs = machineLogs.map(l => l.id === editingLogId
