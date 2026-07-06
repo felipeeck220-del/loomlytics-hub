@@ -87,6 +87,9 @@ export default function Dashboard() {
   const [openOMs, setOpenOMs] = useState<any[]>([]);
   const [openOTs, setOpenOTs] = useState<any[]>([]);
   const [omsExpanded, setOmsExpanded] = useState(false);
+  const [trendSeries, setTrendSeries] = useState<Record<'rolos' | 'kg' | 'faturamento' | 'eficiencia', boolean>>({
+    rolos: true, kg: true, faturamento: true, eficiencia: true,
+  });
 
   const fetchOpenOMs = useCallback(async () => {
     if (!dbCompanyId) return;
