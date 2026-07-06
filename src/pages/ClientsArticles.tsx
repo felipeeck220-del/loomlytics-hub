@@ -363,6 +363,11 @@ export default function ClientsArticles() {
              )}
           </div>
         </TabsContent>
+
+        {/* Artigos em Produção Tab */}
+        <TabsContent value="production" className="mt-4">
+          <ArtigosEmProducaoTab />
+        </TabsContent>
       </Tabs>
 
       {/* Client Modal */}
