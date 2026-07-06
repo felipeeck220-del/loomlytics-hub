@@ -1784,7 +1784,8 @@ export default function MecanicaPage() {
                 <span className="ml-auto text-[10px]">Padrão: {DEFAULT_MAINTENANCE_INTERVAL_DAYS} dias — clique no <Settings className="inline h-3 w-3 -mt-0.5" /> de cada máquina para personalizar (dias e/ou kg).</span>
               </div>
 
-              <div className="rounded-md border border-border overflow-x-auto">
+              {/* Desktop / Tablet: tabela completa */}
+              <div className="hidden md:block rounded-md border border-border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40">
@@ -1913,6 +1914,125 @@ export default function MecanicaPage() {
                     })}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Mobile: cards (sem scroll horizontal) */}
+              <div className="md:hidden space-y-3">
+                {filteredScheduleRows.length === 0 && (
+                  <div className="text-center text-sm text-muted-foreground py-8 border border-border rounded-md">
+                    {loading ? 'Carregando máquinas...' : 'Nenhuma máquina encontrada.'}
+                  </div>
+                )}
+                {filteredScheduleRows.map(row => {
+                  const { machine, last, lastDate, nextDate, daysLeft, durationMin, historyCount, kgTarget, kgLeft, intervalDays, isCustomized } = row;
+                  const obsList = last ? (obsByLogId[last.id] || []) : [];
+                  const obsText = obsList.map(o => o.observation).join(' • ');
+                  const cyl = machine.cylinder_id ? cylinders.find(c => c.id === machine.cylinder_id) : null;
+                  const diam = cyl?.diameter;
+                  const fin = cyl?.fineness;
+                  return (
+                    <div key={machine.id} className="rounded-lg border border-border p-3 space-y-2 bg-card">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm">{machine.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {machine.model || '—'}
+                            {(diam || fin) ? ` • ${diam || '—'} / ${fin || '—'}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-[11px]"
+                            onClick={() => setScheduleHistoryMachineId(machine.id)}
+                            disabled={historyCount === 0}
+                            title="Histórico"
+                          >
+                            <History className="h-3 w-3 mr-1" />{historyCount}
+                          </Button>
+                          <Button
+                            variant={isCustomized ? 'default' : 'outline'}
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => openIntervalModal(machine)}
+                            title={`Configurar intervalo (atual: ${intervalDays} dias${kgTarget ? ` + ${kgTarget} kg` : ''})`}
+                          >
+                            <Settings className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className={cn('rounded-md px-2 py-1 text-center text-xs font-semibold', daysLeftCellClass(daysLeft))}>
+                        {daysLeftLabel(daysLeft)}
+                        {nextDate ? <span className="ml-1 font-normal opacity-80">• {format(nextDate, 'dd/MM/yyyy')}</span> : null}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <p className="text-muted-foreground">Última</p>
+                          <p className="font-medium tabular-nums">{lastDate ? format(lastDate, 'dd/MM/yyyy') : '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Intervalo</p>
+                          <p className="font-medium tabular-nums">{intervalDays} dias</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Meta kg</p>
+                          <p className="font-medium tabular-nums">
+                            {kgTarget != null ? `${kgTarget.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Kg restantes</p>
+                          <p className={cn('font-medium tabular-nums', kgTarget == null || kgLeft == null ? 'text-muted-foreground' : kgLeft <= 0 ? 'text-destructive' : kgLeft <= kgTarget * 0.1 ? 'text-warning' : 'text-success')}>
+                            {kgTarget == null
+                              ? '—'
+                              : kgLeft == null
+                                ? 'Sem histórico'
+                                : kgLeft <= 0
+                                  ? `Atingido`
+                                  : `${kgLeft.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg`}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Hora início</p>
+                          <p className="font-medium tabular-nums">{last?.started_at ? format(new Date(last.started_at), 'HH:mm') : '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Hora fim</p>
+                          <p className="font-medium tabular-nums">{last?.ended_at ? format(new Date(last.ended_at), 'HH:mm') : '—'}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-muted-foreground">Horas paradas</p>
+                          <p className="font-medium tabular-nums">{formatDuration(durationMin)}</p>
+                        </div>
+                      </div>
+
+                      {obsText ? (
+                        <div className="text-[11px] border-t border-border pt-2">
+                          <p className="text-muted-foreground mb-0.5">Observação</p>
+                          <p className="line-clamp-2" title={obsText}>{obsText}</p>
+                        </div>
+                      ) : null}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-8 text-[11px]"
+                        onClick={() => handleDownloadLastOmReport(machine)}
+                        disabled={loadingReportMachineId === machine.id}
+                      >
+                        {loadingReportMachineId === machine.id ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <FileDown className="h-3 w-3 mr-1" />
+                        )}
+                        Última OM
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
