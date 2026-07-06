@@ -1058,6 +1058,30 @@ export default function MecanicaPage() {
     };
 
 
+  // Quando acessado via rota dedicada de OM/OC/OT, renderiza apenas o componente
+  // correspondente — sem o cabeçalho "Mecânica" e sem as abas Calendário/Cilindros.
+  if (pathTab === 'om' || pathTab === 'oc') {
+    return (
+      <div className="space-y-6">
+        <MaintenanceOrdersTab
+          machines={getMachines()}
+          needles={needles}
+          sinkers={sinkers}
+          cylinders={cylinders}
+          refreshMachines={refreshData}
+          mode={pathTab}
+        />
+      </div>
+    );
+  }
+  if (pathTab === 'ot') {
+    return (
+      <div className="space-y-6">
+        <ArticleChangeOrdersTab />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
