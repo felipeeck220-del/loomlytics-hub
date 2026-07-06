@@ -781,6 +781,11 @@ export default function MecanicaPage() {
     try {
       const started_at = new Date(`${addStartDate}T${addStartTime}:00`).toISOString();
       const ended_at = new Date(`${addEndDate}T${addEndTime}:00`).toISOString();
+      if (new Date(ended_at).getTime() < new Date(started_at).getTime()) {
+        toast.error('A data/hora de fim não pode ser anterior à de início.');
+        setSaving(false);
+        return;
+      }
       let updatedLogs: MachineLog[];
       if (editingLogId) {
         updatedLogs = machineLogs.map(l => l.id === editingLogId
@@ -2271,9 +2276,16 @@ export default function MecanicaPage() {
               <Select value={addMachineId} onValueChange={setAddMachineId}>
                 <SelectTrigger><SelectValue placeholder="Selecione uma máquina" /></SelectTrigger>
                 <SelectContent>
-                  {activeMachines.map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
+                  {(() => {
+                    const list = [...activeMachines];
+                    if (addMachineId && !list.some(m => m.id === addMachineId)) {
+                      const extra = machines.find(m => m.id === addMachineId);
+                      if (extra) list.unshift(extra);
+                    }
+                    return list.map(m => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
             </div>
