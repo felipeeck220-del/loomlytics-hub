@@ -338,8 +338,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       started_by_name: authorLabel,
     }).select().single();
     if (logErr) { toast.error('Erro ao registrar início'); return; }
-    // 2) atualiza machines.status
-    await (supabase.from as any)('machines').update({ status: o.type }).eq('id', o.machine_id);
+    // 2) atualiza machines.status (com verificação, mesmo padrão de confirmFinish)
+    const { error: machErr, data: machUpd } = await (supabase.from as any)('machines')
+      .update({ status: o.type })
+      .eq('id', o.machine_id)
+      .select('id');
+    if (machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0)) {
+      toast.error('Falha ao atualizar status da máquina. Verifique em Máquinas.');
+      console.error('[startOrder] machine status update failed', { machErr, machUpd, machine_id: o.machine_id });
+    }
     // 3) atualiza OM
     const { error } = await (supabase.from as any)('maintenance_orders').update({
       status: 'em_curso', started_at: now, started_by_id: user?.id, started_by_name: authorLabel,
@@ -550,7 +557,13 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setOrders(prev => prev.map(o => o.id === progressOrder.id ? { ...o, progress_notes: next } : o));
     setProgressDraft({ kind: progressDraft.kind, text: '' });
     toast.success('Registrado');
-    logAction('om_progress_note_add', { om: progressOrder.om_number, kind: note.kind });
+    const isCorrNote = progressOrder.type === 'manutencao_corretiva';
+    logAction(
+      isCorrNote ? 'oc_progress_note_add' : 'om_progress_note_add',
+      isCorrNote
+        ? { oc: progressOrder.oc_number, kind: note.kind }
+        : { om: progressOrder.om_number, kind: note.kind },
+    );
   };
 
   const removeProgressNote = async (noteId: string) => {
@@ -561,6 +574,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       .eq('id', progressOrder.id);
     if (error) { toast.error('Erro ao remover'); return; }
     setOrders(prev => prev.map(o => o.id === progressOrder.id ? { ...o, progress_notes: next } : o));
+    const isCorrRm = progressOrder.type === 'manutencao_corretiva';
+    logAction(
+      isCorrRm ? 'oc_progress_note_remove' : 'om_progress_note_remove',
+      isCorrRm ? { oc: progressOrder.oc_number } : { om: progressOrder.om_number },
+    );
   };
 
   // ============ PDF RELATÓRIO (finalizada) ============
