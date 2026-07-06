@@ -1390,6 +1390,90 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 </div>
               )}
 
+              {/* Fotos do problema (somente OC) */}
+              {progressOrder.type === 'manutencao_corretiva' && (
+                <div className="border rounded-lg p-4 space-y-3 bg-card">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Label className="font-semibold flex items-center gap-2">
+                      <Camera className="h-4 w-4 text-blue-600" /> Fotos do problema
+                      <Badge variant="outline" className="text-[10px]">{currentPhotos.length}/2</Badge>
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">Até 2 fotos com descrição. Aparecem no relatório final.</span>
+                  </div>
+
+                  {/* Grid das fotos já enviadas */}
+                  {currentPhotos.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {currentPhotos.map(p => (
+                        <div key={p.id} className="relative border rounded-md overflow-hidden bg-muted/40 group">
+                          {photoSignedUrls[p.path] ? (
+                            <img src={photoSignedUrls[p.path]} alt={p.description} className="w-full h-40 object-cover" />
+                          ) : (
+                            <div className="w-full h-40 flex items-center justify-center text-muted-foreground text-xs">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando…
+                            </div>
+                          )}
+                          <div className="p-2 text-xs">
+                            <div className="whitespace-pre-wrap break-words">{p.description}</div>
+                            <div className="text-[10px] text-muted-foreground mt-1">
+                              {format(new Date(p.ts), 'dd/MM/yyyy HH:mm')} · {p.author || '—'}
+                            </div>
+                          </div>
+                          {canExecuteOrder(progressOrder) && (
+                            <Button size="icon" variant="destructive" onClick={() => removePhoto(p)}
+                              className="absolute top-1 right-1 h-7 w-7 opacity-90">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Formulário de upload */}
+                  {canExecuteOrder(progressOrder) && currentPhotos.length < 2 && (
+                    <div className="border-t pt-3 space-y-2">
+                      {photoDraftPreview ? (
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <img src={photoDraftPreview} alt="preview" className="w-full sm:w-48 h-40 object-cover rounded-md border" />
+                          <div className="flex-1 space-y-2">
+                            <Label className="text-xs">Descrição da foto *</Label>
+                            <Textarea rows={4} value={photoDraftDesc} onChange={e => setPhotoDraftDesc(e.target.value)}
+                              placeholder="Ex.: Agulha quebrada na cabeça 3, causou furos no tecido" />
+                            <div className="flex gap-2 justify-end">
+                              <Button size="sm" variant="outline" onClick={resetPhotoDraft} disabled={photoUploading}>
+                                <X className="h-3.5 w-3.5 mr-1" /> Descartar
+                              </Button>
+                              <Button size="sm" onClick={uploadPhoto} disabled={photoUploading || !photoDraftDesc.trim()}>
+                                {photoUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
+                                Salvar foto
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          <label className="inline-flex">
+                            <input type="file" accept="image/*" capture="environment" className="hidden"
+                              onChange={e => onPickPhoto(e.target.files?.[0] || null)} />
+                            <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 text-white text-sm px-3 py-2 cursor-pointer hover:bg-blue-700">
+                              <Camera className="h-4 w-4" /> Tirar foto
+                            </span>
+                          </label>
+                          <label className="inline-flex">
+                            <input type="file" accept="image/*" className="hidden"
+                              onChange={e => onPickPhoto(e.target.files?.[0] || null)} />
+                            <span className="inline-flex items-center gap-1.5 rounded-md border text-sm px-3 py-2 cursor-pointer hover:bg-muted">
+                              <ImageIcon className="h-4 w-4" /> Escolher da galeria
+                            </span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Lista */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
