@@ -939,6 +939,20 @@ export default function Dashboard() {
                       <p className="text-[11px] text-muted-foreground font-light">Comparativo diário · clique nas séries para alternar</p>
                     </div>
                   </div>
+                  {trendPeaks && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-success/10 text-success px-2 py-0.5 text-[10.5px] font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                        Pico Kg: {formatNumber(trendPeaks.peakKg.kg, 2)} kg · {trendPeaks.peakKg.date}
+                      </span>
+                      {canSeeFinancial && (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-warning/10 text-warning px-2 py-0.5 text-[10.5px] font-medium">
+                          <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+                          Pico Faturamento: {formatCurrency(trendPeaks.peakFat.faturamento)} · {trendPeaks.peakFat.date}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {([
@@ -1018,6 +1032,7 @@ export default function Dashboard() {
                             faturamento: { label: 'Faturamento', color: 'hsl(38, 92%, 50%)', fmt: (v) => formatCurrency(v) },
                             eficiencia: { label: 'Eficiência', color: 'hsl(0, 84%, 60%)', fmt: (v) => formatPercent(v) },
                           };
+                          const row = payload[0]?.payload ?? {};
                           return (
                             <div className="rounded-xl border border-border/70 bg-background/95 backdrop-blur px-3 py-2.5 shadow-lg min-w-[180px]">
                               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
@@ -1025,13 +1040,16 @@ export default function Dashboard() {
                                 {payload.map((p: any) => {
                                   const cfg = map[p.dataKey];
                                   if (!cfg) return null;
+                                  const displayValue = p.dataKey === 'eficiencia'
+                                    ? (typeof row.eficienciaReal === 'number' ? row.eficienciaReal : Number(p.value) || 0)
+                                    : (Number(p.value) || 0);
                                   return (
                                     <div key={p.dataKey} className="flex items-center justify-between gap-4 text-xs">
                                       <div className="flex items-center gap-2">
                                         <span className="h-2 w-2 rounded-full" style={{ background: cfg.color }} />
                                         <span className="text-muted-foreground">{cfg.label}</span>
                                       </div>
-                                      <span className="font-semibold text-foreground tabular-nums">{cfg.fmt(Number(p.value) || 0)}</span>
+                                      <span className="font-semibold text-foreground tabular-nums">{cfg.fmt(displayValue)}</span>
                                     </div>
                                   );
                                 })}
