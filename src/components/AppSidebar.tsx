@@ -154,11 +154,8 @@ export function AppSidebar() {
     const adminFiltered = companyFiltered.filter(item => !((item as any).nonAdminOnly && isAdmin));
     const roleFiltered = filterNavItems(adminFiltered);
 
-    // Mecânico e Líder de Mecânica acessam OM/OC exclusivamente pelo footer fixo
-    const footerOnlyOmOc = user?.role === 'mecanico' || user?.role === 'lider_mecanica';
-    const mecanicoFiltered = footerOnlyOmOc
-      ? roleFiltered.filter(item => item.key !== 'mecanica-om' && item.key !== 'mecanica-oc' && item.key !== 'mecanica-ot')
-      : roleFiltered;
+    // OM/OC/OT aparecem no sidebar para mecânico e líder de mecânica (além do footer)
+    const mecanicoFiltered = roleFiltered;
 
     // Mecânico: só vê OT quando existe pelo menos 1 pronta para regulagem
     const mecanicoOtVisible = user?.role === 'mecanico' ? otReadyCount > 0 : true;
