@@ -109,12 +109,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const authorLabel = userName ? (userCode ? `${userName} #${userCode}` : userName) : null;
 
   const canManage = role === 'admin' || role === 'lider_mecanica';
-  const canExecute = canManage || role === 'mecanico' || role === 'lider';
+  const canExecute = canManage || role === 'mecanico' || role === 'lider' || role === 'lider_noite';
   const isAdmin = role === 'admin';
   // OC (Ordem de Corretiva): apenas admin e líder criam
-  const canCreateCorrective = role === 'admin' || role === 'lider';
+  const canCreateCorrective = role === 'admin' || role === 'lider' || role === 'lider_noite';
   // OC: apenas mecânicos e líder de mecânica iniciam/finalizam
-  const canExecuteCorrective = role === 'mecanico' || role === 'lider_mecanica';
+  const canExecuteCorrective = role === 'mecanico' || role === 'lider_mecanica' || role === 'lider_noite';
   const canExecuteOrder = (o: MaintenanceOrder) =>
     o.type === 'manutencao_corretiva' ? canExecuteCorrective : canExecute;
   const canManageOrder = (o: MaintenanceOrder) =>
