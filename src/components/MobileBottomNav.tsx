@@ -127,11 +127,8 @@ export function MobileBottomNav() {
     // Apply role-level filtering
     const roleFiltered = filterNavItems(companyFiltered);
 
-    // Mecânico: OT só aparece quando há OT pronta para regulagem
-    const mecanicoOtVisible = role === 'mecanico' ? otReadyCount > 0 : true;
-    const otFiltered = mecanicoOtVisible ? roleFiltered : roleFiltered.filter(i => i.key !== 'mecanica-ot');
-
-    return otFiltered.map(item => ({
+    // OT sempre visível no rodapé para mecânico e líder de mecânica
+    return roleFiltered.map(item => ({
       ...item,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
