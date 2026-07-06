@@ -24,6 +24,7 @@ import { SearchableSelect } from '@/components/SearchableSelect';
 
 import {
   Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
+  ComposedChart, Bar, Line, ReferenceLine,
 } from 'recharts';
 import MachinePerformanceModal from '@/components/MachinePerformanceModal';
 import { usePermissions } from '@/hooks/usePermissions';
