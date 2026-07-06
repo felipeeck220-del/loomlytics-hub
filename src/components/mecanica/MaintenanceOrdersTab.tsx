@@ -593,6 +593,30 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     return () => { cancelled = true; };
   }, [progressOrder, currentPhotos, photoSignedUrls]);
 
+  // Signed URLs para fotos do modal "Ver Relatório" (finalizada)
+  const viewOrderPhotos: OCPhoto[] = useMemo(() => {
+    if (!viewOrder) return [];
+    const fresh = orders.find(o => o.id === viewOrder.id) || viewOrder;
+    return Array.isArray((fresh as any).oc_photos) ? ((fresh as any).oc_photos as OCPhoto[]) : [];
+  }, [orders, viewOrder]);
+  useEffect(() => {
+    if (!viewOrder || viewOrderPhotos.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const missing = viewOrderPhotos.filter(p => !photoSignedUrls[p.path]);
+      if (missing.length === 0) return;
+      const entries: Array<[string, string]> = [];
+      for (const p of missing) {
+        const { data } = await supabase.storage.from('oc-photos').createSignedUrl(p.path, 3600);
+        if (data?.signedUrl) entries.push([p.path, data.signedUrl]);
+      }
+      if (!cancelled && entries.length) {
+        setPhotoSignedUrls(prev => ({ ...prev, ...Object.fromEntries(entries) }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [viewOrder, viewOrderPhotos, photoSignedUrls]);
+
   const resetPhotoDraft = () => {
     setPhotoDraftFile(null);
     setPhotoDraftDesc('');
