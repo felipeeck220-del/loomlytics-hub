@@ -325,10 +325,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     }
     const now = new Date().toISOString();
     // 0) fecha qualquer machine_log em aberto dessa máquina (evita 2 logs abertos)
-    await (supabase.from as any)('machine_logs')
+    const { error: closeErr } = await (supabase.from as any)('machine_logs')
       .update({ ended_at: now, ended_by_name: authorLabel })
       .eq('machine_id', o.machine_id)
       .is('ended_at', null);
+    if (closeErr) {
+      toast.error('Falha ao fechar logs abertos da máquina. Tente novamente.');
+      console.error('[startOrder] close open logs failed', { closeErr, machine_id: o.machine_id });
+      return;
+    }
     // 1) cria machine_log da OM
     const { data: log, error: logErr } = await (supabase.from as any)('machine_logs').insert({
       machine_id: o.machine_id,
@@ -346,6 +351,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0)) {
       toast.error('Falha ao atualizar status da máquina. Verifique em Máquinas.');
       console.error('[startOrder] machine status update failed', { machErr, machUpd, machine_id: o.machine_id });
+      return;
     }
     // 3) atualiza OM
     const { error } = await (supabase.from as any)('maintenance_orders').update({
