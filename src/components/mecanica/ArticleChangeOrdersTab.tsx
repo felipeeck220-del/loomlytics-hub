@@ -914,6 +914,18 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
       .eq('id', o.id);
     setSaving(false);
     if (error) { toast.error(getFriendlyErrorMessage(error.message)); return; }
+    // Ao concluir a OT, promove o "próximo artigo" a artigo atual da máquina
+    // (Máquinas > Informações Básicas > Artigo Atual → coluna machines.article_id)
+    if (o.next_article_id && o.machine_id) {
+      const { error: machErr, data: machUpd } = await (supabase.from as any)('machines')
+        .update({ article_id: o.next_article_id })
+        .eq('id', o.machine_id)
+        .select('id');
+      if (machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0)) {
+        toast.error('OT concluída, mas não foi possível atualizar o Artigo Atual da máquina. Ajuste manualmente em Máquinas.');
+        console.error('[FinalizeOT] machine current_article update failed', { machErr, machUpd, machine_id: o.machine_id });
+      }
+    }
     logAction('ot_conclude', { ot: o.ot_number });
     toast.success(`OT #${o.ot_number} concluída`);
     onDone();
