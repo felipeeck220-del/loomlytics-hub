@@ -885,15 +885,17 @@ export default function MecanicaPage() {
   };
  
    const handleSaveNeedle = async () => {
-     if (!needleForm.provider || !needleForm.brand || !needleForm.reference_code) {
-       toast.error('Preencha todos os campos.');
+     if (!needleForm.brand || !needleForm.reference_code) {
+       toast.error('Informe Marca e Ref. Código.');
        return;
      }
      try {
        const newNeedle = {
          id: crypto.randomUUID(),
          company_id: '',
-         ...needleForm,
+         provider: '',
+         brand: needleForm.brand,
+         reference_code: needleForm.reference_code,
          current_quantity: 0,
          created_at: new Date().toISOString(),
          updated_at: new Date().toISOString()
