@@ -1721,6 +1721,14 @@ export default function MecanicaPage() {
                   <Package className="h-4 w-4 mr-1.5" />
                   Estoque
                 </TabsTrigger>
+                <TabsTrigger value="cadastro">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Agulhas
+                </TabsTrigger>
+                <TabsTrigger value="fornecedores">
+                  <Wrench className="h-4 w-4 mr-1.5" />
+                  Fornecedores
+                </TabsTrigger>
                 <TabsTrigger value="movimentacoes">
                   <History className="h-4 w-4 mr-1.5" />
                   Movimentações
