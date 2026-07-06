@@ -26,6 +26,7 @@ const allItems = [
 const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   admin: ['dashboard', 'production', 'outsource', 'settings'],
   lider: ['mecanica-oc', 'mecanica-ot'],
+  lider_noite: ['mecanica-oc', 'mecanica-ot'],
   mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-ot'],
   lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-ot'],
   revisador: ['production', 'revision'],
