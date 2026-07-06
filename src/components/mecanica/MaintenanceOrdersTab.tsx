@@ -155,6 +155,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [progressOrder, setProgressOrder] = useState<MaintenanceOrder | null>(null);
   const [progressDraft, setProgressDraft] = useState<{ kind: 'observacao' | 'item'; text: string }>({ kind: 'observacao', text: '' });
   const [progressSaving, setProgressSaving] = useState(false);
+  // OC photos (Em Curso): captura até 2 fotos com descrição
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoDraftFile, setPhotoDraftFile] = useState<File | null>(null);
+  const [photoDraftPreview, setPhotoDraftPreview] = useState<string | null>(null);
+  const [photoDraftDesc, setPhotoDraftDesc] = useState('');
+  const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({});
 
   const load = async (opts?: { silent?: boolean }) => {
     if (!companyId) return;
