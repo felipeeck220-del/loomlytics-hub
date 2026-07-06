@@ -222,7 +222,23 @@ export default function ArticleChangeOrdersTab() {
       yarn_change_finished_by_name: userName,
       yarn_change_finished_by_code: userCode,
     }, 'ot_finish_yarn', { ot: o.ot_number });
-    if (ok) toast.success(`OT #${o.ot_number} — pronta para regulagem`);
+    if (ok) {
+      toast.success(`OT #${o.ot_number} — pronta para regulagem`);
+      try {
+        const machineName = machines.find((m: any) => m.id === o.machine_id)?.name || 'Máquina';
+        const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+        const targetPath = slug ? `/${slug}/mecanica/ot` : '/';
+        supabase.functions.invoke('send-push-notification', {
+          body: {
+            company_id: user?.company_id,
+            title: `OT #${String(o.ot_number).padStart(3, '0')} — Aguardando Regulagem`,
+            message: `${machineName} pronta para regulagem`,
+            url: targetPath,
+            roles: ['mecanico', 'lider_mecanica'],
+          },
+        }).catch(() => { /* silencioso */ });
+      } catch { /* silencioso */ }
+    }
   };
 
   const startAdjustment = async (o: OT) => {
