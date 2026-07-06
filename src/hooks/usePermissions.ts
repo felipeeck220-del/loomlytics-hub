@@ -1,12 +1,13 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
 
-export type AppRole = 'admin' | 'lider' | 'lider_mecanica' | 'mecanico' | 'revisador' | 'expedicao';
+export type AppRole = 'admin' | 'lider' | 'lider_noite' | 'lider_mecanica' | 'mecanico' | 'revisador' | 'expedicao';
 
 /** Which sidebar/route keys each role can access by default */
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
   admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-ot', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
   lider: ['mecanica-oc', 'mecanica-ot'],
+  lider_noite: ['mecanica-oc', 'mecanica-ot'],
   lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-ot', 'mecanica'],
   mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-ot', 'mecanica'],
   revisador: ['revision'],
