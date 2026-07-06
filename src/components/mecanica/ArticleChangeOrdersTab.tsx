@@ -61,12 +61,19 @@ interface OT {
   concluded_at: string | null;
   cancelled_at: string | null;
   created_by_name: string | null;
+  created_by_code: string | null;
   yarn_change_by_name: string | null;
+  yarn_change_by_code: string | null;
   yarn_change_finished_by_name: string | null;
+  yarn_change_finished_by_code: string | null;
   adjustment_by_name: string | null;
+  adjustment_by_code: string | null;
   adjustment_finished_by_name: string | null;
+  adjustment_finished_by_code: string | null;
   concluded_by_name: string | null;
+  concluded_by_code: string | null;
   cancelled_by_name: string | null;
+  cancelled_by_code: string | null;
   monitoring_turns: number | null;
   piece_defects_holes: number | null;
   piece_defects_flaws: number | null;
@@ -428,7 +435,8 @@ function OTCard(props: {
   };
   const style = STATUS_STYLE[o.status];
 
-  const renderAuthor = (name?: string | null) => name || '—';
+  const renderAuthor = (name?: string | null, code?: string | null) =>
+    name ? (code ? `${name} #${code}` : name) : '—';
 
   return (
     <Card className="relative overflow-hidden border bg-card hover:shadow-md transition-shadow">
@@ -553,19 +561,19 @@ function OTCard(props: {
           {/* Coluna ações + auditoria */}
           <div className="flex flex-col items-stretch xl:items-end gap-2 xl:min-w-[240px]">
             <div className="text-[10px] text-muted-foreground leading-tight xl:text-right">
-              <div><span className="font-semibold">Criada:</span> {renderAuthor(o.created_by_name)}</div>
+              <div><span className="font-semibold">Criada:</span> {renderAuthor(o.created_by_name, o.created_by_code)}</div>
               <div>{format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}</div>
               {o.yarn_change_by_name && (
-                <div className="mt-0.5"><span className="font-semibold">Troca fio:</span> {renderAuthor(o.yarn_change_by_name)}</div>
+                <div className="mt-0.5"><span className="font-semibold">Troca fio:</span> {renderAuthor(o.yarn_change_by_name, o.yarn_change_by_code)}</div>
               )}
               {o.adjustment_by_name && (
-                <div className="mt-0.5"><span className="font-semibold">Regulagem:</span> {renderAuthor(o.adjustment_by_name)}</div>
+                <div className="mt-0.5"><span className="font-semibold">Regulagem:</span> {renderAuthor(o.adjustment_by_name, o.adjustment_by_code)}</div>
               )}
               {o.concluded_by_name && (
-                <div className="mt-0.5"><span className="font-semibold">Concluída:</span> {renderAuthor(o.concluded_by_name)}</div>
+                <div className="mt-0.5"><span className="font-semibold">Concluída:</span> {renderAuthor(o.concluded_by_name, o.concluded_by_code)}</div>
               )}
               {o.cancelled_by_name && (
-                <div className="mt-0.5"><span className="font-semibold">Cancelada:</span> {renderAuthor(o.cancelled_by_name)}</div>
+                <div className="mt-0.5"><span className="font-semibold">Cancelada:</span> {renderAuthor(o.cancelled_by_name, o.cancelled_by_code)}</div>
               )}
             </div>
 
