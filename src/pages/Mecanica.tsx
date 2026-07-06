@@ -1444,7 +1444,65 @@ export default function MecanicaPage() {
 
               <Card>
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  {/* Mobile: cards */}
+                  <div className="md:hidden p-3 space-y-2">
+                    {[...cylinders]
+                      .filter(c =>
+                        c.brand.toLowerCase().includes(cylinderSearch.toLowerCase()) ||
+                        c.model?.toLowerCase().includes(cylinderSearch.toLowerCase())
+                      )
+                      .map(c => {
+                        const machine = machines.find(m => m.id === c.machine_id);
+                        return (
+                          <div key={c.id} className="rounded-md border border-border p-3 space-y-2 text-xs">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-sm text-foreground truncate">{c.brand}</div>
+                                <div className="text-[11px] text-muted-foreground truncate">{c.model || '—'}</div>
+                              </div>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => {
+                                setEditingCylinder(c);
+                                setCylinderForm({
+                                  brand: c.brand,
+                                  model: c.model || '',
+                                  diameter: c.diameter || '',
+                                  fineness: c.fineness || '',
+                                  needle_quantity: String(c.needle_quantity || ''),
+                                  feeder_quantity: String(c.feeder_quantity || ''),
+                                  sinker_quantity: String(c.sinker_quantity || ''),
+                                  observations: c.observations || ''
+                                });
+                                setShowCylinderModal(true);
+                              }}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div><span className="text-muted-foreground">Ø:</span> {c.diameter || '—'}</div>
+                              <div><span className="text-muted-foreground">F:</span> {c.fineness || '—'}</div>
+                              <div><span className="text-muted-foreground">Agulhas:</span> {c.needle_quantity || '—'}</div>
+                              <div><span className="text-muted-foreground">Alim:</span> {c.feeder_quantity || '—'}</div>
+                            </div>
+                            <div>
+                              {machine ? (
+                                <Badge variant="default" className="bg-success/10 text-success hover:bg-success/20 border-none">
+                                  Em Uso: {machine.name}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-muted-foreground">
+                                  Disponível em Estoque
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    {cylinders.length === 0 && (
+                      <p className="p-8 text-center text-muted-foreground">Nenhum cilindro cadastrado</p>
+                    )}
+                  </div>
+                  {/* Desktop: table */}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/50">
