@@ -2276,9 +2276,16 @@ export default function MecanicaPage() {
               <Select value={addMachineId} onValueChange={setAddMachineId}>
                 <SelectTrigger><SelectValue placeholder="Selecione uma máquina" /></SelectTrigger>
                 <SelectContent>
-                  {activeMachines.map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
+                  {(() => {
+                    const list = [...activeMachines];
+                    if (addMachineId && !list.some(m => m.id === addMachineId)) {
+                      const extra = machines.find(m => m.id === addMachineId);
+                      if (extra) list.unshift(extra);
+                    }
+                    return list.map(m => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
             </div>
