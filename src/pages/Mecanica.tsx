@@ -166,6 +166,7 @@ export default function MecanicaPage() {
     const tables = [
       'machines', 'machine_logs',
       'needle_inventory', 'needle_transactions',
+      'needle_providers', 'needle_provider_prices',
       'sinker_inventory', 'sinker_transactions',
       'cylinders', 'machine_needle_refs', 'machine_sinker_refs',
       'maintenance_orders', 'maintenance_order_items',
@@ -183,6 +184,20 @@ export default function MecanicaPage() {
     channel.subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user?.company_id, refreshData]);
+
+  // Carrega Fornecedores + Preços
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const cid = user.company_id;
+    (async () => {
+      const [{ data: prov }, { data: pri }] = await Promise.all([
+        (supabase.from as any)('needle_providers').select('*').eq('company_id', cid).order('name'),
+        (supabase.from as any)('needle_provider_prices').select('*').eq('company_id', cid),
+      ]);
+      setProviders((prov || []) as NeedleProvider[]);
+      setProviderPrices((pri || []) as NeedleProviderPrice[]);
+    })();
+  }, [user?.company_id, providersRefreshKey]);
 
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
