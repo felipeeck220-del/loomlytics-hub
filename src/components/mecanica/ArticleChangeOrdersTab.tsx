@@ -240,6 +240,10 @@ export default function ArticleChangeOrdersTab() {
   };
 
   const cancelOrder = async (o: OT) => {
+    if (!isAdmin) { toast.error('Apenas admin pode cancelar uma OT'); return; }
+    if (o.status === 'concluida' || o.status === 'cancelada') {
+      toast.error('Esta OT já foi encerrada.'); return;
+    }
     const ok = await patch(o.id, {
       status: 'cancelada',
       cancelled_at: new Date().toISOString(),
@@ -250,10 +254,15 @@ export default function ArticleChangeOrdersTab() {
   };
 
   const deleteOrder = async (o: OT) => {
+    if (!isAdmin) { toast.error('Apenas admin pode excluir uma OT'); return; }
+    if (o.status !== 'concluida' && o.status !== 'cancelada') {
+      toast.error('Só é possível excluir OTs concluídas ou canceladas.'); return;
+    }
     const { error } = await (supabase.from as any)('article_change_orders').delete().eq('id', o.id);
     if (error) { toast.error(getFriendlyErrorMessage(error.message)); return; }
     logAction('ot_delete', { ot: o.ot_number });
     toast.success(`OT #${o.ot_number} excluída`);
+    await load({ silent: true });
   };
 
   const authorLabel = userCode ? `${userName} #${userCode}` : (userName || null);
