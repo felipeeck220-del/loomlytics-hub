@@ -2888,7 +2888,7 @@ export default function MecanicaPage() {
      </Dialog>
  
      {/* Entrada de Agulha */}
-     <Dialog open={showEntryModal} onOpenChange={setShowEntryModal}>
+      <Dialog open={showEntryModal} onOpenChange={(o) => { setShowEntryModal(o); if (!o) { setEntryProviderId(''); setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Entrada</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
@@ -2945,7 +2945,7 @@ export default function MecanicaPage() {
      </Dialog>
  
      {/* Baixa de Agulha */}
-     <Dialog open={showExitModal} onOpenChange={setShowExitModal}>
+      <Dialog open={showExitModal} onOpenChange={(o) => { setShowExitModal(o); if (!o) { setExitProviderId(''); setExitBrand(''); setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Saída (Baixa)</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
