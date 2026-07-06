@@ -915,60 +915,140 @@ export default function Dashboard() {
         <div className="xl:col-span-2 space-y-6">
           {/* Trend Chart - Material card style */}
           {trendData.length > 1 && (
-            <Card className="shadow-material border-0 pt-10 overflow-visible">
-              <div className="material-card-header mx-4 -mt-10" style={{ background: 'linear-gradient(195deg, hsl(210 100% 52%), hsl(210 100% 38%))' }}>
-                <p className="text-sm font-medium">Tendência de Produção</p>
-                <p className="text-xs text-white/60 font-light">Rolos, Kg, Faturamento e Eficiência por dia</p>
+            <Card className="shadow-material border-0 overflow-hidden">
+              <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-4 flex-wrap border-b border-border/50">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-1.5 rounded-full bg-gradient-to-b from-primary to-primary/40" />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground tracking-tight">Tendência de Produção</p>
+                      <p className="text-[11px] text-muted-foreground font-light">Comparativo diário · clique nas séries para alternar</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {([
+                    { key: 'rolos', label: 'Rolos', color: 'hsl(210, 100%, 52%)' },
+                    { key: 'kg', label: 'Kg', color: 'hsl(142, 71%, 45%)' },
+                    ...(canSeeFinancial ? [{ key: 'faturamento' as const, label: 'Faturamento', color: 'hsl(38, 92%, 50%)' }] : []),
+                    { key: 'eficiencia', label: 'Eficiência', color: 'hsl(0, 84%, 60%)' },
+                  ] as { key: 'rolos'|'kg'|'faturamento'|'eficiencia'; label: string; color: string }[]).map(s => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setTrendSeries(prev => ({ ...prev, [s.key]: !prev[s.key] }))}
+                      className={cn(
+                        'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border',
+                        trendSeries[s.key]
+                          ? 'bg-muted/60 text-foreground border-border shadow-sm'
+                          : 'bg-transparent text-muted-foreground border-transparent opacity-50 hover:opacity-80'
+                      )}
+                    >
+                      <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <CardContent className="pt-4 pb-2">
-                <div className="h-[300px]">
+              <CardContent className="pt-5 pb-3 px-3">
+                <div className="h-[340px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                    <ComposedChart data={trendData} margin={{ top: 10, right: 16, left: 0, bottom: 8 }}>
                       <defs>
-                        <linearGradient id="colorRolos" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0} />
+                        <linearGradient id="fillRolos" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0.85} />
+                          <stop offset="100%" stopColor="hsl(210, 100%, 52%)" stopOpacity={0.45} />
                         </linearGradient>
-                        <linearGradient id="colorKg" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
+                        <linearGradient id="fillKg" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.35} />
+                          <stop offset="100%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.02} />
                         </linearGradient>
-                        <linearGradient id="colorFat" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="colorEff" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0} />
+                        <linearGradient id="fillFat" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.30} />
+                          <stop offset="100%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.02} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 92%)" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} />
-                      <YAxis yAxisId="left" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} />
-                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: 'hsl(220, 9%, 55%)' }} domain={[0, 100]} />
+                      <CartesianGrid strokeDasharray="2 4" stroke="hsl(220, 15%, 90%)" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11, fill: 'hsl(220, 9%, 45%)' }}
+                        tickLine={false}
+                        axisLine={{ stroke: 'hsl(220, 15%, 88%)' }}
+                        dy={4}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        tick={{ fontSize: 11, fill: 'hsl(220, 9%, 45%)' }}
+                        tickLine={false}
+                        axisLine={false}
+                        width={48}
+                        tickFormatter={(v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        tick={{ fontSize: 11, fill: 'hsl(0, 84%, 55%)' }}
+                        tickLine={false}
+                        axisLine={false}
+                        domain={[0, 100]}
+                        width={36}
+                        tickFormatter={(v: number) => `${v}%`}
+                      />
                       <RechartsTooltip
-                        contentStyle={{ borderRadius: '10px', border: '1px solid hsl(220, 15%, 90%)', fontSize: '12px', boxShadow: '0 4px 20px hsl(0 0% 0% / 0.08)' }}
-                        formatter={(v: number, name: string) => {
-                          if (name === 'rolos') return [formatNumber(v), 'Rolos'];
-                          if (name === 'kg') return [formatNumber(v, 2) + ' kg', 'Peso'];
-                          if (name === 'faturamento') return [formatCurrency(v), 'Faturamento'];
-                          if (name === 'eficiencia') return [formatPercent(v), 'Eficiência'];
-                          return [v, name];
+                        cursor={{ fill: 'hsl(220, 15%, 95%)', opacity: 0.5 }}
+                        content={({ active, payload, label }: any) => {
+                          if (!active || !payload || !payload.length) return null;
+                          const map: Record<string, { label: string; color: string; fmt: (v: number) => string }> = {
+                            rolos: { label: 'Rolos', color: 'hsl(210, 100%, 52%)', fmt: (v) => formatNumber(v) },
+                            kg: { label: 'Peso', color: 'hsl(142, 71%, 45%)', fmt: (v) => `${formatNumber(v, 2)} kg` },
+                            faturamento: { label: 'Faturamento', color: 'hsl(38, 92%, 50%)', fmt: (v) => formatCurrency(v) },
+                            eficiencia: { label: 'Eficiência', color: 'hsl(0, 84%, 60%)', fmt: (v) => formatPercent(v) },
+                          };
+                          return (
+                            <div className="rounded-xl border border-border/70 bg-background/95 backdrop-blur px-3 py-2.5 shadow-lg min-w-[180px]">
+                              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
+                              <div className="space-y-1.5">
+                                {payload.map((p: any) => {
+                                  const cfg = map[p.dataKey];
+                                  if (!cfg) return null;
+                                  return (
+                                    <div key={p.dataKey} className="flex items-center justify-between gap-4 text-xs">
+                                      <div className="flex items-center gap-2">
+                                        <span className="h-2 w-2 rounded-full" style={{ background: cfg.color }} />
+                                        <span className="text-muted-foreground">{cfg.label}</span>
+                                      </div>
+                                      <span className="font-semibold text-foreground tabular-nums">{cfg.fmt(Number(p.value) || 0)}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
                         }}
                       />
-                      <Legend
-                        verticalAlign="bottom"
-                        height={30}
-                        formatter={(value: string) => {
-                          const labels: Record<string, string> = { rolos: 'Rolos', kg: 'Kg', faturamento: 'Faturamento', eficiencia: 'Eficiência' };
-                          return <span style={{ fontSize: '11px', color: 'hsl(220, 9%, 55%)' }}>{labels[value] || value}</span>;
-                        }}
-                      />
-                      <Area yAxisId="left" type="monotone" dataKey="rolos" stroke="hsl(210, 100%, 52%)" strokeWidth={2} fill="url(#colorRolos)" />
-                      <Area yAxisId="left" type="monotone" dataKey="kg" stroke="hsl(142, 71%, 45%)" strokeWidth={2} fill="url(#colorKg)" />
-                      {canSeeFinancial && <Area yAxisId="left" type="monotone" dataKey="faturamento" stroke="hsl(38, 92%, 50%)" strokeWidth={2} fill="url(#colorFat)" />}
-                      <Area yAxisId="right" type="monotone" dataKey="eficiencia" stroke="hsl(0, 84%, 60%)" strokeWidth={2} fill="url(#colorEff)" />
-                    </AreaChart>
+                      {trendSeries.eficiencia && avgTargetEfficiency > 0 && (
+                        <ReferenceLine
+                          yAxisId="right"
+                          y={avgTargetEfficiency}
+                          stroke="hsl(0, 84%, 60%)"
+                          strokeDasharray="4 4"
+                          strokeOpacity={0.5}
+                          label={{ value: `Meta ${formatPercent(avgTargetEfficiency)}`, fill: 'hsl(0, 84%, 55%)', fontSize: 10, position: 'insideTopRight' }}
+                        />
+                      )}
+                      {trendSeries.rolos && (
+                        <Bar yAxisId="left" dataKey="rolos" fill="url(#fillRolos)" radius={[6, 6, 0, 0]} maxBarSize={38} />
+                      )}
+                      {trendSeries.kg && (
+                        <Area yAxisId="left" type="monotone" dataKey="kg" stroke="hsl(142, 71%, 45%)" strokeWidth={2.5} fill="url(#fillKg)" dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'hsl(0 0% 100%)' }} />
+                      )}
+                      {canSeeFinancial && trendSeries.faturamento && (
+                        <Area yAxisId="left" type="monotone" dataKey="faturamento" stroke="hsl(38, 92%, 50%)" strokeWidth={2.5} fill="url(#fillFat)" dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'hsl(0 0% 100%)' }} />
+                      )}
+                      {trendSeries.eficiencia && (
+                        <Line yAxisId="right" type="monotone" dataKey="eficiencia" stroke="hsl(0, 84%, 60%)" strokeWidth={2.5} dot={{ r: 3, fill: 'hsl(0, 84%, 60%)', strokeWidth: 0 }} activeDot={{ r: 6, strokeWidth: 2, stroke: 'hsl(0 0% 100%)' }} />
+                      )}
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
