@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon } from 'lucide-react';
+import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -161,6 +161,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [photoDraftPreview, setPhotoDraftPreview] = useState<string | null>(null);
   const [photoDraftDesc, setPhotoDraftDesc] = useState('');
   const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({});
+  const [viewOrder, setViewOrder] = useState<MaintenanceOrder | null>(null);
 
   const load = async (opts?: { silent?: boolean }) => {
     if (!companyId) return;
@@ -591,6 +592,30 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     })();
     return () => { cancelled = true; };
   }, [progressOrder, currentPhotos, photoSignedUrls]);
+
+  // Signed URLs para fotos do modal "Ver Relatório" (finalizada)
+  const viewOrderPhotos: OCPhoto[] = useMemo(() => {
+    if (!viewOrder) return [];
+    const fresh = orders.find(o => o.id === viewOrder.id) || viewOrder;
+    return Array.isArray((fresh as any).oc_photos) ? ((fresh as any).oc_photos as OCPhoto[]) : [];
+  }, [orders, viewOrder]);
+  useEffect(() => {
+    if (!viewOrder || viewOrderPhotos.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const missing = viewOrderPhotos.filter(p => !photoSignedUrls[p.path]);
+      if (missing.length === 0) return;
+      const entries: Array<[string, string]> = [];
+      for (const p of missing) {
+        const { data } = await supabase.storage.from('oc-photos').createSignedUrl(p.path, 3600);
+        if (data?.signedUrl) entries.push([p.path, data.signedUrl]);
+      }
+      if (!cancelled && entries.length) {
+        setPhotoSignedUrls(prev => ({ ...prev, ...Object.fromEntries(entries) }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [viewOrder, viewOrderPhotos, photoSignedUrls]);
 
   const resetPhotoDraft = () => {
     setPhotoDraftFile(null);
@@ -1109,9 +1134,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                               </>
                             )}
                             {o.status === 'finalizada' && (
-                              <Button size="sm" variant="outline" onClick={() => downloadReport(o)} className="gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10">
-                                <Download className="h-3.5 w-3.5" /> Baixar Relatório
-                              </Button>
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => setViewOrder(o)} className="gap-1.5 border-blue-500/40 text-blue-600 hover:bg-blue-500/10">
+                                  <Eye className="h-3.5 w-3.5" /> Ver Relatório
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => downloadReport(o)} className="gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10">
+                                  <Download className="h-3.5 w-3.5" /> Baixar Relatório
+                                </Button>
+                              </>
                             )}
                             {canManageOrder(o) && o.status === 'cancelada' && (
                               <Button size="sm" variant="outline" onClick={() => setConfirmDelete(o)} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
@@ -1574,6 +1604,155 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             <Button variant="outline" onClick={() => setConfirmFinishGate(false)}>Voltar</Button>
             <Button onClick={async () => { setConfirmFinishGate(false); await confirmFinish(); }}>Finalizar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Report Modal (finalizada) */}
+      <Dialog open={!!viewOrder} onOpenChange={v => !v && setViewOrder(null)}>
+        <DialogContent className="max-w-[80vw] w-[80vw] max-h-[80vh] overflow-y-auto sm:max-w-[80vw]">
+          {viewOrder && (() => {
+            const o = orders.find(x => x.id === viewOrder.id) || viewOrder;
+            const m = machineById[o.machine_id];
+            const its = itemsByOrder[o.id] || [];
+            const notes: ProgressNote[] = Array.isArray(o.progress_notes) ? (o.progress_notes as ProgressNote[]) : [];
+            const photos: OCPhoto[] = Array.isArray((o as any).oc_photos) ? ((o as any).oc_photos as OCPhoto[]) : [];
+            const isCorr = o.type === 'manutencao_corretiva';
+            const label = isCorr ? 'OC' : 'OM';
+            const num = isCorr ? ((o as any).oc_number ?? o.om_number) : o.om_number;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 flex-wrap">
+                    <FileText className="h-5 w-5" />
+                    Relatório {label} #{num != null ? String(num).padStart(3, '0') : '—'}
+                    <Badge className={cn('ml-1', TYPE_COLORS[o.type])} variant="outline">{TYPE_LABELS[o.type]}</Badge>
+                    <Badge className={cn('ml-1', STATUS_STYLE[o.status].badgeClass)}>{STATUS_STYLE[o.status].label}</Badge>
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-5 mt-2 text-sm">
+                  {/* Máquina + Datas */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="rounded border p-3 bg-muted/30 space-y-1">
+                      <div className="text-xs uppercase text-muted-foreground font-semibold">Máquina</div>
+                      <div className="font-semibold">{m?.name || '—'}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {m?.model ? `Modelo ${m.model}` : ''}{m?.serial_number ? ` · Série ${m.serial_number}` : ''}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Prioridade: <span className="font-medium">{o.priority === 'prioritaria' ? 'Prioritária' : 'Normal'}</span>
+                      </div>
+                    </div>
+                    <div className="rounded border p-3 bg-muted/30 space-y-1">
+                      <div className="text-xs uppercase text-muted-foreground font-semibold">Datas & Autores</div>
+                      <div><span className="text-muted-foreground">Criada:</span> {renderAuthor(o.created_by_name, o.created_by_id)} · {format(new Date(o.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                      {o.started_at && (
+                        <div><span className="text-muted-foreground">Iniciada:</span> {renderAuthor(o.started_by_name, o.started_by_id)} · {format(new Date(o.started_at), 'dd/MM/yyyy HH:mm')}</div>
+                      )}
+                      {o.finished_at && (
+                        <div><span className="text-muted-foreground">Finalizada:</span> {renderAuthor(o.finished_by_name, o.finished_by_id)} · {format(new Date(o.finished_at), 'dd/MM/yyyy HH:mm')}</div>
+                      )}
+                      <div><span className="text-muted-foreground">Duração:</span> <span className="font-semibold">{fmtDuration(o.duration_seconds || 0)}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Descrição */}
+                  {o.description && (
+                    <div className="rounded border p-3">
+                      <div className="text-xs uppercase text-muted-foreground font-semibold mb-1">Descrição / Serviço</div>
+                      <div className="whitespace-pre-wrap">{o.description}</div>
+                    </div>
+                  )}
+
+                  {/* Itens trocados */}
+                  <div className="rounded border p-3">
+                    <div className="text-xs uppercase text-muted-foreground font-semibold mb-2">Itens trocados ({its.length})</div>
+                    {its.length === 0 ? (
+                      <div className="text-muted-foreground text-xs">Nenhum item registrado.</div>
+                    ) : (
+                      <ul className="space-y-1">
+                        {its.map(it => {
+                          const ref = it.needle_id ? `Agulha ${needles.find(n => n.id === it.needle_id)?.reference_code || ''}` :
+                                      it.sinker_id ? `Platina ${sinkers.find(s => s.id === it.sinker_id)?.reference_code || ''}` :
+                                      it.cylinder_id ? `Cilindro ${cylinders.find(c => c.id === it.cylinder_id)?.brand || ''}` :
+                                      it.description || '—';
+                          return (
+                            <li key={it.id} className="flex items-center justify-between border-b last:border-b-0 py-1">
+                              <span><Badge variant="outline" className="mr-2">{it.item_type}</Badge>{ref}</span>
+                              <span className="text-xs text-muted-foreground">Qtd: <span className="font-semibold text-foreground">{it.quantity}</span></span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Notas de progresso */}
+                  {notes.length > 0 && (
+                    <div className="rounded border p-3">
+                      <div className="text-xs uppercase text-muted-foreground font-semibold mb-2">Notas & Itens ({notes.length})</div>
+                      <ul className="space-y-2">
+                        {notes.map(n => (
+                          <li key={n.id} className="text-xs border-l-2 border-blue-500/40 pl-2">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Badge variant="outline" className="text-[10px]">{n.kind === 'item' ? 'Item' : 'Obs'}</Badge>
+                              <span>{format(new Date(n.ts), 'dd/MM/yyyy HH:mm')}</span>
+                              {n.author && <span>· {n.author}</span>}
+                            </div>
+                            <div className="mt-0.5 whitespace-pre-wrap text-foreground">{n.text}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Fotos OC */}
+                  {photos.length > 0 && (
+                    <div className="rounded border p-3">
+                      <div className="text-xs uppercase text-muted-foreground font-semibold mb-2">Fotos do problema ({photos.length})</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {photos.map(p => {
+                          const url = photoSignedUrls[p.path];
+                          return (
+                            <div key={p.id} className="border rounded overflow-hidden bg-muted/30">
+                              {url ? (
+                                <a href={url} target="_blank" rel="noreferrer">
+                                  <img src={url} alt={p.description} className="w-full h-56 object-contain bg-black/5" />
+                                </a>
+                              ) : (
+                                <div className="h-56 flex items-center justify-center text-muted-foreground text-xs">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" /> Carregando…
+                                </div>
+                              )}
+                              <div className="p-2 text-xs">
+                                <div className="whitespace-pre-wrap">{p.description || '—'}</div>
+                                <div className="mt-1 text-muted-foreground">
+                                  {format(new Date(p.ts), 'dd/MM/yyyy HH:mm')}{p.author ? ` · ${p.author}` : ''}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Observações finais */}
+                  {o.finish_notes && (
+                    <div className="rounded border p-3 bg-emerald-500/5 border-emerald-500/30">
+                      <div className="text-xs uppercase text-emerald-700 dark:text-emerald-400 font-semibold mb-1">Observações Finais</div>
+                      <div className="whitespace-pre-wrap">{o.finish_notes}</div>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter className="mt-4">
+                  <Button variant="outline" onClick={() => setViewOrder(null)}>Fechar</Button>
+                  <Button onClick={() => downloadReport(o)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Download className="h-4 w-4" /> Baixar PDF
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
