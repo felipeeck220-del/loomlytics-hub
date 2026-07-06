@@ -89,13 +89,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "accounts_payable_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       article_change_orders: {
@@ -222,13 +215,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "article_change_orders_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "article_change_orders_current_article_id_fkey"
             columns: ["current_article_id"]
             isOneToOne: false
@@ -300,13 +286,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "article_change_yarns_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "article_change_yarns_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -363,13 +342,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "article_machine_turns_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -437,13 +409,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "articles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -567,13 +532,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "billing_order_pallets_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -789,13 +747,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "billing_orders_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "billing_orders_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -935,13 +886,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "client_invoice_items_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "client_invoice_items_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
@@ -1022,13 +966,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "client_invoices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "client_invoices_parent_invoice_id_fkey"
             columns: ["parent_invoice_id"]
             isOneToOne: false
@@ -1068,13 +1005,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clients_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1214,13 +1144,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "company_settings_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: true
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       cylinders: {
@@ -1275,13 +1198,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cylinders_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -1361,13 +1277,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "defect_records_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -1481,13 +1390,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoice_items_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "invoice_items_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
@@ -1576,13 +1478,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "invoices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       iot_devices: {
@@ -1625,13 +1520,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "iot_devices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -1686,13 +1574,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "iot_downtime_events_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "iot_downtime_events_machine_id_fkey"
             columns: ["machine_id"]
             isOneToOne: false
@@ -1742,13 +1623,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "iot_machine_assignments_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -1838,13 +1712,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "iot_shift_state_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "iot_shift_state_machine_id_fkey"
             columns: ["machine_id"]
             isOneToOne: true
@@ -1924,13 +1791,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "login_history_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       machine_logs: {
@@ -1976,13 +1836,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "machine_logs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -2103,13 +1956,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "machine_readings_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -2258,13 +2104,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "machines_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "machines_current_needle_id_fkey"
             columns: ["current_needle_id"]
             isOneToOne: false
@@ -2330,13 +2169,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_order_items_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -2469,13 +2301,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "maintenance_orders_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "maintenance_orders_machine_id_fkey"
             columns: ["machine_id"]
             isOneToOne: false
@@ -2531,13 +2356,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "material_provider_prices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "material_provider_prices_needle_id_fkey"
             columns: ["needle_id"]
             isOneToOne: false
@@ -2590,13 +2408,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "material_providers_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       needle_inventory: {
@@ -2638,13 +2449,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "needle_inventory_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       needle_provider_prices: {
@@ -2681,13 +2485,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "needle_provider_prices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -2734,13 +2531,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "needle_providers_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2800,13 +2590,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "needle_transactions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "needle_transactions_machine_id_fkey"
             columns: ["machine_id"]
             isOneToOne: false
@@ -2860,13 +2643,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "outsource_companies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2923,13 +2699,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "outsource_freights_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -3030,13 +2799,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "outsource_productions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "outsource_productions_outsource_company_id_fkey"
             columns: ["outsource_company_id"]
             isOneToOne: false
@@ -3088,13 +2850,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "outsource_yarn_stock_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "outsource_yarn_stock_outsource_company_id_fkey"
             columns: ["outsource_company_id"]
             isOneToOne: false
@@ -3141,13 +2896,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "own_stock_articles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -3211,13 +2959,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "own_stock_movements_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
           {
@@ -3286,13 +3027,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payment_history_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3416,13 +3150,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "productions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "productions_machine_id_fkey"
             columns: ["machine_id"]
             isOneToOne: false
@@ -3481,13 +3208,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3569,13 +3289,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "residue_client_prices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "residue_client_prices_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
@@ -3611,13 +3324,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "residue_clients_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       residue_materials: {
@@ -3651,13 +3357,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "residue_materials_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3733,13 +3432,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "residue_sales_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "residue_sales_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
@@ -3785,13 +3477,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sinker_inventory_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3942,13 +3627,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "stock_movements_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "stock_movements_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -4003,13 +3681,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "tv_panels_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       user_active_company: {
@@ -4031,13 +3702,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_active_company_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -4085,13 +3749,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "weavers_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -4433,38 +4090,11 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "yarn_types_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
     Views: {
-      companies_public: {
-        Row: {
-          id: string | null
-          logo_url: string | null
-          name: string | null
-          slug: string | null
-        }
-        Insert: {
-          id?: string | null
-          logo_url?: string | null
-          name?: string | null
-          slug?: string | null
-        }
-        Update: {
-          id?: string | null
-          logo_url?: string | null
-          name?: string | null
-          slug?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       fetch_productions_page:
@@ -4534,6 +4164,15 @@ export type Database = {
               weight_kg: number
             }[]
           }
+      get_company_public_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          id: string
+          logo_url: string
+          name: string
+          slug: string
+        }[]
+      }
       get_dashboard_metrics: {
         Args: {
           p_company_id: string
