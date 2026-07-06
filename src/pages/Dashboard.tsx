@@ -92,7 +92,7 @@ export default function Dashboard() {
     const { data, error } = await (supabase.from as any)('maintenance_orders')
       .select('*')
       .eq('company_id', dbCompanyId)
-      .eq('status', 'em_curso')
+      .in('status', ['em_curso', 'aberto', 'aberta'])
       .order('created_at', { ascending: false });
     if (!error) setOpenOMs(data || []);
   }, [dbCompanyId]);
@@ -199,8 +199,34 @@ export default function Dashboard() {
         raw: ot,
       };
     });
-    return [...oms, ...ots].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
-  }, [openOMs, openOTs]);
+    // Fallback: máquinas com status parado que não tenham ordem OM/OT associada
+    const covered = new Set<string>([...oms, ...ots].map(o => o.machine_id).filter(Boolean));
+    const STATUS_TO_TYPE: Record<string, string> = {
+      manutencao_preventiva: 'manutencao_preventiva',
+      manutencao_corretiva: 'manutencao_corretiva',
+      troca_artigo: 'troca_artigo',
+      troca_agulhas: 'troca_agulhas',
+    };
+    const fallback = stoppedMachines
+      .filter(m => !covered.has(m.id))
+      .map(m => ({
+        kind: 'machine' as const,
+        id: `machine-${m.id}`,
+        machine_id: m.id,
+        number: null as any,
+        type: STATUS_TO_TYPE[m.status] || m.status,
+        priority: 'normal',
+        status: m.status,
+        statusLabel: 'Em andamento',
+        startedAt: stopStartTimes[m.id] || new Date().toISOString(),
+        createdByName: null as any,
+        createdByCode: null as any,
+        startedByName: null as any,
+        startedByCode: null as any,
+        raw: m,
+      }));
+    return [...oms, ...ots, ...fallback].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+  }, [openOMs, openOTs, stoppedMachines, stopStartTimes]);
 
   // Real-time tick for elapsed time
   useEffect(() => {
