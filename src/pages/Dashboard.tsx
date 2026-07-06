@@ -456,7 +456,7 @@ export default function Dashboard() {
 
     const machinePerf = useMemo(() => {
       if (dashboardMetrics?.charts?.top_machines?.length) {
-        return dashboardMetrics.charts.top_machines.map((m: any) => ({
+        return dashboardMetrics.charts.top_machines.slice(0, 5).map((m: any) => ({
           name: m.name,
           rolls: Number(m.rolls ?? 0),
           kg: Number(m.weight ?? 0),
