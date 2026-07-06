@@ -161,6 +161,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [photoDraftPreview, setPhotoDraftPreview] = useState<string | null>(null);
   const [photoDraftDesc, setPhotoDraftDesc] = useState('');
   const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({});
+  const [viewOrder, setViewOrder] = useState<MaintenanceOrder | null>(null);
 
   const load = async (opts?: { silent?: boolean }) => {
     if (!companyId) return;
