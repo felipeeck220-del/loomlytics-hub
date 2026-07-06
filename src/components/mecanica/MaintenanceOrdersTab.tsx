@@ -240,12 +240,29 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     const isCorrective = form.type === 'manutencao_corretiva';
     if (isCorrective && !canCreateCorrective) { toast.error('Apenas admin ou líder podem criar OC'); return; }
     if (!isCorrective && !canManage) { toast.error('Sem permissão para criar OM'); return; }
-    // Bloqueia criar nova OM para uma máquina que já tem OM aberta ou em curso
+    // Regras de criação:
+    // - Bloqueia se já existe uma ordem do MESMO tipo (OM ou OC) em aberto/em curso na máquina
+    //   (evita duplicar OM ou OC para a mesma máquina).
+    // - Bloqueia se existe qualquer ordem EM CURSO na máquina (não faz sentido programar outra
+    //   enquanto a máquina está parada em manutenção).
+    // - PERMITE criar OC quando já existe uma OM apenas em aberto (programada) — e vice-versa.
     if (!editing) {
-      const busy = orders.find(o => o.machine_id === form.machine_id && (o.status === 'aberto' || o.status === 'em_curso'));
-      if (busy) {
+      const sameTypeBusy = orders.find(o =>
+        o.machine_id === form.machine_id &&
+        o.type === form.type &&
+        (o.status === 'aberto' || o.status === 'em_curso')
+      );
+      if (sameTypeBusy) {
         const m = machineById[form.machine_id];
-        toast.error(`${m?.name || 'Máquina'} já tem a ${labelOf(busy)} #${displayNumber(busy)} ${busy.status === 'aberto' ? 'em aberto' : 'em curso'}. Finalize ou cancele antes de criar outra.`);
+        toast.error(`${m?.name || 'Máquina'} já tem a ${labelOf(sameTypeBusy)} #${displayNumber(sameTypeBusy)} ${sameTypeBusy.status === 'aberto' ? 'em aberto' : 'em curso'}. Finalize ou cancele antes de criar outra.`);
+        return;
+      }
+      const otherInProgress = orders.find(o =>
+        o.machine_id === form.machine_id && o.status === 'em_curso'
+      );
+      if (otherInProgress) {
+        const m = machineById[form.machine_id];
+        toast.error(`${m?.name || 'Máquina'} está com a ${labelOf(otherInProgress)} #${displayNumber(otherInProgress)} em curso. Finalize antes de abrir outra ordem.`);
         return;
       }
     }
@@ -297,6 +314,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   // ============ START ============
   const startOrder = async (o: MaintenanceOrder) => {
     if (!canExecuteOrder(o)) { toast.error(o.type === 'manutencao_corretiva' ? 'Apenas mecânico ou líder de mecânica podem iniciar OCs' : 'Sem permissão para iniciar OM'); return; }
+    // Não permite iniciar se já existe outra ordem em curso na mesma máquina
+    const inProgress = orders.find(x =>
+      x.machine_id === o.machine_id && x.status === 'em_curso' && x.id !== o.id
+    );
+    if (inProgress) {
+      const m = machineById[o.machine_id];
+      toast.error(`${m?.name || 'Máquina'} está com a ${labelOf(inProgress)} #${displayNumber(inProgress)} em curso. Finalize antes de iniciar esta ordem.`);
+      return;
+    }
     const now = new Date().toISOString();
     // 0) fecha qualquer machine_log em aberto dessa máquina (evita 2 logs abertos)
     await (supabase.from as any)('machine_logs')
