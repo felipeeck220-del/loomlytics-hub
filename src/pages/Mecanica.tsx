@@ -2858,12 +2858,8 @@ export default function MecanicaPage() {
      {/* Cadastro de Agulha */}
      <Dialog open={showNeedleModal} onOpenChange={setShowNeedleModal}>
        <DialogContent className="max-w-md">
-         <DialogHeader><DialogTitle>Cadastrar Tipo de Agulha</DialogTitle></DialogHeader>
+         <DialogHeader><DialogTitle>Nova Agulha</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
-           <div className="space-y-1">
-             <Label>Fornecedor</Label>
-             <Input value={needleForm.provider} onChange={e => setNeedleForm({...needleForm, provider: e.target.value})} placeholder="Ex: Groz-Beckert" />
-           </div>
            <div className="space-y-1">
              <Label>Marca</Label>
              <Input value={needleForm.brand} onChange={e => setNeedleForm({...needleForm, brand: e.target.value})} placeholder="Ex: Vo-Spec" />
@@ -2872,6 +2868,7 @@ export default function MecanicaPage() {
              <Label>Código de Referência</Label>
              <Input value={needleForm.reference_code} onChange={e => setNeedleForm({...needleForm, reference_code: e.target.value})} placeholder="Ex: VO 71.52 G003" />
            </div>
+           <p className="text-xs text-muted-foreground">Vincule esta agulha a um ou mais fornecedores (com preço) na aba <b>Fornecedores</b>.</p>
          </div>
          <DialogFooter>
            <Button variant="outline" onClick={() => setShowNeedleModal(false)}>Cancelar</Button>
