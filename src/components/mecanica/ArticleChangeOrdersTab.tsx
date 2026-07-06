@@ -222,7 +222,23 @@ export default function ArticleChangeOrdersTab() {
       yarn_change_finished_by_name: userName,
       yarn_change_finished_by_code: userCode,
     }, 'ot_finish_yarn', { ot: o.ot_number });
-    if (ok) toast.success(`OT #${o.ot_number} — pronta para regulagem`);
+    if (ok) {
+      toast.success(`OT #${o.ot_number} — pronta para regulagem`);
+      try {
+        const machineName = machines.find((m: any) => m.id === o.machine_id)?.name || 'Máquina';
+        const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+        const targetPath = slug ? `/${slug}/mecanica/ot` : '/';
+        supabase.functions.invoke('send-push-notification', {
+          body: {
+            company_id: user?.company_id,
+            title: `OT #${String(o.ot_number).padStart(3, '0')} — Aguardando Regulagem`,
+            message: `${machineName} pronta para regulagem`,
+            url: targetPath,
+            roles: ['mecanico', 'lider_mecanica'],
+          },
+        }).catch(() => { /* silencioso */ });
+      } catch { /* silencioso */ }
+    }
   };
 
   const startAdjustment = async (o: OT) => {
@@ -816,6 +832,23 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
     }
     logAction('ot_create', { ot: ins.ot_number, machine_id: machineId });
     toast.success(`OT #${ins.ot_number} criada`);
+    // Notificação push para líderes
+    try {
+      const machineName = machines.find((m: any) => m.id === machineId)?.name || 'Máquina';
+      const nextArt = articles.find((a: any) => a.id === nextArticleId);
+      const nextName = nextArt ? (nextArt.client_name ? `${nextArt.name} (${nextArt.client_name})` : nextArt.name) : 'novo artigo';
+      const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+      const targetPath = slug ? `/${slug}/mecanica/ot` : '/';
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          company_id: user.company_id,
+          title: `Nova OT #${String(ins.ot_number).padStart(3, '0')} — ${machineName}`,
+          message: `Troca para ${nextName}`,
+          url: targetPath,
+          roles: ['lider'],
+        },
+      }).catch(() => { /* silencioso */ });
+    } catch { /* silencioso */ }
     setSaving(false);
     onSaved();
   };
