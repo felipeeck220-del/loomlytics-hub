@@ -174,7 +174,7 @@ export default function Dashboard() {
   }, [stoppedOrders.length, stoppedMachines.length]);
 
   const clearFilters = () => {
-     setDayRange(15); setFilterMonth('all');
+    setDayRange(15);
     setCustomDate(undefined);
     setDateFrom(undefined);
     setDateTo(undefined);
