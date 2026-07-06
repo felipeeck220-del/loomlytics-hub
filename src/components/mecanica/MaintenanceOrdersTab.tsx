@@ -402,17 +402,21 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       .update({ status: 'ativa' })
       .eq('id', finishOrder.machine_id)
       .select('id');
-    if (machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0)) {
+    const machineReactivated = !(machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0));
+    if (!machineReactivated) {
       toast.error('Falha ao reativar máquina. Verifique o status em Máquinas.');
       console.error('[confirmFinish] machine status update failed', { machErr, machUpd, machine_id: finishOrder.machine_id });
+    } else {
+      // Só abre novo log "ativa" se o status da máquina realmente voltou a ativa —
+      // evita histórico inconsistente (log dizendo ativa enquanto machines.status ainda está em manutenção).
+      await (supabase.from as any)('machine_logs').insert({
+        machine_id: finishOrder.machine_id,
+        company_id: companyId,
+        status: 'ativa',
+        started_at: now,
+        started_by_name: authorLabel,
+      });
     }
-    await (supabase.from as any)('machine_logs').insert({
-      machine_id: finishOrder.machine_id,
-      company_id: companyId,
-      status: 'ativa',
-      started_at: now,
-      started_by_name: authorLabel,
-    });
 
     // 3) atualiza OM
     const { error } = await (supabase.from as any)('maintenance_orders').update({
