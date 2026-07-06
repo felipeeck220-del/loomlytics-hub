@@ -832,6 +832,23 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
     }
     logAction('ot_create', { ot: ins.ot_number, machine_id: machineId });
     toast.success(`OT #${ins.ot_number} criada`);
+    // Notificação push para líderes
+    try {
+      const machineName = machines.find((m: any) => m.id === machineId)?.name || 'Máquina';
+      const nextArt = articles.find((a: any) => a.id === nextArticleId);
+      const nextName = nextArt ? (nextArt.client_name ? `${nextArt.name} (${nextArt.client_name})` : nextArt.name) : 'novo artigo';
+      const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+      const targetPath = slug ? `/${slug}/mecanica/ot` : '/';
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          company_id: user.company_id,
+          title: `Nova OT #${String(ins.ot_number).padStart(3, '0')} — ${machineName}`,
+          message: `Troca para ${nextName}`,
+          url: targetPath,
+          roles: ['lider'],
+        },
+      }).catch(() => { /* silencioso */ });
+    } catch { /* silencioso */ }
     setSaving(false);
     onSaved();
   };
