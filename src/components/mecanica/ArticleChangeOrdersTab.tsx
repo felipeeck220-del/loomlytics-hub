@@ -161,9 +161,11 @@ export default function ArticleChangeOrdersTab() {
     const ids = (os || []).map((o: OT) => o.id);
     let yarns: Yarn[] = [];
     if (ids.length) {
-      const { data: ys } = await (supabase.from as any)('article_change_yarns')
+      const { data: ys, error: yErr } = await (supabase.from as any)('article_change_yarns')
         .select('*')
+        .eq('company_id', user.company_id)
         .in('order_id', ids);
+      if (yErr) console.error('[ArticleChangeOrdersTab.load] yarns fetch failed', yErr);
       yarns = (ys || []) as Yarn[];
     }
     const enriched = (os || []).map((o: OT) => ({
@@ -948,7 +950,11 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
         concluded_at: new Date().toISOString(),
         concluded_by_name: userName,
         concluded_by_code: userCode,
-        monitoring_turns: turns ? Number(String(turns).replace(',', '.')) : null,
+        monitoring_turns: (() => {
+          if (!turns) return null;
+          const n = Number(String(turns).replace(',', '.'));
+          return Number.isFinite(n) ? n : null;
+        })(),
         piece_defects_holes: Number(holes) || 0,
         piece_defects_flaws: Number(flaws) || 0,
         final_report: report.trim(),
