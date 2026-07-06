@@ -69,7 +69,11 @@ export default function ArtigosEmProducaoTab() {
       .not('concluded_at', 'is', null)
       .order('concluded_at', { ascending: false })
       .limit(200);
-    if (!error) setChanges((data || []) as ChangeRow[]);
+    if (error) {
+      console.error('[ArtigosEmProducaoTab.fetchChanges] failed', error);
+    } else {
+      setChanges((data || []) as ChangeRow[]);
+    }
     setLoading(false);
   };
 
@@ -77,7 +81,7 @@ export default function ArtigosEmProducaoTab() {
     fetchChanges();
     if (!companyId) return;
     const ch = supabase
-      .channel('artigos-em-producao')
+      .channel(`artigos-em-producao-${companyId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'article_change_orders', filter: `company_id=eq.${companyId}` }, () => {
         fetchChanges();
         try { refreshData?.(); } catch {}
