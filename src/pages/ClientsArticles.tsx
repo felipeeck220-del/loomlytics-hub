@@ -12,9 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings, Factory } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Client, Article, ArticleMachineTurns } from '@/types';
+import ArtigosEmProducaoTab from '@/components/ArtigosEmProducaoTab';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
@@ -234,12 +235,15 @@ export default function ClientsArticles() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-2">
+        <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="clients" className="flex items-center gap-2">
             <Users className="h-4 w-4" /> Clientes
           </TabsTrigger>
           <TabsTrigger value="articles" className="flex items-center gap-2">
             <Settings className="h-4 w-4" /> Artigos
+          </TabsTrigger>
+          <TabsTrigger value="production" className="flex items-center gap-2">
+            <Factory className="h-4 w-4" /> Artigos em Produção
           </TabsTrigger>
         </TabsList>
 
