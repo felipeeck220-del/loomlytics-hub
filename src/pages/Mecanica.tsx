@@ -969,6 +969,103 @@ export default function MecanicaPage() {
       } catch (e) { toast.error('Erro ao registrar baixa.'); }
     };
 
+    // ===== Providers CRUD =====
+    const openNewProvider = () => { setEditingProvider(null); setProviderName(''); setShowProviderModal(true); };
+    const openEditProvider = (p: NeedleProvider) => { setEditingProvider(p); setProviderName(p.name); setShowProviderModal(true); };
+    const handleSaveProvider = async () => {
+      if (!providerName.trim()) { toast.error('Informe o nome do fornecedor.'); return; }
+      if (!user?.company_id) return;
+      try {
+        if (editingProvider) {
+          const { error } = await (supabase.from as any)('needle_providers').update({ name: providerName.trim() }).eq('id', editingProvider.id);
+          if (error) throw error;
+          logAction('needle_provider_update', { name: providerName.trim() });
+        } else {
+          const { error } = await (supabase.from as any)('needle_providers').insert({ company_id: user.company_id, name: providerName.trim() });
+          if (error) throw error;
+          logAction('needle_provider_create', { name: providerName.trim() });
+        }
+        toast.success(editingProvider ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
+        setShowProviderModal(false); setProviderName(''); setEditingProvider(null);
+        bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar fornecedor.'); }
+    };
+    const handleDeleteProvider = async () => {
+      if (!deleteProviderId) return;
+      try {
+        const { error } = await (supabase.from as any)('needle_providers').delete().eq('id', deleteProviderId);
+        if (error) throw error;
+        logAction('needle_provider_delete', { id: deleteProviderId });
+        toast.success('Fornecedor removido.');
+        setDeleteProviderId(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // ===== Provider prices CRUD =====
+    const openAddPrice = (providerId: string) => {
+      setEditingPrice(null); setPriceProviderId(providerId); setPriceNeedleId(''); setPriceValue(''); setShowPriceModal(true);
+    };
+    const openEditPrice = (p: NeedleProviderPrice) => {
+      setEditingPrice(p); setPriceProviderId(p.provider_id); setPriceNeedleId(p.needle_id); setPriceValue(String(p.unit_price)); setShowPriceModal(true);
+    };
+    const availableNeedlesForProvider = (providerId: string) => {
+      const used = new Set(providerPrices.filter(p => p.provider_id === providerId && (!editingPrice || p.id !== editingPrice.id)).map(p => p.needle_id));
+      return needles.filter(n => !used.has(n.id));
+    };
+    const handleSavePrice = async () => {
+      if (!priceProviderId || !priceNeedleId) { toast.error('Selecione o fornecedor e a agulha.'); return; }
+      const price = Number(String(priceValue).replace(',', '.'));
+      if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
+      if (!user?.company_id) return;
+      try {
+        if (editingPrice) {
+          const { error } = await (supabase.from as any)('needle_provider_prices').update({ unit_price: price }).eq('id', editingPrice.id);
+          if (error) throw error;
+        } else {
+          const { error } = await (supabase.from as any)('needle_provider_prices').insert({
+            company_id: user.company_id, provider_id: priceProviderId, needle_id: priceNeedleId, unit_price: price,
+          });
+          if (error) throw error;
+        }
+        logAction(editingPrice ? 'needle_price_update' : 'needle_price_create', { provider_id: priceProviderId, needle_id: priceNeedleId, price });
+        toast.success(editingPrice ? 'Preço atualizado!' : 'Agulha vinculada ao fornecedor.');
+        setShowPriceModal(false); setEditingPrice(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar preço.'); }
+    };
+    const handleDeletePrice = async () => {
+      if (!deletePriceId) return;
+      try {
+        const { error } = await (supabase.from as any)('needle_provider_prices').delete().eq('id', deletePriceId);
+        if (error) throw error;
+        logAction('needle_price_delete', { id: deletePriceId });
+        toast.success('Vínculo removido.');
+        setDeletePriceId(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // Helpers de listagem para os modais Entrada/Saída
+    const entryProviderNeedles = useMemo(() => {
+      if (!entryProviderId) return [] as (typeof needles[number] & { unit_price: number; price_id: string })[];
+      return providerPrices
+        .filter(p => p.provider_id === entryProviderId)
+        .map(p => {
+          const n = needles.find(nn => nn.id === p.needle_id);
+          if (!n) return null;
+          return { ...n, unit_price: Number(p.unit_price), price_id: p.id };
+        })
+        .filter(Boolean) as any;
+    }, [entryProviderId, providerPrices, needles]);
+    const exitProviderNeedles = useMemo(() => {
+      if (!exitProviderId) return [] as typeof needles;
+      const ids = new Set(providerPrices.filter(p => p.provider_id === exitProviderId).map(p => p.needle_id));
+      return needles.filter(n => ids.has(n.id));
+    }, [exitProviderId, providerPrices, needles]);
+    const exitBrandsForProvider = useMemo(() => {
+      const arr = Array.from(new Set(exitProviderNeedles.map(n => n.brand)));
+      return arr.sort((a, b) => a.localeCompare(b));
+    }, [exitProviderNeedles]);
+    const exitRefsForBrand = useMemo(() => exitProviderNeedles.filter(n => n.brand === exitBrand), [exitProviderNeedles, exitBrand]);
+
     const handleSaveSinker = async () => {
       if (!sinkerForm.provider || !sinkerForm.brand || !sinkerForm.reference_code) {
         toast.error('Preencha todos os campos.');
