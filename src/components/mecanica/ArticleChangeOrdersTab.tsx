@@ -143,8 +143,9 @@ export default function ArticleChangeOrdersTab() {
   const [deleteTarget, setDeleteTarget] = useState<OT | null>(null);
 
   const isAdmin = role === 'admin';
-  const isLider = role === 'lider';
-  const isMecanico = role === 'mecanico' || role === 'lider_mecanica';
+  const isLiderNoite = role === 'lider_noite';
+  const isLider = role === 'lider' || isLiderNoite;
+  const isMecanico = role === 'mecanico' || role === 'lider_mecanica' || isLiderNoite;
 
   const machineById = useMemo(() => Object.fromEntries(machines.map(m => [m.id, m])), [machines]);
   const articleById = useMemo(() => Object.fromEntries(articles.map(a => [a.id, a])), [articles]);
@@ -322,7 +323,7 @@ export default function ArticleChangeOrdersTab() {
             <p className="text-xs text-muted-foreground">Fluxo: troca de fio → regulagem → acompanhamento → revisão</p>
           </div>
         </div>
-        {isAdmin && (
+        {(isAdmin || isLiderNoite) && (
           <Button onClick={() => setShowNew(true)}>
             <Plus className="h-4 w-4 mr-1" /> Nova OT
           </Button>
