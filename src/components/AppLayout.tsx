@@ -95,8 +95,9 @@ export default function AppLayout() {
    const isExpedition = user?.role === 'expedicao';
    const isLiderMecanica = user?.role === 'lider_mecanica';
    const isLider = user?.role === 'lider';
+   const isMecanico = user?.role === 'mecanico';
 
-   if (companyLoading && !isRefreshing && !isExpedition && !isLiderMecanica && !isLider) {
+   if (companyLoading && !isRefreshing && !isExpedition && !isLiderMecanica && !isLider && !isMecanico) {
      return <LoadingScreen progress={loadingProgress} />;
    }
  
