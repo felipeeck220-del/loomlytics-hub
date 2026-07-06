@@ -8,7 +8,7 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
   admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-ot', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
   lider: ['mecanica-oc', 'mecanica-ot'],
   lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-ot', 'mecanica'],
-  mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-ot', 'mecanica', 'machines'],
+  mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-ot', 'mecanica'],
   revisador: ['revision'],
   expedicao: ['billing-orders', 'estoque-malha'],
 };
