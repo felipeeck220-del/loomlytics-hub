@@ -543,8 +543,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Máquinas Paradas (OMs abertas / em curso) — tempo real */}
-      {openOMs.length > 0 && (
+      {/* Máquinas Paradas (OM/OC em curso + OT em execução) — tempo real */}
+      {stoppedOrders.length > 0 && (
         <Card className="shadow-material border-0 border-l-4 border-l-warning">
           <CardHeader
             className="pb-3 cursor-pointer select-none hover:bg-muted/30 rounded-t-lg transition-colors"
@@ -554,7 +554,7 @@ export default function Dashboard() {
               <div className="flex-1 min-w-0">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <PauseCircle className="h-4 w-4 text-warning" />
-                  Máquinas Paradas ({openOMs.length})
+                  Máquinas Paradas ({stoppedOrders.length})
                   <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-normal text-muted-foreground">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
@@ -563,7 +563,7 @@ export default function Dashboard() {
                     ao vivo
                   </span>
                 </CardTitle>
-                <CardDescription className="text-xs mt-1">Ordens de Manutenção em curso · atualização em tempo real</CardDescription>
+                <CardDescription className="text-xs mt-1">OM/OC em curso e OT em execução · atualização em tempo real</CardDescription>
               </div>
               <Button
                 variant="ghost"
@@ -579,9 +579,9 @@ export default function Dashboard() {
           {omsExpanded && (
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {openOMs.map(om => {
+              {stoppedOrders.map(om => {
                 const machine = machines.find(mm => mm.id === om.machine_id);
-                const startedAt = om.started_at || om.created_at;
+                const startedAt = om.startedAt;
                 const elapsed = startedAt ? Math.floor((nowTick.getTime() - new Date(startedAt).getTime()) / 1000) : 0;
                 const hours = Math.floor(elapsed / 3600);
                 const minutes = Math.floor((elapsed % 3600) / 60);
@@ -612,12 +612,16 @@ export default function Dashboard() {
                   troca_artigo: 'bg-info/10 text-info border-info/20',
                   troca_agulhas: 'bg-primary/10 text-primary border-primary/20',
                 };
-                const statusBadge = om.status === 'em_curso'
-                  ? 'bg-success/10 text-success border-success/20'
-                  : 'bg-muted text-muted-foreground border-border';
-                const statusLabel = om.status === 'em_curso' ? 'Em curso' : 'Aberta';
+                const statusBadge = om.kind === 'ot'
+                  ? 'bg-info/10 text-info border-info/20'
+                  : om.status === 'em_curso'
+                    ? 'bg-success/10 text-success border-success/20'
+                    : 'bg-muted text-muted-foreground border-border';
+                const statusLabel = om.statusLabel;
                 const colorClass = typeColors[om.type] || 'border-l-muted bg-muted/5';
                 const isPriority = om.priority === 'prioritaria';
+                const numberPrefix = om.kind === 'oc' ? 'OC' : om.kind === 'ot' ? 'OT' : 'OM';
+                const numberStr = om.number != null ? String(om.number).padStart(3, '0') : '—';
 
                 return (
                   <div
@@ -631,7 +635,7 @@ export default function Dashboard() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 mb-1">
                           <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-xs font-mono font-semibold text-muted-foreground">OM #{om.om_number}</span>
+                          <span className="text-xs font-mono font-semibold text-muted-foreground">{numberPrefix} #{numberStr}</span>
                           {isPriority && (
                             <Badge variant="outline" className="text-[9px] h-4 px-1 bg-destructive/10 text-destructive border-destructive/20">
                               PRIORITÁRIA
@@ -655,15 +659,15 @@ export default function Dashboard() {
                         <UserCircle2 className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">
                           <span className="opacity-70">Criada por:</span>{' '}
-                          <span className="font-medium text-foreground">{om.created_by_name || '—'}</span>
+                          <span className="font-medium text-foreground">{om.createdByName || '—'}</span>
                         </span>
                       </div>
-                      {om.started_by_name && (
+                      {om.startedByName && (
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <PlayCircle className="h-3.5 w-3.5 shrink-0 text-success" />
                           <span className="truncate">
                             <span className="opacity-70">Iniciada por:</span>{' '}
-                            <span className="font-medium text-foreground">{om.started_by_name}</span>
+                            <span className="font-medium text-foreground">{om.startedByName}</span>
                           </span>
                         </div>
                       )}
@@ -671,7 +675,7 @@ export default function Dashboard() {
 
                     <div className="flex items-center justify-between pt-2 border-t border-border/40">
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                        {om.status === 'em_curso' ? 'Tempo em curso' : 'Aberta há'}
+                        {om.kind === 'ot' ? 'Tempo em execução' : om.status === 'em_curso' ? 'Tempo em curso' : 'Aberta há'}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
