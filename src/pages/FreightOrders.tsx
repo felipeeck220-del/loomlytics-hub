@@ -924,10 +924,10 @@ function DetailsModal({
           <div className="border rounded-lg overflow-hidden">
             <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold">Linha do tempo</div>
             <div className="px-3 py-2 space-y-1 text-xs">
-              <div>Criada: <span className="font-medium">{fmt(order.created_at)}</span></div>
-              <div>Frete iniciado: <span className="font-medium">{fmt(order.pickup_started_at)}</span></div>
-              <div>Finalizada: <span className="font-medium">{fmt(order.completed_at)}</span></div>
-              {order.cancelled_at && <div className="text-destructive">Cancelada: {fmt(order.cancelled_at)} — {order.cancellation_reason}</div>}
+              <div>Criada: <span className="font-medium">{fmt(order.created_at)}</span>{order.creator && <span className="text-muted-foreground"> · por {order.creator.name} #{order.creator.code}</span>}</div>
+              <div>Frete iniciado: <span className="font-medium">{fmt(order.pickup_started_at)}</span>{order.pickup_starter && <span className="text-muted-foreground"> · por {order.pickup_starter.name} #{order.pickup_starter.code}</span>}</div>
+              <div>Finalizada: <span className="font-medium">{fmt(order.completed_at)}</span>{order.completer && <span className="text-muted-foreground"> · por {order.completer.name} #{order.completer.code}</span>}</div>
+              {order.cancelled_at && <div className="text-destructive">Cancelada: {fmt(order.cancelled_at)} — {order.cancellation_reason}{order.canceller && ` · por ${order.canceller.name} #${order.canceller.code}`}</div>}
             </div>
           </div>
 
