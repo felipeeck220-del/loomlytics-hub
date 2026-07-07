@@ -37,6 +37,7 @@ import Fechamento from "./pages/Fechamento";
 import FaturamentoTotal from "./pages/FaturamentoTotal";
 import StockMalha from "./pages/StockMalha";
 import BillingOrders from "./pages/BillingOrders";
+import FreightOrders from "./pages/FreightOrders";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,6 +78,7 @@ const App = () => (
                 <Route path="residuos" element={<ProtectedRoute routeKey="residuos"><ResidueSales /></ProtectedRoute>} />
                 <Route path="estoque-malha" element={<ProtectedRoute routeKey="estoque-malha"><StockMalha /></ProtectedRoute>} />
                 <Route path="billing-orders" element={<ProtectedRoute routeKey="billing-orders"><BillingOrders /></ProtectedRoute>} />
+                <Route path="freight-orders" element={<ProtectedRoute routeKey="freight-orders"><FreightOrders /></ProtectedRoute>} />
                 <Route path="invoices" element={<ProtectedRoute routeKey="invoices"><Invoices /></ProtectedRoute>} />
                 <Route path="client-invoices" element={<ProtectedRoute routeKey="client-invoices"><ClientInvoices /></ProtectedRoute>} />
                 <Route path="fechamento" element={<ProtectedRoute routeKey="fechamento"><Fechamento /></ProtectedRoute>} />

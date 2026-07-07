@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle, Repeat,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle, Repeat, Truck,
 } from 'lucide-react';
 import { useInstallApp } from '@/hooks/useInstallApp';
 import {
@@ -45,6 +45,7 @@ const allItems = [
   { title: 'Vendas de Resíduos', path: 'residuos', icon: Recycle, key: 'residuos' },
   { title: 'Estoque Malha', path: 'estoque-malha', icon: Warehouse, key: 'estoque-malha' },
   { title: 'Ordem de Faturamento (OF)', path: 'billing-orders', icon: ClipboardList, key: 'billing-orders' },
+  { title: 'Ordem de Frete', path: 'freight-orders', icon: Truck, key: 'freight-orders' },
   { title: 'Notas Fiscais', path: 'invoices', icon: FileText, key: 'invoices' },
   { title: 'Notas Fiscais (Clientes)', path: 'client-invoices', icon: FileText, key: 'client-invoices' },
   { title: 'Fechamento', path: 'fechamento', icon: FileSpreadsheet, key: 'fechamento' },

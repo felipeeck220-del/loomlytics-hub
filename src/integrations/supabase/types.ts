@@ -1322,6 +1322,251 @@ export type Database = {
         }
         Relationships: []
       }
+      freight_order_items: {
+        Row: {
+          article_id: string | null
+          article_name: string | null
+          company_id: string
+          created_at: string
+          freight_order_id: string
+          id: string
+          pieces: number
+          weight_kg: number
+        }
+        Insert: {
+          article_id?: string | null
+          article_name?: string | null
+          company_id: string
+          created_at?: string
+          freight_order_id: string
+          id?: string
+          pieces?: number
+          weight_kg?: number
+        }
+        Update: {
+          article_id?: string | null
+          article_name?: string | null
+          company_id?: string
+          created_at?: string
+          freight_order_id?: string
+          id?: string
+          pieces?: number
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_order_items_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_order_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_order_items_freight_order_id_fkey"
+            columns: ["freight_order_id"]
+            isOneToOne: false
+            referencedRelation: "freight_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_order_photos: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          freight_order_id: string
+          id: string
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          freight_order_id: string
+          id?: string
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          freight_order_id?: string
+          id?: string
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_order_photos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_order_photos_freight_order_id_fkey"
+            columns: ["freight_order_id"]
+            isOneToOne: false
+            referencedRelation: "freight_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freight_orders: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          delivery_location: string
+          delivery_started_at: string | null
+          delivery_started_by: string | null
+          freighter_id: string
+          id: string
+          observations: string | null
+          ofr_number: string
+          pickup_location: string
+          pickup_started_at: string | null
+          pickup_started_by: string | null
+          status: Database["public"]["Enums"]["freight_order_status"]
+          updated_at: string
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_location: string
+          delivery_started_at?: string | null
+          delivery_started_by?: string | null
+          freighter_id: string
+          id?: string
+          observations?: string | null
+          ofr_number: string
+          pickup_location: string
+          pickup_started_at?: string | null
+          pickup_started_by?: string | null
+          status?: Database["public"]["Enums"]["freight_order_status"]
+          updated_at?: string
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_location?: string
+          delivery_started_at?: string | null
+          delivery_started_by?: string | null
+          freighter_id?: string
+          id?: string
+          observations?: string | null
+          ofr_number?: string
+          pickup_location?: string
+          pickup_started_at?: string | null
+          pickup_started_by?: string | null
+          status?: Database["public"]["Enums"]["freight_order_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_orders_freighter_id_fkey"
+            columns: ["freighter_id"]
+            isOneToOne: false
+            referencedRelation: "freighters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freighters: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          phone: string | null
+          profile_id: string | null
+          updated_at: string
+          user_id: string | null
+          vehicle: string | null
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          vehicle?: string | null
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          vehicle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freighters_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freighters_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           article_id: string | null
@@ -4486,6 +4731,12 @@ export type Database = {
         | "collected"
         | "cancelled"
       client_invoice_type: "entrada" | "saida"
+      freight_order_status:
+        | "open"
+        | "pickup_in_progress"
+        | "delivery_in_progress"
+        | "completed"
+        | "cancelled"
       machine_status:
         | "ativa"
         | "manutencao_preventiva"
@@ -4648,6 +4899,13 @@ export const Constants = {
         "cancelled",
       ],
       client_invoice_type: ["entrada", "saida"],
+      freight_order_status: [
+        "open",
+        "pickup_in_progress",
+        "delivery_in_progress",
+        "completed",
+        "cancelled",
+      ],
       machine_status: [
         "ativa",
         "manutencao_preventiva",
