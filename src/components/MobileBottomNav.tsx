@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import { Lock } from 'lucide-react';
 import {
-  LayoutDashboard, Settings2, ClipboardList, Factory, Settings, Search, Wrench, AlertTriangle, Repeat,
+  LayoutDashboard, Settings2, ClipboardList, Factory, Settings, Search, Wrench, AlertTriangle, Repeat, Truck,
 } from 'lucide-react';
 
 const allItems = [
@@ -19,6 +19,7 @@ const allItems = [
   { title: 'OC', path: 'mecanica/oc', icon: AlertTriangle, key: 'mecanica-oc' },
   { title: 'OT', path: 'mecanica/ot', icon: Repeat, key: 'mecanica-ot' },
   { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
+  { title: 'Ordem de Frete', path: 'freight-orders', icon: Truck, key: 'freight-orders' },
   { title: 'Configurações', path: 'settings', icon: Settings, key: 'settings' },
 ];
 
@@ -30,6 +31,7 @@ const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-ot'],
   lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-ot'],
   revisador: ['production', 'revision'],
+  freteiro: ['freight-orders'],
 };
 
 export function getMobileFooterKeys(role: string): string[] {
