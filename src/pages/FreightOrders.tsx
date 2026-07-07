@@ -67,7 +67,8 @@ function elapsed(fromIso?: string | null): string {
 export default function FreightOrders() {
   const { user } = useAuth();
   const { role } = usePermissions();
-  const { articles } = useSharedCompanyData();
+  const { getArticles } = useSharedCompanyData();
+  const articles = getArticles();
   const { toast } = useToast();
   const {
     orders, isLoading, freighters,
@@ -341,22 +342,24 @@ function NewOFRModal({
   const [pickup, setPickup] = useState('');
   const [delivery, setDelivery] = useState('');
   const [obs, setObs] = useState('');
-  const [items, setItems] = useState<Array<{ article_id: string; pieces: number; weight_kg: number }>>([
-    { article_id: '', pieces: 0, weight_kg: 0 },
+  const [items, setItems] = useState<Array<{ article_id: string; pieces: number; weight_kg: string }>>([
+    { article_id: '', pieces: 0, weight_kg: '' },
   ]);
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       setFreighterId(''); setPickup(''); setDelivery(''); setObs('');
-      setItems([{ article_id: '', pieces: 0, weight_kg: 0 }]);
+      setItems([{ article_id: '', pieces: 0, weight_kg: '' }]);
     }
   }, [open]);
 
   const submit = () => {
     if (!freighterId) return toast({ title: 'Selecione o freteiro', variant: 'destructive' });
     if (!pickup.trim() || !delivery.trim()) return toast({ title: 'Preencha coleta e entrega', variant: 'destructive' });
-    const cleaned = items.filter(i => i.article_id && (i.pieces > 0 || i.weight_kg > 0));
+    const cleaned = items
+      .map(i => ({ ...i, weight_num: parseFloat((i.weight_kg || '0').toString().replace(',', '.')) || 0 }))
+      .filter(i => i.article_id && (i.pieces > 0 || i.weight_num > 0));
     if (!cleaned.length) return toast({ title: 'Adicione pelo menos 1 artigo', variant: 'destructive' });
     onSubmit({
       freighter_id: freighterId,
@@ -369,13 +372,13 @@ function NewOFRModal({
           article_id: i.article_id,
           article_name: art?.name,
           pieces: i.pieces,
-          weight_kg: i.weight_kg,
+          weight_kg: i.weight_num,
         };
       }),
     });
   };
 
-  const artOptions = articles.map(a => ({ value: a.id, label: `${a.name}${a.client_name ? ` (${a.client_name})` : ''}` }));
+  const artOptions = articles.map(a => ({ value: a.id, label: `${a.name}${(a as any).client_name ? ` (${(a as any).client_name})` : ''}` }));
   const freighterOptions = freighters.filter(f => f.active).map(f => ({ value: f.id, label: f.name }));
 
   return (
@@ -385,7 +388,7 @@ function NewOFRModal({
         <div className="space-y-3">
           <div>
             <Label>Freteiro *</Label>
-            <SearchableSelect value={freighterId} onValueChange={setFreighterId} options={freighterOptions} placeholder="Selecione o freteiro" emptyMessage="Nenhum freteiro cadastrado" />
+            <SearchableSelect value={freighterId} onValueChange={setFreighterId} options={freighterOptions} placeholder="Selecione o freteiro" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -405,7 +408,7 @@ function NewOFRModal({
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Artigos *</Label>
-              <Button type="button" variant="outline" size="sm" onClick={() => setItems([...items, { article_id: '', pieces: 0, weight_kg: 0 }])}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setItems([...items, { article_id: '', pieces: 0, weight_kg: '' }])}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar artigo
               </Button>
             </div>
