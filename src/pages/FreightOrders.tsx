@@ -4,6 +4,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useFreightOrders, type FreightOrderStatus, type FreightOrder } from '@/hooks/useFreightOrders';
 import { generateFreightOrderPdf } from '@/lib/freightOrderPdf';
+import { FreightReportsTab } from '@/components/freight/FreightReportsTab';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,11 +18,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2 } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type TabKey = 'open' | 'in_progress' | 'completed' | 'cancelled';
+type TabKey = 'open' | 'in_progress' | 'completed' | 'cancelled' | 'reports';
 
 const STATUS_LABEL: Record<FreightOrderStatus, string> = {
   open: 'Aberto',
@@ -118,8 +119,9 @@ export default function FreightOrders() {
   }, [user?.company_id]);
 
   const counts = useMemo(() => {
-    const c: Record<TabKey, number> = { open: 0, in_progress: 0, completed: 0, cancelled: 0 };
+    const c: Record<TabKey, number> = { open: 0, in_progress: 0, completed: 0, cancelled: 0, reports: 0 };
     for (const o of orders) c[tabOfStatus(o.status)] += 1;
+    c.reports = orders.filter(o => o.status === 'completed').length;
     return c;
   }, [orders]);
 
@@ -191,9 +193,21 @@ export default function FreightOrders() {
           <TabsTrigger value="cancelled" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Cancelados <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.cancelled}</Badge>
           </TabsTrigger>
+          <TabsTrigger value="reports" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
+            <BarChart3 className="h-3.5 w-3.5" /> Relatórios <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.reports}</Badge>
+          </TabsTrigger>
         </TabsList>
 
         <div className="mt-6 space-y-3">
+          {tab === 'reports' ? (
+            <FreightReportsTab
+              orders={orders}
+              hasFullAccess={hasFullAccess}
+              isFreteiro={isFreteiro}
+              companyName={companyName}
+            />
+          ) : (
+            <>
           {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
           {!isLoading && filtered.length === 0 && (
             <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma OFR encontrada.</div>
@@ -211,6 +225,8 @@ export default function FreightOrders() {
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
             />
           ))}
+            </>
+          )}
         </div>
       </Tabs>
 
