@@ -181,23 +181,33 @@ export function useFreightOrders() {
     }) => {
       if (!user?.company_id) throw new Error('Sem empresa ativa');
       if (!payload.items?.length) throw new Error('Adicione pelo menos 1 artigo');
-      const ofr_number = await nextOfrNumber();
-      const { data: order, error } = await (supabase.from as any)('freight_orders')
-        .insert({
-          company_id: user.company_id,
-          ofr_number,
-          freighter_id: payload.freighter_id,
-          pickup_location: payload.pickup_location,
-          delivery_location: payload.delivery_location,
-          observations: payload.observations || null,
-          delivery_doc_type: payload.delivery_doc_type || null,
-          delivery_doc_number: payload.delivery_doc_number || null,
-          status: 'open',
-          created_by: profile?.id ?? null,
-        })
-        .select()
-        .single();
-      if (error) throw error;
+      // Retry para evitar colisão de OFR# quando 2 admins criam ao mesmo tempo
+      let order: any = null;
+      let ofr_number = '';
+      let lastErr: any = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        ofr_number = await nextOfrNumber();
+        const { data, error } = await (supabase.from as any)('freight_orders')
+          .insert({
+            company_id: user.company_id,
+            ofr_number,
+            freighter_id: payload.freighter_id,
+            pickup_location: payload.pickup_location,
+            delivery_location: payload.delivery_location,
+            observations: payload.observations || null,
+            delivery_doc_type: payload.delivery_doc_type || null,
+            delivery_doc_number: payload.delivery_doc_number || null,
+            status: 'open',
+            created_by: profile?.id ?? null,
+          })
+          .select()
+          .single();
+        if (!error) { order = data; lastErr = null; break; }
+        lastErr = error;
+        // 23505 = unique_violation → tenta próximo número
+        if ((error as any).code !== '23505') throw error;
+      }
+      if (!order) throw lastErr || new Error('Falha ao gerar número da OFR');
       const itemsRows = payload.items.map(it => ({
         freight_order_id: order.id,
         company_id: user.company_id,
@@ -211,7 +221,11 @@ export function useFreightOrders() {
         weight_kg: Math.max(0, Number(it.weight_kg || 0)),
       }));
       const { error: itErr } = await (supabase.from as any)('freight_order_items').insert(itemsRows);
-      if (itErr) throw itErr;
+      if (itErr) {
+        // rollback: remove a OFR "vazia" para não deixar lixo/UNIQUE consumido
+        await (supabase.from as any)('freight_orders').delete().eq('id', order.id);
+        throw itErr;
+      }
       // Push notification (admins + freteiro vinculado, se tiver user_id)
       try {
         const { data: frt } = await (supabase.from as any)('freighters')
