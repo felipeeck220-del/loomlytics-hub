@@ -836,6 +836,12 @@ function CancelModal({
 }: { open: boolean; onOpenChange: (o: boolean) => void; onSubmit: (reason: string) => void }) {
   const [reason, setReason] = useState('');
   useEffect(() => { if (open) setReason(''); }, [open]);
+  const { toast } = useToast();
+  const handleSubmit = () => {
+    const r = reason.trim();
+    if (!r) { toast({ title: 'Informe o motivo do cancelamento', variant: 'destructive' }); return; }
+    onSubmit(r);
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -846,7 +852,7 @@ function CancelModal({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button>
-          <Button variant="destructive" onClick={() => reason.trim() && onSubmit(reason.trim())}>Cancelar OFR</Button>
+          <Button variant="destructive" onClick={handleSubmit}>Cancelar OFR</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
