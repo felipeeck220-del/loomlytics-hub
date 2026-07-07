@@ -18,7 +18,10 @@ export function useCompanyData() {
   const companyId = user?.company_id || '';
   // Freteiro só usa a página de OFR (que carrega dados próprios). Pular todo o
   // carregamento pesado da empresa para dar agilidade e evitar a tela de loading.
-  const skipHeavyLoad = user?.role === 'freteiro' || user?.role === 'lider_frete';
+  // Freteiro (motorista) não precisa de nada além da OFR.
+  // Líder de Frete cria OFRs, então precisa de articles + yarn_types (carga leve).
+  const skipHeavyLoad = user?.role === 'freteiro';
+  const liderFreteLightLoad = user?.role === 'lider_frete';
 
   const [machines, setMachines] = useState<Machine[]>([]);
   const [machineLogs, setMachineLogs] = useState<MachineLog[]>([]);
@@ -197,6 +200,23 @@ export function useCompanyData() {
        setLoading(false);
        return;
      }
+     if (liderFreteLightLoad) {
+       try {
+         const [aData, ytData] = await Promise.all([
+           fetchAll('articles', { column: 'company_id', value: companyId }, 'name'),
+           fetchAll('yarn_types', { column: 'company_id', value: companyId }, 'name'),
+         ]);
+         setArticles(aData.map(mapArticle));
+         setYarnTypes(ytData);
+       } catch (err) {
+         console.error('Falha no carregamento leve (lider_frete):', err);
+       } finally {
+         hasLoadedOnceRef.current = true;
+         setLoadingProgress(100);
+         setLoading(false);
+       }
+       return;
+     }
      const isInitial = !hasLoadedOnceRef.current;
      if (isInitial) {
        setLoading(true);
@@ -269,7 +289,7 @@ export function useCompanyData() {
          setTimeout(() => setLoading(false), 300); // Pequeno delay para a barra chegar a 100% suavemente
        }
      }
-   }, [companyId, skipHeavyLoad]);
+   }, [companyId, skipHeavyLoad, liderFreteLightLoad]);
 
   // Load all data once we have the company ID from the authenticated user
   useEffect(() => {
