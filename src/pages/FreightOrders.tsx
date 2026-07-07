@@ -4,6 +4,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useFreightOrders, type FreightOrderStatus, type FreightOrder } from '@/hooks/useFreightOrders';
 import { generateFreightOrderPdf } from '@/lib/freightOrderPdf';
+import { FreightReportsTab } from '@/components/freight/FreightReportsTab';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,11 +18,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2 } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type TabKey = 'open' | 'in_progress' | 'completed' | 'cancelled';
+type TabKey = 'open' | 'in_progress' | 'completed' | 'cancelled' | 'reports';
 
 const STATUS_LABEL: Record<FreightOrderStatus, string> = {
   open: 'Aberto',
