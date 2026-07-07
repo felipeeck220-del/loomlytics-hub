@@ -936,6 +936,7 @@ function DetailsModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><span className="text-muted-foreground">Freteiro:</span> <span className="font-medium">{order.freighter?.name}</span></div>
             <div><span className="text-muted-foreground">Veículo:</span> <span className="font-medium">{order.freighter?.vehicle || '—'}</span></div>
+            <div className="sm:col-span-2"><span className="text-muted-foreground">Rateio de custo:</span> <span className="font-semibold text-indigo-700 dark:text-indigo-300">{order.cost_company_name || order.cost_company?.name || '—'}</span></div>
             <div><span className="text-muted-foreground">Coleta:</span> <span className="font-medium">{order.pickup_location}</span></div>
             <div><span className="text-muted-foreground">Entrega:</span> <span className="font-medium">{order.delivery_location}</span></div>
           </div>
