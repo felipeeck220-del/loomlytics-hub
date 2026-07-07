@@ -1018,3 +1018,70 @@ function DetailsModal({
     </Dialog>
   );
 }
+function CostCompaniesModal({
+  open, onOpenChange, costCompanies, onCreate, onUpdate, onDelete,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  costCompanies: any[];
+  onCreate: (p: { name: string; document?: string }) => void;
+  onUpdate: (p: { id: string; name?: string; document?: string | null; active?: boolean }) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [name, setName] = useState('');
+  const [document, setDocument] = useState('');
+
+  const submit = () => {
+    if (!name.trim()) return;
+    onCreate({ name: name.trim(), document: document.trim() || undefined });
+    setName(''); setDocument('');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Empresas (Rateio de custo)</DialogTitle>
+        </DialogHeader>
+
+        <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+          <p className="text-sm font-medium">Nova empresa</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Nome *</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Malharia XYZ" />
+            </div>
+            <div>
+              <Label className="text-xs">CNPJ / Documento</Label>
+              <Input value={document} onChange={e => setDocument(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button size="sm" onClick={submit} disabled={!name.trim()}>
+              <Plus className="h-4 w-4 mr-1.5" />Adicionar
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {costCompanies.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma empresa cadastrada.</p>}
+          {costCompanies.map(c => (
+            <div key={c.id} className="flex items-center justify-between border rounded-lg p-2 gap-2">
+              <div className="min-w-0">
+                <p className="font-medium text-sm truncate">
+                  {c.name}
+                  {!c.active && <span className="ml-2 text-xs text-muted-foreground">(inativa)</span>}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{c.document || '—'}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button variant="ghost" size="sm" onClick={() => onUpdate({ id: c.id, active: !c.active })}>{c.active ? 'Desativar' : 'Ativar'}</Button>
+                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => onDelete(c.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
