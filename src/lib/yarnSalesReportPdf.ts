@@ -156,7 +156,8 @@ export async function generateYarnSalesReportPdf(input: YarnSalesReportInput) {
     headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 9 },
     footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold', fontSize: 9 },
     styles: { fontSize: 9, cellPadding: 2 },
-    columnStyles: { 1: { halign: 'right' } },
+    columnStyles: { 0: { halign: 'left' }, 1: { halign: 'right' } },
+    headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 9, halign: 'left' },
     margin: { left: margin, right: margin },
   });
   y = (pdf as any).lastAutoTable.finalY + 6;
