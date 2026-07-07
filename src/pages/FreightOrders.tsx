@@ -93,7 +93,7 @@ export default function FreightOrders() {
     getPhotoSignedUrl,
   } = useFreightOrders();
 
-  const isAdmin = role === 'admin' || role === 'lider_frete';
+  const hasFullAccess = role === 'admin' || role === 'lider_frete';
   const isFreteiro = role === 'freteiro';
   const [tab, setTab] = useState<TabKey>('open');
   const [searchTerm, setSearchTerm] = useState('');
@@ -151,7 +151,7 @@ export default function FreightOrders() {
           <p className="text-muted-foreground text-sm">Coletas e entregas realizadas por freteiros</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {isAdmin && (
+          {hasFullAccess && (
             <>
               <Button variant="outline" onClick={() => setFreightersOpen(true)} className="gap-2">
                 <Users className="h-4 w-4" /> Freteiros
@@ -202,7 +202,7 @@ export default function FreightOrders() {
             <OrderCard
               key={order.id}
               order={order}
-              isAdmin={isAdmin}
+              hasFullAccess={hasFullAccess}
               isFreteiro={isFreteiro}
               onStartPickup={() => startPickup.mutate(order.id)}
               onComplete={() => setCompleteOrderId(order.id)}
@@ -214,7 +214,7 @@ export default function FreightOrders() {
         </div>
       </Tabs>
 
-      {isAdmin && (
+      {hasFullAccess && (
         <NewOFRModal
           open={newOpen}
           onOpenChange={setNewOpen}
@@ -227,7 +227,7 @@ export default function FreightOrders() {
         />
       )}
 
-      {isAdmin && (
+      {hasFullAccess && (
         <FreightersModal
           open={freightersOpen}
           onOpenChange={setFreightersOpen}
@@ -238,7 +238,7 @@ export default function FreightOrders() {
         />
       )}
 
-      {isAdmin && (
+      {hasFullAccess && (
         <CostCompaniesModal
           open={costCompaniesOpen}
           onOpenChange={setCostCompaniesOpen}
@@ -285,11 +285,11 @@ export default function FreightOrders() {
 /* ---------------- Cards ---------------- */
 
 function OrderCard({
-  order, isAdmin, isFreteiro,
+  order, hasFullAccess, isFreteiro,
   onStartPickup, onComplete, onCancel, onDetails, onDownload,
 }: {
   order: FreightOrder;
-  isAdmin: boolean;
+  hasFullAccess: boolean;
   isFreteiro: boolean;
   onStartPickup: () => void;
   onComplete: () => void;
@@ -362,12 +362,12 @@ function OrderCard({
               <Eye className="h-4 w-4 mr-1.5" /> Detalhes
             </Button>
 
-            {order.status === 'open' && (isFreteiro || isAdmin) && (
+            {order.status === 'open' && (isFreteiro || hasFullAccess) && (
               <Button size="sm" onClick={onStartPickup}>
                 <Play className="h-4 w-4 mr-1.5" /> Iniciar Frete
               </Button>
             )}
-            {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && (isFreteiro || isAdmin) && (
+            {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && (isFreteiro || hasFullAccess) && (
               <Button size="sm" onClick={onComplete}>
                 <CheckCircle2 className="h-4 w-4 mr-1.5" /> Finalizar
               </Button>
@@ -377,7 +377,7 @@ function OrderCard({
                 <Download className="h-4 w-4 mr-1.5" /> Baixar Relatório
               </Button>
             )}
-            {isAdmin && order.status !== 'completed' && order.status !== 'cancelled' && (
+            {hasFullAccess && order.status !== 'completed' && order.status !== 'cancelled' && (
               <Button variant="ghost" size="sm" onClick={onCancel} className="text-destructive">
                 <Ban className="h-4 w-4 mr-1.5" /> Cancelar
               </Button>
