@@ -88,7 +88,11 @@ export async function generateYarnSalesReportPdf(input: YarnSalesReportInput) {
     invoiceIds: Set<string>;
     brands: Map<string, { kg: number; boxes: number; value: number }>;
   };
-  const invById = new Map(invoices.map(i => [i.id, i]));
+  // Ignora NFs canceladas no relatório (a menos que o filtro seja exatamente 'cancelada')
+  const effectiveInvoices = filters.status === 'cancelada'
+    ? invoices
+    : invoices.filter(i => i.status !== 'cancelada');
+  const invById = new Map(effectiveInvoices.map(i => [i.id, i]));
   const buckets = new Map<string, Bucket>();
 
   for (const it of items) {
@@ -120,6 +124,8 @@ export async function generateYarnSalesReportPdf(input: YarnSalesReportInput) {
   const grandValue = rowsSummary.reduce((s, r) => s + r.totalValue, 0);
   const grandNfs = new Set<string>();
   rowsSummary.forEach(r => r.invoiceIds.forEach(id => grandNfs.add(id)));
+  // silêncio warnings de var não usada
+  void grandBoxes; void grandValue; void grandNfs;
 
   // KPIs
   autoTable(pdf, {
