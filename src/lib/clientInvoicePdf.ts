@@ -55,7 +55,7 @@ interface BaseOpts {
   periodLabel: string;
 }
 
-function drawHeader(pdf: any, opts: BaseOpts, pageWidth: number, margin: number, y: number) {
+export function drawHeader(pdf: any, opts: BaseOpts, pageWidth: number, margin: number, y: number) {
   const headerH = 25;
   const leftX = margin + 5;
   const rightX = pageWidth - margin - 5;
