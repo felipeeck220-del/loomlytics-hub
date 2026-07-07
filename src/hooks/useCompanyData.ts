@@ -16,6 +16,9 @@ const sb = (table: string) => (supabase.from as any)(table);
 export function useCompanyData() {
   const { user } = useAuth();
   const companyId = user?.company_id || '';
+  // Freteiro só usa a página de OFR (que carrega dados próprios). Pular todo o
+  // carregamento pesado da empresa para dar agilidade e evitar a tela de loading.
+  const skipHeavyLoad = user?.role === 'freteiro';
 
   const [machines, setMachines] = useState<Machine[]>([]);
   const [machineLogs, setMachineLogs] = useState<MachineLog[]>([]);
@@ -188,6 +191,12 @@ export function useCompanyData() {
        setLoading(false);
        return;
      }
+     if (skipHeavyLoad) {
+       hasLoadedOnceRef.current = true;
+       setLoadingProgress(100);
+       setLoading(false);
+       return;
+     }
      const isInitial = !hasLoadedOnceRef.current;
      if (isInitial) {
        setLoading(true);
@@ -260,7 +269,7 @@ export function useCompanyData() {
          setTimeout(() => setLoading(false), 300); // Pequeno delay para a barra chegar a 100% suavemente
        }
      }
-   }, [companyId]);
+   }, [companyId, skipHeavyLoad]);
 
   // Load all data once we have the company ID from the authenticated user
   useEffect(() => {
