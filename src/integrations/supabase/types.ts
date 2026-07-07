@@ -2857,6 +2857,51 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string | null
+          company_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          ref_id: string | null
+          ref_number: string | null
+          source: string
+          title: string
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          ref_id?: string | null
+          ref_number?: string | null
+          source: string
+          title: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          ref_id?: string | null
+          ref_number?: string | null
+          source?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       outsource_companies: {
         Row: {
           company_id: string

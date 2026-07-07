@@ -21,6 +21,7 @@ import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { generateOtReportPdf } from '@/lib/otReportPdf';
+import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 
 type OTStatus =
   | 'aberto'
@@ -120,6 +121,7 @@ function useLiveTimer(startIso: string | null | undefined) {
 }
 
 export default function ArticleChangeOrdersTab() {
+  useMarkSourceAsRead('OT');
   const { user } = useAuth();
   const { role } = usePermissions();
   const { logAction, userName, userCode } = useAuditLog();
@@ -238,6 +240,10 @@ export default function ArticleChangeOrdersTab() {
             message: `${machineName} pronta para regulagem`,
             url: targetPath,
             roles: ['mecanico', 'lider_mecanica', 'lider_noite'],
+            include_admins: true,
+            source: 'OT',
+            ref_id: o.id,
+            ref_number: `OT #${String(o.ot_number).padStart(3, '0')}`,
           },
         }).catch(() => { /* silencioso */ });
       } catch { /* silencioso */ }
@@ -849,6 +855,10 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
           message: `Troca para ${nextName}`,
           url: targetPath,
           roles: ['lider', 'lider_noite'],
+          include_admins: true,
+          source: 'OT',
+          ref_id: ins.id,
+          ref_number: `OT #${String(ins.ot_number).padStart(3, '0')}`,
         },
       }).catch(() => { /* silencioso */ });
     } catch { /* silencioso */ }

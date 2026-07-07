@@ -13,6 +13,8 @@ const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:contato@malhagest
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
+type Source = 'OM' | 'OC' | 'OT' | 'OFR';
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
@@ -29,7 +31,18 @@ Deno.serve(async (req) => {
     if (!uid) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const body = await req.json();
-    const { company_id, title, message, url, roles } = body || {};
+    const {
+      company_id,
+      title,
+      message,
+      url,
+      roles,
+      source,          // 'OM' | 'OC' | 'OT' | 'OFR'
+      ref_id,          // uuid da ordem
+      ref_number,      // 'OM #012', 'OFR #45'…
+      include_admins,  // boolean — adiciona todos os admins da empresa aos destinatários
+      target_user_ids, // string[] — usuários específicos (ex.: freteiro)
+    } = body || {};
     if (!company_id || !title) {
       return new Response(JSON.stringify({ error: 'missing_fields' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -40,19 +53,83 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Descobre usuários da empresa com os roles alvo
-    const targetRoles: string[] = Array.isArray(roles) && roles.length ? roles : ['mecanico', 'lider_mecanica'];
-    const { data: targets } = await admin.from('profiles').select('id').eq('company_id', company_id).in('role', targetRoles);
-    const userIds = (targets || []).map((r: any) => r.id);
+    // ---------- Resolução de destinatários ----------
+    const userIdsSet = new Set<string>();
+
+    // (1) por roles
+    const roleList: string[] = Array.isArray(roles) && roles.length ? roles : [];
+    // include_admins → força role 'admin'
+    if (include_admins && !roleList.includes('admin')) roleList.push('admin');
+    if (roleList.length) {
+      const { data: targets } = await admin.from('profiles').select('id').eq('company_id', company_id).in('role', roleList);
+      for (const r of (targets || []) as any[]) userIdsSet.add(r.id);
+    }
+
+    // (2) usuários explícitos
+    if (Array.isArray(target_user_ids)) {
+      for (const id of target_user_ids) if (typeof id === 'string' && id) userIdsSet.add(id);
+    }
+
+    // Fallback (compat): se ninguém foi informado, mantém comportamento antigo
+    if (userIdsSet.size === 0) {
+      const { data: targets } = await admin.from('profiles').select('id').eq('company_id', company_id).in('role', ['mecanico', 'lider_mecanica']);
+      for (const r of (targets || []) as any[]) userIdsSet.add(r.id);
+    }
+
+    // Não notifica o próprio autor da ação
+    userIdsSet.delete(uid);
+
+    const userIds = Array.from(userIdsSet);
     if (userIds.length === 0) {
       return new Response(JSON.stringify({ sent: 0, reason: 'no_targets' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // ---------- Persistir na tabela `notifications` ----------
+    const validSource: Source | null =
+      source === 'OM' || source === 'OC' || source === 'OT' || source === 'OFR' ? source : null;
+
+    if (validSource) {
+      const rows = userIds.map((user_id) => ({
+        company_id,
+        user_id,
+        source: validSource,
+        ref_id: ref_id || null,
+        ref_number: ref_number || null,
+        title,
+        body: message || null,
+        url: url || '/',
+      }));
+      const { error: insErr } = await admin.from('notifications').insert(rows);
+      if (insErr) console.error('notifications insert failed', insErr);
+    }
+
+    // ---------- Contagem de não-lidas por usuário (após insert) ----------
+    const unreadByUser: Record<string, number> = {};
+    for (const user_id of userIds) {
+      const { count } = await admin
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user_id)
+        .is('read_at', null);
+      unreadByUser[user_id] = count || 0;
+    }
+
+    // ---------- Envio Web Push ----------
     const { data: subs } = await admin.from('push_subscriptions').select('*').in('user_id', userIds);
-    const payload = JSON.stringify({ title, body: message || '', url: url || '/' });
 
     let sent = 0, removed = 0;
     for (const s of (subs || []) as any[]) {
+      const badge = unreadByUser[s.user_id] || 0;
+      const payload = JSON.stringify({
+        title,
+        body: message || '',
+        url: url || '/',
+        source: validSource,
+        ref_id: ref_id || null,
+        ref_number: ref_number || null,
+        badge,
+        tag: validSource && ref_id ? `${validSource}-${ref_id}` : undefined,
+      });
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
@@ -71,7 +148,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ sent, removed, targets: subs?.length || 0 }), {
+    return new Response(JSON.stringify({ sent, removed, targets: subs?.length || 0, recipients: userIds.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e: any) {
