@@ -32,6 +32,10 @@ export interface FreightOrderItem {
   pieces: number;
   weight_kg: number;
   created_at: string;
+  item_type?: 'malha' | 'fio';
+  yarn_type_id?: string | null;
+  yarn_type_name?: string | null;
+  boxes?: number | null;
   article?: { name: string; client_id?: string | null; client_name?: string | null } | null;
 }
 
@@ -66,6 +70,10 @@ export interface FreightOrder {
   cancellation_reason?: string | null;
   created_at: string;
   updated_at: string;
+  delivery_doc_type?: 'nf' | 'rom' | null;
+  delivery_doc_number?: string | null;
+  freight_price_per_kg?: number | null;
+  freight_total?: number | null;
   freighter?: Freighter | null;
   creator?: { name: string; code: string } | null;
   pickup_starter?: { name: string; code: string } | null;
