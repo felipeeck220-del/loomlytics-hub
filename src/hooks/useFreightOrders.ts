@@ -136,11 +136,10 @@ export function useFreightOrders() {
   }, [user?.company_id, queryClient]);
 
   async function nextOfrNumber(): Promise<string> {
+    // Busca todos os números da empresa (não paginado) para achar o maior real
     const { data } = await (supabase.from as any)('freight_orders')
       .select('ofr_number')
-      .eq('company_id', user?.company_id as string)
-      .order('created_at', { ascending: false })
-      .limit(200);
+      .eq('company_id', user?.company_id as string);
     let max = 0;
     for (const r of (data || [])) {
       const n = parseInt(String(r.ofr_number).replace(/\D/g, ''), 10);
