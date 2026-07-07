@@ -93,7 +93,7 @@ export default function FreightOrders() {
     getPhotoSignedUrl,
   } = useFreightOrders();
 
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'lider_frete';
   const isFreteiro = role === 'freteiro';
   const [tab, setTab] = useState<TabKey>('open');
   const [searchTerm, setSearchTerm] = useState('');
