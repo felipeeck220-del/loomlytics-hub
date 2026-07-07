@@ -21,8 +21,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign,
-  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil, Building2
+  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil, Building2, Download
 } from 'lucide-react';
+import { generateYarnSalesReportPdf } from '@/lib/yarnSalesReportPdf';
 
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { format, parse } from 'date-fns';
