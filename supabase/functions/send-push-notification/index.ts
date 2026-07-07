@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     }
 
     // Confirma que o usuário pertence à company
-    const { data: caller } = await admin.from('profiles').select('company_id').eq('id', uid).maybeSingle();
+    const { data: caller } = await admin.from('profiles').select('company_id').eq('user_id', uid).maybeSingle();
     if (!caller || caller.company_id !== company_id) {
       return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -61,8 +61,8 @@ Deno.serve(async (req) => {
     // include_admins → força role 'admin'
     if (include_admins && !roleList.includes('admin')) roleList.push('admin');
     if (roleList.length) {
-      const { data: targets } = await admin.from('profiles').select('id').eq('company_id', company_id).in('role', roleList);
-      for (const r of (targets || []) as any[]) userIdsSet.add(r.id);
+      const { data: targets } = await admin.from('profiles').select('user_id').eq('company_id', company_id).in('role', roleList);
+      for (const r of (targets || []) as any[]) userIdsSet.add(r.user_id);
     }
 
     // (2) usuários explícitos
@@ -72,8 +72,8 @@ Deno.serve(async (req) => {
 
     // Fallback (compat): se ninguém foi informado, mantém comportamento antigo
     if (userIdsSet.size === 0) {
-      const { data: targets } = await admin.from('profiles').select('id').eq('company_id', company_id).in('role', ['mecanico', 'lider_mecanica']);
-      for (const r of (targets || []) as any[]) userIdsSet.add(r.id);
+      const { data: targets } = await admin.from('profiles').select('user_id').eq('company_id', company_id).in('role', ['mecanico', 'lider_mecanica']);
+      for (const r of (targets || []) as any[]) userIdsSet.add(r.user_id);
     }
 
     // Não notifica o próprio autor da ação
