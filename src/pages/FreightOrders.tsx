@@ -4,6 +4,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useFreightOrders, type FreightOrderStatus, type FreightOrder } from '@/hooks/useFreightOrders';
 import { generateFreightOrderPdf } from '@/lib/freightOrderPdf';
+import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
