@@ -947,6 +947,8 @@ function DetailsModal({
       setPhotoUrls(map);
     })();
   }, [order?.id]);
+  // Reseta o visualizador ao trocar de OFR
+  useEffect(() => { setViewerUrl(null); }, [order?.id]);
 
   if (!order) return null;
 
@@ -960,7 +962,11 @@ function DetailsModal({
         if (!url) continue;
         const res = await fetch(url);
         const blob = await res.blob();
-        const ext = (p.storage_path.split('.').pop() || 'jpg').toLowerCase();
+        // Extrai extensão só do último segmento do path (fallback seguro para 'jpg')
+        const filename = p.storage_path.split('/').pop() || '';
+        const dot = filename.lastIndexOf('.');
+        const rawExt = dot > 0 ? filename.slice(dot + 1).toLowerCase() : '';
+        const ext = /^[a-z0-9]{2,5}$/.test(rawExt) ? rawExt : 'jpg';
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = `OFR-${order.ofr_number}-foto-${i + 1}.${ext}`;
