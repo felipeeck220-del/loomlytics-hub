@@ -732,6 +732,11 @@ function CompleteModal({
     }
   }, [open, order?.id]);
 
+  // Revoga object URLs quando desmonta ou fecha para evitar memory leak
+  useEffect(() => {
+    return () => { photos.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* noop */ } }); };
+  }, [photos]);
+
   const totalKg = (order?.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
   const priceNum = parseFloat(priceStr.replace(',', '.')) || 0;
   const freightTotal = totalKg * priceNum;
@@ -813,7 +818,10 @@ function CompleteModal({
               <div key={idx} className="border rounded-lg p-2 space-y-2">
                 <div className="relative">
                   <img src={p.preview} alt="" className="w-full h-32 object-cover rounded" />
-                  <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-background/80" onClick={() => setPhotos(photos.filter((_, i) => i !== idx))}>
+                  <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 bg-background/80" onClick={() => {
+                    try { URL.revokeObjectURL(p.preview); } catch { /* noop */ }
+                    setPhotos(photos.filter((_, i) => i !== idx));
+                  }}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -836,6 +844,12 @@ function CancelModal({
 }: { open: boolean; onOpenChange: (o: boolean) => void; onSubmit: (reason: string) => void }) {
   const [reason, setReason] = useState('');
   useEffect(() => { if (open) setReason(''); }, [open]);
+  const { toast } = useToast();
+  const handleSubmit = () => {
+    const r = reason.trim();
+    if (!r) { toast({ title: 'Informe o motivo do cancelamento', variant: 'destructive' }); return; }
+    onSubmit(r);
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -846,7 +860,7 @@ function CancelModal({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Voltar</Button>
-          <Button variant="destructive" onClick={() => reason.trim() && onSubmit(reason.trim())}>Cancelar OFR</Button>
+          <Button variant="destructive" onClick={handleSubmit}>Cancelar OFR</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
