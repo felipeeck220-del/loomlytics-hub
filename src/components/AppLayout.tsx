@@ -7,7 +7,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LogOut, User, ChevronDown, Bell, Sun, Moon, Crown, XCircle, RefreshCw } from 'lucide-react';
+import { LogOut, User, ChevronDown, Sun, Moon, Crown, XCircle, RefreshCw } from 'lucide-react';
 import NetworkStatusIcon from '@/components/NetworkStatusIcon';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useMemo, useState, useEffect } from 'react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useNotificationsBadge } from '@/hooks/useNotificationsBadge';
+import { NotificationsBell } from '@/components/NotificationsBell';
 
 import type { ShiftType } from '@/types';
 import { AlertTriangle } from 'lucide-react';
@@ -57,6 +59,7 @@ function formatDate(date: Date): string {
 export default function AppLayout() {
   const { user, logout } = useAuth();
   usePushNotifications();
+  useNotificationsBadge();
    const { refreshData, loading: companyLoading, loadingProgress } = useSharedCompanyData();
    const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
@@ -191,9 +194,7 @@ export default function AppLayout() {
               </Button>
 
               {/* Notifications */}
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                <Bell className="h-4 w-4" />
-              </Button>
+              <NotificationsBell />
 
               {/* User dropdown */}
               <DropdownMenu>
