@@ -21,8 +21,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Plus, Trash2, Loader2, Search, FileText, Package, Scale, DollarSign,
-  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil, Building2
+  CalendarIcon, Eye, XCircle, Filter, ChevronDown, ChevronRight, Truck, Warehouse, Layers, Pencil, Building2, Download
 } from 'lucide-react';
+import { generateYarnSalesReportPdf } from '@/lib/yarnSalesReportPdf';
 
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { format, parse } from 'date-fns';
@@ -997,9 +998,36 @@ export default function Invoices() {
                     </Button>
                   )}
                   {tab === 'venda_fio' && (
-                    <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
-                      <Plus className="h-4 w-4" /> Venda de Fio
-                    </Button>
+                    <>
+                      <Button onClick={() => openNewInvoice('venda_fio')} size="sm" className="gap-1.5">
+                        <Plus className="h-4 w-4" /> Venda de Fio
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={async () => {
+                          try {
+                            const { data: comp } = await sb('companies')
+                              .select('name, logo_url')
+                              .eq('id', companyId)
+                              .maybeSingle();
+                            await generateYarnSalesReportPdf({
+                              invoices: filteredInvoicesBase as any,
+                              items: invoiceItems as any,
+                              companyName: comp?.name || '',
+                              companyLogoUrl: comp?.logo_url || null,
+                              filters: { month: filterMonth, status: filterStatus, search: searchTerm },
+                              canSeeFinancial,
+                            });
+                          } catch (e: any) {
+                            toast({ title: 'Erro ao gerar relatório', description: e?.message || String(e), variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <Download className="h-4 w-4" /> Exportar
+                      </Button>
+                    </>
                   )}
                   {tab === 'saida_malha' && (
                     <Button onClick={() => openNewInvoice('saida')} size="sm" className="gap-1.5">
