@@ -126,6 +126,7 @@ export default function SettingsPage() {
   const [tab, setTab] = useState(sidebarLocked ? 'plans' : 'profile');
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [userSearch, setUserSearch] = useState('');
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [company, setCompany] = useState<any>(null);
   const [showAuditHistory, setShowAuditHistory] = useState(false);
