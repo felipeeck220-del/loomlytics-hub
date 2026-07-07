@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -86,9 +86,10 @@ export default function FreightOrders() {
   const yarnTypes = getYarnTypes();
   const { toast } = useToast();
   const {
-    orders, isLoading, freighters,
+    orders, isLoading, freighters, costCompanies,
     createOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
+    createCostCompany, updateCostCompany, deleteCostCompany,
     getPhotoSignedUrl,
   } = useFreightOrders();
 
@@ -98,6 +99,7 @@ export default function FreightOrders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [newOpen, setNewOpen] = useState(false);
   const [freightersOpen, setFreightersOpen] = useState(false);
+  const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
   const [completeOrderId, setCompleteOrderId] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
@@ -129,6 +131,7 @@ export default function FreightOrders() {
       const matches =
         o.ofr_number?.toLowerCase().includes(term) ||
         o.freighter?.name?.toLowerCase().includes(term) ||
+        (o.cost_company_name || o.cost_company?.name || '').toLowerCase().includes(term) ||
         o.pickup_location?.toLowerCase().includes(term) ||
         o.delivery_location?.toLowerCase().includes(term) ||
         (o.delivery_doc_number || '').toLowerCase().includes(term) ||
@@ -152,6 +155,9 @@ export default function FreightOrders() {
             <>
               <Button variant="outline" onClick={() => setFreightersOpen(true)} className="gap-2">
                 <Users className="h-4 w-4" /> Freteiros
+              </Button>
+              <Button variant="outline" onClick={() => setCostCompaniesOpen(true)} className="gap-2">
+                <Building2 className="h-4 w-4" /> Empresas
               </Button>
               <Button onClick={() => setNewOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" /> Nova OFR
@@ -213,6 +219,7 @@ export default function FreightOrders() {
           open={newOpen}
           onOpenChange={setNewOpen}
           freighters={freighters}
+          costCompanies={costCompanies}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
@@ -228,6 +235,17 @@ export default function FreightOrders() {
           onCreate={(p) => createFreighter.mutate(p)}
           onUpdate={(p) => updateFreighter.mutate(p)}
           onDelete={(id) => deleteFreighter.mutate(id)}
+        />
+      )}
+
+      {isAdmin && (
+        <CostCompaniesModal
+          open={costCompaniesOpen}
+          onOpenChange={setCostCompaniesOpen}
+          costCompanies={costCompanies}
+          onCreate={(p) => createCostCompany.mutate(p)}
+          onUpdate={(p) => updateCostCompany.mutate(p)}
+          onDelete={(id) => deleteCostCompany.mutate(id)}
         />
       )}
 
