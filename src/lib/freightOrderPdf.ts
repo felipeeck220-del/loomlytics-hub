@@ -126,20 +126,21 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11);
     pdf.text('Fotos da entrega', 12, y); y += 4;
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
-    const photoW = 80, photoH = 60, gap = 8;
-    let x = 12;
+    const photoW = 80, photoH = 60, gap = 8, descH = 8;
+    let col = 0;
     for (const p of order.photos || []) {
       const { data } = await supabase.storage.from('freight-photos').createSignedUrl(p.storage_path, 300);
       if (!data?.signedUrl) continue;
       const dataUrl = await fetchImageDataUrl(data.signedUrl);
       if (!dataUrl) continue;
+      const x = 12 + col * (photoW + gap);
       const fmt = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
       try { pdf.addImage(dataUrl, fmt as any, x, y, photoW, photoH); } catch { /* ignore */ }
       if (p.description) pdf.text(sanitizePdfText(p.description).slice(0, 60), x, y + photoH + 4);
-      x += photoW + gap;
-      if (x + photoW > pageW - 12) { x = 12; y += photoH + 12; }
+      col += 1;
+      if (col >= 2) { col = 0; y += photoH + descH + 4; }
     }
-    y += photoH + 12;
+    if (col > 0) y += photoH + descH + 4;
   }
 
   // Rodapé auditoria
