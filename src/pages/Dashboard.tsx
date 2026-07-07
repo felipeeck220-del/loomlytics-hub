@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { formatNumber, formatCurrency, formatWeight, formatPercent } from '@/lib/formatters';
 import { SearchableSelect } from '@/components/SearchableSelect';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import {
   Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
@@ -885,6 +886,7 @@ export default function Dashboard() {
           icon={<Package className="h-5 w-5" />}
           showComparison={showComparison}
            footer={`${dashboardMetrics?.current_period?.record_count ?? filtered.length} registros`}
+          loading={loadingStats}
         />
         <DashboardKpiCard
           label="Peso Total"
@@ -896,6 +898,7 @@ export default function Dashboard() {
           showComparison={showComparison}
           footer={`${formatNumber(kgPerHour, 2)} kg/hora`}
           formatPrev={(v) => `${formatNumber(v, 1)} kg`}
+          loading={loadingStats}
         />
         {canSeeFinancial && <DashboardKpiCard
           label="Faturamento"
@@ -907,6 +910,7 @@ export default function Dashboard() {
           showComparison={showComparison}
           footer={`${formatCurrency(revenuePerHour)}/hora`}
           formatPrev={(v) => formatCurrency(v)}
+          loading={loadingStats}
         />}
         <DashboardKpiCard
           label="Eficiência"
@@ -920,6 +924,7 @@ export default function Dashboard() {
           formatPrev={(v) => formatPercent(v)}
           efficiencyValue={avgEfficiency}
           targetEfficiency={avgTargetEfficiency}
+          loading={loadingStats}
         />
       </div>
 
@@ -1243,8 +1248,8 @@ export default function Dashboard() {
   );
 }
 
-function DashboardKpiCard({ label, value, previousValue, currentRaw, borderColor, icon, showComparison, footer, formatPrev, efficiencyValue, targetEfficiency }: {
-  label: string; value: string; previousValue: number; currentRaw: number; borderColor: string; icon: React.ReactNode; showComparison: boolean; footer: string; formatPrev?: (v: number) => string; efficiencyValue?: number; targetEfficiency?: number;
+function DashboardKpiCard({ label, value, previousValue, currentRaw, borderColor, icon, showComparison, footer, formatPrev, efficiencyValue, targetEfficiency, loading }: {
+  label: string; value: string; previousValue: number; currentRaw: number; borderColor: string; icon: React.ReactNode; showComparison: boolean; footer: string; formatPrev?: (v: number) => string; efficiencyValue?: number; targetEfficiency?: number; loading?: boolean;
 }) {
   const variation = previousValue > 0
     ? ((currentRaw - previousValue) / previousValue) * 100
@@ -1265,7 +1270,19 @@ function DashboardKpiCard({ label, value, previousValue, currentRaw, borderColor
         <div className="flex items-start justify-between">
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-            <p className="text-2xl font-bold text-foreground">{value}</p>
+            {loading ? (
+              <Skeleton className="h-8 w-28 my-1" />
+            ) : (
+              <p className="text-2xl font-bold text-foreground">{value}</p>
+            )}
+            {loading ? (
+              <div className="space-y-1.5 mt-1">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            ) : (
+              <>
             {showVariation && (
               <Badge variant="outline" className={cn(
                 'text-[10px] mt-1',
@@ -1280,8 +1297,10 @@ function DashboardKpiCard({ label, value, previousValue, currentRaw, borderColor
               <p className="text-xs text-muted-foreground mt-1">Anterior: {prevDisplay}</p>
             )}
             <p className="text-[11px] text-muted-foreground font-light mt-1">{footer}</p>
+              </>
+            )}
           </div>
-          <div className="text-muted-foreground">{icon}</div>
+          <div className={cn("text-muted-foreground", loading && "animate-pulse")}>{icon}</div>
         </div>
       </CardContent>
     </Card>
