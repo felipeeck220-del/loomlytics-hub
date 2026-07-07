@@ -1,108 +1,130 @@
-## Objetivo
+# Ordem de Frete (OFR)
 
-Criar o arquivo `docs/correcoes/intomocot.md` documentando 100% detalhadamente a correção "Guarda de Início Inteligente para OM/OC/OT" (modal de conflito antes de iniciar quando a mesma máquina tem múltiplas ordens em aberto). Documento apenas — sem alterações de código nesta etapa.
+Novo módulo no sidebar logo abaixo de **Ordem de Faturamento (OF)**, com fluxo próprio para coletas realizadas por freteiros terceirizados. **Independente da OF** (sem vínculo em banco). Segue o mesmo visual/UX do módulo OF.
 
-## Estrutura do arquivo `docs/correcoes/intomocot.md`
+## Fluxo
 
-### 1. Cabeçalho
-- Título: "Guarda de Início Inteligente — OM / OC / OT"
-- Status: Proposta / A implementar
-- Data de criação
-- Módulos afetados: Mecânica (`/:slug/mecanica/om|oc|ot`)
+`Aberto` → `Coleta em Curso` → `Entrega em Curso` → `Finalizado`
 
-### 2. Contexto e Problema
-- Descrição do fluxo atual: mecânicos programam OM, OC e OT em aberto para a mesma máquina.
-- Bug operacional: operadores pulam etapas — iniciam OM quando havia uma OT anterior a ser feita, e vice-versa.
-- Regra atual que já existe: bloqueio apenas quando há algo `em_curso` (status corrente). Não há aviso quando há múltiplas ordens em `aberto`.
-- Impacto: histórico bagunçado, `machine_logs` incoerente, produção parada por sequência errada.
+- **Aberto**: admin cria a OFR selecionando o freteiro responsável. Aparece só para aquele freteiro (e admin).
+- **Coleta em curso**: freteiro clica "Iniciar Coleta". Mostra cronômetro (dd/mm HH:MM:SS) desde o início.
+- **Entrega em curso**: freteiro clica "Iniciar Entrega". Cronômetro reinicia. Para finalizar, é obrigatório anexar **até 2 fotos** da entrega (com descrição opcional).
+- **Finalizado**: exibe botão **Baixar Relatório** (PDF).
 
-### 3. Regra de Negócio
-- Nenhuma ordem pode iniciar se a máquina tem outra `em_curso` (mantém regra existente).
-- Se há apenas 1 ordem em aberto para a máquina → inicia direto, sem modal.
-- Se há 2+ ordens em aberto (somando OM + OC + OT) → abre modal listando todas antes de iniciar.
-- Sistema não escolhe a "ordem correta" — mostra as opções e o operador decide, com registro em auditoria.
+## Estrutura no admin (Nova OFR)
 
-### 4. UX — Modal `StartOrderConflictModal`
-- Wireframe ASCII do modal
-- Comportamento:
-  - Título dinâmico: "TEAR XX tem N ordens em aberto"
-  - Cada linha = uma ordem com badge (OM/OC/OT), número #short_id, tipo humano, descrição/prioridade, autoria "Nome #Código", data de criação.
-  - Ordem cronológica ascendente por `created_at`.
-  - Linha da ordem clicada originalmente com badge "SELECIONADA" e botão primário `Iniciar mesmo assim`.
-  - Outras linhas com botão secundário `Iniciar esta OM/OC/OT`.
-  - Rodapé: apenas `Cancelar`.
-  - Sem ESC (segue padrão de modais de registro — memória `constraints/deletion-safety`).
+- Nº da OFR (auto-incremental por empresa, mesma lógica do of_number)
+- Freteiro (select dos cadastrados na empresa)
+- Local de coleta (texto)
+- Local de entrega (texto)
+- Observações
+- **Itens** (repetidor, N artigos por ordem):
+  - Artigo (select dos artigos da empresa)
+  - Quantidade (peças)
+  - Peso estimado (kg) — usa `BrazilianWeightInput`
 
-### 5. Arquitetura Técnica
+## Perfil "Freteiro"
 
-#### 5.1. Novos arquivos
-- `src/lib/mecanicaGuards.ts` — função `fetchOpenOrdersForMachine(companyId, machineId)` que cruza `maintenance_orders` e `article_change_orders` filtrando `status='aberto'` e retorna array normalizado.
-- `src/hooks/useStartOrderGuard.tsx` — Provider + hook + componente do modal. Cada tab registra seu starter por tipo (`registerStarter('OM'|'OC'|'OT', fn)`).
+Nova role `freteiro`:
+- Vê apenas a página **Ordem de Frete** (chave `freight-orders`).
+- Nas abas Aberto/Em Curso/Entrega, só enxerga OFRs onde `freighter_id = seu próprio id`.
+- Não pode criar/editar/excluir OFRs. Só pode avançar status das próprias.
+- Login: mesma tela `/:slug/login`; após entrar cai direto em `/:slug/freight-orders`.
 
-#### 5.2. Contrato do item normalizado
-```ts
-type OpenOrder = {
-  kind: 'OM' | 'OC' | 'OT';
-  id: string;
-  number: string;        // short_id
-  title: string;         // ex.: "Manut. Preventiva", "Troca de Artigo"
-  priority?: 'normal' | 'prioritaria';
-  description?: string;
-  createdAt: string;
-  createdByName?: string;
-  createdByCode?: string;
-};
+Admin/Líder continuam vendo tudo.
+
+## Banco (migration)
+
+```sql
+-- Freteiros cadastrados por empresa (link opcional com profiles p/ login)
+CREATE TABLE public.freighters (
+  id uuid PK,
+  company_id uuid NOT NULL,
+  profile_id uuid NULL REFERENCES profiles(id),  -- vinculado ao usuário freteiro
+  name text NOT NULL,
+  phone text NULL,
+  vehicle text NULL,
+  active boolean DEFAULT true,
+  created_at, updated_at
+);
+
+CREATE TYPE freight_order_status AS ENUM
+  ('open','pickup_in_progress','delivery_in_progress','completed','cancelled');
+
+CREATE TABLE public.freight_orders (
+  id uuid PK,
+  company_id uuid NOT NULL,
+  ofr_number text NOT NULL,           -- UNIQUE(company_id, ofr_number)
+  freighter_id uuid NOT NULL REFERENCES freighters(id),
+  pickup_location text NOT NULL,
+  delivery_location text NOT NULL,
+  observations text NULL,
+  status freight_order_status NOT NULL DEFAULT 'open',
+  created_by uuid,
+  pickup_started_at, pickup_started_by,
+  delivery_started_at, delivery_started_by,
+  completed_at, completed_by,
+  cancelled_at, cancelled_by, cancellation_reason,
+  created_at, updated_at
+);
+
+CREATE TABLE public.freight_order_items (
+  id uuid PK,
+  freight_order_id uuid REFERENCES freight_orders(id) ON DELETE CASCADE,
+  company_id uuid NOT NULL,
+  article_id uuid REFERENCES articles(id),
+  pieces integer NOT NULL DEFAULT 0,
+  weight_kg numeric NOT NULL DEFAULT 0,
+  created_at
+);
+
+CREATE TABLE public.freight_order_photos (
+  id uuid PK,
+  freight_order_id uuid REFERENCES freight_orders(id) ON DELETE CASCADE,
+  company_id uuid NOT NULL,
+  storage_path text NOT NULL,   -- {company_id}/{freight_order_id}/{uuid}.jpg
+  description text NULL,
+  uploaded_by uuid,
+  created_at
+);
 ```
 
-#### 5.3. Arquivos alterados
-- `src/pages/Mecanica.tsx` — envolve tabs no `StartOrderGuardProvider`. Rota-mãe da guarda.
-- `src/components/mecanica/MaintenanceOrdersTab.tsx` — `startOrder(order)` passa por `guard.tryStart(order)`. Registra `starter('OM', startOM)` e `starter('OC', startOC)` no mount.
-- `src/components/mecanica/ArticleChangeOrdersTab.tsx` — só a primeira etapa (`Iniciar Troca de Fio`) passa pelo guard. Registra `starter('OT', startTrocaFio)`. Etapas seguintes (Regulagem, Acompanhamento, Concluir) não abrem o modal — a OT já é a `em_curso`.
+- GRANTs padrão (authenticated + service_role) em todas.
+- RLS: tenant isolation por `company_id = get_user_company_id()`, com política extra em `freight_orders`, `freight_order_items` e `freight_order_photos` restringindo `SELECT/UPDATE` ao freteiro cujo `profile_id = auth.uid()` quando role = `freteiro`.
+- Bucket privado `freight-photos` com RLS por pasta `{company_id}/{freight_order_id}/`.
 
-#### 5.4. Fluxo do `tryStart`
-1. `tryStart({ kind, id })` chamado pelo tab.
-2. Guard consulta `fetchOpenOrdersForMachine(companyId, machineId)`.
-3. Se `list.length <= 1` → chama `starter[kind](id)` direto e retorna.
-4. Se `list.length >= 2` → abre modal com `list`, marcando a `id` como selecionada.
-5. Usuário confirma:
-   - "Iniciar mesmo assim" (mesma ordem) → `starter[kind](id)`.
-   - "Iniciar esta" (outra ordem) → se `kind` diferente da aba atual, `navigate('/:slug/mecanica/{kind}')` e depois `starter[kind](otherId)`. Toast opcional "Aberto na aba correspondente".
-6. Bloqueio duro mantido: se algum item da lista já estiver `em_curso` (não deveria acontecer pois `tryStart` só é chamado quando algo era `aberto`, mas há revalidação), aborta com toast.
+## Frontend
 
-### 6. Cross-tab: navegação e ativação
-- Para iniciar ordem de outro tipo diretamente pelo modal, o guard usa `useNavigate()` com a rota `/${slug}/mecanica/${kind.toLowerCase()}`.
-- Uma `pendingStart` (guardada em ref do provider) dispara o starter após o novo tab montar-se e registrar seu starter — via `useEffect` observando `registeredStarters`.
-- Se o starter alvo não montar em 3s, mostra toast "Abra a aba OT e clique iniciar novamente" e limpa `pendingStart`.
+Arquivos novos:
 
-### 7. Auditoria
-- Ao iniciar via modal, o starter recebe metadata extra: `{ via_conflict_modal: true, other_open_orders: [{ kind, number }] }`.
-- Cada `logAudit` de start (já existente) recebe `details` extras. Permite ao admin filtrar em `audit_logs` quantos operadores estão pulando sequências.
+- `src/hooks/useFreightOrders.ts` — CRUD + realtime + mutations de status.
+- `src/pages/FreightOrders.tsx` — página com abas Aberto / Coleta em curso / Entrega em curso / Finalizados (+ Cancelados). Modais:
+  - **Nova OFR** (admin) com repetidor de itens.
+  - **Iniciar Coleta / Iniciar Entrega** (freteiro).
+  - **Finalizar Entrega** com upload de até 2 fotos + descrição.
+  - **Detalhes da OFR** (todos os campos + itens + fotos).
+- `src/lib/freightOrderPdf.ts` — PDF do relatório final (header empresa, dados da OFR, tabela de itens, durações de coleta/entrega, freteiro, fotos anexadas, auditoria).
 
-### 8. Casos de borda
-- Máquina inexistente / removida: aborta com toast.
-- Perda de rede na query: aborta o start e mostra toast "Falha ao verificar ordens abertas — tente novamente."
-- Realtime altera status entre o clique e a resposta: revalida antes de enviar `update`; se agora existe `em_curso`, bloqueia.
-- Duas ordens do mesmo tipo em aberto (ex.: 2 OMs) — modal continua funcionando; cada linha tem botão próprio.
-- Usuário sem permissão para iniciar OT/OM/OC: já barrado pelo tab; o guard não escala privilégios.
+Arquivos alterados:
 
-### 9. Fora de escopo
-- Priorização automática (o sistema nunca decide qual é "a correta").
-- Impedir criação simultânea (regra existente segue igual).
-- Reordenar `priority` das ordens.
-- Alterações de schema, RLS, triggers ou funções SQL.
+- `supabase/migrations/*.sql` — nova migration.
+- `src/App.tsx` — rota `freight-orders`.
+- `src/components/AppSidebar.tsx` — item "Ordem de Frete" logo abaixo de OF, com ícone Truck.
+- `src/hooks/usePermissions.ts` — adiciona role `freteiro`, chave `freight-orders`, mapeamento de rota.
+- `src/pages/Settings.tsx` (tab Usuários) — adiciona `freteiro` na lista de roles + cadastro de freteiros (tabela `freighters`).
+- `docs/mestre.md` — entrada de histórico.
 
-### 10. Plano de teste manual
-- Cenário A: 1 OM em aberto → clicar iniciar → inicia direto (sem modal).
-- Cenário B: 1 OM + 1 OT em aberto na mesma máquina → clicar iniciar OM → modal abre com 2 linhas → confirmar OM → OM inicia, OT permanece aberta.
-- Cenário C: mesmo B, escolher "Iniciar esta OT" pelo modal → app navega para `/mecanica/ot`, dispara start da OT, OM permanece aberta.
-- Cenário D: 1 OC `em_curso` + 1 OM `aberto` → clicar iniciar OM → bloqueio existente com toast "Máquina tem OC em curso" (modal não abre).
-- Cenário E: OT com Troca de Fio já iniciada (em Regulagem) → botão "Iniciar Regulagem" não passa pelo guard.
-- Cenário F: sem rede → toast de falha, nada muda.
+## Regras adicionais
 
-### 11. Documentação relacionada a atualizar depois
-- `docs/mestre.md` — histórico do patch quando implementado.
-- `docs/mecanica.md` — nova seção "Guarda de conflitos ao iniciar".
-- Memória `mem://features/mechanical-maintenance-module` — nota curta sobre a regra.
+- Cronômetro em tempo real (setInterval de 1s) na aba correspondente ao status.
+- Cores das abas: Aberto (vermelho suave), Coleta em curso (amarelo), Entrega em curso (azul), Finalizado (verde), Cancelado (cinza) — padrão OF.
+- Auditoria: registros em `audit_logs` para create/start_pickup/start_delivery/complete/cancel/photo_add.
+- Formatador BR (kg 2 casas, data dd/MM/yyyy HH:mm) — usa helpers existentes.
+- Sem `alert/confirm` nativos; usa modais e toasts do projeto.
 
-## Entregável desta rodada
-- Apenas o arquivo `docs/correcoes/intomocot.md` com todo o conteúdo acima em Markdown formatado (headings, tabelas, blocos ASCII e code fences). Nenhum outro arquivo é criado ou modificado.
+## Reversão
+
+- `DROP TABLE freight_order_photos, freight_order_items, freight_orders, freighters CASCADE;`
+- `DROP TYPE freight_order_status;`
+- Remover bucket `freight-photos`.
+- Reverter arquivos citados.
