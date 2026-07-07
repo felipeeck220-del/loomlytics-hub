@@ -649,6 +649,7 @@ function FreightersModal({
   const [userId, setUserId] = useState('');
   const [profiles, setProfiles] = useState<Array<{ user_id: string; id: string; name: string; email: string; role: string }>>([]);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!open || !user?.company_id) return;
@@ -660,13 +661,10 @@ function FreightersModal({
   }, [open, user?.company_id]);
 
   const submit = () => {
-    if (!name.trim()) return;
-    if (!userId) {
-      // requer vínculo com usuário freteiro
-      return;
-    }
+    if (!name.trim()) { toast({ title: 'Informe o nome', variant: 'destructive' }); return; }
+    if (!userId) { toast({ title: 'Vincule um usuário freteiro', description: 'Cadastre um usuário com perfil "Freteiro" em Configurações e selecione-o aqui.', variant: 'destructive' }); return; }
     const prof = profiles.find(p => p.user_id === userId);
-    if (!prof) return;
+    if (!prof) { toast({ title: 'Usuário inválido', variant: 'destructive' }); return; }
     onCreate({
       name: name.trim(),
       phone: phone.trim() || undefined,
@@ -772,10 +770,13 @@ function CompleteModal({
     }
   }, [open, order?.id]);
 
-  // Revoga object URLs quando desmonta ou fecha para evitar memory leak
+  // Revoga object URLs somente ao desmontar o modal (não a cada mudança de photos,
+  // senão o preview da foto anterior é revogado ao adicionar a próxima).
+  const photosRef = React.useRef(photos);
+  useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => {
-    return () => { photos.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* noop */ } }); };
-  }, [photos]);
+    return () => { photosRef.current.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* noop */ } }); };
+  }, []);
 
   const totalKg = (order?.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
   const priceNum = parseFloat(priceStr.replace(',', '.')) || 0;
