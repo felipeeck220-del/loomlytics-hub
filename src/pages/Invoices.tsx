@@ -368,7 +368,7 @@ export default function Invoices() {
     }
 
     return filtered;
-  }, [invoices, activeTab, filterStatus, filterMonth, searchTerm]);
+  }, [invoices, activeTab, filterStatus, filterMonth, searchTerm, invoiceItems]);
 
   const totalPages = Math.ceil(filteredInvoicesBase.length / itemsPerPage);
   
