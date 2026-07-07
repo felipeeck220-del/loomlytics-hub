@@ -162,7 +162,18 @@ export function useFreightOrders() {
       pickup_location: string;
       delivery_location: string;
       observations?: string;
-      items: Array<{ article_id?: string | null; article_name?: string; pieces: number; weight_kg: number }>;
+      delivery_doc_type?: 'nf' | 'rom' | null;
+      delivery_doc_number?: string | null;
+      items: Array<{
+        item_type: 'malha' | 'fio';
+        article_id?: string | null;
+        article_name?: string | null;
+        yarn_type_id?: string | null;
+        yarn_type_name?: string | null;
+        boxes?: number | null;
+        pieces: number;
+        weight_kg: number;
+      }>;
     }) => {
       if (!user?.company_id) throw new Error('Sem empresa ativa');
       if (!payload.items?.length) throw new Error('Adicione pelo menos 1 artigo');
@@ -175,6 +186,8 @@ export function useFreightOrders() {
           pickup_location: payload.pickup_location,
           delivery_location: payload.delivery_location,
           observations: payload.observations || null,
+          delivery_doc_type: payload.delivery_doc_type || null,
+          delivery_doc_number: payload.delivery_doc_number || null,
           status: 'open',
           created_by: profile?.id ?? null,
         })
@@ -184,8 +197,12 @@ export function useFreightOrders() {
       const itemsRows = payload.items.map(it => ({
         freight_order_id: order.id,
         company_id: user.company_id,
+        item_type: it.item_type,
         article_id: it.article_id ?? null,
         article_name: it.article_name ?? null,
+        yarn_type_id: it.yarn_type_id ?? null,
+        yarn_type_name: it.yarn_type_name ?? null,
+        boxes: it.boxes != null ? Math.max(0, Math.round(Number(it.boxes))) : null,
         pieces: Math.max(0, Math.round(Number(it.pieces || 0))),
         weight_kg: Math.max(0, Number(it.weight_kg || 0)),
       }));
