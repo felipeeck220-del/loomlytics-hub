@@ -113,7 +113,11 @@ export function useFreightOrders() {
           freighter:freighters(*),
           items:freight_order_items(*, article:articles(name, client_id, client_name)),
           photos:freight_order_photos(*),
-          creator:profiles!freight_orders_created_by_fkey(name, code)
+          creator:profiles!freight_orders_created_by_fkey(name, code),
+          pickup_starter:profiles!freight_orders_pickup_started_by_fkey(name, code),
+          delivery_starter:profiles!freight_orders_delivery_started_by_fkey(name, code),
+          completer:profiles!freight_orders_completed_by_fkey(name, code),
+          canceller:profiles!freight_orders_cancelled_by_fkey(name, code)
         `)
         .eq('company_id', user.company_id)
         .order('created_at', { ascending: false });
@@ -217,7 +221,14 @@ export function useFreightOrders() {
         const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
         const targetPath = slug ? `/${slug}/ofr` : '/';
         const nPieces = payload.items.reduce((s, i) => s + (Number(i.pieces) || 0), 0);
-        const message = `${payload.pickup_location} → ${payload.delivery_location} · ${nPieces} peça(s)`;
+        const nBoxes = payload.items.reduce((s, i) => s + (Number(i.boxes) || 0), 0);
+        const nKg = payload.items.reduce((s, i) => s + (Number(i.weight_kg) || 0), 0);
+        const kgStr = nKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const parts: string[] = [];
+        if (nPieces > 0) parts.push(`${nPieces} peça(s)`);
+        if (nBoxes > 0) parts.push(`${nBoxes} caixa(s)`);
+        parts.push(`${kgStr} kg`);
+        const message = `${payload.pickup_location} → ${payload.delivery_location} · ${parts.join(' · ')}`;
         supabase.functions.invoke('send-push-notification', {
           body: {
             company_id: user.company_id,
