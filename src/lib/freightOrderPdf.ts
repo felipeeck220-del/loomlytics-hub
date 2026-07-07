@@ -72,6 +72,11 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
     ['Telefone', sanitizePdfText(order.freighter?.phone || '—')],
     ['Local de coleta', sanitizePdfText(order.pickup_location)],
     ['Local de entrega', sanitizePdfText(order.delivery_location)],
+    ['NF / Romaneio', order.delivery_doc_number
+      ? `${order.delivery_doc_type === 'rom' ? 'Romaneio' : 'NF'} ${sanitizePdfText(order.delivery_doc_number)}`
+      : '—'],
+    ['Valor por kg', order.freight_price_per_kg != null ? `R$ ${fmtNumberBR(Number(order.freight_price_per_kg), 4)}` : '—'],
+    ['Total do frete', order.freight_total != null ? `R$ ${fmtNumberBR(Number(order.freight_total))}` : '—'],
     ['Observações', sanitizePdfText(order.observations || '—')],
   ];
   autoTable(pdf, {
@@ -86,16 +91,19 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
 
   // Itens
   const totalPieces = (order.items || []).reduce((s, i) => s + Number(i.pieces || 0), 0);
+  const totalBoxes = (order.items || []).reduce((s, i) => s + Number(i.boxes || 0), 0);
   const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
   autoTable(pdf, {
     startY: y,
-    head: [['Artigo', 'Peças', 'Peso (kg)']],
+    head: [['Tipo', 'Descrição', 'Peças', 'Caixas', 'Peso (kg)']],
     body: (order.items || []).map(i => [
-      sanitizePdfText(i.article?.name || i.article_name || '—'),
-      String(i.pieces || 0),
+      i.item_type === 'fio' ? 'Fio' : 'Malha',
+      sanitizePdfText(i.item_type === 'fio' ? (i.yarn_type_name || '—') : (i.article?.name || i.article_name || '—')),
+      i.item_type === 'fio' ? '—' : String(i.pieces || 0),
+      i.item_type === 'fio' ? String(i.boxes || 0) : '—',
       fmtNumberBR(Number(i.weight_kg || 0)),
     ]),
-    foot: [['TOTAL', String(totalPieces), fmtNumberBR(totalKg)]],
+    foot: [['', 'TOTAL', String(totalPieces), String(totalBoxes), fmtNumberBR(totalKg)]],
     theme: 'striped',
     headStyles: { fillColor: [30, 41, 59] },
     footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
@@ -110,8 +118,7 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
     head: [['Etapa', 'Início', 'Fim', 'Duração']],
     body: [
       ['Aberto (criação)', fmtDateTime(order.created_at), fmtDateTime(order.pickup_started_at), duration(order.created_at, order.pickup_started_at)],
-      ['Coleta em curso', fmtDateTime(order.pickup_started_at), fmtDateTime(order.delivery_started_at), duration(order.pickup_started_at, order.delivery_started_at)],
-      ['Entrega em curso', fmtDateTime(order.delivery_started_at), fmtDateTime(order.completed_at), duration(order.delivery_started_at, order.completed_at)],
+      ['Frete em curso', fmtDateTime(order.pickup_started_at), fmtDateTime(order.completed_at), duration(order.pickup_started_at, order.completed_at)],
     ],
     theme: 'striped',
     headStyles: { fillColor: [15, 118, 110] },

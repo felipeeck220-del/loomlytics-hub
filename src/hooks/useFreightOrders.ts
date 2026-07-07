@@ -32,6 +32,10 @@ export interface FreightOrderItem {
   pieces: number;
   weight_kg: number;
   created_at: string;
+  item_type?: 'malha' | 'fio';
+  yarn_type_id?: string | null;
+  yarn_type_name?: string | null;
+  boxes?: number | null;
   article?: { name: string; client_id?: string | null; client_name?: string | null } | null;
 }
 
@@ -66,6 +70,10 @@ export interface FreightOrder {
   cancellation_reason?: string | null;
   created_at: string;
   updated_at: string;
+  delivery_doc_type?: 'nf' | 'rom' | null;
+  delivery_doc_number?: string | null;
+  freight_price_per_kg?: number | null;
+  freight_total?: number | null;
   freighter?: Freighter | null;
   creator?: { name: string; code: string } | null;
   pickup_starter?: { name: string; code: string } | null;
@@ -154,7 +162,18 @@ export function useFreightOrders() {
       pickup_location: string;
       delivery_location: string;
       observations?: string;
-      items: Array<{ article_id?: string | null; article_name?: string; pieces: number; weight_kg: number }>;
+      delivery_doc_type?: 'nf' | 'rom' | null;
+      delivery_doc_number?: string | null;
+      items: Array<{
+        item_type: 'malha' | 'fio';
+        article_id?: string | null;
+        article_name?: string | null;
+        yarn_type_id?: string | null;
+        yarn_type_name?: string | null;
+        boxes?: number | null;
+        pieces: number;
+        weight_kg: number;
+      }>;
     }) => {
       if (!user?.company_id) throw new Error('Sem empresa ativa');
       if (!payload.items?.length) throw new Error('Adicione pelo menos 1 artigo');
@@ -167,6 +186,8 @@ export function useFreightOrders() {
           pickup_location: payload.pickup_location,
           delivery_location: payload.delivery_location,
           observations: payload.observations || null,
+          delivery_doc_type: payload.delivery_doc_type || null,
+          delivery_doc_number: payload.delivery_doc_number || null,
           status: 'open',
           created_by: profile?.id ?? null,
         })
@@ -176,8 +197,12 @@ export function useFreightOrders() {
       const itemsRows = payload.items.map(it => ({
         freight_order_id: order.id,
         company_id: user.company_id,
+        item_type: it.item_type,
         article_id: it.article_id ?? null,
         article_name: it.article_name ?? null,
+        yarn_type_id: it.yarn_type_id ?? null,
+        yarn_type_name: it.yarn_type_name ?? null,
+        boxes: it.boxes != null ? Math.max(0, Math.round(Number(it.boxes))) : null,
         pieces: Math.max(0, Math.round(Number(it.pieces || 0))),
         weight_kg: Math.max(0, Number(it.weight_kg || 0)),
       }));
@@ -225,25 +250,18 @@ export function useFreightOrders() {
       }).eq('id', id).eq('status', 'open');
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_orders'] }); toast({ title: 'Coleta iniciada' }); },
-    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
-  });
-
-  const startDelivery = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase.from as any)('freight_orders').update({
-        status: 'delivery_in_progress',
-        delivery_started_at: new Date().toISOString(),
-        delivery_started_by: profile?.id ?? null,
-      }).eq('id', id).eq('status', 'pickup_in_progress');
-      if (error) throw error;
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_orders'] }); toast({ title: 'Entrega iniciada' }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_orders'] }); toast({ title: 'Frete iniciado' }); },
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
   const completeOrder = useMutation({
-    mutationFn: async ({ id, photos }: { id: string; photos: Array<{ file: File; description?: string }> }) => {
+    mutationFn: async ({ id, photos, freight_price_per_kg, delivery_doc_type, delivery_doc_number }: {
+      id: string;
+      photos: Array<{ file: File; description?: string }>;
+      freight_price_per_kg?: number | null;
+      delivery_doc_type?: 'nf' | 'rom' | null;
+      delivery_doc_number?: string | null;
+    }) => {
       if (!user?.company_id) throw new Error('Sem empresa ativa');
       if (!photos?.length) throw new Error('Anexe ao menos 1 foto da entrega');
       if (photos.length > 2) throw new Error('Máximo 2 fotos');
@@ -267,11 +285,23 @@ export function useFreightOrders() {
       }));
       const { error: pErr } = await (supabase.from as any)('freight_order_photos').insert(photoRows);
       if (pErr) throw pErr;
-      const { error } = await (supabase.from as any)('freight_orders').update({
+      // Total do frete = kg total × preço por kg
+      const { data: items } = await (supabase.from as any)('freight_order_items')
+        .select('weight_kg').eq('freight_order_id', id);
+      const totalKg = (items || []).reduce((s: number, r: any) => s + Number(r.weight_kg || 0), 0);
+      const pricePerKg = Number(freight_price_per_kg || 0);
+      const freightTotal = Math.round(totalKg * pricePerKg * 100) / 100;
+      const updatePayload: any = {
         status: 'completed',
         completed_at: new Date().toISOString(),
         completed_by: profile?.id ?? null,
-      }).eq('id', id).eq('status', 'delivery_in_progress');
+        freight_price_per_kg: pricePerKg || null,
+        freight_total: pricePerKg > 0 ? freightTotal : null,
+      };
+      if (delivery_doc_type) updatePayload.delivery_doc_type = delivery_doc_type;
+      if (delivery_doc_number != null) updatePayload.delivery_doc_number = delivery_doc_number || null;
+      const { error } = await (supabase.from as any)('freight_orders').update(updatePayload)
+        .eq('id', id).in('status', ['pickup_in_progress','delivery_in_progress']);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_orders'] }); toast({ title: 'Entrega finalizada' }); },
@@ -334,7 +364,7 @@ export function useFreightOrders() {
 
   return {
     orders, isLoading, freighters,
-    createOrder, startPickup, startDelivery, completeOrder, cancelOrder,
+    createOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
     getPhotoSignedUrl,
   };
