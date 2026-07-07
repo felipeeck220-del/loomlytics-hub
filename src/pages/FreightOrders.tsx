@@ -67,6 +67,7 @@ function elapsed(fromIso?: string | null): string {
 
 export default function FreightOrders() {
   const { user } = useAuth();
+  useMarkSourceAsRead('OFR');
   const { role } = usePermissions();
   const { getArticles } = useSharedCompanyData();
   const articles = getArticles();
