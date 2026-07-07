@@ -153,10 +153,18 @@ export async function generateYarnSalesReportPdf(input: YarnSalesReportInput) {
     body: summaryBody,
     foot: summaryFoot,
     theme: 'striped',
-    headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 9 },
     footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold', fontSize: 9 },
     styles: { fontSize: 9, cellPadding: 2 },
-    columnStyles: { 1: { halign: 'right' } },
+    columnStyles: { 0: { halign: 'left' }, 1: { halign: 'right' } },
+    headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 9 },
+    didParseCell: (data) => {
+      if (data.section === 'head') {
+        data.cell.styles.halign = data.column.index === 0 ? 'left' : 'right';
+      }
+      if (data.section === 'foot') {
+        data.cell.styles.halign = data.column.index === 0 ? 'left' : 'right';
+      }
+    },
     margin: { left: margin, right: margin },
   });
   y = (pdf as any).lastAutoTable.finalY + 6;
