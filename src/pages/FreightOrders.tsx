@@ -694,17 +694,37 @@ function FreightersModal({
 }
 
 function CompleteModal({
-  open, onOpenChange, onSubmit, submitting,
+  open, order, onOpenChange, onSubmit, submitting,
 }: {
   open: boolean;
+  order: FreightOrder | null;
   onOpenChange: (o: boolean) => void;
-  onSubmit: (photos: Array<{ file: File; description?: string }>) => void;
+  onSubmit: (payload: {
+    photos: Array<{ file: File; description?: string }>;
+    freight_price_per_kg?: number | null;
+    delivery_doc_type?: 'nf' | 'rom' | null;
+    delivery_doc_number?: string | null;
+  }) => void;
   submitting: boolean;
 }) {
   const [photos, setPhotos] = useState<Array<{ file: File; description: string; preview: string }>>([]);
+  const [priceStr, setPriceStr] = useState('');
+  const [docType, setDocType] = useState<'nf' | 'rom' | ''>('');
+  const [docNumber, setDocNumber] = useState('');
   const { toast } = useToast();
 
-  useEffect(() => { if (open) setPhotos([]); }, [open]);
+  useEffect(() => {
+    if (open) {
+      setPhotos([]);
+      setPriceStr('');
+      setDocType((order?.delivery_doc_type as any) || '');
+      setDocNumber(order?.delivery_doc_number || '');
+    }
+  }, [open, order?.id]);
+
+  const totalKg = (order?.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
+  const priceNum = parseFloat(priceStr.replace(',', '.')) || 0;
+  const freightTotal = totalKg * priceNum;
 
   const onFile = (files: FileList | null) => {
     if (!files) return;
@@ -718,15 +738,52 @@ function CompleteModal({
 
   const submit = () => {
     if (photos.length === 0) return toast({ title: 'Anexe ao menos 1 foto', variant: 'destructive' });
-    onSubmit(photos.map(p => ({ file: p.file, description: p.description })));
+    onSubmit({
+      photos: photos.map(p => ({ file: p.file, description: p.description })),
+      freight_price_per_kg: priceNum > 0 ? priceNum : null,
+      delivery_doc_type: docType || null,
+      delivery_doc_number: docNumber.trim() || null,
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Finalizar Entrega</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">Anexe até 2 fotos comprovando a entrega.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label>Documento</Label>
+              <Select value={docType} onValueChange={(v) => setDocType(v as any)}>
+                <SelectTrigger><SelectValue placeholder="NF / ROM" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nf">NF</SelectItem>
+                  <SelectItem value="rom">Romaneio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Nº NF/ROM</Label>
+              <Input value={docNumber} onChange={e => setDocNumber(e.target.value)} placeholder="Ex: 12345" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end border rounded-lg p-3 bg-muted/30">
+            <div>
+              <Label>Valor por kg (R$)</Label>
+              <Input inputMode="decimal" value={priceStr} onChange={e => setPriceStr(e.target.value)} placeholder="0,10" />
+            </div>
+            <div>
+              <Label>Peso total</Label>
+              <Input value={`${totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`} disabled />
+            </div>
+            <div>
+              <Label>Total do frete</Label>
+              <Input value={fmtMoney(freightTotal)} disabled className="font-bold" />
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">Anexe até 2 fotos comprovando a entrega/NF.</p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" asChild disabled={photos.length >= 2}>
               <label className="cursor-pointer">
