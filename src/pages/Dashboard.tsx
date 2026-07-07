@@ -1103,29 +1103,41 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-2.5">
                 {shiftData.map(s => (
-                  <div key={s.shift} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <span className={cn("w-2.5 h-2.5 rounded-full",
+                  <div key={s.shift} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors min-h-[64px]">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className={cn("w-2.5 h-2.5 rounded-full shrink-0",
                         s.shift === 'manha' ? 'bg-warning' : s.shift === 'tarde' ? 'bg-destructive' : 'bg-primary'
                       )} />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{s.label}</p>
-                        <p className="text-xs text-muted-foreground">{formatNumber(s.rolls)} rolos · {formatNumber(s.kg, 1)} kg</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground leading-5 min-h-5">{s.label}</p>
+                        <p className="text-xs text-muted-foreground leading-4 min-h-4">
+                          {loadingStats ? <Skeleton className="h-3 w-36 inline-block align-middle" /> : <>{formatNumber(s.rolls)} rolos · {formatNumber(s.kg, 1)} kg</>}
+                        </p>
                       </div>
                     </div>
-                    {canSeeFinancial && <span className="text-sm font-semibold text-foreground">{formatCurrency(s.revenue)}</span>}
+                    {canSeeFinancial && (
+                      <span className="text-sm font-semibold text-foreground shrink-0">
+                        {loadingStats ? <Skeleton className="h-4 w-20 inline-block align-middle" /> : formatCurrency(s.revenue)}
+                      </span>
+                    )}
                   </div>
                 ))}
                 {/* Total */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10">
-                  <div className="flex items-center gap-3">
-                    <span className="w-2.5 h-2.5 rounded-full bg-foreground/60" />
-                    <div>
-                      <p className="text-sm font-bold text-foreground">Total</p>
-                      <p className="text-xs text-muted-foreground">{formatNumber(totalRolls)} rolos · {formatNumber(totalWeight, 1)} kg</p>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10 min-h-[64px]">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-foreground/60 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-foreground leading-5 min-h-5">Total</p>
+                      <p className="text-xs text-muted-foreground leading-4 min-h-4">
+                        {loadingStats ? <Skeleton className="h-3 w-36 inline-block align-middle" /> : <>{formatNumber(totalRolls)} rolos · {formatNumber(totalWeight, 1)} kg</>}
+                      </p>
                     </div>
                   </div>
-                  {canSeeFinancial && <span className="text-sm font-bold text-foreground">{formatCurrency(totalRevenue)}</span>}
+                  {canSeeFinancial && (
+                    <span className="text-sm font-bold text-foreground shrink-0">
+                      {loadingStats ? <Skeleton className="h-4 w-20 inline-block align-middle" /> : formatCurrency(totalRevenue)}
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1143,16 +1155,26 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-2.5">
-                {machinePerf.length === 0 ? (
+                {loadingStats ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 min-h-[64px]">
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-36" />
+                      </div>
+                      <Skeleton className="h-7 w-14 rounded-lg" />
+                    </div>
+                  ))
+                ) : machinePerf.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4 font-light">Sem dados no período</p>
                 ) : machinePerf.map(m => (
-                  <div key={m.name} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{m.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatNumber(m.rolls)} rolos · {formatNumber(m.kg, 1)} kg</p>
+                  <div key={m.name} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors min-h-[64px]">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground leading-5 min-h-5">{m.name}</p>
+                      <p className="text-xs text-muted-foreground leading-4 min-h-4">{formatNumber(m.rolls)} rolos · {formatNumber(m.kg, 1)} kg</p>
                     </div>
                     <span className={cn(
-                      "text-xs font-semibold px-3 py-1.5 rounded-lg",
+                      "text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0",
                       m.efficiency >= m.targetEfficiency ? "bg-success/10 text-success" :
                       m.efficiency >= m.targetEfficiency * 0.875 ? "bg-warning/10 text-warning" :
                       "bg-destructive/10 text-destructive"
@@ -1177,13 +1199,17 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {canSeeFinancial && <div className="flex items-center justify-between p-3 rounded-xl bg-warning/5 border border-warning/10">
+              {canSeeFinancial && <div className="flex items-center justify-between p-3 rounded-xl bg-warning/5 border border-warning/10 min-h-[48px]">
                 <span className="text-sm text-foreground">Faturamento/Hora</span>
-                <span className="text-sm font-bold text-warning">{formatCurrency(revenuePerHour)}</span>
+                <span className="text-sm font-bold text-warning">
+                  {loadingStats ? <Skeleton className="h-4 w-24 inline-block align-middle" /> : formatCurrency(revenuePerHour)}
+                </span>
               </div>}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 min-h-[48px]">
                 <span className="text-sm text-foreground">Kg/Hora</span>
-                <span className="text-sm font-bold text-foreground">{formatNumber(kgPerHour, 2)}</span>
+                <span className="text-sm font-bold text-foreground">
+                  {loadingStats ? <Skeleton className="h-4 w-20 inline-block align-middle" /> : formatNumber(kgPerHour, 2)}
+                </span>
               </div>
             </CardContent>
           </Card>
