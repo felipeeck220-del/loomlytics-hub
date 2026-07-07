@@ -32,6 +32,7 @@ const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-ot'],
   revisador: ['production', 'revision'],
   freteiro: ['freight-orders'],
+  lider_frete: ['freight-orders'],
 };
 
 export function getMobileFooterKeys(role: string): string[] {

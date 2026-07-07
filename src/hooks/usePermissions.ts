@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
 
-export type AppRole = 'admin' | 'lider' | 'lider_noite' | 'lider_mecanica' | 'mecanico' | 'revisador' | 'expedicao' | 'freteiro';
+export type AppRole = 'admin' | 'lider' | 'lider_noite' | 'lider_mecanica' | 'mecanico' | 'revisador' | 'expedicao' | 'freteiro' | 'lider_frete';
 
 /** Which sidebar/route keys each role can access by default */
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
@@ -13,6 +13,7 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
   revisador: ['revision'],
   expedicao: ['billing-orders', 'estoque-malha'],
   freteiro: ['freight-orders'],
+  lider_frete: ['freight-orders'],
 };
 
 /** Overridable permission keys that admin can grant to non-admin users */

@@ -18,7 +18,7 @@ export function useCompanyData() {
   const companyId = user?.company_id || '';
   // Freteiro só usa a página de OFR (que carrega dados próprios). Pular todo o
   // carregamento pesado da empresa para dar agilidade e evitar a tela de loading.
-  const skipHeavyLoad = user?.role === 'freteiro';
+  const skipHeavyLoad = user?.role === 'freteiro' || user?.role === 'lider_frete';
 
   const [machines, setMachines] = useState<Machine[]>([]);
   const [machineLogs, setMachineLogs] = useState<MachineLog[]>([]);
