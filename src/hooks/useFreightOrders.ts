@@ -23,6 +23,15 @@ export interface Freighter {
   created_at: string;
 }
 
+export interface FreightCostCompany {
+  id: string;
+  company_id: string;
+  name: string;
+  document?: string | null;
+  active: boolean;
+  created_at: string;
+}
+
 export interface FreightOrderItem {
   id: string;
   freight_order_id: string;
@@ -54,6 +63,8 @@ export interface FreightOrder {
   company_id: string;
   ofr_number: string;
   freighter_id: string;
+  cost_company_id?: string | null;
+  cost_company_name?: string | null;
   pickup_location: string;
   delivery_location: string;
   observations?: string | null;
@@ -75,6 +86,7 @@ export interface FreightOrder {
   freight_price_per_kg?: number | null;
   freight_total?: number | null;
   freighter?: Freighter | null;
+  cost_company?: FreightCostCompany | null;
   creator?: { name: string; code: string } | null;
   pickup_starter?: { name: string; code: string } | null;
   delivery_starter?: { name: string; code: string } | null;
@@ -103,6 +115,20 @@ export function useFreightOrders() {
     enabled: !!user?.company_id,
   });
 
+  const { data: costCompanies = [] } = useQuery({
+    queryKey: ['freight_cost_companies', user?.company_id],
+    queryFn: async () => {
+      if (!user?.company_id) return [];
+      const { data, error } = await (supabase.from as any)('freight_cost_companies')
+        .select('*')
+        .eq('company_id', user.company_id)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as FreightCostCompany[];
+    },
+    enabled: !!user?.company_id,
+  });
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['freight_orders', user?.company_id],
     queryFn: async () => {
@@ -111,6 +137,7 @@ export function useFreightOrders() {
         .select(`
           *,
           freighter:freighters(*),
+          cost_company:freight_cost_companies(*),
           items:freight_order_items(*, article:articles(name, client_id, client_name)),
           photos:freight_order_photos(*),
           creator:profiles!freight_orders_created_by_fkey(name, code),
@@ -143,6 +170,10 @@ export function useFreightOrders() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'freighters', filter: `company_id=eq.${user.company_id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ['freighters', user.company_id] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_cost_companies', filter: `company_id=eq.${user.company_id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['freight_cost_companies', user.company_id] });
+        queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.company_id, queryClient]);
@@ -163,6 +194,7 @@ export function useFreightOrders() {
   const createOrder = useMutation({
     mutationFn: async (payload: {
       freighter_id: string;
+      cost_company_id: string;
       pickup_location: string;
       delivery_location: string;
       observations?: string;
@@ -181,10 +213,13 @@ export function useFreightOrders() {
     }) => {
       if (!user?.company_id) throw new Error('Sem empresa ativa');
       if (!payload.items?.length) throw new Error('Adicione pelo menos 1 artigo');
+      if (!payload.cost_company_id) throw new Error('Selecione a empresa (Rateio de custo)');
       // Retry para evitar colisão de OFR# quando 2 admins criam ao mesmo tempo
       let order: any = null;
       let ofr_number = '';
       let lastErr: any = null;
+      // Snapshot do nome da empresa de custo (histórico imutável)
+      const costCompanySnapshot = costCompanies.find(c => c.id === payload.cost_company_id);
       for (let attempt = 0; attempt < 5; attempt++) {
         ofr_number = await nextOfrNumber();
         const { data, error } = await (supabase.from as any)('freight_orders')
@@ -192,6 +227,8 @@ export function useFreightOrders() {
             company_id: user.company_id,
             ofr_number,
             freighter_id: payload.freighter_id,
+            cost_company_id: payload.cost_company_id,
+            cost_company_name: costCompanySnapshot?.name || null,
             pickup_location: payload.pickup_location,
             delivery_location: payload.delivery_location,
             observations: payload.observations || null,
@@ -264,6 +301,39 @@ export function useFreightOrders() {
       toast({ title: 'Ordem de Frete criada' });
     },
     onError: (e: any) => toast({ title: 'Erro ao criar OFR', description: e.message, variant: 'destructive' }),
+  });
+
+  const createCostCompany = useMutation({
+    mutationFn: async (payload: { name: string; document?: string }) => {
+      if (!user?.company_id) throw new Error('Sem empresa ativa');
+      const { error } = await (supabase.from as any)('freight_cost_companies').insert({
+        company_id: user.company_id,
+        name: payload.name.trim(),
+        document: payload.document?.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_cost_companies'] }); toast({ title: 'Empresa cadastrada' }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const updateCostCompany = useMutation({
+    mutationFn: async (payload: { id: string; name?: string; document?: string | null; active?: boolean }) => {
+      const { id, ...rest } = payload;
+      const { error } = await (supabase.from as any)('freight_cost_companies').update(rest).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_cost_companies'] }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const deleteCostCompany = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from as any)('freight_cost_companies').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_cost_companies'] }); toast({ title: 'Empresa removida' }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
   const startPickup = useMutation({
@@ -388,9 +458,10 @@ export function useFreightOrders() {
   }
 
   return {
-    orders, isLoading, freighters,
+    orders, isLoading, freighters, costCompanies,
     createOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
+    createCostCompany, updateCostCompany, deleteCostCompany,
     getPhotoSignedUrl,
   };
 }
