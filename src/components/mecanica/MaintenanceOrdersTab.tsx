@@ -24,6 +24,7 @@ import type {
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { generateOmReportPdf } from '@/lib/omReportPdf';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
+import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 
 const DEFAULT_MAINTENANCE_INTERVAL_DAYS = 30;
 
@@ -105,6 +106,7 @@ interface Props {
 
 export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylinders, refreshMachines, mode = 'om' }: Props) {
   const isOC = mode === 'oc';
+  useMarkSourceAsRead(isOC ? 'OC' : 'OM');
   const labelShort = isOC ? 'OC' : 'OM';
   const labelLong = isOC ? 'Ordens de Corretiva' : 'Ordens de Manutenção';
   const { user } = useAuth();
