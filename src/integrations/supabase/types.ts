@@ -1322,6 +1322,36 @@ export type Database = {
         }
         Relationships: []
       }
+      freight_cost_companies: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          document: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          document?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          document?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       freight_order_items: {
         Row: {
           article_id: string | null
@@ -1449,6 +1479,8 @@ export type Database = {
           company_id: string
           completed_at: string | null
           completed_by: string | null
+          cost_company_id: string | null
+          cost_company_name: string | null
           created_at: string
           created_by: string | null
           delivery_doc_number: string | null
@@ -1475,6 +1507,8 @@ export type Database = {
           company_id: string
           completed_at?: string | null
           completed_by?: string | null
+          cost_company_id?: string | null
+          cost_company_name?: string | null
           created_at?: string
           created_by?: string | null
           delivery_doc_number?: string | null
@@ -1501,6 +1535,8 @@ export type Database = {
           company_id?: string
           completed_at?: string | null
           completed_by?: string | null
+          cost_company_id?: string | null
+          cost_company_name?: string | null
           created_at?: string
           created_by?: string | null
           delivery_doc_number?: string | null
@@ -1540,6 +1576,13 @@ export type Database = {
             columns: ["completed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_orders_cost_company_id_fkey"
+            columns: ["cost_company_id"]
+            isOneToOne: false
+            referencedRelation: "freight_cost_companies"
             referencedColumns: ["id"]
           },
           {

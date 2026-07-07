@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -86,9 +86,10 @@ export default function FreightOrders() {
   const yarnTypes = getYarnTypes();
   const { toast } = useToast();
   const {
-    orders, isLoading, freighters,
+    orders, isLoading, freighters, costCompanies,
     createOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
+    createCostCompany, updateCostCompany, deleteCostCompany,
     getPhotoSignedUrl,
   } = useFreightOrders();
 
@@ -98,6 +99,7 @@ export default function FreightOrders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [newOpen, setNewOpen] = useState(false);
   const [freightersOpen, setFreightersOpen] = useState(false);
+  const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
   const [completeOrderId, setCompleteOrderId] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
@@ -129,6 +131,7 @@ export default function FreightOrders() {
       const matches =
         o.ofr_number?.toLowerCase().includes(term) ||
         o.freighter?.name?.toLowerCase().includes(term) ||
+        (o.cost_company_name || o.cost_company?.name || '').toLowerCase().includes(term) ||
         o.pickup_location?.toLowerCase().includes(term) ||
         o.delivery_location?.toLowerCase().includes(term) ||
         (o.delivery_doc_number || '').toLowerCase().includes(term) ||
@@ -152,6 +155,9 @@ export default function FreightOrders() {
             <>
               <Button variant="outline" onClick={() => setFreightersOpen(true)} className="gap-2">
                 <Users className="h-4 w-4" /> Freteiros
+              </Button>
+              <Button variant="outline" onClick={() => setCostCompaniesOpen(true)} className="gap-2">
+                <Building2 className="h-4 w-4" /> Empresas
               </Button>
               <Button onClick={() => setNewOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" /> Nova OFR
@@ -213,6 +219,7 @@ export default function FreightOrders() {
           open={newOpen}
           onOpenChange={setNewOpen}
           freighters={freighters}
+          costCompanies={costCompanies}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
@@ -228,6 +235,17 @@ export default function FreightOrders() {
           onCreate={(p) => createFreighter.mutate(p)}
           onUpdate={(p) => updateFreighter.mutate(p)}
           onDelete={(id) => deleteFreighter.mutate(id)}
+        />
+      )}
+
+      {isAdmin && (
+        <CostCompaniesModal
+          open={costCompaniesOpen}
+          onOpenChange={setCostCompaniesOpen}
+          costCompanies={costCompanies}
+          onCreate={(p) => createCostCompany.mutate(p)}
+          onUpdate={(p) => updateCostCompany.mutate(p)}
+          onDelete={(id) => deleteCostCompany.mutate(id)}
         />
       )}
 
@@ -308,6 +326,12 @@ function OrderCard({
               </Badge>
               {hasFio && <Badge variant="outline" className="text-[10px] border-violet-500 text-violet-700 dark:text-violet-400">CONTÉM FIO</Badge>}
               {hasMalha && <Badge variant="outline" className="text-[10px] border-sky-500 text-sky-700 dark:text-sky-400">CONTÉM MALHA</Badge>}
+              {(order.cost_company_name || order.cost_company?.name) && (
+                <Badge className="text-[10px] bg-indigo-600/15 text-indigo-700 dark:text-indigo-300 border border-indigo-600/40 gap-1 py-0 px-2 h-5 uppercase font-bold">
+                  <Building2 className="h-3 w-3" />
+                  Rateio: {order.cost_company_name || order.cost_company?.name}
+                </Badge>
+              )}
               {order.delivery_doc_number && (
                 <Badge className="text-[10px] bg-emerald-600 text-white border-emerald-700 gap-1 py-0 px-2 h-5">
                   <FileText className="h-3 w-3" />
@@ -372,15 +396,16 @@ function OrderCard({
 /* ---------------- Modals ---------------- */
 
 function NewOFRModal({
-  open, onOpenChange, freighters, articles, yarnTypes, onSubmit, submitting,
+  open, onOpenChange, freighters, costCompanies, articles, yarnTypes, onSubmit, submitting,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   freighters: Array<{ id: string; name: string; active: boolean }>;
+  costCompanies: Array<{ id: string; name: string; active: boolean }>;
   articles: Array<{ id: string; name: string; client_name?: string }>;
   yarnTypes: Array<{ id: string; name: string }>;
   onSubmit: (p: {
-    freighter_id: string; pickup_location: string; delivery_location: string;
+    freighter_id: string; cost_company_id: string; pickup_location: string; delivery_location: string;
     observations?: string;
     delivery_doc_type?: 'nf' | 'rom' | null;
     delivery_doc_number?: string | null;
@@ -398,6 +423,7 @@ function NewOFRModal({
   submitting: boolean;
 }) {
   const [freighterId, setFreighterId] = useState('');
+  const [costCompanyId, setCostCompanyId] = useState('');
   const [pickup, setPickup] = useState('');
   const [delivery, setDelivery] = useState('');
   const [obs, setObs] = useState('');
@@ -417,7 +443,7 @@ function NewOFRModal({
 
   useEffect(() => {
     if (open) {
-      setFreighterId(''); setPickup(''); setDelivery(''); setObs('');
+      setFreighterId(''); setCostCompanyId(''); setPickup(''); setDelivery(''); setObs('');
       setDocType(''); setDocNumber('');
       setItems([{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
     }
@@ -425,6 +451,7 @@ function NewOFRModal({
 
   const submit = () => {
     if (!freighterId) return toast({ title: 'Selecione o freteiro', variant: 'destructive' });
+    if (!costCompanyId) return toast({ title: 'Selecione a empresa (Rateio de custo)', variant: 'destructive' });
     if (!pickup.trim() || !delivery.trim()) return toast({ title: 'Preencha coleta e entrega', variant: 'destructive' });
     const cleaned = items
       .map(i => ({
@@ -439,6 +466,7 @@ function NewOFRModal({
     if (!cleaned.length) return toast({ title: 'Adicione pelo menos 1 artigo', variant: 'destructive' });
     onSubmit({
       freighter_id: freighterId,
+      cost_company_id: costCompanyId,
       pickup_location: pickup.trim(),
       delivery_location: delivery.trim(),
       observations: obs.trim() || undefined,
@@ -471,15 +499,27 @@ function NewOFRModal({
   const artOptions = articles.map(a => ({ value: a.id, label: `${a.name}${(a as any).client_name ? ` (${(a as any).client_name})` : ''}` }));
   const yarnOptions = yarnTypes.map(y => ({ value: y.id, label: y.name }));
   const freighterOptions = freighters.filter(f => f.active).map(f => ({ value: f.id, label: f.name }));
+  const costCompanyOptions = costCompanies.filter(c => c.active).map(c => ({ value: c.id, label: c.name }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Nova Ordem de Frete</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div>
-            <Label>Freteiro *</Label>
-            <SearchableSelect value={freighterId} onValueChange={setFreighterId} options={freighterOptions} placeholder="Selecione o freteiro" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Freteiro *</Label>
+              <SearchableSelect value={freighterId} onValueChange={setFreighterId} options={freighterOptions} placeholder="Selecione o freteiro" />
+            </div>
+            <div>
+              <Label>Empresa (Rateio de custo) *</Label>
+              <SearchableSelect
+                value={costCompanyId}
+                onValueChange={setCostCompanyId}
+                options={costCompanyOptions}
+                placeholder={costCompanyOptions.length === 0 ? 'Cadastre em Empresas' : 'Selecione a empresa'}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -896,6 +936,7 @@ function DetailsModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><span className="text-muted-foreground">Freteiro:</span> <span className="font-medium">{order.freighter?.name}</span></div>
             <div><span className="text-muted-foreground">Veículo:</span> <span className="font-medium">{order.freighter?.vehicle || '—'}</span></div>
+            <div className="sm:col-span-2"><span className="text-muted-foreground">Rateio de custo:</span> <span className="font-semibold text-indigo-700 dark:text-indigo-300">{order.cost_company_name || order.cost_company?.name || '—'}</span></div>
             <div><span className="text-muted-foreground">Coleta:</span> <span className="font-medium">{order.pickup_location}</span></div>
             <div><span className="text-muted-foreground">Entrega:</span> <span className="font-medium">{order.delivery_location}</span></div>
           </div>
@@ -972,6 +1013,73 @@ function DetailsModal({
               </div>
             </div>
           )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+function CostCompaniesModal({
+  open, onOpenChange, costCompanies, onCreate, onUpdate, onDelete,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  costCompanies: any[];
+  onCreate: (p: { name: string; document?: string }) => void;
+  onUpdate: (p: { id: string; name?: string; document?: string | null; active?: boolean }) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [name, setName] = useState('');
+  const [document, setDocument] = useState('');
+
+  const submit = () => {
+    if (!name.trim()) return;
+    onCreate({ name: name.trim(), document: document.trim() || undefined });
+    setName(''); setDocument('');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Empresas (Rateio de custo)</DialogTitle>
+        </DialogHeader>
+
+        <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+          <p className="text-sm font-medium">Nova empresa</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Nome *</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Malharia XYZ" />
+            </div>
+            <div>
+              <Label className="text-xs">CNPJ / Documento</Label>
+              <Input value={document} onChange={e => setDocument(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button size="sm" onClick={submit} disabled={!name.trim()}>
+              <Plus className="h-4 w-4 mr-1.5" />Adicionar
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {costCompanies.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma empresa cadastrada.</p>}
+          {costCompanies.map(c => (
+            <div key={c.id} className="flex items-center justify-between border rounded-lg p-2 gap-2">
+              <div className="min-w-0">
+                <p className="font-medium text-sm truncate">
+                  {c.name}
+                  {!c.active && <span className="ml-2 text-xs text-muted-foreground">(inativa)</span>}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{c.document || '—'}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button variant="ghost" size="sm" onClick={() => onUpdate({ id: c.id, active: !c.active })}>{c.active ? 'Desativar' : 'Ativar'}</Button>
+                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => onDelete(c.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
