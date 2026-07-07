@@ -879,13 +879,43 @@ function DetailsModal({
             <div><span className="text-muted-foreground">Observações:</span> <span className="font-medium">{order.observations}</span></div>
           )}
 
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {order.delivery_doc_number && (
+              <div className="border rounded-lg p-2">
+                <div className="text-[10px] uppercase text-muted-foreground">Documento</div>
+                <div className="font-semibold text-sm">{order.delivery_doc_type === 'rom' ? 'Romaneio' : 'NF'} {order.delivery_doc_number}</div>
+              </div>
+            )}
+            {order.freight_price_per_kg != null && (
+              <div className="border rounded-lg p-2">
+                <div className="text-[10px] uppercase text-muted-foreground">R$ / kg</div>
+                <div className="font-semibold text-sm">{fmtMoney(order.freight_price_per_kg)}</div>
+              </div>
+            )}
+            {order.freight_total != null && (
+              <div className="border rounded-lg p-2 bg-emerald-500/10 border-emerald-500/40">
+                <div className="text-[10px] uppercase text-muted-foreground">Total do frete</div>
+                <div className="font-bold text-sm text-emerald-700 dark:text-emerald-300">{fmtMoney(order.freight_total)}</div>
+              </div>
+            )}
+          </div>
+
           <div className="border rounded-lg overflow-hidden">
-            <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold">Artigos</div>
+            <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold">Itens</div>
             <div className="divide-y">
               {(order.items || []).map(i => (
-                <div key={i.id} className="px-3 py-1.5 flex justify-between text-xs">
-                  <span>{i.article?.name || i.article_name || '—'}</span>
-                  <span className="text-muted-foreground">{i.pieces} pçs · {Number(i.weight_kg).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
+                <div key={i.id} className="px-3 py-1.5 flex justify-between items-center text-xs gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Badge variant="outline" className={cn('text-[9px] uppercase', i.item_type === 'fio' ? 'border-violet-500 text-violet-700 dark:text-violet-400' : 'border-sky-500 text-sky-700 dark:text-sky-400')}>
+                      {i.item_type === 'fio' ? 'Fio' : 'Malha'}
+                    </Badge>
+                    <span className="truncate">{i.item_type === 'fio' ? (i.yarn_type_name || '—') : (i.article?.name || i.article_name || '—')}</span>
+                  </div>
+                  <span className="text-muted-foreground shrink-0">
+                    {i.item_type === 'fio'
+                      ? `${i.boxes || 0} cx · ${Number(i.weight_kg).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`
+                      : `${i.pieces} pçs · ${Number(i.weight_kg).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`}
+                  </span>
                 </div>
               ))}
             </div>
@@ -895,8 +925,7 @@ function DetailsModal({
             <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold">Linha do tempo</div>
             <div className="px-3 py-2 space-y-1 text-xs">
               <div>Criada: <span className="font-medium">{fmt(order.created_at)}</span></div>
-              <div>Coleta iniciada: <span className="font-medium">{fmt(order.pickup_started_at)}</span></div>
-              <div>Entrega iniciada: <span className="font-medium">{fmt(order.delivery_started_at)}</span></div>
+              <div>Frete iniciado: <span className="font-medium">{fmt(order.pickup_started_at)}</span></div>
               <div>Finalizada: <span className="font-medium">{fmt(order.completed_at)}</span></div>
               {order.cancelled_at && <div className="text-destructive">Cancelada: {fmt(order.cancelled_at)} — {order.cancellation_reason}</div>}
             </div>
