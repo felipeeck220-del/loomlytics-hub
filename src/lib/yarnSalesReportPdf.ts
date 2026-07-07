@@ -3,7 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { sanitizePdfText } from './pdfUtils';
-import { loadLogoForPdf } from './clientInvoicePdf';
+import { loadLogoForPdf, drawHeader } from './clientInvoicePdf';
 
 interface Invoice {
   id: string;
@@ -56,30 +56,20 @@ export async function generateYarnSalesReportPdf(input: YarnSalesReportInput) {
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
   const margin = 12;
-  let y = 12;
 
-  // Header — logo + título
-  const logo = await loadLogoForPdf(companyLogoUrl || null);
-  if (logo?.data) {
-    const maxW = 22, maxH = 14;
-    const scale = Math.min(maxW / logo.width, maxH / logo.height);
-    try { pdf.addImage(logo.data, 'PNG', margin, y, logo.width * scale, logo.height * scale); } catch {}
-  }
-  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12);
-  pdf.text(sanitizePdfText(companyName || '—'), pageW / 2, y + 6, { align: 'center' });
-  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
-  pdf.text(`Emitido em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, pageW / 2, y + 11, { align: 'center' });
-  y += 20;
-  pdf.setDrawColor(200); pdf.line(margin, y, pageW - margin, y); y += 6;
-
-  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14);
-  pdf.text('RELATÓRIO DE VENDA DE FIO POR TIPO', pageW / 2, y, { align: 'center' });
-  y += 6;
-
-  // Filtros aplicados
+  // Cabeçalho padrão do sistema (logo da empresa + título + período)
   const monthLabel = filters.month === 'all'
     ? 'Todos os meses'
     : format(parse(filters.month, 'yyyy-MM', new Date()), "MMMM 'de' yyyy", { locale: ptBR });
+  const logoInfo = await loadLogoForPdf(companyLogoUrl || null);
+  let y = drawHeader(pdf, {
+    companyName,
+    logoInfo,
+    reportTitle: 'RELATÓRIO DE VENDA DE FIO POR TIPO',
+    periodLabel: monthLabel,
+  }, pageW, margin, margin);
+
+  // Filtros aplicados
   pdf.setFont('helvetica', 'italic'); pdf.setFontSize(9); pdf.setTextColor(90);
   pdf.text(
     sanitizePdfText(`Filtros: ${monthLabel} · Status: ${STATUS_LABELS[filters.status] || 'Todos'}${filters.search ? ` · Busca: "${filters.search}"` : ''}`),
