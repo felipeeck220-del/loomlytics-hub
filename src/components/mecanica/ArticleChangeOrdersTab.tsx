@@ -21,6 +21,7 @@ import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { generateOtReportPdf } from '@/lib/otReportPdf';
+import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 
 type OTStatus =
   | 'aberto'
@@ -120,6 +121,7 @@ function useLiveTimer(startIso: string | null | undefined) {
 }
 
 export default function ArticleChangeOrdersTab() {
+  useMarkSourceAsRead('OT');
   const { user } = useAuth();
   const { role } = usePermissions();
   const { logAction, userName, userCode } = useAuditLog();
