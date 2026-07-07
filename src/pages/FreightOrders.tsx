@@ -326,6 +326,12 @@ function OrderCard({
               </Badge>
               {hasFio && <Badge variant="outline" className="text-[10px] border-violet-500 text-violet-700 dark:text-violet-400">CONTÉM FIO</Badge>}
               {hasMalha && <Badge variant="outline" className="text-[10px] border-sky-500 text-sky-700 dark:text-sky-400">CONTÉM MALHA</Badge>}
+              {(order.cost_company_name || order.cost_company?.name) && (
+                <Badge className="text-[10px] bg-indigo-600/15 text-indigo-700 dark:text-indigo-300 border border-indigo-600/40 gap-1 py-0 px-2 h-5 uppercase font-bold">
+                  <Building2 className="h-3 w-3" />
+                  Rateio: {order.cost_company_name || order.cost_company?.name}
+                </Badge>
+              )}
               {order.delivery_doc_number && (
                 <Badge className="text-[10px] bg-emerald-600 text-white border-emerald-700 gap-1 py-0 px-2 h-5">
                   <FileText className="h-3 w-3" />
