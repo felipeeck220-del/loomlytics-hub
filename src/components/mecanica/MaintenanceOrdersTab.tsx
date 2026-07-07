@@ -321,6 +321,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             message: form.description || (isCorrective ? 'Ordem de Corretiva aberta' : 'Ordem de Manutenção aberta'),
             url: targetPath,
             roles: ['mecanico', 'lider_mecanica', 'lider_noite'],
+            include_admins: true,
+            source: isCorrective ? 'OC' : 'OM',
+            ref_id: created.id,
+            ref_number: `${isCorrective ? 'OC' : 'OM'} #${String(createdNum).padStart(3, '0')}`,
           },
         }).catch(() => { /* silencioso */ });
       } catch { /* silencioso */ }
