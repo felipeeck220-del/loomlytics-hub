@@ -1,17 +1,18 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
 
-export type AppRole = 'admin' | 'lider' | 'lider_noite' | 'lider_mecanica' | 'mecanico' | 'revisador' | 'expedicao';
+export type AppRole = 'admin' | 'lider' | 'lider_noite' | 'lider_mecanica' | 'mecanico' | 'revisador' | 'expedicao' | 'freteiro';
 
 /** Which sidebar/route keys each role can access by default */
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
-  admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-ot', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
+  admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-ot', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'freight-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
   lider: ['mecanica-oc', 'mecanica-ot'],
   lider_noite: ['mecanica-oc', 'mecanica-ot'],
   lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-ot', 'mecanica'],
   mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-ot', 'mecanica'],
   revisador: ['revision'],
   expedicao: ['billing-orders', 'estoque-malha'],
+  freteiro: ['freight-orders'],
 };
 
 /** Overridable permission keys that admin can grant to non-admin users */
@@ -41,6 +42,7 @@ const ROUTE_KEY_MAP: Record<string, string> = {
   residuos: 'residuos',
   'estoque-malha': 'estoque-malha',
   'billing-orders': 'billing-orders',
+  'freight-orders': 'freight-orders',
   invoices: 'invoices',
   'client-invoices': 'client-invoices',
   fechamento: 'fechamento',
