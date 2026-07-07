@@ -183,6 +183,30 @@ export function useFreightOrders() {
       }));
       const { error: itErr } = await (supabase.from as any)('freight_order_items').insert(itemsRows);
       if (itErr) throw itErr;
+      // Push notification (admins + freteiro vinculado, se tiver user_id)
+      try {
+        const { data: frt } = await (supabase.from as any)('freighters')
+          .select('name, user_id')
+          .eq('id', payload.freighter_id)
+          .maybeSingle();
+        const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+        const targetPath = slug ? `/${slug}/ofr` : '/';
+        const nPieces = payload.items.reduce((s, i) => s + (Number(i.pieces) || 0), 0);
+        const message = `${payload.pickup_location} → ${payload.delivery_location} · ${nPieces} peça(s)`;
+        supabase.functions.invoke('send-push-notification', {
+          body: {
+            company_id: user.company_id,
+            title: `Nova OFR #${ofr_number} — ${frt?.name || 'Freteiro'}`,
+            message,
+            url: targetPath,
+            include_admins: true,
+            target_user_ids: frt?.user_id ? [frt.user_id] : [],
+            source: 'OFR',
+            ref_id: order.id,
+            ref_number: `OFR #${ofr_number}`,
+          },
+        }).catch(() => { /* silencioso */ });
+      } catch { /* silencioso */ }
       return order;
     },
     onSuccess: () => {
