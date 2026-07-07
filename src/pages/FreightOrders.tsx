@@ -205,6 +205,7 @@ export default function FreightOrders() {
               hasFullAccess={hasFullAccess}
               isFreteiro={isFreteiro}
               companyName={companyName}
+              onOpenDetails={(o) => setDetailsOrder(o)}
             />
           ) : (
             <>
@@ -932,6 +933,9 @@ function DetailsModal({
   getPhotoSignedUrl: (p: string, e?: number) => Promise<string | null>;
 }) {
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const { toast } = useToast();
   useEffect(() => {
     if (!order?.photos?.length) { setPhotoUrls({}); return; }
     (async () => {
@@ -945,7 +949,35 @@ function DetailsModal({
   }, [order?.id]);
 
   if (!order) return null;
+
+  const downloadPhotos = async () => {
+    if (!order.photos?.length) return;
+    setDownloading(true);
+    try {
+      for (let i = 0; i < order.photos.length; i++) {
+        const p = order.photos[i];
+        const url = photoUrls[p.id] || (await getPhotoSignedUrl(p.storage_path, 3600));
+        if (!url) continue;
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const ext = (p.storage_path.split('.').pop() || 'jpg').toLowerCase();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `OFR-${order.ofr_number}-foto-${i + 1}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }
+    } catch (e: any) {
+      toast({ title: 'Erro ao baixar fotos', description: e?.message, variant: 'destructive' });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
+    <>
     <Dialog open={!!order} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>OFR #{order.ofr_number} — {STATUS_LABEL[order.status]}</DialogTitle></DialogHeader>
@@ -1015,12 +1047,23 @@ function DetailsModal({
 
           {(order.photos || []).length > 0 && (
             <div>
-              <p className="text-xs font-semibold mb-1">Fotos da entrega</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-semibold">Fotos da entrega</p>
+                <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={downloadPhotos} disabled={downloading}>
+                  <Download className="h-3.5 w-3.5" />
+                  {downloading ? 'Baixando…' : 'Baixar fotos'}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 {order.photos!.map(p => (
                   <div key={p.id} className="border rounded-lg p-2">
                     {photoUrls[p.id] ? (
-                      <img src={photoUrls[p.id]} alt="" className="w-full h-40 object-cover rounded" />
+                      <img
+                        src={photoUrls[p.id]}
+                        alt=""
+                        className="w-full h-40 object-cover rounded cursor-zoom-in hover:opacity-90 transition"
+                        onClick={() => setViewerUrl(photoUrls[p.id])}
+                      />
                     ) : (
                       <div className="w-full h-40 bg-muted animate-pulse rounded" />
                     )}
@@ -1033,6 +1076,16 @@ function DetailsModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={!!viewerUrl} onOpenChange={(o) => !o && setViewerUrl(null)}>
+      <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto p-2 bg-black/95 border-none">
+        <DialogHeader className="sr-only"><DialogTitle>Foto em tela cheia</DialogTitle></DialogHeader>
+        {viewerUrl && (
+          <img src={viewerUrl} alt="" className="max-h-[90vh] max-w-[92vw] object-contain mx-auto" />
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 function CostCompaniesModal({
