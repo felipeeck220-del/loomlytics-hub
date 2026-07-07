@@ -1326,32 +1326,44 @@ export type Database = {
         Row: {
           article_id: string | null
           article_name: string | null
+          boxes: number | null
           company_id: string
           created_at: string
           freight_order_id: string
           id: string
+          item_type: string
           pieces: number
           weight_kg: number
+          yarn_type_id: string | null
+          yarn_type_name: string | null
         }
         Insert: {
           article_id?: string | null
           article_name?: string | null
+          boxes?: number | null
           company_id: string
           created_at?: string
           freight_order_id: string
           id?: string
+          item_type?: string
           pieces?: number
           weight_kg?: number
+          yarn_type_id?: string | null
+          yarn_type_name?: string | null
         }
         Update: {
           article_id?: string | null
           article_name?: string | null
+          boxes?: number | null
           company_id?: string
           created_at?: string
           freight_order_id?: string
           id?: string
+          item_type?: string
           pieces?: number
           weight_kg?: number
+          yarn_type_id?: string | null
+          yarn_type_name?: string | null
         }
         Relationships: [
           {
@@ -1373,6 +1385,13 @@ export type Database = {
             columns: ["freight_order_id"]
             isOneToOne: false
             referencedRelation: "freight_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_order_items_yarn_type_id_fkey"
+            columns: ["yarn_type_id"]
+            isOneToOne: false
+            referencedRelation: "yarn_types"
             referencedColumns: ["id"]
           },
         ]
@@ -1432,9 +1451,13 @@ export type Database = {
           completed_by: string | null
           created_at: string
           created_by: string | null
+          delivery_doc_number: string | null
+          delivery_doc_type: string | null
           delivery_location: string
           delivery_started_at: string | null
           delivery_started_by: string | null
+          freight_price_per_kg: number | null
+          freight_total: number | null
           freighter_id: string
           id: string
           observations: string | null
@@ -1454,9 +1477,13 @@ export type Database = {
           completed_by?: string | null
           created_at?: string
           created_by?: string | null
+          delivery_doc_number?: string | null
+          delivery_doc_type?: string | null
           delivery_location: string
           delivery_started_at?: string | null
           delivery_started_by?: string | null
+          freight_price_per_kg?: number | null
+          freight_total?: number | null
           freighter_id: string
           id?: string
           observations?: string | null
@@ -1476,9 +1503,13 @@ export type Database = {
           completed_by?: string | null
           created_at?: string
           created_by?: string | null
+          delivery_doc_number?: string | null
+          delivery_doc_type?: string | null
           delivery_location?: string
           delivery_started_at?: string | null
           delivery_started_by?: string | null
+          freight_price_per_kg?: number | null
+          freight_total?: number | null
           freighter_id?: string
           id?: string
           observations?: string | null
