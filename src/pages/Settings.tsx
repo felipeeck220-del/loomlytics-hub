@@ -68,7 +68,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor, Lock, History } from 'lucide-react';
+import { LogOut, Settings, Users, Building2, User, Mail, Calendar, Shield, Clock, Pencil, Trash2, Plus, XCircle, Loader2, Eye, EyeOff, Upload, ImageIcon, X, CreditCard, Crown, AlertTriangle, Key, Monitor, Lock, History, Search, UserCheck, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermissions, OVERRIDE_PERMISSIONS } from '@/hooks/usePermissions';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -126,6 +126,7 @@ export default function SettingsPage() {
   const [tab, setTab] = useState(sidebarLocked ? 'plans' : 'profile');
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [userSearch, setUserSearch] = useState('');
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [company, setCompany] = useState<any>(null);
   const [showAuditHistory, setShowAuditHistory] = useState(false);
@@ -943,7 +944,34 @@ export default function SettingsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {profiles.map(p => (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Buscar usuário por nome, email, código ou função..."
+                  className="pl-9"
+                />
+              </div>
+              {(() => {
+                const q = userSearch.trim().toLowerCase();
+                const filtered = q
+                  ? profiles.filter(p =>
+                      (p.name || '').toLowerCase().includes(q) ||
+                      (p.email || '').toLowerCase().includes(q) ||
+                      String(p.code || '').toLowerCase().includes(q) ||
+                      getRoleLabel(p.role).toLowerCase().includes(q) ||
+                      (p.role || '').toLowerCase().includes(q)
+                    )
+                  : profiles;
+                if (filtered.length === 0) {
+                  return (
+                    <div className="card-glass p-6 text-center text-sm text-muted-foreground">
+                      Nenhum usuário encontrado{q ? ` para "${userSearch}"` : ''}.
+                    </div>
+                  );
+                }
+                return filtered.map(p => (
                 <div key={p.id} className="card-glass p-4 flex items-center justify-between hover:border-primary/20 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
@@ -991,8 +1019,18 @@ export default function SettingsPage() {
                         </Button>
                       )}
                       {p.user_id !== user?.id && isCurrentUserMainAdmin && (
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(p)} title={p.status === 'active' ? 'Desativar' : 'Ativar'}>
-                          <XCircle className="h-3.5 w-3.5 text-warning" />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleToggleStatus(p)}
+                          title={p.status === 'active' ? 'Desativar usuário' : 'Ativar usuário'}
+                        >
+                          {p.status === 'active' ? (
+                            <UserCheck className="h-3.5 w-3.5 text-success" />
+                          ) : (
+                            <UserX className="h-3.5 w-3.5 text-destructive" />
+                          )}
                         </Button>
                       )}
                       {p.user_id !== user?.id && isCurrentUserMainAdmin && (
@@ -1004,7 +1042,8 @@ export default function SettingsPage() {
                     );
                   })()}
                 </div>
-              ))}
+                ));
+              })()}
             </div>
           )}
         </TabsContent>
