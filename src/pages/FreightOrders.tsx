@@ -390,15 +390,16 @@ function OrderCard({
 /* ---------------- Modals ---------------- */
 
 function NewOFRModal({
-  open, onOpenChange, freighters, articles, yarnTypes, onSubmit, submitting,
+  open, onOpenChange, freighters, costCompanies, articles, yarnTypes, onSubmit, submitting,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   freighters: Array<{ id: string; name: string; active: boolean }>;
+  costCompanies: Array<{ id: string; name: string; active: boolean }>;
   articles: Array<{ id: string; name: string; client_name?: string }>;
   yarnTypes: Array<{ id: string; name: string }>;
   onSubmit: (p: {
-    freighter_id: string; pickup_location: string; delivery_location: string;
+    freighter_id: string; cost_company_id: string; pickup_location: string; delivery_location: string;
     observations?: string;
     delivery_doc_type?: 'nf' | 'rom' | null;
     delivery_doc_number?: string | null;
@@ -416,6 +417,7 @@ function NewOFRModal({
   submitting: boolean;
 }) {
   const [freighterId, setFreighterId] = useState('');
+  const [costCompanyId, setCostCompanyId] = useState('');
   const [pickup, setPickup] = useState('');
   const [delivery, setDelivery] = useState('');
   const [obs, setObs] = useState('');
@@ -435,7 +437,7 @@ function NewOFRModal({
 
   useEffect(() => {
     if (open) {
-      setFreighterId(''); setPickup(''); setDelivery(''); setObs('');
+      setFreighterId(''); setCostCompanyId(''); setPickup(''); setDelivery(''); setObs('');
       setDocType(''); setDocNumber('');
       setItems([{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
     }
@@ -443,6 +445,7 @@ function NewOFRModal({
 
   const submit = () => {
     if (!freighterId) return toast({ title: 'Selecione o freteiro', variant: 'destructive' });
+    if (!costCompanyId) return toast({ title: 'Selecione a empresa (Rateio de custo)', variant: 'destructive' });
     if (!pickup.trim() || !delivery.trim()) return toast({ title: 'Preencha coleta e entrega', variant: 'destructive' });
     const cleaned = items
       .map(i => ({
@@ -457,6 +460,7 @@ function NewOFRModal({
     if (!cleaned.length) return toast({ title: 'Adicione pelo menos 1 artigo', variant: 'destructive' });
     onSubmit({
       freighter_id: freighterId,
+      cost_company_id: costCompanyId,
       pickup_location: pickup.trim(),
       delivery_location: delivery.trim(),
       observations: obs.trim() || undefined,
@@ -489,15 +493,27 @@ function NewOFRModal({
   const artOptions = articles.map(a => ({ value: a.id, label: `${a.name}${(a as any).client_name ? ` (${(a as any).client_name})` : ''}` }));
   const yarnOptions = yarnTypes.map(y => ({ value: y.id, label: y.name }));
   const freighterOptions = freighters.filter(f => f.active).map(f => ({ value: f.id, label: f.name }));
+  const costCompanyOptions = costCompanies.filter(c => c.active).map(c => ({ value: c.id, label: c.name }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Nova Ordem de Frete</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div>
-            <Label>Freteiro *</Label>
-            <SearchableSelect value={freighterId} onValueChange={setFreighterId} options={freighterOptions} placeholder="Selecione o freteiro" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Freteiro *</Label>
+              <SearchableSelect value={freighterId} onValueChange={setFreighterId} options={freighterOptions} placeholder="Selecione o freteiro" />
+            </div>
+            <div>
+              <Label>Empresa (Rateio de custo) *</Label>
+              <SearchableSelect
+                value={costCompanyId}
+                onValueChange={setCostCompanyId}
+                options={costCompanyOptions}
+                placeholder={costCompanyOptions.length === 0 ? 'Cadastre em Empresas' : 'Selecione a empresa'}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
