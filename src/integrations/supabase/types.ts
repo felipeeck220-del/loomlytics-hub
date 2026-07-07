@@ -1522,10 +1522,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "freight_orders_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "freight_orders_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_orders_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1536,10 +1550,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "freight_orders_delivery_started_by_fkey"
+            columns: ["delivery_started_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "freight_orders_freighter_id_fkey"
             columns: ["freighter_id"]
             isOneToOne: false
             referencedRelation: "freighters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_orders_pickup_started_by_fkey"
+            columns: ["pickup_started_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
