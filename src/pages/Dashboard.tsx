@@ -1268,39 +1268,37 @@ function DashboardKpiCard({ label, value, previousValue, currentRaw, borderColor
     <Card className={cn('border-l-4', borderColor, effBg)}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-            {loading ? (
-              <Skeleton className="h-8 w-28 my-1" />
-            ) : (
-              <p className="text-2xl font-bold text-foreground">{value}</p>
-            )}
-            {loading ? (
-              <div className="space-y-1.5 mt-1">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-3 w-32" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-            ) : (
-              <>
+            <p className="text-2xl font-bold text-foreground leading-8 min-h-8">
+              {loading ? <Skeleton className="h-6 w-28 inline-block align-middle" /> : value}
+            </p>
             {showVariation && (
-              <Badge variant="outline" className={cn(
-                'text-[10px] mt-1',
-                isPositive
-                  ? 'bg-success/10 text-success border-success/20'
-                  : 'bg-destructive/10 text-destructive border-destructive/20'
-              )}>
-                {isPositive ? '▲' : '▼'} {formatPercent(Math.abs(variation))}
-              </Badge>
+              <div className="mt-1 h-5 flex items-center">
+                {loading ? (
+                  <Skeleton className="h-4 w-16" />
+                ) : (
+                  <Badge variant="outline" className={cn(
+                    'text-[10px]',
+                    isPositive
+                      ? 'bg-success/10 text-success border-success/20'
+                      : 'bg-destructive/10 text-destructive border-destructive/20'
+                  )}>
+                    {isPositive ? '▲' : '▼'} {formatPercent(Math.abs(variation))}
+                  </Badge>
+                )}
+              </div>
             )}
             {showComparison && (
-              <p className="text-xs text-muted-foreground mt-1">Anterior: {prevDisplay}</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-4 min-h-4">
+                {loading ? <Skeleton className="h-3 w-24 inline-block align-middle" /> : <>Anterior: {prevDisplay}</>}
+              </p>
             )}
-            <p className="text-[11px] text-muted-foreground font-light mt-1">{footer}</p>
-              </>
-            )}
+            <p className="text-[11px] text-muted-foreground font-light mt-1 leading-4 min-h-4">
+              {loading ? <Skeleton className="h-3 w-32 inline-block align-middle" /> : footer}
+            </p>
           </div>
-          <div className={cn("text-muted-foreground", loading && "animate-pulse")}>{icon}</div>
+          <div className={cn("text-muted-foreground shrink-0", loading && "animate-pulse")}>{icon}</div>
         </div>
       </CardContent>
     </Card>
