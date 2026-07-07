@@ -126,10 +126,8 @@ export async function generateYarnSalesReportPdf(input: YarnSalesReportInput) {
     startY: y,
     theme: 'plain',
     body: [[
-      `NFs consideradas: ${grandNfs.size}`,
       `Tipos de fio: ${rowsSummary.length}`,
       `Peso total: ${fmtNum(grandKg)} kg`,
-      canSeeFinancial ? `Valor total: ${fmtMoney(grandValue)}` : `Caixas: ${fmtNum(grandBoxes, 0)}`,
     ]],
     styles: { fontSize: 9, halign: 'center', fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
     margin: { left: margin, right: margin },
@@ -144,31 +142,10 @@ export async function generateYarnSalesReportPdf(input: YarnSalesReportInput) {
     return;
   }
 
-  // Tabela resumo por tipo de fio
-  const summaryHead = canSeeFinancial
-    ? [['Tipo de Fio', 'NFs', 'Caixas', 'Peso (kg)', 'R$/kg médio', 'Valor Total']]
-    : [['Tipo de Fio', 'NFs', 'Caixas', 'Peso (kg)']];
-  const summaryBody = rowsSummary.map(r => {
-    const avg = r.totalKg > 0 ? r.totalValue / r.totalKg : 0;
-    return canSeeFinancial
-      ? [
-          sanitizePdfText(r.yarnName),
-          String(r.invoiceIds.size),
-          fmtNum(r.totalBoxes, 0),
-          fmtNum(r.totalKg),
-          fmtMoney(avg),
-          fmtMoney(r.totalValue),
-        ]
-      : [
-          sanitizePdfText(r.yarnName),
-          String(r.invoiceIds.size),
-          fmtNum(r.totalBoxes, 0),
-          fmtNum(r.totalKg),
-        ];
-  });
-  const summaryFoot = canSeeFinancial
-    ? [['TOTAL', String(grandNfs.size), fmtNum(grandBoxes, 0), fmtNum(grandKg), '', fmtMoney(grandValue)]]
-    : [['TOTAL', String(grandNfs.size), fmtNum(grandBoxes, 0), fmtNum(grandKg)]];
+  // Tabela resumo por tipo de fio (apenas Tipo de Fio e Peso)
+  const summaryHead = [['Tipo de Fio', 'Peso (kg)']];
+  const summaryBody = rowsSummary.map(r => [sanitizePdfText(r.yarnName), fmtNum(r.totalKg)]);
+  const summaryFoot = [['TOTAL', fmtNum(grandKg)]];
 
   autoTable(pdf, {
     startY: y,
@@ -179,45 +156,10 @@ export async function generateYarnSalesReportPdf(input: YarnSalesReportInput) {
     headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 9 },
     footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold', fontSize: 9 },
     styles: { fontSize: 9, cellPadding: 2 },
-    columnStyles: canSeeFinancial
-      ? { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' } }
-      : { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+    columnStyles: { 1: { halign: 'right' } },
     margin: { left: margin, right: margin },
   });
   y = (pdf as any).lastAutoTable.finalY + 6;
-
-  // Detalhamento por tipo → marcas
-  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11);
-  if (y > pageH - 30) { pdf.addPage(); y = 15; }
-  pdf.text('Detalhamento por Marca', margin, y); y += 2;
-
-  for (const r of rowsSummary) {
-    const brandRows = Array.from(r.brands.entries())
-      .sort((a, b) => b[1].kg - a[1].kg)
-      .map(([brand, v]) => {
-        const avg = v.kg > 0 ? v.value / v.kg : 0;
-        return canSeeFinancial
-          ? [sanitizePdfText(brand), fmtNum(v.boxes, 0), fmtNum(v.kg), fmtMoney(avg), fmtMoney(v.value)]
-          : [sanitizePdfText(brand), fmtNum(v.boxes, 0), fmtNum(v.kg)];
-      });
-
-    if (y > pageH - 40) { pdf.addPage(); y = 15; }
-    autoTable(pdf, {
-      startY: y + 3,
-      head: canSeeFinancial
-        ? [[`${r.yarnName} — ${fmtNum(r.totalKg)} kg`, 'Caixas', 'Peso (kg)', 'R$/kg médio', 'Valor']]
-        : [[`${r.yarnName} — ${fmtNum(r.totalKg)} kg`, 'Caixas', 'Peso (kg)']],
-      body: brandRows,
-      theme: 'grid',
-      headStyles: { fillColor: [15, 118, 110], textColor: 255, fontSize: 9 },
-      styles: { fontSize: 8.5, cellPadding: 1.8 },
-      columnStyles: canSeeFinancial
-        ? { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
-        : { 1: { halign: 'right' }, 2: { halign: 'right' } },
-      margin: { left: margin, right: margin },
-    });
-    y = (pdf as any).lastAutoTable.finalY + 3;
-  }
 
   // Rodapé numérico de páginas
   const total = pdf.getNumberOfPages();
