@@ -100,8 +100,9 @@ export default function AppLayout() {
    const isLider = user?.role === 'lider';
    const isMecanico = user?.role === 'mecanico';
    const isLiderNoite = user?.role === 'lider_noite';
+   const isFreteiro = user?.role === 'freteiro';
 
-   if (companyLoading && !isRefreshing && !isExpedition && !isLiderMecanica && !isLider && !isMecanico && !isLiderNoite) {
+   if (companyLoading && !isRefreshing && !isExpedition && !isLiderMecanica && !isLider && !isMecanico && !isLiderNoite && !isFreteiro) {
      return <LoadingScreen progress={loadingProgress} />;
    }
  
