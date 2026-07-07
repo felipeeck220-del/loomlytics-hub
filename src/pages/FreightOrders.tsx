@@ -621,13 +621,18 @@ function FreightersModal({
 
   const submit = () => {
     if (!name.trim()) return;
+    if (!userId) {
+      // requer vínculo com usuário freteiro
+      return;
+    }
     const prof = profiles.find(p => p.user_id === userId);
+    if (!prof) return;
     onCreate({
       name: name.trim(),
       phone: phone.trim() || undefined,
       vehicle: vehicle.trim() || undefined,
-      user_id: userId || undefined,
-      profile_id: prof?.id,
+      user_id: userId,
+      profile_id: prof.id,
     });
     setName(''); setPhone(''); setVehicle(''); setUserId('');
   };
@@ -653,7 +658,7 @@ function FreightersModal({
               <Input value={vehicle} onChange={e => setVehicle(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Vincular usuário (freteiro)</Label>
+              <Label className="text-xs">Vincular usuário (freteiro) *</Label>
               <Select value={userId} onValueChange={setUserId}>
                 <SelectTrigger><SelectValue placeholder="Nenhum (só cadastro)" /></SelectTrigger>
                 <SelectContent>
@@ -663,10 +668,15 @@ function FreightersModal({
                   ))}
                 </SelectContent>
               </Select>
+              {profiles.length > 0 && !userId && (
+                <p className="text-[11px] text-muted-foreground mt-1">Selecione um usuário com perfil <b>Freteiro</b> para vincular ao cadastro (obrigatório).</p>
+              )}
             </div>
           </div>
           <div className="flex justify-end">
-            <Button size="sm" onClick={submit}><Plus className="h-4 w-4 mr-1.5" />Adicionar</Button>
+            <Button size="sm" onClick={submit} disabled={!name.trim() || !userId}>
+              <Plus className="h-4 w-4 mr-1.5" />Adicionar
+            </Button>
           </div>
         </div>
 
