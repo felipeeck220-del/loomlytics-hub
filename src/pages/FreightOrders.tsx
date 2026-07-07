@@ -372,16 +372,28 @@ function OrderCard({
 /* ---------------- Modals ---------------- */
 
 function NewOFRModal({
-  open, onOpenChange, freighters, articles, onSubmit, submitting,
+  open, onOpenChange, freighters, articles, yarnTypes, onSubmit, submitting,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   freighters: Array<{ id: string; name: string; active: boolean }>;
   articles: Array<{ id: string; name: string; client_name?: string }>;
+  yarnTypes: Array<{ id: string; name: string }>;
   onSubmit: (p: {
     freighter_id: string; pickup_location: string; delivery_location: string;
     observations?: string;
-    items: Array<{ article_id?: string | null; article_name?: string; pieces: number; weight_kg: number }>;
+    delivery_doc_type?: 'nf' | 'rom' | null;
+    delivery_doc_number?: string | null;
+    items: Array<{
+      item_type: 'malha' | 'fio';
+      article_id?: string | null;
+      article_name?: string | null;
+      yarn_type_id?: string | null;
+      yarn_type_name?: string | null;
+      boxes?: number | null;
+      pieces: number;
+      weight_kg: number;
+    }>;
   }) => void;
   submitting: boolean;
 }) {
@@ -389,15 +401,25 @@ function NewOFRModal({
   const [pickup, setPickup] = useState('');
   const [delivery, setDelivery] = useState('');
   const [obs, setObs] = useState('');
-  const [items, setItems] = useState<Array<{ article_id: string; pieces: number; weight_kg: string }>>([
-    { article_id: '', pieces: 0, weight_kg: '' },
+  const [docType, setDocType] = useState<'nf' | 'rom' | ''>('');
+  const [docNumber, setDocNumber] = useState('');
+  const [items, setItems] = useState<Array<{
+    item_type: 'malha' | 'fio';
+    article_id: string;
+    yarn_type_id: string;
+    boxes: string;
+    pieces: number;
+    weight_kg: string;
+  }>>([
+    { item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' },
   ]);
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       setFreighterId(''); setPickup(''); setDelivery(''); setObs('');
-      setItems([{ article_id: '', pieces: 0, weight_kg: '' }]);
+      setDocType(''); setDocNumber('');
+      setItems([{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
     }
   }, [open]);
 
@@ -405,19 +427,40 @@ function NewOFRModal({
     if (!freighterId) return toast({ title: 'Selecione o freteiro', variant: 'destructive' });
     if (!pickup.trim() || !delivery.trim()) return toast({ title: 'Preencha coleta e entrega', variant: 'destructive' });
     const cleaned = items
-      .map(i => ({ ...i, weight_num: parseFloat((i.weight_kg || '0').toString().replace(',', '.')) || 0 }))
-      .filter(i => i.article_id && (i.pieces > 0 || i.weight_num > 0));
+      .map(i => ({
+        ...i,
+        weight_num: parseFloat((i.weight_kg || '0').toString().replace(',', '.')) || 0,
+        boxes_num: parseInt(i.boxes || '0', 10) || 0,
+      }))
+      .filter(i => {
+        if (i.item_type === 'fio') return i.yarn_type_id && (i.boxes_num > 0 || i.weight_num > 0);
+        return i.article_id && (i.pieces > 0 || i.weight_num > 0);
+      });
     if (!cleaned.length) return toast({ title: 'Adicione pelo menos 1 artigo', variant: 'destructive' });
     onSubmit({
       freighter_id: freighterId,
       pickup_location: pickup.trim(),
       delivery_location: delivery.trim(),
       observations: obs.trim() || undefined,
+      delivery_doc_type: docType || null,
+      delivery_doc_number: docNumber.trim() || null,
       items: cleaned.map(i => {
+        if (i.item_type === 'fio') {
+          const yt = yarnTypes.find(y => y.id === i.yarn_type_id);
+          return {
+            item_type: 'fio' as const,
+            yarn_type_id: i.yarn_type_id,
+            yarn_type_name: yt?.name || null,
+            boxes: i.boxes_num,
+            pieces: 0,
+            weight_kg: i.weight_num,
+          };
+        }
         const art = articles.find(a => a.id === i.article_id);
         return {
+          item_type: 'malha' as const,
           article_id: i.article_id,
-          article_name: art?.name,
+          article_name: art?.name || null,
           pieces: i.pieces,
           weight_kg: i.weight_num,
         };
@@ -426,6 +469,7 @@ function NewOFRModal({
   };
 
   const artOptions = articles.map(a => ({ value: a.id, label: `${a.name}${(a as any).client_name ? ` (${(a as any).client_name})` : ''}` }));
+  const yarnOptions = yarnTypes.map(y => ({ value: y.id, label: y.name }));
   const freighterOptions = freighters.filter(f => f.active).map(f => ({ value: f.id, label: f.name }));
 
   return (
@@ -447,6 +491,22 @@ function NewOFRModal({
               <Input value={delivery} onChange={e => setDelivery(e.target.value)} placeholder="Ex: Cliente XYZ" />
             </div>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label>Documento (opcional)</Label>
+              <Select value={docType} onValueChange={(v) => setDocType(v as any)}>
+                <SelectTrigger><SelectValue placeholder="NF ou Romaneio" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nf">NF</SelectItem>
+                  <SelectItem value="rom">Romaneio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Nº NF/ROM</Label>
+              <Input value={docNumber} onChange={e => setDocNumber(e.target.value)} placeholder="Ex: 12345" />
+            </div>
+          </div>
           <div>
             <Label>Observações</Label>
             <Textarea value={obs} onChange={e => setObs(e.target.value)} rows={2} />
@@ -454,36 +514,71 @@ function NewOFRModal({
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label>Artigos *</Label>
-              <Button type="button" variant="outline" size="sm" onClick={() => setItems([...items, { article_id: '', pieces: 0, weight_kg: '' }])}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar artigo
+              <Label>Itens *</Label>
+              <Button type="button" variant="outline" size="sm" onClick={() => setItems([...items, { item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }])}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar item
               </Button>
             </div>
             <div className="space-y-2">
               {items.map((it, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-2">
-                  <div className="col-span-12 sm:col-span-6">
-                    <Label className="text-xs">Artigo</Label>
-                    <SearchableSelect
-                      value={it.article_id}
-                      onValueChange={(v) => setItems(items.map((x, i) => i === idx ? { ...x, article_id: v } : x))}
-                      options={artOptions}
-                      placeholder="Selecione"
-                    />
-                  </div>
-                  <div className="col-span-5 sm:col-span-2">
-                    <Label className="text-xs">Peças</Label>
-                    <Input type="number" min={0} value={it.pieces || ''} onChange={e => setItems(items.map((x, i) => i === idx ? { ...x, pieces: parseInt(e.target.value || '0', 10) } : x))} />
-                  </div>
-                  <div className="col-span-5 sm:col-span-3">
-                    <Label className="text-xs">Peso (kg)</Label>
-                    <BrazilianWeightInput value={it.weight_kg} onChange={(v) => setItems(items.map((x, i) => i === idx ? { ...x, weight_kg: v } : x))} />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setItems(items.filter((_, i) => i !== idx))} disabled={items.length === 1}>
+                <div key={idx} className="border rounded-lg p-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">Tipo:</Label>
+                    <Select
+                      value={it.item_type}
+                      onValueChange={(v) => setItems(items.map((x, i) => i === idx ? { ...x, item_type: v as any } : x))}
+                    >
+                      <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="malha">Malha</SelectItem>
+                        <SelectItem value="fio">Fio</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="ghost" size="icon" className="ml-auto text-destructive" onClick={() => setItems(items.filter((_, i) => i !== idx))} disabled={items.length === 1}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
+                  {it.item_type === 'malha' ? (
+                    <div className="grid grid-cols-12 gap-2 items-end">
+                      <div className="col-span-12 sm:col-span-7">
+                        <Label className="text-xs">Artigo</Label>
+                        <SearchableSelect
+                          value={it.article_id}
+                          onValueChange={(v) => setItems(items.map((x, i) => i === idx ? { ...x, article_id: v } : x))}
+                          options={artOptions}
+                          placeholder="Selecione"
+                        />
+                      </div>
+                      <div className="col-span-6 sm:col-span-2">
+                        <Label className="text-xs">Peças</Label>
+                        <Input type="number" min={0} value={it.pieces || ''} onChange={e => setItems(items.map((x, i) => i === idx ? { ...x, pieces: parseInt(e.target.value || '0', 10) } : x))} />
+                      </div>
+                      <div className="col-span-6 sm:col-span-3">
+                        <Label className="text-xs">Peso (kg)</Label>
+                        <BrazilianWeightInput value={it.weight_kg} onChange={(v) => setItems(items.map((x, i) => i === idx ? { ...x, weight_kg: v } : x))} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-12 gap-2 items-end">
+                      <div className="col-span-12 sm:col-span-6">
+                        <Label className="text-xs">Tipo de fio</Label>
+                        <SearchableSelect
+                          value={it.yarn_type_id}
+                          onValueChange={(v) => setItems(items.map((x, i) => i === idx ? { ...x, yarn_type_id: v } : x))}
+                          options={yarnOptions}
+                          placeholder="Selecione o fio"
+                        />
+                      </div>
+                      <div className="col-span-6 sm:col-span-3">
+                        <Label className="text-xs">Caixas</Label>
+                        <Input type="number" min={0} value={it.boxes} onChange={e => setItems(items.map((x, i) => i === idx ? { ...x, boxes: e.target.value } : x))} />
+                      </div>
+                      <div className="col-span-6 sm:col-span-3">
+                        <Label className="text-xs">Peso (kg)</Label>
+                        <BrazilianWeightInput value={it.weight_kg} onChange={(v) => setItems(items.map((x, i) => i === idx ? { ...x, weight_kg: v } : x))} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
