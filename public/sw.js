@@ -27,10 +27,22 @@ self.addEventListener('push', (event) => {
     badge: '/favicon.png',
     tag: data.tag || 'malhagest-notification',
     renotify: true,
-    data: { url },
+    data: { url, source: data.source || null, ref_id: data.ref_id || null },
     vibrate: [120, 60, 120],
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil((async () => {
+    // Badge no ícone do PWA (Android/Windows/macOS). iOS Safari lê do payload nativo.
+    try {
+      if (typeof data.badge === 'number' && 'setAppBadge' in self.navigator) {
+        if (data.badge > 0) {
+          await self.navigator.setAppBadge(data.badge);
+        } else if ('clearAppBadge' in self.navigator) {
+          await self.navigator.clearAppBadge();
+        }
+      }
+    } catch (_) { /* silencioso */ }
+    await self.registration.showNotification(title, options);
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {
