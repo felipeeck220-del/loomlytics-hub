@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, Truck, Building2, Package, DollarSign, Weight as WeightIcon, FileText } from 'lucide-react';
+import { Search, Download, Truck, Building2, Package, DollarSign, Weight as WeightIcon, FileText, Eye } from 'lucide-react';
 import { sanitizePdfText } from '@/lib/pdfUtils';
 
 function fmtKg(n: number): string {
@@ -37,9 +37,10 @@ interface Props {
   hasFullAccess: boolean;
   isFreteiro: boolean;
   companyName: string;
+  onOpenDetails?: (order: FreightOrder) => void;
 }
 
-export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyName }: Props) {
+export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyName, onOpenDetails }: Props) {
   const [month, setMonth] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [freighterFilter, setFreighterFilter] = useState<string>('all');
@@ -379,6 +380,7 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
                       <th className="py-2 pr-3">NF/ROM</th>
                       <th className="py-2 pr-3 text-right">Peso</th>
                       <th className="py-2 pr-3 text-right">Frete</th>
+                      <th className="py-2 pr-3 text-right w-10">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -401,6 +403,17 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
                           </td>
                           <td className="py-2 pr-3 text-right">{fmtKg(kg)}</td>
                           <td className="py-2 pr-3 text-right font-semibold text-emerald-700 dark:text-emerald-400">{fmtMoney(o.freight_total)}</td>
+                          <td className="py-2 pr-3 text-right">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              title="Ver relatório completo da OFR"
+                              onClick={() => onOpenDetails?.(o)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
