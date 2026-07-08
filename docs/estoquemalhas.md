@@ -374,3 +374,18 @@ Esta aba alimentará a seção **"Estoque de Malha"** no PDF de Fechamento Mensa
 
 *Documento criado em: 03/04/2026*
 *Status: ✅ IMPLEMENTADO — Aba "Estoque Malha" funcional na página Invoices.*
+
+---
+
+## ⚠️ Regressão histórica corrigida em 08/07/2026 — Paginação obrigatória
+
+**Sintoma:** OFs com status `separating`/`ready` (paletes criados) não apareciam somadas em **Reservado (OFs Pronto)** — o KPI e as colunas por cliente/artigo ficavam abaixo do real.
+
+**Causa raiz:** As queries de `stock_movements`, `invoices` e `invoice_items` em `src/pages/StockMalha.tsx` usavam `.select(...).eq('company_id', ...)` sem `.range()`. O PostgREST aplica um **limite implícito de 1000 linhas** — assim que a empresa passa dessa marca (Trama Certa: 1161 linhas em `stock_movements`), as `reserve` mais recentes (justamente as OFs Prontas ativas) ficam de fora do `useMemo` que calcula `reservedKg/reservedRolls`.
+
+**Correção definitiva:** helper local `fetchAllByCompany<T>(table, companyId, columns)` no topo do componente, que pagina em blocos de 1000 até esgotar (`order('created_at').order('id').range(from, from+999)`), usado pelas três queries.
+
+**Regra de ouro para não repetir:**
+- Nunca ler `stock_movements`, `invoices`, `invoice_items`, `productions`, `own_stock_movements` ou `defect_records` com um `.select().eq()` "cru". Sempre paginar.
+- Onde já existe `fetchAllPaginated` (ex.: `src/pages/Invoices.tsx`), reutilize; em outros arquivos, replique o mesmo padrão local.
+- Ao adicionar uma nova query sobre tabelas de alto volume, incluir também um filtro de data quando o cálculo permitir, para reduzir volume — mas **paginação continua obrigatória**.
