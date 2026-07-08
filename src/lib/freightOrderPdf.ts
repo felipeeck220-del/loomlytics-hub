@@ -43,26 +43,68 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
-  let y = 12;
+  const margin = 12;
+  let y = margin;
 
-  // Header
+  // ===== Standard system header (matches Reports.tsx pattern) =====
+  const headerH = 25;
+  const leftX = margin + 5;
+  const rightX = pageW - margin - 5;
+  const grayBg: [number, number, number] = [249, 250, 251];
+  const border: [number, number, number] = [229, 231, 235];
+  const textDark: [number, number, number] = [17, 24, 39];
+  const textMid: [number, number, number] = [107, 114, 128];
+
+  pdf.setFillColor(...grayBg);
+  pdf.rect(margin, y, pageW - 2 * margin, headerH, 'F');
+  pdf.setDrawColor(...border);
+  pdf.setLineWidth(0.5);
+  pdf.rect(margin, y, pageW - 2 * margin, headerH, 'S');
+
+  const dateStr = `Emitido em ${fmtDateTime(new Date().toISOString())}`;
+  let logoDrawn = false;
   if (companyLogoUrl) {
     const logo = await fetchImageDataUrl(companyLogoUrl);
     if (logo) {
       const fmt = logo.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-      try { pdf.addImage(logo, fmt as any, 12, y, 22, 14); } catch { /* ignore */ }
+      try {
+        pdf.addImage(logo, fmt as any, leftX, y + 2.5, 24, 14);
+        logoDrawn = true;
+      } catch { /* ignore */ }
     }
   }
-  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12);
-  pdf.text(sanitizePdfText(companyName), pageW / 2, y + 6, { align: 'center' });
-  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
-  pdf.text(`Emitido em ${fmtDateTime(new Date().toISOString())}`, pageW / 2, y + 11, { align: 'center' });
-  y += 20;
-  pdf.setDrawColor(200); pdf.line(12, y, pageW - 12, y); y += 6;
+  if (!logoDrawn && companyName) {
+    pdf.setFontSize(10); pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(...textDark);
+    pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+  }
+  pdf.setFontSize(8); pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(...textMid);
+  pdf.text(dateStr, leftX, y + 22);
 
-  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14);
-  pdf.text(sanitizePdfText(`RELATÓRIO DE ORDEM DE FRETE — OFR #${order.ofr_number}`), pageW / 2, y, { align: 'center' });
-  y += 8;
+  // Center: title
+  pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(...textDark);
+  const title = sanitizePdfText(`RELATÓRIO DE ORDEM DE FRETE`);
+  pdf.text(title, pageW / 2, y + 11, { align: 'center' });
+  pdf.setFontSize(10); pdf.setFont('helvetica', 'bold');
+  pdf.text(sanitizePdfText(`OFR #${order.ofr_number}`), pageW / 2, y + 18, { align: 'center' });
+
+  // Right: status
+  const statusLabel =
+    order.status === 'open' ? 'ABERTO' :
+    order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress' ? 'EM CURSO' :
+    order.status === 'completed' ? 'FINALIZADO' :
+    order.status === 'cancelled' ? 'CANCELADO' : String(order.status).toUpperCase();
+  pdf.setFontSize(9); pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(...textDark);
+  pdf.text(sanitizePdfText(`Status: ${statusLabel}`), rightX, y + 10, { align: 'right' });
+  pdf.setFontSize(8); pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(...textMid);
+  pdf.text(sanitizePdfText(`Criada em ${fmtDateTime(order.created_at)}`), rightX, y + 22, { align: 'right' });
+
+  pdf.setTextColor(0, 0, 0);
+  y += headerH + 6;
 
   // Dados gerais
   pdf.setFontSize(10); pdf.setFont('helvetica', 'normal');
