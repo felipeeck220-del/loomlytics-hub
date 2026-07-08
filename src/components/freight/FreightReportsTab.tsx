@@ -286,10 +286,13 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
 
     // Detalhamento OFRs
     pdf.addPage();
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12);
-    pdf.text(sanitizePdfText('Detalhamento das OFRs'), 12, 14);
+    y = margin;
+    addHeader();
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(...textDark);
+    pdf.text(sanitizePdfText('Detalhamento das OFRs'), margin, y);
+    y += 4;
     autoTable(pdf, {
-      startY: 20,
+      startY: y,
       head: [['OFR', 'Data', 'Freteiro', 'Rateio', 'Coleta', 'Entrega', 'NF/ROM', 'Peso', 'Frete']],
       body: filtered.map(o => {
         const kg = (o.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
