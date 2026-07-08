@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
-import { useFreightOrders, type FreightOrderStatus, type FreightOrder } from '@/hooks/useFreightOrders';
+import { useFreightOrders, type FreightOrderStatus, type FreightOrder, type FreightOrderItem } from '@/hooks/useFreightOrders';
 import { generateFreightOrderPdf } from '@/lib/freightOrderPdf';
 import { FreightReportsTab } from '@/components/freight/FreightReportsTab';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
@@ -365,12 +365,46 @@ function OrderCard({
               <div><span className="text-muted-foreground text-xs uppercase">Entrega:</span> <span className="font-medium">{order.delivery_location}</span></div>
             </div>
 
-            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3">
-              <span>{(order.items || []).length} item(ns)</span>
-              {totalPieces > 0 && <span>· {totalPieces} peça(s)</span>}
-              {totalBoxes > 0 && <span>· {totalBoxes} caixa(s)</span>}
-              <span>· {totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
-              {order.freight_total != null && <span className="text-emerald-700 dark:text-emerald-400 font-semibold">· Frete {fmtMoney(order.freight_total)}</span>}
+            <div className="rounded-md border border-border/60 bg-muted/30 overflow-hidden">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-2.5 py-1 bg-muted/60 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span>{(order.items || []).length} item(ns)</span>
+                {totalPieces > 0 && <span>· {totalPieces} peça(s)</span>}
+                {totalBoxes > 0 && <span>· {totalBoxes} caixa(s)</span>}
+                <span>· {totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
+                {order.freight_total != null && <span className="text-emerald-700 dark:text-emerald-400">· Frete {fmtMoney(order.freight_total)}</span>}
+              </div>
+              {(order.items || []).length > 0 && (
+                <ul className="divide-y divide-border/50">
+                  {(order.items || []).slice(0, 4).map(it => {
+                    const isFio = it.item_type === 'fio';
+                    const name = isFio ? (it.yarn_type_name || 'Fio') : (it.article?.name || it.article_name || 'Artigo');
+                    const client = !isFio ? (it.article?.client_name || null) : null;
+                    const kg = Number(it.weight_kg || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    return (
+                      <li key={it.id} className="flex items-center gap-2 px-2.5 py-1 text-xs">
+                        <span className={cn(
+                          'inline-block w-1.5 h-1.5 rounded-full shrink-0',
+                          isFio ? 'bg-violet-500' : 'bg-sky-500'
+                        )} />
+                        <span className="font-medium text-foreground truncate">
+                          {name}
+                          {client && <span className="text-muted-foreground font-normal"> · {client}</span>}
+                        </span>
+                        <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
+                          {isFio
+                            ? `${it.boxes || 0} cx · ${kg} kg`
+                            : `${it.pieces} pçs · ${kg} kg`}
+                        </span>
+                      </li>
+                    );
+                  })}
+                  {(order.items || []).length > 4 && (
+                    <li className="px-2.5 py-1 text-[11px] text-muted-foreground italic">
+                      + {(order.items || []).length - 4} outro(s) item(ns) — ver Detalhes
+                    </li>
+                  )}
+                </ul>
+              )}
             </div>
           </div>
 
@@ -1020,26 +1054,7 @@ function DetailsModal({
             )}
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
-            <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold">Itens</div>
-            <div className="divide-y">
-              {(order.items || []).map(i => (
-                <div key={i.id} className="px-3 py-1.5 flex justify-between items-center text-xs gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="outline" className={cn('text-[9px] uppercase', i.item_type === 'fio' ? 'border-violet-500 text-violet-700 dark:text-violet-400' : 'border-sky-500 text-sky-700 dark:text-sky-400')}>
-                      {i.item_type === 'fio' ? 'Fio' : 'Malha'}
-                    </Badge>
-                    <span className="truncate">{i.item_type === 'fio' ? (i.yarn_type_name || '—') : (i.article?.name || i.article_name || '—')}</span>
-                  </div>
-                  <span className="text-muted-foreground shrink-0">
-                    {i.item_type === 'fio'
-                      ? `${i.boxes || 0} cx · ${Number(i.weight_kg).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`
-                      : `${i.pieces} pçs · ${Number(i.weight_kg).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ItemsBreakdown items={order.items || []} />
 
           <div className="border rounded-lg overflow-hidden">
             <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold">Linha do tempo</div>
@@ -1094,6 +1109,103 @@ function DetailsModal({
     </>
   );
 }
+function ItemsBreakdown({ items }: { items: FreightOrderItem[] }) {
+  const fmtKg = (n: number) => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const malhas = items.filter(i => i.item_type !== 'fio');
+  const fios = items.filter(i => i.item_type === 'fio');
+  const sum = (arr: FreightOrderItem[], k: 'pieces' | 'weight_kg' | 'boxes') =>
+    arr.reduce((s, i) => s + Number((i as any)[k] || 0), 0);
+  const totalPieces = sum(malhas, 'pieces');
+  const totalBoxes = sum(fios, 'boxes');
+  const kgMalha = sum(malhas, 'weight_kg');
+  const kgFio = sum(fios, 'weight_kg');
+  const kgTotal = kgMalha + kgFio;
+  const avgMalha = totalPieces > 0 ? kgMalha / totalPieces : 0;
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <div className="bg-muted/60 px-3 py-1.5 text-xs font-semibold flex items-center justify-between gap-2">
+        <span>Itens ({items.length})</span>
+        <span className="text-[11px] font-mono text-muted-foreground">Total: {fmtKg(kgTotal)} kg</span>
+      </div>
+
+      {malhas.length > 0 && (
+        <div>
+          <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-sky-700 dark:text-sky-400 bg-sky-500/5 border-t border-b border-sky-500/20 flex items-center justify-between">
+            <span>Malhas · {malhas.length} item(ns)</span>
+            <span className="font-mono text-muted-foreground normal-case tracking-normal">{totalPieces} pçs · {fmtKg(kgMalha)} kg{avgMalha > 0 && ` · ${fmtKg(avgMalha)} kg/pç`}</span>
+          </div>
+          <table className="w-full text-xs">
+            <thead className="text-[10px] uppercase text-muted-foreground bg-muted/30">
+              <tr>
+                <th className="text-left px-3 py-1 font-medium">Artigo</th>
+                <th className="text-left px-2 py-1 font-medium">Cliente</th>
+                <th className="text-right px-2 py-1 font-medium">Peças</th>
+                <th className="text-right px-2 py-1 font-medium">Kg</th>
+                <th className="text-right px-3 py-1 font-medium">Kg/pç</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {malhas.map(i => {
+                const kg = Number(i.weight_kg || 0);
+                const pcs = Number(i.pieces || 0);
+                const avg = pcs > 0 ? kg / pcs : 0;
+                return (
+                  <tr key={i.id} className="hover:bg-muted/30">
+                    <td className="px-3 py-1 font-medium truncate max-w-[220px]">{i.article?.name || i.article_name || '—'}</td>
+                    <td className="px-2 py-1 text-muted-foreground truncate max-w-[180px]">{i.article?.client_name || '—'}</td>
+                    <td className="px-2 py-1 text-right font-mono">{pcs}</td>
+                    <td className="px-2 py-1 text-right font-mono">{fmtKg(kg)}</td>
+                    <td className="px-3 py-1 text-right font-mono text-muted-foreground">{avg > 0 ? fmtKg(avg) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {fios.length > 0 && (
+        <div>
+          <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-violet-700 dark:text-violet-400 bg-violet-500/5 border-t border-b border-violet-500/20 flex items-center justify-between">
+            <span>Fios · {fios.length} item(ns)</span>
+            <span className="font-mono text-muted-foreground normal-case tracking-normal">{totalBoxes} cx · {fmtKg(kgFio)} kg</span>
+          </div>
+          <table className="w-full text-xs">
+            <thead className="text-[10px] uppercase text-muted-foreground bg-muted/30">
+              <tr>
+                <th className="text-left px-3 py-1 font-medium">Tipo de Fio</th>
+                <th className="text-right px-2 py-1 font-medium">Caixas</th>
+                <th className="text-right px-2 py-1 font-medium">Kg</th>
+                <th className="text-right px-3 py-1 font-medium">Kg/cx</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {fios.map(i => {
+                const kg = Number(i.weight_kg || 0);
+                const bx = Number(i.boxes || 0);
+                const avg = bx > 0 ? kg / bx : 0;
+                return (
+                  <tr key={i.id} className="hover:bg-muted/30">
+                    <td className="px-3 py-1 font-medium truncate max-w-[280px]">{i.yarn_type_name || '—'}</td>
+                    <td className="px-2 py-1 text-right font-mono">{bx}</td>
+                    <td className="px-2 py-1 text-right font-mono">{fmtKg(kg)}</td>
+                    <td className="px-3 py-1 text-right font-mono text-muted-foreground">{avg > 0 ? fmtKg(avg) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {items.length === 0 && (
+        <p className="px-3 py-4 text-xs text-muted-foreground text-center">Nenhum item.</p>
+      )}
+    </div>
+  );
+}
+
 function CostCompaniesModal({
   open, onOpenChange, costCompanies, onCreate, onUpdate, onDelete,
 }: {
