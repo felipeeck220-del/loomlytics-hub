@@ -1109,6 +1109,103 @@ function DetailsModal({
     </>
   );
 }
+function ItemsBreakdown({ items }: { items: FreightOrderItem[] }) {
+  const fmtKg = (n: number) => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const malhas = items.filter(i => i.item_type !== 'fio');
+  const fios = items.filter(i => i.item_type === 'fio');
+  const sum = (arr: FreightOrderItem[], k: 'pieces' | 'weight_kg' | 'boxes') =>
+    arr.reduce((s, i) => s + Number((i as any)[k] || 0), 0);
+  const totalPieces = sum(malhas, 'pieces');
+  const totalBoxes = sum(fios, 'boxes');
+  const kgMalha = sum(malhas, 'weight_kg');
+  const kgFio = sum(fios, 'weight_kg');
+  const kgTotal = kgMalha + kgFio;
+  const avgMalha = totalPieces > 0 ? kgMalha / totalPieces : 0;
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <div className="bg-muted/60 px-3 py-1.5 text-xs font-semibold flex items-center justify-between gap-2">
+        <span>Itens ({items.length})</span>
+        <span className="text-[11px] font-mono text-muted-foreground">Total: {fmtKg(kgTotal)} kg</span>
+      </div>
+
+      {malhas.length > 0 && (
+        <div>
+          <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-sky-700 dark:text-sky-400 bg-sky-500/5 border-t border-b border-sky-500/20 flex items-center justify-between">
+            <span>Malhas · {malhas.length} item(ns)</span>
+            <span className="font-mono text-muted-foreground normal-case tracking-normal">{totalPieces} pçs · {fmtKg(kgMalha)} kg{avgMalha > 0 && ` · ${fmtKg(avgMalha)} kg/pç`}</span>
+          </div>
+          <table className="w-full text-xs">
+            <thead className="text-[10px] uppercase text-muted-foreground bg-muted/30">
+              <tr>
+                <th className="text-left px-3 py-1 font-medium">Artigo</th>
+                <th className="text-left px-2 py-1 font-medium">Cliente</th>
+                <th className="text-right px-2 py-1 font-medium">Peças</th>
+                <th className="text-right px-2 py-1 font-medium">Kg</th>
+                <th className="text-right px-3 py-1 font-medium">Kg/pç</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {malhas.map(i => {
+                const kg = Number(i.weight_kg || 0);
+                const pcs = Number(i.pieces || 0);
+                const avg = pcs > 0 ? kg / pcs : 0;
+                return (
+                  <tr key={i.id} className="hover:bg-muted/30">
+                    <td className="px-3 py-1 font-medium truncate max-w-[220px]">{i.article?.name || i.article_name || '—'}</td>
+                    <td className="px-2 py-1 text-muted-foreground truncate max-w-[180px]">{i.article?.client_name || '—'}</td>
+                    <td className="px-2 py-1 text-right font-mono">{pcs}</td>
+                    <td className="px-2 py-1 text-right font-mono">{fmtKg(kg)}</td>
+                    <td className="px-3 py-1 text-right font-mono text-muted-foreground">{avg > 0 ? fmtKg(avg) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {fios.length > 0 && (
+        <div>
+          <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-violet-700 dark:text-violet-400 bg-violet-500/5 border-t border-b border-violet-500/20 flex items-center justify-between">
+            <span>Fios · {fios.length} item(ns)</span>
+            <span className="font-mono text-muted-foreground normal-case tracking-normal">{totalBoxes} cx · {fmtKg(kgFio)} kg</span>
+          </div>
+          <table className="w-full text-xs">
+            <thead className="text-[10px] uppercase text-muted-foreground bg-muted/30">
+              <tr>
+                <th className="text-left px-3 py-1 font-medium">Tipo de Fio</th>
+                <th className="text-right px-2 py-1 font-medium">Caixas</th>
+                <th className="text-right px-2 py-1 font-medium">Kg</th>
+                <th className="text-right px-3 py-1 font-medium">Kg/cx</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {fios.map(i => {
+                const kg = Number(i.weight_kg || 0);
+                const bx = Number(i.boxes || 0);
+                const avg = bx > 0 ? kg / bx : 0;
+                return (
+                  <tr key={i.id} className="hover:bg-muted/30">
+                    <td className="px-3 py-1 font-medium truncate max-w-[280px]">{i.yarn_type_name || '—'}</td>
+                    <td className="px-2 py-1 text-right font-mono">{bx}</td>
+                    <td className="px-2 py-1 text-right font-mono">{fmtKg(kg)}</td>
+                    <td className="px-3 py-1 text-right font-mono text-muted-foreground">{avg > 0 ? fmtKg(avg) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {items.length === 0 && (
+        <p className="px-3 py-4 text-xs text-muted-foreground text-center">Nenhum item.</p>
+      )}
+    </div>
+  );
+}
+
 function CostCompaniesModal({
   open, onOpenChange, costCompanies, onCreate, onUpdate, onDelete,
 }: {
