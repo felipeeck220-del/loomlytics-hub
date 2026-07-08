@@ -411,6 +411,9 @@ function OrderCard({
             <Button variant="outline" size="sm" onClick={onDetails}>
               <Eye className="h-4 w-4 mr-1.5" /> Detalhes
             </Button>
+            <Button variant="outline" size="sm" onClick={onDownload}>
+              <Download className="h-4 w-4 mr-1.5" /> PDF
+            </Button>
 
             {order.status === 'open' && (isFreteiro || hasFullAccess) && (
               <Button size="sm" onClick={onStartPickup}>
@@ -420,11 +423,6 @@ function OrderCard({
             {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && (isFreteiro || hasFullAccess) && (
               <Button size="sm" onClick={onComplete}>
                 <CheckCircle2 className="h-4 w-4 mr-1.5" /> Finalizar
-              </Button>
-            )}
-            {order.status === 'completed' && (
-              <Button variant="outline" size="sm" onClick={onDownload}>
-                <Download className="h-4 w-4 mr-1.5" /> Baixar Relatório
               </Button>
             )}
             {hasFullAccess && order.status !== 'completed' && order.status !== 'cancelled' && (
