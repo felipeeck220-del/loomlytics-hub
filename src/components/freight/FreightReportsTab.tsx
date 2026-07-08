@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Download, Truck, Building2, Package, DollarSign, Weight as WeightIcon, FileText, Eye } from 'lucide-react';
 import { sanitizePdfText } from '@/lib/pdfUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 function fmtKg(n: number): string {
   return `${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
@@ -37,14 +38,16 @@ interface Props {
   hasFullAccess: boolean;
   isFreteiro: boolean;
   companyName: string;
+  companyLogoUrl?: string | null;
   onOpenDetails?: (order: FreightOrder) => void;
 }
 
-export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyName, onOpenDetails }: Props) {
+export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyName, companyLogoUrl, onOpenDetails }: Props) {
   const [month, setMonth] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [freighterFilter, setFreighterFilter] = useState<string>('all');
   const [costCompanyFilter, setCostCompanyFilter] = useState<string>('all');
+  const isMobile = useIsMobile();
 
   // Only completed OFRs are considered "realizados" para relatório
   const baseOrders = useMemo(
@@ -149,23 +152,82 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
     return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));
   }, [filtered]);
 
-  const exportPdf = () => {
+  const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+        } catch { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
+  const exportPdf = async () => {
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
     const pageW = pdf.internal.pageSize.getWidth();
-    let y = 12;
-    pdf.setFillColor(249, 250, 251);
-    pdf.rect(0, 0, pageW, 22, 'F');
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12);
-    pdf.text(sanitizePdfText(companyName || 'Empresa'), 12, 10);
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+    const margin = 15;
     const now = new Date();
-    pdf.text(`Emitido em ${now.toLocaleString('pt-BR')}`, 12, 15);
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14);
-    pdf.text(sanitizePdfText(isFreteiro ? 'Relatório de Fretes - Freteiro' : 'Relatório de Fretes'), pageW / 2, 12, { align: 'center' });
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
     const periodo = month === 'all' ? 'Todos os meses' : monthLabel(month);
-    pdf.text(sanitizePdfText(`Período: ${periodo}`), pageW - 12, 15, { align: 'right' });
-    y = 28;
+    const reportTitle = isFreteiro ? 'Relatório de Fretes - Freteiro' : 'Relatório de Fretes';
+    const dateStr = `Emitido em ${now.toLocaleString('pt-BR')}`;
+
+    const logoInfo = companyLogoUrl ? await loadLogo(companyLogoUrl) : null;
+
+    const grayBg: [number, number, number] = [249, 250, 251];
+    const border: [number, number, number] = [229, 231, 235];
+    const textDark: [number, number, number] = [17, 24, 39];
+    const textMid: [number, number, number] = [75, 85, 99];
+
+    const fitBox = (w: number, h: number, mw: number, mh: number) => {
+      if (!w || !h) return { width: mw, height: mh };
+      const s = Math.min(mw / w, mh / h);
+      return { width: w * s, height: h * s };
+    };
+
+    let y = margin;
+    const addHeader = () => {
+      const headerH = 25;
+      const leftX = margin + 5;
+      const rightX = pageW - margin - 5;
+      pdf.setFillColor(...grayBg);
+      pdf.rect(margin, y, pageW - 2 * margin, headerH, 'F');
+      pdf.setDrawColor(...border);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin, y, pageW - 2 * margin, headerH, 'S');
+
+      if (logoInfo) {
+        try {
+          const s = fitBox(logoInfo.width, logoInfo.height, 24, 14);
+          pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, s.width, s.height);
+        } catch { /* noop */ }
+      } else if (companyName) {
+        pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...textDark);
+        pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+      }
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...textMid);
+      pdf.text(dateStr, leftX, y + 22);
+
+      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...textDark);
+      const titleW = pdf.getTextWidth(reportTitle);
+      pdf.text(sanitizePdfText(reportTitle), (pageW - titleW) / 2, y + 12);
+
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...textMid);
+      const pText = `Período: ${periodo}`;
+      const pW = pdf.getTextWidth(pText);
+      pdf.text(sanitizePdfText(pText), rightX - pW, y + 22);
+
+      y += headerH + 8;
+    };
+    addHeader();
 
     // KPIs
     autoTable(pdf, {
@@ -226,10 +288,13 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
 
     // Detalhamento OFRs
     pdf.addPage();
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12);
-    pdf.text(sanitizePdfText('Detalhamento das OFRs'), 12, 14);
+    y = margin;
+    addHeader();
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(...textDark);
+    pdf.text(sanitizePdfText('Detalhamento das OFRs'), margin, y);
+    y += 4;
     autoTable(pdf, {
-      startY: 20,
+      startY: y,
       head: [['OFR', 'Data', 'Freteiro', 'Rateio', 'Coleta', 'Entrega', 'NF/ROM', 'Peso', 'Frete']],
       body: filtered.map(o => {
         const kg = (o.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
@@ -315,14 +380,14 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
           {/* Groupings (admin/lider) */}
           {!isFreteiro && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <GroupCard title="Por Freteiro" icon={<Truck className="h-4 w-4" />} rows={byFreighter} />
-              <GroupCard title="Por Empresa (Rateio de custo)" icon={<Building2 className="h-4 w-4" />} rows={byCostCompany} highlight />
+              <GroupCard title="Por Freteiro" icon={<Truck className="h-4 w-4" />} rows={byFreighter} isMobile={isMobile} />
+              <GroupCard title="Por Empresa (Rateio de custo)" icon={<Building2 className="h-4 w-4" />} rows={byCostCompany} highlight isMobile={isMobile} />
             </div>
           )}
 
           {/* Freteiro: destaque por Empresa (Rateio) */}
           {isFreteiro && (
-            <GroupCard title="Por Empresa (Rateio de custo)" icon={<Building2 className="h-4 w-4" />} rows={byCostCompany} highlight />
+            <GroupCard title="Por Empresa (Rateio de custo)" icon={<Building2 className="h-4 w-4" />} rows={byCostCompany} highlight isMobile={isMobile} />
           )}
 
           {/* Por mês */}
@@ -368,7 +433,56 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
                   {isFreteiro ? 'Meus Fretes' : 'Detalhamento das OFRs'} ({filtered.length})
                 </h3>
               </div>
-              <div className="overflow-x-auto">
+              {isMobile ? (
+                <div className="space-y-2">
+                  {filtered.map(o => {
+                    const kg = (o.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
+                    const rateio = o.cost_company_name || o.cost_company?.name || '—';
+                    return (
+                      <div key={o.id} className="rounded-lg border bg-muted/20 p-2.5">
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-bold text-sm">#{o.ofr_number}</span>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">{fmtDate(o.completed_at || o.created_at)}</span>
+                          </div>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" title="Ver relatório completo" onClick={() => onOpenDetails?.(o)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          <Badge className="text-[10px] bg-indigo-600/15 text-indigo-700 dark:text-indigo-300 border border-indigo-600/40 uppercase font-bold">{rateio}</Badge>
+                          {!isFreteiro && o.freighter?.name && (
+                            <Badge variant="outline" className="text-[10px]">
+                              <Truck className="h-3 w-3 mr-1" />{o.freighter.name}
+                            </Badge>
+                          )}
+                          {o.delivery_doc_number && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {o.delivery_doc_type === 'rom' ? 'ROM' : 'NF'} {o.delivery_doc_number}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground break-words mb-1.5">
+                          <span className="font-medium text-foreground">{o.pickup_location}</span>
+                          <span className="mx-1">→</span>
+                          <span className="font-medium text-foreground">{o.delivery_location}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                          <div className="rounded bg-background/60 p-1.5 text-center">
+                            <div className="text-muted-foreground">Peso</div>
+                            <div className="font-bold">{fmtKg(kg)}</div>
+                          </div>
+                          <div className="rounded bg-background/60 p-1.5 text-center">
+                            <div className="text-muted-foreground">Frete</div>
+                            <div className="font-bold text-emerald-700 dark:text-emerald-400">{fmtMoney(o.freight_total)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-xs text-muted-foreground text-left">
@@ -419,7 +533,8 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
                     })}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
@@ -449,12 +564,13 @@ function KpiCard({ icon, label, value, tone }: { icon: React.ReactNode; label: s
 }
 
 function GroupCard({
-  title, icon, rows, highlight,
+  title, icon, rows, highlight, isMobile,
 }: {
   title: string;
   icon: React.ReactNode;
   rows: Array<{ name: string; ofrs: number; kg: number; freight: number }>;
   highlight?: boolean;
+  isMobile?: boolean;
 }) {
   const totalFreight = rows.reduce((s, r) => s + r.freight, 0);
   return (
@@ -466,6 +582,34 @@ function GroupCard({
         </div>
         {rows.length === 0 ? (
           <p className="text-xs text-muted-foreground">Sem dados.</p>
+        ) : isMobile ? (
+          <div className="space-y-2">
+            {rows.map((r, i) => {
+              const pct = totalFreight > 0 ? (r.freight / totalFreight) * 100 : 0;
+              return (
+                <div key={i} className="rounded-lg border bg-muted/20 p-2.5">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="font-semibold text-sm break-words flex-1 min-w-0">{r.name}</div>
+                    <Badge variant="secondary" className="shrink-0 text-[10px]">{pct.toFixed(1)}%</Badge>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                    <div className="rounded bg-background/60 p-1.5 text-center">
+                      <div className="text-muted-foreground">OFRs</div>
+                      <div className="font-bold">{r.ofrs}</div>
+                    </div>
+                    <div className="rounded bg-background/60 p-1.5 text-center">
+                      <div className="text-muted-foreground">Peso</div>
+                      <div className="font-bold">{fmtKg(r.kg)}</div>
+                    </div>
+                    <div className="rounded bg-background/60 p-1.5 text-center">
+                      <div className="text-muted-foreground">Frete</div>
+                      <div className="font-bold text-emerald-700 dark:text-emerald-400">{fmtMoney(r.freight)}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
