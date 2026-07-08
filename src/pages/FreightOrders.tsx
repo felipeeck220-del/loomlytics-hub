@@ -798,23 +798,17 @@ function CompleteModal({
   onSubmit: (payload: {
     photos: Array<{ file: File; description?: string }>;
     freight_price_per_kg?: number | null;
-    delivery_doc_type?: 'nf' | 'rom' | null;
-    delivery_doc_number?: string | null;
   }) => void;
   submitting: boolean;
 }) {
   const [photos, setPhotos] = useState<Array<{ file: File; description: string; preview: string }>>([]);
   const [priceStr, setPriceStr] = useState('');
-  const [docType, setDocType] = useState<'nf' | 'rom' | ''>('');
-  const [docNumber, setDocNumber] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       setPhotos([]);
       setPriceStr('');
-      setDocType((order?.delivery_doc_type as any) || '');
-      setDocNumber(order?.delivery_doc_number || '');
     }
   }, [open, order?.id]);
 
@@ -845,8 +839,6 @@ function CompleteModal({
     onSubmit({
       photos: photos.map(p => ({ file: p.file, description: p.description })),
       freight_price_per_kg: priceNum > 0 ? priceNum : null,
-      delivery_doc_type: docType || null,
-      delivery_doc_number: docNumber.trim() || null,
     });
   };
 
@@ -858,8 +850,8 @@ function CompleteModal({
           <div className="rounded-md border bg-muted/30 p-3">
             <Label className="text-[10px] uppercase text-muted-foreground">Documento (definido na criação da OFR)</Label>
             <div className="mt-1 font-semibold text-sm text-foreground">
-              {docType
-                ? `${docType === 'rom' ? 'Romaneio' : 'NF'}${docNumber ? ` ${docNumber}` : ''}`
+              {order?.delivery_doc_type
+                ? `${order.delivery_doc_type === 'rom' ? 'Romaneio' : 'NF'}${order.delivery_doc_number ? ` ${order.delivery_doc_number}` : ''}`
                 : <span className="text-muted-foreground italic font-normal">Sem documento vinculado</span>}
             </div>
           </div>
