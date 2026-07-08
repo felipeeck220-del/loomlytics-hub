@@ -514,12 +514,13 @@ function KpiCard({ icon, label, value, tone }: { icon: React.ReactNode; label: s
 }
 
 function GroupCard({
-  title, icon, rows, highlight,
+  title, icon, rows, highlight, isMobile,
 }: {
   title: string;
   icon: React.ReactNode;
   rows: Array<{ name: string; ofrs: number; kg: number; freight: number }>;
   highlight?: boolean;
+  isMobile?: boolean;
 }) {
   const totalFreight = rows.reduce((s, r) => s + r.freight, 0);
   return (
@@ -531,6 +532,34 @@ function GroupCard({
         </div>
         {rows.length === 0 ? (
           <p className="text-xs text-muted-foreground">Sem dados.</p>
+        ) : isMobile ? (
+          <div className="space-y-2">
+            {rows.map((r, i) => {
+              const pct = totalFreight > 0 ? (r.freight / totalFreight) * 100 : 0;
+              return (
+                <div key={i} className="rounded-lg border bg-muted/20 p-2.5">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="font-semibold text-sm break-words flex-1 min-w-0">{r.name}</div>
+                    <Badge variant="secondary" className="shrink-0 text-[10px]">{pct.toFixed(1)}%</Badge>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                    <div className="rounded bg-background/60 p-1.5 text-center">
+                      <div className="text-muted-foreground">OFRs</div>
+                      <div className="font-bold">{r.ofrs}</div>
+                    </div>
+                    <div className="rounded bg-background/60 p-1.5 text-center">
+                      <div className="text-muted-foreground">Peso</div>
+                      <div className="font-bold">{fmtKg(r.kg)}</div>
+                    </div>
+                    <div className="rounded bg-background/60 p-1.5 text-center">
+                      <div className="text-muted-foreground">Frete</div>
+                      <div className="font-bold text-emerald-700 dark:text-emerald-400">{fmtMoney(r.freight)}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
