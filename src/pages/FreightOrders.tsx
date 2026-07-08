@@ -1154,8 +1154,6 @@ function ItemsBreakdown({ items }: { items: FreightOrderItem[] }) {
   const kgMalha = sum(malhas, 'weight_kg');
   const kgFio = sum(fios, 'weight_kg');
   const kgTotal = kgMalha + kgFio;
-  const avgMalha = totalPieces > 0 ? kgMalha / totalPieces : 0;
-
   return (
     <div className="border rounded-lg overflow-hidden">
       <div className="bg-muted/60 px-3 py-1.5 text-xs font-semibold flex items-center justify-between gap-2">
@@ -1167,7 +1165,7 @@ function ItemsBreakdown({ items }: { items: FreightOrderItem[] }) {
         <div>
           <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-sky-700 dark:text-sky-400 bg-sky-500/5 border-t border-b border-sky-500/20 flex flex-wrap items-center gap-x-2 gap-y-0.5 justify-between">
             <span>Malhas · {malhas.length} item(ns)</span>
-            <span className="font-mono text-muted-foreground normal-case tracking-normal">{totalPieces} pçs · {fmtKg(kgMalha)} kg{avgMalha > 0 && ` · ${fmtKg(avgMalha)} kg/pç`}</span>
+            <span className="font-mono text-muted-foreground normal-case tracking-normal">{totalPieces} pçs · {fmtKg(kgMalha)} kg</span>
           </div>
           <ul className="divide-y">
             {malhas.map(i => {
