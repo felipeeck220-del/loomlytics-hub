@@ -47,6 +47,7 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
   const [search, setSearch] = useState('');
   const [freighterFilter, setFreighterFilter] = useState<string>('all');
   const [costCompanyFilter, setCostCompanyFilter] = useState<string>('all');
+  const isMobile = useIsMobile();
 
   // Only completed OFRs are considered "realizados" para relatório
   const baseOrders = useMemo(
