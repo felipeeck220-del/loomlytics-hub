@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
-import { useFreightOrders, type FreightOrderStatus, type FreightOrder } from '@/hooks/useFreightOrders';
+import { useFreightOrders, type FreightOrderStatus, type FreightOrder, type FreightOrderItem } from '@/hooks/useFreightOrders';
 import { generateFreightOrderPdf } from '@/lib/freightOrderPdf';
 import { FreightReportsTab } from '@/components/freight/FreightReportsTab';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
