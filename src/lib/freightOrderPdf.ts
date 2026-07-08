@@ -182,6 +182,7 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
       footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 10, halign: 'center' },
+        1: { halign: 'left' },
         2: { halign: 'right', cellWidth: 25 },
         3: { halign: 'right', cellWidth: 30 },
       },
@@ -210,6 +211,7 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
       footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 10, halign: 'center' },
+        1: { halign: 'left' },
         2: { halign: 'right', cellWidth: 25 },
         3: { halign: 'right', cellWidth: 30 },
       },
