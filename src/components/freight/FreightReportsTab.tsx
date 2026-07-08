@@ -150,23 +150,82 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
     return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));
   }, [filtered]);
 
-  const exportPdf = () => {
+  const loadLogo = (url: string): Promise<{ data: string; width: number; height: number } | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve({ data: canvas.toDataURL('image/png'), width: img.naturalWidth, height: img.naturalHeight });
+        } catch { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
+  const exportPdf = async () => {
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
     const pageW = pdf.internal.pageSize.getWidth();
-    let y = 12;
-    pdf.setFillColor(249, 250, 251);
-    pdf.rect(0, 0, pageW, 22, 'F');
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12);
-    pdf.text(sanitizePdfText(companyName || 'Empresa'), 12, 10);
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+    const margin = 15;
     const now = new Date();
-    pdf.text(`Emitido em ${now.toLocaleString('pt-BR')}`, 12, 15);
-    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14);
-    pdf.text(sanitizePdfText(isFreteiro ? 'Relatório de Fretes - Freteiro' : 'Relatório de Fretes'), pageW / 2, 12, { align: 'center' });
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
     const periodo = month === 'all' ? 'Todos os meses' : monthLabel(month);
-    pdf.text(sanitizePdfText(`Período: ${periodo}`), pageW - 12, 15, { align: 'right' });
-    y = 28;
+    const reportTitle = isFreteiro ? 'Relatório de Fretes - Freteiro' : 'Relatório de Fretes';
+    const dateStr = `Emitido em ${now.toLocaleString('pt-BR')}`;
+
+    const logoInfo = companyLogoUrl ? await loadLogo(companyLogoUrl) : null;
+
+    const grayBg: [number, number, number] = [249, 250, 251];
+    const border: [number, number, number] = [229, 231, 235];
+    const textDark: [number, number, number] = [17, 24, 39];
+    const textMid: [number, number, number] = [75, 85, 99];
+
+    const fitBox = (w: number, h: number, mw: number, mh: number) => {
+      if (!w || !h) return { width: mw, height: mh };
+      const s = Math.min(mw / w, mh / h);
+      return { width: w * s, height: h * s };
+    };
+
+    let y = margin;
+    const addHeader = () => {
+      const headerH = 25;
+      const leftX = margin + 5;
+      const rightX = pageW - margin - 5;
+      pdf.setFillColor(...grayBg);
+      pdf.rect(margin, y, pageW - 2 * margin, headerH, 'F');
+      pdf.setDrawColor(...border);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin, y, pageW - 2 * margin, headerH, 'S');
+
+      if (logoInfo) {
+        try {
+          const s = fitBox(logoInfo.width, logoInfo.height, 24, 14);
+          pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, s.width, s.height);
+        } catch { /* noop */ }
+      } else if (companyName) {
+        pdf.setFontSize(10); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...textDark);
+        pdf.text(sanitizePdfText(companyName), leftX, y + 10);
+      }
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...textMid);
+      pdf.text(dateStr, leftX, y + 22);
+
+      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold'); pdf.setTextColor(...textDark);
+      const titleW = pdf.getTextWidth(reportTitle);
+      pdf.text(sanitizePdfText(reportTitle), (pageW - titleW) / 2, y + 12);
+
+      pdf.setFontSize(8); pdf.setFont('helvetica', 'normal'); pdf.setTextColor(...textMid);
+      const pText = `Período: ${periodo}`;
+      const pW = pdf.getTextWidth(pText);
+      pdf.text(sanitizePdfText(pText), rightX - pW, y + 22);
+
+      y += headerH + 8;
+    };
+    addHeader();
 
     // KPIs
     autoTable(pdf, {
