@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3 } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -1024,11 +1024,38 @@ function DetailsModal({
             <div><span className="text-muted-foreground">Freteiro:</span> <span className="font-medium">{order.freighter?.name}</span></div>
             <div><span className="text-muted-foreground">Veículo:</span> <span className="font-medium">{order.freighter?.vehicle || '—'}</span></div>
             <div className="sm:col-span-2"><span className="text-muted-foreground">Rateio de custo:</span> <span className="font-semibold text-indigo-700 dark:text-indigo-300">{order.cost_company_name || order.cost_company?.name || '—'}</span></div>
-            <div><span className="text-muted-foreground">Coleta:</span> <span className="font-medium">{order.pickup_location}</span></div>
-            <div><span className="text-muted-foreground">Entrega:</span> <span className="font-medium">{order.delivery_location}</span></div>
           </div>
+
+          <div className="rounded-lg border border-teal-500/40 bg-teal-500/10 p-3">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-teal-700 dark:text-teal-300 mb-2">
+              <Truck className="h-3.5 w-3.5" />
+              Rota
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-start gap-2 sm:gap-3">
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase font-semibold text-teal-700 dark:text-teal-400 flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Coleta
+                </div>
+                <div className="mt-0.5 font-bold text-sm text-foreground break-words">{order.pickup_location}</div>
+              </div>
+              <ArrowRight className="hidden sm:block h-4 w-4 text-teal-600 dark:text-teal-400 mt-5 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase font-semibold text-teal-700 dark:text-teal-400 flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Entrega
+                </div>
+                <div className="mt-0.5 font-bold text-sm text-foreground break-words">{order.delivery_location}</div>
+              </div>
+            </div>
+          </div>
+
           {order.observations && (
-            <div><span className="text-muted-foreground">Observações:</span> <span className="font-medium">{order.observations}</span></div>
+            <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300 mb-1">
+                <StickyNote className="h-3.5 w-3.5" />
+                Observações
+              </div>
+              <p className="text-sm font-medium text-foreground whitespace-pre-wrap break-words">{order.observations}</p>
+            </div>
           )}
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
