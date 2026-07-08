@@ -378,7 +378,6 @@ function OrderCard({
                   {(order.items || []).slice(0, 4).map(it => {
                     const isFio = it.item_type === 'fio';
                     const name = isFio ? (it.yarn_type_name || 'Fio') : (it.article?.name || it.article_name || 'Artigo');
-                    const client = !isFio ? (it.article?.client_name || null) : null;
                     const kg = Number(it.weight_kg || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     return (
                       <li key={it.id} className="flex items-center gap-2 px-2.5 py-1 text-xs">
@@ -388,7 +387,6 @@ function OrderCard({
                         )} />
                         <span className="font-medium text-foreground truncate">
                           {name}
-                          {client && <span className="text-muted-foreground font-normal"> · {client}</span>}
                         </span>
                         <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
                           {isFio
