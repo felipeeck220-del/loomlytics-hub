@@ -1173,16 +1173,12 @@ function ItemsBreakdown({ items }: { items: FreightOrderItem[] }) {
             {malhas.map(i => {
               const kg = Number(i.weight_kg || 0);
               const pcs = Number(i.pieces || 0);
-              const avg = pcs > 0 ? kg / pcs : 0;
               return (
                 <li key={i.id} className="px-3 py-2 hover:bg-muted/30">
                   <div className="text-xs font-semibold text-foreground break-words">{i.article?.name || i.article_name || '—'}</div>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">{pcs} pçs</span>
                     <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">{fmtKg(kg)} kg</span>
-                    {avg > 0 && (
-                      <span className="inline-flex items-center rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">{fmtKg(avg)} kg/pç</span>
-                    )}
                   </div>
                 </li>
               );
@@ -1201,16 +1197,12 @@ function ItemsBreakdown({ items }: { items: FreightOrderItem[] }) {
             {fios.map(i => {
               const kg = Number(i.weight_kg || 0);
               const bx = Number(i.boxes || 0);
-              const avg = bx > 0 ? kg / bx : 0;
               return (
                 <li key={i.id} className="px-3 py-2 hover:bg-muted/30">
                   <div className="text-xs font-semibold text-foreground break-words">{i.yarn_type_name || '—'}</div>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">{bx} cx</span>
                     <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">{fmtKg(kg)} kg</span>
-                    {avg > 0 && (
-                      <span className="inline-flex items-center rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">{fmtKg(avg)} kg/cx</span>
-                    )}
                   </div>
                 </li>
               );
