@@ -855,29 +855,12 @@ function CompleteModal({
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Finalizar Entrega</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <Label>Documento</Label>
-              <div className="grid grid-cols-2 gap-1.5 rounded-md border p-1 bg-muted/30">
-                <Button
-                  type="button"
-                  variant={docType === 'nf' ? 'default' : 'ghost'}
-                  size="sm"
-                  className="h-8"
-                  onClick={() => setDocType(docType === 'nf' ? '' : 'nf')}
-                >NF</Button>
-                <Button
-                  type="button"
-                  variant={docType === 'rom' ? 'default' : 'ghost'}
-                  size="sm"
-                  className="h-8"
-                  onClick={() => setDocType(docType === 'rom' ? '' : 'rom')}
-                >Romaneio</Button>
-              </div>
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Nº NF/ROM</Label>
-              <Input value={docNumber} onChange={e => setDocNumber(e.target.value)} placeholder="Ex: 12345" />
+          <div className="rounded-md border bg-muted/30 p-3">
+            <Label className="text-[10px] uppercase text-muted-foreground">Documento (definido na criação da OFR)</Label>
+            <div className="mt-1 font-semibold text-sm text-foreground">
+              {docType
+                ? `${docType === 'rom' ? 'Romaneio' : 'NF'}${docNumber ? ` ${docNumber}` : ''}`
+                : <span className="text-muted-foreground italic font-normal">Sem documento vinculado</span>}
             </div>
           </div>
 
