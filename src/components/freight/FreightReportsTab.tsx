@@ -380,14 +380,14 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
           {/* Groupings (admin/lider) */}
           {!isFreteiro && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <GroupCard title="Por Freteiro" icon={<Truck className="h-4 w-4" />} rows={byFreighter} />
-              <GroupCard title="Por Empresa (Rateio de custo)" icon={<Building2 className="h-4 w-4" />} rows={byCostCompany} highlight />
+              <GroupCard title="Por Freteiro" icon={<Truck className="h-4 w-4" />} rows={byFreighter} isMobile={isMobile} />
+              <GroupCard title="Por Empresa (Rateio de custo)" icon={<Building2 className="h-4 w-4" />} rows={byCostCompany} highlight isMobile={isMobile} />
             </div>
           )}
 
           {/* Freteiro: destaque por Empresa (Rateio) */}
           {isFreteiro && (
-            <GroupCard title="Por Empresa (Rateio de custo)" icon={<Building2 className="h-4 w-4" />} rows={byCostCompany} highlight />
+            <GroupCard title="Por Empresa (Rateio de custo)" icon={<Building2 className="h-4 w-4" />} rows={byCostCompany} highlight isMobile={isMobile} />
           )}
 
           {/* Por mês */}
