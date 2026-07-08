@@ -1054,26 +1054,7 @@ function DetailsModal({
             )}
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
-            <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold">Itens</div>
-            <div className="divide-y">
-              {(order.items || []).map(i => (
-                <div key={i.id} className="px-3 py-1.5 flex justify-between items-center text-xs gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="outline" className={cn('text-[9px] uppercase', i.item_type === 'fio' ? 'border-violet-500 text-violet-700 dark:text-violet-400' : 'border-sky-500 text-sky-700 dark:text-sky-400')}>
-                      {i.item_type === 'fio' ? 'Fio' : 'Malha'}
-                    </Badge>
-                    <span className="truncate">{i.item_type === 'fio' ? (i.yarn_type_name || '—') : (i.article?.name || i.article_name || '—')}</span>
-                  </div>
-                  <span className="text-muted-foreground shrink-0">
-                    {i.item_type === 'fio'
-                      ? `${i.boxes || 0} cx · ${Number(i.weight_kg).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`
-                      : `${i.pieces} pçs · ${Number(i.weight_kg).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ItemsBreakdown items={order.items || []} />
 
           <div className="border rounded-lg overflow-hidden">
             <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold">Linha do tempo</div>
