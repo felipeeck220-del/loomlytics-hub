@@ -229,33 +229,23 @@ export default function StockMalha() {
 
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices_for_stock', companyId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('invoices').select('*').eq('company_id', companyId);
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => fetchAllByCompany<any>('invoices', companyId!),
     enabled: !!companyId,
   });
 
   const { data: invoiceItems = [], isLoading: invoiceItemsLoading } = useQuery({
     queryKey: ['invoice_items_for_stock', companyId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('invoice_items').select('*').eq('company_id', companyId);
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => fetchAllByCompany<any>('invoice_items', companyId!),
     enabled: !!companyId,
   });
 
   const { data: stockMovements = [], isLoading: stockMovementsLoading } = useQuery({
     queryKey: ['stock_movements_for_stock', companyId],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from as any)('stock_movements')
-        .select('id, article_id, client_id, billing_order_id, machine_id, type, pieces, weight_kg, is_second_quality, created_at')
-        .eq('company_id', companyId);
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => fetchAllByCompany<any>(
+      'stock_movements',
+      companyId!,
+      'id, article_id, client_id, billing_order_id, machine_id, type, pieces, weight_kg, is_second_quality, created_at'
+    ),
     enabled: !!companyId,
   });
 
