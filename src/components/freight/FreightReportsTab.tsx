@@ -37,10 +37,11 @@ interface Props {
   hasFullAccess: boolean;
   isFreteiro: boolean;
   companyName: string;
+  companyLogoUrl?: string | null;
   onOpenDetails?: (order: FreightOrder) => void;
 }
 
-export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyName, onOpenDetails }: Props) {
+export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyName, companyLogoUrl, onOpenDetails }: Props) {
   const [month, setMonth] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [freighterFilter, setFreighterFilter] = useState<string>('all');
