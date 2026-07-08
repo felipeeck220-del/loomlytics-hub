@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Download, Truck, Building2, Package, DollarSign, Weight as WeightIcon, FileText, Eye } from 'lucide-react';
 import { sanitizePdfText } from '@/lib/pdfUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 function fmtKg(n: number): string {
   return `${Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
