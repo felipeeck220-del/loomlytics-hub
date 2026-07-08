@@ -34,6 +34,31 @@ import { sanitizePdfText } from '@/lib/pdfUtils';
 import { toast } from 'sonner';
 
 export default function StockMalha() {
+  // Helper: paginação para não perder linhas além do limite padrão (1000) do PostgREST.
+  // Sem isto, empresas com >1000 movimentos/notas veem KPIs "Reservado/Entregue" truncados,
+  // fazendo com que paletes de OFs Prontas recentes NÃO apareçam como reservados em /estoque-malha.
+  // Documentado em docs/estoquemalhas.md.
+  const fetchAllByCompany = async <T,>(table: string, companyId: string, columns = '*'): Promise<T[]> => {
+    const PAGE = 1000;
+    let all: T[] = [];
+    let from = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data, error } = await (supabase.from as any)(table)
+        .select(columns)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      all = all.concat(data as T[]);
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+    return all;
+  };
+
   const { 
     getProductions, getClients, getArticles, getYarnTypes, getMachines, refreshData
   } = useSharedCompanyData();
