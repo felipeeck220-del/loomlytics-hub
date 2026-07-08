@@ -205,6 +205,7 @@ export default function FreightOrders() {
               hasFullAccess={hasFullAccess}
               isFreteiro={isFreteiro}
               companyName={companyName}
+              companyLogoUrl={companyLogo}
               onOpenDetails={(o) => setDetailsOrder(o)}
             />
           ) : (
