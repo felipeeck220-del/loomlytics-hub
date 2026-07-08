@@ -859,13 +859,22 @@ function CompleteModal({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label>Documento</Label>
-              <Select value={docType} onValueChange={(v) => setDocType(v as any)}>
-                <SelectTrigger><SelectValue placeholder="NF / ROM" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nf">NF</SelectItem>
-                  <SelectItem value="rom">Romaneio</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-1.5 rounded-md border p-1 bg-muted/30">
+                <Button
+                  type="button"
+                  variant={docType === 'nf' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setDocType(docType === 'nf' ? '' : 'nf')}
+                >NF</Button>
+                <Button
+                  type="button"
+                  variant={docType === 'rom' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setDocType(docType === 'rom' ? '' : 'rom')}
+                >Romaneio</Button>
+              </div>
             </div>
             <div className="sm:col-span-2">
               <Label>Nº NF/ROM</Label>
