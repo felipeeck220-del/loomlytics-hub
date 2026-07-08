@@ -1129,71 +1129,57 @@ function ItemsBreakdown({ items }: { items: FreightOrderItem[] }) {
 
       {malhas.length > 0 && (
         <div>
-          <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-sky-700 dark:text-sky-400 bg-sky-500/5 border-t border-b border-sky-500/20 flex items-center justify-between">
+          <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-sky-700 dark:text-sky-400 bg-sky-500/5 border-t border-b border-sky-500/20 flex flex-wrap items-center gap-x-2 gap-y-0.5 justify-between">
             <span>Malhas · {malhas.length} item(ns)</span>
             <span className="font-mono text-muted-foreground normal-case tracking-normal">{totalPieces} pçs · {fmtKg(kgMalha)} kg{avgMalha > 0 && ` · ${fmtKg(avgMalha)} kg/pç`}</span>
           </div>
-          <table className="w-full text-xs">
-            <thead className="text-[10px] uppercase text-muted-foreground bg-muted/30">
-              <tr>
-                <th className="text-left px-3 py-1 font-medium">Artigo</th>
-                <th className="text-left px-2 py-1 font-medium">Cliente</th>
-                <th className="text-right px-2 py-1 font-medium">Peças</th>
-                <th className="text-right px-2 py-1 font-medium">Kg</th>
-                <th className="text-right px-3 py-1 font-medium">Kg/pç</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {malhas.map(i => {
-                const kg = Number(i.weight_kg || 0);
-                const pcs = Number(i.pieces || 0);
-                const avg = pcs > 0 ? kg / pcs : 0;
-                return (
-                  <tr key={i.id} className="hover:bg-muted/30">
-                    <td className="px-3 py-1 font-medium truncate max-w-[220px]">{i.article?.name || i.article_name || '—'}</td>
-                    <td className="px-2 py-1 text-muted-foreground truncate max-w-[180px]">{i.article?.client_name || '—'}</td>
-                    <td className="px-2 py-1 text-right font-mono">{pcs}</td>
-                    <td className="px-2 py-1 text-right font-mono">{fmtKg(kg)}</td>
-                    <td className="px-3 py-1 text-right font-mono text-muted-foreground">{avg > 0 ? fmtKg(avg) : '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <ul className="divide-y">
+            {malhas.map(i => {
+              const kg = Number(i.weight_kg || 0);
+              const pcs = Number(i.pieces || 0);
+              const avg = pcs > 0 ? kg / pcs : 0;
+              return (
+                <li key={i.id} className="px-3 py-2 hover:bg-muted/30">
+                  <div className="text-xs font-semibold text-foreground break-words">{i.article?.name || i.article_name || '—'}</div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">{pcs} pçs</span>
+                    <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">{fmtKg(kg)} kg</span>
+                    {avg > 0 && (
+                      <span className="inline-flex items-center rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">{fmtKg(avg)} kg/pç</span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
       {fios.length > 0 && (
         <div>
-          <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-violet-700 dark:text-violet-400 bg-violet-500/5 border-t border-b border-violet-500/20 flex items-center justify-between">
+          <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-violet-700 dark:text-violet-400 bg-violet-500/5 border-t border-b border-violet-500/20 flex flex-wrap items-center gap-x-2 gap-y-0.5 justify-between">
             <span>Fios · {fios.length} item(ns)</span>
             <span className="font-mono text-muted-foreground normal-case tracking-normal">{totalBoxes} cx · {fmtKg(kgFio)} kg</span>
           </div>
-          <table className="w-full text-xs">
-            <thead className="text-[10px] uppercase text-muted-foreground bg-muted/30">
-              <tr>
-                <th className="text-left px-3 py-1 font-medium">Tipo de Fio</th>
-                <th className="text-right px-2 py-1 font-medium">Caixas</th>
-                <th className="text-right px-2 py-1 font-medium">Kg</th>
-                <th className="text-right px-3 py-1 font-medium">Kg/cx</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {fios.map(i => {
-                const kg = Number(i.weight_kg || 0);
-                const bx = Number(i.boxes || 0);
-                const avg = bx > 0 ? kg / bx : 0;
-                return (
-                  <tr key={i.id} className="hover:bg-muted/30">
-                    <td className="px-3 py-1 font-medium truncate max-w-[280px]">{i.yarn_type_name || '—'}</td>
-                    <td className="px-2 py-1 text-right font-mono">{bx}</td>
-                    <td className="px-2 py-1 text-right font-mono">{fmtKg(kg)}</td>
-                    <td className="px-3 py-1 text-right font-mono text-muted-foreground">{avg > 0 ? fmtKg(avg) : '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <ul className="divide-y">
+            {fios.map(i => {
+              const kg = Number(i.weight_kg || 0);
+              const bx = Number(i.boxes || 0);
+              const avg = bx > 0 ? kg / bx : 0;
+              return (
+                <li key={i.id} className="px-3 py-2 hover:bg-muted/30">
+                  <div className="text-xs font-semibold text-foreground break-words">{i.yarn_type_name || '—'}</div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">{bx} cx</span>
+                    <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">{fmtKg(kg)} kg</span>
+                    {avg > 0 && (
+                      <span className="inline-flex items-center rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">{fmtKg(avg)} kg/cx</span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
