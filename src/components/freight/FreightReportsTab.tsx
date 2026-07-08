@@ -433,7 +433,56 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
                   {isFreteiro ? 'Meus Fretes' : 'Detalhamento das OFRs'} ({filtered.length})
                 </h3>
               </div>
-              <div className="overflow-x-auto">
+              {isMobile ? (
+                <div className="space-y-2">
+                  {filtered.map(o => {
+                    const kg = (o.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
+                    const rateio = o.cost_company_name || o.cost_company?.name || '—';
+                    return (
+                      <div key={o.id} className="rounded-lg border bg-muted/20 p-2.5">
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-bold text-sm">#{o.ofr_number}</span>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">{fmtDate(o.completed_at || o.created_at)}</span>
+                          </div>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" title="Ver relatório completo" onClick={() => onOpenDetails?.(o)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          <Badge className="text-[10px] bg-indigo-600/15 text-indigo-700 dark:text-indigo-300 border border-indigo-600/40 uppercase font-bold">{rateio}</Badge>
+                          {!isFreteiro && o.freighter?.name && (
+                            <Badge variant="outline" className="text-[10px]">
+                              <Truck className="h-3 w-3 mr-1" />{o.freighter.name}
+                            </Badge>
+                          )}
+                          {o.delivery_doc_number && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {o.delivery_doc_type === 'rom' ? 'ROM' : 'NF'} {o.delivery_doc_number}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground break-words mb-1.5">
+                          <span className="font-medium text-foreground">{o.pickup_location}</span>
+                          <span className="mx-1">→</span>
+                          <span className="font-medium text-foreground">{o.delivery_location}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                          <div className="rounded bg-background/60 p-1.5 text-center">
+                            <div className="text-muted-foreground">Peso</div>
+                            <div className="font-bold">{fmtKg(kg)}</div>
+                          </div>
+                          <div className="rounded bg-background/60 p-1.5 text-center">
+                            <div className="text-muted-foreground">Frete</div>
+                            <div className="font-bold text-emerald-700 dark:text-emerald-400">{fmtMoney(o.freight_total)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-xs text-muted-foreground text-left">
@@ -484,7 +533,8 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
                     })}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
