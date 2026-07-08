@@ -365,12 +365,46 @@ function OrderCard({
               <div><span className="text-muted-foreground text-xs uppercase">Entrega:</span> <span className="font-medium">{order.delivery_location}</span></div>
             </div>
 
-            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3">
-              <span>{(order.items || []).length} item(ns)</span>
-              {totalPieces > 0 && <span>· {totalPieces} peça(s)</span>}
-              {totalBoxes > 0 && <span>· {totalBoxes} caixa(s)</span>}
-              <span>· {totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
-              {order.freight_total != null && <span className="text-emerald-700 dark:text-emerald-400 font-semibold">· Frete {fmtMoney(order.freight_total)}</span>}
+            <div className="rounded-md border border-border/60 bg-muted/30 overflow-hidden">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-2.5 py-1 bg-muted/60 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span>{(order.items || []).length} item(ns)</span>
+                {totalPieces > 0 && <span>· {totalPieces} peça(s)</span>}
+                {totalBoxes > 0 && <span>· {totalBoxes} caixa(s)</span>}
+                <span>· {totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
+                {order.freight_total != null && <span className="text-emerald-700 dark:text-emerald-400">· Frete {fmtMoney(order.freight_total)}</span>}
+              </div>
+              {(order.items || []).length > 0 && (
+                <ul className="divide-y divide-border/50">
+                  {(order.items || []).slice(0, 4).map(it => {
+                    const isFio = it.item_type === 'fio';
+                    const name = isFio ? (it.yarn_type_name || 'Fio') : (it.article?.name || it.article_name || 'Artigo');
+                    const client = !isFio ? (it.article?.client_name || null) : null;
+                    const kg = Number(it.weight_kg || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    return (
+                      <li key={it.id} className="flex items-center gap-2 px-2.5 py-1 text-xs">
+                        <span className={cn(
+                          'inline-block w-1.5 h-1.5 rounded-full shrink-0',
+                          isFio ? 'bg-violet-500' : 'bg-sky-500'
+                        )} />
+                        <span className="font-medium text-foreground truncate">
+                          {name}
+                          {client && <span className="text-muted-foreground font-normal"> · {client}</span>}
+                        </span>
+                        <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
+                          {isFio
+                            ? `${it.boxes || 0} cx · ${kg} kg`
+                            : `${it.pieces} pçs · ${kg} kg`}
+                        </span>
+                      </li>
+                    );
+                  })}
+                  {(order.items || []).length > 4 && (
+                    <li className="px-2.5 py-1 text-[11px] text-muted-foreground italic">
+                      + {(order.items || []).length - 4} outro(s) item(ns) — ver Detalhes
+                    </li>
+                  )}
+                </ul>
+              )}
             </div>
           </div>
 
