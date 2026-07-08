@@ -176,17 +176,29 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
         String(i.pieces || 0),
         fmtNumberBR(Number(i.weight_kg || 0)),
       ]),
-      foot: [['', 'TOTAL', String(totMalhaPcs), fmtNumberBR(totMalhaKg)]],
+      foot: [[
+        { content: '', styles: { halign: 'center' } },
+        { content: 'TOTAL', styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: String(totMalhaPcs), styles: { halign: 'right' } },
+        { content: fmtNumberBR(totMalhaKg), styles: { halign: 'right' } },
+      ]],
       theme: 'striped',
-      headStyles: { fillColor: [14, 116, 144], textColor: 255, fontStyle: 'bold' },
+      headStyles: { fillColor: [14, 116, 144], textColor: 255, fontStyle: 'bold', halign: 'center' },
       footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 10, halign: 'center' },
+        1: { halign: 'left' },
         2: { halign: 'right', cellWidth: 25 },
         3: { halign: 'right', cellWidth: 30 },
       },
       styles: { fontSize: 9, cellPadding: 2 },
       margin: { left: margin, right: margin },
+      didParseCell: (data) => {
+        if (data.section === 'head') {
+          if (data.column.index === 2 || data.column.index === 3) data.cell.styles.halign = 'right';
+          if (data.column.index === 1) data.cell.styles.halign = 'left';
+        }
+      },
     });
     y = (pdf as any).lastAutoTable.finalY + 4;
   }
@@ -204,17 +216,29 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
         String(i.boxes || 0),
         fmtNumberBR(Number(i.weight_kg || 0)),
       ]),
-      foot: [['', 'TOTAL', String(totFioCx), fmtNumberBR(totFioKg)]],
+      foot: [[
+        { content: '', styles: { halign: 'center' } },
+        { content: 'TOTAL', styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: String(totFioCx), styles: { halign: 'right' } },
+        { content: fmtNumberBR(totFioKg), styles: { halign: 'right' } },
+      ]],
       theme: 'striped',
-      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold', halign: 'center' },
       footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 10, halign: 'center' },
+        1: { halign: 'left' },
         2: { halign: 'right', cellWidth: 25 },
         3: { halign: 'right', cellWidth: 30 },
       },
       styles: { fontSize: 9, cellPadding: 2 },
       margin: { left: margin, right: margin },
+      didParseCell: (data) => {
+        if (data.section === 'head') {
+          if (data.column.index === 2 || data.column.index === 3) data.cell.styles.halign = 'right';
+          if (data.column.index === 1) data.cell.styles.halign = 'left';
+        }
+      },
     });
     y = (pdf as any).lastAutoTable.finalY + 4;
   }
