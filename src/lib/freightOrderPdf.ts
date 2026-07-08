@@ -61,7 +61,7 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
   pdf.setLineWidth(0.5);
   pdf.rect(margin, y, pageW - 2 * margin, headerH, 'S');
 
-  const dateStr = `Emitido em ${fmtDateTime(new Date().toISOString())}`;
+  const dateStr = fmtDateTime(new Date().toISOString());
   let logoDrawn = false;
   if (companyLogoUrl) {
     const logo = await fetchImageDataUrl(companyLogoUrl);
@@ -106,68 +106,118 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
   pdf.setTextColor(0, 0, 0);
   y += headerH + 6;
 
-  // Dados gerais
-  pdf.setFontSize(10); pdf.setFont('helvetica', 'normal');
-  const rows: [string, string][] = [
-    ['Freteiro', sanitizePdfText(order.freighter?.name || '—')],
-    ['Veículo', sanitizePdfText(order.freighter?.vehicle || '—')],
-    ['Telefone', sanitizePdfText(order.freighter?.phone || '—')],
-    ['Local de coleta', sanitizePdfText(order.pickup_location)],
-    ['Local de entrega', sanitizePdfText(order.delivery_location)],
-    ['NF / Romaneio', order.delivery_doc_number
-      ? `${order.delivery_doc_type === 'rom' ? 'Romaneio' : 'NF'} ${sanitizePdfText(order.delivery_doc_number)}`
-      : '—'],
-    ['Valor por kg', order.freight_price_per_kg != null ? `R$ ${fmtNumberBR(Number(order.freight_price_per_kg), 4)}` : '—'],
-    ['Total do frete', order.freight_total != null ? `R$ ${fmtNumberBR(Number(order.freight_total))}` : '—'],
-    ['Observações', sanitizePdfText(order.observations || '—')],
+  // ===== Section: Dados da OFR (2-column grid) =====
+  const sectionTitle = (label: string) => {
+    pdf.setFillColor(30, 41, 59);
+    pdf.rect(margin, y, pageW - 2 * margin, 6, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
+    pdf.text(sanitizePdfText(label.toUpperCase()), margin + 2, y + 4);
+    pdf.setTextColor(0, 0, 0);
+    y += 8;
+  };
+
+  sectionTitle('Dados da OFR');
+  const docLabel = order.delivery_doc_number
+    ? `${order.delivery_doc_type === 'rom' ? 'Romaneio' : 'NF'} ${sanitizePdfText(order.delivery_doc_number)}`
+    : '—';
+  const gridRows: Array<[string, string, string, string]> = [
+    ['Freteiro', sanitizePdfText(order.freighter?.name || '—'), 'Veículo', sanitizePdfText(order.freighter?.vehicle || '—')],
+    ['Telefone', sanitizePdfText(order.freighter?.phone || '—'), 'NF / Romaneio', docLabel],
+    ['Local de coleta', sanitizePdfText(order.pickup_location), 'Local de entrega', sanitizePdfText(order.delivery_location)],
+    ['Valor por kg', order.freight_price_per_kg != null ? `R$ ${fmtNumberBR(Number(order.freight_price_per_kg), 4)}` : '—',
+     'Total do frete', order.freight_total != null ? `R$ ${fmtNumberBR(Number(order.freight_total))}` : '—'],
   ];
   autoTable(pdf, {
     startY: y,
-    theme: 'plain',
-    body: rows,
-    styles: { fontSize: 9, cellPadding: 1.5 },
-    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } },
-    margin: { left: 12, right: 12 },
+    theme: 'grid',
+    body: gridRows,
+    styles: { fontSize: 9, cellPadding: 2, lineColor: [229, 231, 235], lineWidth: 0.2 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 35, fillColor: [249, 250, 251] },
+      1: { cellWidth: 'auto' },
+      2: { fontStyle: 'bold', cellWidth: 35, fillColor: [249, 250, 251] },
+      3: { cellWidth: 'auto' },
+    },
+    margin: { left: margin, right: margin },
   });
-  y = (pdf as any).lastAutoTable.finalY + 4;
+  y = (pdf as any).lastAutoTable.finalY + 2;
 
-  // Itens
-  const totalPieces = (order.items || []).reduce((s, i) => s + Number(i.pieces || 0), 0);
-  const totalBoxes = (order.items || []).reduce((s, i) => s + Number(i.boxes || 0), 0);
-  const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
-  autoTable(pdf, {
-    startY: y,
-    head: [['Tipo', 'Descrição', 'Peças', 'Caixas', 'Peso (kg)']],
-    body: (order.items || []).map(i => [
-      i.item_type === 'fio' ? 'Fio' : 'Malha',
-      sanitizePdfText(i.item_type === 'fio' ? (i.yarn_type_name || '—') : (i.article?.name || i.article_name || '—')),
-      i.item_type === 'fio' ? '—' : String(i.pieces || 0),
-      i.item_type === 'fio' ? String(i.boxes || 0) : '—',
-      fmtNumberBR(Number(i.weight_kg || 0)),
-    ]),
-    foot: [['', 'TOTAL', String(totalPieces), String(totalBoxes), fmtNumberBR(totalKg)]],
-    theme: 'striped',
-    headStyles: { fillColor: [30, 41, 59] },
-    footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
-    styles: { fontSize: 9 },
-    margin: { left: 12, right: 12 },
-  });
-  y = (pdf as any).lastAutoTable.finalY + 4;
+  if (order.observations) {
+    autoTable(pdf, {
+      startY: y,
+      theme: 'grid',
+      body: [['Observações', sanitizePdfText(order.observations)]],
+      styles: { fontSize: 9, cellPadding: 2, lineColor: [229, 231, 235], lineWidth: 0.2 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 35, fillColor: [249, 250, 251] },
+        1: { cellWidth: 'auto' },
+      },
+      margin: { left: margin, right: margin },
+    });
+    y = (pdf as any).lastAutoTable.finalY + 2;
+  }
+  y += 4;
 
-  // Linha do tempo
-  autoTable(pdf, {
-    startY: y,
-    head: [['Etapa', 'Início', 'Fim', 'Duração']],
-    body: [
-      ['Aberto (criação)', fmtDateTime(order.created_at), fmtDateTime(order.pickup_started_at), duration(order.created_at, order.pickup_started_at)],
-      ['Frete em curso', fmtDateTime(order.pickup_started_at), fmtDateTime(order.completed_at), duration(order.pickup_started_at, order.completed_at)],
-    ],
-    theme: 'striped',
-    headStyles: { fillColor: [15, 118, 110] },
-    styles: { fontSize: 9 },
-    margin: { left: 12, right: 12 },
-  });
-  y = (pdf as any).lastAutoTable.finalY + 6;
+  // ===== Section: Malhas =====
+  const malhas = (order.items || []).filter(i => i.item_type !== 'fio');
+  const fios = (order.items || []).filter(i => i.item_type === 'fio');
+
+  if (malhas.length > 0) {
+    sectionTitle(`Malhas (${malhas.length})`);
+    const totMalhaPcs = malhas.reduce((s, i) => s + Number(i.pieces || 0), 0);
+    const totMalhaKg = malhas.reduce((s, i) => s + Number(i.weight_kg || 0), 0);
+    autoTable(pdf, {
+      startY: y,
+      head: [['#', 'Artigo', 'Peças', 'Peso (kg)']],
+      body: malhas.map((i, idx) => [
+        String(idx + 1),
+        sanitizePdfText(i.article?.name || i.article_name || '—'),
+        String(i.pieces || 0),
+        fmtNumberBR(Number(i.weight_kg || 0)),
+      ]),
+      foot: [['', 'TOTAL', String(totMalhaPcs), fmtNumberBR(totMalhaKg)]],
+      theme: 'striped',
+      headStyles: { fillColor: [14, 116, 144], textColor: 255, fontStyle: 'bold' },
+      footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        2: { halign: 'right', cellWidth: 25 },
+        3: { halign: 'right', cellWidth: 30 },
+      },
+      styles: { fontSize: 9, cellPadding: 2 },
+      margin: { left: margin, right: margin },
+    });
+    y = (pdf as any).lastAutoTable.finalY + 4;
+  }
+
+  if (fios.length > 0) {
+    sectionTitle(`Fios (${fios.length})`);
+    const totFioCx = fios.reduce((s, i) => s + Number(i.boxes || 0), 0);
+    const totFioKg = fios.reduce((s, i) => s + Number(i.weight_kg || 0), 0);
+    autoTable(pdf, {
+      startY: y,
+      head: [['#', 'Tipo de fio', 'Caixas', 'Peso (kg)']],
+      body: fios.map((i, idx) => [
+        String(idx + 1),
+        sanitizePdfText(i.yarn_type_name || '—'),
+        String(i.boxes || 0),
+        fmtNumberBR(Number(i.weight_kg || 0)),
+      ]),
+      foot: [['', 'TOTAL', String(totFioCx), fmtNumberBR(totFioKg)]],
+      theme: 'striped',
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: 'bold' },
+      footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        2: { halign: 'right', cellWidth: 25 },
+        3: { halign: 'right', cellWidth: 30 },
+      },
+      styles: { fontSize: 9, cellPadding: 2 },
+      margin: { left: margin, right: margin },
+    });
+    y = (pdf as any).lastAutoTable.finalY + 4;
+  }
 
   // Fotos
   if ((order.photos || []).length > 0) {
