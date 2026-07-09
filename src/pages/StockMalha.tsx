@@ -326,8 +326,10 @@ export default function StockMalha() {
       // Movimentos de 2ª qualidade não afetam o estoque principal
       if (mv.is_second_quality) continue;
       if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
-      // Ignorar movimentos sem máquina nas contas de estoque
-      if (!mv.machine_id) continue;
+      // NÃO ignorar movimentos sem machine_id: paletes de OFs podem ser criados
+      // sem máquina atribuída, e suas reservas/saídas precisam impactar
+      // Disponível kg / Disp. Rolos globais. O filtro por máquina só se aplica
+      // ao detalhamento por máquina (byMachineMap).
       const art = articles.find(a => a.id === mv.article_id);
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
