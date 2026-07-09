@@ -34,31 +34,6 @@ import { sanitizePdfText } from '@/lib/pdfUtils';
 import { toast } from 'sonner';
 
 export default function StockMalha() {
-  // Helper: paginação para não perder linhas além do limite padrão (1000) do PostgREST.
-  // Sem isto, empresas com >1000 movimentos/notas veem KPIs "Reservado/Entregue" truncados,
-  // fazendo com que paletes de OFs Prontas recentes NÃO apareçam como reservados em /estoque-malha.
-  // Documentado em docs/estoquemalhas.md.
-  const fetchAllByCompany = async <T,>(table: string, companyId: string, columns = '*'): Promise<T[]> => {
-    const PAGE = 1000;
-    let all: T[] = [];
-    let from = 0;
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { data, error } = await (supabase.from as any)(table)
-        .select(columns)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })
-        .range(from, from + PAGE - 1);
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-      all = all.concat(data as T[]);
-      if (data.length < PAGE) break;
-      from += PAGE;
-    }
-    return all;
-  };
-
   const { 
     getProductions, getClients, getArticles, getYarnTypes, getMachines, refreshData
   } = useSharedCompanyData();
@@ -229,23 +204,33 @@ export default function StockMalha() {
 
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices_for_stock', companyId],
-    queryFn: () => fetchAllByCompany<any>('invoices', companyId!),
+    queryFn: async () => {
+      const { data, error } = await supabase.from('invoices').select('*').eq('company_id', companyId);
+      if (error) throw error;
+      return data || [];
+    },
     enabled: !!companyId,
   });
 
   const { data: invoiceItems = [], isLoading: invoiceItemsLoading } = useQuery({
     queryKey: ['invoice_items_for_stock', companyId],
-    queryFn: () => fetchAllByCompany<any>('invoice_items', companyId!),
+    queryFn: async () => {
+      const { data, error } = await supabase.from('invoice_items').select('*').eq('company_id', companyId);
+      if (error) throw error;
+      return data || [];
+    },
     enabled: !!companyId,
   });
 
   const { data: stockMovements = [], isLoading: stockMovementsLoading } = useQuery({
     queryKey: ['stock_movements_for_stock', companyId],
-    queryFn: () => fetchAllByCompany<any>(
-      'stock_movements',
-      companyId!,
-      'id, article_id, client_id, billing_order_id, machine_id, type, pieces, weight_kg, is_second_quality, created_at'
-    ),
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)('stock_movements')
+        .select('id, article_id, client_id, billing_order_id, machine_id, type, pieces, weight_kg, is_second_quality, created_at')
+        .eq('company_id', companyId);
+      if (error) throw error;
+      return data || [];
+    },
     enabled: !!companyId,
   });
 
@@ -326,10 +311,8 @@ export default function StockMalha() {
       // Movimentos de 2ª qualidade não afetam o estoque principal
       if (mv.is_second_quality) continue;
       if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
-      // NÃO ignorar movimentos sem machine_id: paletes de OFs podem ser criados
-      // sem máquina atribuída, e suas reservas/saídas precisam impactar
-      // Disponível kg / Disp. Rolos globais. O filtro por máquina só se aplica
-      // ao detalhamento por máquina (byMachineMap).
+      // Ignorar movimentos sem máquina nas contas de estoque
+      if (!mv.machine_id) continue;
       const art = articles.find(a => a.id === mv.article_id);
       if (!art || !art.client_id) continue;
       if (!map.has(art.client_id)) map.set(art.client_id, new Map());
