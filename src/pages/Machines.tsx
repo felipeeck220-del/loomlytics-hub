@@ -628,7 +628,7 @@ export default function Machines() {
                               {sortedNeedles
                                 .filter(n => !refs.some(r => r.needle_id === n.id))
                                 .map(n => (
-                                  <SelectItem key={n.id} value={n.id}>{n.brand} — {n.reference_code} ({n.provider})</SelectItem>
+                                  <SelectItem key={n.id} value={n.id}>{n.brand} — {n.reference_code}</SelectItem>
                                 ))}
                             </SelectContent>
                           </Select>
