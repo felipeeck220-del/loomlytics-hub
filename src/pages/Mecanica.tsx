@@ -4251,14 +4251,10 @@ export default function MecanicaPage() {
     />
      {/* --- Platinas Modals --- */}
      {/* Cadastrar Platina */}
-     <Dialog open={showSinkerModal} onOpenChange={setShowSinkerModal}>
+     <Dialog open={showSinkerModal} onOpenChange={(o) => { setShowSinkerModal(o); if (!o) { setEditingSinker(null); setSinkerForm({ provider: '', brand: '', reference_code: '' }); } }}>
        <DialogContent className="max-w-md">
-         <DialogHeader><DialogTitle>Cadastrar Nova Platina</DialogTitle></DialogHeader>
+         <DialogHeader><DialogTitle>{editingSinker ? 'Editar Platina' : 'Nova Platina'}</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
-           <div className="space-y-1">
-             <Label>Fornecedor</Label>
-             <Input value={sinkerForm.provider} onChange={e => setSinkerForm({...sinkerForm, provider: e.target.value})} placeholder="Ex: Fornecedor X" />
-           </div>
            <div className="space-y-1">
              <Label>Marca</Label>
              <Input value={sinkerForm.brand} onChange={e => setSinkerForm({...sinkerForm, brand: e.target.value})} placeholder="Ex: Groz-Beckert" />
@@ -4269,50 +4265,39 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => setShowSinkerModal(false)}>Cancelar</Button>
-           <Button onClick={handleSaveSinker}>Cadastrar</Button>
+           <Button variant="outline" onClick={() => { setShowSinkerModal(false); setEditingSinker(null); }}>Cancelar</Button>
+           <Button onClick={handleSaveSinker}>{editingSinker ? 'Salvar' : 'Cadastrar'}</Button>
          </DialogFooter>
        </DialogContent>
      </Dialog>
 
      {/* Entrada de Platina */}
-     <Dialog open={showSinkerEntryModal} onOpenChange={setShowSinkerEntryModal}>
+     <Dialog open={showSinkerEntryModal} onOpenChange={(o) => { setShowSinkerEntryModal(o); if (!o) { setEntrySinkerProviderId(''); setEntrySinkerLotId(''); } }}>
        <DialogContent className="max-w-md">
-         <DialogHeader><DialogTitle>Registrar Entrada de Platina</DialogTitle></DialogHeader>
+         <DialogHeader><DialogTitle>Registrar Entrada de Platinas</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Selecionar Platina</Label>
-              <Select value={sinkerEntryForm.sinker_id} onValueChange={v => setSinkerEntryForm({...sinkerEntryForm, sinker_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 py-2 border-b sticky top-0 bg-popover z-10">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input 
-                        placeholder="Filtrar..." 
-                        className="pl-8 h-8 text-xs"
-                        onKeyDown={(e) => e.stopPropagation()}
-                        // Reusing needleEntrySearch for simplicity or create sinkerEntrySearch
-                      />
-                    </div>
-                  </div>
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {sinkers
-                      .filter(s => 
-                        s.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
-                        s.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
-                        s.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
-                      )
-                      .map(s => <SelectItem key={s.id} value={s.id}>{s.brand} ({s.reference_code})</SelectItem>)
-                    }
-                    {sinkers.filter(s => 
-                      s.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
-                      s.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
-                      s.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma platina encontrada</div>
-                    )}
-                  </div>
+            <div className="space-y-1">
+              <Label>Fornecedor *</Label>
+              <Select value={entrySinkerProviderId} onValueChange={v => { setEntrySinkerProviderId(v); setEntrySinkerLotId(''); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  {sinkerProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Lote *</Label>
+              <Select value={entrySinkerLotId} onValueChange={setEntrySinkerLotId} disabled={!entrySinkerProviderId}>
+                <SelectTrigger><SelectValue placeholder={entrySinkerProviderId ? 'Selecione o lote' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+                <SelectContent className="max-h-[280px]">
+                  {entrySinkerProviderLots.map(l => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')} · {l.lot_code || 's/ código'} · {l.sinker?.brand} ({l.sinker?.reference_code}) — Pendente {l.balance}
+                    </SelectItem>
+                  ))}
+                  {entrySinkerProviderId && entrySinkerProviderLots.length === 0 && (
+                    <div className="p-3 text-xs text-muted-foreground">Nenhum lote com compra pendente.</div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -4326,14 +4311,14 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => setShowSinkerEntryModal(false)}>Cancelar</Button>
+           <Button variant="outline" onClick={() => { setShowSinkerEntryModal(false); setEntrySinkerProviderId(''); setEntrySinkerLotId(''); }}>Cancelar</Button>
            <Button onClick={handleSinkerEntry}>Registrar</Button>
          </DialogFooter>
        </DialogContent>
      </Dialog>
 
      {/* Baixa de Platina */}
-     <Dialog open={showSinkerExitModal} onOpenChange={setShowSinkerExitModal}>
+     <Dialog open={showSinkerExitModal} onOpenChange={(o) => { setShowSinkerExitModal(o); if (!o) { setExitSinkerProviderId(''); setExitSinkerLotId(''); setSinkerExitForm({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Saída (Baixa) de Platinas</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
@@ -4349,57 +4334,264 @@ export default function MecanicaPage() {
            </div>
            <div className="space-y-1">
              <Label>Máquina</Label>
-             <Select value={sinkerExitForm.machine_id} onValueChange={v => setSinkerExitForm({...sinkerExitForm, machine_id: v})}>
+             <Select value={sinkerExitForm.machine_id} onValueChange={v => {
+               setSinkerExitForm({...sinkerExitForm, machine_id: v});
+               setExitSinkerProviderId(''); setExitSinkerLotId('');
+               const m = machines.find(x => x.id === v);
+               const balanceOf = (lid: string) => {
+                 const ent = sinkerTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                 const exi = sinkerTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                 return ent - exi;
+               };
+               if (m?.current_sinker_lot_id) {
+                 const lot = sinkerLots.find(l => l.id === m.current_sinker_lot_id);
+                 const providerOk = lot && sinkerProviders.some(p => p.id === lot.provider_id);
+                 const hasBalance = lot && balanceOf(lot.id) > 0;
+                 if (lot && providerOk && hasBalance) {
+                   setExitSinkerProviderId(lot.provider_id);
+                   setExitSinkerLotId(lot.id);
+                   return;
+                 }
+               }
+               if (m?.current_sinker_id) {
+                 const candidates = sinkerLots
+                   .filter(l => l.sinker_id === m.current_sinker_id && sinkerProviders.some(p => p.id === l.provider_id))
+                   .map(l => ({ ...l, balance: balanceOf(l.id) }))
+                   .filter(l => l.balance > 0)
+                   .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+                 if (candidates[0]) { setExitSinkerProviderId(candidates[0].provider_id); setExitSinkerLotId(candidates[0].id); }
+               }
+             }}>
                <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
                <SelectContent>
                  {activeMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                </SelectContent>
              </Select>
            </div>
-            <div className="space-y-2">
-              <Label>Selecionar Platina</Label>
-              <Select value={sinkerExitForm.sinker_id} onValueChange={v => setSinkerExitForm({...sinkerExitForm, sinker_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
-                <SelectContent>
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {sinkers
-                      .filter(s => 
-                        s.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
-                        s.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
-                        s.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
-                      )
-                      .map(s => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.brand} ({s.reference_code}) - Saldo: {s.current_quantity}
-                        </SelectItem>
-                      ))
-                    }
-                    {sinkers.filter(s => 
-                      s.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
-                      s.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
-                      s.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma platina encontrada</div>
-                    )}
-                  </div>
-                </SelectContent>
-              </Select>
-            </div>
            <div className="space-y-1">
-             <Label>Quantidade</Label>
+             <Label>Quantidade *</Label>
              <Input type="number" value={sinkerExitForm.quantity} onChange={e => setSinkerExitForm({...sinkerExitForm, quantity: e.target.value})} placeholder="0" />
            </div>
+           <div className="space-y-1">
+             <Label>Fornecedor *</Label>
+             <Select value={exitSinkerProviderId} onValueChange={v => { setExitSinkerProviderId(v); setExitSinkerLotId(''); }}>
+               <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+               <SelectContent className="max-h-[240px]">
+                 {sinkerProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Lote *</Label>
+             <Select value={exitSinkerLotId} onValueChange={setExitSinkerLotId} disabled={!exitSinkerProviderId}>
+               <SelectTrigger><SelectValue placeholder={exitSinkerProviderId ? 'Selecione o lote' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+               <SelectContent className="max-h-[280px]">
+                 {exitSinkerProviderLots.map(l => (
+                   <SelectItem key={l.id} value={l.id}>
+                     {format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')} · {l.lot_code || 's/ código'} · {l.sinker?.brand} ({l.sinker?.reference_code}) — Saldo {l.balance}
+                   </SelectItem>
+                 ))}
+                 {exitSinkerProviderId && exitSinkerProviderLots.length === 0 && (
+                   <div className="p-3 text-xs text-muted-foreground">Nenhum lote com saldo físico. Cadastre um lote primeiro.</div>
+                 )}
+               </SelectContent>
+             </Select>
+           </div>
+           {exitSinkerLotId && (() => {
+             const startLot: any = exitSinkerProviderLots.find(x => x.id === exitSinkerLotId);
+             if (!startLot) return null;
+             const qty = Number(sinkerExitForm.quantity || 0);
+             const balanceOf = (lid: string) => {
+               const ent = sinkerTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+               const exi = sinkerTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+               return ent - exi;
+             };
+             const others = sinkerLots
+               .filter(l => l.id !== startLot.id && l.sinker_id === startLot.sinker_id && l.provider_id === startLot.provider_id)
+               .map(l => ({ ...l, balance: balanceOf(l.id) }))
+               .filter(l => l.balance > 0)
+               .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+             const chain: any[] = [startLot, ...others];
+             const totalAvail = chain.reduce((s, l) => s + (l.balance || 0), 0);
+             if (qty <= 0) {
+               return (<div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">Platina: <b>{startLot.sinker?.brand} ({startLot.sinker?.reference_code})</b> · Saldo do lote: <b>{startLot.balance}</b> · Saldo total: <b>{totalAvail}</b></div>);
+             }
+             let remaining = qty;
+             const used: Array<{ lot_code?: string; take: number; date: string }> = [];
+             for (const l of chain) {
+               if (remaining <= 0) break;
+               const take = Math.min(remaining, l.balance || 0);
+               if (take <= 0) continue;
+               used.push({ lot_code: l.lot_code, take, date: l.purchase_date });
+               remaining -= take;
+             }
+             const insufficient = remaining > 0;
+             return (
+               <div className={`text-xs rounded p-2 space-y-1 ${insufficient ? 'bg-destructive/10 text-destructive' : 'bg-muted/40 text-muted-foreground'}`}>
+                 <div>Platina: <b>{startLot.sinker?.brand} ({startLot.sinker?.reference_code})</b> · Saldo total: <b>{totalAvail}</b></div>
+                 {used.length > 1 && !insufficient && (
+                   <div className="pt-1 border-t border-muted-foreground/20">
+                     <div className="font-semibold mb-0.5">Consumirá {used.length} lotes:</div>
+                     {used.map((u, i) => (
+                       <div key={i}>• Lote {u.lot_code || 's/ código'} ({format(new Date(u.date + 'T00:00:00'), 'dd/MM/yyyy')}): <b>{u.take}</b></div>
+                     ))}
+                   </div>
+                 )}
+                 {insufficient && (<div className="font-semibold">Saldo total insuficiente. Faltam {remaining} platinas.</div>)}
+               </div>
+             );
+           })()}
            <div className="space-y-1">
              <Label>Data</Label>
              <Input type="date" value={sinkerExitForm.date} onChange={e => setSinkerExitForm({...sinkerExitForm, date: e.target.value})} />
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => setShowSinkerExitModal(false)}>Cancelar</Button>
+           <Button variant="outline" onClick={() => { setShowSinkerExitModal(false); setExitSinkerProviderId(''); setExitSinkerLotId(''); }}>Cancelar</Button>
            <Button onClick={handleSinkerExit}>Registrar Baixa</Button>
          </DialogFooter>
        </DialogContent>
      </Dialog>
+
+     {/* Fornecedor Platinas Modal */}
+     <Dialog open={showSinkerProviderModal} onOpenChange={setShowSinkerProviderModal}>
+       <DialogContent className="max-w-sm">
+         <DialogHeader><DialogTitle>{editingSinkerProvider ? 'Editar Fornecedor' : 'Novo Fornecedor'}</DialogTitle></DialogHeader>
+         <div className="space-y-1 pt-2">
+           <Label>Nome *</Label>
+           <Input value={sinkerProviderName} onChange={e => setSinkerProviderName(e.target.value)} placeholder="Ex: GROZ-BECKERT" />
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowSinkerProviderModal(false)}>Cancelar</Button>
+           <Button onClick={handleSaveSinkerProvider}>{editingSinkerProvider ? 'Salvar' : 'Cadastrar'}</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+     <Dialog open={showSinkerPriceModal} onOpenChange={setShowSinkerPriceModal}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>{editingSinkerPrice ? 'Editar Preço' : 'Adicionar Platina ao Fornecedor'}</DialogTitle></DialogHeader>
+         <div className="space-y-3 pt-2">
+           <div className="space-y-1">
+             <Label>Platina *</Label>
+             <Select value={sinkerPriceSinkerId} onValueChange={setSinkerPriceSinkerId} disabled={!!editingSinkerPrice}>
+               <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
+               <SelectContent className="max-h-[280px]">
+                 {availableSinkersForProvider(sinkerPriceProviderId).map(s => (
+                   <SelectItem key={s.id} value={s.id}>{s.brand} ({s.reference_code})</SelectItem>
+                 ))}
+                 {availableSinkersForProvider(sinkerPriceProviderId).length === 0 && (
+                   <div className="p-3 text-xs text-muted-foreground">Todas as platinas já foram vinculadas.</div>
+                 )}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Preço por unidade (R$) *</Label>
+             <Input type="number" step="0.0001" value={sinkerPriceValue} onChange={e => setSinkerPriceValue(e.target.value)} placeholder="0.00" />
+           </div>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowSinkerPriceModal(false)}>Cancelar</Button>
+           <Button onClick={handleSaveSinkerPrice}>{editingSinkerPrice ? 'Salvar' : 'Vincular'}</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+     <DeleteConfirmDialog
+       open={!!deleteSinkerProviderId}
+       onOpenChange={(o) => !o && setDeleteSinkerProviderId(null)}
+       onConfirm={handleDeleteSinkerProvider}
+       title="Remover Fornecedor?"
+       description="Isso também remove todos os lotes e vínculos de preço deste fornecedor."
+     />
+     <DeleteConfirmDialog
+       open={!!deleteSinkerPriceId}
+       onOpenChange={(o) => !o && setDeleteSinkerPriceId(null)}
+       onConfirm={handleDeleteSinkerPrice}
+       title="Remover Vínculo?"
+       description="A platina continua cadastrada, apenas o preço deste fornecedor será removido."
+     />
+
+     {/* Novo/Editar Lote de Platinas */}
+     <Dialog open={showSinkerLotModal} onOpenChange={(o) => { setShowSinkerLotModal(o); if (!o) setEditingSinkerLot(null); }}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>{editingSinkerLot ? 'Editar Lote' : 'Novo Lote de Compra'}</DialogTitle></DialogHeader>
+         <div className="space-y-3 pt-2">
+           <div className="space-y-1">
+             <Label>Fornecedor *</Label>
+             <Select value={sinkerLotForm.provider_id} onValueChange={v => setSinkerLotForm({ ...sinkerLotForm, provider_id: v, lot_code: editingSinkerLot ? sinkerLotForm.lot_code : nextSinkerLotCodeForProvider(v) })}>
+               <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+               <SelectContent className="max-h-[240px]">
+                 {sinkerProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Platina *</Label>
+             <Select value={sinkerLotForm.sinker_id} onValueChange={v => setSinkerLotForm({ ...sinkerLotForm, sinker_id: v })}>
+               <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
+               <SelectContent className="max-h-[280px]">
+                 {sinkers.map(s => <SelectItem key={s.id} value={s.id}>{s.brand} ({s.reference_code})</SelectItem>)}
+                 {sinkers.length === 0 && <div className="p-3 text-xs text-muted-foreground">Cadastre platinas na aba Platinas.</div>}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="grid grid-cols-2 gap-3">
+             <div className="space-y-1">
+               <Label>Código do Lote (auto)</Label>
+               <Input value={sinkerLotForm.lot_code} readOnly disabled placeholder="001" className="font-mono" />
+             </div>
+             <div className="space-y-1">
+               <Label>Data da Compra *</Label>
+               <Input type="date" value={sinkerLotForm.purchase_date} onChange={e => setSinkerLotForm({ ...sinkerLotForm, purchase_date: e.target.value })} />
+             </div>
+           </div>
+           <div className="grid grid-cols-2 gap-3">
+             <div className="space-y-1">
+               <Label>Quantidade Comprada *</Label>
+               <Input type="number" min="1" value={sinkerLotForm.quantity} onChange={e => setSinkerLotForm({ ...sinkerLotForm, quantity: e.target.value })} placeholder="0" />
+             </div>
+             <div className="space-y-1">
+               <Label>Preço Unit. (R$) *</Label>
+               <Input type="number" step="0.0001" value={sinkerLotForm.unit_price} onChange={e => setSinkerLotForm({ ...sinkerLotForm, unit_price: e.target.value })} placeholder="0.00" />
+             </div>
+           </div>
+           <p className="text-xs text-muted-foreground">O preço vale para este lote. Compras futuras são cadastradas como novos lotes.</p>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => { setShowSinkerLotModal(false); setEditingSinkerLot(null); }}>Cancelar</Button>
+           <Button onClick={handleSaveSinkerLot}>{editingSinkerLot ? 'Salvar' : 'Cadastrar Lote'}</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+     <DeleteConfirmDialog
+       open={!!deleteSinkerLotId}
+       onOpenChange={(o) => !o && setDeleteSinkerLotId(null)}
+       onConfirm={handleDeleteSinkerLot}
+       title="Remover Lote?"
+       description="A entrada automática vinculada será removida e o saldo do estoque revertido."
+     />
+     <DeleteConfirmDialog
+       open={!!reverseSinkerTxnId}
+       onOpenChange={(o) => !o && setReverseSinkerTxnId(null)}
+       title="Estornar movimentação"
+       description="As platinas retornarão ao estoque (se era saída) ou serão descontadas (se era entrada). Depois você pode registrar a movimentação correta."
+       confirmLabel="Estornar"
+       onConfirm={async () => {
+         if (!reverseSinkerTxnId) return;
+         try {
+           const txn: any = sinkerTransactions.find((t: any) => t.id === reverseSinkerTxnId);
+           const affectedMachineId = txn?.machine_id;
+           await deleteSinkerTransaction(reverseSinkerTxnId);
+           await logAction('sinker_transaction_reverse', { id: reverseSinkerTxnId });
+           if (affectedMachineId) await resyncMachineCurrentSinker(affectedMachineId);
+           toast.success('Movimentação estornada.');
+         } catch (e: any) {
+           toast.error('Erro ao estornar: ' + (e?.message || ''));
+         } finally {
+           setReverseSinkerTxnId(null);
+         }
+       }}
+     />
 
      {/* Edit Sinker Transaction Modal */}
      <Dialog open={!!sinkerEditTxn} onOpenChange={(o) => !o && setSinkerEditTxn(null)}>
@@ -4451,6 +4643,7 @@ export default function MecanicaPage() {
              const isEntry = sinkerEditForm.kind === 'entry';
              if (!isEntry && !sinkerEditForm.machine_id) { toast.error('Selecione a máquina'); return; }
              try {
+               const oldMachineId = sinkerEditTxn?.machine_id as string | undefined;
                await updateSinkerTransaction(sinkerEditTxn.id, {
                  quantity: qty,
                  date: sinkerEditForm.date,
@@ -4459,6 +4652,10 @@ export default function MecanicaPage() {
                  machine_id: isEntry ? undefined : sinkerEditForm.machine_id,
                });
                await logAction('sinker_transaction_edit', { id: sinkerEditTxn.id, quantity: qty, date: sinkerEditForm.date, kind: sinkerEditForm.kind });
+               if (oldMachineId) await resyncMachineCurrentSinker(oldMachineId);
+               if (!isEntry && sinkerEditForm.machine_id && sinkerEditForm.machine_id !== oldMachineId) {
+                 await resyncMachineCurrentSinker(sinkerEditForm.machine_id);
+               }
                toast.success('Movimentação atualizada');
                setSinkerEditTxn(null);
              } catch (e: any) {
@@ -4477,8 +4674,11 @@ export default function MecanicaPage() {
         onConfirm={async () => {
           if (!deleteSinkerTxnId) return;
           try {
+            const txn: any = sinkerTransactions.find((t: any) => t.id === deleteSinkerTxnId);
+            const affectedMachineId = txn?.machine_id;
             await deleteSinkerTransaction(deleteSinkerTxnId);
             await logAction('sinker_transaction_delete', { id: deleteSinkerTxnId });
+            if (affectedMachineId) await resyncMachineCurrentSinker(affectedMachineId);
             toast.success('Movimentação excluída');
           } catch (e: any) {
             toast.error('Erro ao excluir: ' + (e?.message || ''));
