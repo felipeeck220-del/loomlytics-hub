@@ -824,6 +824,8 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
   const [nextArticleId, setNextArticleId] = useState('');
   const [observations, setObservations] = useState('');
   const [saving, setSaving] = useState(false);
+  // Guarda anti double-click (evita "Nova OT" e push duplicados).
+  const savingRef = useRef(false);
 
   const [fitas, setFitas] = useState<Fita[]>([{ ...EMPTY_FITA }]);
   const [elastano, setElastano] = useState<Elast>({ ...EMPTY_ELAST });
@@ -845,6 +847,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
   const canSave = machineId && nextArticleId && !saving;
 
   const save = async () => {
+    if (savingRef.current) return;
     if (!canSave || !user?.company_id) return;
 
     // Bloqueio de artigo igual
@@ -866,7 +869,9 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
+    try {
     const { data: ins, error } = await (supabase.from as any)('article_change_orders')
       .insert({
         company_id: user.company_id,
@@ -880,7 +885,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
       })
       .select('id, ot_number')
       .single();
-    if (error || !ins) { toast.error(getFriendlyErrorMessage(error?.message)); setSaving(false); return; }
+    if (error || !ins) { toast.error(getFriendlyErrorMessage(error?.message)); return; }
 
     const yarnRows: any[] = [];
     fitas.forEach((f, i) => {
@@ -937,8 +942,11 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
         },
       }).catch(() => { /* silencioso */ });
     } catch { /* silencioso */ }
-    setSaving(false);
     onSaved();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   const yarnOptions = useMemo(() => yarnTypes.map(y => ({ value: y.id, label: y.name })), [yarnTypes]);
