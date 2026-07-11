@@ -1360,8 +1360,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={saveOrder}>{editing ? 'Salvar' : correctiveMode ? 'Criar OC' : 'Criar OM'}</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={savingOrder}>Cancelar</Button>
+            <Button onClick={saveOrder} disabled={savingOrder}>
+              {savingOrder && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {editing ? 'Salvar' : correctiveMode ? 'Criar OC' : 'Criar OM'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
