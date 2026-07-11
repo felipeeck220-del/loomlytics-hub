@@ -1135,7 +1135,8 @@ export default function MecanicaPage() {
     // ===== Lots CRUD =====
     const openNewLot = (providerId?: string) => {
       setEditingLot(null);
-      setLotForm({ provider_id: providerId || '', needle_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+      const nextCode = providerId ? nextLotCodeForProvider(providerId) : '';
+      setLotForm({ provider_id: providerId || '', needle_id: '', lot_code: nextCode, purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
       setShowLotModal(true);
     };
     const openEditLot = (l: NeedleLot) => {
