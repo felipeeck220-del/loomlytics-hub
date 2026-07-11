@@ -1185,6 +1185,15 @@ export default function MecanicaPage() {
     };
     const handleDeleteLot = async () => {
       if (!deleteLotId) return;
+      // Bloqueia remoção quando há transações vinculadas (evita órfãos por causa do FK ON DELETE SET NULL).
+      const linked = needleTransactions.filter((t: any) => t.lot_id === deleteLotId);
+      if (linked.length > 0) {
+        const entries = linked.filter(t => t.type === 'entry').length;
+        const exits = linked.filter(t => t.type === 'exit').length;
+        toast.error(`Não é possível remover: existem ${entries} entrada(s) e ${exits} saída(s) vinculadas a este lote. Estorne-as em Movimentações antes.`);
+        setDeleteLotId(null);
+        return;
+      }
       try {
         const { error } = await (supabase.from as any)('needle_lots').delete().eq('id', deleteLotId);
         if (error) throw error;
@@ -1194,22 +1203,33 @@ export default function MecanicaPage() {
       } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
     };
 
-    // Saldo do lote = qty inicial − sum(entradas atribuídas ao lote)? Não: a entrada consome do lote.
-    // Regra: lote representa a COMPRA; quando registramos entrada baseada nesse lote, contabilizamos que
-    // parte dele foi lançada em estoque. Saldo do lote = quantity original − Σ(entradas com lot_id).
-    const lotBalance = (lotId: string, originalQty: number) => {
-      const used = needleTransactions
+    // Saldo FÍSICO do lote (estoque atual originário desta compra):
+    // Σ(entradas com lot_id) − Σ(saídas com lot_id).
+    const lotBalance = (lotId: string, _originalQty: number) => {
+      const entries = needleTransactions
         .filter((t: any) => t.lot_id === lotId && t.type === 'entry')
         .reduce((s, t) => s + (t.quantity || 0), 0);
-      return originalQty - used;
+      const exits = needleTransactions
+        .filter((t: any) => t.lot_id === lotId && t.type === 'exit')
+        .reduce((s, t) => s + (t.quantity || 0), 0);
+      return entries - exits;
     };
 
-    // Lotes disponíveis para entrada (fornecedor selecionado, saldo > 0)
+    // Saldo de COMPRA PENDENTE do lote (quanto ainda não foi lançado no estoque via entrada).
+    // Usado apenas para filtrar o dropdown de "Registrar Entrada".
+    const lotPendingPurchase = (lotId: string, originalQty: number) => {
+      const entries = needleTransactions
+        .filter((t: any) => t.lot_id === lotId && t.type === 'entry')
+        .reduce((s, t) => s + (t.quantity || 0), 0);
+      return originalQty - entries;
+    };
+
+    // Lotes disponíveis para entrada (fornecedor selecionado, compra pendente > 0).
     const entryProviderLots = useMemo(() => {
       if (!entryProviderId) return [] as (NeedleLot & { balance: number; needle: any })[];
       return needleLots
         .filter(l => l.provider_id === entryProviderId)
-        .map(l => ({ ...l, balance: lotBalance(l.id, l.quantity), needle: needles.find(n => n.id === l.needle_id) }))
+        .map(l => ({ ...l, balance: lotPendingPurchase(l.id, l.quantity), needle: needles.find(n => n.id === l.needle_id) }))
         .filter(l => l.balance > 0)
         .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
     }, [entryProviderId, needleLots, needleTransactions, needles]);
