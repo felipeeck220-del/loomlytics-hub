@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
