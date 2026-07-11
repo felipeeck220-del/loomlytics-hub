@@ -38,6 +38,12 @@ export default function ClientsArticles() {
   const machines = getMachines();
   const allMachineTurns = getArticleMachineTurns();
   const [tab, setTab] = useState(isExpedicao ? 'production' : 'clients');
+  // Se o papel só carregar após a montagem (ex.: expedição), força a aba para
+  // "production" — evita exibir a lista de Clientes brevemente ou deixar o
+  // usuário travado numa aba oculta.
+  useEffect(() => {
+    if (isExpedicao && tab !== 'production') setTab('production');
+  }, [isExpedicao, tab]);
   const [clientSearch, setClientSearch] = useState('');
    const [articleSearch, setArticleSearch] = useState('');
    const [currentPage, setCurrentPage] = useState(1);
