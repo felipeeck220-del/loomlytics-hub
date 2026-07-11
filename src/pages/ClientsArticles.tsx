@@ -28,7 +28,8 @@ interface MachineTurnRow {
 
 export default function ClientsArticles() {
   const { getClients, saveClients, getArticles, saveArticles, getMachines, getArticleMachineTurns, saveArticleMachineTurns, loading } = useSharedCompanyData();
-  const { canSeeFinancial } = usePermissions();
+  const { canSeeFinancial, role } = usePermissions();
+  const isExpedicao = role === 'expedicao';
   const { user } = useAuth();
   const companyId = user?.company_id || '';
   const { logAction } = useAuditLog();
@@ -36,7 +37,7 @@ export default function ClientsArticles() {
   const articles = getArticles();
   const machines = getMachines();
   const allMachineTurns = getArticleMachineTurns();
-  const [tab, setTab] = useState('clients');
+  const [tab, setTab] = useState(isExpedicao ? 'production' : 'clients');
   const [clientSearch, setClientSearch] = useState('');
    const [articleSearch, setArticleSearch] = useState('');
    const [currentPage, setCurrentPage] = useState(1);
@@ -227,25 +228,29 @@ export default function ClientsArticles() {
           <h1 className="text-2xl font-display font-bold text-foreground">Clientes & Artigos</h1>
           <p className="text-muted-foreground text-sm">Gerencie seus clientes e os artigos produzidos</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={openNewClient} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Cliente</Button>
-          <Button onClick={openNewArticle} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Artigo</Button>
-        </div>
+        {!isExpedicao && (
+          <div className="flex gap-2">
+            <Button onClick={openNewClient} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Cliente</Button>
+            <Button onClick={openNewArticle} className="btn-gradient"><Plus className="h-4 w-4 mr-1" /> Novo Artigo</Button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="clients" className="flex items-center gap-2">
-            <Users className="h-4 w-4" /> Clientes
-          </TabsTrigger>
-          <TabsTrigger value="articles" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" /> Artigos
-          </TabsTrigger>
-          <TabsTrigger value="production" className="flex items-center gap-2">
-            <Factory className="h-4 w-4" /> Artigos em Produção
-          </TabsTrigger>
-        </TabsList>
+        {!isExpedicao && (
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="clients" className="flex items-center gap-2">
+              <Users className="h-4 w-4" /> Clientes
+            </TabsTrigger>
+            <TabsTrigger value="articles" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" /> Artigos
+            </TabsTrigger>
+            <TabsTrigger value="production" className="flex items-center gap-2">
+              <Factory className="h-4 w-4" /> Artigos em Produção
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         {/* Clients Tab */}
         <TabsContent value="clients" className="mt-4">
