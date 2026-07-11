@@ -2040,8 +2040,9 @@ export default function MecanicaPage() {
                           </thead>
                           <tbody>
                             {(() => {
-                              // Constrói linhas por LOTE. Saldo do lote = quantidade da compra − consumo FIFO
-                              // proporcional às saídas registradas para aquela agulha.
+                              // Constrói linhas por LOTE. Saldo do lote = Σ(entradas com este lot_id) − Σ(saídas com este lot_id).
+                              // Movimentações antigas sem lot_id (legado) são exibidas em uma linha "(sem lote)" separada,
+                              // sem serem descontadas dos lotes novos — evita saldo falsamente reduzido.
                               const term = needleSearch.toLowerCase();
                               const providerName = (id: string) => providers.find(p => p.id === id)?.name || '—';
                               const rows: Array<{
@@ -2063,23 +2064,26 @@ export default function MecanicaPage() {
                                   .slice()
                                   .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
 
-                                // Saídas com lot_id são descontadas do próprio lote (tag explícita).
-                                // Saídas sem lot_id (legado) são distribuídas FIFO nos lotes remanescentes.
-                                const allExits = needleTransactions.filter(t => t.needle_id === n.id && t.type === 'exit');
-                                const taggedExitsByLot = new Map<string, number>();
+                                // Saldo por lote considera apenas movimentações com lot_id casado.
+                                const txsForNeedle = needleTransactions.filter(t => t.needle_id === n.id);
+                                const entriesByLot = new Map<string, number>();
+                                const exitsByLot = new Map<string, number>();
+                                let untaggedEntries = 0;
                                 let untaggedExits = 0;
-                                allExits.forEach(t => {
-                                  const lid = (t as any).lot_id;
-                                  if (lid) taggedExitsByLot.set(lid, (taggedExitsByLot.get(lid) || 0) + (t.quantity || 0));
-                                  else untaggedExits += (t.quantity || 0);
+                                txsForNeedle.forEach(t => {
+                                  const lid = (t as any).lot_id as string | null;
+                                  const q = t.quantity || 0;
+                                  if (t.type === 'entry') {
+                                    if (lid) entriesByLot.set(lid, (entriesByLot.get(lid) || 0) + q);
+                                    else untaggedEntries += q;
+                                  } else if (t.type === 'exit') {
+                                    if (lid) exitsByLot.set(lid, (exitsByLot.get(lid) || 0) + q);
+                                    else untaggedExits += q;
+                                  }
                                 });
 
                                 lots.forEach(l => {
-                                  const tagged = taggedExitsByLot.get(l.id) || 0;
-                                  const afterTagged = Math.max(0, l.quantity - tagged);
-                                  const fifoConsumed = Math.min(untaggedExits, afterTagged);
-                                  untaggedExits -= fifoConsumed;
-                                  const balance = afterTagged - fifoConsumed;
+                                  const balance = (entriesByLot.get(l.id) || 0) - (exitsByLot.get(l.id) || 0);
                                   rows.push({
                                     key: l.id,
                                     needleId: n.id,
@@ -2094,8 +2098,9 @@ export default function MecanicaPage() {
                                   });
                                 });
 
-                                // Agulha sem lote cadastrado → mostra linha agregada
-                                if (lots.length === 0 && n.current_quantity > 0) {
+                                // Linha "(sem lote)": movimentações legadas sem lot_id.
+                                const legacyBalance = untaggedEntries - untaggedExits;
+                                if (legacyBalance > 0 || (lots.length === 0 && n.current_quantity > 0)) {
                                   rows.push({
                                     key: `no-lot-${n.id}`,
                                     needleId: n.id,
@@ -2103,9 +2108,9 @@ export default function MecanicaPage() {
                                     ref: n.reference_code,
                                     lotCode: '(sem lote)',
                                     providerLabel: '—',
-                                    purchaseQty: n.current_quantity,
+                                    purchaseQty: untaggedEntries,
                                     unitPrice: 0,
-                                    balance: n.current_quantity,
+                                    balance: lots.length === 0 && untaggedEntries === 0 ? n.current_quantity : legacyBalance,
                                     purchaseDate: '',
                                   });
                                 }
