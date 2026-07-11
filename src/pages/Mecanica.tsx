@@ -904,6 +904,19 @@ export default function MecanicaPage() {
        return;
      }
      try {
+       if (editingNeedle) {
+         const updated = needles.map(n => n.id === editingNeedle.id
+           ? { ...n, brand: needleForm.brand, reference_code: needleForm.reference_code, updated_at: new Date().toISOString() }
+           : n
+         );
+         await saveNeedles(updated);
+         logAction('needle_update', { id: editingNeedle.id, brand: needleForm.brand, code: needleForm.reference_code });
+         toast.success('Agulha atualizada!');
+         setShowNeedleModal(false);
+         setEditingNeedle(null);
+         setNeedleForm({ provider: '', brand: '', reference_code: '' });
+         return;
+       }
        const newNeedle = {
          id: crypto.randomUUID(),
          company_id: '',
