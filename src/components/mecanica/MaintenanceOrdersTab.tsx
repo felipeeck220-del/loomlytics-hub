@@ -426,8 +426,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const updateItem = (idx: number, patch: Partial<{ item_type: MaintenanceOrderItemType; ref_id: string; description: string; quantity: number }>) =>
     setFinishItems(p => p.map((it, i) => i === idx ? { ...it, ...patch } : it));
 
+  // Guarda anti double-click do fluxo de finalização (evita duplicar OM/OC
+  // finalizadas, transações de estoque e push notifications).
+  const finishingRef = useRef(false);
+  const [finishing, setFinishing] = useState(false);
+
   const confirmFinish = async () => {
     if (!finishOrder || !finishOrder.started_at) return;
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    setFinishing(true);
+    try {
     const now = new Date().toISOString();
     const seconds = Math.max(0, Math.floor((Date.now() - new Date(finishOrder.started_at).getTime()) / 1000));
     // Data local (GMT-3) para registros que usam coluna DATE
