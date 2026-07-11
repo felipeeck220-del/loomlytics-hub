@@ -1236,6 +1236,14 @@ export default function MecanicaPage() {
           const linkedExits = linked.filter(t => t.type === 'exit');
           const linkedEntries = linked.filter(t => t.type === 'entry');
           const qtyChanged = qty !== (editingLot.quantity || 0);
+          const needleChanged = lotForm.needle_id !== editingLot.needle_id;
+          const dateChanged = lotForm.purchase_date !== editingLot.purchase_date;
+          // Trocar a agulha de um lote com movimentações desalinha o estoque
+          // (as transações antigas continuariam creditando/debitando a agulha antiga).
+          if (needleChanged && linked.length > 0) {
+            toast.error('Não é possível trocar a agulha: já existem movimentações vinculadas a este lote. Exclua-as antes.');
+            return;
+          }
           if (qtyChanged) {
             if (linkedExits.length > 0) {
               toast.error('Não é possível alterar a quantidade: já existem saídas vinculadas a este lote. Estorne-as em Movimentações antes.');
@@ -1266,6 +1274,14 @@ export default function MecanicaPage() {
               created_by_name: userName || undefined,
             });
             if (entryErr) throw entryErr;
+          } else if (dateChanged && linkedEntries.length > 0) {
+            // Mantém a data da entrada automática sincronizada com a data de compra do lote,
+            // evitando divergências no histórico e nos relatórios por período.
+            for (const e of linkedEntries) {
+              await supabase.from('needle_transactions')
+                .update({ date: lotForm.purchase_date })
+                .eq('id', e.id);
+            }
           }
           logAction('needle_lot_update', { id: editingLot.id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
         } else {
