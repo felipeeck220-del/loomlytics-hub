@@ -969,44 +969,50 @@ export default function MecanicaPage() {
    };
  
    const handleExit = async () => {
-     if (!exitForm.needle_id || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
-       toast.error('Preencha todos os campos.');
+     if (!exitLotId || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
+       toast.error('Preencha todos os campos (inclusive o lote).');
        return;
      }
     if (Number(exitForm.quantity) <= 0) {
       toast.error('Quantidade deve ser maior que zero.');
       return;
     }
-      const targetNeedle = needles.find(n => n.id === exitForm.needle_id);
-      if (targetNeedle && targetNeedle.current_quantity < Number(exitForm.quantity)) {
-       toast.error('Saldo insuficiente em estoque.');
+      const lot = exitProviderLots.find(l => l.id === exitLotId) || needleLots.find(l => l.id === exitLotId) as any;
+      if (!lot) { toast.error('Lote inválido.'); return; }
+      const lotBal = (lot as any).balance ?? 0;
+      if (lotBal < Number(exitForm.quantity)) {
+        toast.error(`Saldo insuficiente no lote (disponível: ${lotBal}).`);
        return;
      }
+      const targetNeedle = needles.find(n => n.id === lot.needle_id);
       const machine = machines.find(m => m.id === exitForm.machine_id);
       try {
         await addNeedleTransaction({
          id: crypto.randomUUID(),
          company_id: '',
-         needle_id: exitForm.needle_id,
+         needle_id: lot.needle_id,
          machine_id: exitForm.machine_id,
          type: 'exit',
          exit_mode: exitForm.mode,
          quantity: Number(exitForm.quantity),
          date: exitForm.date,
          created_at: new Date().toISOString(),
-         created_by_name: userName || undefined
-       });
+         created_by_name: userName || undefined,
+         lot_id: exitLotId,
+        } as any);
         logAction('needle_exit', { 
           brand: targetNeedle?.brand, 
           code: targetNeedle?.reference_code, 
           quantity: exitForm.quantity, 
           machine: machine?.name,
-          mode: exitForm.mode 
+          mode: exitForm.mode,
+          lot_id: exitLotId,
+          lot_code: (lot as any).lot_code
         });
         toast.success('Baixa registrada!');
        setShowExitModal(false);
        setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
-      setExitProviderId(''); setExitBrand('');
+      setExitProviderId(''); setExitBrand(''); setExitLotId('');
       } catch (e) { toast.error('Erro ao registrar baixa.'); }
     };
 
