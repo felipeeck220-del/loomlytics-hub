@@ -2361,6 +2361,7 @@ export type Database = {
           current_needle_id: string | null
           current_needle_lot_id: string | null
           current_sinker_id: string | null
+          current_sinker_lot_id: string | null
           cylinder_id: string | null
           diameter: string | null
           feeder_quantity: number | null
@@ -2389,6 +2390,7 @@ export type Database = {
           current_needle_id?: string | null
           current_needle_lot_id?: string | null
           current_sinker_id?: string | null
+          current_sinker_lot_id?: string | null
           cylinder_id?: string | null
           diameter?: string | null
           feeder_quantity?: number | null
@@ -2417,6 +2419,7 @@ export type Database = {
           current_needle_id?: string | null
           current_needle_lot_id?: string | null
           current_sinker_id?: string | null
+          current_sinker_lot_id?: string | null
           cylinder_id?: string | null
           diameter?: string | null
           feeder_quantity?: number | null
@@ -2472,6 +2475,13 @@ export type Database = {
             columns: ["current_sinker_id"]
             isOneToOne: false
             referencedRelation: "sinker_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machines_current_sinker_lot_id_fkey"
+            columns: ["current_sinker_lot_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_lots"
             referencedColumns: ["id"]
           },
           {
@@ -3916,7 +3926,7 @@ export type Database = {
           created_at: string
           current_quantity: number
           id: string
-          provider: string
+          provider: string | null
           reference_code: string
           updated_at: string
         }
@@ -3926,7 +3936,7 @@ export type Database = {
           created_at?: string
           current_quantity?: number
           id?: string
-          provider: string
+          provider?: string | null
           reference_code: string
           updated_at?: string
         }
@@ -3936,13 +3946,161 @@ export type Database = {
           created_at?: string
           current_quantity?: number
           id?: string
-          provider?: string
+          provider?: string | null
           reference_code?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "sinker_inventory_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sinker_lots: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          lot_code: string | null
+          notes: string | null
+          provider_id: string
+          purchase_date: string
+          quantity: number
+          sinker_id: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          lot_code?: string | null
+          notes?: string | null
+          provider_id: string
+          purchase_date?: string
+          quantity?: number
+          sinker_id: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          lot_code?: string | null
+          notes?: string | null
+          provider_id?: string
+          purchase_date?: string
+          quantity?: number
+          sinker_id?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sinker_lots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sinker_lots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sinker_lots_sinker_id_fkey"
+            columns: ["sinker_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sinker_provider_prices: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          provider_id: string
+          sinker_id: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          provider_id: string
+          sinker_id: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          provider_id?: string
+          sinker_id?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sinker_provider_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sinker_provider_prices_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sinker_provider_prices_sinker_id_fkey"
+            columns: ["sinker_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sinker_providers: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sinker_providers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -3959,6 +4117,7 @@ export type Database = {
           date: string
           exit_mode: string | null
           id: string
+          lot_id: string | null
           machine_id: string | null
           provider_id: string | null
           quantity: number
@@ -3974,6 +4133,7 @@ export type Database = {
           date: string
           exit_mode?: string | null
           id?: string
+          lot_id?: string | null
           machine_id?: string | null
           provider_id?: string | null
           quantity: number
@@ -3989,6 +4149,7 @@ export type Database = {
           date?: string
           exit_mode?: string | null
           id?: string
+          lot_id?: string | null
           machine_id?: string | null
           provider_id?: string | null
           quantity?: number
@@ -3997,6 +4158,13 @@ export type Database = {
           unit_price?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sinker_transactions_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "sinker_lots"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sinker_transactions_machine_id_fkey"
             columns: ["machine_id"]

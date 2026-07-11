@@ -87,6 +87,7 @@ export function useCompanyData() {
       current_needle_id: r.current_needle_id || undefined,
       current_sinker_id: r.current_sinker_id || undefined,
       current_needle_lot_id: r.current_needle_lot_id || undefined,
+      current_sinker_lot_id: r.current_sinker_lot_id || undefined,
       maintenance_interval_days: r.maintenance_interval_days != null ? Number(r.maintenance_interval_days) : undefined,
       maintenance_kg_target: r.maintenance_kg_target != null ? Number(r.maintenance_kg_target) : undefined,
     });
@@ -351,6 +352,7 @@ export function useCompanyData() {
         current_needle_id: m.current_needle_id || null,
         current_sinker_id: m.current_sinker_id || null,
         current_needle_lot_id: m.current_needle_lot_id || null,
+        current_sinker_lot_id: m.current_sinker_lot_id || null,
         maintenance_interval_days: m.maintenance_interval_days ?? null,
         maintenance_kg_target: m.maintenance_kg_target ?? null,
       }));
@@ -678,6 +680,7 @@ export function useCompanyData() {
        machine_id: newRecord.machine_id || null,
        created_by_id: user?.id || null,
        created_by_name: newRecord.created_by_name || null,
+        lot_id: (newRecord as any).lot_id || null,
      };
      const { error } = await sb('sinker_transactions').insert(row);
      if (error) throw error;
