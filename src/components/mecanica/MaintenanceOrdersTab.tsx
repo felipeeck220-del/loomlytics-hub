@@ -595,6 +595,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setFinishOrder(null);
     await load();
     await Promise.resolve(refreshMachines());
+    } finally {
+      finishingRef.current = false;
+      setFinishing(false);
+    }
   };
 
   // ============ CANCEL ============
