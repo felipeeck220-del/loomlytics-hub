@@ -211,6 +211,7 @@ export default function MecanicaPage() {
       'needle_inventory', 'needle_transactions',
       'needle_providers', 'needle_provider_prices', 'needle_lots',
       'sinker_inventory', 'sinker_transactions',
+      'sinker_providers', 'sinker_provider_prices', 'sinker_lots',
       'cylinders', 'machine_needle_refs', 'machine_sinker_refs',
       'maintenance_orders', 'maintenance_order_items',
       'machine_maintenance_observations',
@@ -243,6 +244,22 @@ export default function MecanicaPage() {
       setNeedleLots((lots || []) as NeedleLot[]);
     })();
   }, [user?.company_id, providersRefreshKey]);
+
+  // Carrega Fornecedores + Lotes de Platinas
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const cid = user.company_id;
+    (async () => {
+      const [{ data: prov }, { data: pri }, { data: lots }] = await Promise.all([
+        (supabase.from as any)('sinker_providers').select('*').eq('company_id', cid).order('name'),
+        (supabase.from as any)('sinker_provider_prices').select('*').eq('company_id', cid),
+        (supabase.from as any)('sinker_lots').select('*').eq('company_id', cid).order('purchase_date', { ascending: false }),
+      ]);
+      setSinkerProviders((prov || []) as SinkerProvider[]);
+      setSinkerProviderPrices((pri || []) as SinkerProviderPrice[]);
+      setSinkerLots((lots || []) as SinkerLot[]);
+    })();
+  }, [user?.company_id, sinkerProvidersRefreshKey]);
 
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
