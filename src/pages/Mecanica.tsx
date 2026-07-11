@@ -1959,6 +1959,14 @@ export default function MecanicaPage() {
                   <Package className="h-4 w-4 mr-1.5" />
                   Estoque
                 </TabsTrigger>
+                <TabsTrigger value="cadastro">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Platinas
+                </TabsTrigger>
+                <TabsTrigger value="lotes">
+                  <Wrench className="h-4 w-4 mr-1.5" />
+                  Lotes
+                </TabsTrigger>
                 <TabsTrigger value="movimentacoes">
                   <History className="h-4 w-4 mr-1.5" />
                   Movimentações
@@ -2006,12 +2014,6 @@ export default function MecanicaPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowSinkerModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Cadastrar
-                      </Button>
-                      <Button onClick={() => setShowSinkerEntryModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Entrada
-                      </Button>
                       <Button onClick={() => setShowSinkerExitModal(true)} variant="default" className="flex-1 min-w-[30%] sm:flex-none">
                         <Wrench className="h-4 w-4 mr-2" /> Baixa
                       </Button>
@@ -2024,49 +2026,199 @@ export default function MecanicaPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
-                              <th className="text-left p-4 font-medium">Fornecedor</th>
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
-                              <th className="text-right p-4 font-medium">Estoque</th>
+                              <th className="text-left p-4 font-medium">Lote</th>
+                              <th className="text-left p-4 font-medium">Fornecedor</th>
+                              <th className="text-right p-4 font-medium">Compra</th>
+                              <th className="text-right p-4 font-medium">Preço Unit.</th>
+                              <th className="text-right p-4 font-medium">Saldo</th>
                               <th className="text-center p-4 font-medium w-20">Em Uso</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {[...sinkers]
-                              .sort((a, b) => a.brand.localeCompare(b.brand))
-                              .filter(s => 
-                                s.brand.toLowerCase().includes(sinkerSearch.toLowerCase()) || 
-                                s.provider.toLowerCase().includes(sinkerSearch.toLowerCase()) || 
-                                s.reference_code.toLowerCase().includes(sinkerSearch.toLowerCase())
-                              )
-                              .map(s => {
-                                const usedBy = new Set(machineSinkerRefs.filter(r => r.sinker_id === s.id).map(r => r.machine_id)).size;
+                            {(() => {
+                              const term = sinkerSearch.toLowerCase();
+                              const providerName = (id: string) => sinkerProviders.find(p => p.id === id)?.name || '—';
+                              const rows: Array<{ key: string; sinkerId: string; brand: string; ref: string; lotCode: string; providerLabel: string; purchaseQty: number; unitPrice: number; balance: number; purchaseDate: string; }> = [];
+                              const lotsBySinker = new Map<string, typeof sinkerLots>();
+                              sinkerLots.forEach(l => { const arr = lotsBySinker.get(l.sinker_id) || []; arr.push(l); lotsBySinker.set(l.sinker_id, arr); });
+                              sinkers.forEach(s => {
+                                const lots = (lotsBySinker.get(s.id) || []).slice().sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+                                const txsForSinker = sinkerTransactions.filter(t => t.sinker_id === s.id);
+                                const entriesByLot = new Map<string, number>();
+                                const exitsByLot = new Map<string, number>();
+                                let untaggedEntries = 0; let untaggedExits = 0;
+                                txsForSinker.forEach(t => {
+                                  const lid = (t as any).lot_id as string | null;
+                                  const q = t.quantity || 0;
+                                  if (t.type === 'entry') { if (lid) entriesByLot.set(lid, (entriesByLot.get(lid) || 0) + q); else untaggedEntries += q; }
+                                  else if (t.type === 'exit') { if (lid) exitsByLot.set(lid, (exitsByLot.get(lid) || 0) + q); else untaggedExits += q; }
+                                });
+                                lots.forEach(l => {
+                                  const balance = (entriesByLot.get(l.id) || 0) - (exitsByLot.get(l.id) || 0);
+                                  rows.push({ key: l.id, sinkerId: s.id, brand: s.brand, ref: s.reference_code, lotCode: l.lot_code || '—', providerLabel: providerName(l.provider_id), purchaseQty: l.quantity, unitPrice: l.unit_price, balance, purchaseDate: l.purchase_date });
+                                });
+                                const legacyBalance = untaggedEntries - untaggedExits;
+                                if (legacyBalance > 0 || (lots.length === 0 && s.current_quantity > 0)) {
+                                  rows.push({ key: `no-lot-${s.id}`, sinkerId: s.id, brand: s.brand, ref: s.reference_code, lotCode: '(sem lote)', providerLabel: '—', purchaseQty: untaggedEntries, unitPrice: 0, balance: lots.length === 0 && untaggedEntries === 0 ? s.current_quantity : legacyBalance, purchaseDate: '' });
+                                }
+                              });
+                              const filtered = rows.filter(r => r.brand.toLowerCase().includes(term) || r.ref.toLowerCase().includes(term) || r.lotCode.toLowerCase().includes(term) || r.providerLabel.toLowerCase().includes(term))
+                                .sort((a, b) => a.brand.localeCompare(b.brand) || (a.purchaseDate < b.purchaseDate ? 1 : -1));
+                              if (filtered.length === 0) return (<tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum lote em estoque</td></tr>);
+                              return filtered.map(r => {
+                                const usedBy = new Set(machineSinkerRefs.filter(x => x.sinker_id === r.sinkerId).map(x => x.machine_id)).size;
                                 return (
-                              <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
-                                <td className="p-4">{s.provider}</td>
-                                <td className="p-4">{s.brand}</td>
-                                <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s.reference_code}</code></td>
-                                <td className="p-4 text-right font-bold">{s.current_quantity}</td>
-                                <td className="p-4 text-center">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSinkerUsageView({ id: s.id, brand: s.brand, reference_code: s.reference_code })} title={`${usedBy} máquina(s) usando`}>
-                                    <Eye className="h-4 w-4" />
-                                    {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
-                                  </Button>
-                                </td>
-                              </tr>
+                                  <tr key={r.key} className="border-b hover:bg-muted/30 transition-colors">
+                                    <td className="p-4">{r.brand}</td>
+                                    <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{r.ref}</code></td>
+                                    <td className="p-4"><span className="font-mono text-xs">{r.lotCode}</span></td>
+                                    <td className="p-4">{r.providerLabel}</td>
+                                    <td className="p-4 text-right text-muted-foreground">{r.purchaseQty}</td>
+                                    <td className="p-4 text-right">{r.unitPrice > 0 ? r.unitPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }) : '—'}</td>
+                                    <td className={`p-4 text-right font-bold ${r.balance <= 0 ? 'text-muted-foreground line-through' : ''}`}>{r.balance}</td>
+                                    <td className="p-4 text-center">
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSinkerUsageView({ id: r.sinkerId, brand: r.brand, reference_code: r.ref })} title={`${usedBy} máquina(s) usando`}>
+                                        <Eye className="h-4 w-4" />
+                                        {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
+                                      </Button>
+                                    </td>
+                                  </tr>
                                 );
-                              })}
-                            {sinkers.length === 0 && (
-                              <tr>
-                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td>
-                              </tr>
-                            )}
+                              });
+                            })()}
                           </tbody>
                         </table>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+
+              {/* Platinas (Cadastro simples) Sub-Tab */}
+              <TabsContent value="cadastro">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Package className="h-4 w-4" /> Platinas Cadastradas
+                    </CardTitle>
+                    <Button size="sm" onClick={() => { setEditingSinker(null); setSinkerForm({ provider: '', brand: '', reference_code: '' }); setShowSinkerModal(true); }}>
+                      <Plus className="h-4 w-4 mr-1" /> Nova Platina
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-3 font-medium">Marca</th>
+                            <th className="text-left p-3 font-medium">Ref. Código</th>
+                            <th className="text-right p-3 font-medium w-32">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...sinkers].sort((a, b) => a.brand.localeCompare(b.brand)).map(s => (
+                            <tr key={s.id} className="border-b hover:bg-muted/30">
+                              <td className="p-3">{s.brand}</td>
+                              <td className="p-3"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s.reference_code}</code></td>
+                              <td className="p-3 text-right">
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingSinker(s); setSinkerForm({ provider: s.provider || '', brand: s.brand, reference_code: s.reference_code }); setShowSinkerModal(true); }}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                          {sinkers.length === 0 && (
+                            <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada. Use "Nova Platina".</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Lotes Sub-Tab */}
+              <TabsContent value="lotes">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Wrench className="h-4 w-4" /> Fornecedores de Platinas
+                    </CardTitle>
+                    <Button size="sm" onClick={openNewSinkerProvider}>
+                      <Plus className="h-4 w-4 mr-1" /> Novo Fornecedor
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {sinkerProviders.length === 0 && (
+                      <div className="p-8 text-center text-muted-foreground text-sm">Nenhum fornecedor cadastrado.</div>
+                    )}
+                    {sinkerProviders.map(p => {
+                      const provLots = sinkerLots.filter(l => l.provider_id === p.id).sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+                      return (
+                        <Card key={p.id} className="border">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                              <CardTitle className="text-base">{p.name}</CardTitle>
+                              <span className="text-xs text-muted-foreground">{provLots.length} lote{provLots.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openNewSinkerLot(p.id)} disabled={sinkers.length === 0}>
+                                <Plus className="h-3 w-3 mr-1" /> Novo Lote
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditSinkerProvider(p)}><Pencil className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteSinkerProviderId(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-0">
+                            {provLots.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b bg-muted/40 text-xs">
+                                      <th className="text-left p-2 font-medium">Data Compra</th>
+                                      <th className="text-left p-2 font-medium">Lote</th>
+                                      <th className="text-left p-2 font-medium">Marca</th>
+                                      <th className="text-left p-2 font-medium">Ref. Código</th>
+                                      <th className="text-right p-2 font-medium">Qtd Compra</th>
+                                      <th className="text-right p-2 font-medium">Saldo</th>
+                                      <th className="text-right p-2 font-medium">Preço Unit.</th>
+                                      <th className="text-right p-2 font-medium w-24">Ações</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {provLots.map(l => {
+                                      const s = sinkers.find(ss => ss.id === l.sinker_id);
+                                      const bal = sinkerLotBalance(l.id);
+                                      return (
+                                        <tr key={l.id} className="border-b last:border-b-0">
+                                          <td className="p-2">{format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')}</td>
+                                          <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{l.lot_code || '—'}</code></td>
+                                          <td className="p-2">{s?.brand || '—'}</td>
+                                          <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s?.reference_code || '—'}</code></td>
+                                          <td className="p-2 text-right">{l.quantity}</td>
+                                          <td className={`p-2 text-right font-medium ${bal <= 0 ? 'text-muted-foreground' : bal < l.quantity ? 'text-warning' : ''}`}>{bal}</td>
+                                          <td className="p-2 text-right font-medium">R$ {Number(l.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                                          <td className="p-2 text-right">
+                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditSinkerLot(l)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteSinkerLotId(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="p-4 text-center text-xs text-muted-foreground">Nenhum lote cadastrado. Clique em <b>+ Novo Lote</b>.</div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               {/* Movimentações Sub-Tab */}
@@ -2133,6 +2285,9 @@ export default function MecanicaPage() {
                                               setSinkerEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
                                             }}>
                                               <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning" title="Estornar" onClick={() => setReverseSinkerTxnId(t.id)}>
+                                              <RotateCcw className="h-4 w-4" />
                                             </Button>
                                             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteSinkerTxnId(t.id)}>
                                               <Trash2 className="h-4 w-4" />
