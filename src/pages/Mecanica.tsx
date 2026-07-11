@@ -3005,13 +3005,13 @@ export default function MecanicaPage() {
      </Dialog>
  
      {/* Entrada de Agulha */}
-      <Dialog open={showEntryModal} onOpenChange={(o) => { setShowEntryModal(o); if (!o) { setEntryProviderId(''); setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
+       <Dialog open={showEntryModal} onOpenChange={(o) => { setShowEntryModal(o); if (!o) { setEntryProviderId(''); setEntryLotId(''); setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Entrada</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
             <div className="space-y-1">
               <Label>Fornecedor *</Label>
-              <Select value={entryProviderId} onValueChange={v => { setEntryProviderId(v); setEntryForm({ ...entryForm, needle_id: '' }); }}>
+               <Select value={entryProviderId} onValueChange={v => { setEntryProviderId(v); setEntryLotId(''); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
                 <SelectContent className="max-h-[240px]">
                   {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
@@ -3020,28 +3020,28 @@ export default function MecanicaPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Agulha *</Label>
-              <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({ ...entryForm, needle_id: v })} disabled={!entryProviderId}>
-                <SelectTrigger><SelectValue placeholder={entryProviderId ? 'Selecione a agulha' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+               <Label>Lote *</Label>
+               <Select value={entryLotId} onValueChange={setEntryLotId} disabled={!entryProviderId}>
+                 <SelectTrigger><SelectValue placeholder={entryProviderId ? 'Selecione o lote' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
                 <SelectContent className="max-h-[280px]">
-                  {entryProviderNeedles.map((n: any) => (
-                    <SelectItem key={n.id} value={n.id}>
-                      {n.brand} ({n.reference_code}) — R$ {Number(n.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}/un.
+                  {entryProviderLots.map(l => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')} · {l.lot_code || 's/ código'} · {l.needle?.brand} ({l.needle?.reference_code}) — Saldo {l.balance} · R$ {Number(l.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
                     </SelectItem>
                   ))}
-                  {entryProviderId && entryProviderNeedles.length === 0 && (
-                    <div className="p-3 text-xs text-muted-foreground">Fornecedor sem agulhas vinculadas.</div>
+                  {entryProviderId && entryProviderLots.length === 0 && (
+                    <div className="p-3 text-xs text-muted-foreground">Nenhum lote com saldo. Cadastre um lote na aba Fornecedores.</div>
                   )}
                 </SelectContent>
               </Select>
             </div>
-            {entryForm.needle_id && (() => {
-              const n = entryProviderNeedles.find((nn: any) => nn.id === entryForm.needle_id) as any;
+             {entryLotId && (() => {
+               const l = entryProviderLots.find(x => x.id === entryLotId);
               const qty = Number(entryForm.quantity || 0);
-              const total = n ? qty * Number(n.unit_price) : 0;
+               const total = l ? qty * Number(l.unit_price) : 0;
               return (
                 <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
-                  Preço unit.: <b>R$ {Number(n?.unit_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</b> · Total: <b>R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b>
+                   Agulha: <b>{l?.needle?.brand} ({l?.needle?.reference_code})</b> · Preço: <b>R$ {Number(l?.unit_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</b> · Total: <b>R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b>
                 </div>
               );
             })()}
@@ -3055,7 +3055,7 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => { setShowEntryModal(false); setEntryProviderId(''); }}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setShowEntryModal(false); setEntryProviderId(''); setEntryLotId(''); }}>Cancelar</Button>
            <Button onClick={handleEntry}>Registrar</Button>
          </DialogFooter>
        </DialogContent>
