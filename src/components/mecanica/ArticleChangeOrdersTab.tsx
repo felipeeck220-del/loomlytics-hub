@@ -991,6 +991,24 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
     }
     logAction('ot_conclude', { ot: o.ot_number });
     toast.success(`OT #${o.ot_number} concluída`);
+    // Push de finalização — notifica admins (e líderes/mecânicos)
+    try {
+      const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+      const targetPath = slug ? `/${slug}/mecanica/ot` : '/';
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          company_id: (o as any).company_id,
+          title: `OT #${String(o.ot_number).padStart(3, '0')} concluída`,
+          message: report.trim().slice(0, 140),
+          url: targetPath,
+          roles: ['lider', 'lider_noite', 'mecanico', 'lider_mecanica'],
+          include_admins: true,
+          source: 'OT',
+          ref_id: o.id,
+          ref_number: `OT #${String(o.ot_number).padStart(3, '0')}`,
+        },
+      }).catch(() => { /* silencioso */ });
+    } catch { /* silencioso */ }
     onDone();
   };
 
