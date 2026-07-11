@@ -3124,9 +3124,9 @@ export default function MecanicaPage() {
      </Dialog>
  
      {/* Cadastro de Agulha */}
-     <Dialog open={showNeedleModal} onOpenChange={setShowNeedleModal}>
+     <Dialog open={showNeedleModal} onOpenChange={(o) => { setShowNeedleModal(o); if (!o) { setEditingNeedle(null); setNeedleForm({ provider: '', brand: '', reference_code: '' }); } }}>
        <DialogContent className="max-w-md">
-         <DialogHeader><DialogTitle>Nova Agulha</DialogTitle></DialogHeader>
+         <DialogHeader><DialogTitle>{editingNeedle ? 'Editar Agulha' : 'Nova Agulha'}</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
            <div className="space-y-1">
              <Label>Marca</Label>
@@ -3140,7 +3140,7 @@ export default function MecanicaPage() {
          </div>
          <DialogFooter>
            <Button variant="outline" onClick={() => setShowNeedleModal(false)}>Cancelar</Button>
-           <Button onClick={handleSaveNeedle}>Cadastrar</Button>
+           <Button onClick={handleSaveNeedle}>{editingNeedle ? 'Salvar' : 'Cadastrar'}</Button>
          </DialogFooter>
        </DialogContent>
      </Dialog>
