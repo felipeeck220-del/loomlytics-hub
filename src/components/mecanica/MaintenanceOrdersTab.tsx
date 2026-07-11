@@ -1230,6 +1230,37 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               })}
             </div>
           )}
+          {tab === 'finalizada' && finalizedTotal > FINALIZED_PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t">
+              <p className="text-xs text-muted-foreground">
+                Mostrando {finalizedPageSafe * FINALIZED_PAGE_SIZE + 1}
+                –{Math.min(finalizedTotal, (finalizedPageSafe + 1) * FINALIZED_PAGE_SIZE)} de {finalizedTotal}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFinalizedPage(p => Math.max(0, p - 1))}
+                  disabled={finalizedPageSafe === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                </Button>
+                <span className="text-xs font-medium">
+                  <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md">{finalizedPageSafe + 1}</span>
+                  <span className="text-muted-foreground mx-1">/</span>
+                  {finalizedTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFinalizedPage(p => Math.min(finalizedTotalPages - 1, p + 1))}
+                  disabled={finalizedPageSafe >= finalizedTotalPages - 1}
+                >
+                  Próxima <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
