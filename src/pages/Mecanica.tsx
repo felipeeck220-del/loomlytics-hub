@@ -1057,6 +1057,29 @@ export default function MecanicaPage() {
     } catch (e: any) { toast.error(e?.message || 'Erro ao registrar baixa.'); }
   };
 
+  // Recomputa `current_needle_id` / `current_needle_lot_id` da máquina a partir da última saída válida.
+  // Deve ser chamada APÓS o refresh das transações (delete/update já refazem fetch em useCompanyData).
+  const resyncMachineCurrentNeedle = async (machineId?: string | null) => {
+    if (!machineId) return;
+    const machine = machines.find(m => m.id === machineId);
+    if (!machine) return;
+    // Última saída da máquina (por data desc, depois created_at desc).
+    const lastExit = [...needleTransactions]
+      .filter((t: any) => t.machine_id === machineId && t.type === 'exit')
+      .sort((a: any, b: any) => {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return (a.created_at || '') < (b.created_at || '') ? 1 : -1;
+      })[0];
+    const newNeedleId = lastExit?.needle_id || null;
+    const newLotId = (lastExit as any)?.lot_id || null;
+    if (machine.current_needle_id === (newNeedleId || undefined) && machine.current_needle_lot_id === (newLotId || undefined)) return;
+    const updated = machines.map(m => m.id === machineId
+      ? { ...m, current_needle_id: newNeedleId || undefined, current_needle_lot_id: newLotId || undefined }
+      : m
+    );
+    try { await saveMachines(updated); } catch (e) { console.warn('resyncMachineCurrentNeedle failed:', e); }
+  };
+
     // ===== Providers CRUD =====
     const openNewProvider = () => { setEditingProvider(null); setProviderName(''); setShowProviderModal(true); };
     const openEditProvider = (p: NeedleProvider) => { setEditingProvider(p); setProviderName(p.name); setShowProviderModal(true); };
