@@ -366,7 +366,7 @@ export default function ArticleChangeOrdersTab() {
       </div>
 
       <Tabs value={tab} onValueChange={(v: any) => setTab(v)}>
-        <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full">
+        <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
           {([
             { key: 'aberto', label: 'Aberto', icon: AlertTriangle, count: orders.filter(o => o.status === 'aberto').length, active: 'data-[state=active]:bg-amber-500 data-[state=active]:text-white' },
             { key: 'troca_fio_em_curso', label: 'Troca de Fio', icon: Clock, count: orders.filter(o => o.status === 'troca_fio_em_curso').length, active: 'data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
