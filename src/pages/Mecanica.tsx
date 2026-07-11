@@ -175,7 +175,7 @@ export default function MecanicaPage() {
     const tables = [
       'machines', 'machine_logs',
       'needle_inventory', 'needle_transactions',
-      'needle_providers', 'needle_provider_prices',
+      'needle_providers', 'needle_provider_prices', 'needle_lots',
       'sinker_inventory', 'sinker_transactions',
       'cylinders', 'machine_needle_refs', 'machine_sinker_refs',
       'maintenance_orders', 'maintenance_order_items',
@@ -199,12 +199,14 @@ export default function MecanicaPage() {
     if (!user?.company_id) return;
     const cid = user.company_id;
     (async () => {
-      const [{ data: prov }, { data: pri }] = await Promise.all([
+      const [{ data: prov }, { data: pri }, { data: lots }] = await Promise.all([
         (supabase.from as any)('needle_providers').select('*').eq('company_id', cid).order('name'),
         (supabase.from as any)('needle_provider_prices').select('*').eq('company_id', cid),
+        (supabase.from as any)('needle_lots').select('*').eq('company_id', cid).order('purchase_date', { ascending: false }),
       ]);
       setProviders((prov || []) as NeedleProvider[]);
       setProviderPrices((pri || []) as NeedleProviderPrice[]);
+      setNeedleLots((lots || []) as NeedleLot[]);
     })();
   }, [user?.company_id, providersRefreshKey]);
 
@@ -918,7 +920,7 @@ export default function MecanicaPage() {
    };
  
    const handleEntry = async () => {
-     if (!entryForm.needle_id || !entryForm.quantity || !entryForm.date) {
+     if (!entryLotId || !entryForm.quantity || !entryForm.date) {
        toast.error('Preencha todos os campos.');
        return;
      }
@@ -926,23 +928,27 @@ export default function MecanicaPage() {
       toast.error('Quantidade deve ser maior que zero.');
       return;
     }
+     const lot = needleLots.find(l => l.id === entryLotId);
+     if (!lot) { toast.error('Lote inválido.'); return; }
      try {
-        const needle = needles.find(n => n.id === entryForm.needle_id);
+        const needle = needles.find(n => n.id === lot.needle_id);
         await addNeedleTransaction({
          id: crypto.randomUUID(),
          company_id: '',
-         needle_id: entryForm.needle_id,
+          needle_id: lot.needle_id,
          type: 'entry',
          quantity: Number(entryForm.quantity),
          date: entryForm.date,
          created_at: new Date().toISOString(),
-         created_by_name: userName || undefined
-       });
-        logAction('needle_entry', { brand: needle?.brand, code: needle?.reference_code, quantity: entryForm.quantity });
+          created_by_name: userName || undefined,
+          lot_id: entryLotId,
+        } as any);
+         logAction('needle_entry', { brand: needle?.brand, code: needle?.reference_code, quantity: entryForm.quantity, lot_id: entryLotId, lot_code: lot.lot_code });
         toast.success('Entrada registrada!');
        setShowEntryModal(false);
        setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
       setEntryProviderId('');
+       setEntryLotId('');
      } catch (e) { toast.error('Erro ao registrar entrada.'); }
    };
  
@@ -1084,6 +1090,79 @@ export default function MecanicaPage() {
       return arr.sort((a, b) => a.localeCompare(b));
     }, [exitProviderNeedles]);
     const exitRefsForBrand = useMemo(() => exitProviderNeedles.filter(n => n.brand === exitBrand), [exitProviderNeedles, exitBrand]);
+
+    // ===== Lots CRUD =====
+    const openNewLot = (providerId?: string) => {
+      setEditingLot(null);
+      setLotForm({ provider_id: providerId || '', needle_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+      setShowLotModal(true);
+    };
+    const openEditLot = (l: NeedleLot) => {
+      setEditingLot(l);
+      setLotForm({ provider_id: l.provider_id, needle_id: l.needle_id, lot_code: l.lot_code || '', purchase_date: l.purchase_date, quantity: String(l.quantity || ''), unit_price: String(l.unit_price || '') });
+      setShowLotModal(true);
+    };
+    const handleSaveLot = async () => {
+      if (!user?.company_id) return;
+      if (!lotForm.provider_id || !lotForm.needle_id || !lotForm.purchase_date) {
+        toast.error('Preencha fornecedor, agulha e data.'); return;
+      }
+      const qty = parseInt(lotForm.quantity || '0');
+      const price = Number(String(lotForm.unit_price || '0').replace(',', '.'));
+      if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+      if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
+      try {
+        if (editingLot) {
+          const { error } = await (supabase.from as any)('needle_lots').update({
+            provider_id: lotForm.provider_id, needle_id: lotForm.needle_id,
+            lot_code: lotForm.lot_code || null, purchase_date: lotForm.purchase_date,
+            quantity: qty, unit_price: price,
+          }).eq('id', editingLot.id);
+          if (error) throw error;
+          logAction('needle_lot_update', { id: editingLot.id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
+        } else {
+          const { error } = await (supabase.from as any)('needle_lots').insert({
+            company_id: user.company_id, provider_id: lotForm.provider_id, needle_id: lotForm.needle_id,
+            lot_code: lotForm.lot_code || null, purchase_date: lotForm.purchase_date,
+            quantity: qty, unit_price: price,
+          });
+          if (error) throw error;
+          logAction('needle_lot_create', { provider_id: lotForm.provider_id, needle_id: lotForm.needle_id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
+        }
+        toast.success(editingLot ? 'Lote atualizado!' : 'Lote cadastrado!');
+        setShowLotModal(false); setEditingLot(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar lote.'); }
+    };
+    const handleDeleteLot = async () => {
+      if (!deleteLotId) return;
+      try {
+        const { error } = await (supabase.from as any)('needle_lots').delete().eq('id', deleteLotId);
+        if (error) throw error;
+        logAction('needle_lot_delete', { id: deleteLotId });
+        toast.success('Lote removido.');
+        setDeleteLotId(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // Saldo do lote = qty inicial − sum(entradas atribuídas ao lote)? Não: a entrada consome do lote.
+    // Regra: lote representa a COMPRA; quando registramos entrada baseada nesse lote, contabilizamos que
+    // parte dele foi lançada em estoque. Saldo do lote = quantity original − Σ(entradas com lot_id).
+    const lotBalance = (lotId: string, originalQty: number) => {
+      const used = needleTransactions
+        .filter((t: any) => t.lot_id === lotId && t.type === 'entry')
+        .reduce((s, t) => s + (t.quantity || 0), 0);
+      return originalQty - used;
+    };
+
+    // Lotes disponíveis para entrada (fornecedor selecionado, saldo > 0)
+    const entryProviderLots = useMemo(() => {
+      if (!entryProviderId) return [] as (NeedleLot & { balance: number; needle: any })[];
+      return needleLots
+        .filter(l => l.provider_id === entryProviderId)
+        .map(l => ({ ...l, balance: lotBalance(l.id, l.quantity), needle: needles.find(n => n.id === l.needle_id) }))
+        .filter(l => l.balance > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+    }, [entryProviderId, needleLots, needleTransactions, needles]);
 
     const handleSaveSinker = async () => {
       if (!sinkerForm.provider || !sinkerForm.brand || !sinkerForm.reference_code) {
