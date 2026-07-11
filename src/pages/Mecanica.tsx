@@ -3415,7 +3415,7 @@ export default function MecanicaPage() {
                 return ent - exi;
               };
               const others = needleLots
-                .filter(l => l.id !== startLot.id && l.needle_id === startLot.needle_id)
+                .filter(l => l.id !== startLot.id && l.needle_id === startLot.needle_id && l.provider_id === startLot.provider_id)
                 .map(l => ({ ...l, balance: lotBalanceOf(l.id) }))
                 .filter(l => l.balance > 0)
                 .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
