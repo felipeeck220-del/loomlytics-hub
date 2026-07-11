@@ -990,11 +990,22 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           </TabsTrigger>
         </TabsList>
         <TabsContent value={tab} className="mt-4">
-          {displayed.length === 0 ? (
+          {tab === 'finalizada' && (
+            <div className="mb-3 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={finalizedSearch}
+                onChange={e => setFinalizedSearch(e.target.value)}
+                placeholder={`Buscar ${labelShort} finalizada por número, máquina ou descrição…`}
+                className="pl-9"
+              />
+            </div>
+          )}
+          {listToRender.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma {labelShort} nessa lista.</div>
           ) : (
             <div className="space-y-3">
-              {displayed.map(o => {
+              {listToRender.map(o => {
                 const m = machineById[o.machine_id];
                 const its = itemsByOrder[o.id] || [];
                 const style = STATUS_STYLE[o.status];
