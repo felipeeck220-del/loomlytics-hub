@@ -3342,30 +3342,36 @@ export default function MecanicaPage() {
               <Select value={exitForm.machine_id} onValueChange={v => {
                 setExitForm({...exitForm, machine_id: v});
                 // Auto-preenche fornecedor/lote a partir da agulha e lote atuais registrados na máquina.
+                // Sempre reseta antes para evitar valor "fantasma" preso quando o auto-fill não encontra opção válida.
+                setExitProviderId('');
+                setExitBrand('');
+                setExitLotId('');
                 const m = machines.find(x => x.id === v);
+                const balanceOf = (lid: string) => {
+                  const ent = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                  const exi = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                  return ent - exi;
+                };
                 if (m?.current_needle_lot_id) {
                   const lot = needleLots.find(l => l.id === m.current_needle_lot_id);
-                  if (lot) {
+                  const providerOk = lot && providers.some(p => p.id === lot.provider_id);
+                  const hasBalance = lot && balanceOf(lot.id) > 0;
+                  if (lot && providerOk && hasBalance) {
                     setExitProviderId(lot.provider_id);
-                    setExitBrand('');
                     setExitLotId(lot.id);
                     return;
                   }
+                  // Fallback: se lote atual foi esgotado ou fornecedor deletado, cai para FIFO da agulha.
                 }
                 if (m?.current_needle_id) {
                   // Sem lote definido: acha o lote mais antigo com saldo dessa agulha.
                   const candidates = needleLots
-                    .filter(l => l.needle_id === m.current_needle_id)
-                    .map(l => {
-                      const ent = needleTransactions.filter((t: any) => t.lot_id === l.id && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
-                      const exi = needleTransactions.filter((t: any) => t.lot_id === l.id && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
-                      return { ...l, balance: ent - exi };
-                    })
+                    .filter(l => l.needle_id === m.current_needle_id && providers.some(p => p.id === l.provider_id))
+                    .map(l => ({ ...l, balance: balanceOf(l.id) }))
                     .filter(l => l.balance > 0)
                     .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
                   if (candidates[0]) {
                     setExitProviderId(candidates[0].provider_id);
-                    setExitBrand('');
                     setExitLotId(candidates[0].id);
                   }
                 }
