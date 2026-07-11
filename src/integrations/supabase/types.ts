@@ -2798,6 +2798,63 @@ export type Database = {
           },
         ]
       }
+      needle_lots: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          lot_code: string | null
+          needle_id: string
+          notes: string | null
+          provider_id: string
+          purchase_date: string
+          quantity: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          lot_code?: string | null
+          needle_id: string
+          notes?: string | null
+          provider_id: string
+          purchase_date?: string
+          quantity?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          lot_code?: string | null
+          needle_id?: string
+          notes?: string | null
+          provider_id?: string
+          purchase_date?: string
+          quantity?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "needle_lots_needle_id_fkey"
+            columns: ["needle_id"]
+            isOneToOne: false
+            referencedRelation: "needle_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "needle_lots_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "needle_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       needle_provider_prices: {
         Row: {
           company_id: string
@@ -2891,6 +2948,7 @@ export type Database = {
           date: string
           exit_mode: Database["public"]["Enums"]["needle_exit_mode"] | null
           id: string
+          lot_id: string | null
           machine_id: string | null
           needle_id: string
           provider_id: string | null
@@ -2906,6 +2964,7 @@ export type Database = {
           date?: string
           exit_mode?: Database["public"]["Enums"]["needle_exit_mode"] | null
           id?: string
+          lot_id?: string | null
           machine_id?: string | null
           needle_id: string
           provider_id?: string | null
@@ -2921,6 +2980,7 @@ export type Database = {
           date?: string
           exit_mode?: Database["public"]["Enums"]["needle_exit_mode"] | null
           id?: string
+          lot_id?: string | null
           machine_id?: string | null
           needle_id?: string
           provider_id?: string | null
@@ -2934,6 +2994,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "needle_transactions_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "needle_lots"
             referencedColumns: ["id"]
           },
           {

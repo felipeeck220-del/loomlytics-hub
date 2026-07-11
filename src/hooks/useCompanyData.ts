@@ -603,6 +603,7 @@ export function useCompanyData() {
        machine_id: newRecord.machine_id || null,
        created_by_id: user?.id || null,
        created_by_name: newRecord.created_by_name || null,
+      lot_id: (newRecord as any).lot_id || null,
      };
      const { error } = await sb('needle_transactions').insert(row);
      if (error) throw error;

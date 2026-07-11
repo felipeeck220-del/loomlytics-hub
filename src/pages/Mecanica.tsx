@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package, Eye, FileDown, Settings } from 'lucide-react';
+  import { Wrench, ChevronLeft, ChevronRight, Search, History, Plus, Loader2, Filter, Pencil, Trash2, Package, Eye, FileDown, Settings, RotateCcw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -38,6 +38,7 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 
 type NeedleProvider = { id: string; company_id: string; name: string };
 type NeedleProviderPrice = { id: string; company_id: string; provider_id: string; needle_id: string; unit_price: number };
+type NeedleLot = { id: string; company_id: string; provider_id: string; needle_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; notes: string | null; created_at: string };
 
 export default function MecanicaPage() {
    const { 
@@ -72,6 +73,7 @@ export default function MecanicaPage() {
    const [editTxn, setEditTxn] = useState<any>(null);
    const [editForm, setEditForm] = useState({ quantity: '', date: '', machine_id: '', kind: 'entry' as 'entry' | 'reposicao' | 'troca_agulheiro' });
    const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null);
+  const [reverseTxnId, setReverseTxnId] = useState<string | null>(null);
    const [needleHistoryPage, setNeedleHistoryPage] = useState(1);
    const [needleUsageView, setNeedleUsageView] = useState<{ id: string; brand: string; reference_code: string } | null>(null);
    const [sinkerUsageView, setSinkerUsageView] = useState<{ id: string; brand: string; reference_code: string } | null>(null);
@@ -80,6 +82,7 @@ export default function MecanicaPage() {
    // Needle Providers + Prices (novo modelo tipo Vendas de Resíduos)
    const [providers, setProviders] = useState<NeedleProvider[]>([]);
    const [providerPrices, setProviderPrices] = useState<NeedleProviderPrice[]>([]);
+   const [needleLots, setNeedleLots] = useState<NeedleLot[]>([]);
    const [providersRefreshKey, setProvidersRefreshKey] = useState(0);
    const bumpProviders = () => setProvidersRefreshKey(k => k + 1);
    const [showProviderModal, setShowProviderModal] = useState(false);
@@ -92,8 +95,14 @@ export default function MecanicaPage() {
    const [priceValue, setPriceValue] = useState('');
    const [editingPrice, setEditingPrice] = useState<NeedleProviderPrice | null>(null);
    const [deletePriceId, setDeletePriceId] = useState<string | null>(null);
+   // Lot state
+   const [showLotModal, setShowLotModal] = useState(false);
+   const [editingLot, setEditingLot] = useState<NeedleLot | null>(null);
+   const [lotForm, setLotForm] = useState({ provider_id: '', needle_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+   const [deleteLotId, setDeleteLotId] = useState<string | null>(null);
    // Entrada / Saída — seleção por fornecedor
    const [entryProviderId, setEntryProviderId] = useState('');
+   const [entryLotId, setEntryLotId] = useState('');
    const [exitProviderId, setExitProviderId] = useState('');
    const [exitBrand, setExitBrand] = useState('');
 
@@ -167,7 +176,7 @@ export default function MecanicaPage() {
     const tables = [
       'machines', 'machine_logs',
       'needle_inventory', 'needle_transactions',
-      'needle_providers', 'needle_provider_prices',
+      'needle_providers', 'needle_provider_prices', 'needle_lots',
       'sinker_inventory', 'sinker_transactions',
       'cylinders', 'machine_needle_refs', 'machine_sinker_refs',
       'maintenance_orders', 'maintenance_order_items',
@@ -191,12 +200,14 @@ export default function MecanicaPage() {
     if (!user?.company_id) return;
     const cid = user.company_id;
     (async () => {
-      const [{ data: prov }, { data: pri }] = await Promise.all([
+      const [{ data: prov }, { data: pri }, { data: lots }] = await Promise.all([
         (supabase.from as any)('needle_providers').select('*').eq('company_id', cid).order('name'),
         (supabase.from as any)('needle_provider_prices').select('*').eq('company_id', cid),
+        (supabase.from as any)('needle_lots').select('*').eq('company_id', cid).order('purchase_date', { ascending: false }),
       ]);
       setProviders((prov || []) as NeedleProvider[]);
       setProviderPrices((pri || []) as NeedleProviderPrice[]);
+      setNeedleLots((lots || []) as NeedleLot[]);
     })();
   }, [user?.company_id, providersRefreshKey]);
 
@@ -910,7 +921,7 @@ export default function MecanicaPage() {
    };
  
    const handleEntry = async () => {
-     if (!entryForm.needle_id || !entryForm.quantity || !entryForm.date) {
+     if (!entryLotId || !entryForm.quantity || !entryForm.date) {
        toast.error('Preencha todos os campos.');
        return;
      }
@@ -918,23 +929,27 @@ export default function MecanicaPage() {
       toast.error('Quantidade deve ser maior que zero.');
       return;
     }
+     const lot = needleLots.find(l => l.id === entryLotId);
+     if (!lot) { toast.error('Lote inválido.'); return; }
      try {
-        const needle = needles.find(n => n.id === entryForm.needle_id);
+        const needle = needles.find(n => n.id === lot.needle_id);
         await addNeedleTransaction({
          id: crypto.randomUUID(),
          company_id: '',
-         needle_id: entryForm.needle_id,
+          needle_id: lot.needle_id,
          type: 'entry',
          quantity: Number(entryForm.quantity),
          date: entryForm.date,
          created_at: new Date().toISOString(),
-         created_by_name: userName || undefined
-       });
-        logAction('needle_entry', { brand: needle?.brand, code: needle?.reference_code, quantity: entryForm.quantity });
+          created_by_name: userName || undefined,
+          lot_id: entryLotId,
+        } as any);
+         logAction('needle_entry', { brand: needle?.brand, code: needle?.reference_code, quantity: entryForm.quantity, lot_id: entryLotId, lot_code: lot.lot_code });
         toast.success('Entrada registrada!');
        setShowEntryModal(false);
        setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
       setEntryProviderId('');
+       setEntryLotId('');
      } catch (e) { toast.error('Erro ao registrar entrada.'); }
    };
  
@@ -1076,6 +1091,79 @@ export default function MecanicaPage() {
       return arr.sort((a, b) => a.localeCompare(b));
     }, [exitProviderNeedles]);
     const exitRefsForBrand = useMemo(() => exitProviderNeedles.filter(n => n.brand === exitBrand), [exitProviderNeedles, exitBrand]);
+
+    // ===== Lots CRUD =====
+    const openNewLot = (providerId?: string) => {
+      setEditingLot(null);
+      setLotForm({ provider_id: providerId || '', needle_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+      setShowLotModal(true);
+    };
+    const openEditLot = (l: NeedleLot) => {
+      setEditingLot(l);
+      setLotForm({ provider_id: l.provider_id, needle_id: l.needle_id, lot_code: l.lot_code || '', purchase_date: l.purchase_date, quantity: String(l.quantity || ''), unit_price: String(l.unit_price || '') });
+      setShowLotModal(true);
+    };
+    const handleSaveLot = async () => {
+      if (!user?.company_id) return;
+      if (!lotForm.provider_id || !lotForm.needle_id || !lotForm.purchase_date) {
+        toast.error('Preencha fornecedor, agulha e data.'); return;
+      }
+      const qty = parseInt(lotForm.quantity || '0');
+      const price = Number(String(lotForm.unit_price || '0').replace(',', '.'));
+      if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+      if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
+      try {
+        if (editingLot) {
+          const { error } = await (supabase.from as any)('needle_lots').update({
+            provider_id: lotForm.provider_id, needle_id: lotForm.needle_id,
+            lot_code: lotForm.lot_code || null, purchase_date: lotForm.purchase_date,
+            quantity: qty, unit_price: price,
+          }).eq('id', editingLot.id);
+          if (error) throw error;
+          logAction('needle_lot_update', { id: editingLot.id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
+        } else {
+          const { error } = await (supabase.from as any)('needle_lots').insert({
+            company_id: user.company_id, provider_id: lotForm.provider_id, needle_id: lotForm.needle_id,
+            lot_code: lotForm.lot_code || null, purchase_date: lotForm.purchase_date,
+            quantity: qty, unit_price: price,
+          });
+          if (error) throw error;
+          logAction('needle_lot_create', { provider_id: lotForm.provider_id, needle_id: lotForm.needle_id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
+        }
+        toast.success(editingLot ? 'Lote atualizado!' : 'Lote cadastrado!');
+        setShowLotModal(false); setEditingLot(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar lote.'); }
+    };
+    const handleDeleteLot = async () => {
+      if (!deleteLotId) return;
+      try {
+        const { error } = await (supabase.from as any)('needle_lots').delete().eq('id', deleteLotId);
+        if (error) throw error;
+        logAction('needle_lot_delete', { id: deleteLotId });
+        toast.success('Lote removido.');
+        setDeleteLotId(null); bumpProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // Saldo do lote = qty inicial − sum(entradas atribuídas ao lote)? Não: a entrada consome do lote.
+    // Regra: lote representa a COMPRA; quando registramos entrada baseada nesse lote, contabilizamos que
+    // parte dele foi lançada em estoque. Saldo do lote = quantity original − Σ(entradas com lot_id).
+    const lotBalance = (lotId: string, originalQty: number) => {
+      const used = needleTransactions
+        .filter((t: any) => t.lot_id === lotId && t.type === 'entry')
+        .reduce((s, t) => s + (t.quantity || 0), 0);
+      return originalQty - used;
+    };
+
+    // Lotes disponíveis para entrada (fornecedor selecionado, saldo > 0)
+    const entryProviderLots = useMemo(() => {
+      if (!entryProviderId) return [] as (NeedleLot & { balance: number; needle: any })[];
+      return needleLots
+        .filter(l => l.provider_id === entryProviderId)
+        .map(l => ({ ...l, balance: lotBalance(l.id, l.quantity), needle: needles.find(n => n.id === l.needle_id) }))
+        .filter(l => l.balance > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+    }, [entryProviderId, needleLots, needleTransactions, needles]);
 
     const handleSaveSinker = async () => {
       if (!sinkerForm.provider || !sinkerForm.brand || !sinkerForm.reference_code) {
@@ -1919,45 +2007,54 @@ export default function MecanicaPage() {
                       <div className="p-8 text-center text-muted-foreground text-sm">Nenhum fornecedor cadastrado.</div>
                     )}
                     {providers.map(p => {
-                      const prices = providerPrices.filter(pp => pp.provider_id === p.id);
+                      const provLots = needleLots.filter(l => l.provider_id === p.id).sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
                       return (
                         <Card key={p.id} className="border">
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <div>
                               <CardTitle className="text-base">{p.name}</CardTitle>
-                              <span className="text-xs text-muted-foreground">{prices.length} agulha{prices.length !== 1 ? 's' : ''}</span>
+                              <span className="text-xs text-muted-foreground">{provLots.length} lote{provLots.length !== 1 ? 's' : ''}</span>
                             </div>
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openAddPrice(p.id)} disabled={availableNeedlesForProvider(p.id).length === 0}>
-                                <Plus className="h-3 w-3 mr-1" /> Agulha
+                              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openNewLot(p.id)} disabled={needles.length === 0}>
+                                <Plus className="h-3 w-3 mr-1" /> Novo Lote
                               </Button>
                               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditProvider(p)}><Pencil className="h-4 w-4" /></Button>
                               <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteProviderId(p.id)}><Trash2 className="h-4 w-4" /></Button>
                             </div>
                           </CardHeader>
                           <CardContent className="p-0">
-                            {prices.length > 0 ? (
+                            {provLots.length > 0 ? (
                               <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                   <thead>
                                     <tr className="border-b bg-muted/40 text-xs">
+                                      <th className="text-left p-2 font-medium">Data Compra</th>
+                                      <th className="text-left p-2 font-medium">Lote</th>
                                       <th className="text-left p-2 font-medium">Marca</th>
                                       <th className="text-left p-2 font-medium">Ref. Código</th>
+                                      <th className="text-right p-2 font-medium">Qtd Compra</th>
+                                      <th className="text-right p-2 font-medium">Saldo</th>
                                       <th className="text-right p-2 font-medium">Preço Unit.</th>
                                       <th className="text-right p-2 font-medium w-24">Ações</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {prices.map(pp => {
-                                      const n = needles.find(nn => nn.id === pp.needle_id);
+                                    {provLots.map(l => {
+                                      const n = needles.find(nn => nn.id === l.needle_id);
+                                      const bal = lotBalance(l.id, l.quantity);
                                       return (
-                                        <tr key={pp.id} className="border-b last:border-b-0">
+                                        <tr key={l.id} className="border-b last:border-b-0">
+                                          <td className="p-2">{format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')}</td>
+                                          <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{l.lot_code || '—'}</code></td>
                                           <td className="p-2">{n?.brand || '—'}</td>
                                           <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n?.reference_code || '—'}</code></td>
-                                          <td className="p-2 text-right font-medium">R$ {Number(pp.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                                          <td className="p-2 text-right">{l.quantity}</td>
+                                          <td className={`p-2 text-right font-medium ${bal <= 0 ? 'text-muted-foreground' : bal < l.quantity ? 'text-warning' : ''}`}>{bal}</td>
+                                          <td className="p-2 text-right font-medium">R$ {Number(l.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
                                           <td className="p-2 text-right">
-                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditPrice(pp)}><Pencil className="h-3.5 w-3.5" /></Button>
-                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeletePriceId(pp.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditLot(l)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteLotId(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                                           </td>
                                         </tr>
                                       );
@@ -1966,7 +2063,7 @@ export default function MecanicaPage() {
                                 </table>
                               </div>
                             ) : (
-                              <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma agulha vinculada. Clique em <b>+ Agulha</b>.</div>
+                              <div className="p-4 text-center text-xs text-muted-foreground">Nenhum lote cadastrado. Clique em <b>+ Novo Lote</b>.</div>
                             )}
                           </CardContent>
                         </Card>
@@ -2040,6 +2137,9 @@ export default function MecanicaPage() {
                                               setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
                                             }}>
                                               <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning" title="Estornar" onClick={() => setReverseTxnId(t.id)}>
+                                              <RotateCcw className="h-4 w-4" />
                                             </Button>
                                             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTxnId(t.id)}>
                                               <Trash2 className="h-4 w-4" />
@@ -2909,13 +3009,13 @@ export default function MecanicaPage() {
      </Dialog>
  
      {/* Entrada de Agulha */}
-      <Dialog open={showEntryModal} onOpenChange={(o) => { setShowEntryModal(o); if (!o) { setEntryProviderId(''); setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
+       <Dialog open={showEntryModal} onOpenChange={(o) => { setShowEntryModal(o); if (!o) { setEntryProviderId(''); setEntryLotId(''); setEntryForm({ needle_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Entrada</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
             <div className="space-y-1">
               <Label>Fornecedor *</Label>
-              <Select value={entryProviderId} onValueChange={v => { setEntryProviderId(v); setEntryForm({ ...entryForm, needle_id: '' }); }}>
+               <Select value={entryProviderId} onValueChange={v => { setEntryProviderId(v); setEntryLotId(''); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
                 <SelectContent className="max-h-[240px]">
                   {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
@@ -2924,28 +3024,28 @@ export default function MecanicaPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Agulha *</Label>
-              <Select value={entryForm.needle_id} onValueChange={v => setEntryForm({ ...entryForm, needle_id: v })} disabled={!entryProviderId}>
-                <SelectTrigger><SelectValue placeholder={entryProviderId ? 'Selecione a agulha' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+               <Label>Lote *</Label>
+               <Select value={entryLotId} onValueChange={setEntryLotId} disabled={!entryProviderId}>
+                 <SelectTrigger><SelectValue placeholder={entryProviderId ? 'Selecione o lote' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
                 <SelectContent className="max-h-[280px]">
-                  {entryProviderNeedles.map((n: any) => (
-                    <SelectItem key={n.id} value={n.id}>
-                      {n.brand} ({n.reference_code}) — R$ {Number(n.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}/un.
+                  {entryProviderLots.map(l => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')} · {l.lot_code || 's/ código'} · {l.needle?.brand} ({l.needle?.reference_code}) — Saldo {l.balance} · R$ {Number(l.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
                     </SelectItem>
                   ))}
-                  {entryProviderId && entryProviderNeedles.length === 0 && (
-                    <div className="p-3 text-xs text-muted-foreground">Fornecedor sem agulhas vinculadas.</div>
+                  {entryProviderId && entryProviderLots.length === 0 && (
+                    <div className="p-3 text-xs text-muted-foreground">Nenhum lote com saldo. Cadastre um lote na aba Fornecedores.</div>
                   )}
                 </SelectContent>
               </Select>
             </div>
-            {entryForm.needle_id && (() => {
-              const n = entryProviderNeedles.find((nn: any) => nn.id === entryForm.needle_id) as any;
+             {entryLotId && (() => {
+               const l = entryProviderLots.find(x => x.id === entryLotId);
               const qty = Number(entryForm.quantity || 0);
-              const total = n ? qty * Number(n.unit_price) : 0;
+               const total = l ? qty * Number(l.unit_price) : 0;
               return (
                 <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
-                  Preço unit.: <b>R$ {Number(n?.unit_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</b> · Total: <b>R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b>
+                   Agulha: <b>{l?.needle?.brand} ({l?.needle?.reference_code})</b> · Preço: <b>R$ {Number(l?.unit_price || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</b> · Total: <b>R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b>
                 </div>
               );
             })()}
@@ -2959,7 +3059,7 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => { setShowEntryModal(false); setEntryProviderId(''); }}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setShowEntryModal(false); setEntryProviderId(''); setEntryLotId(''); }}>Cancelar</Button>
            <Button onClick={handleEntry}>Registrar</Button>
          </DialogFooter>
        </DialogContent>
@@ -3180,6 +3280,86 @@ export default function MecanicaPage() {
           setDeleteTxnId(null);
         }
       }}
+    />
+    <DeleteConfirmDialog
+      open={!!reverseTxnId}
+      onOpenChange={(o) => !o && setReverseTxnId(null)}
+      title="Estornar movimentação"
+      description="As agulhas retornarão ao estoque (se era saída) ou serão descontadas (se era entrada). Depois você pode registrar a movimentação correta."
+      confirmLabel="Estornar"
+      onConfirm={async () => {
+        if (!reverseTxnId) return;
+        try {
+          await deleteNeedleTransaction(reverseTxnId);
+          await logAction('needle_transaction_reverse', { id: reverseTxnId });
+          toast.success('Movimentação estornada.');
+        } catch (e: any) {
+          toast.error('Erro ao estornar: ' + (e?.message || ''));
+        } finally {
+          setReverseTxnId(null);
+        }
+      }}
+    />
+
+    {/* Novo/Editar Lote */}
+    <Dialog open={showLotModal} onOpenChange={(o) => { setShowLotModal(o); if (!o) setEditingLot(null); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>{editingLot ? 'Editar Lote' : 'Novo Lote de Compra'}</DialogTitle></DialogHeader>
+        <div className="space-y-3 pt-2">
+          <div className="space-y-1">
+            <Label>Fornecedor *</Label>
+            <Select value={lotForm.provider_id} onValueChange={v => setLotForm({ ...lotForm, provider_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+              <SelectContent className="max-h-[240px]">
+                {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Agulha *</Label>
+            <Select value={lotForm.needle_id} onValueChange={v => setLotForm({ ...lotForm, needle_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+              <SelectContent className="max-h-[280px]">
+                {needles.map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>)}
+                {needles.length === 0 && <div className="p-3 text-xs text-muted-foreground">Cadastre agulhas na aba Agulhas.</div>}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Código do Lote</Label>
+              <Input value={lotForm.lot_code} onChange={e => setLotForm({ ...lotForm, lot_code: e.target.value })} placeholder="opcional" />
+            </div>
+            <div className="space-y-1">
+              <Label>Data da Compra *</Label>
+              <Input type="date" value={lotForm.purchase_date} onChange={e => setLotForm({ ...lotForm, purchase_date: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Quantidade Comprada *</Label>
+              <Input type="number" min="1" value={lotForm.quantity} onChange={e => setLotForm({ ...lotForm, quantity: e.target.value })} placeholder="0" />
+            </div>
+            <div className="space-y-1">
+              <Label>Preço Unit. (R$) *</Label>
+              <Input type="number" step="0.0001" value={lotForm.unit_price} onChange={e => setLotForm({ ...lotForm, unit_price: e.target.value })} placeholder="0.00" />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">O preço vale para este lote. Compras futuras (ex.: com câmbio diferente) são cadastradas como novos lotes.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { setShowLotModal(false); setEditingLot(null); }}>Cancelar</Button>
+          <Button onClick={handleSaveLot}>{editingLot ? 'Salvar' : 'Cadastrar Lote'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <DeleteConfirmDialog
+      open={!!deleteLotId}
+      onOpenChange={(o) => !o && setDeleteLotId(null)}
+      onConfirm={handleDeleteLot}
+      title="Remover Lote?"
+      description="As movimentações vinculadas a este lote permanecem, mas perdem a referência ao lote."
     />
      {/* --- Platinas Modals --- */}
      {/* Cadastrar Platina */}
