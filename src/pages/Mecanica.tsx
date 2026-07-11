@@ -1107,6 +1107,25 @@ export default function MecanicaPage() {
     }, [exitProviderNeedles]);
     const exitRefsForBrand = useMemo(() => exitProviderNeedles.filter(n => n.brand === exitBrand), [exitProviderNeedles, exitBrand]);
 
+    // Lotes disponíveis para SAÍDA (fornecedor selecionado, saldo físico > 0).
+    // Saldo físico do lote = Σ(entradas com lot_id) − Σ(saídas com lot_id).
+    const exitProviderLots = useMemo(() => {
+      if (!exitProviderId) return [] as (NeedleLot & { balance: number; needle: any })[];
+      return needleLots
+        .filter(l => l.provider_id === exitProviderId)
+        .map(l => {
+          const entries = needleTransactions
+            .filter((t: any) => t.lot_id === l.id && t.type === 'entry')
+            .reduce((s, t) => s + (t.quantity || 0), 0);
+          const exits = needleTransactions
+            .filter((t: any) => t.lot_id === l.id && t.type === 'exit')
+            .reduce((s, t) => s + (t.quantity || 0), 0);
+          return { ...l, balance: entries - exits, needle: needles.find(n => n.id === l.needle_id) };
+        })
+        .filter(l => l.balance > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+    }, [exitProviderId, needleLots, needleTransactions, needles]);
+
     // ===== Lots CRUD =====
     const openNewLot = (providerId?: string) => {
       setEditingLot(null);
