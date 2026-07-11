@@ -969,52 +969,91 @@ export default function MecanicaPage() {
    };
  
    const handleExit = async () => {
-     if (!exitLotId || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
-       toast.error('Preencha todos os campos (inclusive o lote).');
-       return;
-     }
-    if (Number(exitForm.quantity) <= 0) {
-      toast.error('Quantidade deve ser maior que zero.');
+    const qty = Number(exitForm.quantity);
+    if (!exitLotId || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
+      toast.error('Preencha todos os campos (inclusive quantidade e lote).');
       return;
     }
-      const lot = exitProviderLots.find(l => l.id === exitLotId) || needleLots.find(l => l.id === exitLotId) as any;
-      if (!lot) { toast.error('Lote inválido.'); return; }
-      const lotBal = (lot as any).balance ?? 0;
-      if (lotBal < Number(exitForm.quantity)) {
-        toast.error(`Saldo insuficiente no lote (disponível: ${lotBal}).`);
-       return;
-     }
-      const targetNeedle = needles.find(n => n.id === lot.needle_id);
-      const machine = machines.find(m => m.id === exitForm.machine_id);
-      try {
-        await addNeedleTransaction({
-         id: crypto.randomUUID(),
-         company_id: '',
-         needle_id: lot.needle_id,
-         machine_id: exitForm.machine_id,
-         type: 'exit',
-         exit_mode: exitForm.mode,
-         quantity: Number(exitForm.quantity),
-         date: exitForm.date,
-         created_at: new Date().toISOString(),
-         created_by_name: userName || undefined,
-         lot_id: exitLotId,
-        } as any);
-        logAction('needle_exit', { 
-          brand: targetNeedle?.brand, 
-          code: targetNeedle?.reference_code, 
-          quantity: exitForm.quantity, 
-          machine: machine?.name,
-          mode: exitForm.mode,
-          lot_id: exitLotId,
-          lot_code: (lot as any).lot_code
-        });
-        toast.success('Baixa registrada!');
-       setShowExitModal(false);
-       setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
-      setExitProviderId(''); setExitBrand(''); setExitLotId('');
-      } catch (e) { toast.error('Erro ao registrar baixa.'); }
+    if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+
+    const startLot = exitProviderLots.find(l => l.id === exitLotId) || (needleLots.find(l => l.id === exitLotId) as any);
+    if (!startLot) { toast.error('Lote inválido.'); return; }
+    const needleId = startLot.needle_id;
+
+    // Constrói cadeia FIFO: lote inicial + demais lotes com MESMA agulha (brand+ref), por data de compra ASC.
+    const lotBalanceOf = (lid: string) => {
+      const ent = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s, t) => s + (t.quantity || 0), 0);
+      const exi = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s, t) => s + (t.quantity || 0), 0);
+      return ent - exi;
     };
+    const others = needleLots
+      .filter(l => l.id !== startLot.id && l.needle_id === needleId)
+      .map(l => ({ ...l, balance: lotBalanceOf(l.id) }))
+      .filter(l => (l.balance || 0) > 0)
+      .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+    const chain: Array<any> = [{ ...startLot, balance: (startLot as any).balance ?? lotBalanceOf(startLot.id) }, ...others];
+    const totalAvailable = chain.reduce((s, l) => s + (l.balance || 0), 0);
+    if (totalAvailable < qty) {
+      toast.error(`Saldo total insuficiente para esta agulha (disponível: ${totalAvailable}).`);
+      return;
+    }
+
+    const targetNeedle = needles.find(n => n.id === needleId);
+    const machine = machines.find(m => m.id === exitForm.machine_id);
+    try {
+      let remaining = qty;
+      let lastLotUsed: any = chain[0];
+      const usedSummary: Array<{ lot_id: string; lot_code?: string; qty: number }> = [];
+      for (const l of chain) {
+        if (remaining <= 0) break;
+        const take = Math.min(remaining, l.balance || 0);
+        if (take <= 0) continue;
+        await addNeedleTransaction({
+          id: crypto.randomUUID(),
+          company_id: '',
+          needle_id: needleId,
+          machine_id: exitForm.machine_id,
+          type: 'exit',
+          exit_mode: exitForm.mode,
+          quantity: take,
+          date: exitForm.date,
+          created_at: new Date().toISOString(),
+          created_by_name: userName || undefined,
+          lot_id: l.id,
+        } as any);
+        usedSummary.push({ lot_id: l.id, lot_code: l.lot_code, qty: take });
+        remaining -= take;
+        lastLotUsed = l;
+      }
+
+      // Atualiza a máquina: agulha atual = referência consumida; lote atual = último lote tocado.
+      if (machine) {
+        const needsUpdate = machine.current_needle_id !== needleId || machine.current_needle_lot_id !== lastLotUsed.id;
+        if (needsUpdate) {
+          const updated = machines.map(m => m.id === machine.id
+            ? { ...m, current_needle_id: needleId, current_needle_lot_id: lastLotUsed.id }
+            : m
+          );
+          await saveMachines(updated);
+        }
+      }
+
+      logAction('needle_exit', {
+        brand: targetNeedle?.brand,
+        code: targetNeedle?.reference_code,
+        quantity: qty,
+        machine: machine?.name,
+        mode: exitForm.mode,
+        lots: usedSummary,
+      });
+      toast.success(usedSummary.length > 1
+        ? `Baixa registrada em ${usedSummary.length} lotes!`
+        : 'Baixa registrada!');
+      setShowExitModal(false);
+      setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
+      setExitProviderId(''); setExitBrand(''); setExitLotId('');
+    } catch (e: any) { toast.error(e?.message || 'Erro ao registrar baixa.'); }
+  };
 
     // ===== Providers CRUD =====
     const openNewProvider = () => { setEditingProvider(null); setProviderName(''); setShowProviderModal(true); };
