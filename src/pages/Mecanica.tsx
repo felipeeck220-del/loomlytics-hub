@@ -2092,7 +2092,7 @@ export default function MecanicaPage() {
                     <CardTitle className="text-base font-semibold flex items-center gap-2">
                       <Package className="h-4 w-4" /> Agulhas Cadastradas
                     </CardTitle>
-                    <Button size="sm" onClick={() => { setNeedleForm({ provider: '', brand: '', reference_code: '' }); setShowNeedleModal(true); }}>
+                    <Button size="sm" onClick={() => { setEditingNeedle(null); setNeedleForm({ provider: '', brand: '', reference_code: '' }); setShowNeedleModal(true); }}>
                       <Plus className="h-4 w-4 mr-1" /> Nova Agulha
                     </Button>
                   </CardHeader>
@@ -2111,7 +2111,11 @@ export default function MecanicaPage() {
                             <tr key={n.id} className="border-b hover:bg-muted/30">
                               <td className="p-3">{n.brand}</td>
                               <td className="p-3"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
-                              <td className="p-3 text-right text-xs text-muted-foreground">Vincule fornecedores na aba <b>Fornecedores</b></td>
+                              <td className="p-3 text-right">
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingNeedle(n); setNeedleForm({ provider: n.provider || '', brand: n.brand, reference_code: n.reference_code }); setShowNeedleModal(true); }}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </td>
                             </tr>
                           ))}
                           {needles.length === 0 && (
