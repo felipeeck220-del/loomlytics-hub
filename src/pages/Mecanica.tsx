@@ -105,6 +105,8 @@ export default function MecanicaPage() {
    const [entryLotId, setEntryLotId] = useState('');
    const [exitProviderId, setExitProviderId] = useState('');
    const [exitBrand, setExitBrand] = useState('');
+   const [exitLotId, setExitLotId] = useState('');
+   const [editingNeedle, setEditingNeedle] = useState<any>(null);
 
    // Sinker Management State (Platinas)
    const [sinkerSearch, setSinkerSearch] = useState('');
@@ -902,6 +904,19 @@ export default function MecanicaPage() {
        return;
      }
      try {
+       if (editingNeedle) {
+         const updated = needles.map(n => n.id === editingNeedle.id
+           ? { ...n, brand: needleForm.brand, reference_code: needleForm.reference_code, updated_at: new Date().toISOString() }
+           : n
+         );
+         await saveNeedles(updated);
+         logAction('needle_update', { id: editingNeedle.id, brand: needleForm.brand, code: needleForm.reference_code });
+         toast.success('Agulha atualizada!');
+         setShowNeedleModal(false);
+         setEditingNeedle(null);
+         setNeedleForm({ provider: '', brand: '', reference_code: '' });
+         return;
+       }
        const newNeedle = {
          id: crypto.randomUUID(),
          company_id: '',
@@ -954,44 +969,50 @@ export default function MecanicaPage() {
    };
  
    const handleExit = async () => {
-     if (!exitForm.needle_id || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
-       toast.error('Preencha todos os campos.');
+     if (!exitLotId || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
+       toast.error('Preencha todos os campos (inclusive o lote).');
        return;
      }
     if (Number(exitForm.quantity) <= 0) {
       toast.error('Quantidade deve ser maior que zero.');
       return;
     }
-      const targetNeedle = needles.find(n => n.id === exitForm.needle_id);
-      if (targetNeedle && targetNeedle.current_quantity < Number(exitForm.quantity)) {
-       toast.error('Saldo insuficiente em estoque.');
+      const lot = exitProviderLots.find(l => l.id === exitLotId) || needleLots.find(l => l.id === exitLotId) as any;
+      if (!lot) { toast.error('Lote inválido.'); return; }
+      const lotBal = (lot as any).balance ?? 0;
+      if (lotBal < Number(exitForm.quantity)) {
+        toast.error(`Saldo insuficiente no lote (disponível: ${lotBal}).`);
        return;
      }
+      const targetNeedle = needles.find(n => n.id === lot.needle_id);
       const machine = machines.find(m => m.id === exitForm.machine_id);
       try {
         await addNeedleTransaction({
          id: crypto.randomUUID(),
          company_id: '',
-         needle_id: exitForm.needle_id,
+         needle_id: lot.needle_id,
          machine_id: exitForm.machine_id,
          type: 'exit',
          exit_mode: exitForm.mode,
          quantity: Number(exitForm.quantity),
          date: exitForm.date,
          created_at: new Date().toISOString(),
-         created_by_name: userName || undefined
-       });
+         created_by_name: userName || undefined,
+         lot_id: exitLotId,
+        } as any);
         logAction('needle_exit', { 
           brand: targetNeedle?.brand, 
           code: targetNeedle?.reference_code, 
           quantity: exitForm.quantity, 
           machine: machine?.name,
-          mode: exitForm.mode 
+          mode: exitForm.mode,
+          lot_id: exitLotId,
+          lot_code: (lot as any).lot_code
         });
         toast.success('Baixa registrada!');
        setShowExitModal(false);
        setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
-      setExitProviderId(''); setExitBrand('');
+      setExitProviderId(''); setExitBrand(''); setExitLotId('');
       } catch (e) { toast.error('Erro ao registrar baixa.'); }
     };
 
@@ -1092,10 +1113,38 @@ export default function MecanicaPage() {
     }, [exitProviderNeedles]);
     const exitRefsForBrand = useMemo(() => exitProviderNeedles.filter(n => n.brand === exitBrand), [exitProviderNeedles, exitBrand]);
 
+    // Lotes disponíveis para SAÍDA (fornecedor selecionado, saldo físico > 0).
+    // Saldo físico do lote = Σ(entradas com lot_id) − Σ(saídas com lot_id).
+    const exitProviderLots = useMemo(() => {
+      if (!exitProviderId) return [] as (NeedleLot & { balance: number; needle: any })[];
+      return needleLots
+        .filter(l => l.provider_id === exitProviderId)
+        .map(l => {
+          const entries = needleTransactions
+            .filter((t: any) => t.lot_id === l.id && t.type === 'entry')
+            .reduce((s, t) => s + (t.quantity || 0), 0);
+          const exits = needleTransactions
+            .filter((t: any) => t.lot_id === l.id && t.type === 'exit')
+            .reduce((s, t) => s + (t.quantity || 0), 0);
+          return { ...l, balance: entries - exits, needle: needles.find(n => n.id === l.needle_id) };
+        })
+        .filter(l => l.balance > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+    }, [exitProviderId, needleLots, needleTransactions, needles]);
+
     // ===== Lots CRUD =====
+    // Gera o próximo código de lote (numérico, 3 dígitos, iniciando em 001) para um fornecedor.
+    const nextLotCodeForProvider = (providerId: string) => {
+      const nums = needleLots
+        .filter(l => l.provider_id === providerId && l.lot_code && /^\d+$/.test(l.lot_code))
+        .map(l => parseInt(l.lot_code as string, 10));
+      const next = (nums.length ? Math.max(...nums) : 0) + 1;
+      return String(next).padStart(3, '0');
+    };
     const openNewLot = (providerId?: string) => {
       setEditingLot(null);
-      setLotForm({ provider_id: providerId || '', needle_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+      const nextCode = providerId ? nextLotCodeForProvider(providerId) : '';
+      setLotForm({ provider_id: providerId || '', needle_id: '', lot_code: nextCode, purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
       setShowLotModal(true);
     };
     const openEditLot = (l: NeedleLot) => {
@@ -2043,7 +2092,7 @@ export default function MecanicaPage() {
                     <CardTitle className="text-base font-semibold flex items-center gap-2">
                       <Package className="h-4 w-4" /> Agulhas Cadastradas
                     </CardTitle>
-                    <Button size="sm" onClick={() => { setNeedleForm({ provider: '', brand: '', reference_code: '' }); setShowNeedleModal(true); }}>
+                    <Button size="sm" onClick={() => { setEditingNeedle(null); setNeedleForm({ provider: '', brand: '', reference_code: '' }); setShowNeedleModal(true); }}>
                       <Plus className="h-4 w-4 mr-1" /> Nova Agulha
                     </Button>
                   </CardHeader>
@@ -2062,7 +2111,11 @@ export default function MecanicaPage() {
                             <tr key={n.id} className="border-b hover:bg-muted/30">
                               <td className="p-3">{n.brand}</td>
                               <td className="p-3"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
-                              <td className="p-3 text-right text-xs text-muted-foreground">Vincule fornecedores na aba <b>Fornecedores</b></td>
+                              <td className="p-3 text-right">
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingNeedle(n); setNeedleForm({ provider: n.provider || '', brand: n.brand, reference_code: n.reference_code }); setShowNeedleModal(true); }}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </td>
                             </tr>
                           ))}
                           {needles.length === 0 && (
@@ -3071,9 +3124,9 @@ export default function MecanicaPage() {
      </Dialog>
  
      {/* Cadastro de Agulha */}
-     <Dialog open={showNeedleModal} onOpenChange={setShowNeedleModal}>
+     <Dialog open={showNeedleModal} onOpenChange={(o) => { setShowNeedleModal(o); if (!o) { setEditingNeedle(null); setNeedleForm({ provider: '', brand: '', reference_code: '' }); } }}>
        <DialogContent className="max-w-md">
-         <DialogHeader><DialogTitle>Nova Agulha</DialogTitle></DialogHeader>
+         <DialogHeader><DialogTitle>{editingNeedle ? 'Editar Agulha' : 'Nova Agulha'}</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
            <div className="space-y-1">
              <Label>Marca</Label>
@@ -3087,7 +3140,7 @@ export default function MecanicaPage() {
          </div>
          <DialogFooter>
            <Button variant="outline" onClick={() => setShowNeedleModal(false)}>Cancelar</Button>
-           <Button onClick={handleSaveNeedle}>Cadastrar</Button>
+           <Button onClick={handleSaveNeedle}>{editingNeedle ? 'Salvar' : 'Cadastrar'}</Button>
          </DialogFooter>
        </DialogContent>
      </Dialog>
@@ -3150,7 +3203,7 @@ export default function MecanicaPage() {
      </Dialog>
  
      {/* Baixa de Agulha */}
-      <Dialog open={showExitModal} onOpenChange={(o) => { setShowExitModal(o); if (!o) { setExitProviderId(''); setExitBrand(''); setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
+      <Dialog open={showExitModal} onOpenChange={(o) => { setShowExitModal(o); if (!o) { setExitProviderId(''); setExitBrand(''); setExitLotId(''); setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Saída (Baixa)</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
@@ -3175,7 +3228,7 @@ export default function MecanicaPage() {
            </div>
             <div className="space-y-1">
               <Label>Fornecedor *</Label>
-              <Select value={exitProviderId} onValueChange={v => { setExitProviderId(v); setExitBrand(''); setExitForm({ ...exitForm, needle_id: '' }); }}>
+              <Select value={exitProviderId} onValueChange={v => { setExitProviderId(v); setExitBrand(''); setExitLotId(''); setExitForm({ ...exitForm, needle_id: '' }); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
                 <SelectContent className="max-h-[240px]">
                   {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
@@ -3183,25 +3236,29 @@ export default function MecanicaPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Marca *</Label>
-              <Select value={exitBrand} onValueChange={v => { setExitBrand(v); setExitForm({ ...exitForm, needle_id: '' }); }} disabled={!exitProviderId}>
-                <SelectTrigger><SelectValue placeholder={exitProviderId ? 'Selecione a marca' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
-                <SelectContent className="max-h-[240px]">
-                  {exitBrandsForProvider.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Ref. Código *</Label>
-              <Select value={exitForm.needle_id} onValueChange={v => setExitForm({ ...exitForm, needle_id: v })} disabled={!exitBrand}>
-                <SelectTrigger><SelectValue placeholder={exitBrand ? 'Selecione a referência' : 'Selecione a marca primeiro'} /></SelectTrigger>
-                <SelectContent className="max-h-[240px]">
-                  {exitRefsForBrand.map(n => (
-                    <SelectItem key={n.id} value={n.id}>{n.reference_code} — Saldo: {n.current_quantity}</SelectItem>
+              <Label>Lote *</Label>
+              <Select value={exitLotId} onValueChange={setExitLotId} disabled={!exitProviderId}>
+                <SelectTrigger><SelectValue placeholder={exitProviderId ? 'Selecione o lote' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+                <SelectContent className="max-h-[280px]">
+                  {exitProviderLots.map(l => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')} · {l.lot_code || 's/ código'} · {l.needle?.brand} ({l.needle?.reference_code}) — Saldo {l.balance}
+                    </SelectItem>
                   ))}
+                  {exitProviderId && exitProviderLots.length === 0 && (
+                    <div className="p-3 text-xs text-muted-foreground">Nenhum lote com saldo físico. Registre uma entrada primeiro.</div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
+            {exitLotId && (() => {
+              const l = exitProviderLots.find(x => x.id === exitLotId);
+              return l ? (
+                <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
+                  Agulha: <b>{l.needle?.brand} ({l.needle?.reference_code})</b> · Saldo do lote: <b>{l.balance}</b>
+                </div>
+              ) : null;
+            })()}
            <div className="space-y-1">
              <Label>Quantidade</Label>
              <Input type="number" value={exitForm.quantity} onChange={e => setExitForm({...exitForm, quantity: e.target.value})} placeholder="0" />
@@ -3212,7 +3269,7 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => { setShowExitModal(false); setExitProviderId(''); setExitBrand(''); }}>Cancelar</Button>
+           <Button variant="outline" onClick={() => { setShowExitModal(false); setExitProviderId(''); setExitBrand(''); setExitLotId(''); }}>Cancelar</Button>
            <Button onClick={handleExit}>Registrar Baixa</Button>
          </DialogFooter>
        </DialogContent>
@@ -3392,7 +3449,7 @@ export default function MecanicaPage() {
         <div className="space-y-3 pt-2">
           <div className="space-y-1">
             <Label>Fornecedor *</Label>
-            <Select value={lotForm.provider_id} onValueChange={v => setLotForm({ ...lotForm, provider_id: v })}>
+            <Select value={lotForm.provider_id} onValueChange={v => setLotForm({ ...lotForm, provider_id: v, lot_code: editingLot ? lotForm.lot_code : nextLotCodeForProvider(v) })}>
               <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
               <SelectContent className="max-h-[240px]">
                 {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
@@ -3411,8 +3468,8 @@ export default function MecanicaPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Código do Lote</Label>
-              <Input value={lotForm.lot_code} onChange={e => setLotForm({ ...lotForm, lot_code: e.target.value })} placeholder="opcional" />
+              <Label>Código do Lote (auto)</Label>
+              <Input value={lotForm.lot_code} readOnly disabled placeholder="001" className="font-mono" />
             </div>
             <div className="space-y-1">
               <Label>Data da Compra *</Label>
