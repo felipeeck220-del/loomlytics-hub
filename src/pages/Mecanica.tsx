@@ -38,6 +38,7 @@ const MAINTENANCE_STATUSES: MachineStatus[] = [
 
 type NeedleProvider = { id: string; company_id: string; name: string };
 type NeedleProviderPrice = { id: string; company_id: string; provider_id: string; needle_id: string; unit_price: number };
+type NeedleLot = { id: string; company_id: string; provider_id: string; needle_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; notes: string | null; created_at: string };
 
 export default function MecanicaPage() {
    const { 
@@ -80,6 +81,7 @@ export default function MecanicaPage() {
    // Needle Providers + Prices (novo modelo tipo Vendas de Resíduos)
    const [providers, setProviders] = useState<NeedleProvider[]>([]);
    const [providerPrices, setProviderPrices] = useState<NeedleProviderPrice[]>([]);
+   const [needleLots, setNeedleLots] = useState<NeedleLot[]>([]);
    const [providersRefreshKey, setProvidersRefreshKey] = useState(0);
    const bumpProviders = () => setProvidersRefreshKey(k => k + 1);
    const [showProviderModal, setShowProviderModal] = useState(false);
@@ -92,8 +94,14 @@ export default function MecanicaPage() {
    const [priceValue, setPriceValue] = useState('');
    const [editingPrice, setEditingPrice] = useState<NeedleProviderPrice | null>(null);
    const [deletePriceId, setDeletePriceId] = useState<string | null>(null);
+   // Lot state
+   const [showLotModal, setShowLotModal] = useState(false);
+   const [editingLot, setEditingLot] = useState<NeedleLot | null>(null);
+   const [lotForm, setLotForm] = useState({ provider_id: '', needle_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+   const [deleteLotId, setDeleteLotId] = useState<string | null>(null);
    // Entrada / Saída — seleção por fornecedor
    const [entryProviderId, setEntryProviderId] = useState('');
+   const [entryLotId, setEntryLotId] = useState('');
    const [exitProviderId, setExitProviderId] = useState('');
    const [exitBrand, setExitBrand] = useState('');
 
