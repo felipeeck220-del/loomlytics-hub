@@ -86,6 +86,7 @@ export function useCompanyData() {
       machine_type: r.machine_type || undefined,
       current_needle_id: r.current_needle_id || undefined,
       current_sinker_id: r.current_sinker_id || undefined,
+      current_needle_lot_id: r.current_needle_lot_id || undefined,
       maintenance_interval_days: r.maintenance_interval_days != null ? Number(r.maintenance_interval_days) : undefined,
       maintenance_kg_target: r.maintenance_kg_target != null ? Number(r.maintenance_kg_target) : undefined,
     });
@@ -347,6 +348,7 @@ export function useCompanyData() {
         machine_type: m.machine_type || null,
         current_needle_id: m.current_needle_id || null,
         current_sinker_id: m.current_sinker_id || null,
+        current_needle_lot_id: m.current_needle_lot_id || null,
         maintenance_interval_days: m.maintenance_interval_days ?? null,
         maintenance_kg_target: m.maintenance_kg_target ?? null,
       }));

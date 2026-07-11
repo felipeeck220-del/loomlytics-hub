@@ -969,52 +969,91 @@ export default function MecanicaPage() {
    };
  
    const handleExit = async () => {
-     if (!exitLotId || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
-       toast.error('Preencha todos os campos (inclusive o lote).');
-       return;
-     }
-    if (Number(exitForm.quantity) <= 0) {
-      toast.error('Quantidade deve ser maior que zero.');
+    const qty = Number(exitForm.quantity);
+    if (!exitLotId || !exitForm.quantity || !exitForm.machine_id || !exitForm.date) {
+      toast.error('Preencha todos os campos (inclusive quantidade e lote).');
       return;
     }
-      const lot = exitProviderLots.find(l => l.id === exitLotId) || needleLots.find(l => l.id === exitLotId) as any;
-      if (!lot) { toast.error('Lote inválido.'); return; }
-      const lotBal = (lot as any).balance ?? 0;
-      if (lotBal < Number(exitForm.quantity)) {
-        toast.error(`Saldo insuficiente no lote (disponível: ${lotBal}).`);
-       return;
-     }
-      const targetNeedle = needles.find(n => n.id === lot.needle_id);
-      const machine = machines.find(m => m.id === exitForm.machine_id);
-      try {
-        await addNeedleTransaction({
-         id: crypto.randomUUID(),
-         company_id: '',
-         needle_id: lot.needle_id,
-         machine_id: exitForm.machine_id,
-         type: 'exit',
-         exit_mode: exitForm.mode,
-         quantity: Number(exitForm.quantity),
-         date: exitForm.date,
-         created_at: new Date().toISOString(),
-         created_by_name: userName || undefined,
-         lot_id: exitLotId,
-        } as any);
-        logAction('needle_exit', { 
-          brand: targetNeedle?.brand, 
-          code: targetNeedle?.reference_code, 
-          quantity: exitForm.quantity, 
-          machine: machine?.name,
-          mode: exitForm.mode,
-          lot_id: exitLotId,
-          lot_code: (lot as any).lot_code
-        });
-        toast.success('Baixa registrada!');
-       setShowExitModal(false);
-       setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
-      setExitProviderId(''); setExitBrand(''); setExitLotId('');
-      } catch (e) { toast.error('Erro ao registrar baixa.'); }
+    if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+
+    const startLot = exitProviderLots.find(l => l.id === exitLotId) || (needleLots.find(l => l.id === exitLotId) as any);
+    if (!startLot) { toast.error('Lote inválido.'); return; }
+    const needleId = startLot.needle_id;
+
+    // Constrói cadeia FIFO: lote inicial + demais lotes com MESMA agulha (brand+ref), por data de compra ASC.
+    const lotBalanceOf = (lid: string) => {
+      const ent = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s, t) => s + (t.quantity || 0), 0);
+      const exi = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s, t) => s + (t.quantity || 0), 0);
+      return ent - exi;
     };
+    const others = needleLots
+      .filter(l => l.id !== startLot.id && l.needle_id === needleId)
+      .map(l => ({ ...l, balance: lotBalanceOf(l.id) }))
+      .filter(l => (l.balance || 0) > 0)
+      .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+    const chain: Array<any> = [{ ...startLot, balance: (startLot as any).balance ?? lotBalanceOf(startLot.id) }, ...others];
+    const totalAvailable = chain.reduce((s, l) => s + (l.balance || 0), 0);
+    if (totalAvailable < qty) {
+      toast.error(`Saldo total insuficiente para esta agulha (disponível: ${totalAvailable}).`);
+      return;
+    }
+
+    const targetNeedle = needles.find(n => n.id === needleId);
+    const machine = machines.find(m => m.id === exitForm.machine_id);
+    try {
+      let remaining = qty;
+      let lastLotUsed: any = chain[0];
+      const usedSummary: Array<{ lot_id: string; lot_code?: string; qty: number }> = [];
+      for (const l of chain) {
+        if (remaining <= 0) break;
+        const take = Math.min(remaining, l.balance || 0);
+        if (take <= 0) continue;
+        await addNeedleTransaction({
+          id: crypto.randomUUID(),
+          company_id: '',
+          needle_id: needleId,
+          machine_id: exitForm.machine_id,
+          type: 'exit',
+          exit_mode: exitForm.mode,
+          quantity: take,
+          date: exitForm.date,
+          created_at: new Date().toISOString(),
+          created_by_name: userName || undefined,
+          lot_id: l.id,
+        } as any);
+        usedSummary.push({ lot_id: l.id, lot_code: l.lot_code, qty: take });
+        remaining -= take;
+        lastLotUsed = l;
+      }
+
+      // Atualiza a máquina: agulha atual = referência consumida; lote atual = último lote tocado.
+      if (machine) {
+        const needsUpdate = machine.current_needle_id !== needleId || machine.current_needle_lot_id !== lastLotUsed.id;
+        if (needsUpdate) {
+          const updated = machines.map(m => m.id === machine.id
+            ? { ...m, current_needle_id: needleId, current_needle_lot_id: lastLotUsed.id }
+            : m
+          );
+          await saveMachines(updated);
+        }
+      }
+
+      logAction('needle_exit', {
+        brand: targetNeedle?.brand,
+        code: targetNeedle?.reference_code,
+        quantity: qty,
+        machine: machine?.name,
+        mode: exitForm.mode,
+        lots: usedSummary,
+      });
+      toast.success(usedSummary.length > 1
+        ? `Baixa registrada em ${usedSummary.length} lotes!`
+        : 'Baixa registrada!');
+      setShowExitModal(false);
+      setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
+      setExitProviderId(''); setExitBrand(''); setExitLotId('');
+    } catch (e: any) { toast.error(e?.message || 'Erro ao registrar baixa.'); }
+  };
 
     // ===== Providers CRUD =====
     const openNewProvider = () => { setEditingProvider(null); setProviderName(''); setShowProviderModal(true); };
@@ -2013,9 +2052,6 @@ export default function MecanicaPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Entrada
-                      </Button>
                       <Button onClick={() => setShowExitModal(true)} variant="default" className="flex-1 min-w-[30%] sm:flex-none">
                         <Wrench className="h-4 w-4 mr-2" /> Baixa
                       </Button>
@@ -3301,13 +3337,47 @@ export default function MecanicaPage() {
            </div>
            <div className="space-y-1">
              <Label>Máquina</Label>
-             <Select value={exitForm.machine_id} onValueChange={v => setExitForm({...exitForm, machine_id: v})}>
+              <Select value={exitForm.machine_id} onValueChange={v => {
+                setExitForm({...exitForm, machine_id: v});
+                // Auto-preenche fornecedor/lote a partir da agulha e lote atuais registrados na máquina.
+                const m = machines.find(x => x.id === v);
+                if (m?.current_needle_lot_id) {
+                  const lot = needleLots.find(l => l.id === m.current_needle_lot_id);
+                  if (lot) {
+                    setExitProviderId(lot.provider_id);
+                    setExitBrand('');
+                    setExitLotId(lot.id);
+                    return;
+                  }
+                }
+                if (m?.current_needle_id) {
+                  // Sem lote definido: acha o lote mais antigo com saldo dessa agulha.
+                  const candidates = needleLots
+                    .filter(l => l.needle_id === m.current_needle_id)
+                    .map(l => {
+                      const ent = needleTransactions.filter((t: any) => t.lot_id === l.id && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                      const exi = needleTransactions.filter((t: any) => t.lot_id === l.id && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                      return { ...l, balance: ent - exi };
+                    })
+                    .filter(l => l.balance > 0)
+                    .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+                  if (candidates[0]) {
+                    setExitProviderId(candidates[0].provider_id);
+                    setExitBrand('');
+                    setExitLotId(candidates[0].id);
+                  }
+                }
+              }}>
                <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
                <SelectContent>
                  {activeMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                </SelectContent>
              </Select>
            </div>
+            <div className="space-y-1">
+              <Label>Quantidade *</Label>
+              <Input type="number" value={exitForm.quantity} onChange={e => setExitForm({...exitForm, quantity: e.target.value})} placeholder="0" />
+            </div>
             <div className="space-y-1">
               <Label>Fornecedor *</Label>
               <Select value={exitProviderId} onValueChange={v => { setExitProviderId(v); setExitBrand(''); setExitLotId(''); setExitForm({ ...exitForm, needle_id: '' }); }}>
@@ -3334,17 +3404,56 @@ export default function MecanicaPage() {
               </Select>
             </div>
             {exitLotId && (() => {
-              const l = exitProviderLots.find(x => x.id === exitLotId);
-              return l ? (
-                <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
-                  Agulha: <b>{l.needle?.brand} ({l.needle?.reference_code})</b> · Saldo do lote: <b>{l.balance}</b>
+              const startLot: any = exitProviderLots.find(x => x.id === exitLotId);
+              if (!startLot) return null;
+              const qty = Number(exitForm.quantity || 0);
+              const lotBalanceOf = (lid: string) => {
+                const ent = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                const exi = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                return ent - exi;
+              };
+              const others = needleLots
+                .filter(l => l.id !== startLot.id && l.needle_id === startLot.needle_id)
+                .map(l => ({ ...l, balance: lotBalanceOf(l.id) }))
+                .filter(l => l.balance > 0)
+                .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+              const chain: any[] = [startLot, ...others];
+              const totalAvail = chain.reduce((s, l) => s + (l.balance || 0), 0);
+              if (qty <= 0) {
+                return (
+                  <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
+                    Agulha: <b>{startLot.needle?.brand} ({startLot.needle?.reference_code})</b> · Saldo do lote: <b>{startLot.balance}</b> · Saldo total (todos lotes): <b>{totalAvail}</b>
+                  </div>
+                );
+              }
+              // Simular consumo
+              let remaining = qty;
+              const used: Array<{ lot_code?: string; take: number; date: string }> = [];
+              for (const l of chain) {
+                if (remaining <= 0) break;
+                const take = Math.min(remaining, l.balance || 0);
+                if (take <= 0) continue;
+                used.push({ lot_code: l.lot_code, take, date: l.purchase_date });
+                remaining -= take;
+              }
+              const insufficient = remaining > 0;
+              return (
+                <div className={`text-xs rounded p-2 space-y-1 ${insufficient ? 'bg-destructive/10 text-destructive' : 'bg-muted/40 text-muted-foreground'}`}>
+                  <div>Agulha: <b>{startLot.needle?.brand} ({startLot.needle?.reference_code})</b> · Saldo total: <b>{totalAvail}</b></div>
+                  {used.length > 1 && !insufficient && (
+                    <div className="pt-1 border-t border-muted-foreground/20">
+                      <div className="font-semibold mb-0.5">Consumirá {used.length} lotes:</div>
+                      {used.map((u, i) => (
+                        <div key={i}>• Lote {u.lot_code || 's/ código'} ({format(new Date(u.date + 'T00:00:00'), 'dd/MM/yyyy')}): <b>{u.take}</b></div>
+                      ))}
+                    </div>
+                  )}
+                  {insufficient && (
+                    <div className="font-semibold">Saldo total insuficiente. Faltam {remaining} agulhas.</div>
+                  )}
                 </div>
-              ) : null;
+              );
             })()}
-           <div className="space-y-1">
-             <Label>Quantidade</Label>
-             <Input type="number" value={exitForm.quantity} onChange={e => setExitForm({...exitForm, quantity: e.target.value})} placeholder="0" />
-           </div>
            <div className="space-y-1">
              <Label>Data</Label>
              <Input type="date" value={exitForm.date} onChange={e => setExitForm({...exitForm, date: e.target.value})} />
