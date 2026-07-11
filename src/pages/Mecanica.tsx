@@ -2013,9 +2013,6 @@ export default function MecanicaPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowEntryModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Entrada
-                      </Button>
                       <Button onClick={() => setShowExitModal(true)} variant="default" className="flex-1 min-w-[30%] sm:flex-none">
                         <Wrench className="h-4 w-4 mr-2" /> Baixa
                       </Button>
