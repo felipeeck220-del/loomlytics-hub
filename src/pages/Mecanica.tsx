@@ -155,6 +155,8 @@ export default function MecanicaPage() {
 
    // Cylinder Management State
    const [cylinderSearch, setCylinderSearch] = useState('');
+  const [cylinderMachineFilter, setCylinderMachineFilter] = useState<string>('all');
+  const [cylinderStatusFilter, setCylinderStatusFilter] = useState<'all' | 'em_uso' | 'em_estoque'>('all');
    const [showCylinderModal, setShowCylinderModal] = useState(false);
    const [editingCylinder, setEditingCylinder] = useState<any>(null);
     const [cylinderForm, setCylinderForm] = useState({ 
