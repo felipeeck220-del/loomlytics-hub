@@ -1735,8 +1735,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             A máquina voltará a "Ativa", o histórico será fechado e os itens trocados aplicados (referências em uso e estoque).
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmFinishGate(false)}>Voltar</Button>
-            <Button onClick={async () => { setConfirmFinishGate(false); await confirmFinish(); }}>Finalizar</Button>
+            <Button variant="outline" onClick={() => setConfirmFinishGate(false)} disabled={finishing}>Voltar</Button>
+            <Button
+              disabled={finishing}
+              onClick={async () => { setConfirmFinishGate(false); await confirmFinish(); }}
+            >
+              {finishing && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Finalizar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
