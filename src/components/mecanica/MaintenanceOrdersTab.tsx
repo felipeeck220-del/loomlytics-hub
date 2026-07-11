@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon, Eye } from 'lucide-react';
+import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon, Eye, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -147,6 +147,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<MaintenanceOrderStatus>('aberto');
+  const [finalizedSearch, setFinalizedSearch] = useState('');
+  const [finalizedPage, setFinalizedPage] = useState(0);
+  const FINALIZED_PAGE_SIZE = 15;
   // Confirm dialogs
   const [confirmStart, setConfirmStart] = useState<MaintenanceOrder | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<MaintenanceOrder | null>(null);
@@ -890,6 +893,32 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     return m;
   }, [items]);
 
+  // Busca + paginação para aba "Finalizadas"
+  const finalizedFiltered = useMemo(() => {
+    if (tab !== 'finalizada') return displayed;
+    const q = finalizedSearch.trim().toLowerCase();
+    if (!q) return displayed;
+    return displayed.filter(o => {
+      const num = displayNumber(o).toLowerCase();
+      const machineName = (machineById[o.machine_id]?.name || '').toLowerCase();
+      const desc = (o.description || '').toLowerCase();
+      return num.includes(q) || machineName.includes(q) || desc.includes(q);
+    });
+  }, [displayed, tab, finalizedSearch, machineById]);
+
+  const finalizedTotal = finalizedFiltered.length;
+  const finalizedTotalPages = Math.max(1, Math.ceil(finalizedTotal / FINALIZED_PAGE_SIZE));
+  const finalizedPageSafe = Math.min(finalizedPage, finalizedTotalPages - 1);
+  const pagedFinalized = useMemo(() => {
+    if (tab !== 'finalizada') return displayed;
+    const start = finalizedPageSafe * FINALIZED_PAGE_SIZE;
+    return finalizedFiltered.slice(start, start + FINALIZED_PAGE_SIZE);
+  }, [tab, displayed, finalizedFiltered, finalizedPageSafe]);
+
+  useEffect(() => { setFinalizedPage(0); }, [finalizedSearch, tab, mode]);
+
+  const listToRender = tab === 'finalizada' ? pagedFinalized : displayed;
+
   if (loading) {
     return <div className="flex items-center justify-center p-12 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando {labelShort}s…</div>;
   }
@@ -961,11 +990,22 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           </TabsTrigger>
         </TabsList>
         <TabsContent value={tab} className="mt-4">
-          {displayed.length === 0 ? (
+          {tab === 'finalizada' && (
+            <div className="mb-3 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={finalizedSearch}
+                onChange={e => setFinalizedSearch(e.target.value)}
+                placeholder={`Buscar ${labelShort} finalizada por número, máquina ou descrição…`}
+                className="pl-9"
+              />
+            </div>
+          )}
+          {listToRender.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border rounded-lg">Nenhuma {labelShort} nessa lista.</div>
           ) : (
             <div className="space-y-3">
-              {displayed.map(o => {
+              {listToRender.map(o => {
                 const m = machineById[o.machine_id];
                 const its = itemsByOrder[o.id] || [];
                 const style = STATUS_STYLE[o.status];
@@ -1188,6 +1228,37 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                   </Card>
                 );
               })}
+            </div>
+          )}
+          {tab === 'finalizada' && finalizedTotal > FINALIZED_PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t">
+              <p className="text-xs text-muted-foreground">
+                Mostrando {finalizedPageSafe * FINALIZED_PAGE_SIZE + 1}
+                –{Math.min(finalizedTotal, (finalizedPageSafe + 1) * FINALIZED_PAGE_SIZE)} de {finalizedTotal}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFinalizedPage(p => Math.max(0, p - 1))}
+                  disabled={finalizedPageSafe === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                </Button>
+                <span className="text-xs font-medium">
+                  <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md">{finalizedPageSafe + 1}</span>
+                  <span className="text-muted-foreground mx-1">/</span>
+                  {finalizedTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFinalizedPage(p => Math.min(finalizedTotalPages - 1, p + 1))}
+                  disabled={finalizedPageSafe >= finalizedTotalPages - 1}
+                >
+                  Próxima <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           )}
         </TabsContent>
