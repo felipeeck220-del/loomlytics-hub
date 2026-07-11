@@ -2421,10 +2421,25 @@ export default function MecanicaPage() {
                   {/* Mobile: cards */}
                   <div className="md:hidden p-3 space-y-2">
                     {[...cylinders]
-                      .filter(c =>
-                        c.brand.toLowerCase().includes(cylinderSearch.toLowerCase()) ||
-                        c.model?.toLowerCase().includes(cylinderSearch.toLowerCase())
-                      )
+                      .filter(c => {
+                        const q = cylinderSearch.toLowerCase();
+                        const matchSearch = !q || c.brand.toLowerCase().includes(q) || (c.model?.toLowerCase().includes(q) ?? false);
+                        const matchMachine =
+                          cylinderMachineFilter === 'all' ? true :
+                          cylinderMachineFilter === '__none__' ? !c.machine_id :
+                          c.machine_id === cylinderMachineFilter;
+                        const matchStatus =
+                          cylinderStatusFilter === 'all' ? true :
+                          cylinderStatusFilter === 'em_uso' ? !!c.machine_id : !c.machine_id;
+                        return matchSearch && matchMachine && matchStatus;
+                      })
+                      .sort((a, b) => {
+                        const nameA = machines.find(m => m.id === a.machine_id)?.name || '';
+                        const nameB = machines.find(m => m.id === b.machine_id)?.name || '';
+                        if (!nameA && nameB) return 1;
+                        if (nameA && !nameB) return -1;
+                        return nameA.localeCompare(nameB, 'pt-BR', { numeric: true });
+                      })
                       .map(c => {
                         const machine = machines.find(m => m.id === c.machine_id);
                         return (
@@ -2488,10 +2503,25 @@ export default function MecanicaPage() {
                       </thead>
                       <tbody>
                         {[...cylinders]
-                          .filter(c => 
-                            c.brand.toLowerCase().includes(cylinderSearch.toLowerCase()) || 
-                            c.model?.toLowerCase().includes(cylinderSearch.toLowerCase())
-                          )
+                          .filter(c => {
+                            const q = cylinderSearch.toLowerCase();
+                            const matchSearch = !q || c.brand.toLowerCase().includes(q) || (c.model?.toLowerCase().includes(q) ?? false);
+                            const matchMachine =
+                              cylinderMachineFilter === 'all' ? true :
+                              cylinderMachineFilter === '__none__' ? !c.machine_id :
+                              c.machine_id === cylinderMachineFilter;
+                            const matchStatus =
+                              cylinderStatusFilter === 'all' ? true :
+                              cylinderStatusFilter === 'em_uso' ? !!c.machine_id : !c.machine_id;
+                            return matchSearch && matchMachine && matchStatus;
+                          })
+                          .sort((a, b) => {
+                            const nameA = machines.find(m => m.id === a.machine_id)?.name || '';
+                            const nameB = machines.find(m => m.id === b.machine_id)?.name || '';
+                            if (!nameA && nameB) return 1;
+                            if (nameA && !nameB) return -1;
+                            return nameA.localeCompare(nameB, 'pt-BR', { numeric: true });
+                          })
                           .map(c => {
                             const machine = machines.find(m => m.id === c.machine_id);
                             return (
