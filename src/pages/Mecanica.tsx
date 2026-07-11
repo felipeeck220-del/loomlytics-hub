@@ -2014,15 +2014,23 @@ export default function MecanicaPage() {
                                   .slice()
                                   .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
 
-                                // Total de saídas dessa agulha (para consumir FIFO nos lotes)
-                                let remainingExits = needleTransactions
-                                  .filter(t => t.needle_id === n.id && t.type === 'exit')
-                                  .reduce((s, t) => s + (t.quantity || 0), 0);
+                                // Saídas com lot_id são descontadas do próprio lote (tag explícita).
+                                // Saídas sem lot_id (legado) são distribuídas FIFO nos lotes remanescentes.
+                                const allExits = needleTransactions.filter(t => t.needle_id === n.id && t.type === 'exit');
+                                const taggedExitsByLot = new Map<string, number>();
+                                let untaggedExits = 0;
+                                allExits.forEach(t => {
+                                  const lid = (t as any).lot_id;
+                                  if (lid) taggedExitsByLot.set(lid, (taggedExitsByLot.get(lid) || 0) + (t.quantity || 0));
+                                  else untaggedExits += (t.quantity || 0);
+                                });
 
                                 lots.forEach(l => {
-                                  const consumed = Math.min(remainingExits, l.quantity);
-                                  remainingExits -= consumed;
-                                  const balance = l.quantity - consumed;
+                                  const tagged = taggedExitsByLot.get(l.id) || 0;
+                                  const afterTagged = Math.max(0, l.quantity - tagged);
+                                  const fifoConsumed = Math.min(untaggedExits, afterTagged);
+                                  untaggedExits -= fifoConsumed;
+                                  const balance = afterTagged - fifoConsumed;
                                   rows.push({
                                     key: l.id,
                                     needleId: n.id,
