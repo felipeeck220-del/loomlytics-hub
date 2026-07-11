@@ -1639,7 +1639,7 @@ export default function MecanicaPage() {
                                   feeder_quantity: String(c.feeder_quantity || ''),
                                   sinker_quantity: String(c.sinker_quantity || ''),
                                   observations: c.observations || ''
-                                });
+                                , quantity: '1'});
                                 setShowCylinderModal(true);
                               }}>
                                 <Pencil className="h-4 w-4" />
@@ -1723,7 +1723,7 @@ export default function MecanicaPage() {
                                       feeder_quantity: String(c.feeder_quantity || ''),
                                       sinker_quantity: String(c.sinker_quantity || ''),
                                       observations: c.observations || ''
-                                    });
+                                    , quantity: '1'});
                                     setShowCylinderModal(true);
                                   }}>
                                     <Pencil className="h-4 w-4" />
@@ -2526,7 +2526,7 @@ export default function MecanicaPage() {
                                   feeder_quantity: String(cyl?.feeder_quantity || ''),
                                   sinker_quantity: String(cyl?.sinker_quantity || ''),
                                   observations: cyl?.observations || ''
-                                });
+                                , quantity: '1'});
                                 setShowCylinderModal(true);
                               }}>
                                 Detalhes
