@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon, Eye } from 'lucide-react';
+import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon, Eye, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -147,6 +147,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<MaintenanceOrderStatus>('aberto');
+  const [finalizedSearch, setFinalizedSearch] = useState('');
+  const [finalizedPage, setFinalizedPage] = useState(0);
+  const FINALIZED_PAGE_SIZE = 15;
   // Confirm dialogs
   const [confirmStart, setConfirmStart] = useState<MaintenanceOrder | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<MaintenanceOrder | null>(null);
