@@ -3337,13 +3337,47 @@ export default function MecanicaPage() {
            </div>
            <div className="space-y-1">
              <Label>Máquina</Label>
-             <Select value={exitForm.machine_id} onValueChange={v => setExitForm({...exitForm, machine_id: v})}>
+              <Select value={exitForm.machine_id} onValueChange={v => {
+                setExitForm({...exitForm, machine_id: v});
+                // Auto-preenche fornecedor/lote a partir da agulha e lote atuais registrados na máquina.
+                const m = machines.find(x => x.id === v);
+                if (m?.current_needle_lot_id) {
+                  const lot = needleLots.find(l => l.id === m.current_needle_lot_id);
+                  if (lot) {
+                    setExitProviderId(lot.provider_id);
+                    setExitBrand('');
+                    setExitLotId(lot.id);
+                    return;
+                  }
+                }
+                if (m?.current_needle_id) {
+                  // Sem lote definido: acha o lote mais antigo com saldo dessa agulha.
+                  const candidates = needleLots
+                    .filter(l => l.needle_id === m.current_needle_id)
+                    .map(l => {
+                      const ent = needleTransactions.filter((t: any) => t.lot_id === l.id && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                      const exi = needleTransactions.filter((t: any) => t.lot_id === l.id && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                      return { ...l, balance: ent - exi };
+                    })
+                    .filter(l => l.balance > 0)
+                    .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+                  if (candidates[0]) {
+                    setExitProviderId(candidates[0].provider_id);
+                    setExitBrand('');
+                    setExitLotId(candidates[0].id);
+                  }
+                }
+              }}>
                <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
                <SelectContent>
                  {activeMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                </SelectContent>
              </Select>
            </div>
+            <div className="space-y-1">
+              <Label>Quantidade *</Label>
+              <Input type="number" value={exitForm.quantity} onChange={e => setExitForm({...exitForm, quantity: e.target.value})} placeholder="0" />
+            </div>
             <div className="space-y-1">
               <Label>Fornecedor *</Label>
               <Select value={exitProviderId} onValueChange={v => { setExitProviderId(v); setExitBrand(''); setExitLotId(''); setExitForm({ ...exitForm, needle_id: '' }); }}>
@@ -3370,17 +3404,56 @@ export default function MecanicaPage() {
               </Select>
             </div>
             {exitLotId && (() => {
-              const l = exitProviderLots.find(x => x.id === exitLotId);
-              return l ? (
-                <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
-                  Agulha: <b>{l.needle?.brand} ({l.needle?.reference_code})</b> · Saldo do lote: <b>{l.balance}</b>
+              const startLot: any = exitProviderLots.find(x => x.id === exitLotId);
+              if (!startLot) return null;
+              const qty = Number(exitForm.quantity || 0);
+              const lotBalanceOf = (lid: string) => {
+                const ent = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                const exi = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                return ent - exi;
+              };
+              const others = needleLots
+                .filter(l => l.id !== startLot.id && l.needle_id === startLot.needle_id)
+                .map(l => ({ ...l, balance: lotBalanceOf(l.id) }))
+                .filter(l => l.balance > 0)
+                .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+              const chain: any[] = [startLot, ...others];
+              const totalAvail = chain.reduce((s, l) => s + (l.balance || 0), 0);
+              if (qty <= 0) {
+                return (
+                  <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
+                    Agulha: <b>{startLot.needle?.brand} ({startLot.needle?.reference_code})</b> · Saldo do lote: <b>{startLot.balance}</b> · Saldo total (todos lotes): <b>{totalAvail}</b>
+                  </div>
+                );
+              }
+              // Simular consumo
+              let remaining = qty;
+              const used: Array<{ lot_code?: string; take: number; date: string }> = [];
+              for (const l of chain) {
+                if (remaining <= 0) break;
+                const take = Math.min(remaining, l.balance || 0);
+                if (take <= 0) continue;
+                used.push({ lot_code: l.lot_code, take, date: l.purchase_date });
+                remaining -= take;
+              }
+              const insufficient = remaining > 0;
+              return (
+                <div className={`text-xs rounded p-2 space-y-1 ${insufficient ? 'bg-destructive/10 text-destructive' : 'bg-muted/40 text-muted-foreground'}`}>
+                  <div>Agulha: <b>{startLot.needle?.brand} ({startLot.needle?.reference_code})</b> · Saldo total: <b>{totalAvail}</b></div>
+                  {used.length > 1 && !insufficient && (
+                    <div className="pt-1 border-t border-muted-foreground/20">
+                      <div className="font-semibold mb-0.5">Consumirá {used.length} lotes:</div>
+                      {used.map((u, i) => (
+                        <div key={i}>• Lote {u.lot_code || 's/ código'} ({format(new Date(u.date + 'T00:00:00'), 'dd/MM/yyyy')}): <b>{u.take}</b></div>
+                      ))}
+                    </div>
+                  )}
+                  {insufficient && (
+                    <div className="font-semibold">Saldo total insuficiente. Faltam {remaining} agulhas.</div>
+                  )}
                 </div>
-              ) : null;
+              );
             })()}
-           <div className="space-y-1">
-             <Label>Quantidade</Label>
-             <Input type="number" value={exitForm.quantity} onChange={e => setExitForm({...exitForm, quantity: e.target.value})} placeholder="0" />
-           </div>
            <div className="space-y-1">
              <Label>Data</Label>
              <Input type="date" value={exitForm.date} onChange={e => setExitForm({...exitForm, date: e.target.value})} />
