@@ -392,11 +392,24 @@ export default function ArticleChangeOrdersTab() {
         <TabsContent value={tab} className="mt-4">
           {loading ? (
             <div className="flex items-center gap-2 text-muted-foreground py-6"><Loader2 className="h-4 w-4 animate-spin" /> Carregando OTs…</div>
-          ) : filtered.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-6 text-center">Nenhuma OT nesta aba.</div>
           ) : (
-            <div className="space-y-3">
-              {filtered.map(o => (
+            <>
+              {tab === 'concluidas' && (
+                <div className="mb-3 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={concluidasSearch}
+                    onChange={e => setConcluidasSearch(e.target.value)}
+                    placeholder="Buscar OT concluída por número, máquina ou artigo…"
+                    className="pl-9"
+                  />
+                </div>
+              )}
+              {listToRender.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-6 text-center">Nenhuma OT nesta aba.</div>
+              ) : (
+                <div className="space-y-3">
+                  {listToRender.map(o => (
                 <OTCard
                   key={o.id}
                   o={o}
@@ -416,8 +429,41 @@ export default function ArticleChangeOrdersTab() {
                   onDelete={() => setDeleteTarget(o)}
                   onDownload={() => downloadReport(o)}
                 />
-              ))}
-            </div>
+                  ))}
+                </div>
+              )}
+              {tab === 'concluidas' && concluidasTotal > CONCLUIDAS_PAGE_SIZE && (
+                <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Mostrando {concluidasPageSafe * CONCLUIDAS_PAGE_SIZE + 1}
+                    –{Math.min(concluidasTotal, (concluidasPageSafe + 1) * CONCLUIDAS_PAGE_SIZE)} de {concluidasTotal}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConcluidasPage(p => Math.max(0, p - 1))}
+                      disabled={concluidasPageSafe === 0}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                    </Button>
+                    <span className="text-xs font-medium">
+                      <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md">{concluidasPageSafe + 1}</span>
+                      <span className="text-muted-foreground mx-1">/</span>
+                      {concluidasTotalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConcluidasPage(p => Math.min(concluidasTotalPages - 1, p + 1))}
+                      disabled={concluidasPageSafe >= concluidasTotalPages - 1}
+                    >
+                      Próxima <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>
