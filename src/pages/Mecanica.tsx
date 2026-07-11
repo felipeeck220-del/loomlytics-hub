@@ -1415,16 +1415,268 @@ export default function MecanicaPage() {
         .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
     }, [entryProviderId, needleLots, needleTransactions, needles]);
 
+    // ==================== PLATINAS: Providers / Lots (espelho de Agulhas) ====================
+    const openNewSinkerProvider = () => { setEditingSinkerProvider(null); setSinkerProviderName(''); setShowSinkerProviderModal(true); };
+    const openEditSinkerProvider = (p: SinkerProvider) => { setEditingSinkerProvider(p); setSinkerProviderName(p.name); setShowSinkerProviderModal(true); };
+    const handleSaveSinkerProvider = async () => {
+      if (!sinkerProviderName.trim()) { toast.error('Informe o nome do fornecedor.'); return; }
+      if (!user?.company_id) return;
+      try {
+        if (editingSinkerProvider) {
+          const { error } = await (supabase.from as any)('sinker_providers').update({ name: sinkerProviderName.trim() }).eq('id', editingSinkerProvider.id);
+          if (error) throw error;
+          logAction('sinker_provider_update', { name: sinkerProviderName.trim() });
+        } else {
+          const { error } = await (supabase.from as any)('sinker_providers').insert({ company_id: user.company_id, name: sinkerProviderName.trim() });
+          if (error) throw error;
+          logAction('sinker_provider_create', { name: sinkerProviderName.trim() });
+        }
+        toast.success(editingSinkerProvider ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
+        setShowSinkerProviderModal(false); setSinkerProviderName(''); setEditingSinkerProvider(null);
+        bumpSinkerProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar fornecedor.'); }
+    };
+    const handleDeleteSinkerProvider = async () => {
+      if (!deleteSinkerProviderId) return;
+      try {
+        const { error } = await (supabase.from as any)('sinker_providers').delete().eq('id', deleteSinkerProviderId);
+        if (error) throw error;
+        logAction('sinker_provider_delete', { id: deleteSinkerProviderId });
+        toast.success('Fornecedor removido.');
+        setDeleteSinkerProviderId(null); bumpSinkerProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+    const openAddSinkerPrice = (providerId: string) => {
+      setEditingSinkerPrice(null); setSinkerPriceProviderId(providerId); setSinkerPriceSinkerId(''); setSinkerPriceValue(''); setShowSinkerPriceModal(true);
+    };
+    const openEditSinkerPrice = (p: SinkerProviderPrice) => {
+      setEditingSinkerPrice(p); setSinkerPriceProviderId(p.provider_id); setSinkerPriceSinkerId(p.sinker_id); setSinkerPriceValue(String(p.unit_price)); setShowSinkerPriceModal(true);
+    };
+    const availableSinkersForProvider = (providerId: string) => {
+      const used = new Set(sinkerProviderPrices.filter(p => p.provider_id === providerId && (!editingSinkerPrice || p.id !== editingSinkerPrice.id)).map(p => p.sinker_id));
+      return sinkers.filter(s => !used.has(s.id));
+    };
+    const handleSaveSinkerPrice = async () => {
+      if (!sinkerPriceProviderId || !sinkerPriceSinkerId) { toast.error('Selecione o fornecedor e a platina.'); return; }
+      const price = Number(String(sinkerPriceValue).replace(',', '.'));
+      if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
+      if (!user?.company_id) return;
+      try {
+        if (editingSinkerPrice) {
+          const { error } = await (supabase.from as any)('sinker_provider_prices').update({ unit_price: price }).eq('id', editingSinkerPrice.id);
+          if (error) throw error;
+        } else {
+          const { error } = await (supabase.from as any)('sinker_provider_prices').insert({
+            company_id: user.company_id, provider_id: sinkerPriceProviderId, sinker_id: sinkerPriceSinkerId, unit_price: price,
+          });
+          if (error) throw error;
+        }
+        logAction(editingSinkerPrice ? 'sinker_price_update' : 'sinker_price_create', { provider_id: sinkerPriceProviderId, sinker_id: sinkerPriceSinkerId, price });
+        toast.success(editingSinkerPrice ? 'Preço atualizado!' : 'Platina vinculada ao fornecedor.');
+        setShowSinkerPriceModal(false); setEditingSinkerPrice(null); bumpSinkerProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar preço.'); }
+    };
+    const handleDeleteSinkerPrice = async () => {
+      if (!deleteSinkerPriceId) return;
+      try {
+        const { error } = await (supabase.from as any)('sinker_provider_prices').delete().eq('id', deleteSinkerPriceId);
+        if (error) throw error;
+        logAction('sinker_price_delete', { id: deleteSinkerPriceId });
+        toast.success('Vínculo removido.');
+        setDeleteSinkerPriceId(null); bumpSinkerProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // Helpers de listagem (Entrada/Saída Platinas)
+    const exitSinkerProviderSinkers = useMemo(() => {
+      if (!exitSinkerProviderId) return [] as typeof sinkers;
+      const ids = new Set(sinkerProviderPrices.filter(p => p.provider_id === exitSinkerProviderId).map(p => p.sinker_id));
+      return sinkers.filter(s => ids.has(s.id));
+    }, [exitSinkerProviderId, sinkerProviderPrices, sinkers]);
+
+    const sinkerLotBalance = (lotId: string) => {
+      const entries = sinkerTransactions.filter((t: any) => t.lot_id === lotId && t.type === 'entry').reduce((s, t) => s + (t.quantity || 0), 0);
+      const exits = sinkerTransactions.filter((t: any) => t.lot_id === lotId && t.type === 'exit').reduce((s, t) => s + (t.quantity || 0), 0);
+      return entries - exits;
+    };
+    const sinkerLotPendingPurchase = (lotId: string, originalQty: number) => {
+      const entries = sinkerTransactions.filter((t: any) => t.lot_id === lotId && t.type === 'entry').reduce((s, t) => s + (t.quantity || 0), 0);
+      return originalQty - entries;
+    };
+    const exitSinkerProviderLots = useMemo(() => {
+      if (!exitSinkerProviderId) return [] as (SinkerLot & { balance: number; sinker: any })[];
+      return sinkerLots
+        .filter(l => l.provider_id === exitSinkerProviderId)
+        .map(l => ({ ...l, balance: sinkerLotBalance(l.id), sinker: sinkers.find(s => s.id === l.sinker_id) }))
+        .filter(l => l.balance > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+    }, [exitSinkerProviderId, sinkerLots, sinkerTransactions, sinkers]);
+    const entrySinkerProviderLots = useMemo(() => {
+      if (!entrySinkerProviderId) return [] as (SinkerLot & { balance: number; sinker: any })[];
+      return sinkerLots
+        .filter(l => l.provider_id === entrySinkerProviderId)
+        .map(l => ({ ...l, balance: sinkerLotPendingPurchase(l.id, l.quantity), sinker: sinkers.find(s => s.id === l.sinker_id) }))
+        .filter(l => l.balance > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+    }, [entrySinkerProviderId, sinkerLots, sinkerTransactions, sinkers]);
+
+    const nextSinkerLotCodeForProvider = (providerId: string) => {
+      const nums = sinkerLots
+        .filter(l => l.provider_id === providerId && l.lot_code && /^\d+$/.test(l.lot_code))
+        .map(l => parseInt(l.lot_code as string, 10));
+      const next = (nums.length ? Math.max(...nums) : 0) + 1;
+      return String(next).padStart(3, '0');
+    };
+    const openNewSinkerLot = (providerId?: string) => {
+      setEditingSinkerLot(null);
+      const nextCode = providerId ? nextSinkerLotCodeForProvider(providerId) : '';
+      setSinkerLotForm({ provider_id: providerId || '', sinker_id: '', lot_code: nextCode, purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+      setShowSinkerLotModal(true);
+    };
+    const openEditSinkerLot = (l: SinkerLot) => {
+      setEditingSinkerLot(l);
+      setSinkerLotForm({ provider_id: l.provider_id, sinker_id: l.sinker_id, lot_code: l.lot_code || '', purchase_date: l.purchase_date, quantity: String(l.quantity || ''), unit_price: String(l.unit_price || '') });
+      setShowSinkerLotModal(true);
+    };
+    const handleSaveSinkerLot = async () => {
+      if (!user?.company_id) return;
+      if (!sinkerLotForm.provider_id || !sinkerLotForm.sinker_id || !sinkerLotForm.purchase_date) {
+        toast.error('Preencha fornecedor, platina e data.'); return;
+      }
+      const qty = parseInt(sinkerLotForm.quantity || '0');
+      const price = Number(String(sinkerLotForm.unit_price || '0').replace(',', '.'));
+      if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+      if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
+      try {
+        if (editingSinkerLot) {
+          const linked = sinkerTransactions.filter((t: any) => t.lot_id === editingSinkerLot.id);
+          const linkedExits = linked.filter(t => t.type === 'exit');
+          const linkedEntries = linked.filter(t => t.type === 'entry');
+          const qtyChanged = qty !== (editingSinkerLot.quantity || 0);
+          const sinkerChanged = sinkerLotForm.sinker_id !== editingSinkerLot.sinker_id;
+          const dateChanged = sinkerLotForm.purchase_date !== editingSinkerLot.purchase_date;
+          if (sinkerChanged && linked.length > 0) {
+            toast.error('Não é possível trocar a platina: já existem movimentações vinculadas a este lote. Exclua-as antes.');
+            return;
+          }
+          if (qtyChanged) {
+            if (linkedExits.length > 0) {
+              toast.error('Não é possível alterar a quantidade: já existem saídas vinculadas a este lote. Estorne-as em Movimentações antes.');
+              return;
+            }
+            for (const e of linkedEntries) {
+              const { error: delErr } = await supabase.from('sinker_transactions').delete().eq('id', e.id);
+              if (delErr) throw delErr;
+            }
+          }
+          const { error } = await (supabase.from as any)('sinker_lots').update({
+            provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id,
+            lot_code: sinkerLotForm.lot_code || null, purchase_date: sinkerLotForm.purchase_date,
+            quantity: qty, unit_price: price,
+          }).eq('id', editingSinkerLot.id);
+          if (error) throw error;
+          if (qtyChanged) {
+            const { error: entryErr } = await (supabase.from as any)('sinker_transactions').insert({
+              company_id: user.company_id, sinker_id: sinkerLotForm.sinker_id,
+              type: 'entry', quantity: qty, date: sinkerLotForm.purchase_date,
+              lot_id: editingSinkerLot.id, created_by_id: user.id, created_by_name: userName || undefined,
+            });
+            if (entryErr) throw entryErr;
+          } else if (dateChanged && linkedEntries.length > 0) {
+            for (const e of linkedEntries) {
+              await supabase.from('sinker_transactions').update({ date: sinkerLotForm.purchase_date }).eq('id', e.id);
+            }
+          }
+          logAction('sinker_lot_update', { id: editingSinkerLot.id, lot_code: sinkerLotForm.lot_code, quantity: qty, unit_price: price });
+        } else {
+          const { data: newLot, error } = await (supabase.from as any)('sinker_lots').insert({
+            company_id: user.company_id, provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id,
+            lot_code: sinkerLotForm.lot_code || null, purchase_date: sinkerLotForm.purchase_date,
+            quantity: qty, unit_price: price,
+          }).select('id').single();
+          if (error) throw error;
+          const { error: entryErr } = await (supabase.from as any)('sinker_transactions').insert({
+            company_id: user.company_id, sinker_id: sinkerLotForm.sinker_id,
+            type: 'entry', quantity: qty, date: sinkerLotForm.purchase_date,
+            lot_id: newLot?.id, created_by_id: user.id, created_by_name: userName || undefined,
+          });
+          if (entryErr) throw entryErr;
+          logAction('sinker_lot_create', { provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id, lot_code: sinkerLotForm.lot_code, quantity: qty, unit_price: price });
+        }
+        toast.success(editingSinkerLot ? 'Lote atualizado!' : 'Lote cadastrado e estoque atualizado!');
+        setShowSinkerLotModal(false); setEditingSinkerLot(null); bumpSinkerProviders(); refreshData();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar lote.'); }
+    };
+    const handleDeleteSinkerLot = async () => {
+      if (!deleteSinkerLotId) return;
+      const linked = sinkerTransactions.filter((t: any) => t.lot_id === deleteSinkerLotId);
+      const linkedExits = linked.filter(t => t.type === 'exit');
+      if (linkedExits.length > 0) {
+        toast.error(`Não é possível remover: existem ${linkedExits.length} saída(s) vinculadas a este lote. Estorne-as em Movimentações antes.`);
+        setDeleteSinkerLotId(null); return;
+      }
+      try {
+        const linkedEntries = linked.filter(t => t.type === 'entry');
+        for (const e of linkedEntries) {
+          const { error: delErr } = await supabase.from('sinker_transactions').delete().eq('id', e.id);
+          if (delErr) throw delErr;
+        }
+        const { error } = await (supabase.from as any)('sinker_lots').delete().eq('id', deleteSinkerLotId);
+        if (error) throw error;
+        logAction('sinker_lot_delete', { id: deleteSinkerLotId });
+        toast.success('Lote removido.');
+        setDeleteSinkerLotId(null); bumpSinkerProviders(); refreshData();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // Ressincroniza current_sinker_id / current_sinker_lot_id da máquina
+    const resyncMachineCurrentSinker = async (machineId?: string | null) => {
+      if (!machineId) return;
+      const machine = machines.find(m => m.id === machineId);
+      if (!machine) return;
+      let lastExit: any = null;
+      try {
+        const { data } = await (supabase.from as any)('sinker_transactions')
+          .select('sinker_id, lot_id, date, created_at')
+          .eq('machine_id', machineId).eq('type', 'exit')
+          .order('date', { ascending: false }).order('created_at', { ascending: false }).limit(1);
+        lastExit = Array.isArray(data) && data.length ? data[0] : null;
+      } catch (e) { console.warn('resyncMachineCurrentSinker failed:', e); return; }
+      const newSinkerId = lastExit?.sinker_id || null;
+      const newLotId = lastExit?.lot_id || null;
+      if (machine.current_sinker_id === (newSinkerId || undefined) && machine.current_sinker_lot_id === (newLotId || undefined)) return;
+      const updated = machines.map(m => m.id === machineId
+        ? { ...m, current_sinker_id: newSinkerId || undefined, current_sinker_lot_id: newLotId || undefined }
+        : m
+      );
+      try { await saveMachines(updated); } catch (e) { console.warn('resyncMachineCurrentSinker save failed:', e); }
+    };
+
     const handleSaveSinker = async () => {
-      if (!sinkerForm.provider || !sinkerForm.brand || !sinkerForm.reference_code) {
-        toast.error('Preencha todos os campos.');
+      if (!sinkerForm.brand || !sinkerForm.reference_code) {
+        toast.error('Informe Marca e Ref. Código.');
         return;
       }
       try {
+        if (editingSinker) {
+          const updated = sinkers.map(s => s.id === editingSinker.id
+            ? { ...s, brand: sinkerForm.brand, reference_code: sinkerForm.reference_code, updated_at: new Date().toISOString() }
+            : s
+          );
+          await saveSinkers(updated);
+          logAction('sinker_update', { id: editingSinker.id, brand: sinkerForm.brand, code: sinkerForm.reference_code });
+          toast.success('Platina atualizada!');
+          setShowSinkerModal(false);
+          setEditingSinker(null);
+          setSinkerForm({ provider: '', brand: '', reference_code: '' });
+          return;
+        }
         const newSinker = {
           id: crypto.randomUUID(),
           company_id: '',
-          ...sinkerForm,
+          provider: '',
+          brand: sinkerForm.brand,
+          reference_code: sinkerForm.reference_code,
           current_quantity: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -1441,64 +1693,102 @@ export default function MecanicaPage() {
     };
   
     const handleSinkerEntry = async () => {
-      if (!sinkerEntryForm.sinker_id || !sinkerEntryForm.quantity || !sinkerEntryForm.date) {
-        toast.error('Preencha todos os campos.');
+      if (!entrySinkerLotId || !sinkerEntryForm.quantity || !sinkerEntryForm.date) {
+        toast.error('Preencha todos os campos (inclusive lote).');
         return;
       }
+      if (Number(sinkerEntryForm.quantity) <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+      const lot = sinkerLots.find(l => l.id === entrySinkerLotId);
+      if (!lot) { toast.error('Lote inválido.'); return; }
       try {
-         const sinker = sinkers.find(s => s.id === sinkerEntryForm.sinker_id);
+         const sinker = sinkers.find(s => s.id === lot.sinker_id);
          await addSinkerTransaction({
           id: crypto.randomUUID(),
           company_id: '',
-          sinker_id: sinkerEntryForm.sinker_id,
+          sinker_id: lot.sinker_id,
           type: 'entry',
           quantity: Number(sinkerEntryForm.quantity),
           date: sinkerEntryForm.date,
           created_at: new Date().toISOString(),
-          created_by_name: userName || undefined
-        });
-         logAction('sinker_entry', { brand: sinker?.brand, code: sinker?.reference_code, quantity: sinkerEntryForm.quantity });
+          created_by_name: userName || undefined,
+          lot_id: entrySinkerLotId,
+        } as any);
+         logAction('sinker_entry', { brand: sinker?.brand, code: sinker?.reference_code, quantity: sinkerEntryForm.quantity, lot_id: entrySinkerLotId, lot_code: lot.lot_code });
          toast.success('Entrada registrada!');
         setShowSinkerEntryModal(false);
         setSinkerEntryForm({ sinker_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+        setEntrySinkerProviderId(''); setEntrySinkerLotId('');
       } catch (e) { toast.error('Erro ao registrar entrada.'); }
     };
   
     const handleSinkerExit = async () => {
-      if (!sinkerExitForm.sinker_id || !sinkerExitForm.quantity || !sinkerExitForm.machine_id || !sinkerExitForm.date) {
-        toast.error('Preencha todos os campos.');
+      const qty = Number(sinkerExitForm.quantity);
+      if (!exitSinkerLotId || !sinkerExitForm.quantity || !sinkerExitForm.machine_id || !sinkerExitForm.date) {
+        toast.error('Preencha todos os campos (inclusive quantidade e lote).');
         return;
       }
-       const targetSinker = sinkers.find(s => s.id === sinkerExitForm.sinker_id);
-       if (targetSinker && targetSinker.current_quantity < Number(sinkerExitForm.quantity)) {
-        toast.error('Saldo insuficiente em estoque.');
-        return;
-      }
+      if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+      const startLot = exitSinkerProviderLots.find(l => l.id === exitSinkerLotId) || (sinkerLots.find(l => l.id === exitSinkerLotId) as any);
+      if (!startLot) { toast.error('Lote inválido.'); return; }
+      const sinkerId = startLot.sinker_id;
+      // FIFO multi-lote (mesmo fornecedor + mesma platina)
+      const others = sinkerLots
+        .filter(l => l.id !== startLot.id && l.sinker_id === sinkerId && l.provider_id === (startLot as any).provider_id)
+        .map(l => ({ ...l, balance: sinkerLotBalance(l.id) }))
+        .filter(l => (l.balance || 0) > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+      const chain: Array<any> = [{ ...startLot, balance: (startLot as any).balance ?? sinkerLotBalance(startLot.id) }, ...others];
+      const totalAvailable = chain.reduce((s, l) => s + (l.balance || 0), 0);
+      if (totalAvailable < qty) { toast.error(`Saldo total insuficiente para esta platina (disponível: ${totalAvailable}).`); return; }
+      const targetSinker = sinkers.find(s => s.id === sinkerId);
        const machine = machines.find(m => m.id === sinkerExitForm.machine_id);
        try {
-         await addSinkerTransaction({
-          id: crypto.randomUUID(),
-          company_id: '',
-          sinker_id: sinkerExitForm.sinker_id,
-          machine_id: sinkerExitForm.machine_id,
-          type: 'exit',
-          exit_mode: sinkerExitForm.mode,
-          quantity: Number(sinkerExitForm.quantity),
-          date: sinkerExitForm.date,
-          created_at: new Date().toISOString(),
-          created_by_name: userName || undefined
-        });
-         logAction('sinker_exit', { 
-           brand: targetSinker?.brand, 
-           code: targetSinker?.reference_code, 
-           quantity: sinkerExitForm.quantity, 
-           machine: machine?.name,
-           mode: sinkerExitForm.mode 
+         let remaining = qty;
+         let lastLotUsed: any = chain[0];
+         const usedSummary: Array<{ lot_id: string; lot_code?: string; qty: number }> = [];
+         for (const l of chain) {
+           if (remaining <= 0) break;
+           const take = Math.min(remaining, l.balance || 0);
+           if (take <= 0) continue;
+           await addSinkerTransaction({
+             id: crypto.randomUUID(),
+             company_id: '',
+             sinker_id: sinkerId,
+             machine_id: sinkerExitForm.machine_id,
+             type: 'exit',
+             exit_mode: sinkerExitForm.mode,
+             quantity: take,
+             date: sinkerExitForm.date,
+             created_at: new Date().toISOString(),
+             created_by_name: userName || undefined,
+             lot_id: l.id,
+           } as any);
+           usedSummary.push({ lot_id: l.id, lot_code: l.lot_code, qty: take });
+           remaining -= take;
+           lastLotUsed = l;
+         }
+         if (machine) {
+           const needsUpdate = machine.current_sinker_id !== sinkerId || machine.current_sinker_lot_id !== lastLotUsed.id;
+           if (needsUpdate) {
+             const updated = machines.map(m => m.id === machine.id
+               ? { ...m, current_sinker_id: sinkerId, current_sinker_lot_id: lastLotUsed.id }
+               : m
+             );
+             await saveMachines(updated);
+           }
+         }
+         logAction('sinker_exit', {
+           brand: targetSinker?.brand, code: targetSinker?.reference_code,
+           quantity: qty, machine: machine?.name, mode: sinkerExitForm.mode,
+           lots: usedSummary,
          });
-         toast.success('Baixa registrada!');
+         toast.success(usedSummary.length > 1
+           ? `Baixa registrada em ${usedSummary.length} lotes!`
+           : 'Baixa registrada!');
         setShowSinkerExitModal(false);
         setSinkerExitForm({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
-      } catch (e) { toast.error('Erro ao registrar baixa.'); }
+        setExitSinkerProviderId(''); setExitSinkerLotId('');
+      } catch (e: any) { toast.error(e?.message || 'Erro ao registrar baixa.'); }
     };
 
     const handleSaveCylinder = async () => {
