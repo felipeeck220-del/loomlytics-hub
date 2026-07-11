@@ -105,6 +105,8 @@ export default function MecanicaPage() {
    const [entryLotId, setEntryLotId] = useState('');
    const [exitProviderId, setExitProviderId] = useState('');
    const [exitBrand, setExitBrand] = useState('');
+   const [exitLotId, setExitLotId] = useState('');
+   const [editingNeedle, setEditingNeedle] = useState<any>(null);
 
    // Sinker Management State (Platinas)
    const [sinkerSearch, setSinkerSearch] = useState('');
