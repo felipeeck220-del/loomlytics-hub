@@ -2415,7 +2415,6 @@ export default function MecanicaPage() {
                 </div>
               </div>
 
-              {(() => { return null; })()}
 
               <Card>
                 <CardContent className="p-0">
