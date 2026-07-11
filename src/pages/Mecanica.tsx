@@ -117,7 +117,8 @@ export default function MecanicaPage() {
    const [editingCylinder, setEditingCylinder] = useState<any>(null);
     const [cylinderForm, setCylinderForm] = useState({ 
       brand: '', model: '', diameter: '', fineness: '', 
-      needle_quantity: '', feeder_quantity: '', sinker_quantity: '', observations: '' 
+      needle_quantity: '', feeder_quantity: '', sinker_quantity: '', observations: '',
+      quantity: '1',
     });
    const [showAssignModal, setShowAssignModal] = useState(false);
    const [assignForm, setAssignForm] = useState({ machine_id: '', cylinder_id: '' });
@@ -1168,9 +1169,7 @@ export default function MecanicaPage() {
         return;
       }
       try {
-        const newCyl: any = {
-          id: editingCylinder ? editingCylinder.id : crypto.randomUUID(),
-          company_id: editingCylinder ? editingCylinder.company_id : '',
+        const baseData = {
           brand: cylinderForm.brand,
           model: cylinderForm.model,
           diameter: cylinderForm.diameter,
@@ -1179,20 +1178,42 @@ export default function MecanicaPage() {
           feeder_quantity: cylinderForm.feeder_quantity ? Number(cylinderForm.feeder_quantity) : undefined,
           sinker_quantity: cylinderForm.sinker_quantity ? Number(cylinderForm.sinker_quantity) : undefined,
           observations: cylinderForm.observations,
-          created_at: editingCylinder ? editingCylinder.created_at : new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         };
 
-        const updatedCylinders = editingCylinder 
-          ? cylinders.map(c => c.id === editingCylinder.id ? newCyl : c)
-          : [...cylinders, newCyl];
+        let updatedCylinders: any[];
+        let createdCount = 1;
+
+        if (editingCylinder) {
+          const newCyl: any = {
+            ...baseData,
+            id: editingCylinder.id,
+            company_id: editingCylinder.company_id,
+            created_at: editingCylinder.created_at,
+            updated_at: new Date().toISOString(),
+          };
+          updatedCylinders = cylinders.map(c => c.id === editingCylinder.id ? newCyl : c);
+        } else {
+          const qty = Math.max(1, Math.min(100, Number(cylinderForm.quantity) || 1));
+          createdCount = qty;
+          const nowIso = new Date().toISOString();
+          const newCyls = Array.from({ length: qty }, () => ({
+            ...baseData,
+            id: crypto.randomUUID(),
+            company_id: '',
+            created_at: nowIso,
+            updated_at: nowIso,
+          }));
+          updatedCylinders = [...cylinders, ...newCyls];
+        }
 
         await saveCylinders(updatedCylinders);
-        logAction(editingCylinder ? 'cylinder_update' : 'cylinder_create', { brand: newCyl.brand });
-        toast.success(editingCylinder ? 'Cilindro atualizado!' : 'Cilindro cadastrado!');
+        logAction(editingCylinder ? 'cylinder_update' : 'cylinder_create', { brand: baseData.brand, quantity: createdCount });
+        toast.success(editingCylinder
+          ? 'Cilindro atualizado!'
+          : createdCount > 1 ? `${createdCount} cilindros cadastrados!` : 'Cilindro cadastrado!');
         setShowCylinderModal(false);
         setEditingCylinder(null);
-        setCylinderForm({ brand: '', model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', sinker_quantity: '', observations: '' });
+        setCylinderForm({ brand: '', model: '', diameter: '', fineness: '', needle_quantity: '', feeder_quantity: '', sinker_quantity: '', observations: '', quantity: '1' });
       } catch (e) { toast.error('Erro ao salvar cilindro.'); }
     };
 
@@ -3438,6 +3459,22 @@ export default function MecanicaPage() {
               <Label>Observações</Label>
               <Input value={cylinderForm.observations} onChange={e => setCylinderForm({...cylinderForm, observations: e.target.value})} placeholder="Informações adicionais" />
             </div>
+            {!editingCylinder && (
+              <div className="space-y-1">
+                <Label>Quantidade a cadastrar</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={cylinderForm.quantity}
+                  onChange={e => setCylinderForm({...cylinderForm, quantity: e.target.value})}
+                  placeholder="Ex: 10"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Serão criados registros individuais para cada cilindro, permitindo atribuir cada um a uma máquina.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCylinderModal(false)}>Cancelar</Button>
