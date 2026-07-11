@@ -2376,14 +2376,34 @@ export default function MecanicaPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Pesquisar cilindro..." 
-                    value={cylinderSearch} 
-                    onChange={e => setCylinderSearch(e.target.value)} 
-                    className="pl-9" 
-                  />
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-1">
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Pesquisar cilindro..."
+                      value={cylinderSearch}
+                      onChange={e => setCylinderSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Select value={cylinderMachineFilter} onValueChange={setCylinderMachineFilter}>
+                    <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="Máquina" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as máquinas</SelectItem>
+                      <SelectItem value="__none__">Sem máquina (estoque)</SelectItem>
+                      {[...machines].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true })).map(m => (
+                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={cylinderStatusFilter} onValueChange={(v: any) => setCylinderStatusFilter(v)}>
+                    <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="em_uso">Em uso</SelectItem>
+                      <SelectItem value="em_estoque">Em estoque</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   <Button onClick={() => setShowCylinderModal(true)} variant="outline" className="flex-1 min-w-[45%] sm:flex-none">
@@ -2394,6 +2414,8 @@ export default function MecanicaPage() {
                   </Button>
                 </div>
               </div>
+
+              {(() => { return null; })()}
 
               <Card>
                 <CardContent className="p-0">
