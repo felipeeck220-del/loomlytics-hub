@@ -3199,7 +3199,7 @@ export default function MecanicaPage() {
      </Dialog>
  
      {/* Baixa de Agulha */}
-      <Dialog open={showExitModal} onOpenChange={(o) => { setShowExitModal(o); if (!o) { setExitProviderId(''); setExitBrand(''); setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
+      <Dialog open={showExitModal} onOpenChange={(o) => { setShowExitModal(o); if (!o) { setExitProviderId(''); setExitBrand(''); setExitLotId(''); setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Saída (Baixa)</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
@@ -3224,7 +3224,7 @@ export default function MecanicaPage() {
            </div>
             <div className="space-y-1">
               <Label>Fornecedor *</Label>
-              <Select value={exitProviderId} onValueChange={v => { setExitProviderId(v); setExitBrand(''); setExitForm({ ...exitForm, needle_id: '' }); }}>
+              <Select value={exitProviderId} onValueChange={v => { setExitProviderId(v); setExitBrand(''); setExitLotId(''); setExitForm({ ...exitForm, needle_id: '' }); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
                 <SelectContent className="max-h-[240px]">
                   {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
@@ -3232,25 +3232,30 @@ export default function MecanicaPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Marca *</Label>
-              <Select value={exitBrand} onValueChange={v => { setExitBrand(v); setExitForm({ ...exitForm, needle_id: '' }); }} disabled={!exitProviderId}>
-                <SelectTrigger><SelectValue placeholder={exitProviderId ? 'Selecione a marca' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
-                <SelectContent className="max-h-[240px]">
-                  {exitBrandsForProvider.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-1">
-              <Label>Ref. Código *</Label>
-              <Select value={exitForm.needle_id} onValueChange={v => setExitForm({ ...exitForm, needle_id: v })} disabled={!exitBrand}>
-                <SelectTrigger><SelectValue placeholder={exitBrand ? 'Selecione a referência' : 'Selecione a marca primeiro'} /></SelectTrigger>
-                <SelectContent className="max-h-[240px]">
-                  {exitRefsForBrand.map(n => (
-                    <SelectItem key={n.id} value={n.id}>{n.reference_code} — Saldo: {n.current_quantity}</SelectItem>
+              <Label>Lote *</Label>
+              <Select value={exitLotId} onValueChange={setExitLotId} disabled={!exitProviderId}>
+                <SelectTrigger><SelectValue placeholder={exitProviderId ? 'Selecione o lote' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+                <SelectContent className="max-h-[280px]">
+                  {exitProviderLots.map(l => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')} · {l.lot_code || 's/ código'} · {l.needle?.brand} ({l.needle?.reference_code}) — Saldo {l.balance}
+                    </SelectItem>
                   ))}
+                  {exitProviderId && exitProviderLots.length === 0 && (
+                    <div className="p-3 text-xs text-muted-foreground">Nenhum lote com saldo físico. Registre uma entrada primeiro.</div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
+            {exitLotId && (() => {
+              const l = exitProviderLots.find(x => x.id === exitLotId);
+              return l ? (
+                <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
+                  Agulha: <b>{l.needle?.brand} ({l.needle?.reference_code})</b> · Saldo do lote: <b>{l.balance}</b>
+                </div>
+              ) : null;
+            })()}
            <div className="space-y-1">
              <Label>Quantidade</Label>
              <Input type="number" value={exitForm.quantity} onChange={e => setExitForm({...exitForm, quantity: e.target.value})} placeholder="0" />
@@ -3261,7 +3266,7 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => { setShowExitModal(false); setExitProviderId(''); setExitBrand(''); }}>Cancelar</Button>
+           <Button variant="outline" onClick={() => { setShowExitModal(false); setExitProviderId(''); setExitBrand(''); setExitLotId(''); }}>Cancelar</Button>
            <Button onClick={handleExit}>Registrar Baixa</Button>
          </DialogFooter>
        </DialogContent>
