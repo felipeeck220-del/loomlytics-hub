@@ -3232,7 +3232,6 @@ export default function MecanicaPage() {
               </Select>
             </div>
             <div className="space-y-1">
-            <div className="space-y-1">
               <Label>Lote *</Label>
               <Select value={exitLotId} onValueChange={setExitLotId} disabled={!exitProviderId}>
                 <SelectTrigger><SelectValue placeholder={exitProviderId ? 'Selecione o lote' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
