@@ -116,6 +116,7 @@ export interface SinkerTransaction {
   created_at: string;
   created_by_id?: string;
   created_by_name?: string;
+  lot_id?: string;
 }
  
  export interface NeedleInventory {
