@@ -11,7 +11,7 @@ const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
   lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-ot', 'mecanica'],
   mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-ot', 'mecanica'],
   revisador: ['revision'],
-  expedicao: ['billing-orders', 'estoque-malha'],
+  expedicao: ['billing-orders', 'estoque-malha', 'clients-articles'],
   freteiro: ['freight-orders'],
   lider_frete: ['freight-orders'],
 };
