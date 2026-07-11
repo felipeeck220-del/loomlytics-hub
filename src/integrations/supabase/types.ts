@@ -2359,6 +2359,7 @@ export type Database = {
           company_id: string
           created_at: string
           current_needle_id: string | null
+          current_needle_lot_id: string | null
           current_sinker_id: string | null
           cylinder_id: string | null
           diameter: string | null
@@ -2386,6 +2387,7 @@ export type Database = {
           company_id: string
           created_at?: string
           current_needle_id?: string | null
+          current_needle_lot_id?: string | null
           current_sinker_id?: string | null
           cylinder_id?: string | null
           diameter?: string | null
@@ -2413,6 +2415,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           current_needle_id?: string | null
+          current_needle_lot_id?: string | null
           current_sinker_id?: string | null
           cylinder_id?: string | null
           diameter?: string | null
@@ -2455,6 +2458,13 @@ export type Database = {
             columns: ["current_needle_id"]
             isOneToOne: false
             referencedRelation: "needle_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machines_current_needle_lot_id_fkey"
+            columns: ["current_needle_lot_id"]
+            isOneToOne: false
+            referencedRelation: "needle_lots"
             referencedColumns: ["id"]
           },
           {

@@ -1,0 +1,1 @@
+ALTER TABLE public.machines ADD COLUMN IF NOT EXISTS current_needle_lot_id UUID REFERENCES public.needle_lots(id) ON DELETE SET NULL;
