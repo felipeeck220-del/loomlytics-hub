@@ -1291,7 +1291,7 @@ export default function MecanicaPage() {
           logAction('needle_lot_create', { provider_id: lotForm.provider_id, needle_id: lotForm.needle_id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
         }
         toast.success(editingLot ? 'Lote atualizado!' : 'Lote cadastrado e estoque atualizado!');
-        setShowLotModal(false); setEditingLot(null); bumpProviders();
+        setShowLotModal(false); setEditingLot(null); bumpProviders(); refreshData();
       } catch (e: any) { toast.error(e?.message || 'Erro ao salvar lote.'); }
     };
     const handleDeleteLot = async () => {
@@ -1316,7 +1316,7 @@ export default function MecanicaPage() {
         if (error) throw error;
         logAction('needle_lot_delete', { id: deleteLotId });
         toast.success('Lote removido.');
-        setDeleteLotId(null); bumpProviders();
+        setDeleteLotId(null); bumpProviders(); refreshData();
       } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
     };
 
