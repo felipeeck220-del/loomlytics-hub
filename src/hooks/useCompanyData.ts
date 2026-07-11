@@ -127,6 +127,7 @@ export function useCompanyData() {
      machine_id: r.machine_id || undefined,
      created_at: r.created_at, created_by_id: r.created_by_id || undefined,
      created_by_name: r.created_by_name || undefined,
+    lot_id: r.lot_id || undefined,
    });
   const mapMachineLog = (r: any): MachineLog => ({
     id: r.id, machine_id: r.machine_id, status: r.status,
