@@ -1133,6 +1133,14 @@ export default function MecanicaPage() {
     }, [exitProviderId, needleLots, needleTransactions, needles]);
 
     // ===== Lots CRUD =====
+    // Gera o próximo código de lote (numérico, 3 dígitos, iniciando em 001) para um fornecedor.
+    const nextLotCodeForProvider = (providerId: string) => {
+      const nums = needleLots
+        .filter(l => l.provider_id === providerId && l.lot_code && /^\d+$/.test(l.lot_code))
+        .map(l => parseInt(l.lot_code as string, 10));
+      const next = (nums.length ? Math.max(...nums) : 0) + 1;
+      return String(next).padStart(3, '0');
+    };
     const openNewLot = (providerId?: string) => {
       setEditingLot(null);
       const nextCode = providerId ? nextLotCodeForProvider(providerId) : '';
