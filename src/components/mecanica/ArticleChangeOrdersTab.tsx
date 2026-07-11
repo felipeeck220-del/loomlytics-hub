@@ -997,7 +997,7 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
       const targetPath = slug ? `/${slug}/mecanica/ot` : '/';
       supabase.functions.invoke('send-push-notification', {
         body: {
-          company_id: (o as any).company_id,
+          company_id: o.company_id,
           title: `OT #${String(o.ot_number).padStart(3, '0')} concluída`,
           message: report.trim().slice(0, 140),
           url: targetPath,
