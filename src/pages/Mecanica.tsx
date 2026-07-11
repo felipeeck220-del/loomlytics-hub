@@ -2006,45 +2006,54 @@ export default function MecanicaPage() {
                       <div className="p-8 text-center text-muted-foreground text-sm">Nenhum fornecedor cadastrado.</div>
                     )}
                     {providers.map(p => {
-                      const prices = providerPrices.filter(pp => pp.provider_id === p.id);
+                      const provLots = needleLots.filter(l => l.provider_id === p.id).sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
                       return (
                         <Card key={p.id} className="border">
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <div>
                               <CardTitle className="text-base">{p.name}</CardTitle>
-                              <span className="text-xs text-muted-foreground">{prices.length} agulha{prices.length !== 1 ? 's' : ''}</span>
+                              <span className="text-xs text-muted-foreground">{provLots.length} lote{provLots.length !== 1 ? 's' : ''}</span>
                             </div>
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openAddPrice(p.id)} disabled={availableNeedlesForProvider(p.id).length === 0}>
-                                <Plus className="h-3 w-3 mr-1" /> Agulha
+                              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openNewLot(p.id)} disabled={needles.length === 0}>
+                                <Plus className="h-3 w-3 mr-1" /> Novo Lote
                               </Button>
                               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditProvider(p)}><Pencil className="h-4 w-4" /></Button>
                               <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteProviderId(p.id)}><Trash2 className="h-4 w-4" /></Button>
                             </div>
                           </CardHeader>
                           <CardContent className="p-0">
-                            {prices.length > 0 ? (
+                            {provLots.length > 0 ? (
                               <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                   <thead>
                                     <tr className="border-b bg-muted/40 text-xs">
+                                      <th className="text-left p-2 font-medium">Data Compra</th>
+                                      <th className="text-left p-2 font-medium">Lote</th>
                                       <th className="text-left p-2 font-medium">Marca</th>
                                       <th className="text-left p-2 font-medium">Ref. Código</th>
+                                      <th className="text-right p-2 font-medium">Qtd Compra</th>
+                                      <th className="text-right p-2 font-medium">Saldo</th>
                                       <th className="text-right p-2 font-medium">Preço Unit.</th>
                                       <th className="text-right p-2 font-medium w-24">Ações</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {prices.map(pp => {
-                                      const n = needles.find(nn => nn.id === pp.needle_id);
+                                    {provLots.map(l => {
+                                      const n = needles.find(nn => nn.id === l.needle_id);
+                                      const bal = lotBalance(l.id, l.quantity);
                                       return (
-                                        <tr key={pp.id} className="border-b last:border-b-0">
+                                        <tr key={l.id} className="border-b last:border-b-0">
+                                          <td className="p-2">{format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')}</td>
+                                          <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{l.lot_code || '—'}</code></td>
                                           <td className="p-2">{n?.brand || '—'}</td>
                                           <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n?.reference_code || '—'}</code></td>
-                                          <td className="p-2 text-right font-medium">R$ {Number(pp.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                                          <td className="p-2 text-right">{l.quantity}</td>
+                                          <td className={`p-2 text-right font-medium ${bal <= 0 ? 'text-muted-foreground' : bal < l.quantity ? 'text-warning' : ''}`}>{bal}</td>
+                                          <td className="p-2 text-right font-medium">R$ {Number(l.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
                                           <td className="p-2 text-right">
-                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditPrice(pp)}><Pencil className="h-3.5 w-3.5" /></Button>
-                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeletePriceId(pp.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditLot(l)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteLotId(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                                           </td>
                                         </tr>
                                       );
@@ -2053,7 +2062,7 @@ export default function MecanicaPage() {
                                 </table>
                               </div>
                             ) : (
-                              <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma agulha vinculada. Clique em <b>+ Agulha</b>.</div>
+                              <div className="p-4 text-center text-xs text-muted-foreground">Nenhum lote cadastrado. Clique em <b>+ Novo Lote</b>.</div>
                             )}
                           </CardContent>
                         </Card>
