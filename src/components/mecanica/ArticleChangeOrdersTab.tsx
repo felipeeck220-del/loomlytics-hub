@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download } from 'lucide-react';
+import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -143,6 +143,9 @@ export default function ArticleChangeOrdersTab() {
   const [showNew, setShowNew] = useState(false);
   const [finalizeTarget, setFinalizeTarget] = useState<OT | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OT | null>(null);
+  const [concluidasSearch, setConcluidasSearch] = useState('');
+  const [concluidasPage, setConcluidasPage] = useState(0);
+  const CONCLUIDAS_PAGE_SIZE = 15;
 
   const isAdmin = role === 'admin';
   const isLiderNoite = role === 'lider_noite';
@@ -199,6 +202,32 @@ export default function ArticleChangeOrdersTab() {
     if (tab === 'concluidas') return orders.filter(o => o.status === 'concluida' || o.status === 'cancelada');
     return orders.filter(o => o.status === tab);
   }, [orders, tab]);
+
+  const concluidasFiltered = useMemo(() => {
+    if (tab !== 'concluidas') return filtered;
+    const q = concluidasSearch.trim().toLowerCase();
+    if (!q) return filtered;
+    return filtered.filter(o => {
+      const num = String(o.ot_number ?? '').padStart(3, '0');
+      const machineName = (machineById[o.machine_id]?.name || '').toLowerCase();
+      const currA = o.current_article_id ? (articleById[o.current_article_id]?.name || '').toLowerCase() : '';
+      const nextA = o.next_article_id ? (articleById[o.next_article_id]?.name || '').toLowerCase() : '';
+      return num.includes(q) || machineName.includes(q) || currA.includes(q) || nextA.includes(q);
+    });
+  }, [filtered, tab, concluidasSearch, machineById, articleById]);
+
+  const concluidasTotal = concluidasFiltered.length;
+  const concluidasTotalPages = Math.max(1, Math.ceil(concluidasTotal / CONCLUIDAS_PAGE_SIZE));
+  const concluidasPageSafe = Math.min(concluidasPage, concluidasTotalPages - 1);
+  const pagedConcluidas = useMemo(() => {
+    if (tab !== 'concluidas') return filtered;
+    const start = concluidasPageSafe * CONCLUIDAS_PAGE_SIZE;
+    return concluidasFiltered.slice(start, start + CONCLUIDAS_PAGE_SIZE);
+  }, [tab, filtered, concluidasFiltered, concluidasPageSafe]);
+
+  useEffect(() => { setConcluidasPage(0); }, [concluidasSearch, tab]);
+
+  const listToRender = tab === 'concluidas' ? pagedConcluidas : filtered;
 
   // Ações de transição
   const patch = async (id: string, patch: any, auditKey: string, auditExtra: any = {}) => {
