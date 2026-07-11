@@ -51,6 +51,7 @@ export interface Machine {
   current_needle_id?: string;
   current_sinker_id?: string;
   current_needle_lot_id?: string;
+  current_sinker_lot_id?: string;
   maintenance_interval_days?: number;
   maintenance_kg_target?: number;
 }
