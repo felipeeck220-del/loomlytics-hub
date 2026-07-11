@@ -539,6 +539,28 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         ? { oc: finishOrder.oc_number, duration_s: seconds, items: itemsToInsert.length }
         : { om: finishOrder.om_number, duration_s: seconds, items: itemsToInsert.length },
     );
+    // Push de finalização — notifica admins (e líderes/mecânicos envolvidos)
+    try {
+      const finishedNum = isCorr ? (finishOrder.oc_number ?? finishOrder.om_number) : finishOrder.om_number;
+      const machineName = machineById[finishOrder.machine_id]?.name || 'Máquina';
+      const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+      const targetPath = slug ? `/${slug}/mecanica/${isCorr ? 'oc' : 'om'}` : '/';
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          company_id: companyId,
+          title: isCorr
+            ? `OC #${String(finishedNum).padStart(3, '0')} finalizada — ${machineName}`
+            : `OM #${String(finishedNum).padStart(3, '0')} finalizada — ${machineName}`,
+          message: `Duração: ${fmtDuration(seconds)}${finishNotes ? ` — ${finishNotes}` : ''}`,
+          url: targetPath,
+          roles: ['mecanico', 'lider_mecanica', 'lider_noite'],
+          include_admins: true,
+          source: isCorr ? 'OC' : 'OM',
+          ref_id: finishOrder.id,
+          ref_number: `${isCorr ? 'OC' : 'OM'} #${String(finishedNum).padStart(3, '0')}`,
+        },
+      }).catch(() => { /* silencioso */ });
+    } catch { /* silencioso */ }
     setFinishOrder(null);
     await load();
     await Promise.resolve(refreshMachines());

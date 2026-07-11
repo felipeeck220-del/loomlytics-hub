@@ -13,7 +13,7 @@ export function usePushNotifications() {
 
   useEffect(() => {
     if (!user?.id || !user?.company_id) return;
-    const targetRoles = ['mecanico', 'lider_mecanica', 'lider', 'lider_noite'];
+    const targetRoles = ['admin', 'mecanico', 'lider_mecanica', 'lider', 'lider_noite'];
     if (!targetRoles.includes(user.role as any)) return;
 
     let cancelled = false;
