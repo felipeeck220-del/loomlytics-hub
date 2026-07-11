@@ -1195,7 +1195,7 @@ export default function MecanicaPage() {
               date: lotForm.purchase_date,
               lot_id: editingLot.id,
               created_by_id: user.id,
-              created_by_name: `${user.name} #${user.code}`,
+              created_by_name: userName || undefined,
             });
             if (entryErr) throw entryErr;
           }
@@ -1217,7 +1217,7 @@ export default function MecanicaPage() {
             date: lotForm.purchase_date,
             lot_id: newLot?.id,
             created_by_id: user.id,
-            created_by_name: `${user.name} #${user.code}`,
+            created_by_name: userName || undefined,
           });
           if (entryErr) throw entryErr;
           logAction('needle_lot_create', { provider_id: lotForm.provider_id, needle_id: lotForm.needle_id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
