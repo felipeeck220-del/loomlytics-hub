@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings, Factory, History } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Users, Search, Settings, Factory } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Client, Article, ArticleMachineTurns } from '@/types';
 import ArtigosEmProducaoTab from '@/components/ArtigosEmProducaoTab';
@@ -235,7 +235,7 @@ export default function ClientsArticles() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4">
+        <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="clients" className="flex items-center gap-2">
             <Users className="h-4 w-4" /> Clientes
           </TabsTrigger>
@@ -244,9 +244,6 @@ export default function ClientsArticles() {
           </TabsTrigger>
           <TabsTrigger value="production" className="flex items-center gap-2">
             <Factory className="h-4 w-4" /> Artigos em Produção
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="h-4 w-4" /> Histórico de Trocas
           </TabsTrigger>
         </TabsList>
 
@@ -369,12 +366,7 @@ export default function ClientsArticles() {
 
         {/* Artigos em Produção Tab */}
         <TabsContent value="production" className="mt-4">
-          <ArtigosEmProducaoTab view="production" />
-        </TabsContent>
-
-        {/* Histórico de Trocas Tab */}
-        <TabsContent value="history" className="mt-4">
-          <ArtigosEmProducaoTab view="history" />
+          <ArtigosEmProducaoTab />
         </TabsContent>
       </Tabs>
 

@@ -4,6 +4,7 @@ import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Search, Factory, ArrowRight, Loader2, History } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const sb = (table: string) => (supabase.from as any)(table);
 
@@ -27,11 +28,8 @@ const fmtDateTime = (iso: string | null | undefined) => {
   return `${dd}/${mm}/${yy} ${hh}:${mi}`;
 };
 
-interface Props {
-  view?: 'production' | 'history' | 'both';
-}
-
-export default function ArtigosEmProducaoTab({ view = 'both' }: Props) {
+export default function ArtigosEmProducaoTab() {
+  const [subTab, setSubTab] = useState<'production' | 'history'>('production');
   const { getMachines, getArticles, getClients, refreshData } = useSharedCompanyData() as any;
   const { user } = useAuth();
   const companyId = user?.company_id || '';
@@ -137,9 +135,17 @@ export default function ArtigosEmProducaoTab({ view = 'both' }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Search + Machines grid */}
-      {(view === 'production' || view === 'both') && (
+    <Tabs value={subTab} onValueChange={(v) => setSubTab(v as any)} className="space-y-4">
+      <TabsList className="w-full grid grid-cols-2">
+        <TabsTrigger value="production" className="flex items-center gap-2">
+          <Factory className="h-4 w-4" /> Artigos em Produção
+        </TabsTrigger>
+        <TabsTrigger value="history" className="flex items-center gap-2">
+          <History className="h-4 w-4" /> Histórico de Trocas
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="production" className="mt-0">
       <div className="card-glass p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
@@ -188,22 +194,21 @@ export default function ArtigosEmProducaoTab({ view = 'both' }: Props) {
           )}
         </div>
       </div>
-      )}
+      </TabsContent>
 
-      {/* History */}
-      {(view === 'history' || view === 'both') && (
+      <TabsContent value="history" className="mt-0">
       <div className="card-glass p-5 space-y-3">
-        {view === 'history' && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+              <History className="h-4 w-4" /> Histórico de Trocas de Artigo
+            </h2>
+            <p className="text-sm text-muted-foreground">Registrado a cada finalização de OT ({filteredChanges.length} registros)</p>
+          </div>
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar por máquina, artigo ou cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
-        )}
-        <div>
-          <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <History className="h-4 w-4" /> Histórico de Trocas de Artigo
-          </h2>
-          <p className="text-sm text-muted-foreground">Registrado a cada finalização de OT ({filteredChanges.length} registros)</p>
         </div>
         {filteredChanges.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">Nenhuma troca de artigo registrada</div>
@@ -228,7 +233,7 @@ export default function ArtigosEmProducaoTab({ view = 'both' }: Props) {
           </div>
         )}
       </div>
-      )}
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
