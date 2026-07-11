@@ -987,7 +987,9 @@ export default function MecanicaPage() {
       return ent - exi;
     };
     const others = needleLots
-      .filter(l => l.id !== startLot.id && l.needle_id === needleId)
+      // Restringe spillover ao MESMO fornecedor + MESMA agulha do lote inicial,
+      // evitando consumo silencioso de estoque de outro fornecedor.
+      .filter(l => l.id !== startLot.id && l.needle_id === needleId && l.provider_id === (startLot as any).provider_id)
       .map(l => ({ ...l, balance: lotBalanceOf(l.id) }))
       .filter(l => (l.balance || 0) > 0)
       .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
