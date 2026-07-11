@@ -3441,7 +3441,7 @@ export default function MecanicaPage() {
         <div className="space-y-3 pt-2">
           <div className="space-y-1">
             <Label>Fornecedor *</Label>
-            <Select value={lotForm.provider_id} onValueChange={v => setLotForm({ ...lotForm, provider_id: v })}>
+            <Select value={lotForm.provider_id} onValueChange={v => setLotForm({ ...lotForm, provider_id: v, lot_code: editingLot ? lotForm.lot_code : nextLotCodeForProvider(v) })}>
               <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
               <SelectContent className="max-h-[240px]">
                 {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
@@ -3460,8 +3460,8 @@ export default function MecanicaPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Código do Lote</Label>
-              <Input value={lotForm.lot_code} onChange={e => setLotForm({ ...lotForm, lot_code: e.target.value })} placeholder="opcional" />
+              <Label>Código do Lote (auto)</Label>
+              <Input value={lotForm.lot_code} readOnly disabled placeholder="001" className="font-mono" />
             </div>
             <div className="space-y-1">
               <Label>Data da Compra *</Label>
