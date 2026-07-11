@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Plus, Loader2, Trash2, X, Repeat, ArrowRight, PlayCircle, CheckCircle2, Clock, Wrench, ClipboardCheck, Copy, AlertTriangle, Square, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -824,6 +824,8 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
   const [nextArticleId, setNextArticleId] = useState('');
   const [observations, setObservations] = useState('');
   const [saving, setSaving] = useState(false);
+  // Guarda anti double-click (evita "Nova OT" e push duplicados).
+  const savingRef = useRef(false);
 
   const [fitas, setFitas] = useState<Fita[]>([{ ...EMPTY_FITA }]);
   const [elastano, setElastano] = useState<Elast>({ ...EMPTY_ELAST });
@@ -845,6 +847,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
   const canSave = machineId && nextArticleId && !saving;
 
   const save = async () => {
+    if (savingRef.current) return;
     if (!canSave || !user?.company_id) return;
 
     // Bloqueio de artigo igual
@@ -866,7 +869,9 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
+    try {
     const { data: ins, error } = await (supabase.from as any)('article_change_orders')
       .insert({
         company_id: user.company_id,
@@ -880,7 +885,7 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
       })
       .select('id, ot_number')
       .single();
-    if (error || !ins) { toast.error(getFriendlyErrorMessage(error?.message)); setSaving(false); return; }
+    if (error || !ins) { toast.error(getFriendlyErrorMessage(error?.message)); return; }
 
     const yarnRows: any[] = [];
     fitas.forEach((f, i) => {
@@ -937,8 +942,11 @@ function NewOTModal({ onClose, onSaved, machines, articles, yarnTypes, orders }:
         },
       }).catch(() => { /* silencioso */ });
     } catch { /* silencioso */ }
-    setSaving(false);
     onSaved();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   const yarnOptions = useMemo(() => yarnTypes.map(y => ({ value: y.id, label: y.name })), [yarnTypes]);
@@ -1026,10 +1034,17 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
   const [flaws, setFlaws] = useState('0');
   const [report, setReport] = useState('');
   const [saving, setSaving] = useState(false);
+  // Guarda anti double-click: sem isso, dois cliques rápidos entram em `submit`
+  // antes do próximo render, criando linhas duplicadas na tabela `notifications`
+  // (OT concluída aparecendo 2x/3x na central).
+  const savingRef = useRef(false);
 
   const submit = async () => {
+    if (savingRef.current) return;
     if (!report.trim()) { toast.error('Relatório final é obrigatório'); return; }
+    savingRef.current = true;
     setSaving(true);
+    try {
     const { error } = await (supabase.from as any)('article_change_orders')
       .update({
         status: 'concluida',
@@ -1046,7 +1061,6 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
         final_report: report.trim(),
       })
       .eq('id', o.id);
-    setSaving(false);
     if (error) { toast.error(getFriendlyErrorMessage(error.message)); return; }
     // Ao concluir a OT, promove o "próximo artigo" a artigo atual da máquina
     // (Máquinas > Informações Básicas > Artigo Atual → coluna machines.article_id)
@@ -1085,6 +1099,10 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
       }).catch(() => { /* silencioso */ });
     } catch { /* silencioso */ }
     onDone();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   return (

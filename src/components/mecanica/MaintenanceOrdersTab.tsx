@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -234,6 +234,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<MaintenanceOrder | null>(null);
   const [correctiveMode, setCorrectiveMode] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+  // Guarda anti double-click síncrono: o `disabled={savingOrder}` só bloqueia após
+  // o próximo render. Cliques muito rápidos entram na função antes disso e
+  // acabavam criando OMs/OCs duplicadas — cada uma disparando seu push.
+  const savingOrderRef = useRef(false);
   const [form, setForm] = useState({
     machine_id: '',
     type: 'manutencao_preventiva' as MaintenanceOrderType,
@@ -244,21 +249,31 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setEditing(null);
     setCorrectiveMode(false);
     setForm({ machine_id: '', type: 'manutencao_preventiva', priority: 'normal', description: '' });
+    savingOrderRef.current = false;
+    setSavingOrder(false);
     setCreateOpen(true);
   };
   const openCreateCorrective = () => {
     setEditing(null);
     setCorrectiveMode(true);
     setForm({ machine_id: '', type: 'manutencao_corretiva', priority: 'prioritaria', description: '' });
+    savingOrderRef.current = false;
+    setSavingOrder(false);
     setCreateOpen(true);
   };
   const openEdit = (o: MaintenanceOrder) => {
     setEditing(o);
     setCorrectiveMode(o.type === 'manutencao_corretiva');
     setForm({ machine_id: o.machine_id, type: o.type, priority: o.priority, description: o.description || '' });
+    savingOrderRef.current = false;
+    setSavingOrder(false);
     setCreateOpen(true);
   };
   const saveOrder = async () => {
+    if (savingOrderRef.current) return;
+    savingOrderRef.current = true;
+    setSavingOrder(true);
+    try {
     if (!form.machine_id) { toast.error('Selecione uma máquina'); return; }
     const isCorrective = form.type === 'manutencao_corretiva';
     if (isCorrective && !canCreateCorrective) { toast.error('Apenas admin ou líder podem criar OC'); return; }
@@ -336,6 +351,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     }
     setCreateOpen(false);
     await load();
+    } finally {
+      savingOrderRef.current = false;
+      setSavingOrder(false);
+    }
   };
 
   // ============ START ============
@@ -407,8 +426,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const updateItem = (idx: number, patch: Partial<{ item_type: MaintenanceOrderItemType; ref_id: string; description: string; quantity: number }>) =>
     setFinishItems(p => p.map((it, i) => i === idx ? { ...it, ...patch } : it));
 
+  // Guarda anti double-click do fluxo de finalização (evita duplicar OM/OC
+  // finalizadas, transações de estoque e push notifications).
+  const finishingRef = useRef(false);
+  const [finishing, setFinishing] = useState(false);
+
   const confirmFinish = async () => {
     if (!finishOrder || !finishOrder.started_at) return;
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    setFinishing(true);
+    try {
     const now = new Date().toISOString();
     const seconds = Math.max(0, Math.floor((Date.now() - new Date(finishOrder.started_at).getTime()) / 1000));
     // Data local (GMT-3) para registros que usam coluna DATE
@@ -567,6 +595,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setFinishOrder(null);
     await load();
     await Promise.resolve(refreshMachines());
+    } finally {
+      finishingRef.current = false;
+      setFinishing(false);
+    }
   };
 
   // ============ CANCEL ============
@@ -1341,8 +1373,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={saveOrder}>{editing ? 'Salvar' : correctiveMode ? 'Criar OC' : 'Criar OM'}</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={savingOrder}>Cancelar</Button>
+            <Button onClick={saveOrder} disabled={savingOrder}>
+              {savingOrder && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {editing ? 'Salvar' : correctiveMode ? 'Criar OC' : 'Criar OM'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1700,8 +1735,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             A máquina voltará a "Ativa", o histórico será fechado e os itens trocados aplicados (referências em uso e estoque).
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmFinishGate(false)}>Voltar</Button>
-            <Button onClick={async () => { setConfirmFinishGate(false); await confirmFinish(); }}>Finalizar</Button>
+            <Button variant="outline" onClick={() => setConfirmFinishGate(false)} disabled={finishing}>Voltar</Button>
+            <Button
+              disabled={finishing}
+              onClick={async () => { setConfirmFinishGate(false); await confirmFinish(); }}
+            >
+              {finishing && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Finalizar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
