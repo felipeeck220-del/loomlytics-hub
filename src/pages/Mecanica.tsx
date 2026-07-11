@@ -3281,6 +3281,86 @@ export default function MecanicaPage() {
         }
       }}
     />
+    <DeleteConfirmDialog
+      open={!!reverseTxnId}
+      onOpenChange={(o) => !o && setReverseTxnId(null)}
+      title="Estornar movimentação"
+      description="As agulhas retornarão ao estoque (se era saída) ou serão descontadas (se era entrada). Depois você pode registrar a movimentação correta."
+      confirmLabel="Estornar"
+      onConfirm={async () => {
+        if (!reverseTxnId) return;
+        try {
+          await deleteNeedleTransaction(reverseTxnId);
+          await logAction('needle_transaction_reverse', { id: reverseTxnId });
+          toast.success('Movimentação estornada.');
+        } catch (e: any) {
+          toast.error('Erro ao estornar: ' + (e?.message || ''));
+        } finally {
+          setReverseTxnId(null);
+        }
+      }}
+    />
+
+    {/* Novo/Editar Lote */}
+    <Dialog open={showLotModal} onOpenChange={(o) => { setShowLotModal(o); if (!o) setEditingLot(null); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>{editingLot ? 'Editar Lote' : 'Novo Lote de Compra'}</DialogTitle></DialogHeader>
+        <div className="space-y-3 pt-2">
+          <div className="space-y-1">
+            <Label>Fornecedor *</Label>
+            <Select value={lotForm.provider_id} onValueChange={v => setLotForm({ ...lotForm, provider_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+              <SelectContent className="max-h-[240px]">
+                {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Agulha *</Label>
+            <Select value={lotForm.needle_id} onValueChange={v => setLotForm({ ...lotForm, needle_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Selecione a agulha" /></SelectTrigger>
+              <SelectContent className="max-h-[280px]">
+                {needles.map(n => <SelectItem key={n.id} value={n.id}>{n.brand} ({n.reference_code})</SelectItem>)}
+                {needles.length === 0 && <div className="p-3 text-xs text-muted-foreground">Cadastre agulhas na aba Agulhas.</div>}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Código do Lote</Label>
+              <Input value={lotForm.lot_code} onChange={e => setLotForm({ ...lotForm, lot_code: e.target.value })} placeholder="opcional" />
+            </div>
+            <div className="space-y-1">
+              <Label>Data da Compra *</Label>
+              <Input type="date" value={lotForm.purchase_date} onChange={e => setLotForm({ ...lotForm, purchase_date: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Quantidade Comprada *</Label>
+              <Input type="number" min="1" value={lotForm.quantity} onChange={e => setLotForm({ ...lotForm, quantity: e.target.value })} placeholder="0" />
+            </div>
+            <div className="space-y-1">
+              <Label>Preço Unit. (R$) *</Label>
+              <Input type="number" step="0.0001" value={lotForm.unit_price} onChange={e => setLotForm({ ...lotForm, unit_price: e.target.value })} placeholder="0.00" />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">O preço vale para este lote. Compras futuras (ex.: com câmbio diferente) são cadastradas como novos lotes.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { setShowLotModal(false); setEditingLot(null); }}>Cancelar</Button>
+          <Button onClick={handleSaveLot}>{editingLot ? 'Salvar' : 'Cadastrar Lote'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <DeleteConfirmDialog
+      open={!!deleteLotId}
+      onOpenChange={(o) => !o && setDeleteLotId(null)}
+      onConfirm={handleDeleteLot}
+      title="Remover Lote?"
+      description="As movimentações vinculadas a este lote permanecem, mas perdem a referência ao lote."
+    />
      {/* --- Platinas Modals --- */}
      {/* Cadastrar Platina */}
      <Dialog open={showSinkerModal} onOpenChange={setShowSinkerModal}>
