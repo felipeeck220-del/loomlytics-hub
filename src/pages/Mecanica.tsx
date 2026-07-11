@@ -987,7 +987,9 @@ export default function MecanicaPage() {
       return ent - exi;
     };
     const others = needleLots
-      .filter(l => l.id !== startLot.id && l.needle_id === needleId)
+      // Restringe spillover ao MESMO fornecedor + MESMA agulha do lote inicial,
+      // evitando consumo silencioso de estoque de outro fornecedor.
+      .filter(l => l.id !== startLot.id && l.needle_id === needleId && l.provider_id === (startLot as any).provider_id)
       .map(l => ({ ...l, balance: lotBalanceOf(l.id) }))
       .filter(l => (l.balance || 0) > 0)
       .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
@@ -1053,6 +1055,33 @@ export default function MecanicaPage() {
       setExitForm({ needle_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
       setExitProviderId(''); setExitBrand(''); setExitLotId('');
     } catch (e: any) { toast.error(e?.message || 'Erro ao registrar baixa.'); }
+  };
+
+  // Recomputa `current_needle_id` / `current_needle_lot_id` da máquina a partir da última saída válida.
+  // Consulta o banco diretamente (evita usar o snapshot em closure, que ainda contém a linha recém-apagada).
+  const resyncMachineCurrentNeedle = async (machineId?: string | null) => {
+    if (!machineId) return;
+    const machine = machines.find(m => m.id === machineId);
+    if (!machine) return;
+    let lastExit: any = null;
+    try {
+      const { data } = await (supabase.from as any)('needle_transactions')
+        .select('needle_id, lot_id, date, created_at')
+        .eq('machine_id', machineId)
+        .eq('type', 'exit')
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1);
+      lastExit = Array.isArray(data) && data.length ? data[0] : null;
+    } catch (e) { console.warn('resyncMachineCurrentNeedle query failed:', e); return; }
+    const newNeedleId = lastExit?.needle_id || null;
+    const newLotId = lastExit?.lot_id || null;
+    if (machine.current_needle_id === (newNeedleId || undefined) && machine.current_needle_lot_id === (newLotId || undefined)) return;
+    const updated = machines.map(m => m.id === machineId
+      ? { ...m, current_needle_id: newNeedleId || undefined, current_needle_lot_id: newLotId || undefined }
+      : m
+    );
+    try { await saveMachines(updated); } catch (e) { console.warn('resyncMachineCurrentNeedle failed:', e); }
   };
 
     // ===== Providers CRUD =====
@@ -3340,30 +3369,36 @@ export default function MecanicaPage() {
               <Select value={exitForm.machine_id} onValueChange={v => {
                 setExitForm({...exitForm, machine_id: v});
                 // Auto-preenche fornecedor/lote a partir da agulha e lote atuais registrados na máquina.
+                // Sempre reseta antes para evitar valor "fantasma" preso quando o auto-fill não encontra opção válida.
+                setExitProviderId('');
+                setExitBrand('');
+                setExitLotId('');
                 const m = machines.find(x => x.id === v);
+                const balanceOf = (lid: string) => {
+                  const ent = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                  const exi = needleTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                  return ent - exi;
+                };
                 if (m?.current_needle_lot_id) {
                   const lot = needleLots.find(l => l.id === m.current_needle_lot_id);
-                  if (lot) {
+                  const providerOk = lot && providers.some(p => p.id === lot.provider_id);
+                  const hasBalance = lot && balanceOf(lot.id) > 0;
+                  if (lot && providerOk && hasBalance) {
                     setExitProviderId(lot.provider_id);
-                    setExitBrand('');
                     setExitLotId(lot.id);
                     return;
                   }
+                  // Fallback: se lote atual foi esgotado ou fornecedor deletado, cai para FIFO da agulha.
                 }
                 if (m?.current_needle_id) {
                   // Sem lote definido: acha o lote mais antigo com saldo dessa agulha.
                   const candidates = needleLots
-                    .filter(l => l.needle_id === m.current_needle_id)
-                    .map(l => {
-                      const ent = needleTransactions.filter((t: any) => t.lot_id === l.id && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
-                      const exi = needleTransactions.filter((t: any) => t.lot_id === l.id && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
-                      return { ...l, balance: ent - exi };
-                    })
+                    .filter(l => l.needle_id === m.current_needle_id && providers.some(p => p.id === l.provider_id))
+                    .map(l => ({ ...l, balance: balanceOf(l.id) }))
                     .filter(l => l.balance > 0)
                     .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
                   if (candidates[0]) {
                     setExitProviderId(candidates[0].provider_id);
-                    setExitBrand('');
                     setExitLotId(candidates[0].id);
                   }
                 }
@@ -3413,7 +3448,7 @@ export default function MecanicaPage() {
                 return ent - exi;
               };
               const others = needleLots
-                .filter(l => l.id !== startLot.id && l.needle_id === startLot.needle_id)
+                .filter(l => l.id !== startLot.id && l.needle_id === startLot.needle_id && l.provider_id === startLot.provider_id)
                 .map(l => ({ ...l, balance: lotBalanceOf(l.id) }))
                 .filter(l => l.balance > 0)
                 .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
@@ -3577,6 +3612,7 @@ export default function MecanicaPage() {
             const isEntry = editForm.kind === 'entry';
             if (!isEntry && !editForm.machine_id) { toast.error('Selecione a máquina'); return; }
             try {
+              const oldMachineId = editTxn?.machine_id as string | undefined;
               await updateNeedleTransaction(editTxn.id, {
                 quantity: qty,
                 date: editForm.date,
@@ -3585,6 +3621,11 @@ export default function MecanicaPage() {
                 machine_id: isEntry ? undefined : editForm.machine_id,
               });
               await logAction('needle_transaction_edit', { id: editTxn.id, quantity: qty, date: editForm.date, kind: editForm.kind });
+              // Ressincroniza a agulha/lote atual das máquinas envolvidas (antiga e nova).
+              if (oldMachineId) await resyncMachineCurrentNeedle(oldMachineId);
+              if (!isEntry && editForm.machine_id && editForm.machine_id !== oldMachineId) {
+                await resyncMachineCurrentNeedle(editForm.machine_id);
+              }
               toast.success('Movimentação atualizada');
               setEditTxn(null);
             } catch (e: any) {
@@ -3603,8 +3644,11 @@ export default function MecanicaPage() {
       onConfirm={async () => {
         if (!deleteTxnId) return;
         try {
+          const txn: any = needleTransactions.find((t: any) => t.id === deleteTxnId);
+          const affectedMachineId = txn?.machine_id;
           await deleteNeedleTransaction(deleteTxnId);
           await logAction('needle_transaction_delete', { id: deleteTxnId });
+          if (affectedMachineId) await resyncMachineCurrentNeedle(affectedMachineId);
           toast.success('Movimentação excluída');
         } catch (e: any) {
           toast.error('Erro ao excluir: ' + (e?.message || ''));
@@ -3622,8 +3666,11 @@ export default function MecanicaPage() {
       onConfirm={async () => {
         if (!reverseTxnId) return;
         try {
+          const txn: any = needleTransactions.find((t: any) => t.id === reverseTxnId);
+          const affectedMachineId = txn?.machine_id;
           await deleteNeedleTransaction(reverseTxnId);
           await logAction('needle_transaction_reverse', { id: reverseTxnId });
+          if (affectedMachineId) await resyncMachineCurrentNeedle(affectedMachineId);
           toast.success('Movimentação estornada.');
         } catch (e: any) {
           toast.error('Erro ao estornar: ' + (e?.message || ''));
