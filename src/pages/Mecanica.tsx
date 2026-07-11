@@ -3608,6 +3608,7 @@ export default function MecanicaPage() {
             const isEntry = editForm.kind === 'entry';
             if (!isEntry && !editForm.machine_id) { toast.error('Selecione a máquina'); return; }
             try {
+              const oldMachineId = editTxn?.machine_id as string | undefined;
               await updateNeedleTransaction(editTxn.id, {
                 quantity: qty,
                 date: editForm.date,
@@ -3616,6 +3617,11 @@ export default function MecanicaPage() {
                 machine_id: isEntry ? undefined : editForm.machine_id,
               });
               await logAction('needle_transaction_edit', { id: editTxn.id, quantity: qty, date: editForm.date, kind: editForm.kind });
+              // Ressincroniza a agulha/lote atual das máquinas envolvidas (antiga e nova).
+              if (oldMachineId) await resyncMachineCurrentNeedle(oldMachineId);
+              if (!isEntry && editForm.machine_id && editForm.machine_id !== oldMachineId) {
+                await resyncMachineCurrentNeedle(editForm.machine_id);
+              }
               toast.success('Movimentação atualizada');
               setEditTxn(null);
             } catch (e: any) {
@@ -3634,8 +3640,11 @@ export default function MecanicaPage() {
       onConfirm={async () => {
         if (!deleteTxnId) return;
         try {
+          const txn: any = needleTransactions.find((t: any) => t.id === deleteTxnId);
+          const affectedMachineId = txn?.machine_id;
           await deleteNeedleTransaction(deleteTxnId);
           await logAction('needle_transaction_delete', { id: deleteTxnId });
+          if (affectedMachineId) await resyncMachineCurrentNeedle(affectedMachineId);
           toast.success('Movimentação excluída');
         } catch (e: any) {
           toast.error('Erro ao excluir: ' + (e?.message || ''));
@@ -3653,8 +3662,11 @@ export default function MecanicaPage() {
       onConfirm={async () => {
         if (!reverseTxnId) return;
         try {
+          const txn: any = needleTransactions.find((t: any) => t.id === reverseTxnId);
+          const affectedMachineId = txn?.machine_id;
           await deleteNeedleTransaction(reverseTxnId);
           await logAction('needle_transaction_reverse', { id: reverseTxnId });
+          if (affectedMachineId) await resyncMachineCurrentNeedle(affectedMachineId);
           toast.success('Movimentação estornada.');
         } catch (e: any) {
           toast.error('Erro ao estornar: ' + (e?.message || ''));
