@@ -1912,36 +1912,120 @@ export default function MecanicaPage() {
                             <tr className="border-b bg-muted/50">
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
-                              <th className="text-right p-4 font-medium">Estoque</th>
+                              <th className="text-left p-4 font-medium">Lote</th>
+                              <th className="text-left p-4 font-medium">Fornecedor</th>
+                              <th className="text-right p-4 font-medium">Compra</th>
+                              <th className="text-right p-4 font-medium">Preço Unit.</th>
+                              <th className="text-right p-4 font-medium">Saldo</th>
                               <th className="text-center p-4 font-medium w-20">Em Uso</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {[...needles]
-                              .sort((a, b) => a.brand.localeCompare(b.brand))
-                              .filter(n => 
-                                n.brand.toLowerCase().includes(needleSearch.toLowerCase()) || 
-                                n.reference_code.toLowerCase().includes(needleSearch.toLowerCase())
-                              )
-                              .map(n => {
-                                const usedBy = new Set(machineNeedleRefs.filter(r => r.needle_id === n.id).map(r => r.machine_id)).size;
+                            {(() => {
+                              // Constrói linhas por LOTE. Saldo do lote = quantidade da compra − consumo FIFO
+                              // proporcional às saídas registradas para aquela agulha.
+                              const term = needleSearch.toLowerCase();
+                              const providerName = (id: string) => providers.find(p => p.id === id)?.name || '—';
+                              const rows: Array<{
+                                key: string; needleId: string; brand: string; ref: string;
+                                lotCode: string; providerLabel: string; purchaseQty: number;
+                                unitPrice: number; balance: number; purchaseDate: string;
+                              }> = [];
+
+                              // Agrupa lotes por needle_id
+                              const lotsByNeedle = new Map<string, typeof needleLots>();
+                              needleLots.forEach(l => {
+                                const arr = lotsByNeedle.get(l.needle_id) || [];
+                                arr.push(l);
+                                lotsByNeedle.set(l.needle_id, arr);
+                              });
+
+                              needles.forEach(n => {
+                                const lots = (lotsByNeedle.get(n.id) || [])
+                                  .slice()
+                                  .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+
+                                // Total de saídas dessa agulha (para consumir FIFO nos lotes)
+                                let remainingExits = needleTransactions
+                                  .filter(t => t.needle_id === n.id && t.type === 'exit')
+                                  .reduce((s, t) => s + (t.quantity || 0), 0);
+
+                                lots.forEach(l => {
+                                  const consumed = Math.min(remainingExits, l.quantity);
+                                  remainingExits -= consumed;
+                                  const balance = l.quantity - consumed;
+                                  rows.push({
+                                    key: l.id,
+                                    needleId: n.id,
+                                    brand: n.brand,
+                                    ref: n.reference_code,
+                                    lotCode: l.lot_code || '—',
+                                    providerLabel: providerName(l.provider_id),
+                                    purchaseQty: l.quantity,
+                                    unitPrice: l.unit_price,
+                                    balance,
+                                    purchaseDate: l.purchase_date,
+                                  });
+                                });
+
+                                // Agulha sem lote cadastrado → mostra linha agregada
+                                if (lots.length === 0 && n.current_quantity > 0) {
+                                  rows.push({
+                                    key: `no-lot-${n.id}`,
+                                    needleId: n.id,
+                                    brand: n.brand,
+                                    ref: n.reference_code,
+                                    lotCode: '(sem lote)',
+                                    providerLabel: '—',
+                                    purchaseQty: n.current_quantity,
+                                    unitPrice: 0,
+                                    balance: n.current_quantity,
+                                    purchaseDate: '',
+                                  });
+                                }
+                              });
+
+                              const filtered = rows
+                                .filter(r =>
+                                  r.brand.toLowerCase().includes(term) ||
+                                  r.ref.toLowerCase().includes(term) ||
+                                  r.lotCode.toLowerCase().includes(term) ||
+                                  r.providerLabel.toLowerCase().includes(term)
+                                )
+                                .sort((a, b) => a.brand.localeCompare(b.brand) || (a.purchaseDate < b.purchaseDate ? 1 : -1));
+
+                              if (filtered.length === 0) {
                                 return (
-                              <tr key={n.id} className="border-b hover:bg-muted/30 transition-colors">
-                                <td className="p-4">{n.brand}</td>
-                                <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{n.reference_code}</code></td>
-                                <td className="p-4 text-right font-bold">{n.current_quantity}</td>
-                                <td className="p-4 text-center">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setNeedleUsageView({ id: n.id, brand: n.brand, reference_code: n.reference_code })} title={`${usedBy} máquina(s) usando`}>
-                                    <Eye className="h-4 w-4" />
-                                    {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
-                                  </Button>
-                                </td>
-                              </tr>
+                                  <tr>
+                                    <td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum lote em estoque</td>
+                                  </tr>
                                 );
-                              })}
+                              }
+
+                              return filtered.map(r => {
+                                const usedBy = new Set(machineNeedleRefs.filter(x => x.needle_id === r.needleId).map(x => x.machine_id)).size;
+                                return (
+                                  <tr key={r.key} className="border-b hover:bg-muted/30 transition-colors">
+                                    <td className="p-4">{r.brand}</td>
+                                    <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{r.ref}</code></td>
+                                    <td className="p-4"><span className="font-mono text-xs">{r.lotCode}</span></td>
+                                    <td className="p-4">{r.providerLabel}</td>
+                                    <td className="p-4 text-right text-muted-foreground">{r.purchaseQty}</td>
+                                    <td className="p-4 text-right">{r.unitPrice > 0 ? r.unitPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }) : '—'}</td>
+                                    <td className={`p-4 text-right font-bold ${r.balance <= 0 ? 'text-muted-foreground line-through' : ''}`}>{r.balance}</td>
+                                    <td className="p-4 text-center">
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setNeedleUsageView({ id: r.needleId, brand: r.brand, reference_code: r.ref })} title={`${usedBy} máquina(s) usando`}>
+                                        <Eye className="h-4 w-4" />
+                                        {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                            })()}
                             {needles.length === 0 && (
                               <tr>
-                                <td colSpan={4} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
+                                <td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhuma agulha cadastrada</td>
                               </tr>
                             )}
                           </tbody>
