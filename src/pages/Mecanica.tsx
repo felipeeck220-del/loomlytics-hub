@@ -2032,7 +2032,7 @@ export default function MecanicaPage() {
                 </TabsTrigger>
                 <TabsTrigger value="fornecedores">
                   <Wrench className="h-4 w-4 mr-1.5" />
-                  Fornecedores
+                  Lotes
                 </TabsTrigger>
                 <TabsTrigger value="movimentacoes">
                   <History className="h-4 w-4 mr-1.5" />
