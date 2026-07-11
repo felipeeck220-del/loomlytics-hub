@@ -234,6 +234,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<MaintenanceOrder | null>(null);
   const [correctiveMode, setCorrectiveMode] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+  // Guarda anti double-click síncrono: o `disabled={savingOrder}` só bloqueia após
+  // o próximo render. Cliques muito rápidos entram na função antes disso e
+  // acabavam criando OMs/OCs duplicadas — cada uma disparando seu push.
+  const savingOrderRef = useRef(false);
   const [form, setForm] = useState({
     machine_id: '',
     type: 'manutencao_preventiva' as MaintenanceOrderType,
@@ -244,21 +249,31 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setEditing(null);
     setCorrectiveMode(false);
     setForm({ machine_id: '', type: 'manutencao_preventiva', priority: 'normal', description: '' });
+    savingOrderRef.current = false;
+    setSavingOrder(false);
     setCreateOpen(true);
   };
   const openCreateCorrective = () => {
     setEditing(null);
     setCorrectiveMode(true);
     setForm({ machine_id: '', type: 'manutencao_corretiva', priority: 'prioritaria', description: '' });
+    savingOrderRef.current = false;
+    setSavingOrder(false);
     setCreateOpen(true);
   };
   const openEdit = (o: MaintenanceOrder) => {
     setEditing(o);
     setCorrectiveMode(o.type === 'manutencao_corretiva');
     setForm({ machine_id: o.machine_id, type: o.type, priority: o.priority, description: o.description || '' });
+    savingOrderRef.current = false;
+    setSavingOrder(false);
     setCreateOpen(true);
   };
   const saveOrder = async () => {
+    if (savingOrderRef.current) return;
+    savingOrderRef.current = true;
+    setSavingOrder(true);
+    try {
     if (!form.machine_id) { toast.error('Selecione uma máquina'); return; }
     const isCorrective = form.type === 'manutencao_corretiva';
     if (isCorrective && !canCreateCorrective) { toast.error('Apenas admin ou líder podem criar OC'); return; }
@@ -336,6 +351,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     }
     setCreateOpen(false);
     await load();
+    } finally {
+      savingOrderRef.current = false;
+      setSavingOrder(false);
+    }
   };
 
   // ============ START ============
