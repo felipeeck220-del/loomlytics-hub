@@ -1026,10 +1026,17 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
   const [flaws, setFlaws] = useState('0');
   const [report, setReport] = useState('');
   const [saving, setSaving] = useState(false);
+  // Guarda anti double-click: sem isso, dois cliques rápidos entram em `submit`
+  // antes do próximo render, criando linhas duplicadas na tabela `notifications`
+  // (OT concluída aparecendo 2x/3x na central).
+  const savingRef = useRef(false);
 
   const submit = async () => {
+    if (savingRef.current) return;
     if (!report.trim()) { toast.error('Relatório final é obrigatório'); return; }
+    savingRef.current = true;
     setSaving(true);
+    try {
     const { error } = await (supabase.from as any)('article_change_orders')
       .update({
         status: 'concluida',
@@ -1046,7 +1053,6 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
         final_report: report.trim(),
       })
       .eq('id', o.id);
-    setSaving(false);
     if (error) { toast.error(getFriendlyErrorMessage(error.message)); return; }
     // Ao concluir a OT, promove o "próximo artigo" a artigo atual da máquina
     // (Máquinas > Informações Básicas > Artigo Atual → coluna machines.article_id)
@@ -1085,6 +1091,10 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
       }).catch(() => { /* silencioso */ });
     } catch { /* silencioso */ }
     onDone();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   return (
