@@ -40,6 +40,10 @@ type NeedleProvider = { id: string; company_id: string; name: string };
 type NeedleProviderPrice = { id: string; company_id: string; provider_id: string; needle_id: string; unit_price: number };
 type NeedleLot = { id: string; company_id: string; provider_id: string; needle_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; notes: string | null; created_at: string };
 
+type SinkerProvider = { id: string; company_id: string; name: string };
+type SinkerProviderPrice = { id: string; company_id: string; provider_id: string; sinker_id: string; unit_price: number };
+type SinkerLot = { id: string; company_id: string; provider_id: string; sinker_id: string; lot_code: string | null; purchase_date: string; quantity: number; unit_price: number; notes: string | null; created_at: string };
+
 export default function MecanicaPage() {
    const { 
      getMachines, getMachineLogs, getProductions, saveMachineLogs, 
@@ -122,6 +126,33 @@ export default function MecanicaPage() {
    const [sinkerHistoryPage, setSinkerHistoryPage] = useState(1);
    const SINKER_HISTORY_PER_PAGE = 15;
 
+   // Sinker Providers + Lots (espelho do modelo de Agulhas)
+   const [sinkerProviders, setSinkerProviders] = useState<SinkerProvider[]>([]);
+   const [sinkerProviderPrices, setSinkerProviderPrices] = useState<SinkerProviderPrice[]>([]);
+   const [sinkerLots, setSinkerLots] = useState<SinkerLot[]>([]);
+   const [sinkerProvidersRefreshKey, setSinkerProvidersRefreshKey] = useState(0);
+   const bumpSinkerProviders = () => setSinkerProvidersRefreshKey(k => k + 1);
+   const [showSinkerProviderModal, setShowSinkerProviderModal] = useState(false);
+   const [editingSinkerProvider, setEditingSinkerProvider] = useState<SinkerProvider | null>(null);
+   const [sinkerProviderName, setSinkerProviderName] = useState('');
+   const [deleteSinkerProviderId, setDeleteSinkerProviderId] = useState<string | null>(null);
+   const [showSinkerPriceModal, setShowSinkerPriceModal] = useState(false);
+   const [sinkerPriceProviderId, setSinkerPriceProviderId] = useState('');
+   const [sinkerPriceSinkerId, setSinkerPriceSinkerId] = useState('');
+   const [sinkerPriceValue, setSinkerPriceValue] = useState('');
+   const [editingSinkerPrice, setEditingSinkerPrice] = useState<SinkerProviderPrice | null>(null);
+   const [deleteSinkerPriceId, setDeleteSinkerPriceId] = useState<string | null>(null);
+   const [showSinkerLotModal, setShowSinkerLotModal] = useState(false);
+   const [editingSinkerLot, setEditingSinkerLot] = useState<SinkerLot | null>(null);
+   const [sinkerLotForm, setSinkerLotForm] = useState({ provider_id: '', sinker_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+   const [deleteSinkerLotId, setDeleteSinkerLotId] = useState<string | null>(null);
+   const [entrySinkerProviderId, setEntrySinkerProviderId] = useState('');
+   const [entrySinkerLotId, setEntrySinkerLotId] = useState('');
+   const [exitSinkerProviderId, setExitSinkerProviderId] = useState('');
+   const [exitSinkerLotId, setExitSinkerLotId] = useState('');
+   const [editingSinker, setEditingSinker] = useState<any>(null);
+   const [reverseSinkerTxnId, setReverseSinkerTxnId] = useState<string | null>(null);
+
    // Cylinder Management State
    const [cylinderSearch, setCylinderSearch] = useState('');
    const [showCylinderModal, setShowCylinderModal] = useState(false);
@@ -180,6 +211,7 @@ export default function MecanicaPage() {
       'needle_inventory', 'needle_transactions',
       'needle_providers', 'needle_provider_prices', 'needle_lots',
       'sinker_inventory', 'sinker_transactions',
+      'sinker_providers', 'sinker_provider_prices', 'sinker_lots',
       'cylinders', 'machine_needle_refs', 'machine_sinker_refs',
       'maintenance_orders', 'maintenance_order_items',
       'machine_maintenance_observations',
@@ -212,6 +244,22 @@ export default function MecanicaPage() {
       setNeedleLots((lots || []) as NeedleLot[]);
     })();
   }, [user?.company_id, providersRefreshKey]);
+
+  // Carrega Fornecedores + Lotes de Platinas
+  useEffect(() => {
+    if (!user?.company_id) return;
+    const cid = user.company_id;
+    (async () => {
+      const [{ data: prov }, { data: pri }, { data: lots }] = await Promise.all([
+        (supabase.from as any)('sinker_providers').select('*').eq('company_id', cid).order('name'),
+        (supabase.from as any)('sinker_provider_prices').select('*').eq('company_id', cid),
+        (supabase.from as any)('sinker_lots').select('*').eq('company_id', cid).order('purchase_date', { ascending: false }),
+      ]);
+      setSinkerProviders((prov || []) as SinkerProvider[]);
+      setSinkerProviderPrices((pri || []) as SinkerProviderPrice[]);
+      setSinkerLots((lots || []) as SinkerLot[]);
+    })();
+  }, [user?.company_id, sinkerProvidersRefreshKey]);
 
   const [selectedMachineId, setSelectedMachineId] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -1367,16 +1415,268 @@ export default function MecanicaPage() {
         .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
     }, [entryProviderId, needleLots, needleTransactions, needles]);
 
+    // ==================== PLATINAS: Providers / Lots (espelho de Agulhas) ====================
+    const openNewSinkerProvider = () => { setEditingSinkerProvider(null); setSinkerProviderName(''); setShowSinkerProviderModal(true); };
+    const openEditSinkerProvider = (p: SinkerProvider) => { setEditingSinkerProvider(p); setSinkerProviderName(p.name); setShowSinkerProviderModal(true); };
+    const handleSaveSinkerProvider = async () => {
+      if (!sinkerProviderName.trim()) { toast.error('Informe o nome do fornecedor.'); return; }
+      if (!user?.company_id) return;
+      try {
+        if (editingSinkerProvider) {
+          const { error } = await (supabase.from as any)('sinker_providers').update({ name: sinkerProviderName.trim() }).eq('id', editingSinkerProvider.id);
+          if (error) throw error;
+          logAction('sinker_provider_update', { name: sinkerProviderName.trim() });
+        } else {
+          const { error } = await (supabase.from as any)('sinker_providers').insert({ company_id: user.company_id, name: sinkerProviderName.trim() });
+          if (error) throw error;
+          logAction('sinker_provider_create', { name: sinkerProviderName.trim() });
+        }
+        toast.success(editingSinkerProvider ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
+        setShowSinkerProviderModal(false); setSinkerProviderName(''); setEditingSinkerProvider(null);
+        bumpSinkerProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar fornecedor.'); }
+    };
+    const handleDeleteSinkerProvider = async () => {
+      if (!deleteSinkerProviderId) return;
+      try {
+        const { error } = await (supabase.from as any)('sinker_providers').delete().eq('id', deleteSinkerProviderId);
+        if (error) throw error;
+        logAction('sinker_provider_delete', { id: deleteSinkerProviderId });
+        toast.success('Fornecedor removido.');
+        setDeleteSinkerProviderId(null); bumpSinkerProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+    const openAddSinkerPrice = (providerId: string) => {
+      setEditingSinkerPrice(null); setSinkerPriceProviderId(providerId); setSinkerPriceSinkerId(''); setSinkerPriceValue(''); setShowSinkerPriceModal(true);
+    };
+    const openEditSinkerPrice = (p: SinkerProviderPrice) => {
+      setEditingSinkerPrice(p); setSinkerPriceProviderId(p.provider_id); setSinkerPriceSinkerId(p.sinker_id); setSinkerPriceValue(String(p.unit_price)); setShowSinkerPriceModal(true);
+    };
+    const availableSinkersForProvider = (providerId: string) => {
+      const used = new Set(sinkerProviderPrices.filter(p => p.provider_id === providerId && (!editingSinkerPrice || p.id !== editingSinkerPrice.id)).map(p => p.sinker_id));
+      return sinkers.filter(s => !used.has(s.id));
+    };
+    const handleSaveSinkerPrice = async () => {
+      if (!sinkerPriceProviderId || !sinkerPriceSinkerId) { toast.error('Selecione o fornecedor e a platina.'); return; }
+      const price = Number(String(sinkerPriceValue).replace(',', '.'));
+      if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
+      if (!user?.company_id) return;
+      try {
+        if (editingSinkerPrice) {
+          const { error } = await (supabase.from as any)('sinker_provider_prices').update({ unit_price: price }).eq('id', editingSinkerPrice.id);
+          if (error) throw error;
+        } else {
+          const { error } = await (supabase.from as any)('sinker_provider_prices').insert({
+            company_id: user.company_id, provider_id: sinkerPriceProviderId, sinker_id: sinkerPriceSinkerId, unit_price: price,
+          });
+          if (error) throw error;
+        }
+        logAction(editingSinkerPrice ? 'sinker_price_update' : 'sinker_price_create', { provider_id: sinkerPriceProviderId, sinker_id: sinkerPriceSinkerId, price });
+        toast.success(editingSinkerPrice ? 'Preço atualizado!' : 'Platina vinculada ao fornecedor.');
+        setShowSinkerPriceModal(false); setEditingSinkerPrice(null); bumpSinkerProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar preço.'); }
+    };
+    const handleDeleteSinkerPrice = async () => {
+      if (!deleteSinkerPriceId) return;
+      try {
+        const { error } = await (supabase.from as any)('sinker_provider_prices').delete().eq('id', deleteSinkerPriceId);
+        if (error) throw error;
+        logAction('sinker_price_delete', { id: deleteSinkerPriceId });
+        toast.success('Vínculo removido.');
+        setDeleteSinkerPriceId(null); bumpSinkerProviders();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // Helpers de listagem (Entrada/Saída Platinas)
+    const exitSinkerProviderSinkers = useMemo(() => {
+      if (!exitSinkerProviderId) return [] as typeof sinkers;
+      const ids = new Set(sinkerProviderPrices.filter(p => p.provider_id === exitSinkerProviderId).map(p => p.sinker_id));
+      return sinkers.filter(s => ids.has(s.id));
+    }, [exitSinkerProviderId, sinkerProviderPrices, sinkers]);
+
+    const sinkerLotBalance = (lotId: string) => {
+      const entries = sinkerTransactions.filter((t: any) => t.lot_id === lotId && t.type === 'entry').reduce((s, t) => s + (t.quantity || 0), 0);
+      const exits = sinkerTransactions.filter((t: any) => t.lot_id === lotId && t.type === 'exit').reduce((s, t) => s + (t.quantity || 0), 0);
+      return entries - exits;
+    };
+    const sinkerLotPendingPurchase = (lotId: string, originalQty: number) => {
+      const entries = sinkerTransactions.filter((t: any) => t.lot_id === lotId && t.type === 'entry').reduce((s, t) => s + (t.quantity || 0), 0);
+      return originalQty - entries;
+    };
+    const exitSinkerProviderLots = useMemo(() => {
+      if (!exitSinkerProviderId) return [] as (SinkerLot & { balance: number; sinker: any })[];
+      return sinkerLots
+        .filter(l => l.provider_id === exitSinkerProviderId)
+        .map(l => ({ ...l, balance: sinkerLotBalance(l.id), sinker: sinkers.find(s => s.id === l.sinker_id) }))
+        .filter(l => l.balance > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+    }, [exitSinkerProviderId, sinkerLots, sinkerTransactions, sinkers]);
+    const entrySinkerProviderLots = useMemo(() => {
+      if (!entrySinkerProviderId) return [] as (SinkerLot & { balance: number; sinker: any })[];
+      return sinkerLots
+        .filter(l => l.provider_id === entrySinkerProviderId)
+        .map(l => ({ ...l, balance: sinkerLotPendingPurchase(l.id, l.quantity), sinker: sinkers.find(s => s.id === l.sinker_id) }))
+        .filter(l => l.balance > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+    }, [entrySinkerProviderId, sinkerLots, sinkerTransactions, sinkers]);
+
+    const nextSinkerLotCodeForProvider = (providerId: string) => {
+      const nums = sinkerLots
+        .filter(l => l.provider_id === providerId && l.lot_code && /^\d+$/.test(l.lot_code))
+        .map(l => parseInt(l.lot_code as string, 10));
+      const next = (nums.length ? Math.max(...nums) : 0) + 1;
+      return String(next).padStart(3, '0');
+    };
+    const openNewSinkerLot = (providerId?: string) => {
+      setEditingSinkerLot(null);
+      const nextCode = providerId ? nextSinkerLotCodeForProvider(providerId) : '';
+      setSinkerLotForm({ provider_id: providerId || '', sinker_id: '', lot_code: nextCode, purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+      setShowSinkerLotModal(true);
+    };
+    const openEditSinkerLot = (l: SinkerLot) => {
+      setEditingSinkerLot(l);
+      setSinkerLotForm({ provider_id: l.provider_id, sinker_id: l.sinker_id, lot_code: l.lot_code || '', purchase_date: l.purchase_date, quantity: String(l.quantity || ''), unit_price: String(l.unit_price || '') });
+      setShowSinkerLotModal(true);
+    };
+    const handleSaveSinkerLot = async () => {
+      if (!user?.company_id) return;
+      if (!sinkerLotForm.provider_id || !sinkerLotForm.sinker_id || !sinkerLotForm.purchase_date) {
+        toast.error('Preencha fornecedor, platina e data.'); return;
+      }
+      const qty = parseInt(sinkerLotForm.quantity || '0');
+      const price = Number(String(sinkerLotForm.unit_price || '0').replace(',', '.'));
+      if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+      if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
+      try {
+        if (editingSinkerLot) {
+          const linked = sinkerTransactions.filter((t: any) => t.lot_id === editingSinkerLot.id);
+          const linkedExits = linked.filter(t => t.type === 'exit');
+          const linkedEntries = linked.filter(t => t.type === 'entry');
+          const qtyChanged = qty !== (editingSinkerLot.quantity || 0);
+          const sinkerChanged = sinkerLotForm.sinker_id !== editingSinkerLot.sinker_id;
+          const dateChanged = sinkerLotForm.purchase_date !== editingSinkerLot.purchase_date;
+          if (sinkerChanged && linked.length > 0) {
+            toast.error('Não é possível trocar a platina: já existem movimentações vinculadas a este lote. Exclua-as antes.');
+            return;
+          }
+          if (qtyChanged) {
+            if (linkedExits.length > 0) {
+              toast.error('Não é possível alterar a quantidade: já existem saídas vinculadas a este lote. Estorne-as em Movimentações antes.');
+              return;
+            }
+            for (const e of linkedEntries) {
+              const { error: delErr } = await supabase.from('sinker_transactions').delete().eq('id', e.id);
+              if (delErr) throw delErr;
+            }
+          }
+          const { error } = await (supabase.from as any)('sinker_lots').update({
+            provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id,
+            lot_code: sinkerLotForm.lot_code || null, purchase_date: sinkerLotForm.purchase_date,
+            quantity: qty, unit_price: price,
+          }).eq('id', editingSinkerLot.id);
+          if (error) throw error;
+          if (qtyChanged) {
+            const { error: entryErr } = await (supabase.from as any)('sinker_transactions').insert({
+              company_id: user.company_id, sinker_id: sinkerLotForm.sinker_id,
+              type: 'entry', quantity: qty, date: sinkerLotForm.purchase_date,
+              lot_id: editingSinkerLot.id, created_by_id: user.id, created_by_name: userName || undefined,
+            });
+            if (entryErr) throw entryErr;
+          } else if (dateChanged && linkedEntries.length > 0) {
+            for (const e of linkedEntries) {
+              await supabase.from('sinker_transactions').update({ date: sinkerLotForm.purchase_date }).eq('id', e.id);
+            }
+          }
+          logAction('sinker_lot_update', { id: editingSinkerLot.id, lot_code: sinkerLotForm.lot_code, quantity: qty, unit_price: price });
+        } else {
+          const { data: newLot, error } = await (supabase.from as any)('sinker_lots').insert({
+            company_id: user.company_id, provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id,
+            lot_code: sinkerLotForm.lot_code || null, purchase_date: sinkerLotForm.purchase_date,
+            quantity: qty, unit_price: price,
+          }).select('id').single();
+          if (error) throw error;
+          const { error: entryErr } = await (supabase.from as any)('sinker_transactions').insert({
+            company_id: user.company_id, sinker_id: sinkerLotForm.sinker_id,
+            type: 'entry', quantity: qty, date: sinkerLotForm.purchase_date,
+            lot_id: newLot?.id, created_by_id: user.id, created_by_name: userName || undefined,
+          });
+          if (entryErr) throw entryErr;
+          logAction('sinker_lot_create', { provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id, lot_code: sinkerLotForm.lot_code, quantity: qty, unit_price: price });
+        }
+        toast.success(editingSinkerLot ? 'Lote atualizado!' : 'Lote cadastrado e estoque atualizado!');
+        setShowSinkerLotModal(false); setEditingSinkerLot(null); bumpSinkerProviders(); refreshData();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao salvar lote.'); }
+    };
+    const handleDeleteSinkerLot = async () => {
+      if (!deleteSinkerLotId) return;
+      const linked = sinkerTransactions.filter((t: any) => t.lot_id === deleteSinkerLotId);
+      const linkedExits = linked.filter(t => t.type === 'exit');
+      if (linkedExits.length > 0) {
+        toast.error(`Não é possível remover: existem ${linkedExits.length} saída(s) vinculadas a este lote. Estorne-as em Movimentações antes.`);
+        setDeleteSinkerLotId(null); return;
+      }
+      try {
+        const linkedEntries = linked.filter(t => t.type === 'entry');
+        for (const e of linkedEntries) {
+          const { error: delErr } = await supabase.from('sinker_transactions').delete().eq('id', e.id);
+          if (delErr) throw delErr;
+        }
+        const { error } = await (supabase.from as any)('sinker_lots').delete().eq('id', deleteSinkerLotId);
+        if (error) throw error;
+        logAction('sinker_lot_delete', { id: deleteSinkerLotId });
+        toast.success('Lote removido.');
+        setDeleteSinkerLotId(null); bumpSinkerProviders(); refreshData();
+      } catch (e: any) { toast.error(e?.message || 'Erro ao remover.'); }
+    };
+
+    // Ressincroniza current_sinker_id / current_sinker_lot_id da máquina
+    const resyncMachineCurrentSinker = async (machineId?: string | null) => {
+      if (!machineId) return;
+      const machine = machines.find(m => m.id === machineId);
+      if (!machine) return;
+      let lastExit: any = null;
+      try {
+        const { data } = await (supabase.from as any)('sinker_transactions')
+          .select('sinker_id, lot_id, date, created_at')
+          .eq('machine_id', machineId).eq('type', 'exit')
+          .order('date', { ascending: false }).order('created_at', { ascending: false }).limit(1);
+        lastExit = Array.isArray(data) && data.length ? data[0] : null;
+      } catch (e) { console.warn('resyncMachineCurrentSinker failed:', e); return; }
+      const newSinkerId = lastExit?.sinker_id || null;
+      const newLotId = lastExit?.lot_id || null;
+      if (machine.current_sinker_id === (newSinkerId || undefined) && machine.current_sinker_lot_id === (newLotId || undefined)) return;
+      const updated = machines.map(m => m.id === machineId
+        ? { ...m, current_sinker_id: newSinkerId || undefined, current_sinker_lot_id: newLotId || undefined }
+        : m
+      );
+      try { await saveMachines(updated); } catch (e) { console.warn('resyncMachineCurrentSinker save failed:', e); }
+    };
+
     const handleSaveSinker = async () => {
-      if (!sinkerForm.provider || !sinkerForm.brand || !sinkerForm.reference_code) {
-        toast.error('Preencha todos os campos.');
+      if (!sinkerForm.brand || !sinkerForm.reference_code) {
+        toast.error('Informe Marca e Ref. Código.');
         return;
       }
       try {
+        if (editingSinker) {
+          const updated = sinkers.map(s => s.id === editingSinker.id
+            ? { ...s, brand: sinkerForm.brand, reference_code: sinkerForm.reference_code, updated_at: new Date().toISOString() }
+            : s
+          );
+          await saveSinkers(updated);
+          logAction('sinker_update', { id: editingSinker.id, brand: sinkerForm.brand, code: sinkerForm.reference_code });
+          toast.success('Platina atualizada!');
+          setShowSinkerModal(false);
+          setEditingSinker(null);
+          setSinkerForm({ provider: '', brand: '', reference_code: '' });
+          return;
+        }
         const newSinker = {
           id: crypto.randomUUID(),
           company_id: '',
-          ...sinkerForm,
+          provider: '',
+          brand: sinkerForm.brand,
+          reference_code: sinkerForm.reference_code,
           current_quantity: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -1393,64 +1693,102 @@ export default function MecanicaPage() {
     };
   
     const handleSinkerEntry = async () => {
-      if (!sinkerEntryForm.sinker_id || !sinkerEntryForm.quantity || !sinkerEntryForm.date) {
-        toast.error('Preencha todos os campos.');
+      if (!entrySinkerLotId || !sinkerEntryForm.quantity || !sinkerEntryForm.date) {
+        toast.error('Preencha todos os campos (inclusive lote).');
         return;
       }
+      if (Number(sinkerEntryForm.quantity) <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+      const lot = sinkerLots.find(l => l.id === entrySinkerLotId);
+      if (!lot) { toast.error('Lote inválido.'); return; }
       try {
-         const sinker = sinkers.find(s => s.id === sinkerEntryForm.sinker_id);
+         const sinker = sinkers.find(s => s.id === lot.sinker_id);
          await addSinkerTransaction({
           id: crypto.randomUUID(),
           company_id: '',
-          sinker_id: sinkerEntryForm.sinker_id,
+          sinker_id: lot.sinker_id,
           type: 'entry',
           quantity: Number(sinkerEntryForm.quantity),
           date: sinkerEntryForm.date,
           created_at: new Date().toISOString(),
-          created_by_name: userName || undefined
-        });
-         logAction('sinker_entry', { brand: sinker?.brand, code: sinker?.reference_code, quantity: sinkerEntryForm.quantity });
+          created_by_name: userName || undefined,
+          lot_id: entrySinkerLotId,
+        } as any);
+         logAction('sinker_entry', { brand: sinker?.brand, code: sinker?.reference_code, quantity: sinkerEntryForm.quantity, lot_id: entrySinkerLotId, lot_code: lot.lot_code });
          toast.success('Entrada registrada!');
         setShowSinkerEntryModal(false);
         setSinkerEntryForm({ sinker_id: '', quantity: '', date: format(new Date(), 'yyyy-MM-dd') });
+        setEntrySinkerProviderId(''); setEntrySinkerLotId('');
       } catch (e) { toast.error('Erro ao registrar entrada.'); }
     };
   
     const handleSinkerExit = async () => {
-      if (!sinkerExitForm.sinker_id || !sinkerExitForm.quantity || !sinkerExitForm.machine_id || !sinkerExitForm.date) {
-        toast.error('Preencha todos os campos.');
+      const qty = Number(sinkerExitForm.quantity);
+      if (!exitSinkerLotId || !sinkerExitForm.quantity || !sinkerExitForm.machine_id || !sinkerExitForm.date) {
+        toast.error('Preencha todos os campos (inclusive quantidade e lote).');
         return;
       }
-       const targetSinker = sinkers.find(s => s.id === sinkerExitForm.sinker_id);
-       if (targetSinker && targetSinker.current_quantity < Number(sinkerExitForm.quantity)) {
-        toast.error('Saldo insuficiente em estoque.');
-        return;
-      }
+      if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
+      const startLot = exitSinkerProviderLots.find(l => l.id === exitSinkerLotId) || (sinkerLots.find(l => l.id === exitSinkerLotId) as any);
+      if (!startLot) { toast.error('Lote inválido.'); return; }
+      const sinkerId = startLot.sinker_id;
+      // FIFO multi-lote (mesmo fornecedor + mesma platina)
+      const others = sinkerLots
+        .filter(l => l.id !== startLot.id && l.sinker_id === sinkerId && l.provider_id === (startLot as any).provider_id)
+        .map(l => ({ ...l, balance: sinkerLotBalance(l.id) }))
+        .filter(l => (l.balance || 0) > 0)
+        .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+      const chain: Array<any> = [{ ...startLot, balance: (startLot as any).balance ?? sinkerLotBalance(startLot.id) }, ...others];
+      const totalAvailable = chain.reduce((s, l) => s + (l.balance || 0), 0);
+      if (totalAvailable < qty) { toast.error(`Saldo total insuficiente para esta platina (disponível: ${totalAvailable}).`); return; }
+      const targetSinker = sinkers.find(s => s.id === sinkerId);
        const machine = machines.find(m => m.id === sinkerExitForm.machine_id);
        try {
-         await addSinkerTransaction({
-          id: crypto.randomUUID(),
-          company_id: '',
-          sinker_id: sinkerExitForm.sinker_id,
-          machine_id: sinkerExitForm.machine_id,
-          type: 'exit',
-          exit_mode: sinkerExitForm.mode,
-          quantity: Number(sinkerExitForm.quantity),
-          date: sinkerExitForm.date,
-          created_at: new Date().toISOString(),
-          created_by_name: userName || undefined
-        });
-         logAction('sinker_exit', { 
-           brand: targetSinker?.brand, 
-           code: targetSinker?.reference_code, 
-           quantity: sinkerExitForm.quantity, 
-           machine: machine?.name,
-           mode: sinkerExitForm.mode 
+         let remaining = qty;
+         let lastLotUsed: any = chain[0];
+         const usedSummary: Array<{ lot_id: string; lot_code?: string; qty: number }> = [];
+         for (const l of chain) {
+           if (remaining <= 0) break;
+           const take = Math.min(remaining, l.balance || 0);
+           if (take <= 0) continue;
+           await addSinkerTransaction({
+             id: crypto.randomUUID(),
+             company_id: '',
+             sinker_id: sinkerId,
+             machine_id: sinkerExitForm.machine_id,
+             type: 'exit',
+             exit_mode: sinkerExitForm.mode,
+             quantity: take,
+             date: sinkerExitForm.date,
+             created_at: new Date().toISOString(),
+             created_by_name: userName || undefined,
+             lot_id: l.id,
+           } as any);
+           usedSummary.push({ lot_id: l.id, lot_code: l.lot_code, qty: take });
+           remaining -= take;
+           lastLotUsed = l;
+         }
+         if (machine) {
+           const needsUpdate = machine.current_sinker_id !== sinkerId || machine.current_sinker_lot_id !== lastLotUsed.id;
+           if (needsUpdate) {
+             const updated = machines.map(m => m.id === machine.id
+               ? { ...m, current_sinker_id: sinkerId, current_sinker_lot_id: lastLotUsed.id }
+               : m
+             );
+             await saveMachines(updated);
+           }
+         }
+         logAction('sinker_exit', {
+           brand: targetSinker?.brand, code: targetSinker?.reference_code,
+           quantity: qty, machine: machine?.name, mode: sinkerExitForm.mode,
+           lots: usedSummary,
          });
-         toast.success('Baixa registrada!');
+         toast.success(usedSummary.length > 1
+           ? `Baixa registrada em ${usedSummary.length} lotes!`
+           : 'Baixa registrada!');
         setShowSinkerExitModal(false);
         setSinkerExitForm({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') });
-      } catch (e) { toast.error('Erro ao registrar baixa.'); }
+        setExitSinkerProviderId(''); setExitSinkerLotId('');
+      } catch (e: any) { toast.error(e?.message || 'Erro ao registrar baixa.'); }
     };
 
     const handleSaveCylinder = async () => {
@@ -1621,6 +1959,14 @@ export default function MecanicaPage() {
                   <Package className="h-4 w-4 mr-1.5" />
                   Estoque
                 </TabsTrigger>
+                <TabsTrigger value="cadastro">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Platinas
+                </TabsTrigger>
+                <TabsTrigger value="lotes">
+                  <Wrench className="h-4 w-4 mr-1.5" />
+                  Lotes
+                </TabsTrigger>
                 <TabsTrigger value="movimentacoes">
                   <History className="h-4 w-4 mr-1.5" />
                   Movimentações
@@ -1668,12 +2014,6 @@ export default function MecanicaPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                      <Button onClick={() => setShowSinkerModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Cadastrar
-                      </Button>
-                      <Button onClick={() => setShowSinkerEntryModal(true)} variant="outline" className="flex-1 min-w-[30%] sm:flex-none">
-                        <Plus className="h-4 w-4 mr-2" /> Entrada
-                      </Button>
                       <Button onClick={() => setShowSinkerExitModal(true)} variant="default" className="flex-1 min-w-[30%] sm:flex-none">
                         <Wrench className="h-4 w-4 mr-2" /> Baixa
                       </Button>
@@ -1686,49 +2026,199 @@ export default function MecanicaPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
-                              <th className="text-left p-4 font-medium">Fornecedor</th>
                               <th className="text-left p-4 font-medium">Marca</th>
                               <th className="text-left p-4 font-medium">Ref. Código</th>
-                              <th className="text-right p-4 font-medium">Estoque</th>
+                              <th className="text-left p-4 font-medium">Lote</th>
+                              <th className="text-left p-4 font-medium">Fornecedor</th>
+                              <th className="text-right p-4 font-medium">Compra</th>
+                              <th className="text-right p-4 font-medium">Preço Unit.</th>
+                              <th className="text-right p-4 font-medium">Saldo</th>
                               <th className="text-center p-4 font-medium w-20">Em Uso</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {[...sinkers]
-                              .sort((a, b) => a.brand.localeCompare(b.brand))
-                              .filter(s => 
-                                s.brand.toLowerCase().includes(sinkerSearch.toLowerCase()) || 
-                                s.provider.toLowerCase().includes(sinkerSearch.toLowerCase()) || 
-                                s.reference_code.toLowerCase().includes(sinkerSearch.toLowerCase())
-                              )
-                              .map(s => {
-                                const usedBy = new Set(machineSinkerRefs.filter(r => r.sinker_id === s.id).map(r => r.machine_id)).size;
+                            {(() => {
+                              const term = sinkerSearch.toLowerCase();
+                              const providerName = (id: string) => sinkerProviders.find(p => p.id === id)?.name || '—';
+                              const rows: Array<{ key: string; sinkerId: string; brand: string; ref: string; lotCode: string; providerLabel: string; purchaseQty: number; unitPrice: number; balance: number; purchaseDate: string; }> = [];
+                              const lotsBySinker = new Map<string, typeof sinkerLots>();
+                              sinkerLots.forEach(l => { const arr = lotsBySinker.get(l.sinker_id) || []; arr.push(l); lotsBySinker.set(l.sinker_id, arr); });
+                              sinkers.forEach(s => {
+                                const lots = (lotsBySinker.get(s.id) || []).slice().sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+                                const txsForSinker = sinkerTransactions.filter(t => t.sinker_id === s.id);
+                                const entriesByLot = new Map<string, number>();
+                                const exitsByLot = new Map<string, number>();
+                                let untaggedEntries = 0; let untaggedExits = 0;
+                                txsForSinker.forEach(t => {
+                                  const lid = (t as any).lot_id as string | null;
+                                  const q = t.quantity || 0;
+                                  if (t.type === 'entry') { if (lid) entriesByLot.set(lid, (entriesByLot.get(lid) || 0) + q); else untaggedEntries += q; }
+                                  else if (t.type === 'exit') { if (lid) exitsByLot.set(lid, (exitsByLot.get(lid) || 0) + q); else untaggedExits += q; }
+                                });
+                                lots.forEach(l => {
+                                  const balance = (entriesByLot.get(l.id) || 0) - (exitsByLot.get(l.id) || 0);
+                                  rows.push({ key: l.id, sinkerId: s.id, brand: s.brand, ref: s.reference_code, lotCode: l.lot_code || '—', providerLabel: providerName(l.provider_id), purchaseQty: l.quantity, unitPrice: l.unit_price, balance, purchaseDate: l.purchase_date });
+                                });
+                                const legacyBalance = untaggedEntries - untaggedExits;
+                                if (legacyBalance > 0 || (lots.length === 0 && s.current_quantity > 0)) {
+                                  rows.push({ key: `no-lot-${s.id}`, sinkerId: s.id, brand: s.brand, ref: s.reference_code, lotCode: '(sem lote)', providerLabel: '—', purchaseQty: untaggedEntries, unitPrice: 0, balance: lots.length === 0 && untaggedEntries === 0 ? s.current_quantity : legacyBalance, purchaseDate: '' });
+                                }
+                              });
+                              const filtered = rows.filter(r => r.brand.toLowerCase().includes(term) || r.ref.toLowerCase().includes(term) || r.lotCode.toLowerCase().includes(term) || r.providerLabel.toLowerCase().includes(term))
+                                .sort((a, b) => a.brand.localeCompare(b.brand) || (a.purchaseDate < b.purchaseDate ? 1 : -1));
+                              if (filtered.length === 0) return (<tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum lote em estoque</td></tr>);
+                              return filtered.map(r => {
+                                const usedBy = new Set(machineSinkerRefs.filter(x => x.sinker_id === r.sinkerId).map(x => x.machine_id)).size;
                                 return (
-                              <tr key={s.id} className="border-b hover:bg-muted/30 transition-colors">
-                                <td className="p-4">{s.provider}</td>
-                                <td className="p-4">{s.brand}</td>
-                                <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s.reference_code}</code></td>
-                                <td className="p-4 text-right font-bold">{s.current_quantity}</td>
-                                <td className="p-4 text-center">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSinkerUsageView({ id: s.id, brand: s.brand, reference_code: s.reference_code })} title={`${usedBy} máquina(s) usando`}>
-                                    <Eye className="h-4 w-4" />
-                                    {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
-                                  </Button>
-                                </td>
-                              </tr>
+                                  <tr key={r.key} className="border-b hover:bg-muted/30 transition-colors">
+                                    <td className="p-4">{r.brand}</td>
+                                    <td className="p-4"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{r.ref}</code></td>
+                                    <td className="p-4"><span className="font-mono text-xs">{r.lotCode}</span></td>
+                                    <td className="p-4">{r.providerLabel}</td>
+                                    <td className="p-4 text-right text-muted-foreground">{r.purchaseQty}</td>
+                                    <td className="p-4 text-right">{r.unitPrice > 0 ? r.unitPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }) : '—'}</td>
+                                    <td className={`p-4 text-right font-bold ${r.balance <= 0 ? 'text-muted-foreground line-through' : ''}`}>{r.balance}</td>
+                                    <td className="p-4 text-center">
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSinkerUsageView({ id: r.sinkerId, brand: r.brand, reference_code: r.ref })} title={`${usedBy} máquina(s) usando`}>
+                                        <Eye className="h-4 w-4" />
+                                        {usedBy > 0 && <span className="ml-1 text-xs font-semibold">{usedBy}</span>}
+                                      </Button>
+                                    </td>
+                                  </tr>
                                 );
-                              })}
-                            {sinkers.length === 0 && (
-                              <tr>
-                                <td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada</td>
-                              </tr>
-                            )}
+                              });
+                            })()}
                           </tbody>
                         </table>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+
+              {/* Platinas (Cadastro simples) Sub-Tab */}
+              <TabsContent value="cadastro">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Package className="h-4 w-4" /> Platinas Cadastradas
+                    </CardTitle>
+                    <Button size="sm" onClick={() => { setEditingSinker(null); setSinkerForm({ provider: '', brand: '', reference_code: '' }); setShowSinkerModal(true); }}>
+                      <Plus className="h-4 w-4 mr-1" /> Nova Platina
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="text-left p-3 font-medium">Marca</th>
+                            <th className="text-left p-3 font-medium">Ref. Código</th>
+                            <th className="text-right p-3 font-medium w-32">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...sinkers].sort((a, b) => a.brand.localeCompare(b.brand)).map(s => (
+                            <tr key={s.id} className="border-b hover:bg-muted/30">
+                              <td className="p-3">{s.brand}</td>
+                              <td className="p-3"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s.reference_code}</code></td>
+                              <td className="p-3 text-right">
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingSinker(s); setSinkerForm({ provider: s.provider || '', brand: s.brand, reference_code: s.reference_code }); setShowSinkerModal(true); }}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                          {sinkers.length === 0 && (
+                            <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">Nenhuma platina cadastrada. Use "Nova Platina".</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Lotes Sub-Tab */}
+              <TabsContent value="lotes">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Wrench className="h-4 w-4" /> Fornecedores de Platinas
+                    </CardTitle>
+                    <Button size="sm" onClick={openNewSinkerProvider}>
+                      <Plus className="h-4 w-4 mr-1" /> Novo Fornecedor
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {sinkerProviders.length === 0 && (
+                      <div className="p-8 text-center text-muted-foreground text-sm">Nenhum fornecedor cadastrado.</div>
+                    )}
+                    {sinkerProviders.map(p => {
+                      const provLots = sinkerLots.filter(l => l.provider_id === p.id).sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+                      return (
+                        <Card key={p.id} className="border">
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                              <CardTitle className="text-base">{p.name}</CardTitle>
+                              <span className="text-xs text-muted-foreground">{provLots.length} lote{provLots.length !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openNewSinkerLot(p.id)} disabled={sinkers.length === 0}>
+                                <Plus className="h-3 w-3 mr-1" /> Novo Lote
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditSinkerProvider(p)}><Pencil className="h-4 w-4" /></Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteSinkerProviderId(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-0">
+                            {provLots.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b bg-muted/40 text-xs">
+                                      <th className="text-left p-2 font-medium">Data Compra</th>
+                                      <th className="text-left p-2 font-medium">Lote</th>
+                                      <th className="text-left p-2 font-medium">Marca</th>
+                                      <th className="text-left p-2 font-medium">Ref. Código</th>
+                                      <th className="text-right p-2 font-medium">Qtd Compra</th>
+                                      <th className="text-right p-2 font-medium">Saldo</th>
+                                      <th className="text-right p-2 font-medium">Preço Unit.</th>
+                                      <th className="text-right p-2 font-medium w-24">Ações</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {provLots.map(l => {
+                                      const s = sinkers.find(ss => ss.id === l.sinker_id);
+                                      const bal = sinkerLotBalance(l.id);
+                                      return (
+                                        <tr key={l.id} className="border-b last:border-b-0">
+                                          <td className="p-2">{format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')}</td>
+                                          <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{l.lot_code || '—'}</code></td>
+                                          <td className="p-2">{s?.brand || '—'}</td>
+                                          <td className="p-2"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{s?.reference_code || '—'}</code></td>
+                                          <td className="p-2 text-right">{l.quantity}</td>
+                                          <td className={`p-2 text-right font-medium ${bal <= 0 ? 'text-muted-foreground' : bal < l.quantity ? 'text-warning' : ''}`}>{bal}</td>
+                                          <td className="p-2 text-right font-medium">R$ {Number(l.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                                          <td className="p-2 text-right">
+                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditSinkerLot(l)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteSinkerLotId(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="p-4 text-center text-xs text-muted-foreground">Nenhum lote cadastrado. Clique em <b>+ Novo Lote</b>.</div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               {/* Movimentações Sub-Tab */}
@@ -1795,6 +2285,9 @@ export default function MecanicaPage() {
                                               setSinkerEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind });
                                             }}>
                                               <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning" title="Estornar" onClick={() => setReverseSinkerTxnId(t.id)}>
+                                              <RotateCcw className="h-4 w-4" />
                                             </Button>
                                             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteSinkerTxnId(t.id)}>
                                               <Trash2 className="h-4 w-4" />
@@ -3758,14 +4251,10 @@ export default function MecanicaPage() {
     />
      {/* --- Platinas Modals --- */}
      {/* Cadastrar Platina */}
-     <Dialog open={showSinkerModal} onOpenChange={setShowSinkerModal}>
+     <Dialog open={showSinkerModal} onOpenChange={(o) => { setShowSinkerModal(o); if (!o) { setEditingSinker(null); setSinkerForm({ provider: '', brand: '', reference_code: '' }); } }}>
        <DialogContent className="max-w-md">
-         <DialogHeader><DialogTitle>Cadastrar Nova Platina</DialogTitle></DialogHeader>
+         <DialogHeader><DialogTitle>{editingSinker ? 'Editar Platina' : 'Nova Platina'}</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
-           <div className="space-y-1">
-             <Label>Fornecedor</Label>
-             <Input value={sinkerForm.provider} onChange={e => setSinkerForm({...sinkerForm, provider: e.target.value})} placeholder="Ex: Fornecedor X" />
-           </div>
            <div className="space-y-1">
              <Label>Marca</Label>
              <Input value={sinkerForm.brand} onChange={e => setSinkerForm({...sinkerForm, brand: e.target.value})} placeholder="Ex: Groz-Beckert" />
@@ -3776,50 +4265,39 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => setShowSinkerModal(false)}>Cancelar</Button>
-           <Button onClick={handleSaveSinker}>Cadastrar</Button>
+           <Button variant="outline" onClick={() => { setShowSinkerModal(false); setEditingSinker(null); }}>Cancelar</Button>
+           <Button onClick={handleSaveSinker}>{editingSinker ? 'Salvar' : 'Cadastrar'}</Button>
          </DialogFooter>
        </DialogContent>
      </Dialog>
 
      {/* Entrada de Platina */}
-     <Dialog open={showSinkerEntryModal} onOpenChange={setShowSinkerEntryModal}>
+     <Dialog open={showSinkerEntryModal} onOpenChange={(o) => { setShowSinkerEntryModal(o); if (!o) { setEntrySinkerProviderId(''); setEntrySinkerLotId(''); } }}>
        <DialogContent className="max-w-md">
-         <DialogHeader><DialogTitle>Registrar Entrada de Platina</DialogTitle></DialogHeader>
+         <DialogHeader><DialogTitle>Registrar Entrada de Platinas</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Selecionar Platina</Label>
-              <Select value={sinkerEntryForm.sinker_id} onValueChange={v => setSinkerEntryForm({...sinkerEntryForm, sinker_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 py-2 border-b sticky top-0 bg-popover z-10">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input 
-                        placeholder="Filtrar..." 
-                        className="pl-8 h-8 text-xs"
-                        onKeyDown={(e) => e.stopPropagation()}
-                        // Reusing needleEntrySearch for simplicity or create sinkerEntrySearch
-                      />
-                    </div>
-                  </div>
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {sinkers
-                      .filter(s => 
-                        s.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
-                        s.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
-                        s.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
-                      )
-                      .map(s => <SelectItem key={s.id} value={s.id}>{s.brand} ({s.reference_code})</SelectItem>)
-                    }
-                    {sinkers.filter(s => 
-                      s.brand.toLowerCase().includes(needleEntrySearch.toLowerCase()) || 
-                      s.reference_code.toLowerCase().includes(needleEntrySearch.toLowerCase()) ||
-                      s.provider.toLowerCase().includes(needleEntrySearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma platina encontrada</div>
-                    )}
-                  </div>
+            <div className="space-y-1">
+              <Label>Fornecedor *</Label>
+              <Select value={entrySinkerProviderId} onValueChange={v => { setEntrySinkerProviderId(v); setEntrySinkerLotId(''); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  {sinkerProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Lote *</Label>
+              <Select value={entrySinkerLotId} onValueChange={setEntrySinkerLotId} disabled={!entrySinkerProviderId}>
+                <SelectTrigger><SelectValue placeholder={entrySinkerProviderId ? 'Selecione o lote' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+                <SelectContent className="max-h-[280px]">
+                  {entrySinkerProviderLots.map(l => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')} · {l.lot_code || 's/ código'} · {l.sinker?.brand} ({l.sinker?.reference_code}) — Pendente {l.balance}
+                    </SelectItem>
+                  ))}
+                  {entrySinkerProviderId && entrySinkerProviderLots.length === 0 && (
+                    <div className="p-3 text-xs text-muted-foreground">Nenhum lote com compra pendente.</div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -3833,14 +4311,14 @@ export default function MecanicaPage() {
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => setShowSinkerEntryModal(false)}>Cancelar</Button>
+           <Button variant="outline" onClick={() => { setShowSinkerEntryModal(false); setEntrySinkerProviderId(''); setEntrySinkerLotId(''); }}>Cancelar</Button>
            <Button onClick={handleSinkerEntry}>Registrar</Button>
          </DialogFooter>
        </DialogContent>
      </Dialog>
 
      {/* Baixa de Platina */}
-     <Dialog open={showSinkerExitModal} onOpenChange={setShowSinkerExitModal}>
+     <Dialog open={showSinkerExitModal} onOpenChange={(o) => { setShowSinkerExitModal(o); if (!o) { setExitSinkerProviderId(''); setExitSinkerLotId(''); setSinkerExitForm({ sinker_id: '', quantity: '', machine_id: '', mode: 'reposicao', date: format(new Date(), 'yyyy-MM-dd') }); } }}>
        <DialogContent className="max-w-md">
          <DialogHeader><DialogTitle>Registrar Saída (Baixa) de Platinas</DialogTitle></DialogHeader>
          <div className="space-y-4 pt-2">
@@ -3856,57 +4334,264 @@ export default function MecanicaPage() {
            </div>
            <div className="space-y-1">
              <Label>Máquina</Label>
-             <Select value={sinkerExitForm.machine_id} onValueChange={v => setSinkerExitForm({...sinkerExitForm, machine_id: v})}>
+             <Select value={sinkerExitForm.machine_id} onValueChange={v => {
+               setSinkerExitForm({...sinkerExitForm, machine_id: v});
+               setExitSinkerProviderId(''); setExitSinkerLotId('');
+               const m = machines.find(x => x.id === v);
+               const balanceOf = (lid: string) => {
+                 const ent = sinkerTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                 const exi = sinkerTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+                 return ent - exi;
+               };
+               if (m?.current_sinker_lot_id) {
+                 const lot = sinkerLots.find(l => l.id === m.current_sinker_lot_id);
+                 const providerOk = lot && sinkerProviders.some(p => p.id === lot.provider_id);
+                 const hasBalance = lot && balanceOf(lot.id) > 0;
+                 if (lot && providerOk && hasBalance) {
+                   setExitSinkerProviderId(lot.provider_id);
+                   setExitSinkerLotId(lot.id);
+                   return;
+                 }
+               }
+               if (m?.current_sinker_id) {
+                 const candidates = sinkerLots
+                   .filter(l => l.sinker_id === m.current_sinker_id && sinkerProviders.some(p => p.id === l.provider_id))
+                   .map(l => ({ ...l, balance: balanceOf(l.id) }))
+                   .filter(l => l.balance > 0)
+                   .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+                 if (candidates[0]) { setExitSinkerProviderId(candidates[0].provider_id); setExitSinkerLotId(candidates[0].id); }
+               }
+             }}>
                <SelectTrigger><SelectValue placeholder="Selecione a máquina" /></SelectTrigger>
                <SelectContent>
                  {activeMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                </SelectContent>
              </Select>
            </div>
-            <div className="space-y-2">
-              <Label>Selecionar Platina</Label>
-              <Select value={sinkerExitForm.sinker_id} onValueChange={v => setSinkerExitForm({...sinkerExitForm, sinker_id: v})}>
-                <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
-                <SelectContent>
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {sinkers
-                      .filter(s => 
-                        s.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
-                        s.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
-                        s.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
-                      )
-                      .map(s => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.brand} ({s.reference_code}) - Saldo: {s.current_quantity}
-                        </SelectItem>
-                      ))
-                    }
-                    {sinkers.filter(s => 
-                      s.brand.toLowerCase().includes(needleExitSearch.toLowerCase()) || 
-                      s.reference_code.toLowerCase().includes(needleExitSearch.toLowerCase()) ||
-                      s.provider.toLowerCase().includes(needleExitSearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="p-4 text-center text-xs text-muted-foreground">Nenhuma platina encontrada</div>
-                    )}
-                  </div>
-                </SelectContent>
-              </Select>
-            </div>
            <div className="space-y-1">
-             <Label>Quantidade</Label>
+             <Label>Quantidade *</Label>
              <Input type="number" value={sinkerExitForm.quantity} onChange={e => setSinkerExitForm({...sinkerExitForm, quantity: e.target.value})} placeholder="0" />
            </div>
+           <div className="space-y-1">
+             <Label>Fornecedor *</Label>
+             <Select value={exitSinkerProviderId} onValueChange={v => { setExitSinkerProviderId(v); setExitSinkerLotId(''); }}>
+               <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+               <SelectContent className="max-h-[240px]">
+                 {sinkerProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Lote *</Label>
+             <Select value={exitSinkerLotId} onValueChange={setExitSinkerLotId} disabled={!exitSinkerProviderId}>
+               <SelectTrigger><SelectValue placeholder={exitSinkerProviderId ? 'Selecione o lote' : 'Selecione o fornecedor primeiro'} /></SelectTrigger>
+               <SelectContent className="max-h-[280px]">
+                 {exitSinkerProviderLots.map(l => (
+                   <SelectItem key={l.id} value={l.id}>
+                     {format(new Date(l.purchase_date + 'T00:00:00'), 'dd/MM/yyyy')} · {l.lot_code || 's/ código'} · {l.sinker?.brand} ({l.sinker?.reference_code}) — Saldo {l.balance}
+                   </SelectItem>
+                 ))}
+                 {exitSinkerProviderId && exitSinkerProviderLots.length === 0 && (
+                   <div className="p-3 text-xs text-muted-foreground">Nenhum lote com saldo físico. Cadastre um lote primeiro.</div>
+                 )}
+               </SelectContent>
+             </Select>
+           </div>
+           {exitSinkerLotId && (() => {
+             const startLot: any = exitSinkerProviderLots.find(x => x.id === exitSinkerLotId);
+             if (!startLot) return null;
+             const qty = Number(sinkerExitForm.quantity || 0);
+             const balanceOf = (lid: string) => {
+               const ent = sinkerTransactions.filter((t: any) => t.lot_id === lid && t.type === 'entry').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+               const exi = sinkerTransactions.filter((t: any) => t.lot_id === lid && t.type === 'exit').reduce((s: number, t: any) => s + (t.quantity || 0), 0);
+               return ent - exi;
+             };
+             const others = sinkerLots
+               .filter(l => l.id !== startLot.id && l.sinker_id === startLot.sinker_id && l.provider_id === startLot.provider_id)
+               .map(l => ({ ...l, balance: balanceOf(l.id) }))
+               .filter(l => l.balance > 0)
+               .sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+             const chain: any[] = [startLot, ...others];
+             const totalAvail = chain.reduce((s, l) => s + (l.balance || 0), 0);
+             if (qty <= 0) {
+               return (<div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">Platina: <b>{startLot.sinker?.brand} ({startLot.sinker?.reference_code})</b> · Saldo do lote: <b>{startLot.balance}</b> · Saldo total: <b>{totalAvail}</b></div>);
+             }
+             let remaining = qty;
+             const used: Array<{ lot_code?: string; take: number; date: string }> = [];
+             for (const l of chain) {
+               if (remaining <= 0) break;
+               const take = Math.min(remaining, l.balance || 0);
+               if (take <= 0) continue;
+               used.push({ lot_code: l.lot_code, take, date: l.purchase_date });
+               remaining -= take;
+             }
+             const insufficient = remaining > 0;
+             return (
+               <div className={`text-xs rounded p-2 space-y-1 ${insufficient ? 'bg-destructive/10 text-destructive' : 'bg-muted/40 text-muted-foreground'}`}>
+                 <div>Platina: <b>{startLot.sinker?.brand} ({startLot.sinker?.reference_code})</b> · Saldo total: <b>{totalAvail}</b></div>
+                 {used.length > 1 && !insufficient && (
+                   <div className="pt-1 border-t border-muted-foreground/20">
+                     <div className="font-semibold mb-0.5">Consumirá {used.length} lotes:</div>
+                     {used.map((u, i) => (
+                       <div key={i}>• Lote {u.lot_code || 's/ código'} ({format(new Date(u.date + 'T00:00:00'), 'dd/MM/yyyy')}): <b>{u.take}</b></div>
+                     ))}
+                   </div>
+                 )}
+                 {insufficient && (<div className="font-semibold">Saldo total insuficiente. Faltam {remaining} platinas.</div>)}
+               </div>
+             );
+           })()}
            <div className="space-y-1">
              <Label>Data</Label>
              <Input type="date" value={sinkerExitForm.date} onChange={e => setSinkerExitForm({...sinkerExitForm, date: e.target.value})} />
            </div>
          </div>
          <DialogFooter>
-           <Button variant="outline" onClick={() => setShowSinkerExitModal(false)}>Cancelar</Button>
+           <Button variant="outline" onClick={() => { setShowSinkerExitModal(false); setExitSinkerProviderId(''); setExitSinkerLotId(''); }}>Cancelar</Button>
            <Button onClick={handleSinkerExit}>Registrar Baixa</Button>
          </DialogFooter>
        </DialogContent>
      </Dialog>
+
+     {/* Fornecedor Platinas Modal */}
+     <Dialog open={showSinkerProviderModal} onOpenChange={setShowSinkerProviderModal}>
+       <DialogContent className="max-w-sm">
+         <DialogHeader><DialogTitle>{editingSinkerProvider ? 'Editar Fornecedor' : 'Novo Fornecedor'}</DialogTitle></DialogHeader>
+         <div className="space-y-1 pt-2">
+           <Label>Nome *</Label>
+           <Input value={sinkerProviderName} onChange={e => setSinkerProviderName(e.target.value)} placeholder="Ex: GROZ-BECKERT" />
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowSinkerProviderModal(false)}>Cancelar</Button>
+           <Button onClick={handleSaveSinkerProvider}>{editingSinkerProvider ? 'Salvar' : 'Cadastrar'}</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+     <Dialog open={showSinkerPriceModal} onOpenChange={setShowSinkerPriceModal}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>{editingSinkerPrice ? 'Editar Preço' : 'Adicionar Platina ao Fornecedor'}</DialogTitle></DialogHeader>
+         <div className="space-y-3 pt-2">
+           <div className="space-y-1">
+             <Label>Platina *</Label>
+             <Select value={sinkerPriceSinkerId} onValueChange={setSinkerPriceSinkerId} disabled={!!editingSinkerPrice}>
+               <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
+               <SelectContent className="max-h-[280px]">
+                 {availableSinkersForProvider(sinkerPriceProviderId).map(s => (
+                   <SelectItem key={s.id} value={s.id}>{s.brand} ({s.reference_code})</SelectItem>
+                 ))}
+                 {availableSinkersForProvider(sinkerPriceProviderId).length === 0 && (
+                   <div className="p-3 text-xs text-muted-foreground">Todas as platinas já foram vinculadas.</div>
+                 )}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Preço por unidade (R$) *</Label>
+             <Input type="number" step="0.0001" value={sinkerPriceValue} onChange={e => setSinkerPriceValue(e.target.value)} placeholder="0.00" />
+           </div>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => setShowSinkerPriceModal(false)}>Cancelar</Button>
+           <Button onClick={handleSaveSinkerPrice}>{editingSinkerPrice ? 'Salvar' : 'Vincular'}</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+     <DeleteConfirmDialog
+       open={!!deleteSinkerProviderId}
+       onOpenChange={(o) => !o && setDeleteSinkerProviderId(null)}
+       onConfirm={handleDeleteSinkerProvider}
+       title="Remover Fornecedor?"
+       description="Isso também remove todos os lotes e vínculos de preço deste fornecedor."
+     />
+     <DeleteConfirmDialog
+       open={!!deleteSinkerPriceId}
+       onOpenChange={(o) => !o && setDeleteSinkerPriceId(null)}
+       onConfirm={handleDeleteSinkerPrice}
+       title="Remover Vínculo?"
+       description="A platina continua cadastrada, apenas o preço deste fornecedor será removido."
+     />
+
+     {/* Novo/Editar Lote de Platinas */}
+     <Dialog open={showSinkerLotModal} onOpenChange={(o) => { setShowSinkerLotModal(o); if (!o) setEditingSinkerLot(null); }}>
+       <DialogContent className="max-w-md">
+         <DialogHeader><DialogTitle>{editingSinkerLot ? 'Editar Lote' : 'Novo Lote de Compra'}</DialogTitle></DialogHeader>
+         <div className="space-y-3 pt-2">
+           <div className="space-y-1">
+             <Label>Fornecedor *</Label>
+             <Select value={sinkerLotForm.provider_id} onValueChange={v => setSinkerLotForm({ ...sinkerLotForm, provider_id: v, lot_code: editingSinkerLot ? sinkerLotForm.lot_code : nextSinkerLotCodeForProvider(v) })}>
+               <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+               <SelectContent className="max-h-[240px]">
+                 {sinkerProviders.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1">
+             <Label>Platina *</Label>
+             <Select value={sinkerLotForm.sinker_id} onValueChange={v => setSinkerLotForm({ ...sinkerLotForm, sinker_id: v })}>
+               <SelectTrigger><SelectValue placeholder="Selecione a platina" /></SelectTrigger>
+               <SelectContent className="max-h-[280px]">
+                 {sinkers.map(s => <SelectItem key={s.id} value={s.id}>{s.brand} ({s.reference_code})</SelectItem>)}
+                 {sinkers.length === 0 && <div className="p-3 text-xs text-muted-foreground">Cadastre platinas na aba Platinas.</div>}
+               </SelectContent>
+             </Select>
+           </div>
+           <div className="grid grid-cols-2 gap-3">
+             <div className="space-y-1">
+               <Label>Código do Lote (auto)</Label>
+               <Input value={sinkerLotForm.lot_code} readOnly disabled placeholder="001" className="font-mono" />
+             </div>
+             <div className="space-y-1">
+               <Label>Data da Compra *</Label>
+               <Input type="date" value={sinkerLotForm.purchase_date} onChange={e => setSinkerLotForm({ ...sinkerLotForm, purchase_date: e.target.value })} />
+             </div>
+           </div>
+           <div className="grid grid-cols-2 gap-3">
+             <div className="space-y-1">
+               <Label>Quantidade Comprada *</Label>
+               <Input type="number" min="1" value={sinkerLotForm.quantity} onChange={e => setSinkerLotForm({ ...sinkerLotForm, quantity: e.target.value })} placeholder="0" />
+             </div>
+             <div className="space-y-1">
+               <Label>Preço Unit. (R$) *</Label>
+               <Input type="number" step="0.0001" value={sinkerLotForm.unit_price} onChange={e => setSinkerLotForm({ ...sinkerLotForm, unit_price: e.target.value })} placeholder="0.00" />
+             </div>
+           </div>
+           <p className="text-xs text-muted-foreground">O preço vale para este lote. Compras futuras são cadastradas como novos lotes.</p>
+         </div>
+         <DialogFooter>
+           <Button variant="outline" onClick={() => { setShowSinkerLotModal(false); setEditingSinkerLot(null); }}>Cancelar</Button>
+           <Button onClick={handleSaveSinkerLot}>{editingSinkerLot ? 'Salvar' : 'Cadastrar Lote'}</Button>
+         </DialogFooter>
+       </DialogContent>
+     </Dialog>
+     <DeleteConfirmDialog
+       open={!!deleteSinkerLotId}
+       onOpenChange={(o) => !o && setDeleteSinkerLotId(null)}
+       onConfirm={handleDeleteSinkerLot}
+       title="Remover Lote?"
+       description="A entrada automática vinculada será removida e o saldo do estoque revertido."
+     />
+     <DeleteConfirmDialog
+       open={!!reverseSinkerTxnId}
+       onOpenChange={(o) => !o && setReverseSinkerTxnId(null)}
+       title="Estornar movimentação"
+       description="As platinas retornarão ao estoque (se era saída) ou serão descontadas (se era entrada). Depois você pode registrar a movimentação correta."
+       confirmLabel="Estornar"
+       onConfirm={async () => {
+         if (!reverseSinkerTxnId) return;
+         try {
+           const txn: any = sinkerTransactions.find((t: any) => t.id === reverseSinkerTxnId);
+           const affectedMachineId = txn?.machine_id;
+           await deleteSinkerTransaction(reverseSinkerTxnId);
+           await logAction('sinker_transaction_reverse', { id: reverseSinkerTxnId });
+           if (affectedMachineId) await resyncMachineCurrentSinker(affectedMachineId);
+           toast.success('Movimentação estornada.');
+         } catch (e: any) {
+           toast.error('Erro ao estornar: ' + (e?.message || ''));
+         } finally {
+           setReverseSinkerTxnId(null);
+         }
+       }}
+     />
 
      {/* Edit Sinker Transaction Modal */}
      <Dialog open={!!sinkerEditTxn} onOpenChange={(o) => !o && setSinkerEditTxn(null)}>
@@ -3958,6 +4643,7 @@ export default function MecanicaPage() {
              const isEntry = sinkerEditForm.kind === 'entry';
              if (!isEntry && !sinkerEditForm.machine_id) { toast.error('Selecione a máquina'); return; }
              try {
+               const oldMachineId = sinkerEditTxn?.machine_id as string | undefined;
                await updateSinkerTransaction(sinkerEditTxn.id, {
                  quantity: qty,
                  date: sinkerEditForm.date,
@@ -3966,6 +4652,10 @@ export default function MecanicaPage() {
                  machine_id: isEntry ? undefined : sinkerEditForm.machine_id,
                });
                await logAction('sinker_transaction_edit', { id: sinkerEditTxn.id, quantity: qty, date: sinkerEditForm.date, kind: sinkerEditForm.kind });
+               if (oldMachineId) await resyncMachineCurrentSinker(oldMachineId);
+               if (!isEntry && sinkerEditForm.machine_id && sinkerEditForm.machine_id !== oldMachineId) {
+                 await resyncMachineCurrentSinker(sinkerEditForm.machine_id);
+               }
                toast.success('Movimentação atualizada');
                setSinkerEditTxn(null);
              } catch (e: any) {
@@ -3984,8 +4674,11 @@ export default function MecanicaPage() {
         onConfirm={async () => {
           if (!deleteSinkerTxnId) return;
           try {
+            const txn: any = sinkerTransactions.find((t: any) => t.id === deleteSinkerTxnId);
+            const affectedMachineId = txn?.machine_id;
             await deleteSinkerTransaction(deleteSinkerTxnId);
             await logAction('sinker_transaction_delete', { id: deleteSinkerTxnId });
+            if (affectedMachineId) await resyncMachineCurrentSinker(affectedMachineId);
             toast.success('Movimentação excluída');
           } catch (e: any) {
             toast.error('Erro ao excluir: ' + (e?.message || ''));
