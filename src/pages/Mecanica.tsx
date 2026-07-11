@@ -1058,20 +1058,24 @@ export default function MecanicaPage() {
   };
 
   // Recomputa `current_needle_id` / `current_needle_lot_id` da máquina a partir da última saída válida.
-  // Deve ser chamada APÓS o refresh das transações (delete/update já refazem fetch em useCompanyData).
+  // Consulta o banco diretamente (evita usar o snapshot em closure, que ainda contém a linha recém-apagada).
   const resyncMachineCurrentNeedle = async (machineId?: string | null) => {
     if (!machineId) return;
     const machine = machines.find(m => m.id === machineId);
     if (!machine) return;
-    // Última saída da máquina (por data desc, depois created_at desc).
-    const lastExit = [...needleTransactions]
-      .filter((t: any) => t.machine_id === machineId && t.type === 'exit')
-      .sort((a: any, b: any) => {
-        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-        return (a.created_at || '') < (b.created_at || '') ? 1 : -1;
-      })[0];
+    let lastExit: any = null;
+    try {
+      const { data } = await (supabase.from as any)('needle_transactions')
+        .select('needle_id, lot_id, date, created_at')
+        .eq('machine_id', machineId)
+        .eq('type', 'exit')
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1);
+      lastExit = Array.isArray(data) && data.length ? data[0] : null;
+    } catch (e) { console.warn('resyncMachineCurrentNeedle query failed:', e); return; }
     const newNeedleId = lastExit?.needle_id || null;
-    const newLotId = (lastExit as any)?.lot_id || null;
+    const newLotId = lastExit?.lot_id || null;
     if (machine.current_needle_id === (newNeedleId || undefined) && machine.current_needle_lot_id === (newLotId || undefined)) return;
     const updated = machines.map(m => m.id === machineId
       ? { ...m, current_needle_id: newNeedleId || undefined, current_needle_lot_id: newLotId || undefined }
