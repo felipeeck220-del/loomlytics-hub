@@ -27,7 +27,11 @@ const fmtDateTime = (iso: string | null | undefined) => {
   return `${dd}/${mm}/${yy} ${hh}:${mi}`;
 };
 
-export default function ArtigosEmProducaoTab() {
+interface Props {
+  view?: 'production' | 'history' | 'both';
+}
+
+export default function ArtigosEmProducaoTab({ view = 'both' }: Props) {
   const { getMachines, getArticles, getClients, refreshData } = useSharedCompanyData() as any;
   const { user } = useAuth();
   const companyId = user?.company_id || '';
@@ -134,7 +138,8 @@ export default function ArtigosEmProducaoTab() {
 
   return (
     <div className="space-y-4">
-      {/* Search */}
+      {/* Search + Machines grid */}
+      {(view === 'production' || view === 'both') && (
       <div className="card-glass p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
@@ -183,9 +188,17 @@ export default function ArtigosEmProducaoTab() {
           )}
         </div>
       </div>
+      )}
 
       {/* History */}
+      {(view === 'history' || view === 'both') && (
       <div className="card-glass p-5 space-y-3">
+        {view === 'history' && (
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por máquina, artigo ou cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+        )}
         <div>
           <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
             <History className="h-4 w-4" /> Histórico de Trocas de Artigo
@@ -215,6 +228,7 @@ export default function ArtigosEmProducaoTab() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
