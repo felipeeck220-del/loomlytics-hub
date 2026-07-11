@@ -126,6 +126,33 @@ export default function MecanicaPage() {
    const [sinkerHistoryPage, setSinkerHistoryPage] = useState(1);
    const SINKER_HISTORY_PER_PAGE = 15;
 
+   // Sinker Providers + Lots (espelho do modelo de Agulhas)
+   const [sinkerProviders, setSinkerProviders] = useState<SinkerProvider[]>([]);
+   const [sinkerProviderPrices, setSinkerProviderPrices] = useState<SinkerProviderPrice[]>([]);
+   const [sinkerLots, setSinkerLots] = useState<SinkerLot[]>([]);
+   const [sinkerProvidersRefreshKey, setSinkerProvidersRefreshKey] = useState(0);
+   const bumpSinkerProviders = () => setSinkerProvidersRefreshKey(k => k + 1);
+   const [showSinkerProviderModal, setShowSinkerProviderModal] = useState(false);
+   const [editingSinkerProvider, setEditingSinkerProvider] = useState<SinkerProvider | null>(null);
+   const [sinkerProviderName, setSinkerProviderName] = useState('');
+   const [deleteSinkerProviderId, setDeleteSinkerProviderId] = useState<string | null>(null);
+   const [showSinkerPriceModal, setShowSinkerPriceModal] = useState(false);
+   const [sinkerPriceProviderId, setSinkerPriceProviderId] = useState('');
+   const [sinkerPriceSinkerId, setSinkerPriceSinkerId] = useState('');
+   const [sinkerPriceValue, setSinkerPriceValue] = useState('');
+   const [editingSinkerPrice, setEditingSinkerPrice] = useState<SinkerProviderPrice | null>(null);
+   const [deleteSinkerPriceId, setDeleteSinkerPriceId] = useState<string | null>(null);
+   const [showSinkerLotModal, setShowSinkerLotModal] = useState(false);
+   const [editingSinkerLot, setEditingSinkerLot] = useState<SinkerLot | null>(null);
+   const [sinkerLotForm, setSinkerLotForm] = useState({ provider_id: '', sinker_id: '', lot_code: '', purchase_date: format(new Date(), 'yyyy-MM-dd'), quantity: '', unit_price: '' });
+   const [deleteSinkerLotId, setDeleteSinkerLotId] = useState<string | null>(null);
+   const [entrySinkerProviderId, setEntrySinkerProviderId] = useState('');
+   const [entrySinkerLotId, setEntrySinkerLotId] = useState('');
+   const [exitSinkerProviderId, setExitSinkerProviderId] = useState('');
+   const [exitSinkerLotId, setExitSinkerLotId] = useState('');
+   const [editingSinker, setEditingSinker] = useState<any>(null);
+   const [reverseSinkerTxnId, setReverseSinkerTxnId] = useState<string | null>(null);
+
    // Cylinder Management State
    const [cylinderSearch, setCylinderSearch] = useState('');
    const [showCylinderModal, setShowCylinderModal] = useState(false);
