@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -98,6 +98,8 @@ export default function FreightOrders() {
   const isFreteiro = role === 'freteiro';
   const [tab, setTab] = useState<TabKey>('open');
   const [searchTerm, setSearchTerm] = useState('');
+  const [completedPage, setCompletedPage] = useState(0);
+  const COMPLETED_PAGE_SIZE = 15;
   const [newOpen, setNewOpen] = useState(false);
   const [freightersOpen, setFreightersOpen] = useState(false);
   const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
@@ -144,6 +146,17 @@ export default function FreightOrders() {
       return matches;
     });
   }, [orders, tab, searchTerm]);
+
+  useEffect(() => { setCompletedPage(0); }, [searchTerm, tab]);
+
+  const completedTotal = tab === 'completed' ? filtered.length : 0;
+  const completedTotalPages = Math.max(1, Math.ceil(completedTotal / COMPLETED_PAGE_SIZE));
+  const completedPageSafe = Math.min(completedPage, completedTotalPages - 1);
+  const paginated = useMemo(() => {
+    if (tab !== 'completed') return filtered;
+    const start = completedPageSafe * COMPLETED_PAGE_SIZE;
+    return filtered.slice(start, start + COMPLETED_PAGE_SIZE);
+  }, [tab, filtered, completedPageSafe]);
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -214,7 +227,7 @@ export default function FreightOrders() {
           {!isLoading && filtered.length === 0 && (
             <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma OFR encontrada.</div>
           )}
-          {filtered.map(order => (
+          {paginated.map(order => (
             <OrderCard
               key={order.id}
               order={order}
@@ -227,6 +240,37 @@ export default function FreightOrders() {
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
             />
           ))}
+          {tab === 'completed' && completedTotal > COMPLETED_PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t">
+              <p className="text-xs text-muted-foreground">
+                Mostrando {completedPageSafe * COMPLETED_PAGE_SIZE + 1}
+                –{Math.min(completedTotal, (completedPageSafe + 1) * COMPLETED_PAGE_SIZE)} de {completedTotal}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCompletedPage(p => Math.max(0, p - 1))}
+                  disabled={completedPageSafe === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                </Button>
+                <span className="text-xs font-medium">
+                  <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md">{completedPageSafe + 1}</span>
+                  <span className="text-muted-foreground mx-1">/</span>
+                  {completedTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCompletedPage(p => Math.min(completedTotalPages - 1, p + 1))}
+                  disabled={completedPageSafe >= completedTotalPages - 1}
+                >
+                  Próxima <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
             </>
           )}
         </div>
