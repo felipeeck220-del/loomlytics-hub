@@ -227,7 +227,7 @@ export default function FreightOrders() {
           {!isLoading && filtered.length === 0 && (
             <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma OFR encontrada.</div>
           )}
-          {filtered.map(order => (
+          {paginated.map(order => (
             <OrderCard
               key={order.id}
               order={order}
@@ -240,6 +240,37 @@ export default function FreightOrders() {
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
             />
           ))}
+          {tab === 'completed' && completedTotal > COMPLETED_PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t">
+              <p className="text-xs text-muted-foreground">
+                Mostrando {completedPageSafe * COMPLETED_PAGE_SIZE + 1}
+                –{Math.min(completedTotal, (completedPageSafe + 1) * COMPLETED_PAGE_SIZE)} de {completedTotal}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCompletedPage(p => Math.max(0, p - 1))}
+                  disabled={completedPageSafe === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                </Button>
+                <span className="text-xs font-medium">
+                  <span className="px-2 py-1 bg-primary text-primary-foreground rounded-md">{completedPageSafe + 1}</span>
+                  <span className="text-muted-foreground mx-1">/</span>
+                  {completedTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCompletedPage(p => Math.min(completedTotalPages - 1, p + 1))}
+                  disabled={completedPageSafe >= completedTotalPages - 1}
+                >
+                  Próxima <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
             </>
           )}
         </div>
