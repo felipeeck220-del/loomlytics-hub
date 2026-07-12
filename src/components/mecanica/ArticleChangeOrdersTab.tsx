@@ -678,22 +678,22 @@ function OTCard(props: {
             </div>
 
             <div className="flex flex-wrap gap-2 xl:justify-end">
-              {o.status === 'aberto' && isLider && (
+              {o.status === 'aberto' && (isLider || isAdmin) && (
                 <Button size="sm" onClick={props.onStartYarn} className="gap-1.5">
                   <PlayCircle className="h-3.5 w-3.5" /> Iniciar troca
                 </Button>
               )}
-              {o.status === 'troca_fio_em_curso' && isLider && (
+              {o.status === 'troca_fio_em_curso' && (isLider || isAdmin) && (
                 <Button size="sm" onClick={props.onFinishYarn} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar troca
                 </Button>
               )}
-              {o.status === 'aguardando_regulagem' && isMecanico && (
+              {o.status === 'aguardando_regulagem' && (isMecanico || isAdmin) && (
                 <Button size="sm" onClick={props.onStartAdj} className="gap-1.5">
                   <Wrench className="h-3.5 w-3.5" /> Iniciar regulagem
                 </Button>
               )}
-              {o.status === 'em_regulagem' && isMecanico && (
+              {o.status === 'em_regulagem' && (isMecanico || isAdmin) && (
                 <Button size="sm" onClick={props.onFinishAdj} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar regulagem
                 </Button>
