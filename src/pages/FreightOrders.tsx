@@ -98,6 +98,8 @@ export default function FreightOrders() {
   const isFreteiro = role === 'freteiro';
   const [tab, setTab] = useState<TabKey>('open');
   const [searchTerm, setSearchTerm] = useState('');
+  const [completedPage, setCompletedPage] = useState(0);
+  const COMPLETED_PAGE_SIZE = 15;
   const [newOpen, setNewOpen] = useState(false);
   const [freightersOpen, setFreightersOpen] = useState(false);
   const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
@@ -144,6 +146,17 @@ export default function FreightOrders() {
       return matches;
     });
   }, [orders, tab, searchTerm]);
+
+  useEffect(() => { setCompletedPage(0); }, [searchTerm, tab]);
+
+  const completedTotal = tab === 'completed' ? filtered.length : 0;
+  const completedTotalPages = Math.max(1, Math.ceil(completedTotal / COMPLETED_PAGE_SIZE));
+  const completedPageSafe = Math.min(completedPage, completedTotalPages - 1);
+  const paginated = useMemo(() => {
+    if (tab !== 'completed') return filtered;
+    const start = completedPageSafe * COMPLETED_PAGE_SIZE;
+    return filtered.slice(start, start + COMPLETED_PAGE_SIZE);
+  }, [tab, filtered, completedPageSafe]);
 
   return (
     <div className="container mx-auto p-4 space-y-6">
