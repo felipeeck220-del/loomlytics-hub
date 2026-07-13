@@ -341,12 +341,13 @@ export default function ClientsArticles() {
  
              {/* Numerical Pagination Control */}
              {totalPages > 1 && (
-               <div className="flex flex-wrap items-center justify-center gap-2 pt-6">
+               <div className="flex flex-wrap items-center justify-center gap-2 pt-6 w-full max-w-full px-2">
                  <Button 
                    variant="outline" 
                    size="sm" 
                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
                    disabled={currentPage === 1}
+                   className="px-2 sm:px-3"
                  >
                    Anterior
                  </Button>
@@ -368,6 +369,7 @@ export default function ClientsArticles() {
                    size="sm" 
                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
                    disabled={currentPage === totalPages}
+                   className="px-2 sm:px-3"
                  >
                    Próximo
                  </Button>
