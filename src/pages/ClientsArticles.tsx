@@ -341,23 +341,24 @@ export default function ClientsArticles() {
  
              {/* Numerical Pagination Control */}
              {totalPages > 1 && (
-               <div className="flex flex-wrap items-center justify-center gap-2 pt-6 w-full max-w-full px-2">
+                <div className="flex flex-nowrap items-center justify-center gap-1 sm:gap-2 pt-6 w-full max-w-full px-2 overflow-hidden">
                  <Button 
                    variant="outline" 
                    size="sm" 
                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
                    disabled={currentPage === 1}
-                   className="px-2 sm:px-3"
+                    className="px-2 sm:px-3 shrink-0"
                  >
-                   Anterior
+                    <span className="sm:hidden">‹</span>
+                    <span className="hidden sm:inline">Anterior</span>
                  </Button>
-                 <div className="flex flex-wrap items-center justify-center gap-1">
+                  <div className="flex items-center justify-center gap-1 min-w-0">
                    {visiblePages.map(page => (
                        <Button
                          key={page}
                          variant={currentPage === page ? "default" : "outline"}
                          size="sm"
-                         className="w-8 h-8 p-0"
+                          className="w-8 h-8 p-0 shrink-0"
                          onClick={() => setCurrentPage(page)}
                        >
                          {page}
@@ -369,9 +370,10 @@ export default function ClientsArticles() {
                    size="sm" 
                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
                    disabled={currentPage === totalPages}
-                   className="px-2 sm:px-3"
+                    className="px-2 sm:px-3 shrink-0"
                  >
-                   Próximo
+                    <span className="sm:hidden">›</span>
+                    <span className="hidden sm:inline">Próximo</span>
                  </Button>
                </div>
              )}
