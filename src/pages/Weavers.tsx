@@ -808,15 +808,15 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
                 {weaverRanking.map(([id, s], i) => (
                   <div
                     key={id}
-                    className="flex items-center justify-between text-sm py-2 px-3 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm py-2 px-3 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
                     onClick={() => setSelectedWeaverId(id)}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xs font-mono text-muted-foreground w-5">{i + 1}.</span>
-                      <span className="font-medium">{s.name}</span>
-                      <Badge variant="outline" className="font-mono text-[10px] font-bold text-primary">{s.code}</Badge>
+                      <span className="font-medium truncate">{s.name}</span>
+                      <Badge variant="outline" className="font-mono text-[10px] font-bold text-primary shrink-0">{s.code}</Badge>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 pl-7 sm:pl-0 flex-wrap">
                       <Badge variant="outline" className={cn('text-[10px] font-bold', getBadgeColor(s.count))}>
                         {s.count} falha{s.count !== 1 ? 's' : ''}
                       </Badge>
@@ -824,7 +824,7 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
                         {s.kg > 0 && <span>{formatNumber(s.kg)} kg</span>}
                         {s.metros > 0 && <span>{formatNumber(s.metros)} m</span>}
                       </div>
-                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground ml-auto sm:ml-0" />
                     </div>
                   </div>
                 ))}
