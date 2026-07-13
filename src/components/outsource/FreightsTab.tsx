@@ -650,7 +650,48 @@ import { Badge } from '@/components/ui/badge';
             </div>
           </div>
  
-         <div className="overflow-auto">
+          {/* Mobile: card list */}
+          <div className="md:hidden divide-y divide-border">
+            {paginatedFreights.length > 0 ? (
+              <>
+                {paginatedFreights.map(f => {
+                  const parts = f.date.split('-');
+                  const dateStr = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : f.date;
+                  return (
+                    <div key={f.id} className="p-3 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-medium">{dateStr}</span>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(f)}><Edit className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteConfirmId(f.id)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="font-semibold text-sm break-words">{f.outsource_company_name || 'Avulso'}</div>
+                      <div className="break-words"><span className="text-muted-foreground">Romaneio/NF:</span> {f.nf_rom || '—'}</div>
+                      <div className="break-words"><span className="text-muted-foreground">Freteiro:</span> {f.freteiro || '—'}</div>
+                      <div className="grid grid-cols-3 gap-1 pt-1">
+                        <div><div className="text-[10px] text-muted-foreground">Peso</div><div className="tabular-nums font-medium">{formatWeight(f.weight_kg)}</div></div>
+                        <div><div className="text-[10px] text-muted-foreground">Frete/kg</div><div className="tabular-nums">{formatCurrency(f.freight_per_kg)}</div></div>
+                        <div><div className="text-[10px] text-muted-foreground">Total</div><div className="tabular-nums font-bold text-blue-600">{formatCurrency(f.total_freight)}</div></div>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">{f.created_by_name || 'Sistema'} #{f.created_by_code || '0'} · {format(new Date(f.created_at), 'dd/MM/yy HH:mm')}</div>
+                    </div>
+                  );
+                })}
+                {filterCompany !== '_all' && (
+                  <div className="p-3 bg-muted/50 text-xs font-bold flex items-center justify-between">
+                    <span className="uppercase tracking-wider text-muted-foreground">Totais</span>
+                    <span className="text-blue-600">{formatCurrency(filteredFreights.reduce((s, f) => s + f.total_freight, 0))} · {formatWeight(filteredFreights.reduce((s, f) => s + f.weight_kg, 0))}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">Nenhum registro encontrado.</div>
+            )}
+          </div>
+         <div className="hidden md:block overflow-auto">
            <Table>
              <TableHeader>
                <TableRow>
