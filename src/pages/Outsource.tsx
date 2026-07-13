@@ -476,7 +476,26 @@ function CompaniesTab({ companies, companyId, loading }: {
         ) : filteredCompanies.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhuma malharia encontrada.</p>
         ) : (
-          <Table>
+          <>
+          {/* Mobile: card list */}
+          <div className="md:hidden divide-y divide-border">
+            {filteredCompanies.map(c => (
+              <div key={c.id} className="p-3 space-y-1 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-sm break-words">{c.name}</span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}><Edit className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteConfirmId(c.id)}>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-muted-foreground break-words">Contato: {c.contact || '—'}</div>
+                <div className="text-muted-foreground break-words">Obs.: {c.observations || '—'}</div>
+              </div>
+            ))}
+          </div>
+          <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
@@ -503,6 +522,7 @@ function CompaniesTab({ companies, companyId, loading }: {
               ))}
             </TableBody>
           </Table>
+          </>
         )}
       </CardContent>
       <DeleteConfirmDialog
