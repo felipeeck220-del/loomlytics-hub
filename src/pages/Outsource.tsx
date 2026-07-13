@@ -196,6 +196,7 @@ export default function Outsource() {
 
   // Lifted filter state so KPIs reflect filtered data
   const [filterMonth, setFilterMonth] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('productions');
   const [filterFrom, setFilterFrom] = useState<Date | undefined>(undefined);
   const [filterTo, setFilterTo] = useState<Date | undefined>(undefined);
 
