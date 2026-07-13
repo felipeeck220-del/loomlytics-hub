@@ -279,7 +279,7 @@ export default function Outsource() {
 
       {/* Tabs */}
       <Tabs defaultValue="productions" className="space-y-4">
-         <TabsList>
+         <TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
             <TabsTrigger value="productions" className="gap-1.5">
               <Package className="h-4 w-4" /> Produções
             </TabsTrigger>
