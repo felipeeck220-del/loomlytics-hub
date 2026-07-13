@@ -1655,20 +1655,20 @@ export default function Invoices() {
         {/* ===== TIPOS DE FIO TAB ===== */}
         <TabsContent value="fios" className="space-y-4">
           <Card>
-           <CardHeader className="flex flex-row items-center justify-between">
+           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <CardTitle className="text-base">Tipos de Fio Cadastrados</CardTitle>
-              <div className="flex items-center gap-2">
-                <div className="relative">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-none">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    className="pl-7 h-8 w-[180px] text-xs"
+                    className="pl-7 h-8 w-full sm:w-[180px] text-xs"
                     placeholder="Buscar fio..."
                     value={yarnSearchTerm}
                     onChange={e => setYarnSearchTerm(e.target.value)}
                   />
                 </div>
-                <Button size="sm" onClick={() => { setEditingYarn(null); setYarnName(''); setYarnComposition(''); setYarnColor(''); setYarnObs(''); setYarnDialogOpen(true); }} className="gap-1.5">
-                  <Plus className="h-4 w-4" /> Novo Fio
+                <Button size="sm" onClick={() => { setEditingYarn(null); setYarnName(''); setYarnComposition(''); setYarnColor(''); setYarnObs(''); setYarnDialogOpen(true); }} className="gap-1.5 shrink-0">
+                  <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Novo Fio</span><span className="sm:hidden">Novo</span>
                 </Button>
               </div>
             </CardHeader>
