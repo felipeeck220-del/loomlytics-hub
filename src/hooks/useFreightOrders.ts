@@ -270,7 +270,7 @@ export function useFreightOrders() {
           .eq('id', payload.freighter_id)
           .maybeSingle();
         const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
-        const targetPath = slug ? `/${slug}/ofr` : '/';
+        const targetPath = slug ? `/${slug}/freight-orders` : '/';
         const nPieces = payload.items.reduce((s, i) => s + (Number(i.pieces) || 0), 0);
         const nBoxes = payload.items.reduce((s, i) => s + (Number(i.boxes) || 0), 0);
         const nKg = payload.items.reduce((s, i) => s + (Number(i.weight_kg) || 0), 0);
@@ -407,7 +407,7 @@ export function useFreightOrders() {
         const ofrNum = ord?.ofr_number;
         const frtName = ord?.freighter?.name || 'Freteiro';
         const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
-        const targetPath = slug ? `/${slug}/ofr` : '/';
+        const targetPath = slug ? `/${slug}/freight-orders` : '/';
         const kgStr = totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const message = `${ord?.pickup_location || ''} → ${ord?.delivery_location || ''} · ${kgStr} kg`;
         supabase.functions.invoke('send-push-notification', {
