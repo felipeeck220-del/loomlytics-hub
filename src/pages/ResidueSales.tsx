@@ -718,7 +718,27 @@ export default function ResidueSales() {
                             {prices.length === 0 ? (
                               <p className="text-xs text-muted-foreground py-2">Nenhum material configurado. Adicione materiais e seus preços.</p>
                             ) : (
-                              <Table>
+                              <>
+                              {/* Mobile: card list */}
+                              <div className="md:hidden space-y-2">
+                                {prices.map(p => {
+                                  const mat = materials.find(m => m.id === p.material_id);
+                                  return (
+                                    <div key={p.id} className="rounded-md border p-2 flex items-center justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <div className="text-sm font-medium truncate">{mat?.name || '?'}</div>
+                                        <div className="text-xs text-muted-foreground">{formatCurrency(p.unit_price)}/{mat?.unit === 'kg' ? 'kg' : 'un'}</div>
+                                      </div>
+                                      <div className="flex gap-1 shrink-0">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditPrice(p)}><Edit className="h-3.5 w-3.5" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeletePriceConfirmId(p.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {/* Desktop: table */}
+                              <Table className="hidden md:table">
                                 <TableHeader>
                                   <TableRow>
                                     <TableHead className="text-xs">Material</TableHead>
@@ -752,6 +772,7 @@ export default function ResidueSales() {
                                   })}
                                 </TableBody>
                               </Table>
+                              </>
                             )}
                           </div>
                         )}
@@ -781,7 +802,24 @@ export default function ResidueSales() {
               ) : materials.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Nenhum material cadastrado</p>
               ) : (
-                <Table>
+                <>
+                {/* Mobile: card list */}
+                <div className="md:hidden space-y-2">
+                  {materials.map(m => (
+                    <div key={m.id} className="rounded-md border p-3 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{m.name}</div>
+                        <Badge variant="outline" className="text-[10px] mt-1">{m.unit === 'kg' ? 'Quilograma (kg)' : 'Unidade (un)'}</Badge>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="icon" onClick={() => openEditMat(m)}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteMatConfirmId(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop: table */}
+                <Table className="hidden md:table">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Material</TableHead>
@@ -810,6 +848,7 @@ export default function ResidueSales() {
                     ))}
                   </TableBody>
                 </Table>
+                </>
               )}
             </CardContent>
           </Card>
@@ -932,7 +971,39 @@ export default function ResidueSales() {
                     : 'Nenhum registro encontrado'}
                 </p>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                {/* Mobile: card list */}
+                <div className="md:hidden divide-y">
+                  {paginatedSales.map(s => (
+                    <div key={s.id} className="p-3 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span className="text-sm font-medium">{s.date.split('-').reverse().join('/')}</span>
+                          {s.romaneio && <Badge variant="outline" className="text-[10px]">Rom. {s.romaneio}</Badge>}
+                        </div>
+                        <span className="text-sm font-bold shrink-0">{formatCurrency(s.total)}</span>
+                      </div>
+                      <div className="text-xs"><span className="text-muted-foreground">Material: </span><span className="font-medium">{s.material_name || '-'}</span></div>
+                      <div className="text-xs"><span className="text-muted-foreground">Cliente: </span>{s.client_name}</div>
+                      <div className="text-xs flex flex-wrap gap-x-3">
+                        <span><span className="text-muted-foreground">Qtd: </span>{formatNumber(s.quantity, 2)} {s.unit === 'kg' ? 'kg' : 'un'}</span>
+                        <span><span className="text-muted-foreground">Unit.: </span>{formatCurrency(s.unit_price)}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="text-[10px] text-muted-foreground">
+                          <span className="text-emerald-600 dark:text-emerald-500 font-medium">{s.created_by_name ? `${s.created_by_name}${s.created_by_code ? ` #${s.created_by_code}` : ''}` : '—'}</span>
+                          {s.created_at && <span> · {format(new Date(s.created_at), 'dd/MM/yyyy HH:mm')}</span>}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditSale(s)}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteSaleConfirmId(s.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop: table */}
+                <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -983,6 +1054,7 @@ export default function ResidueSales() {
                     </TableBody>
                   </Table>
                 </div>
+                </>
               )}
             </CardContent>
             {totalPages > 1 && (
