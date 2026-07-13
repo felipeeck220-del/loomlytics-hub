@@ -2024,7 +2024,50 @@ export default function MecanicaPage() {
 
                   <Card>
                     <CardContent className="p-0">
-                      <div className="overflow-x-auto">
+                      {/* Mobile: card list (Platinas Estoque) */}
+                      <div className="md:hidden divide-y">
+                        {(() => {
+                          const term = sinkerSearch.toLowerCase();
+                          const providerName = (id: string) => sinkerProviders.find(p => p.id === id)?.name || '—';
+                          const rows: Array<{ key: string; sinkerId: string; brand: string; ref: string; lotCode: string; providerLabel: string; purchaseQty: number; unitPrice: number; balance: number; purchaseDate: string; }> = [];
+                          const lotsBySinker = new Map<string, typeof sinkerLots>();
+                          sinkerLots.forEach(l => { const arr = lotsBySinker.get(l.sinker_id) || []; arr.push(l); lotsBySinker.set(l.sinker_id, arr); });
+                          sinkers.forEach(s => {
+                            const lots = (lotsBySinker.get(s.id) || []).slice().sort((a, b) => (a.purchase_date < b.purchase_date ? -1 : 1));
+                            const txsForSinker = sinkerTransactions.filter(t => t.sinker_id === s.id);
+                            const entriesByLot = new Map<string, number>(); const exitsByLot = new Map<string, number>();
+                            let untaggedEntries = 0; let untaggedExits = 0;
+                            txsForSinker.forEach(t => { const lid = (t as any).lot_id as string | null; const q = t.quantity || 0; if (t.type === 'entry') { if (lid) entriesByLot.set(lid, (entriesByLot.get(lid) || 0) + q); else untaggedEntries += q; } else if (t.type === 'exit') { if (lid) exitsByLot.set(lid, (exitsByLot.get(lid) || 0) + q); else untaggedExits += q; } });
+                            lots.forEach(l => { const balance = (entriesByLot.get(l.id) || 0) - (exitsByLot.get(l.id) || 0); rows.push({ key: l.id, sinkerId: s.id, brand: s.brand, ref: s.reference_code, lotCode: l.lot_code || '—', providerLabel: providerName(l.provider_id), purchaseQty: l.quantity, unitPrice: l.unit_price, balance, purchaseDate: l.purchase_date }); });
+                            const legacyBalance = untaggedEntries - untaggedExits;
+                            if (legacyBalance > 0 || (lots.length === 0 && s.current_quantity > 0)) rows.push({ key: `no-lot-${s.id}`, sinkerId: s.id, brand: s.brand, ref: s.reference_code, lotCode: '(sem lote)', providerLabel: '—', purchaseQty: untaggedEntries, unitPrice: 0, balance: lots.length === 0 && untaggedEntries === 0 ? s.current_quantity : legacyBalance, purchaseDate: '' });
+                          });
+                          const filtered = rows.filter(r => r.brand.toLowerCase().includes(term) || r.ref.toLowerCase().includes(term) || r.lotCode.toLowerCase().includes(term) || r.providerLabel.toLowerCase().includes(term)).sort((a, b) => a.brand.localeCompare(b.brand) || (a.purchaseDate < b.purchaseDate ? 1 : -1));
+                          if (filtered.length === 0) return <div className="p-6 text-center text-sm text-muted-foreground">Nenhum lote em estoque</div>;
+                          return filtered.map(r => {
+                            const usedBy = new Set(machineSinkerRefs.filter(x => x.sinker_id === r.sinkerId).map(x => x.machine_id)).size;
+                            return (
+                              <div key={r.key} className="p-3 space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="min-w-0"><div className="font-medium text-sm truncate">{r.brand}</div><code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">{r.ref}</code></div>
+                                  <div className={`text-right shrink-0 ${r.balance <= 0 ? 'text-muted-foreground line-through' : ''}`}><div className="text-[10px] text-muted-foreground">Saldo</div><div className="font-bold">{r.balance}</div></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-2 text-xs">
+                                  <div><span className="text-muted-foreground">Lote: </span><span className="font-mono">{r.lotCode}</span></div>
+                                  <div><span className="text-muted-foreground">Fornec.: </span>{r.providerLabel}</div>
+                                  <div><span className="text-muted-foreground">Compra: </span>{r.purchaseQty}</div>
+                                  <div><span className="text-muted-foreground">Preço: </span>{r.unitPrice > 0 ? r.unitPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 }) : '—'}</div>
+                                </div>
+                                <div className="flex justify-end">
+                                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSinkerUsageView({ id: r.sinkerId, brand: r.brand, reference_code: r.ref })}><Eye className="h-3.5 w-3.5 mr-1" />{usedBy} máq.</Button>
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                      {/* Desktop: table */}
+                      <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50">
