@@ -509,7 +509,46 @@ export default function ClientInvoices() {
             return (
               <>
           <Card>
-            <Table>
+            {/* Mobile: card list */}
+            <div className="md:hidden divide-y divide-border">
+              {pageItems.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8 text-sm">Nenhuma nota encontrada.</div>
+              ) : pageItems.map(inv => {
+                const itemName = inv.items?.[0]
+                  ? (inv.type === 'entrada'
+                      ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name
+                      : allArticles.find(a => a.id === inv.items[0].article_id)?.name)
+                  : '-';
+                return (
+                  <div key={inv.id} className="p-3 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-semibold text-sm">NF {inv.invoice_number}</span>
+                      <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className={cn('text-[10px]', inv.type === 'entrada' && 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20')}>
+                        {inv.type === 'entrada' ? 'Entrada Fio' : 'Saída Malha'}
+                      </Badge>
+                    </div>
+                    <div className="text-primary font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</div>
+                    <div className="break-words"><span className="text-muted-foreground">Cliente:</span> {allClients.find(c => c.id === inv.client_id)?.name || '—'}</div>
+                    <div className="break-words"><span className="text-muted-foreground">Item:</span> {itemName || '—'}</div>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="tabular-nums font-medium"><span className="text-muted-foreground font-normal">Peso:</span> {formatWeight(inv.items?.[0]?.weight_kg || 0)}</span>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditInvoice(inv)}>
+                          <Edit2 className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteInvoice(inv.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                    {inv.created_by_code && (
+                      <div className="text-[10px] text-muted-foreground italic">{inv.created_by_name} #{inv.created_by_code} · {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Data</TableHead>
@@ -1317,7 +1356,71 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
       </div>
 
       <Card>
-        <Table>
+        {/* Mobile: card list */}
+        <div className="md:hidden divide-y divide-border">
+          {filteredInvoices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Nenhuma nota {activeSubTab === 'aberto' ? 'em aberto' : activeSubTab === 'encerrada' ? 'encerrada' : 'encontrada'} para este cliente.
+            </div>
+          ) : paginatedInvoices.map((inv: any) => {
+            const itemName = inv.items?.[0]
+              ? (inv.type === 'entrada'
+                  ? yarnTypes.find((y: any) => y.id === inv.items[0].yarn_type_id)?.name
+                  : allArticles.find((a: any) => a.id === inv.items[0].article_id)?.name)
+              : '-';
+            const weightEntrada = activeSubTab === 'historico'
+              ? (inv.type === 'entrada' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : '-')
+              : formatWeight(inv.weightEntrada);
+            const weightSaida = activeSubTab === 'historico'
+              ? (inv.type === 'saida' ? formatWeight(inv.items?.[0]?.weight_kg || 0) : '-')
+              : formatWeight(inv.weightSaida);
+            return (
+              <div key={inv.id} className="p-3 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="font-semibold text-sm">NF {inv.invoice_number}</span>
+                  {activeSubTab === 'historico' && (
+                    <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className="text-[10px]">
+                      {inv.type === 'entrada' ? 'Entrada' : 'Saída'}
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-primary font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</div>
+                <div className="break-words"><span className="text-muted-foreground">Cliente:</span> {allClients.find((c: any) => c.id === inv.client_id)?.name || '—'}</div>
+                <div className="break-words"><span className="text-muted-foreground">{activeSubTab === 'historico' ? 'Item' : 'Fio'}:</span> {itemName || '—'}</div>
+                {activeSubTab !== 'historico' && (
+                  <div className="break-words"><span className="text-muted-foreground">Fornecedor:</span> {inv.supplier_name || '—'}</div>
+                )}
+                <div className="grid grid-cols-3 gap-1 pt-1">
+                  <div><div className="text-[10px] text-muted-foreground">Entrada</div><div className="tabular-nums font-medium">{weightEntrada}</div></div>
+                  <div><div className="text-[10px] text-muted-foreground">Saída</div><div className="tabular-nums font-medium text-emerald-600">{weightSaida}</div></div>
+                  <div><div className="text-[10px] text-muted-foreground">Saldo</div><div className={cn('tabular-nums font-bold', inv.saldo > 0.001 ? 'text-amber-600 dark:text-amber-400' : inv.saldo < -0.001 ? 'text-destructive' : 'text-muted-foreground')}>{activeSubTab === 'historico' ? '-' : formatWeight(inv.saldo)}</div></div>
+                </div>
+                {inv.created_by_code && (
+                  <div className="text-[10px] text-muted-foreground italic">{inv.created_by_name} #{inv.created_by_code} · {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                )}
+                <div className="flex items-center justify-end gap-1 pt-1">
+                  {activeSubTab !== 'historico' && inv.type === 'entrada' && onViewLinked && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver saídas vinculadas" onClick={() => onViewLinked(inv)}>
+                      <List className="h-3.5 w-3.5 text-primary" />
+                    </Button>
+                  )}
+                  {activeSubTab !== 'historico' && !inv.isEncerrada && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7" title="Registrar Saída" onClick={() => onAdd('saida', inv.id)}>
+                      <ArrowUpRight className="h-3.5 w-3.5 text-amber-600" />
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(inv)}>
+                    <Edit2 className="h-3.5 w-3.5 text-primary" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDelete(inv.id)}>
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <Table className="hidden md:table">
           <TableHeader>
             <TableRow>
               <TableHead>Data</TableHead>
