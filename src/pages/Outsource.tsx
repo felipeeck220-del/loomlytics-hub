@@ -1061,6 +1061,17 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* KPIs do relatório (refletem os filtros aplicados) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-3">
+          <KpiCard icon={Package} label="Rolos" value={formatNumber(totals.rolls)} color="border-l-amber-500" />
+          <KpiCard icon={Scale} label="Peso Total" value={formatWeight(totals.weight)} color="border-l-orange-500" />
+          <KpiCard icon={DollarSign} label="Receita" value={formatCurrency(totals.revenue)} color="border-l-emerald-500" />
+          <KpiCard icon={DollarSign} label="Custo (Repasse)" value={formatCurrency(totals.cost)} color="border-l-red-500" />
+          <KpiCard icon={Truck} label="Frete Total" value={formatCurrency(totals.freight)} color="border-l-blue-500" />
+          <KpiCard icon={TrendingUp} label="Lucro" value={formatCurrency(totals.profit)} color={totals.profit >= 0 ? "border-l-primary" : "border-l-destructive"} />
+          <KpiCard icon={TrendingUp} label="Lucro Final" value={formatCurrency(totals.finalProfit)} color={totals.finalProfit >= 0 ? "border-l-primary" : "border-l-destructive"} />
+        </div>
+
         {/* Filters */}
         <div className="rounded-lg border bg-muted/30 p-3">
           <div className="flex items-end gap-3 flex-wrap">
