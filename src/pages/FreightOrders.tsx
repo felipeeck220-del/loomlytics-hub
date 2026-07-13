@@ -241,12 +241,12 @@ export default function FreightOrders() {
             />
           ))}
           {tab === 'completed' && completedTotal > COMPLETED_PAGE_SIZE && (
-            <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t">
-              <p className="text-xs text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-3 border-t">
+              <p className="text-xs text-muted-foreground text-center sm:text-left">
                 Mostrando {completedPageSafe * COMPLETED_PAGE_SIZE + 1}
                 –{Math.min(completedTotal, (completedPageSafe + 1) * COMPLETED_PAGE_SIZE)} de {completedTotal}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
