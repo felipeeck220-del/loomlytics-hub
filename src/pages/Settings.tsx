@@ -977,12 +977,12 @@ export default function SettingsPage() {
                   );
                 }
                 return filtered.map(p => (
-                <div key={p.id} className="card-glass p-4 flex items-center justify-between hover:border-primary/20 transition-colors">
-                  <div className="flex items-center gap-3">
+                <div key={p.id} className="card-glass p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-primary/20 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
                       <span className="text-sm font-bold text-primary">{p.name.charAt(0).toUpperCase()}</span>
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-display font-bold text-foreground">{p.name}</p>
                         {p.code && (
@@ -1007,7 +1007,7 @@ export default function SettingsPage() {
                     const isTargetMainAdmin = p.code === '1';
                     const canEditTarget = isCurrentUserMainAdmin || !isTargetMainAdmin;
                     return (
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap sm:shrink-0 justify-end">
                       {p.role !== 'admin' && isCurrentUserMainAdmin && (
                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openPermissionsModal(p)} title="Permissões Extras">
                           <Eye className="h-3.5 w-3.5 text-primary" />

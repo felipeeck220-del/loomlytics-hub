@@ -142,13 +142,13 @@ export default function IotDevicesManager() {
   return (
     <>
       <div className="card-glass p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
             <Cpu className="h-4 w-4 text-primary" />
             <h3 className="font-display font-semibold text-foreground">Dispositivos IoT</h3>
             <Badge variant="outline" className="text-xs">{devices.length}</Badge>
           </div>
-          <Button size="sm" className="btn-gradient" onClick={openNew}>
+          <Button size="sm" className="btn-gradient shrink-0" onClick={openNew}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Novo Dispositivo
           </Button>
         </div>
@@ -165,8 +165,8 @@ export default function IotDevicesManager() {
         ) : (
           <div className="space-y-3">
             {devices.map(d => (
-              <div key={d.id} className="rounded-lg border p-4 flex items-center justify-between hover:border-primary/20 transition-colors">
-                <div className="flex items-center gap-3 min-w-0">
+              <div key={d.id} className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-primary/20 transition-colors">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
                     isOnline(d.last_seen_at) ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-muted border border-border'
                   }`}>
@@ -198,7 +198,7 @@ export default function IotDevicesManager() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap sm:shrink-0 justify-end">
                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(d.token, 'Token')} title="Copiar Token">
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
