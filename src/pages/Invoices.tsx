@@ -1678,7 +1678,39 @@ export default function Invoices() {
               ) : yarnTypes.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground text-sm">Nenhum tipo de fio cadastrado</div>
               ) : (
-                <Table>
+                <>
+                {/* Mobile: card list */}
+                <div className="md:hidden divide-y divide-border">
+                  {yarnTypes.filter(y => {
+                    if (!yarnSearchTerm.trim()) return true;
+                    const q = yarnSearchTerm.toLowerCase();
+                    return y.name.toLowerCase().includes(q) || (y.composition || '').toLowerCase().includes(q) || (y.color || '').toLowerCase().includes(q);
+                  }).map(y => (
+                    <div key={y.id} className="p-3 space-y-1 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-sm break-words">{y.name}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                            setEditingYarn(y);
+                            setYarnName(y.name);
+                            setYarnComposition(y.composition || '');
+                            setYarnColor(y.color || '');
+                            setYarnObs(y.observations || '');
+                            setYarnDialogOpen(true);
+                          }}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteYarnConfirm(y)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-muted-foreground break-words">Composição: {y.composition || '—'}</div>
+                      <div className="text-muted-foreground break-words">Cor: {y.color || '—'}</div>
+                    </div>
+                  ))}
+                </div>
+                <Table className="hidden md:table">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-xs">Nome</TableHead>
@@ -1718,6 +1750,7 @@ export default function Invoices() {
                     ))}
                   </TableBody>
                 </Table>
+                </>
               )}
             </CardContent>
           </Card>
