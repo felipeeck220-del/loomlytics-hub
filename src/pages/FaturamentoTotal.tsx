@@ -366,6 +366,52 @@ export default function FaturamentoTotal() {
           <CardTitle className="text-base">Resumo por Fonte</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Mobile: card list */}
+          <div className="sm:hidden space-y-2">
+            {tableData.map(r => {
+              const isPos = r.variation >= 0;
+              return (
+                <div key={r.fonte} className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">{r.fonte}</span>
+                    <span className="text-sm font-semibold">{formatCurrency(r.current)}</span>
+                  </div>
+                  {showComparison && (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Anterior: {formatCurrency(r.prev)}</span>
+                      <span className={cn('font-medium', isPos ? 'text-success' : 'text-destructive')}>
+                        {isPos ? '▲' : '▼'} {formatPercent(Math.abs(r.variation))}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(r.pct, 100)}%` }} />
+                    </div>
+                    <span className="text-xs w-12 text-right">{formatPercent(r.pct)}</span>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="rounded-lg border p-3 bg-muted/50 space-y-1">
+              <div className="flex items-center justify-between font-bold text-sm">
+                <span>Total</span>
+                <span>{formatCurrency(totalCurrent)}</span>
+              </div>
+              {showComparison && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Anterior: {formatCurrency(totalPrev)}</span>
+                  <span className={cn('font-medium', (totalPrev > 0 ? ((totalCurrent - totalPrev) / totalPrev) >= 0 : true) ? 'text-success' : 'text-destructive')}>
+                    {(totalPrev > 0 || totalCurrent > 0)
+                      ? `${(totalPrev > 0 ? ((totalCurrent - totalPrev) / totalPrev) >= 0 : true) ? '▲' : '▼'} ${formatPercent(Math.abs(totalPrev > 0 ? ((totalCurrent - totalPrev) / totalPrev) * 100 : 100))}`
+                      : '—'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Desktop: table */}
+          <div className="hidden sm:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -416,6 +462,7 @@ export default function FaturamentoTotal() {
               </TableRow>
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
