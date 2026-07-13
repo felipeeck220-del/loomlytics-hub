@@ -629,8 +629,53 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
         )}
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border bg-card overflow-x-auto">
+      {/* Mobile: card list */}
+      <div className="md:hidden space-y-2">
+        {paginatedData.length === 0 ? (
+          <div className="rounded-lg border bg-card text-center text-muted-foreground py-8 text-sm">
+            Nenhuma falha registrada{(filterDateFrom || filterDateTo) ? ' neste período' : filterMonth !== 'all' ? ' neste mês' : ''}
+          </div>
+        ) : paginatedData.map(d => {
+          const w = weavers.find(w => w.id === d.weaver_id);
+          return (
+            <div key={d.id} className="rounded-lg border bg-card p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="text-sm font-medium">{format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                  <Badge variant="outline" className="text-[10px]">{companyShiftLabels[d.shift] || d.shift}</Badge>
+                  <Badge variant={d.measure_type === 'kg' ? 'secondary' : 'outline'} className="text-[10px]">{d.measure_type === 'kg' ? 'Kg' : 'Metro'}</Badge>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => openEdit(d)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { setShowDelete(d); setDeleteWord(''); }}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                <div><span className="text-muted-foreground">Máquina: </span><span className="font-medium">{d.machine_name}</span></div>
+                <div className="text-right"><span className="text-muted-foreground">Valor: </span><span className="font-mono font-medium">{formatNumber(d.measure_value)} {d.measure_type === 'kg' ? 'kg' : 'm'}</span></div>
+                <div className="col-span-2"><span className="text-muted-foreground">Artigo: </span>{d.article_name}</div>
+                <div className="col-span-2"><span className="text-muted-foreground">Tecelão: </span>{d.weaver_name}{w ? ` #${w.code}` : ''}</div>
+                {d.observations && (
+                  <div className="col-span-2 text-muted-foreground"><span>Obs: </span>{d.observations}</div>
+                )}
+              </div>
+              <div className="pt-1 border-t text-[10px] text-muted-foreground/80">
+                <span className="font-medium text-emerald-600 dark:text-emerald-500">
+                  {d.created_by_name ? `${d.created_by_name}${d.created_by_code ? ` #${d.created_by_code}` : ''}` : '—'}
+                </span>
+                {d.created_at && <span> · {format(new Date(d.created_at), 'dd/MM/yyyy HH:mm')}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: Table */}
+      <div className="hidden md:block rounded-lg border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
