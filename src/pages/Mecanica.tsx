@@ -1956,22 +1956,22 @@ export default function MecanicaPage() {
          {/* Platinas Tab */}
          <TabsContent value="platinas">
            <Tabs defaultValue="estoque" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="estoque">
-                  <Package className="h-4 w-4 mr-1.5" />
-                  Estoque
+              <TabsList className="mb-4 grid grid-cols-4 w-full h-auto">
+                <TabsTrigger value="estoque" className="text-[11px] sm:text-sm px-1 sm:px-3 gap-1 min-w-0">
+                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">Estoque</span>
                 </TabsTrigger>
-                <TabsTrigger value="cadastro">
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  Platinas
+                <TabsTrigger value="cadastro" className="text-[11px] sm:text-sm px-1 sm:px-3 gap-1 min-w-0">
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">Platinas</span>
                 </TabsTrigger>
-                <TabsTrigger value="lotes">
-                  <Wrench className="h-4 w-4 mr-1.5" />
-                  Lotes
+                <TabsTrigger value="lotes" className="text-[11px] sm:text-sm px-1 sm:px-3 gap-1 min-w-0">
+                  <Wrench className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">Lotes</span>
                 </TabsTrigger>
-                <TabsTrigger value="movimentacoes">
-                  <History className="h-4 w-4 mr-1.5" />
-                  Movimentações
+                <TabsTrigger value="movimentacoes" className="text-[11px] sm:text-sm px-1 sm:px-3 gap-1 min-w-0">
+                  <History className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate"><span className="sm:hidden">Movim.</span><span className="hidden sm:inline">Movimentações</span></span>
                 </TabsTrigger>
               </TabsList>
 
@@ -2659,22 +2659,22 @@ export default function MecanicaPage() {
 
          <TabsContent value="agulhas">
             <Tabs defaultValue="estoque" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="estoque">
-                  <Package className="h-4 w-4 mr-1.5" />
-                  Estoque
+              <TabsList className="mb-4 grid grid-cols-4 w-full h-auto">
+                <TabsTrigger value="estoque" className="text-[11px] sm:text-sm px-1 sm:px-3 gap-1 min-w-0">
+                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">Estoque</span>
                 </TabsTrigger>
-                <TabsTrigger value="cadastro">
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  Agulhas
+                <TabsTrigger value="cadastro" className="text-[11px] sm:text-sm px-1 sm:px-3 gap-1 min-w-0">
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">Agulhas</span>
                 </TabsTrigger>
-                <TabsTrigger value="fornecedores">
-                  <Wrench className="h-4 w-4 mr-1.5" />
-                  Lotes
+                <TabsTrigger value="fornecedores" className="text-[11px] sm:text-sm px-1 sm:px-3 gap-1 min-w-0">
+                  <Wrench className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate">Lotes</span>
                 </TabsTrigger>
-                <TabsTrigger value="movimentacoes">
-                  <History className="h-4 w-4 mr-1.5" />
-                  Movimentações
+                <TabsTrigger value="movimentacoes" className="text-[11px] sm:text-sm px-1 sm:px-3 gap-1 min-w-0">
+                  <History className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span className="truncate"><span className="sm:hidden">Movim.</span><span className="hidden sm:inline">Movimentações</span></span>
                 </TabsTrigger>
               </TabsList>
 
