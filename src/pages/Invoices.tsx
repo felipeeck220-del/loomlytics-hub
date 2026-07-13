@@ -1576,7 +1576,34 @@ export default function Invoices() {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <CardContent className="p-0">
-                        <Table>
+                        {/* Mobile: card list */}
+                        <div className="md:hidden divide-y divide-border">
+                          {group.items.map(item => (
+                            <div key={item.id} className="p-3 space-y-1 text-xs">
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <span className="font-semibold text-sm break-words">{item.yarnTypeName}</span>
+                                <span className="tabular-nums font-medium">{formatWeight(item.quantityKg)}</span>
+                              </div>
+                              <div className="text-muted-foreground">Mês Ref.: {format(parse(item.referenceMonth, 'yyyy-MM', new Date()), 'MMM/yyyy', { locale: ptBR })}</div>
+                              {item.observations && <div className="text-muted-foreground break-words">Obs.: {item.observations}</div>}
+                              {canSeeFinancial && (
+                                <div className="flex items-center justify-end gap-1 pt-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEft(item, group.outsourceCompanyId)}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteEftConfirmId(item.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          <div className="p-3 text-xs bg-muted/30 font-semibold flex items-center justify-between">
+                            <span>TOTAL</span>
+                            <span className="tabular-nums">{formatWeight(group.totalKg)}</span>
+                          </div>
+                        </div>
+                        <Table className="hidden md:table">
                           <TableHeader>
                             <TableRow>
                               <TableHead className="text-xs">Tipo de Fio</TableHead>
