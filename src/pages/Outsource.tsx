@@ -1299,6 +1299,8 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
   const [companySearch, setCompanySearch] = useState('');
   const [selectedClientName, setSelectedClientName] = useState<string>('_all');
   const [clientSearch, setClientSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -1383,6 +1385,12 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
 
     return { revenue, cost, profit, weight, rolls, freight: totalFreight, finalProfit };
   }, [filtered, freights, reportMonth, startDate, endDate, selectedCompanyId]);
+
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1); }, [reportMonth, startDate, endDate, profitFilter, selectedCompanyId, selectedClientName]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedFiltered = useMemo(() => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE), [filtered, safePage]);
 
   const filteredFreightsInReport = useMemo(() => {
     let result = freights;
@@ -1579,35 +1587,12 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
           )}
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          <div className="rounded-lg border p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Registros</p>
-            <p className="text-lg font-bold text-foreground">{filtered.length}</p>
-          </div>
-          <div className="rounded-lg border p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Peso Total</p>
-            <p className="text-lg font-bold text-foreground">{formatWeight(totals.weight)}</p>
-          </div>
-          <div className="rounded-lg border p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Receita</p>
-            <p className="text-lg font-bold text-foreground">{formatCurrency(totals.revenue)}</p>
-          </div>
-          <div className="rounded-lg border p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Custo</p>
-            <p className="text-lg font-bold text-foreground">{formatCurrency(totals.cost)}</p>
-          </div>
-          <div className={cn("rounded-lg border p-3", totals.profit >= 0 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950" : "border-destructive/30 bg-destructive/5")}>
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro</p>
-            <p className={cn("text-lg font-bold", totals.profit >= 0 ? "text-emerald-600" : "text-destructive")}>{formatCurrency(totals.profit)}</p>
-          </div>
-        </div>
-
         {/* Table */}
         {filtered.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum registro encontrado para os filtros selecionados.</p>
         ) : (
-          <div className="overflow-auto max-h-[500px]">
+          <>
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1624,7 +1609,7 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(p => (
+                {paginatedFiltered.map(p => (
                   <TableRow key={p.id}>
                     <TableCell className="whitespace-nowrap">{(() => { const parts = p.date.split('-'); return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : p.date; })()}</TableCell>
                     <TableCell className="font-medium">{p.outsource_company_name || '—'}</TableCell>
@@ -1649,6 +1634,30 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
               </TableBody>
             </Table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
+              <div className="text-xs text-muted-foreground">
+                Mostrando <strong>{(safePage - 1) * PAGE_SIZE + 1}</strong>–<strong>{Math.min(safePage * PAGE_SIZE, filtered.length)}</strong> de <strong>{filtered.length}</strong>
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={safePage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>Anterior</Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
+                  .reduce<Array<number | 'gap'>>((acc, p, idx, arr) => {
+                    if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('gap');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) => p === 'gap' ? (
+                    <span key={`gap-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                  ) : (
+                    <Button key={p} size="sm" variant={p === safePage ? 'default' : 'outline'} className="h-8 min-w-[2rem] px-2 text-xs" onClick={() => setCurrentPage(p as number)}>{p}</Button>
+                  ))}
+                <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={safePage >= totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>Próxima</Button>
+              </div>
+            </div>
+          )}
+          </>
         )}
 
       </CardContent>
