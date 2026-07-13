@@ -1402,7 +1402,38 @@ export default function StockMalha() {
 
           <Card>
             <CardContent className="p-0">
-              <Table>
+              {/* Mobile: card list */}
+              <div className="md:hidden divide-y divide-border">
+                {paginatedMovements.length === 0 && (
+                  <div className="text-center text-xs text-muted-foreground py-8">Sem movimentos.</div>
+                )}
+                {paginatedMovements.map((m: any) => {
+                  const meta = movementLabel[m.type] || { label: m.type, color: 'bg-muted text-foreground' };
+                  return (
+                    <div key={m.id} className="p-3 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-muted-foreground whitespace-nowrap">{format(new Date(m.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <Badge variant="outline" className={cn('text-[10px]', meta.color)}>{meta.label}</Badge>
+                          {m.is_second_quality && (
+                            <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-300">2ª</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="font-medium text-foreground break-words">{m.article?.name || '—'}</div>
+                      <div className="text-muted-foreground break-words">{m.client?.name || '—'}</div>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-muted-foreground">OF: {m.billing_order?.of_number ? `#${m.billing_order.of_number}` : '—'}</span>
+                        <span className="tabular-nums"><span className="text-muted-foreground">Pç:</span> {formatNumber(m.pieces)} · <span className="text-muted-foreground">Kg:</span> {formatWeight(Number(m.weight_kg))}</span>
+                      </div>
+                      {m.reason && <div className="text-muted-foreground break-words"><span className="font-medium">Motivo:</span> {m.reason}</div>}
+                      <div className="text-muted-foreground">Autor: {m.author?.name ? `${m.author.name} #${m.author.code}` : '—'}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Desktop: table */}
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Data/Hora</TableHead>
