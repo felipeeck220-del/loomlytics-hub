@@ -734,35 +734,47 @@ const SHIFTS: ShiftType[] = ['manha', 'tarde', 'noite'];
  
        {/* Pagination */}
        {totalPages > 1 && (
-         <div className="flex items-center justify-center gap-2 py-4">
+         <div className="flex flex-nowrap items-center justify-center gap-1 sm:gap-2 py-4 px-2 w-full max-w-full overflow-hidden">
            <Button 
              variant="outline" 
              size="sm" 
              onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
              disabled={currentPage === 1}
+             className="px-2 sm:px-3 shrink-0"
            >
-             Anterior
+             <span className="sm:hidden">‹</span>
+             <span className="hidden sm:inline">Anterior</span>
            </Button>
-           <div className="flex items-center gap-1">
-             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-               <Button
-                 key={page}
-                 variant={currentPage === page ? "default" : "outline"}
-                 size="sm"
-                 className="w-8 h-8 p-0"
-                 onClick={() => setCurrentPage(page)}
-               >
-                 {page}
-               </Button>
-             ))}
+           <div className="flex items-center gap-1 min-w-0">
+             {(() => {
+               const maxVisible = 5;
+               let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+               let end = Math.min(totalPages, start + maxVisible - 1);
+               if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+               const pages = [];
+               for (let i = start; i <= end; i++) pages.push(i);
+               return pages.map(page => (
+                 <Button
+                   key={page}
+                   variant={currentPage === page ? "default" : "outline"}
+                   size="sm"
+                   className="w-8 h-8 p-0 shrink-0"
+                   onClick={() => setCurrentPage(page)}
+                 >
+                   {page}
+                 </Button>
+               ));
+             })()}
            </div>
            <Button 
              variant="outline" 
              size="sm" 
              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
              disabled={currentPage === totalPages}
+             className="px-2 sm:px-3 shrink-0"
            >
-             Próximo
+             <span className="sm:hidden">›</span>
+             <span className="hidden sm:inline">Próximo</span>
            </Button>
          </div>
        )}
