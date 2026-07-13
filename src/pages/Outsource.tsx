@@ -196,6 +196,7 @@ export default function Outsource() {
 
   // Lifted filter state so KPIs reflect filtered data
   const [filterMonth, setFilterMonth] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('productions');
   const [filterFrom, setFilterFrom] = useState<Date | undefined>(undefined);
   const [filterTo, setFilterTo] = useState<Date | undefined>(undefined);
 
@@ -266,7 +267,8 @@ export default function Outsource() {
         </p>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards - ocultos na aba Relatórios (tem KPIs próprios) */}
+      {activeTab !== 'reports' && (
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-4">
         <KpiCard icon={Package} label="Rolos" value={formatNumber(totals.totalRolls)} color="border-l-amber-500" />
         <KpiCard icon={Scale} label="Peso Total" value={formatWeight(totals.totalWeight)} color="border-l-orange-500" />
@@ -276,9 +278,10 @@ export default function Outsource() {
         <KpiCard icon={TrendingUp} label={`Lucro (${firstName})`} value={formatCurrency(totals.totalProfit)} color={totals.totalProfit >= 0 ? "border-l-primary" : "border-l-destructive"} />
         <KpiCard icon={TrendingUp} label="Prejuízos" value={formatCurrency(totals.totalLoss)} color="border-l-destructive" />
       </div>
+      )}
 
       {/* Tabs */}
-      <Tabs defaultValue="productions" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
          <TabsList className="w-full flex flex-wrap gap-1 h-auto sm:w-auto sm:inline-flex">
             <TabsTrigger value="productions" className="gap-1.5">
               <Package className="h-4 w-4" /> Produções
