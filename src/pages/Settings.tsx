@@ -932,11 +932,11 @@ export default function SettingsPage() {
           {/* Email Patterns - Compact */}
           <div className="card-glass p-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Padrões de Email por Função</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-3">
               {ROLES.map(r => (
                 <div key={r.value} className="rounded-lg border border-border bg-muted/20 p-3 text-center space-y-1.5">
                   <Badge className={`${r.color} text-xs`}>{r.label}</Badge>
-                  <p className="text-xs text-foreground font-mono">{r.value}@[nome].com</p>
+                  <p className="text-[11px] text-foreground font-mono break-all">{r.value}@[nome].com</p>
                 </div>
               ))}
             </div>
