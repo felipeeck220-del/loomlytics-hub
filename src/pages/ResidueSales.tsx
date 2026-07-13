@@ -669,12 +669,12 @@ export default function ResidueSales() {
         {/* ======= CLIENTES TAB ======= */}
         <TabsContent value="clients" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+              <CardTitle className="text-base flex items-center gap-2 min-w-0">
                 <Users className="h-4 w-4" /> Clientes de Resíduos
               </CardTitle>
-              <Button size="sm" onClick={openNewClient}>
-                <Plus className="h-4 w-4 mr-1" /> Novo Cliente
+              <Button size="sm" onClick={openNewClient} className="shrink-0">
+                <Plus className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Novo Cliente</span><span className="sm:hidden">Novo</span>
               </Button>
             </CardHeader>
             <CardContent>
@@ -690,15 +690,15 @@ export default function ResidueSales() {
                     return (
                       <Card key={c.id} className="border">
                         <div
-                          className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                          className="flex items-center justify-between gap-2 p-3 cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => setExpandedClientId(isExpanded ? null : c.id)}
                         >
-                          <div className="flex items-center gap-2">
-                            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                            <span className="font-medium">{c.name}</span>
-                            <Badge variant="outline" className="text-xs">{prices.length} {prices.length === 1 ? 'material' : 'materiais'}</Badge>
+                          <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+                            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                            <span className="font-medium break-words min-w-0">{c.name}</span>
+                            <Badge variant="outline" className="text-xs whitespace-nowrap shrink-0">{prices.length} {prices.length === 1 ? 'material' : 'materiais'}</Badge>
                           </div>
-                          <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditClient(c)}>
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
