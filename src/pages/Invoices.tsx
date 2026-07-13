@@ -1083,7 +1083,64 @@ export default function Invoices() {
                 ) : filteredInvoices.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma NF encontrada</div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                  {/* Mobile: card list */}
+                  <div className="md:hidden divide-y divide-border">
+                    {filteredInvoices.map(inv => {
+                      const items = invoiceItems.filter(it => it.invoice_id === inv.id);
+                      const yarnLabels = Array.from(new Set(items.map(it => it.yarn_type_name).filter(Boolean))).join(', ') || '—';
+                      const articleLabels = items.map(it => it.article_name).filter(Boolean).join(', ') || '—';
+                      return (
+                        <div key={inv.id} className="p-3 space-y-1.5 text-xs">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="font-semibold text-sm">NF #{inv.invoice_number}</span>
+                            <Badge className={cn('text-[10px]', STATUS_COLORS[inv.status])}>{STATUS_LABELS[inv.status]}</Badge>
+                          </div>
+                          <div className="break-words">
+                            <span className="text-muted-foreground">{tab === 'entrada' ? 'Fornecedor' : tab === 'saida_malha' ? 'Tinturaria' : 'Cliente'}:</span>{' '}
+                            {tab === 'saida_malha' ? (inv.destination_name || '—') : (inv.destination_name || inv.buyer_name || inv.client_name || '—')}
+                          </div>
+                          {(tab === 'entrada' || tab === 'venda_fio') && (
+                            <div className="break-words"><span className="text-muted-foreground">Tipo de Fio:</span> {yarnLabels}</div>
+                          )}
+                          {tab === 'saida_malha' && (
+                            <>
+                              <div className="break-words"><span className="text-muted-foreground">Artigo:</span> {articleLabels}</div>
+                              <div className="break-words"><span className="text-muted-foreground">Terceiros:</span> {inv.buyer_name || '—'}</div>
+                            </>
+                          )}
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="text-muted-foreground">{inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}</span>
+                            <span className="tabular-nums">
+                              <span className="text-muted-foreground">Peso:</span> {formatNumber(Number(inv.total_weight_kg), 2)} kg
+                              {canSeeFinancial && <> · <span className="text-muted-foreground">Valor:</span> {formatCurrency(Number(inv.total_value || 0))}</>}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-emerald-600 font-medium break-words">
+                            {inv.created_by_name ? `${inv.created_by_name}${inv.created_by_code ? ` #${inv.created_by_code}` : ''}` : '—'}
+                            {inv.created_at && <span className="ml-1 text-muted-foreground/70 font-normal">{format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}</span>}
+                          </div>
+                          <div className="flex items-center justify-end gap-1 pt-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleViewInvoice(inv)}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            {inv.status === 'pendente' && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-success" onClick={() => handleConfirmInvoice(inv)} title="Conferir">
+                                <FileText className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {inv.status !== 'cancelada' && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setCancelConfirmInvoice(inv)} title="Cancelar">
+                                <XCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Desktop: table */}
+                  <div className="hidden md:block overflow-x-auto">
                     <Table>
                       <TableHeader>
                          <TableRow>
@@ -1152,6 +1209,7 @@ export default function Invoices() {
                       </TableBody>
                     </Table>
                   </div>
+                  </>
                 )}
               </CardContent>
               {totalPages > 1 && (
