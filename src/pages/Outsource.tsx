@@ -1119,7 +1119,51 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
         ) : filteredProductions.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum resultado encontrado.</p>
         ) : (
-          <div className="overflow-auto">
+          <>
+          {/* Mobile: card list */}
+          <div className="md:hidden divide-y divide-border">
+            {paginatedProductions.map((p, idx) => {
+              const dateParts = p.date.split('-');
+              const dateStr = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : p.date;
+              const totalProfit = p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg);
+              return (
+                <div key={p.id || idx} className="p-3 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-medium">{dateStr}</span>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)}><Edit className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setProdDeleteConfirmId(p.id)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="font-semibold text-sm break-words">{p.outsource_company_name || 'Avulso'}</div>
+                  <div className="break-words"><span className="text-muted-foreground">Artigo:</span> {p.article_name || '—'}</div>
+                  <div className="break-words"><span className="text-muted-foreground">Cliente:</span> {p.client_name || '—'}</div>
+                  <div className="grid grid-cols-2 gap-1 pt-1">
+                    <div><div className="text-[10px] text-muted-foreground">Peso</div><div className="tabular-nums font-medium">{formatWeight(p.weight_kg)}</div></div>
+                    <div><div className="text-[10px] text-muted-foreground">Rolos</div><div className="tabular-nums font-medium">{p.rolls}</div></div>
+                    <div><div className="text-[10px] text-muted-foreground">R$/kg Cliente</div><div className="tabular-nums">{formatCurrency(p.client_value_per_kg)}</div></div>
+                    <div><div className="text-[10px] text-muted-foreground">R$/kg Repasse</div><div className="tabular-nums">{formatCurrency(p.outsource_value_per_kg)}</div></div>
+                    <div>
+                      <div className="text-[10px] text-muted-foreground">Lucro/kg</div>
+                      <Badge variant="outline" className={`whitespace-nowrap ${p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-100'}`}>{formatCurrency(p.profit_per_kg)}</Badge>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-muted-foreground">Lucro Total</div>
+                      <div className={cn('tabular-nums font-bold', totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive')}>{formatCurrency(totalProfit)}</div>
+                    </div>
+                  </div>
+                  <div className="break-words"><span className="text-muted-foreground">NF/ROM:</span> {p.nf_rom || '—'}</div>
+                  <div className="text-[10px] text-emerald-600 font-medium">
+                    {p.created_by_name ? `${p.created_by_name}${p.created_by_code ? ` #${p.created_by_code}` : ''}` : '—'}
+                    {p.created_at && <span className="ml-1 text-muted-foreground/70 font-normal">{format(new Date(p.created_at), 'dd/MM/yyyy HH:mm')}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="hidden md:block overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1186,6 +1230,7 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
               </TableBody>
             </Table>
           </div>
+          </>
         )}
  
         {/* Pagination */}
