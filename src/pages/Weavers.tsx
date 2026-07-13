@@ -877,8 +877,26 @@ function WeaverDefectsTab({ weavers, defectRecords, articles, machines }: { weav
               {renderGroupSection('Por Máquina', byMachine)}
               {renderGroupSection('Por Defeito', byDefect)}
 
-              {/* Detail table */}
-              <div className="overflow-auto max-h-[300px]">
+              {/* Detail — mobile cards */}
+              <div className="md:hidden space-y-2 max-h-[360px] overflow-y-auto">
+                {weaverDefects.map(d => (
+                  <div key={d.id} className="rounded-lg border p-3 space-y-1">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium">{format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                        <Badge variant="secondary" className="text-[10px]">{d.shift === 'manha' ? 'Manhã' : d.shift === 'tarde' ? 'Tarde' : 'Noite'}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{d.measure_type === 'kg' ? 'Kg' : 'Metro'}</Badge>
+                      </div>
+                      <span className="font-mono text-sm font-semibold">{formatNumber(d.measure_value)} {d.measure_type === 'kg' ? 'kg' : 'm'}</span>
+                    </div>
+                    <div className="text-xs"><span className="text-muted-foreground">Máquina: </span>{d.machine_name || '—'}</div>
+                    <div className="text-xs"><span className="text-muted-foreground">Artigo: </span>{d.article_name || '—'}</div>
+                    {d.observations && <div className="text-xs text-muted-foreground">Obs: {d.observations}</div>}
+                  </div>
+                ))}
+              </div>
+              {/* Detail table — desktop */}
+              <div className="hidden md:block overflow-auto max-h-[300px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
