@@ -1428,7 +1428,29 @@ export default function Invoices() {
           ) : (
             <Card>
               <CardContent className="p-0">
-                <Table>
+                {/* Mobile: card list */}
+                <div className="md:hidden divide-y divide-border">
+                  {yarnGlobalBalance.map(y => (
+                    <div key={y.yarnTypeId} className="p-3 space-y-1 text-xs">
+                      <div className="font-semibold text-sm break-words">{y.yarnTypeName}</div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Compra (mês)</span><span className="tabular-nums">{y.purchaseMonth > 0 ? formatWeight(y.purchaseMonth) : '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Consumido (mês)</span><span className="tabular-nums">{y.consumedMonth > 0 ? formatWeight(y.consumedMonth) : '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Vendas (mês)</span><span className="tabular-nums">{y.salesMonth > 0 ? formatWeight(y.salesMonth) : '—'}</span></div>
+                      <div className="flex justify-between font-bold"><span>Estoque (acum.)</span><span className={cn('tabular-nums', y.stockAccumulated < 0 ? 'text-destructive' : y.stockAccumulated === 0 ? 'text-muted-foreground' : 'text-success')}>
+                        {y.stockAccumulated !== 0 ? formatWeight(y.stockAccumulated) : '—'}
+                        {y.stockAccumulated < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
+                      </span></div>
+                    </div>
+                  ))}
+                  <div className="p-3 space-y-1 text-xs bg-muted/30 font-semibold">
+                    <div className="text-sm">TOTAL</div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Compra</span><span className="tabular-nums">{formatWeight(saldoGlobalKpis.purchase)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Consumido</span><span className="tabular-nums">{formatWeight(saldoGlobalKpis.consumed)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Vendas</span><span className="tabular-nums">{formatWeight(saldoGlobalKpis.sales)}</span></div>
+                    <div className="flex justify-between"><span>Estoque</span><span className={cn('tabular-nums', saldoGlobalKpis.stock < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(saldoGlobalKpis.stock)}</span></div>
+                  </div>
+                </div>
+                <Table className="hidden md:table">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-xs">Tipo de Fio</TableHead>
