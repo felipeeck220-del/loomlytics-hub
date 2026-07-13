@@ -509,7 +509,46 @@ export default function ClientInvoices() {
             return (
               <>
           <Card>
-            <Table>
+            {/* Mobile: card list */}
+            <div className="md:hidden divide-y divide-border">
+              {pageItems.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8 text-sm">Nenhuma nota encontrada.</div>
+              ) : pageItems.map(inv => {
+                const itemName = inv.items?.[0]
+                  ? (inv.type === 'entrada'
+                      ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name
+                      : allArticles.find(a => a.id === inv.items[0].article_id)?.name)
+                  : '-';
+                return (
+                  <div key={inv.id} className="p-3 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-semibold text-sm">NF {inv.invoice_number}</span>
+                      <Badge variant={inv.type === 'entrada' ? 'default' : 'outline'} className={cn('text-[10px]', inv.type === 'entrada' && 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20')}>
+                        {inv.type === 'entrada' ? 'Entrada Fio' : 'Saída Malha'}
+                      </Badge>
+                    </div>
+                    <div className="text-primary font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</div>
+                    <div className="break-words"><span className="text-muted-foreground">Cliente:</span> {allClients.find(c => c.id === inv.client_id)?.name || '—'}</div>
+                    <div className="break-words"><span className="text-muted-foreground">Item:</span> {itemName || '—'}</div>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="tabular-nums font-medium"><span className="text-muted-foreground font-normal">Peso:</span> {formatWeight(inv.items?.[0]?.weight_kg || 0)}</span>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditInvoice(inv)}>
+                          <Edit2 className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteInvoice(inv.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                    {inv.created_by_code && (
+                      <div className="text-[10px] text-muted-foreground italic">{inv.created_by_name} #{inv.created_by_code} · {format(new Date(inv.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Data</TableHead>
