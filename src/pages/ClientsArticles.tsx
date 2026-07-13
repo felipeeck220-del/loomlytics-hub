@@ -245,15 +245,16 @@ export default function ClientsArticles() {
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
         {!isExpedicao && (
-          <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="clients" className="flex items-center gap-2">
-              <Users className="h-4 w-4" /> Clientes
+          <TabsList className="w-full grid grid-cols-3 h-auto">
+            <TabsTrigger value="clients" className="flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 text-xs sm:text-sm whitespace-normal text-center min-w-0">
+              <Users className="h-4 w-4 shrink-0" /> <span className="truncate">Clientes</span>
             </TabsTrigger>
-            <TabsTrigger value="articles" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" /> Artigos
+            <TabsTrigger value="articles" className="flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 text-xs sm:text-sm whitespace-normal text-center min-w-0">
+              <Settings className="h-4 w-4 shrink-0" /> <span className="truncate">Artigos</span>
             </TabsTrigger>
-            <TabsTrigger value="production" className="flex items-center gap-2">
-              <Factory className="h-4 w-4" /> Artigos em Produção
+            <TabsTrigger value="production" className="flex items-center justify-center gap-1 sm:gap-2 px-1 sm:px-3 text-xs sm:text-sm whitespace-normal text-center leading-tight min-w-0">
+              <Factory className="h-4 w-4 shrink-0" />
+              <span className="truncate"><span className="sm:hidden">Em Produção</span><span className="hidden sm:inline">Artigos em Produção</span></span>
             </TabsTrigger>
           </TabsList>
         )}
