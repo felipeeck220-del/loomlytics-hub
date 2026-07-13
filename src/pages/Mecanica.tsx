@@ -3050,7 +3050,40 @@ export default function MecanicaPage() {
                   </div>
                   <Card>
                     <CardContent className="p-0">
-                      <div className="overflow-x-auto">
+                      {/* Mobile: card list (Agulhas Movimentações) */}
+                      <div className="md:hidden divide-y">
+                        {(() => {
+                          const sorted = [...needleTransactions].sort((a, b) => new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime());
+                          const start = (needleHistoryPage - 1) * NEEDLE_HISTORY_PER_PAGE;
+                          const pageItems = sorted.slice(start, start + NEEDLE_HISTORY_PER_PAGE);
+                          if (needleTransactions.length === 0) return <div className="p-6 text-center text-sm text-muted-foreground">Sem movimentações registradas</div>;
+                          return pageItems.map(t => {
+                            const needle = needles.find(n => n.id === t.needle_id);
+                            const machine = machines.find(m => m.id === t.machine_id);
+                            return (
+                              <div key={t.id} className="p-3 space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-sm font-medium">{format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}</span>
+                                    <Badge variant={t.type === 'entry' ? 'default' : 'destructive'} className="text-[10px] uppercase">{t.type === 'entry' ? 'Entrada' : t.exit_mode === 'troca_agulheiro' ? 'Troca' : 'Reposição'}</Badge>
+                                  </div>
+                                  <div className="text-right shrink-0"><div className="text-[10px] text-muted-foreground">Qtd</div><div className="font-bold">{t.quantity}</div></div>
+                                </div>
+                                <div className="text-xs"><span className="text-muted-foreground">Agulha: </span>{needle?.brand} ({needle?.reference_code})</div>
+                                <div className="text-xs"><span className="text-muted-foreground">Destino: </span>{machine?.name || '—'}</div>
+                                {(t.created_by_name || t.created_at) && (<div className="text-[10px] text-muted-foreground">{t.created_by_name || '—'}{t.created_at ? ` · ${format(new Date(t.created_at), 'dd/MM/yyyy HH:mm')}` : ''}</div>)}
+                                <div className="flex justify-end gap-1 pt-1">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditTxn(t); const kind: 'entry' | 'reposicao' | 'troca_agulheiro' = t.type === 'entry' ? 'entry' : (t.exit_mode === 'troca_agulheiro' ? 'troca_agulheiro' : 'reposicao'); setEditForm({ quantity: String(t.quantity), date: t.date, machine_id: t.machine_id || '', kind }); }}><Pencil className="h-4 w-4" /></Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-warning" onClick={() => setReverseTxnId(t.id)}><RotateCcw className="h-4 w-4" /></Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteTxnId(t.id)}><Trash2 className="h-4 w-4" /></Button>
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                      {/* Desktop: table */}
+                      <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b bg-muted/50 text-muted-foreground">
