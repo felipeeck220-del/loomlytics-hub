@@ -1224,8 +1224,8 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
               <TabsContent value="podio" className="mt-4 space-y-6">
                 <Card>
                   <CardHeader>
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div>
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                      <div className="min-w-0">
                         <CardTitle className="text-base flex items-center gap-2">
                           <Trophy className="h-4 w-4 text-amber-500" />
                           Pódio por Turno
@@ -1234,18 +1234,19 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                           Top 3 turnos somando eficiência, peças e peso produzido — {podioComputed.periodLabel}
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-primary text-primary hover:bg-primary/5"
+                          className="border-primary text-primary hover:bg-primary/5 flex-1 sm:flex-none text-xs sm:text-sm"
                           onClick={() => setIsDailyModalOpen(true)}
                         >
-                          <CalendarIcon className="h-4 w-4 mr-1" /> Exportar PDF Diário
+                          <CalendarIcon className="h-4 w-4 mr-1" /> <span className="sm:hidden">PDF Diário</span><span className="hidden sm:inline">Exportar PDF Diário</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
+                          className="flex-1 sm:flex-none text-xs sm:text-sm"
                           onClick={() => handlePodioExport(podioComputed, companyLogoUrl, companyName)}
                           disabled={podioComputed.ranking.length === 0}
                         >
@@ -1354,7 +1355,33 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
                             <Clock className="h-4 w-4 text-muted-foreground" />
                             Detalhamento por Dia
                           </p>
-                          <div className="border border-border rounded-lg overflow-hidden">
+                          {/* Mobile: cards */}
+                          <div className="md:hidden space-y-2">
+                            {podioComputed.daily.map(d => (
+                              <div key={d.date} className="rounded-lg border p-3 space-y-2">
+                                <div className="text-sm font-semibold">{format(new Date(d.date + 'T12:00:00'), 'dd/MM/yyyy (EEE)', { locale: ptBR })}</div>
+                                <div className="space-y-1.5">
+                                  {[0, 1, 2].map(i => {
+                                    const w = d.ranking[i];
+                                    const medal = ['🥇', '🥈', '🥉'][i];
+                                    return (
+                                      <div key={i} className="flex items-start justify-between gap-2 text-xs">
+                                        <div className="min-w-0 flex-1">
+                                          <div className="font-medium truncate">{medal} {w ? w.name : '—'}</div>
+                                          {w && (
+                                            <div className="text-muted-foreground">{formatNumber(w.rolos)} pç · {formatNumber(w.kg, 1)} kg</div>
+                                          )}
+                                        </div>
+                                        {w && <div className="font-bold shrink-0">{formatNumber(w.eficiencia, 1)}%</div>}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {/* Desktop: table */}
+                          <div className="hidden md:block border border-border rounded-lg overflow-hidden">
                             <table className="w-full text-sm">
                               <thead className="bg-muted/50">
                                 <tr className="text-left">
