@@ -1606,7 +1606,36 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
           <p className="text-center text-muted-foreground py-8">Nenhum registro encontrado para os filtros selecionados.</p>
         ) : (
           <>
-          <div className="overflow-x-auto">
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-border rounded-md border">
+            {paginatedFiltered.map(p => {
+              const totalLucro = p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg);
+              const dateFmt = (() => { const parts = p.date.split('-'); return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : p.date; })();
+              return (
+                <div key={p.id} className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground">{dateFmt}</div>
+                      <div className="font-medium truncate">{p.outsource_company_name || '—'}</div>
+                      <div className="text-xs text-muted-foreground truncate">{p.article_name || '—'} · {p.client_name || '—'}</div>
+                    </div>
+                    <Badge variant="outline" className={`whitespace-nowrap ${p.profit_per_kg >= 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-100 text-red-700 border-red-300'}`}>
+                      {formatCurrency(p.profit_per_kg)}/kg
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div><div className="text-[10px] text-muted-foreground">Peso</div><div className="tabular-nums font-medium">{formatWeight(p.weight_kg)}</div></div>
+                    <div><div className="text-[10px] text-muted-foreground">Rolos</div><div className="tabular-nums font-medium">{p.rolls}</div></div>
+                    <div className="text-right"><div className="text-[10px] text-muted-foreground">Lucro Total</div><div className={cn('tabular-nums font-bold', totalLucro >= 0 ? 'text-emerald-600' : 'text-destructive')}>{formatCurrency(totalLucro)}</div></div>
+                    <div><div className="text-[10px] text-muted-foreground">R$/kg Cliente</div><div className="tabular-nums">{formatCurrency(p.client_value_per_kg)}</div></div>
+                    <div><div className="text-[10px] text-muted-foreground">R$/kg Repasse</div><div className="tabular-nums">{formatCurrency(p.outsource_value_per_kg)}</div></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
