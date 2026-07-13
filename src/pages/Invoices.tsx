@@ -1314,7 +1314,27 @@ export default function Invoices() {
           ) : (
             <Card>
               <CardContent className="p-0">
-                <Table>
+                {/* Mobile: card list */}
+                <div className="md:hidden divide-y divide-border">
+                  {yarnBalance.map(row => (
+                    <div key={row.brand} className="p-3 space-y-1 text-xs">
+                      <div className="font-semibold text-sm break-words">{row.brand}</div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Recebido</span><span className="tabular-nums">{formatWeight(row.received)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Vendido</span><span className="tabular-nums">{formatWeight(row.sold)}</span></div>
+                      <div className="flex justify-between font-bold"><span>Saldo</span><span className={cn('tabular-nums', row.balance < 0 ? 'text-destructive' : row.balance === 0 ? 'text-muted-foreground' : 'text-success')}>
+                        {formatWeight(row.balance)}
+                        {row.balance < 0 && <Badge variant="destructive" className="ml-1 text-[9px] px-1 py-0">Alerta</Badge>}
+                      </span></div>
+                    </div>
+                  ))}
+                  <div className="p-3 space-y-1 text-xs bg-muted/30 font-semibold">
+                    <div className="text-sm">TOTAL</div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Recebido</span><span className="tabular-nums">{formatWeight(saldoKpis.received)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Vendido</span><span className="tabular-nums">{formatWeight(saldoKpis.sold)}</span></div>
+                    <div className="flex justify-between"><span>Saldo</span><span className={cn('tabular-nums', saldoKpis.balance < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(saldoKpis.balance)}</span></div>
+                  </div>
+                </div>
+                <Table className="hidden md:table">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-xs">Marca do Fio</TableHead>
