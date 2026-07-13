@@ -398,6 +398,31 @@ export function useFreightOrders() {
       const { error } = await (supabase.from as any)('freight_orders').update(updatePayload)
         .eq('id', id).in('status', ['pickup_in_progress','delivery_in_progress']);
       if (error) throw error;
+      // Push notification para admins ao finalizar OFR
+      try {
+        const { data: ord } = await (supabase.from as any)('freight_orders')
+          .select('ofr_number, pickup_location, delivery_location, freighter:freighters(name)')
+          .eq('id', id)
+          .maybeSingle();
+        const ofrNum = ord?.ofr_number;
+        const frtName = ord?.freighter?.name || 'Freteiro';
+        const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+        const targetPath = slug ? `/${slug}/ofr` : '/';
+        const kgStr = totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const message = `${ord?.pickup_location || ''} → ${ord?.delivery_location || ''} · ${kgStr} kg`;
+        supabase.functions.invoke('send-push-notification', {
+          body: {
+            company_id: user.company_id,
+            title: `OFR #${ofrNum} finalizada — ${frtName}`,
+            message,
+            url: targetPath,
+            include_admins: true,
+            source: 'OFR',
+            ref_id: id,
+            ref_number: `OFR #${ofrNum}`,
+          },
+        }).catch(() => { /* silencioso */ });
+      } catch { /* silencioso */ }
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_orders'] }); toast({ title: 'Entrega finalizada' }); },
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
