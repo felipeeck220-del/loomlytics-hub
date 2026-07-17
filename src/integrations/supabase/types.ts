@@ -1322,6 +1322,60 @@ export type Database = {
         }
         Relationships: []
       }
+      freight_addresses: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          created_by: string | null
+          full_address: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          full_address: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          full_address?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_addresses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_addresses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_cost_companies: {
         Row: {
           active: boolean
@@ -1483,6 +1537,7 @@ export type Database = {
           cost_company_name: string | null
           created_at: string
           created_by: string | null
+          delivery_address_id: string | null
           delivery_doc_number: string | null
           delivery_doc_type: string | null
           delivery_location: string
@@ -1494,6 +1549,7 @@ export type Database = {
           id: string
           observations: string | null
           ofr_number: string
+          pickup_address_id: string | null
           pickup_location: string
           pickup_started_at: string | null
           pickup_started_by: string | null
@@ -1511,6 +1567,7 @@ export type Database = {
           cost_company_name?: string | null
           created_at?: string
           created_by?: string | null
+          delivery_address_id?: string | null
           delivery_doc_number?: string | null
           delivery_doc_type?: string | null
           delivery_location: string
@@ -1522,6 +1579,7 @@ export type Database = {
           id?: string
           observations?: string | null
           ofr_number: string
+          pickup_address_id?: string | null
           pickup_location: string
           pickup_started_at?: string | null
           pickup_started_by?: string | null
@@ -1539,6 +1597,7 @@ export type Database = {
           cost_company_name?: string | null
           created_at?: string
           created_by?: string | null
+          delivery_address_id?: string | null
           delivery_doc_number?: string | null
           delivery_doc_type?: string | null
           delivery_location?: string
@@ -1550,6 +1609,7 @@ export type Database = {
           id?: string
           observations?: string | null
           ofr_number?: string
+          pickup_address_id?: string | null
           pickup_location?: string
           pickup_started_at?: string | null
           pickup_started_by?: string | null
@@ -1593,6 +1653,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "freight_orders_delivery_address_id_fkey"
+            columns: ["delivery_address_id"]
+            isOneToOne: false
+            referencedRelation: "freight_addresses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "freight_orders_delivery_started_by_fkey"
             columns: ["delivery_started_by"]
             isOneToOne: false
@@ -1604,6 +1671,13 @@ export type Database = {
             columns: ["freighter_id"]
             isOneToOne: false
             referencedRelation: "freighters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_orders_pickup_address_id_fkey"
+            columns: ["pickup_address_id"]
+            isOneToOne: false
+            referencedRelation: "freight_addresses"
             referencedColumns: ["id"]
           },
           {

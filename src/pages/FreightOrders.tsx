@@ -5,6 +5,7 @@ import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useFreightOrders, type FreightOrderStatus, type FreightOrder, type FreightOrderItem } from '@/hooks/useFreightOrders';
 import { generateFreightOrderPdf } from '@/lib/freightOrderPdf';
 import { FreightReportsTab } from '@/components/freight/FreightReportsTab';
+import { FreightAddressesModal, buildDirectionsUrl } from '@/components/freight/FreightAddressesModal';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil, Navigation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -87,10 +88,11 @@ export default function FreightOrders() {
   const yarnTypes = getYarnTypes();
   const { toast } = useToast();
   const {
-    orders, isLoading, freighters, costCompanies,
+    orders, isLoading, freighters, costCompanies, addresses,
     createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
+    createAddress, updateAddress, deleteAddress,
     getPhotoSignedUrl,
   } = useFreightOrders();
 
@@ -104,6 +106,7 @@ export default function FreightOrders() {
   const [editOrder, setEditOrder] = useState<FreightOrder | null>(null);
   const [freightersOpen, setFreightersOpen] = useState(false);
   const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
+  const [addressesOpen, setAddressesOpen] = useState(false);
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
   const [completeOrderId, setCompleteOrderId] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
@@ -174,6 +177,9 @@ export default function FreightOrders() {
               </Button>
               <Button variant="outline" onClick={() => setCostCompaniesOpen(true)} className="gap-2">
                 <Building2 className="h-4 w-4" /> Empresas
+              </Button>
+              <Button variant="outline" onClick={() => setAddressesOpen(true)} className="gap-2">
+                <MapPin className="h-4 w-4" /> Endereços
               </Button>
               <Button onClick={() => setNewOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" /> Nova OFR
@@ -284,6 +290,7 @@ export default function FreightOrders() {
           onOpenChange={setNewOpen}
           freighters={freighters}
           costCompanies={costCompanies}
+          addresses={addresses}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
@@ -297,6 +304,7 @@ export default function FreightOrders() {
           onOpenChange={(o) => !o && setEditOrder(null)}
           freighters={freighters}
           costCompanies={costCompanies}
+          addresses={addresses}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           mode="edit"
@@ -305,6 +313,8 @@ export default function FreightOrders() {
             cost_company_id: editOrder.cost_company_id || '',
             pickup_location: editOrder.pickup_location,
             delivery_location: editOrder.delivery_location,
+            pickup_address_id: editOrder.pickup_address_id || '',
+            delivery_address_id: editOrder.delivery_address_id || '',
             observations: editOrder.observations || '',
             delivery_doc_type: editOrder.delivery_doc_type || null,
             delivery_doc_number: editOrder.delivery_doc_number || '',
@@ -322,6 +332,17 @@ export default function FreightOrders() {
             updateOrder.mutate({ id: editOrder.id, ...payload }, { onSuccess: () => setEditOrder(null) });
           }}
           submitting={updateOrder.isPending}
+        />
+      )}
+
+      {hasFullAccess && (
+        <FreightAddressesModal
+          open={addressesOpen}
+          onOpenChange={setAddressesOpen}
+          addresses={addresses}
+          onCreate={(p) => createAddress.mutate(p)}
+          onUpdate={(p) => updateAddress.mutate(p)}
+          onDelete={(id) => deleteAddress.mutate(id)}
         />
       )}
 
@@ -495,6 +516,26 @@ function OrderCard({
             <Button variant="outline" size="sm" onClick={onDownload}>
               <Download className="h-4 w-4 mr-1.5" /> PDF
             </Button>
+            {(order.pickup_address || order.delivery_address) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-teal-500/60 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10"
+                onClick={() => {
+                  const url = buildDirectionsUrl(
+                    order.pickup_address
+                      ? { lat: order.pickup_address.latitude, lon: order.pickup_address.longitude, text: order.pickup_address.full_address }
+                      : { text: order.pickup_location },
+                    order.delivery_address
+                      ? { lat: order.delivery_address.latitude, lon: order.delivery_address.longitude, text: order.delivery_address.full_address }
+                      : { text: order.delivery_location },
+                  );
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
+              >
+                <Navigation className="h-4 w-4 mr-1.5" /> Abrir no GPS
+              </Button>
+            )}
 
             {order.status === 'open' && (isFreteiro || hasFullAccess) && (
               <Button size="sm" onClick={onStartPickup}>
@@ -530,17 +571,20 @@ function OrderCard({
 /* ---------------- Modals ---------------- */
 
 function NewOFRModal({
-  open, onOpenChange, freighters, costCompanies, articles, yarnTypes, onSubmit, submitting,
+  open, onOpenChange, freighters, costCompanies, addresses, articles, yarnTypes, onSubmit, submitting,
   mode = 'create', initial,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   freighters: Array<{ id: string; name: string; active: boolean }>;
   costCompanies: Array<{ id: string; name: string; active: boolean }>;
+  addresses: Array<{ id: string; name: string; full_address: string; active: boolean }>;
   articles: Array<{ id: string; name: string; client_name?: string }>;
   yarnTypes: Array<{ id: string; name: string }>;
   onSubmit: (p: {
     freighter_id: string; cost_company_id: string; pickup_location: string; delivery_location: string;
+    pickup_address_id?: string | null;
+    delivery_address_id?: string | null;
     observations?: string;
     delivery_doc_type?: 'nf' | 'rom' | null;
     delivery_doc_number?: string | null;
@@ -562,6 +606,8 @@ function NewOFRModal({
     cost_company_id: string;
     pickup_location: string;
     delivery_location: string;
+    pickup_address_id?: string;
+    delivery_address_id?: string;
     observations?: string | null;
     delivery_doc_type?: 'nf' | 'rom' | null;
     delivery_doc_number?: string | null;
@@ -577,8 +623,8 @@ function NewOFRModal({
 }) {
   const [freighterId, setFreighterId] = useState('');
   const [costCompanyId, setCostCompanyId] = useState('');
-  const [pickup, setPickup] = useState('');
-  const [delivery, setDelivery] = useState('');
+  const [pickupId, setPickupId] = useState('');
+  const [deliveryId, setDeliveryId] = useState('');
   const [obs, setObs] = useState('');
   const [docType, setDocType] = useState<'nf' | 'rom' | ''>('');
   const [docNumber, setDocNumber] = useState('');
@@ -599,8 +645,8 @@ function NewOFRModal({
       if (mode === 'edit' && initial) {
         setFreighterId(initial.freighter_id || '');
         setCostCompanyId(initial.cost_company_id || '');
-        setPickup(initial.pickup_location || '');
-        setDelivery(initial.delivery_location || '');
+        setPickupId(initial.pickup_address_id || '');
+        setDeliveryId(initial.delivery_address_id || '');
         setObs(initial.observations || '');
         setDocType((initial.delivery_doc_type as any) || '');
         setDocNumber(initial.delivery_doc_number || '');
@@ -608,7 +654,7 @@ function NewOFRModal({
           ? initial.items.map(i => ({ ...i }))
           : [{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
       } else {
-        setFreighterId(''); setCostCompanyId(''); setPickup(''); setDelivery(''); setObs('');
+        setFreighterId(''); setCostCompanyId(''); setPickupId(''); setDeliveryId(''); setObs('');
         setDocType(''); setDocNumber('');
         setItems([{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
       }
@@ -618,7 +664,11 @@ function NewOFRModal({
   const submit = () => {
     if (!freighterId) return toast({ title: 'Selecione o freteiro', variant: 'destructive' });
     if (!costCompanyId) return toast({ title: 'Selecione a empresa (Rateio de custo)', variant: 'destructive' });
-    if (!pickup.trim() || !delivery.trim()) return toast({ title: 'Preencha coleta e entrega', variant: 'destructive' });
+    if (!pickupId || !deliveryId) return toast({ title: 'Selecione coleta e entrega', variant: 'destructive' });
+    if (pickupId === deliveryId) return toast({ title: 'Coleta e entrega devem ser diferentes', variant: 'destructive' });
+    const pickupAddr = addresses.find(a => a.id === pickupId);
+    const deliveryAddr = addresses.find(a => a.id === deliveryId);
+    if (!pickupAddr || !deliveryAddr) return toast({ title: 'Endereço inválido', variant: 'destructive' });
     const cleaned = items
       .map(i => ({
         ...i,
@@ -633,8 +683,10 @@ function NewOFRModal({
     onSubmit({
       freighter_id: freighterId,
       cost_company_id: costCompanyId,
-      pickup_location: pickup.trim(),
-      delivery_location: delivery.trim(),
+      pickup_location: pickupAddr.name,
+      delivery_location: deliveryAddr.name,
+      pickup_address_id: pickupId,
+      delivery_address_id: deliveryId,
       observations: obs.trim() || undefined,
       delivery_doc_type: docType || null,
       delivery_doc_number: docNumber.trim() || null,
@@ -666,6 +718,9 @@ function NewOFRModal({
   const yarnOptions = yarnTypes.map(y => ({ value: y.id, label: y.name }));
   const freighterOptions = freighters.filter(f => f.active).map(f => ({ value: f.id, label: f.name }));
   const costCompanyOptions = costCompanies.filter(c => c.active).map(c => ({ value: c.id, label: c.name }));
+  const activeAddresses = addresses.filter(a => a.active);
+  const pickupOptions = activeAddresses.filter(a => a.id !== deliveryId).map(a => ({ value: a.id, label: a.name }));
+  const deliveryOptions = activeAddresses.filter(a => a.id !== pickupId).map(a => ({ value: a.id, label: a.name }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -690,11 +745,21 @@ function NewOFRModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Local de coleta *</Label>
-              <Input value={pickup} onChange={e => setPickup(e.target.value)} placeholder="Ex: TEAR / Tinturaria Litoral" />
+              <SearchableSelect
+                value={pickupId}
+                onValueChange={setPickupId}
+                options={pickupOptions}
+                placeholder={activeAddresses.length === 0 ? 'Cadastre em Endereços' : 'Selecione o local de coleta'}
+              />
             </div>
             <div>
               <Label>Local de entrega *</Label>
-              <Input value={delivery} onChange={e => setDelivery(e.target.value)} placeholder="Ex: Cliente XYZ" />
+              <SearchableSelect
+                value={deliveryId}
+                onValueChange={setDeliveryId}
+                options={deliveryOptions}
+                placeholder={activeAddresses.length === 0 ? 'Cadastre em Endereços' : 'Selecione o local de entrega'}
+              />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

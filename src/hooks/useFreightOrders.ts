@@ -32,6 +32,17 @@ export interface FreightCostCompany {
   created_at: string;
 }
 
+export interface FreightAddress {
+  id: string;
+  company_id: string;
+  name: string;
+  full_address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  active: boolean;
+  created_at: string;
+}
+
 export interface FreightOrderItem {
   id: string;
   freight_order_id: string;
@@ -67,6 +78,10 @@ export interface FreightOrder {
   cost_company_name?: string | null;
   pickup_location: string;
   delivery_location: string;
+  pickup_address_id?: string | null;
+  delivery_address_id?: string | null;
+  pickup_address?: FreightAddress | null;
+  delivery_address?: FreightAddress | null;
   observations?: string | null;
   status: FreightOrderStatus;
   created_by?: string | null;
@@ -129,6 +144,20 @@ export function useFreightOrders() {
     enabled: !!user?.company_id,
   });
 
+  const { data: addresses = [] } = useQuery({
+    queryKey: ['freight_addresses', user?.company_id],
+    queryFn: async () => {
+      if (!user?.company_id) return [];
+      const { data, error } = await (supabase.from as any)('freight_addresses')
+        .select('*')
+        .eq('company_id', user.company_id)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as FreightAddress[];
+    },
+    enabled: !!user?.company_id,
+  });
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['freight_orders', user?.company_id],
     queryFn: async () => {
@@ -138,6 +167,8 @@ export function useFreightOrders() {
           *,
           freighter:freighters(*),
           cost_company:freight_cost_companies(*),
+          pickup_address:freight_addresses!freight_orders_pickup_address_id_fkey(*),
+          delivery_address:freight_addresses!freight_orders_delivery_address_id_fkey(*),
           items:freight_order_items(*, article:articles(name, client_id, client_name)),
           photos:freight_order_photos(*),
           creator:profiles!freight_orders_created_by_fkey(name, code),
@@ -174,6 +205,10 @@ export function useFreightOrders() {
         queryClient.invalidateQueries({ queryKey: ['freight_cost_companies', user.company_id] });
         queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_addresses', filter: `company_id=eq.${user.company_id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['freight_addresses', user.company_id] });
+        queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.company_id, queryClient]);
@@ -197,6 +232,8 @@ export function useFreightOrders() {
       cost_company_id: string;
       pickup_location: string;
       delivery_location: string;
+      pickup_address_id?: string | null;
+      delivery_address_id?: string | null;
       observations?: string;
       delivery_doc_type?: 'nf' | 'rom' | null;
       delivery_doc_number?: string | null;
@@ -231,6 +268,8 @@ export function useFreightOrders() {
             cost_company_name: costCompanySnapshot?.name || null,
             pickup_location: payload.pickup_location,
             delivery_location: payload.delivery_location,
+            pickup_address_id: payload.pickup_address_id ?? null,
+            delivery_address_id: payload.delivery_address_id ?? null,
             observations: payload.observations || null,
             delivery_doc_type: payload.delivery_doc_type || null,
             delivery_doc_number: payload.delivery_doc_number || null,
@@ -310,6 +349,8 @@ export function useFreightOrders() {
       cost_company_id: string;
       pickup_location: string;
       delivery_location: string;
+      pickup_address_id?: string | null;
+      delivery_address_id?: string | null;
       observations?: string | null;
       delivery_doc_type?: 'nf' | 'rom' | null;
       delivery_doc_number?: string | null;
@@ -343,6 +384,8 @@ export function useFreightOrders() {
         cost_company_name: costCompanySnapshot?.name || null,
         pickup_location: payload.pickup_location,
         delivery_location: payload.delivery_location,
+        pickup_address_id: payload.pickup_address_id ?? null,
+        delivery_address_id: payload.delivery_address_id ?? null,
         observations: payload.observations || null,
         delivery_doc_type: payload.delivery_doc_type || null,
         delivery_doc_number: payload.delivery_doc_number || null,
@@ -580,11 +623,48 @@ export function useFreightOrders() {
     return data?.signedUrl || null;
   }
 
+  const createAddress = useMutation({
+    mutationFn: async (payload: { name: string; full_address: string; latitude?: number | null; longitude?: number | null }) => {
+      if (!user?.company_id) throw new Error('Sem empresa ativa');
+      const { error } = await (supabase.from as any)('freight_addresses').insert({
+        company_id: user.company_id,
+        name: payload.name.trim(),
+        full_address: payload.full_address.trim(),
+        latitude: payload.latitude ?? null,
+        longitude: payload.longitude ?? null,
+        created_by: profile?.id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_addresses'] }); toast({ title: 'Endereço cadastrado' }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const updateAddress = useMutation({
+    mutationFn: async (payload: { id: string; name?: string; full_address?: string; latitude?: number | null; longitude?: number | null; active?: boolean }) => {
+      const { id, ...rest } = payload;
+      const { error } = await (supabase.from as any)('freight_addresses').update(rest).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_addresses'] }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const deleteAddress = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from as any)('freight_addresses').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_addresses'] }); toast({ title: 'Endereço removido' }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
   return {
-    orders, isLoading, freighters, costCompanies,
+    orders, isLoading, freighters, costCompanies, addresses,
     createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
+    createAddress, updateAddress, deleteAddress,
     getPhotoSignedUrl,
   };
 }
