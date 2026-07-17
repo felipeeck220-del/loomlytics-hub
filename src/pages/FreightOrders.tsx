@@ -403,6 +403,68 @@ export default function FreightOrders() {
 
 /* ---------------- Cards ---------------- */
 
+function GpsPickerModal({
+  open, onOpenChange, pickup, delivery,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  pickup: { label: string; address: string; lat: number | null; lon: number | null };
+  delivery: { label: string; address: string; lat: number | null; lon: number | null };
+}) {
+  const openOne = (loc: { address: string; lat: number | null; lon: number | null }) => {
+    const dest = loc.lat != null && loc.lon != null ? `${loc.lat},${loc.lon}` : loc.address;
+    if (!dest) return;
+    const url = `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(dest)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    onOpenChange(false);
+  };
+  const Row = ({ tone, icon, title, loc }: { tone: string; icon: React.ReactNode; title: string; loc: typeof pickup }) => (
+    <button
+      type="button"
+      onClick={() => openOne(loc)}
+      className={cn(
+        'w-full text-left rounded-lg border p-3 transition-colors hover:bg-muted/50 flex items-start gap-3',
+        tone,
+      )}
+    >
+      <div className="mt-0.5 shrink-0">{icon}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{title}</div>
+        <div className="font-semibold truncate">{loc.label}</div>
+        <div className="text-xs text-muted-foreground break-words">{loc.address || '—'}</div>
+      </div>
+      <Navigation className="h-4 w-4 shrink-0 mt-1 opacity-70" />
+    </button>
+  );
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Abrir no GPS</DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground -mt-2">Escolha qual endereço abrir no aplicativo de navegação.</p>
+        <div className="space-y-2">
+          <Row
+            tone="border-sky-500/40 bg-sky-500/5"
+            icon={<MapPin className="h-5 w-5 text-sky-600 dark:text-sky-400" />}
+            title="Coleta"
+            loc={pickup}
+          />
+          <Row
+            tone="border-emerald-500/40 bg-emerald-500/5"
+            icon={<MapPin className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+            title="Entrega"
+            loc={delivery}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function OrderCard({
   order, hasFullAccess, isFreteiro,
   onStartPickup, onComplete, onCancel, onEdit, onDetails, onDownload,
@@ -422,6 +484,7 @@ function OrderCard({
   const totalBoxes = (order.items || []).reduce((s, i) => s + Number(i.boxes || 0), 0);
   const hasFio = (order.items || []).some(i => i.item_type === 'fio');
   const hasMalha = (order.items || []).some(i => i.item_type !== 'fio');
+  const [gpsOpen, setGpsOpen] = useState(false);
 
   const timer =
     (order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress')
@@ -521,17 +584,7 @@ function OrderCard({
                 variant="outline"
                 size="sm"
                 className="border-teal-500/60 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10"
-                onClick={() => {
-                  const url = buildDirectionsUrl(
-                    order.pickup_address
-                      ? { lat: order.pickup_address.latitude, lon: order.pickup_address.longitude, text: order.pickup_address.full_address }
-                      : { text: order.pickup_location },
-                    order.delivery_address
-                      ? { lat: order.delivery_address.latitude, lon: order.delivery_address.longitude, text: order.delivery_address.full_address }
-                      : { text: order.delivery_location },
-                  );
-                  window.open(url, '_blank', 'noopener,noreferrer');
-                }}
+                onClick={() => setGpsOpen(true)}
               >
                 <Navigation className="h-4 w-4 mr-1.5" /> Abrir no GPS
               </Button>
@@ -558,6 +611,23 @@ function OrderCard({
               </Button>
             )}
           </div>
+
+          <GpsPickerModal
+            open={gpsOpen}
+            onOpenChange={setGpsOpen}
+            pickup={{
+              label: order.pickup_address?.name || 'Coleta',
+              address: order.pickup_address?.full_address || order.pickup_location,
+              lat: order.pickup_address?.latitude ?? null,
+              lon: order.pickup_address?.longitude ?? null,
+            }}
+            delivery={{
+              label: order.delivery_address?.name || 'Entrega',
+              address: order.delivery_address?.full_address || order.delivery_location,
+              lat: order.delivery_address?.latitude ?? null,
+              lon: order.delivery_address?.longitude ?? null,
+            }}
+          />
         </div>
 
         {order.status === 'cancelled' && order.cancellation_reason && (
