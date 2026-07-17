@@ -315,63 +315,73 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      return 'Todo período';
    }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
-  const aggregatePodio = useCallback((rows: Production[]) => {
-    const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
-    rows.forEach(p => {
-      const key = p.shift || 'sem';
-      const name = companyShiftLabels[p.shift as ShiftType]?.split(' (')[0] || p.shift || 'Sem turno';
-      if (!map[key]) map[key] = { id: key, name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
-      map[key].rolos += p.rolls_produced;
-      map[key].kg += p.weight_kg;
-      if (p.rolls_produced > 0) {
-        map[key].effSum += p.efficiency * p.weight_kg;
-        map[key].effW += p.weight_kg;
-      }
-    });
-    return Object.values(map).map(w => ({
-      ...w,
-      eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
-    })).sort((a, b) => b.eficiencia - a.eficiencia);
-  }, [companyShiftLabels]);
-
-  // ---- PÓDIO: cálculo de ranking por turno ----
-  const podioComputed = useMemo(() => {
+  // ---- PÓDIO: janela ----
+  const podioRangeResolved = useMemo(() => {
     const today = new Date();
     let pFrom: string, pTo: string;
     if (podioRange === 'custom' && (podioFrom || podioTo)) {
       pFrom = podioFrom ? format(podioFrom, 'yyyy-MM-dd') : format(podioTo!, 'yyyy-MM-dd');
-      pTo = podioTo ? format(podioTo, 'yyyy-MM-dd') : format(podioFrom!, 'yyyy-MM-dd');
+      pTo   = podioTo   ? format(podioTo,   'yyyy-MM-dd') : format(podioFrom!, 'yyyy-MM-dd');
     } else if (podioRange === '1') {
       pFrom = format(today, 'yyyy-MM-dd');
-      pTo = pFrom;
+      pTo   = pFrom;
     } else {
       pFrom = format(subDays(today, 6), 'yyyy-MM-dd');
-      pTo = format(today, 'yyyy-MM-dd');
+      pTo   = format(today, 'yyyy-MM-dd');
     }
-    const list = productions.filter(p => p.date >= pFrom && p.date <= pTo);
+    return { pFrom, pTo };
+  }, [podioRange, podioFrom, podioTo]);
 
-    const ranking = aggregatePodio(list);
-
-    // dias do período
-    const dates: string[] = [];
-    {
-      const d0 = new Date(pFrom + 'T12:00:00');
-      const d1 = new Date(pTo + 'T12:00:00');
-      for (let d = new Date(d0); d <= d1; d.setDate(d.getDate() + 1)) {
-        dates.push(format(d, 'yyyy-MM-dd'));
+  // ---- PÓDIO: carrega ranking via RPC ----
+  useEffect(() => {
+    if (!dbCompanyId) return;
+    const { pFrom, pTo } = podioRangeResolved;
+    (async () => {
+      try {
+        const { data, error } = await (supabase.rpc as any)('get_reports_podio', {
+          p_company_id: dbCompanyId,
+          p_start_date: pFrom,
+          p_end_date:   pTo,
+        });
+        if (error) { console.error('get_reports_podio falhou:', error); return; }
+        setPodioData({
+          ranking: (data?.ranking || []).map((r: any) => ({
+            id: r.id,
+            name: companyShiftLabels[r.id as ShiftType]?.split(' (')[0] || r.id || 'Sem turno',
+            rolos: Number(r.rolos || 0),
+            kg: Number(r.kg || 0),
+            eficiencia: Number(r.eficiencia || 0),
+          })),
+          daily: (data?.daily || []).map((d: any) => ({
+            date: d.date,
+            ranking: (d.ranking || []).map((r: any) => ({
+              id: r.id,
+              name: companyShiftLabels[r.id as ShiftType]?.split(' (')[0] || r.id || 'Sem turno',
+              rolos: Number(r.rolos || 0),
+              kg: Number(r.kg || 0),
+              eficiencia: Number(r.eficiencia || 0),
+            })),
+          })),
+        });
+      } catch (err) {
+        console.error('Erro carregando pódio via RPC:', err);
       }
-    }
-    const daily = dates.map(date => ({
-      date,
-      ranking: aggregatePodio(list.filter(p => p.date === date)),
-    }));
+    })();
+  }, [dbCompanyId, podioRangeResolved, companyShiftLabels]);
 
+  const podioComputed = useMemo(() => {
+    const { pFrom, pTo } = podioRangeResolved;
     const label = pFrom === pTo
       ? format(new Date(pFrom + 'T12:00:00'), 'dd/MM/yyyy')
       : `${format(new Date(pFrom + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
-
-    return { ranking, daily, periodLabel: label, from: pFrom, to: pTo };
-  }, [productions, podioRange, podioFrom, podioTo, aggregatePodio]);
+    return {
+      ranking: podioData?.ranking || [],
+      daily:   podioData?.daily   || [],
+      periodLabel: label,
+      from: pFrom,
+      to: pTo,
+    };
+  }, [podioData, podioRangeResolved]);
 
   return (
     <div className="space-y-6 animate-fade-in">
