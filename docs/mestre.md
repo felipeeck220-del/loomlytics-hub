@@ -1345,6 +1345,8 @@ Usado no header (AppLayout) para badge de turno e no Dashboard para highlight.
 
 > Ordem: mais recente no topo. Toda nova entrada deve ser adicionada **logo abaixo deste aviso**, mantendo a ordem cronológica decrescente.
 
+- **17/07/2026 (Brasília)** — **Pente fino OFR + Mecânica:** Corrigidos dois problemas nas atualizações recentes: (1) `useFreightOrders.updateOrder` agora usa `.select('id')` no update guardado por `status='open'` — se a OFR mudar de status durante a edição (freteiro inicia a coleta em paralelo) o hook lança erro claro em vez de silenciosamente aceitar 0 linhas afetadas; (2) `NewOFRModal` em modo edição de OFRs legadas (sem `pickup_address_id`/`delivery_address_id`) agora tenta casar coleta/entrega por nome com os endereços cadastrados, evitando o erro "Selecione coleta e entrega" ao editar registros antigos. Arquivos: `src/hooks/useFreightOrders.ts`, `src/pages/FreightOrders.tsx`.
+
 - **11/07/2026 20:45 (Brasília)** — **Clientes & Artigos — Expedição vê só "Artigos em Produção":** Para o role `expedicao`, ocultadas as abas "Clientes" e "Artigos" (a `TabsList` inteira não é renderizada) e os botões "Novo Cliente" / "Novo Artigo" do header. A tab default para expedição já entra em `production`. Arquivo: `src/pages/ClientsArticles.tsx`.
 
 - **11/07/2026 20:35 (Brasília)** — **Sidebar > Expedição — Acesso a "Clientes & Artigos":** Adicionada a chave `clients-articles` ao role `expedicao` em `ROLE_ALLOWED_KEYS`, permitindo que usuários de expedição vejam o item no sidebar e acessem a página Clientes & Artigos (incluindo a sub-aba "Artigos em Produção"). Arquivo: `src/hooks/usePermissions.ts`.
