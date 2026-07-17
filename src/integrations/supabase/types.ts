@@ -5166,6 +5166,26 @@ export type Database = {
           total_weight: number
         }[]
       }
+      get_reports_available_months: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
+      get_reports_metrics: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_end_date: string
+          p_machine_id?: string
+          p_shift?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      get_reports_podio: {
+        Args: { p_company_id: string; p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
       get_user_companies: {
         Args: never
         Returns: {

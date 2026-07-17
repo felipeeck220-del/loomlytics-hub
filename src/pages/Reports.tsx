@@ -108,196 +108,182 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
    const [byClient, setByClient] = useState<any[]>([]);
    const [byArticle, setByArticle] = useState<any[]>([]);
    const [evolutionData, setEvolutionData] = useState<any[]>([]);
+   const [availableMonthsRpc, setAvailableMonthsRpc] = useState<string[] | null>(null);
+   const [podioData, setPodioData] = useState<{ ranking: any[]; daily: any[] } | null>(null);
  
    const hasActiveFilters = filterShift !== 'all' || filterClient !== 'all' || filterArticle !== 'all' || filterMachine !== 'all' || filterMonth !== 'all' || !!dateFrom || !!dateTo || !!customDate;
  
+    // Meses disponíveis via RPC (fallback para productions do contexto)
+    useEffect(() => {
+      if (!dbCompanyId) return;
+      (async () => {
+        try {
+          const { data, error } = await (supabase.rpc as any)('get_reports_available_months', { p_company_id: dbCompanyId });
+          if (error) throw error;
+          const months = new Set<string>((data || []).map((m: any) => m.month_str));
+          months.add(format(new Date(), 'yyyy-MM'));
+          setAvailableMonthsRpc(Array.from(months).sort().reverse());
+        } catch (err) {
+          console.error('get_reports_available_months falhou:', err);
+        }
+      })();
+    }, [dbCompanyId]);
+
     const availableMonths = useMemo(() => {
+      if (availableMonthsRpc) return availableMonthsRpc;
       const months = new Set(productions.map(p => p.date.substring(0, 7)));
       months.add(format(new Date(), 'yyyy-MM'));
       return Array.from(months).sort().reverse();
-    }, [productions]);
+    }, [availableMonthsRpc, productions]);
 
-    useEffect(() => {
-      if (!dbCompanyId || productions.length === 0) return;
-      setLoading(true);
-      
+    // Range de datas efetivo (aplicado tanto na RPC quanto na fatia local usada no export)
+    const effectiveRange = useMemo(() => {
       const today = new Date();
       let dFrom = dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined;
-      let dTo = dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined;
-
+      let dTo   = dateTo   ? format(dateTo,   'yyyy-MM-dd') : undefined;
       if (!dFrom && !dTo) {
         if (filterMonth !== 'all') {
           const [year, month] = filterMonth.split('-').map(Number);
           dFrom = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
-          dTo = format(new Date(year, month, 0), 'yyyy-MM-dd');
+          dTo   = format(new Date(year, month, 0),     'yyyy-MM-dd');
         } else if (customDate) {
           dFrom = format(customDate, 'yyyy-MM-dd');
-          dTo = dFrom;
+          dTo   = dFrom;
         } else if (dayRange > 0) {
           dFrom = format(subDays(today, dayRange - 1), 'yyyy-MM-dd');
-          dTo = format(today, 'yyyy-MM-dd');
+          dTo   = format(today, 'yyyy-MM-dd');
         }
       }
+      return { dFrom, dTo };
+    }, [dateFrom, dateTo, filterMonth, customDate, dayRange]);
 
-      let filtered = [...productions];
-      if (dFrom) filtered = filtered.filter(p => p.date >= dFrom!);
-      if (dTo) filtered = filtered.filter(p => p.date <= dTo!);
-      if (filterShift !== 'all') filtered = filtered.filter(p => p.shift === filterShift);
+    // Fatia local só para o payload de exportação (kpis.filteredProductions)
+    const filteredForExport = useMemo(() => {
+      const { dFrom, dTo } = effectiveRange;
+      let filtered = productions;
+      if (dFrom) filtered = filtered.filter(p => p.date >= dFrom);
+      if (dTo)   filtered = filtered.filter(p => p.date <= dTo);
+      if (filterShift   !== 'all') filtered = filtered.filter(p => p.shift === filterShift);
       if (filterMachine !== 'all') filtered = filtered.filter(p => p.machine_id === filterMachine);
-      if (filterClient !== 'all') {
-        const clientArticles = articles.filter(a => a.client_id === filterClient).map(a => a.id);
-        filtered = filtered.filter(p => clientArticles.includes(p.article_id));
+      if (filterClient  !== 'all') {
+        const clientArticleIds = new Set(articles.filter(a => a.client_id === filterClient).map(a => a.id));
+        filtered = filtered.filter(p => clientArticleIds.has(p.article_id));
       }
       if (filterArticle !== 'all') filtered = filtered.filter(p => p.article_id === filterArticle);
+      return filtered;
+    }, [productions, effectiveRange, filterShift, filterMachine, filterClient, filterArticle, articles]);
 
-      const total_rolls = filtered.reduce((acc, p) => acc + p.rolls_produced, 0);
-      const total_weight = filtered.reduce((acc, p) => acc + p.weight_kg, 0);
-      const total_revenue = filtered.reduce((acc, p) => acc + p.revenue, 0);
-      const active_days = new Set(filtered.map(p => p.date)).size;
-      
-      const nonZeroEff = filtered.filter(p => p.rolls_produced > 0);
-      const totalWeightForEff = nonZeroEff.reduce((acc, p) => acc + p.weight_kg, 0);
-      const avg_efficiency = totalWeightForEff > 0 
-        ? nonZeroEff.reduce((acc, p) => acc + (p.efficiency * p.weight_kg), 0) / totalWeightForEff
-        : 0;
-
-      setKpis({ total_rolls, total_weight, total_revenue, active_days, avg_efficiency, filteredProductions: filtered });
-
-      const shiftMap: Record<string, any> = {};
-      ['manha', 'tarde', 'noite'].forEach(s => {
-        const sf = filtered.filter(p => p.shift === s);
-        const sWeight = sf.reduce((acc, p) => acc + p.weight_kg, 0);
-        const sNonZeroEff = sf.filter(p => p.rolls_produced > 0);
-        const sWeightForEff = sNonZeroEff.reduce((acc, p) => acc + p.weight_kg, 0);
-        const sEff = sWeightForEff > 0 ? sNonZeroEff.reduce((acc, p) => acc + (p.efficiency * p.weight_kg), 0) / sWeightForEff : 0;
-        
-        shiftMap[s] = {
-          shift: s,
-          name: companyShiftLabels[s as ShiftType] || s,
-          rolos: sf.reduce((acc, p) => acc + p.rolls_produced, 0),
-          kg: sWeight,
-          faturamento: sf.reduce((acc, p) => acc + p.revenue, 0),
-          eficiencia: sEff,
-          pct_rolls: total_rolls > 0 ? (sf.reduce((acc, p) => acc + p.rolls_produced, 0) / total_rolls) * 100 : 0,
-          pct_revenue: total_revenue > 0 ? (sf.reduce((acc, p) => acc + p.revenue, 0) / total_revenue) * 100 : 0,
-        };
-      });
-      setByShift(Object.values(shiftMap));
-
-      const machineMap: Record<string, any> = {};
-      filtered.forEach(p => {
-        const key = p.machine_id || p.machine_name;
-        if (!machineMap[key]) machineMap[key] = { 
-          machineId: p.machine_id,
-          name: p.machine_name, 
-          rolos: 0, 
-          kg: 0, 
-          faturamento: 0, 
-          efficiencySum: 0, 
-          weightForEff: 0, 
-          records: 0,
-          articles: new Set(),
-          articleIds: new Set()
-        };
-        machineMap[key].rolos += p.rolls_produced;
-        machineMap[key].kg += p.weight_kg;
-        machineMap[key].faturamento += p.revenue;
-        machineMap[key].records += 1;
-        if (p.article_name) machineMap[key].articles.add(p.article_name);
-        if (p.article_id) machineMap[key].articleIds.add(p.article_id);
-        if (p.rolls_produced > 0) {
-          machineMap[key].efficiencySum += (p.efficiency * p.weight_kg);
-          machineMap[key].weightForEff += p.weight_kg;
-        }
-      });
-      setByMachine(Object.values(machineMap).map((m: any) => {
-        const artIds = Array.from(m.articleIds);
-        const artObjs = artIds.map(id => articles.find(a => a.id === id)).filter(Boolean);
-        const avgTargetEff = artObjs.length > 0 
-          ? artObjs.reduce((acc, a) => acc + (a?.target_efficiency || 80), 0) / artObjs.length 
-          : 80;
-
-        return {
-          ...m,
-          eficiencia: m.weightForEff > 0 ? m.efficiencySum / m.weightForEff : 0,
-          targetEfficiency: avgTargetEff,
-          pct_rolls: total_rolls > 0 ? (m.rolos / total_rolls) * 100 : 0,
-          pct_revenue: total_revenue > 0 ? (m.faturamento / total_revenue) * 100 : 0,
-          articleNames: Array.from(m.articles).join(', ')
-        };
-      }).sort((a, b) => {
-        // Sort by machine number if possible, then by name
-        const numA = parseInt(a.name.replace(/\D/g, ''));
-        const numB = parseInt(b.name.replace(/\D/g, ''));
-        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
-      }));
-
-      const clientMap: Record<string, any> = {};
-      filtered.forEach(p => {
-        const art = articles.find(a => a.id === p.article_id);
-        const clientName = art?.client_name || 'Diversos';
-        if (!clientMap[clientName]) clientMap[clientName] = { name: clientName, rolos: 0, kg: 0, faturamento: 0 };
-        clientMap[clientName].rolos += p.rolls_produced;
-        clientMap[clientName].kg += p.weight_kg;
-        clientMap[clientName].faturamento += p.revenue;
-      });
-      setByClient(Object.values(clientMap).map((c: any) => ({
-        ...c,
-        pct_rolls: total_rolls > 0 ? (c.rolos / total_rolls) * 100 : 0,
-        pct_kg: total_weight > 0 ? (c.kg / total_weight) * 100 : 0,
-        pct_revenue: total_revenue > 0 ? (c.faturamento / total_revenue) * 100 : 0,
-      })).sort((a, b) => b.kg - a.kg));
-
-      const articleMap: Record<string, any> = {};
-      filtered.forEach(p => {
-        const name = p.article_name;
-        if (!articleMap[name]) {
-          const art = articles.find(a => a.id === p.article_id);
-          articleMap[name] = {
-            id: p.article_id || name,
-            name,
-            clientName: art?.client_name || '',
-            rolos: 0,
-            kg: 0,
-            faturamento: 0,
-            records: 0,
-            efficiencySum: 0,
-            weightForEff: 0,
+    // Carrega métricas via RPC — mesmo padrão de FaturamentoTotal
+    useEffect(() => {
+      if (!dbCompanyId) return;
+      const { dFrom, dTo } = effectiveRange;
+      setLoading(true);
+      (async () => {
+        try {
+          const params: any = {
+            p_company_id: dbCompanyId,
+            p_start_date: dFrom ?? null,
+            p_end_date:   dTo   ?? null,
+            p_shift:      filterShift   !== 'all' ? filterShift   : null,
+            p_machine_id: filterMachine !== 'all' ? filterMachine : null,
+            p_client_id:  filterClient  !== 'all' ? filterClient  : null,
+            p_article_id: filterArticle !== 'all' ? filterArticle : null,
           };
-        }
-        articleMap[name].rolos += p.rolls_produced;
-        articleMap[name].kg += p.weight_kg;
-        articleMap[name].faturamento += p.revenue;
-        articleMap[name].records += 1;
-        if (p.rolls_produced > 0) {
-          articleMap[name].efficiencySum += (p.efficiency * p.weight_kg);
-          articleMap[name].weightForEff += p.weight_kg;
-        }
-      });
-      setByArticle(Object.values(articleMap).map((a: any) => ({
-        ...a,
-        eficiencia: a.weightForEff > 0 ? a.efficiencySum / a.weightForEff : 0,
-        targetEfficiency: avgTargetEfficiency,
-        pct_rolls: total_rolls > 0 ? (a.rolos / total_rolls) * 100 : 0,
-        pct_kg: total_weight > 0 ? (a.kg / total_weight) * 100 : 0,
-        pct_revenue: total_revenue > 0 ? (a.faturamento / total_revenue) * 100 : 0,
-      })).sort((a, b) => b.kg - a.kg));
+          const { data, error } = await (supabase.rpc as any)('get_reports_metrics', params);
+          if (error) {
+            console.error('get_reports_metrics falhou:', error);
+            return;
+          }
+          const payload = data || {};
+          const k = payload.kpis || {};
 
-      const evolutionMap: Record<string, any> = {};
-      filtered.forEach(p => {
-        if (!evolutionMap[p.date]) evolutionMap[p.date] = { date: p.date, rolos: 0, kg: 0, faturamento: 0 };
-        evolutionMap[p.date].rolos += p.rolls_produced;
-        evolutionMap[p.date].kg += p.weight_kg;
-        evolutionMap[p.date].faturamento += p.revenue;
-      });
-      setEvolutionData(Object.values(evolutionMap).sort((a: any, b: any) => a.date.localeCompare(b.date)).map((d: any) => ({
-        ...d,
-        date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
-      })));
+          setKpis({
+            total_rolls:    Number(k.total_rolls    || 0),
+            total_weight:   Number(k.total_weight   || 0),
+            total_revenue:  Number(k.total_revenue  || 0),
+            active_days:    Number(k.active_days    || 0),
+            avg_efficiency: Number(k.avg_efficiency || 0),
+            filteredProductions: filteredForExport,
+          });
 
-      setLoading(false);
-    }, [dbCompanyId, productions, dateFrom, dateTo, filterMonth, customDate, dayRange, filterShift, filterMachine, filterClient, filterArticle, companyShiftLabels, articles]);
+          // by_shift — enriquece com label da empresa
+          setByShift((payload.by_shift || []).map((s: any) => ({
+            shift: s.shift,
+            name: companyShiftLabels[s.shift as ShiftType] || s.shift,
+            rolos: Number(s.rolos || 0),
+            kg: Number(s.kg || 0),
+            faturamento: Number(s.faturamento || 0),
+            eficiencia: Number(s.eficiencia || 0),
+            pct_rolls: Number(s.pct_rolls || 0),
+            pct_revenue: Number(s.pct_revenue || 0),
+          })));
+
+          // by_machine — enriquece com target_efficiency e ordena por número
+          const machineRows = (payload.by_machine || []).map((m: any) => {
+            const artIds: string[] = Array.isArray(m.article_ids) ? m.article_ids : [];
+            const artObjs = artIds.map(id => articles.find(a => a.id === id)).filter(Boolean) as any[];
+            const avgTargetEff = artObjs.length > 0
+              ? artObjs.reduce((acc, a) => acc + (a?.target_efficiency || 80), 0) / artObjs.length
+              : 80;
+            const machineFromCtx = m.machine_id ? machines.find(x => x.id === m.machine_id) : null;
+            const displayName = m.name || machineFromCtx?.name || '';
+            return {
+              machineId: m.machine_id,
+              name: displayName,
+              rolos: Number(m.rolos || 0),
+              kg: Number(m.kg || 0),
+              faturamento: Number(m.faturamento || 0),
+              eficiencia: Number(m.eficiencia || 0),
+              targetEfficiency: avgTargetEff,
+              pct_rolls: Number(m.pct_rolls || 0),
+              pct_revenue: Number(m.pct_revenue || 0),
+              articleNames: m.article_names || '',
+            };
+          }).sort((a: any, b: any) => {
+            const numA = parseInt((a.name || '').replace(/\D/g, ''));
+            const numB = parseInt((b.name || '').replace(/\D/g, ''));
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' });
+          });
+          setByMachine(machineRows);
+
+          setByClient((payload.by_client || []).map((c: any) => ({
+            name: c.name,
+            rolos: Number(c.rolos || 0),
+            kg: Number(c.kg || 0),
+            faturamento: Number(c.faturamento || 0),
+            pct_rolls: Number(c.pct_rolls || 0),
+            pct_kg: Number(c.pct_kg || 0),
+            pct_revenue: Number(c.pct_revenue || 0),
+          })));
+
+          setByArticle((payload.by_article || []).map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            clientName: a.client_name || '',
+            rolos: Number(a.rolos || 0),
+            kg: Number(a.kg || 0),
+            faturamento: Number(a.faturamento || 0),
+            eficiencia: Number(a.eficiencia || 0),
+            targetEfficiency: avgTargetEfficiency,
+            pct_rolls: Number(a.pct_rolls || 0),
+            pct_kg: Number(a.pct_kg || 0),
+            pct_revenue: Number(a.pct_revenue || 0),
+          })));
+
+          setEvolutionData((payload.evolution || []).map((d: any) => ({
+            date: format(new Date(d.date + 'T12:00:00'), 'dd/MM', { locale: ptBR }),
+            rolos: Number(d.rolos || 0),
+            kg: Number(d.kg || 0),
+            faturamento: Number(d.faturamento || 0),
+          })));
+        } catch (err) {
+          console.error('Erro carregando relatórios via RPC:', err);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }, [dbCompanyId, effectiveRange, filterShift, filterMachine, filterClient, filterArticle, companyShiftLabels, articles, machines, filteredForExport]);
   const clearFilters = () => {
      setDayRange(30); setFilterMonth('all');
     setCustomDate(undefined);
@@ -329,6 +315,7 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
      return 'Todo período';
    }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
+  // ---- PÓDIO: janela ----
   const aggregatePodio = useCallback((rows: Production[]) => {
     const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
     rows.forEach(p => {
@@ -348,44 +335,72 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
     })).sort((a, b) => b.eficiencia - a.eficiencia);
   }, [companyShiftLabels]);
 
-  // ---- PÓDIO: cálculo de ranking por turno ----
-  const podioComputed = useMemo(() => {
+  const podioRangeResolved = useMemo(() => {
     const today = new Date();
     let pFrom: string, pTo: string;
     if (podioRange === 'custom' && (podioFrom || podioTo)) {
       pFrom = podioFrom ? format(podioFrom, 'yyyy-MM-dd') : format(podioTo!, 'yyyy-MM-dd');
-      pTo = podioTo ? format(podioTo, 'yyyy-MM-dd') : format(podioFrom!, 'yyyy-MM-dd');
+      pTo   = podioTo   ? format(podioTo,   'yyyy-MM-dd') : format(podioFrom!, 'yyyy-MM-dd');
     } else if (podioRange === '1') {
       pFrom = format(today, 'yyyy-MM-dd');
-      pTo = pFrom;
+      pTo   = pFrom;
     } else {
       pFrom = format(subDays(today, 6), 'yyyy-MM-dd');
-      pTo = format(today, 'yyyy-MM-dd');
+      pTo   = format(today, 'yyyy-MM-dd');
     }
-    const list = productions.filter(p => p.date >= pFrom && p.date <= pTo);
+    return { pFrom, pTo };
+  }, [podioRange, podioFrom, podioTo]);
 
-    const ranking = aggregatePodio(list);
-
-    // dias do período
-    const dates: string[] = [];
-    {
-      const d0 = new Date(pFrom + 'T12:00:00');
-      const d1 = new Date(pTo + 'T12:00:00');
-      for (let d = new Date(d0); d <= d1; d.setDate(d.getDate() + 1)) {
-        dates.push(format(d, 'yyyy-MM-dd'));
+  // ---- PÓDIO: carrega ranking via RPC ----
+  useEffect(() => {
+    if (!dbCompanyId) return;
+    const { pFrom, pTo } = podioRangeResolved;
+    (async () => {
+      try {
+        const { data, error } = await (supabase.rpc as any)('get_reports_podio', {
+          p_company_id: dbCompanyId,
+          p_start_date: pFrom,
+          p_end_date:   pTo,
+        });
+        if (error) { console.error('get_reports_podio falhou:', error); return; }
+        setPodioData({
+          ranking: (data?.ranking || []).map((r: any) => ({
+            id: r.id,
+            name: companyShiftLabels[r.id as ShiftType]?.split(' (')[0] || r.id || 'Sem turno',
+            rolos: Number(r.rolos || 0),
+            kg: Number(r.kg || 0),
+            eficiencia: Number(r.eficiencia || 0),
+          })),
+          daily: (data?.daily || []).map((d: any) => ({
+            date: d.date,
+            ranking: (d.ranking || []).map((r: any) => ({
+              id: r.id,
+              name: companyShiftLabels[r.id as ShiftType]?.split(' (')[0] || r.id || 'Sem turno',
+              rolos: Number(r.rolos || 0),
+              kg: Number(r.kg || 0),
+              eficiencia: Number(r.eficiencia || 0),
+            })),
+          })),
+        });
+      } catch (err) {
+        console.error('Erro carregando pódio via RPC:', err);
       }
-    }
-    const daily = dates.map(date => ({
-      date,
-      ranking: aggregatePodio(list.filter(p => p.date === date)),
-    }));
+    })();
+  }, [dbCompanyId, podioRangeResolved, companyShiftLabels]);
 
+  const podioComputed = useMemo(() => {
+    const { pFrom, pTo } = podioRangeResolved;
     const label = pFrom === pTo
       ? format(new Date(pFrom + 'T12:00:00'), 'dd/MM/yyyy')
       : `${format(new Date(pFrom + 'T12:00:00'), 'dd/MM/yyyy')} a ${format(new Date(pTo + 'T12:00:00'), 'dd/MM/yyyy')}`;
-
-    return { ranking, daily, periodLabel: label, from: pFrom, to: pTo };
-  }, [productions, podioRange, podioFrom, podioTo, aggregatePodio]);
+    return {
+      ranking: podioData?.ranking || [],
+      daily:   podioData?.daily   || [],
+      periodLabel: label,
+      from: pFrom,
+      to: pTo,
+    };
+  }, [podioData, podioRangeResolved]);
 
   return (
     <div className="space-y-6 animate-fade-in">
