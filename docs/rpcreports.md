@@ -1,80 +1,105 @@
-# 📊 RPCREPORTS.MD — Documentação de RPCs para Relatórios (Reports)
+# RPCREPORTS.MD — RPCs de Relatórios (padrão FaturamentoTotal)
 
-Este documento detalha os cálculos realizados no front-end do módulo de Relatórios (`src/pages/Reports.tsx`). Ao criar RPCs para substituir esses cálculos, **os algoritmos e lógicas devem se manter exatamente os mesmos**, garantindo consistência nos dados.
+Reformulado para replicar o padrão que já funcionou em `FaturamentoTotal.tsx` /
+`get_faturamento_total_metrics`: **uma única RPC** que devolve todo o payload
+necessário como `JSON`, `LANGUAGE plpgsql`, `STABLE`, `SECURITY DEFINER`,
+`SET search_path = public`, `GRANT EXECUTE ... TO anon, authenticated, service_role`.
 
-## 📌 Diretrizes Gerais
-- **NÃO MUDAR NADA:** Os cálculos atuais foram validados e devem ser replicados no SQL (PL/pgSQL).
-- **Contexto Multi-empresa:** Sempre filtrar por `company_id`.
-- **Filtros:** As RPCs devem aceitar os mesmos filtros (Período, Turno, Máquina, Cliente, Artigo).
+Objetivo: eliminar o `useEffect` do `Reports.tsx` que hoje itera a tabela
+`productions` inteira no cliente. Os algoritmos são preservados 1:1 — apenas
+migrados para SQL.
 
-## 🧮 Lógica de Cálculos por Aba
+## Diretrizes gerais
+- Prefixo `p_` em todos os parâmetros (mesmo padrão do faturamento).
+- Sempre filtrar por `company_id`.
+- Datas em `productions.date` são texto `YYYY-MM-DD`; usar comparações lexicográficas
+  (`>= p_start_date::text` etc.) para bater com o comportamento atual do cliente.
+- `NULL` em filtros opcionais = "todos".
+- Retornar `JSON` (não `JSONB`), consumido com `(supabase.rpc as any)(...)` para
+  driblar tipos gerados desatualizados — igual FaturamentoTotal.
 
-### 1. KPIs Gerais (Cards Superiores)
-- **Total de Rolos:** Soma simples de `rolls_produced`.
-- **Total Produzido (kg):** Soma simples de `weight_kg`.
-- **Valor Total (Faturamento):** Soma simples de `revenue`.
-- **Eficiência Média:** 
-  - Fórmula: `SUM(efficiency * weight_kg) / SUM(weight_kg)`
-  - *Nota:* Apenas para registros onde `efficiency > 0`. É uma média ponderada pelo peso.
+## RPCs
 
-### 2. Por Turno (`byShift`)
-- **Agrupamento:** Agrupar por `shift`.
-- **Métricas por Turno:**
-  - Soma de `rolls_produced`, `weight_kg` e `revenue`.
-  - **Eficiência do Turno:** `SUM(efficiency * weight_kg) / SUM(weight_kg)` (ponderada).
-  - **% da Produção:** `(Soma Rolos do Turno / Total Geral de Rolos) * 100`.
-  - **% do Faturamento:** `(Soma Faturamento do Turno / Total Geral de Faturamento) * 100`.
+### 1. `get_reports_available_months(p_company_id UUID) → JSON`
+Espelho de `get_faturamento_available_months`. Retorna `[{ "month_str": "YYYY-MM" }]`
+distinto e ordenado desc, usado no dropdown de mês.
 
-### 3. Por Máquina (`byMachine`)
-- **Agrupamento:** Agrupar por `machine_id` (ou `machine_name` se ID for nulo).
-- **Métricas por Máquina:**
-  - Soma de `rolls_produced`, `weight_kg` e `revenue`.
-  - **Eficiência da Máquina:** `SUM(efficiency * weight_kg) / SUM(weight_kg)` (ponderada).
-  - **Participação:** `% de rolos` e `% de faturamento` em relação ao total.
+### 2. `get_reports_metrics(p_company_id, p_start_date, p_end_date, p_shift, p_machine_id, p_client_id, p_article_id) → JSON`
 
-### 4. Por Cliente (`byClient`)
-- **Agrupamento:** Agrupar pelo `client_name` associado ao `article_id` (via join com `articles`).
-- **Métricas por Cliente:**
-  - Soma de `rolls_produced`, `weight_kg` e `revenue`.
-  - **Eficiência do Cliente:** `SUM(efficiency * weight_kg) / SUM(weight_kg)` (ponderada).
-  - **Participação:** `%` de rolos, kg e faturamento.
+Payload único com todas as métricas do topo e das 5 abas. Todos os filtros
+opcionais aceitam `NULL`.
 
-### 5. Por Artigo (`byArticle`)
-- **Agrupamento:** Agrupar por `article_id` (ou `article_name`).
-- **Métricas por Artigo:**
-  - Soma de `rolls_produced`, `weight_kg` e `revenue`.
-  - **Eficiência do Artigo:** `SUM(efficiency * weight_kg) / SUM(weight_kg)` (ponderada).
-  - **Participação:** `%` de kg e faturamento.
+Estrutura de retorno:
 
-### 6. Evolução (Gráfico de Linha/Área)
-- **Agrupamento:** Agrupar por `date`.
-- **Métricas por Dia:**
-  - Soma de `rolls_produced` e `revenue`.
-  - Ordenação ascendente por data.
+```json
+{
+  "kpis": {
+    "total_rolls": number,
+    "total_weight": number,
+    "total_revenue": number,
+    "active_days": number,
+    "avg_efficiency": number
+  },
+  "by_shift":   [{ "shift", "rolos", "kg", "faturamento", "eficiencia", "pct_rolls", "pct_revenue" }],
+  "by_machine": [{ "machine_id", "name", "rolos", "kg", "faturamento", "eficiencia", "pct_rolls", "pct_revenue", "article_names", "article_ids" }],
+  "by_client":  [{ "name", "rolos", "kg", "faturamento", "pct_rolls", "pct_kg", "pct_revenue" }],
+  "by_article": [{ "id", "name", "client_name", "rolos", "kg", "faturamento", "eficiencia", "pct_rolls", "pct_kg", "pct_revenue" }],
+  "evolution":  [{ "date", "rolos", "kg", "faturamento" }]
+}
+```
 
-## 🛠️ Sugestão de RPCs a serem criadas
-1. `get_report_kpis`: Retorna os 4 valores principais.
-2. `get_report_by_shift`: Retorna lista para a aba Turno.
-3. `get_report_by_machine`: Retorna lista para a aba Máquina.
-4. `get_report_by_client`: Retorna lista para a aba Cliente.
-5. `get_report_by_article`: Retorna lista para a aba Artigo.
-6. `get_report_evolution`: Retorna dados temporais.
+Regras preservadas (idênticas ao JS atual):
+- **KPIs**: somas simples de `rolls_produced`, `weight_kg`, `revenue`;
+  `active_days = COUNT(DISTINCT date)`;
+  `avg_efficiency = SUM(efficiency*weight_kg) / SUM(weight_kg)` restrito a
+  `rolls_produced > 0`.
+- **by_shift**: sempre devolve as três chaves `manha`, `tarde`, `noite`
+  (mesmo com zero) — o cliente aplica o label da empresa.
+- **by_machine**: agrupa por `COALESCE(machine_id::text, machine_name)`;
+  `article_names` = string separada por vírgula dos `article_name` distintos;
+  `article_ids` = array dos ids distintos (o cliente calcula `target_efficiency`
+  média a partir de `articles` já carregado no contexto, para não puxar essa
+  coluna de novo).
+- **by_client**: `LEFT JOIN articles ON articles.id = p.article_id
+  LEFT JOIN clients ON clients.id = articles.client_id`; nome vira `'Diversos'`
+  quando nulo.
+- **by_article**: chave = `article_name`; `client_name` via mesmo join;
+  `id = COALESCE(article_id::text, name)`.
+- **Eficiência ponderada** (`by_shift`, `by_machine`, `by_article`):
+  `SUM(efficiency*weight_kg) FILTER (WHERE rolls_produced > 0)
+   / NULLIF(SUM(weight_kg) FILTER (WHERE rolls_produced > 0), 0)`.
+- **evolution**: agrupa por `date` (texto), ordenado asc; formatação `dd/MM`
+  é feita no cliente para preservar o comportamento atual.
+- **Percentuais**: calculados sobre os totais do próprio período filtrado.
+
+### 3. `get_reports_podio(p_company_id, p_start_date, p_end_date) → JSON`
+
+Retorna o pódio por turno (janela independente dos filtros gerais):
+
+```json
+{
+  "ranking": [{ "id", "name", "rolos", "kg", "eficiencia" }],
+  "daily":   [{ "date", "ranking": [ ... ] }]
+}
+```
+
+- `ranking` = agregado por `shift` no período, ordenado desc por `eficiencia`
+  (mesma fórmula ponderada, `rolls_produced > 0`).
+- `daily` = mesma agregação por dia; o cliente cuida do label do turno e da
+  formatação de data. Cobrir todos os dias do intervalo (mesmo sem produção)
+  via `generate_series(p_start_date, p_end_date, '1 day')`.
+
+## Exportação (`handleExport`)
+Permanece 100% no cliente — consome os arrays retornados pelas RPCs, sem
+recomputar nada. Regras de permissão (Admin vs Employee) e formatos (PDF/CSV)
+não mudam.
+
+## Ganhos esperados
+- Remove ~150 linhas de agregação em JS no boot do módulo.
+- Deixa `Reports.tsx` independente de `productions` inteiro no contexto,
+  destravando o corte da janela de 90 dias no `useCompanyData`.
+- Latência típica esperada: <300 ms por chamada em empresa grande (índice
+  `productions(company_id, date)`).
 
 ---
-
-### 7. Exportação de Relatórios (`handleExport`)
-A funcionalidade de exportação deve manter a integridade dos dados e as distinções de permissões:
-- **Modos de Exportação:**
-  - **Admin:** Inclui todos os dados, inclusive financeiros (faturamento, receitas).
-  - **Equipe (Employee):** Omite dados financeiros; exibe apenas rolos, peso e eficiência.
-- **Formatos Suportados:** PDF (estilizado com logomarca e gráficos) e CSV (tabelas brutas).
-- **Agrupamentos de Exportação:**
-  - **Completo:** Consolida tabelas por Turno, Máquina, Cliente e Artigo em um único documento.
-  - **Específicos:** Permite exportar apenas um dos grupos (Turno, Máquina, Cliente ou Artigo).
-- **Processamento para Exportação:**
-  - Utiliza os mesmos arrays pré-calculados (`byShift`, `byMachine`, `byClient`, `filtered`).
-  - O cálculo do **Total** no rodapé das tabelas de exportação deve ser idêntico aos cálculos das abas visuais (somas simples para quantidades e média ponderada para eficiência).
-  - A exportação por **Artigo** dentro de `handleExport` realiza um agrupamento local (via `articleMap`) para garantir que mesmo registros "Sem artigo" sejam incluídos.
-
----
-*Última atualização: 11/05/2026 09:20 (Brasília)*
+*Última atualização: 17/07/2026 (Brasília) — reformulado no padrão FaturamentoTotal.*
