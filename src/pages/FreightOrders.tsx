@@ -516,6 +516,26 @@ function OrderCard({
             <Button variant="outline" size="sm" onClick={onDownload}>
               <Download className="h-4 w-4 mr-1.5" /> PDF
             </Button>
+            {(order.pickup_address || order.delivery_address) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-teal-500/60 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10"
+                onClick={() => {
+                  const url = buildDirectionsUrl(
+                    order.pickup_address
+                      ? { lat: order.pickup_address.latitude, lon: order.pickup_address.longitude, text: order.pickup_address.full_address }
+                      : { text: order.pickup_location },
+                    order.delivery_address
+                      ? { lat: order.delivery_address.latitude, lon: order.delivery_address.longitude, text: order.delivery_address.full_address }
+                      : { text: order.delivery_location },
+                  );
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
+              >
+                <Navigation className="h-4 w-4 mr-1.5" /> Abrir no GPS
+              </Button>
+            )}
 
             {order.status === 'open' && (isFreteiro || hasFullAccess) && (
               <Button size="sm" onClick={onStartPickup}>
