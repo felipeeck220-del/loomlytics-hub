@@ -531,6 +531,7 @@ function OrderCard({
 
 function NewOFRModal({
   open, onOpenChange, freighters, costCompanies, articles, yarnTypes, onSubmit, submitting,
+  mode = 'create', initial,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -555,6 +556,24 @@ function NewOFRModal({
     }>;
   }) => void;
   submitting: boolean;
+  mode?: 'create' | 'edit';
+  initial?: {
+    freighter_id: string;
+    cost_company_id: string;
+    pickup_location: string;
+    delivery_location: string;
+    observations?: string | null;
+    delivery_doc_type?: 'nf' | 'rom' | null;
+    delivery_doc_number?: string | null;
+    items: Array<{
+      item_type: 'malha' | 'fio';
+      article_id: string;
+      yarn_type_id: string;
+      boxes: string;
+      pieces: number;
+      weight_kg: string;
+    }>;
+  };
 }) {
   const [freighterId, setFreighterId] = useState('');
   const [costCompanyId, setCostCompanyId] = useState('');
@@ -577,11 +596,24 @@ function NewOFRModal({
 
   useEffect(() => {
     if (open) {
-      setFreighterId(''); setCostCompanyId(''); setPickup(''); setDelivery(''); setObs('');
-      setDocType(''); setDocNumber('');
-      setItems([{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
+      if (mode === 'edit' && initial) {
+        setFreighterId(initial.freighter_id || '');
+        setCostCompanyId(initial.cost_company_id || '');
+        setPickup(initial.pickup_location || '');
+        setDelivery(initial.delivery_location || '');
+        setObs(initial.observations || '');
+        setDocType((initial.delivery_doc_type as any) || '');
+        setDocNumber(initial.delivery_doc_number || '');
+        setItems(initial.items?.length
+          ? initial.items.map(i => ({ ...i }))
+          : [{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
+      } else {
+        setFreighterId(''); setCostCompanyId(''); setPickup(''); setDelivery(''); setObs('');
+        setDocType(''); setDocNumber('');
+        setItems([{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
+      }
     }
-  }, [open]);
+  }, [open, mode, initial]);
 
   const submit = () => {
     if (!freighterId) return toast({ title: 'Selecione o freteiro', variant: 'destructive' });
@@ -638,7 +670,7 @@ function NewOFRModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nova Ordem de Frete</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{mode === 'edit' ? 'Editar Ordem de Frete' : 'Nova Ordem de Frete'}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -760,7 +792,9 @@ function NewOFRModal({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submit} disabled={submitting}>{submitting ? 'Salvando…' : 'Criar OFR'}</Button>
+          <Button onClick={submit} disabled={submitting}>
+            {submitting ? 'Salvando…' : (mode === 'edit' ? 'Salvar alterações' : 'Criar OFR')}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
