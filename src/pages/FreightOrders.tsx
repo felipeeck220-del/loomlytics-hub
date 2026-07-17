@@ -5,6 +5,7 @@ import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useFreightOrders, type FreightOrderStatus, type FreightOrder, type FreightOrderItem } from '@/hooks/useFreightOrders';
 import { generateFreightOrderPdf } from '@/lib/freightOrderPdf';
 import { FreightReportsTab } from '@/components/freight/FreightReportsTab';
+import { FreightAddressesModal, buildDirectionsUrl } from '@/components/freight/FreightAddressesModal';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil, Navigation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -87,10 +88,11 @@ export default function FreightOrders() {
   const yarnTypes = getYarnTypes();
   const { toast } = useToast();
   const {
-    orders, isLoading, freighters, costCompanies,
+    orders, isLoading, freighters, costCompanies, addresses,
     createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
+    createAddress, updateAddress, deleteAddress,
     getPhotoSignedUrl,
   } = useFreightOrders();
 
@@ -104,6 +106,7 @@ export default function FreightOrders() {
   const [editOrder, setEditOrder] = useState<FreightOrder | null>(null);
   const [freightersOpen, setFreightersOpen] = useState(false);
   const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
+  const [addressesOpen, setAddressesOpen] = useState(false);
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
   const [completeOrderId, setCompleteOrderId] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
@@ -174,6 +177,9 @@ export default function FreightOrders() {
               </Button>
               <Button variant="outline" onClick={() => setCostCompaniesOpen(true)} className="gap-2">
                 <Building2 className="h-4 w-4" /> Empresas
+              </Button>
+              <Button variant="outline" onClick={() => setAddressesOpen(true)} className="gap-2">
+                <MapPin className="h-4 w-4" /> Endereços
               </Button>
               <Button onClick={() => setNewOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" /> Nova OFR
@@ -284,6 +290,7 @@ export default function FreightOrders() {
           onOpenChange={setNewOpen}
           freighters={freighters}
           costCompanies={costCompanies}
+          addresses={addresses}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
@@ -297,6 +304,7 @@ export default function FreightOrders() {
           onOpenChange={(o) => !o && setEditOrder(null)}
           freighters={freighters}
           costCompanies={costCompanies}
+          addresses={addresses}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           mode="edit"
@@ -305,6 +313,8 @@ export default function FreightOrders() {
             cost_company_id: editOrder.cost_company_id || '',
             pickup_location: editOrder.pickup_location,
             delivery_location: editOrder.delivery_location,
+            pickup_address_id: editOrder.pickup_address_id || '',
+            delivery_address_id: editOrder.delivery_address_id || '',
             observations: editOrder.observations || '',
             delivery_doc_type: editOrder.delivery_doc_type || null,
             delivery_doc_number: editOrder.delivery_doc_number || '',
@@ -322,6 +332,17 @@ export default function FreightOrders() {
             updateOrder.mutate({ id: editOrder.id, ...payload }, { onSuccess: () => setEditOrder(null) });
           }}
           submitting={updateOrder.isPending}
+        />
+      )}
+
+      {hasFullAccess && (
+        <FreightAddressesModal
+          open={addressesOpen}
+          onOpenChange={setAddressesOpen}
+          addresses={addresses}
+          onCreate={(p) => createAddress.mutate(p)}
+          onUpdate={(p) => updateAddress.mutate(p)}
+          onDelete={(id) => deleteAddress.mutate(id)}
         />
       )}
 
