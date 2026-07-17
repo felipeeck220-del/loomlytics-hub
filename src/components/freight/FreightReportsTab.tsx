@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { FreightOrder } from '@/hooks/useFreightOrders';
@@ -43,10 +43,17 @@ interface Props {
 }
 
 export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyName, companyLogoUrl, onOpenDetails }: Props) {
-  const [month, setMonth] = useState<string>('all');
+  // Padrão: mês atual (YYYY-MM). Se não houver dados no mês, o usuário troca no filtro.
+  const currentMonthKey = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  })();
+  const [month, setMonth] = useState<string>(currentMonthKey);
   const [search, setSearch] = useState('');
   const [freighterFilter, setFreighterFilter] = useState<string>('all');
   const [costCompanyFilter, setCostCompanyFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
   const isMobile = useIsMobile();
 
   // Only completed OFRs are considered "realizados" para relatório
@@ -96,6 +103,14 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
       );
     });
   }, [baseOrders, month, freighterFilter, costCompanyFilter, search]);
+
+  // Reset paginação quando filtros mudam
+  useEffect(() => { setPage(1); }, [month, freighterFilter, costCompanyFilter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const paginated = filtered.slice(pageStart, pageStart + pageSize);
 
   const kpis = useMemo(() => {
     let ofrs = 0, kg = 0, pieces = 0, boxes = 0, freight = 0;
@@ -435,7 +450,7 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
               </div>
               {isMobile ? (
                 <div className="space-y-2">
-                  {filtered.map(o => {
+                  {paginated.map(o => {
                     const kg = (o.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
                     const rateio = o.cost_company_name || o.cost_company?.name || '—';
                     return (
@@ -498,7 +513,7 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map(o => {
+                    {paginated.map(o => {
                       const kg = (o.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
                       const rateio = o.cost_company_name || o.cost_company?.name || '—';
                       return (
@@ -533,6 +548,32 @@ export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyNa
                     })}
                   </tbody>
                 </table>
+                </div>
+              )}
+              {filtered.length > pageSize && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="text-muted-foreground">
+                    Mostrando {pageStart + 1}–{Math.min(pageStart + pageSize, filtered.length)} de {filtered.length}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Button size="sm" variant="outline" className="h-7 px-2" disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Anterior</Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                      .map((p, idx, arr) => (
+                        <React.Fragment key={p}>
+                          {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-muted-foreground">…</span>}
+                          <Button
+                            size="sm"
+                            variant={p === currentPage ? 'default' : 'outline'}
+                            className="h-7 min-w-7 px-2"
+                            onClick={() => setPage(p)}
+                          >
+                            {p}
+                          </Button>
+                        </React.Fragment>
+                      ))}
+                    <Button size="sm" variant="outline" className="h-7 px-2" disabled={currentPage === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Próxima</Button>
+                  </div>
                 </div>
               )}
             </CardContent>

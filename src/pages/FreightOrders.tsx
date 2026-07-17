@@ -207,7 +207,7 @@ export default function FreightOrders() {
             Cancelados <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.cancelled}</Badge>
           </TabsTrigger>
           <TabsTrigger value="reports" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-            <BarChart3 className="h-3.5 w-3.5" /> Relatórios <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.reports}</Badge>
+            <BarChart3 className="h-3.5 w-3.5" /> Relatórios
           </TabsTrigger>
         </TabsList>
 
