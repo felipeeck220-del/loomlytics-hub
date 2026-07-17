@@ -422,6 +422,7 @@ function OrderCard({
   const totalBoxes = (order.items || []).reduce((s, i) => s + Number(i.boxes || 0), 0);
   const hasFio = (order.items || []).some(i => i.item_type === 'fio');
   const hasMalha = (order.items || []).some(i => i.item_type !== 'fio');
+  const [gpsOpen, setGpsOpen] = useState(false);
 
   const timer =
     (order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress')
@@ -521,17 +522,7 @@ function OrderCard({
                 variant="outline"
                 size="sm"
                 className="border-teal-500/60 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10"
-                onClick={() => {
-                  const url = buildDirectionsUrl(
-                    order.pickup_address
-                      ? { lat: order.pickup_address.latitude, lon: order.pickup_address.longitude, text: order.pickup_address.full_address }
-                      : { text: order.pickup_location },
-                    order.delivery_address
-                      ? { lat: order.delivery_address.latitude, lon: order.delivery_address.longitude, text: order.delivery_address.full_address }
-                      : { text: order.delivery_location },
-                  );
-                  window.open(url, '_blank', 'noopener,noreferrer');
-                }}
+                onClick={() => setGpsOpen(true)}
               >
                 <Navigation className="h-4 w-4 mr-1.5" /> Abrir no GPS
               </Button>
@@ -558,6 +549,23 @@ function OrderCard({
               </Button>
             )}
           </div>
+
+          <GpsPickerModal
+            open={gpsOpen}
+            onOpenChange={setGpsOpen}
+            pickup={{
+              label: order.pickup_address?.name || 'Coleta',
+              address: order.pickup_address?.full_address || order.pickup_location,
+              lat: order.pickup_address?.latitude ?? null,
+              lon: order.pickup_address?.longitude ?? null,
+            }}
+            delivery={{
+              label: order.delivery_address?.name || 'Entrega',
+              address: order.delivery_address?.full_address || order.delivery_location,
+              lat: order.delivery_address?.latitude ?? null,
+              lon: order.delivery_address?.longitude ?? null,
+            }}
+          />
         </div>
 
         {order.status === 'cancelled' && order.cancellation_reason && (
