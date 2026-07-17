@@ -378,7 +378,7 @@ export function useFreightOrders() {
       if (current.status !== 'open') throw new Error('Somente OFRs em Aberto podem ser editadas');
 
       const costCompanySnapshot = costCompanies.find(c => c.id === payload.cost_company_id);
-      const { error: upErr } = await (supabase.from as any)('freight_orders').update({
+      const { data: upData, error: upErr } = await (supabase.from as any)('freight_orders').update({
         freighter_id: payload.freighter_id,
         cost_company_id: payload.cost_company_id,
         cost_company_name: costCompanySnapshot?.name || null,
@@ -389,8 +389,12 @@ export function useFreightOrders() {
         observations: payload.observations || null,
         delivery_doc_type: payload.delivery_doc_type || null,
         delivery_doc_number: payload.delivery_doc_number || null,
-      }).eq('id', payload.id).eq('status', 'open');
+      }).eq('id', payload.id).eq('status', 'open').select('id');
       if (upErr) throw upErr;
+      if (!upData || (Array.isArray(upData) && upData.length === 0)) {
+        // Race: alguém iniciou o frete entre a checagem e o update
+        throw new Error('A OFR mudou de status durante a edição. Recarregue a página.');
+      }
 
       // Substitui itens (remove todos e reinsere)
       const { error: delErr } = await (supabase.from as any)('freight_order_items')

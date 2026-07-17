@@ -645,8 +645,15 @@ function NewOFRModal({
       if (mode === 'edit' && initial) {
         setFreighterId(initial.freighter_id || '');
         setCostCompanyId(initial.cost_company_id || '');
-        setPickupId(initial.pickup_address_id || '');
-        setDeliveryId(initial.delivery_address_id || '');
+        // Fallback: OFRs legadas sem address_id — tenta casar pelo nome do endereço
+        const pickupFallback = !initial.pickup_address_id && initial.pickup_location
+          ? (addresses.find(a => a.active && a.name.trim().toLowerCase() === initial.pickup_location.trim().toLowerCase())?.id || '')
+          : (initial.pickup_address_id || '');
+        const deliveryFallback = !initial.delivery_address_id && initial.delivery_location
+          ? (addresses.find(a => a.active && a.name.trim().toLowerCase() === initial.delivery_location.trim().toLowerCase())?.id || '')
+          : (initial.delivery_address_id || '');
+        setPickupId(pickupFallback);
+        setDeliveryId(deliveryFallback);
         setObs(initial.observations || '');
         setDocType((initial.delivery_doc_type as any) || '');
         setDocNumber(initial.delivery_doc_number || '');
