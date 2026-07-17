@@ -232,6 +232,8 @@ export function useFreightOrders() {
       cost_company_id: string;
       pickup_location: string;
       delivery_location: string;
+      pickup_address_id?: string | null;
+      delivery_address_id?: string | null;
       observations?: string;
       delivery_doc_type?: 'nf' | 'rom' | null;
       delivery_doc_number?: string | null;
@@ -266,6 +268,8 @@ export function useFreightOrders() {
             cost_company_name: costCompanySnapshot?.name || null,
             pickup_location: payload.pickup_location,
             delivery_location: payload.delivery_location,
+            pickup_address_id: payload.pickup_address_id ?? null,
+            delivery_address_id: payload.delivery_address_id ?? null,
             observations: payload.observations || null,
             delivery_doc_type: payload.delivery_doc_type || null,
             delivery_doc_number: payload.delivery_doc_number || null,
@@ -345,6 +349,8 @@ export function useFreightOrders() {
       cost_company_id: string;
       pickup_location: string;
       delivery_location: string;
+      pickup_address_id?: string | null;
+      delivery_address_id?: string | null;
       observations?: string | null;
       delivery_doc_type?: 'nf' | 'rom' | null;
       delivery_doc_number?: string | null;
@@ -378,6 +384,8 @@ export function useFreightOrders() {
         cost_company_name: costCompanySnapshot?.name || null,
         pickup_location: payload.pickup_location,
         delivery_location: payload.delivery_location,
+        pickup_address_id: payload.pickup_address_id ?? null,
+        delivery_address_id: payload.delivery_address_id ?? null,
         observations: payload.observations || null,
         delivery_doc_type: payload.delivery_doc_type || null,
         delivery_doc_number: payload.delivery_doc_number || null,
