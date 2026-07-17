@@ -303,6 +303,104 @@ export function useFreightOrders() {
     onError: (e: any) => toast({ title: 'Erro ao criar OFR', description: e.message, variant: 'destructive' }),
   });
 
+  const updateOrder = useMutation({
+    mutationFn: async (payload: {
+      id: string;
+      freighter_id: string;
+      cost_company_id: string;
+      pickup_location: string;
+      delivery_location: string;
+      observations?: string | null;
+      delivery_doc_type?: 'nf' | 'rom' | null;
+      delivery_doc_number?: string | null;
+      items: Array<{
+        item_type: 'malha' | 'fio';
+        article_id?: string | null;
+        article_name?: string | null;
+        yarn_type_id?: string | null;
+        yarn_type_name?: string | null;
+        boxes?: number | null;
+        pieces: number;
+        weight_kg: number;
+      }>;
+    }) => {
+      if (!user?.company_id) throw new Error('Sem empresa ativa');
+      if (!payload.items?.length) throw new Error('Adicione pelo menos 1 artigo');
+      if (!payload.cost_company_id) throw new Error('Selecione a empresa (Rateio de custo)');
+      // Só permite editar em Aberto
+      const { data: current, error: curErr } = await (supabase.from as any)('freight_orders')
+        .select('id, status, ofr_number, freighter_id')
+        .eq('id', payload.id)
+        .maybeSingle();
+      if (curErr) throw curErr;
+      if (!current) throw new Error('OFR não encontrada');
+      if (current.status !== 'open') throw new Error('Somente OFRs em Aberto podem ser editadas');
+
+      const costCompanySnapshot = costCompanies.find(c => c.id === payload.cost_company_id);
+      const { error: upErr } = await (supabase.from as any)('freight_orders').update({
+        freighter_id: payload.freighter_id,
+        cost_company_id: payload.cost_company_id,
+        cost_company_name: costCompanySnapshot?.name || null,
+        pickup_location: payload.pickup_location,
+        delivery_location: payload.delivery_location,
+        observations: payload.observations || null,
+        delivery_doc_type: payload.delivery_doc_type || null,
+        delivery_doc_number: payload.delivery_doc_number || null,
+      }).eq('id', payload.id).eq('status', 'open');
+      if (upErr) throw upErr;
+
+      // Substitui itens (remove todos e reinsere)
+      const { error: delErr } = await (supabase.from as any)('freight_order_items')
+        .delete().eq('freight_order_id', payload.id);
+      if (delErr) throw delErr;
+      const itemsRows = payload.items.map(it => ({
+        freight_order_id: payload.id,
+        company_id: user.company_id,
+        item_type: it.item_type,
+        article_id: it.article_id ?? null,
+        article_name: it.article_name ?? null,
+        yarn_type_id: it.yarn_type_id ?? null,
+        yarn_type_name: it.yarn_type_name ?? null,
+        boxes: it.boxes != null ? Math.max(0, Math.round(Number(it.boxes))) : null,
+        pieces: Math.max(0, Math.round(Number(it.pieces || 0))),
+        weight_kg: Math.max(0, Number(it.weight_kg || 0)),
+      }));
+      const { error: insErr } = await (supabase.from as any)('freight_order_items').insert(itemsRows);
+      if (insErr) throw insErr;
+
+      // Se o freteiro mudou, notifica o novo freteiro (o realtime já retira a OFR
+      // do freteiro anterior automaticamente ao invalidar o cache).
+      if (current.freighter_id !== payload.freighter_id) {
+        try {
+          const { data: frt } = await (supabase.from as any)('freighters')
+            .select('name, user_id').eq('id', payload.freighter_id).maybeSingle();
+          const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+          const targetPath = slug ? `/${slug}/freight-orders` : '/';
+          const nKg = payload.items.reduce((s, i) => s + (Number(i.weight_kg) || 0), 0);
+          const kgStr = nKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          supabase.functions.invoke('send-push-notification', {
+            body: {
+              company_id: user.company_id,
+              title: `OFR #${current.ofr_number} reatribuída — ${frt?.name || 'Freteiro'}`,
+              message: `${payload.pickup_location} → ${payload.delivery_location} · ${kgStr} kg`,
+              url: targetPath,
+              include_admins: true,
+              target_user_ids: frt?.user_id ? [frt.user_id] : [],
+              source: 'OFR',
+              ref_id: payload.id,
+              ref_number: `OFR #${current.ofr_number}`,
+            },
+          }).catch(() => { /* silencioso */ });
+        } catch { /* silencioso */ }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['freight_orders'] });
+      toast({ title: 'OFR atualizada' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao atualizar OFR', description: e.message, variant: 'destructive' }),
+  });
+
   const createCostCompany = useMutation({
     mutationFn: async (payload: { name: string; document?: string }) => {
       if (!user?.company_id) throw new Error('Sem empresa ativa');
@@ -484,7 +582,7 @@ export function useFreightOrders() {
 
   return {
     orders, isLoading, freighters, costCompanies,
-    createOrder, startPickup, completeOrder, cancelOrder,
+    createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
     getPhotoSignedUrl,
