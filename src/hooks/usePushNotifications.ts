@@ -13,8 +13,11 @@ export function usePushNotifications() {
 
   useEffect(() => {
     if (!user?.id || !user?.company_id) return;
-    const targetRoles = ['admin', 'mecanico', 'lider_mecanica', 'lider', 'lider_noite'];
-    if (!targetRoles.includes(user.role as any)) return;
+    // Qualquer usuário autenticado com empresa ativa pode receber push.
+    // A filtragem de quem RECEBE cada evento é feita no callsite (roles/target_user_ids)
+    // e na edge `send-push-notification`. Restringir aqui deixava freteiros,
+    // lider_frete, revisores, expedição e outros sem `push_subscriptions`,
+    // então mesmo sendo alvo explícito (`target_user_ids`) o Web Push nunca chegava.
 
     let cancelled = false;
 
