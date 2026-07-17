@@ -237,6 +237,7 @@ export default function FreightOrders() {
               onStartPickup={() => startPickup.mutate(order.id)}
               onComplete={() => setCompleteOrderId(order.id)}
               onCancel={() => setCancelOrderId(order.id)}
+              onEdit={() => setEditOrder(order)}
               onDetails={() => setDetailsOrder(order)}
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
             />
@@ -287,6 +288,40 @@ export default function FreightOrders() {
           yarnTypes={yarnTypes as any}
           onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
           submitting={createOrder.isPending}
+        />
+      )}
+
+      {hasFullAccess && (
+        <NewOFRModal
+          open={!!editOrder}
+          onOpenChange={(o) => !o && setEditOrder(null)}
+          freighters={freighters}
+          costCompanies={costCompanies}
+          articles={articles as any}
+          yarnTypes={yarnTypes as any}
+          mode="edit"
+          initial={editOrder ? {
+            freighter_id: editOrder.freighter_id,
+            cost_company_id: editOrder.cost_company_id || '',
+            pickup_location: editOrder.pickup_location,
+            delivery_location: editOrder.delivery_location,
+            observations: editOrder.observations || '',
+            delivery_doc_type: editOrder.delivery_doc_type || null,
+            delivery_doc_number: editOrder.delivery_doc_number || '',
+            items: (editOrder.items || []).map(it => ({
+              item_type: (it.item_type || 'malha') as 'malha' | 'fio',
+              article_id: it.article_id || '',
+              yarn_type_id: it.yarn_type_id || '',
+              boxes: it.boxes != null ? String(it.boxes) : '',
+              pieces: Number(it.pieces || 0),
+              weight_kg: it.weight_kg != null ? String(it.weight_kg).replace('.', ',') : '',
+            })),
+          } : undefined}
+          onSubmit={(payload) => {
+            if (!editOrder) return;
+            updateOrder.mutate({ id: editOrder.id, ...payload }, { onSuccess: () => setEditOrder(null) });
+          }}
+          submitting={updateOrder.isPending}
         />
       )}
 
