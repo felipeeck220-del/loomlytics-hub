@@ -89,18 +89,38 @@ Deno.serve(async (req) => {
       source === 'OM' || source === 'OC' || source === 'OT' || source === 'OFR' ? source : null;
 
     if (validSource) {
-      const rows = userIds.map((user_id) => ({
-        company_id,
-        user_id,
-        source: validSource,
-        ref_id: ref_id || null,
-        ref_number: ref_number || null,
-        title,
-        body: message || null,
-        url: url || '/',
-      }));
-      const { error: insErr } = await admin.from('notifications').insert(rows);
-      if (insErr) console.error('notifications insert failed', insErr);
+      // Idempotência: se o mesmo evento (source+ref_id+title) já foi entregue a este
+      // usuário nos últimos 60s, NÃO cria nova linha — evita duplicatas quando o
+      // callsite dispara duas vezes (retry, double-click residual, StrictMode).
+      const dedupeWindowMs = 60_000;
+      const sinceIso = new Date(Date.now() - dedupeWindowMs).toISOString();
+      const rowsToInsert: any[] = [];
+      for (const user_id of userIds) {
+        let dupQ = admin
+          .from('notifications')
+          .select('id', { head: true, count: 'exact' })
+          .eq('user_id', user_id)
+          .eq('source', validSource)
+          .eq('title', title)
+          .gte('created_at', sinceIso);
+        if (ref_id) dupQ = dupQ.eq('ref_id', ref_id);
+        const { count: dupCount } = await dupQ;
+        if ((dupCount || 0) > 0) continue;
+        rowsToInsert.push({
+          company_id,
+          user_id,
+          source: validSource,
+          ref_id: ref_id || null,
+          ref_number: ref_number || null,
+          title,
+          body: message || null,
+          url: url || '/',
+        });
+      }
+      if (rowsToInsert.length) {
+        const { error: insErr } = await admin.from('notifications').insert(rowsToInsert);
+        if (insErr) console.error('notifications insert failed', insErr);
+      }
     }
 
     // ---------- Contagem de não-lidas por usuário (após insert) ----------
@@ -115,10 +135,21 @@ Deno.serve(async (req) => {
     }
 
     // ---------- Envio Web Push ----------
-    const { data: subs } = await admin.from('push_subscriptions').select('*').in('user_id', userIds);
+    const { data: subsRaw } = await admin.from('push_subscriptions').select('*').in('user_id', userIds);
+
+    // Dedup por endpoint — se o mesmo endpoint aparecer duas vezes (linhas
+    // legadas, mesmo device já reinstalado com outro user_id), envia UMA vez só.
+    // Prioriza a linha cujo user_id ainda está entre os destinatários atuais.
+    const seen = new Set<string>();
+    const subs: any[] = [];
+    for (const s of (subsRaw || []) as any[]) {
+      if (!s?.endpoint || seen.has(s.endpoint)) continue;
+      seen.add(s.endpoint);
+      subs.push(s);
+    }
 
     let sent = 0, removed = 0;
-    for (const s of (subs || []) as any[]) {
+    for (const s of subs) {
       const badge = unreadByUser[s.user_id] || 0;
       const payload = JSON.stringify({
         title,
