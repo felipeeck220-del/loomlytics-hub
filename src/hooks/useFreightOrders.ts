@@ -623,11 +623,48 @@ export function useFreightOrders() {
     return data?.signedUrl || null;
   }
 
+  const createAddress = useMutation({
+    mutationFn: async (payload: { name: string; full_address: string; latitude?: number | null; longitude?: number | null }) => {
+      if (!user?.company_id) throw new Error('Sem empresa ativa');
+      const { error } = await (supabase.from as any)('freight_addresses').insert({
+        company_id: user.company_id,
+        name: payload.name.trim(),
+        full_address: payload.full_address.trim(),
+        latitude: payload.latitude ?? null,
+        longitude: payload.longitude ?? null,
+        created_by: profile?.id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_addresses'] }); toast({ title: 'Endereço cadastrado' }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const updateAddress = useMutation({
+    mutationFn: async (payload: { id: string; name?: string; full_address?: string; latitude?: number | null; longitude?: number | null; active?: boolean }) => {
+      const { id, ...rest } = payload;
+      const { error } = await (supabase.from as any)('freight_addresses').update(rest).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_addresses'] }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const deleteAddress = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from as any)('freight_addresses').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_addresses'] }); toast({ title: 'Endereço removido' }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
   return {
-    orders, isLoading, freighters, costCompanies,
+    orders, isLoading, freighters, costCompanies, addresses,
     createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
+    createAddress, updateAddress, deleteAddress,
     getPhotoSignedUrl,
   };
 }
