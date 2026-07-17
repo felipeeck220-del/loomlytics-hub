@@ -1066,7 +1066,7 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
     // (Máquinas > Informações Básicas > Artigo Atual → coluna machines.article_id)
     if (o.next_article_id && o.machine_id) {
       const { error: machErr, data: machUpd } = await (supabase.from as any)('machines')
-        .update({ article_id: o.next_article_id })
+        .update({ article_id: o.next_article_id, status: 'ativa' })
         .eq('id', o.machine_id)
         .select('id');
       if (machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0)) {
@@ -1077,6 +1077,14 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
         // em Máquinas > Informações Básicas, cards da OT e demais telas sem F5.
         try { await refreshData?.(); } catch (e) { console.error('[FinalizeOT] refreshData failed', e); }
       }
+    } else if (o.machine_id) {
+      // Mesmo sem próximo artigo definido, garantir que a máquina volte a 'ativa'
+      // ao concluir a OT — evita status travado como "troca_artigo" em Máquinas.
+      const { error: machErr } = await (supabase.from as any)('machines')
+        .update({ status: 'ativa' })
+        .eq('id', o.machine_id);
+      if (machErr) console.error('[FinalizeOT] machine status reset failed', machErr);
+      else { try { await refreshData?.(); } catch { /* silencioso */ } }
     }
     logAction('ot_conclude', { ot: o.ot_number });
     toast.success(`OT #${o.ot_number} concluída`);
