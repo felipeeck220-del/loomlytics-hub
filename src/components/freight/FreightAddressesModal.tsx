@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,26 +11,60 @@ interface GeocodeResult {
   lat: number;
   lon: number;
   display_name: string;
+  has_house_number: boolean;
 }
 
 async function geocode(query: string): Promise<GeocodeResult | null> {
   if (!query.trim()) return null;
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=br&q=${encodeURIComponent(query)}`;
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
     if (!res.ok) return null;
     const arr = await res.json();
     if (!Array.isArray(arr) || arr.length === 0) return null;
-    return { lat: parseFloat(arr[0].lat), lon: parseFloat(arr[0].lon), display_name: arr[0].display_name };
+    const h = arr[0];
+    return {
+      lat: parseFloat(h.lat),
+      lon: parseFloat(h.lon),
+      display_name: h.display_name,
+      has_house_number: !!(h.address && h.address.house_number),
+    };
   } catch {
     return null;
   }
 }
 
-function mapEmbedUrl(lat: number, lon: number): string {
-  const d = 0.005;
-  const bbox = `${lon - d},${lat - d},${lon + d},${lat + d}`;
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
+async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${lat}&lon=${lon}`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) return null;
+    const j = await res.json();
+    return j?.display_name ?? null;
+  } catch { return null; }
+}
+
+/** Loads Leaflet from CDN once (CSS + JS). Returns global L. */
+let leafletPromise: Promise<any> | null = null;
+function loadLeaflet(): Promise<any> {
+  if ((window as any).L) return Promise.resolve((window as any).L);
+  if (leafletPromise) return leafletPromise;
+  leafletPromise = new Promise((resolve, reject) => {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    css.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+    css.crossOrigin = '';
+    document.head.appendChild(css);
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+    s.crossOrigin = '';
+    s.onload = () => resolve((window as any).L);
+    s.onerror = () => reject(new Error('Falha ao carregar Leaflet'));
+    document.head.appendChild(s);
+  });
+  return leafletPromise;
 }
 
 interface AddressFormState {
@@ -58,8 +92,62 @@ export function FreightAddressesModal({
   const [searching, setSearching] = useState(false);
   const [mode, setMode] = useState<'create' | 'edit'>('create');
   const { toast } = useToast();
+  const mapDivRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const formRef = useRef(form);
+  useEffect(() => { formRef.current = form; }, [form]);
 
   useEffect(() => { if (open) { setForm(emptyForm); setMode('create'); } }, [open]);
+
+  // Initialize / update Leaflet map when we have coordinates
+  useEffect(() => {
+    if (!open) return;
+    if (form.latitude == null || form.longitude == null) return;
+    let cancelled = false;
+    loadLeaflet().then((L) => {
+      if (cancelled || !mapDivRef.current) return;
+      if (!mapRef.current) {
+        mapRef.current = L.map(mapDivRef.current).setView([form.latitude, form.longitude], 17);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap',
+          maxZoom: 19,
+        }).addTo(mapRef.current);
+        mapRef.current.on('click', async (e: any) => {
+          const { lat, lng } = e.latlng;
+          if (markerRef.current) markerRef.current.setLatLng([lat, lng]);
+          else markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
+          markerRef.current.on('dragend', async () => {
+            const p = markerRef.current.getLatLng();
+            const addr = await reverseGeocode(p.lat, p.lng);
+            setForm(f => ({ ...f, latitude: p.lat, longitude: p.lng, full_address: addr || f.full_address }));
+          });
+          const addr = await reverseGeocode(lat, lng);
+          setForm(f => ({ ...f, latitude: lat, longitude: lng, full_address: addr || f.full_address }));
+        });
+      }
+      if (!markerRef.current) {
+        markerRef.current = L.marker([form.latitude, form.longitude], { draggable: true }).addTo(mapRef.current);
+        markerRef.current.on('dragend', async () => {
+          const p = markerRef.current.getLatLng();
+          const addr = await reverseGeocode(p.lat, p.lng);
+          setForm(f => ({ ...f, latitude: p.lat, longitude: p.lng, full_address: addr || f.full_address }));
+        });
+      } else {
+        markerRef.current.setLatLng([form.latitude, form.longitude]);
+      }
+      mapRef.current.setView([form.latitude, form.longitude], mapRef.current.getZoom() || 17);
+      setTimeout(() => mapRef.current && mapRef.current.invalidateSize(), 100);
+    });
+    return () => { cancelled = true; };
+  }, [open, form.latitude, form.longitude]);
+
+  // Destroy map when modal closes or coords cleared
+  useEffect(() => {
+    if (!open || form.latitude == null || form.longitude == null) {
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; markerRef.current = null; }
+    }
+  }, [open, form.latitude, form.longitude]);
 
   const doSearch = async () => {
     if (!form.full_address.trim()) {
@@ -67,13 +155,26 @@ export function FreightAddressesModal({
       return;
     }
     setSearching(true);
-    const r = await geocode(form.full_address);
+    const typed = form.full_address;
+    const r = await geocode(typed);
     setSearching(false);
     if (!r) {
       toast({ title: 'Endereço não encontrado no mapa', description: 'Tente ser mais específico (rua, nº, cidade).', variant: 'destructive' });
       return;
     }
-    setForm(f => ({ ...f, latitude: r.lat, longitude: r.lon, full_address: r.display_name }));
+    // Se o usuário digitou o nº da casa mas o Nominatim voltou sem `house_number`,
+    // preservamos o endereço digitado (mais preciso) e usamos só as coordenadas.
+    const typedHasNumber = /\b\d{1,6}\b/.test(typed);
+    const keepTyped = typedHasNumber && !r.has_house_number;
+    setForm(f => ({
+      ...f,
+      latitude: r.lat,
+      longitude: r.lon,
+      full_address: keepTyped ? typed : r.display_name,
+    }));
+    if (keepTyped) {
+      toast({ title: 'Localização aproximada', description: 'Ajuste o ponto clicando ou arrastando no mapa se necessário.' });
+    }
   };
 
   const startEdit = (a: FreightAddress) => {
@@ -135,15 +236,9 @@ export function FreightAddressesModal({
 
           {form.latitude != null && form.longitude != null ? (
             <div className="rounded-md border overflow-hidden">
-              <iframe
-                key={`${form.latitude}-${form.longitude}`}
-                title="mapa"
-                src={mapEmbedUrl(form.latitude, form.longitude)}
-                className="w-full h-56 border-0"
-                loading="lazy"
-              />
+              <div ref={mapDivRef} className="w-full h-64 bg-muted" style={{ zIndex: 0 }} />
               <div className="px-2 py-1 text-[11px] text-muted-foreground bg-muted/40 flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> Confirmado — {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+                <MapPin className="h-3 w-3" /> Clique no mapa ou arraste o marcador para ajustar — {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
               </div>
             </div>
           ) : (
