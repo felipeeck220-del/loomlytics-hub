@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -88,7 +88,7 @@ export default function FreightOrders() {
   const { toast } = useToast();
   const {
     orders, isLoading, freighters, costCompanies,
-    createOrder, startPickup, completeOrder, cancelOrder,
+    createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
     getPhotoSignedUrl,
@@ -101,6 +101,7 @@ export default function FreightOrders() {
   const [completedPage, setCompletedPage] = useState(0);
   const COMPLETED_PAGE_SIZE = 15;
   const [newOpen, setNewOpen] = useState(false);
+  const [editOrder, setEditOrder] = useState<FreightOrder | null>(null);
   const [freightersOpen, setFreightersOpen] = useState(false);
   const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
