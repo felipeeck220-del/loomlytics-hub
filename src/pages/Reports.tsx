@@ -316,6 +316,25 @@ const SHIFT_CHART_COLORS: Record<string, string> = {
    }, [customDate, dateFrom, dateTo, dayRange, filterMonth]);
 
   // ---- PÓDIO: janela ----
+  const aggregatePodio = useCallback((rows: Production[]) => {
+    const map: Record<string, { id: string; name: string; rolos: number; kg: number; effSum: number; effW: number }> = {};
+    rows.forEach(p => {
+      const key = p.shift || 'sem';
+      const name = companyShiftLabels[p.shift as ShiftType]?.split(' (')[0] || p.shift || 'Sem turno';
+      if (!map[key]) map[key] = { id: key, name, rolos: 0, kg: 0, effSum: 0, effW: 0 };
+      map[key].rolos += p.rolls_produced;
+      map[key].kg += p.weight_kg;
+      if (p.rolls_produced > 0) {
+        map[key].effSum += p.efficiency * p.weight_kg;
+        map[key].effW += p.weight_kg;
+      }
+    });
+    return Object.values(map).map(w => ({
+      ...w,
+      eficiencia: w.effW > 0 ? w.effSum / w.effW : 0,
+    })).sort((a, b) => b.eficiencia - a.eficiencia);
+  }, [companyShiftLabels]);
+
   const podioRangeResolved = useMemo(() => {
     const today = new Date();
     let pFrom: string, pTo: string;
