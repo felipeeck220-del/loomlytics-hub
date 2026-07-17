@@ -384,7 +384,7 @@ export default function FreightOrders() {
 
 function OrderCard({
   order, hasFullAccess, isFreteiro,
-  onStartPickup, onComplete, onCancel, onDetails, onDownload,
+  onStartPickup, onComplete, onCancel, onEdit, onDetails, onDownload,
 }: {
   order: FreightOrder;
   hasFullAccess: boolean;
@@ -392,6 +392,7 @@ function OrderCard({
   onStartPickup: () => void;
   onComplete: () => void;
   onCancel: () => void;
+  onEdit: () => void;
   onDetails: () => void;
   onDownload: () => void;
 }) {
@@ -498,6 +499,11 @@ function OrderCard({
             {order.status === 'open' && (isFreteiro || hasFullAccess) && (
               <Button size="sm" onClick={onStartPickup}>
                 <Play className="h-4 w-4 mr-1.5" /> Iniciar Frete
+              </Button>
+            )}
+            {order.status === 'open' && hasFullAccess && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Pencil className="h-4 w-4 mr-1.5" /> Editar
               </Button>
             )}
             {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && (isFreteiro || hasFullAccess) && (
