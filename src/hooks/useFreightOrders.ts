@@ -32,6 +32,17 @@ export interface FreightCostCompany {
   created_at: string;
 }
 
+export interface FreightAddress {
+  id: string;
+  company_id: string;
+  name: string;
+  full_address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  active: boolean;
+  created_at: string;
+}
+
 export interface FreightOrderItem {
   id: string;
   freight_order_id: string;
@@ -67,6 +78,10 @@ export interface FreightOrder {
   cost_company_name?: string | null;
   pickup_location: string;
   delivery_location: string;
+  pickup_address_id?: string | null;
+  delivery_address_id?: string | null;
+  pickup_address?: FreightAddress | null;
+  delivery_address?: FreightAddress | null;
   observations?: string | null;
   status: FreightOrderStatus;
   created_by?: string | null;
@@ -129,6 +144,20 @@ export function useFreightOrders() {
     enabled: !!user?.company_id,
   });
 
+  const { data: addresses = [] } = useQuery({
+    queryKey: ['freight_addresses', user?.company_id],
+    queryFn: async () => {
+      if (!user?.company_id) return [];
+      const { data, error } = await (supabase.from as any)('freight_addresses')
+        .select('*')
+        .eq('company_id', user.company_id)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as FreightAddress[];
+    },
+    enabled: !!user?.company_id,
+  });
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['freight_orders', user?.company_id],
     queryFn: async () => {
@@ -172,6 +201,10 @@ export function useFreightOrders() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_cost_companies', filter: `company_id=eq.${user.company_id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ['freight_cost_companies', user.company_id] });
+        queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_addresses', filter: `company_id=eq.${user.company_id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['freight_addresses', user.company_id] });
         queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
       })
       .subscribe();
