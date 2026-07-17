@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { FreightOrder } from '@/hooks/useFreightOrders';
@@ -43,10 +43,17 @@ interface Props {
 }
 
 export function FreightReportsTab({ orders, hasFullAccess, isFreteiro, companyName, companyLogoUrl, onOpenDetails }: Props) {
-  const [month, setMonth] = useState<string>('all');
+  // Padrão: mês atual (YYYY-MM). Se não houver dados no mês, o usuário troca no filtro.
+  const currentMonthKey = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  })();
+  const [month, setMonth] = useState<string>(currentMonthKey);
   const [search, setSearch] = useState('');
   const [freighterFilter, setFreighterFilter] = useState<string>('all');
   const [costCompanyFilter, setCostCompanyFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
   const isMobile = useIsMobile();
 
   // Only completed OFRs are considered "realizados" para relatório
