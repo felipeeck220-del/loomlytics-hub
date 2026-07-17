@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -88,7 +88,7 @@ export default function FreightOrders() {
   const { toast } = useToast();
   const {
     orders, isLoading, freighters, costCompanies,
-    createOrder, startPickup, completeOrder, cancelOrder,
+    createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
     getPhotoSignedUrl,
@@ -101,6 +101,7 @@ export default function FreightOrders() {
   const [completedPage, setCompletedPage] = useState(0);
   const COMPLETED_PAGE_SIZE = 15;
   const [newOpen, setNewOpen] = useState(false);
+  const [editOrder, setEditOrder] = useState<FreightOrder | null>(null);
   const [freightersOpen, setFreightersOpen] = useState(false);
   const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
@@ -236,6 +237,7 @@ export default function FreightOrders() {
               onStartPickup={() => startPickup.mutate(order.id)}
               onComplete={() => setCompleteOrderId(order.id)}
               onCancel={() => setCancelOrderId(order.id)}
+              onEdit={() => setEditOrder(order)}
               onDetails={() => setDetailsOrder(order)}
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
             />
@@ -286,6 +288,40 @@ export default function FreightOrders() {
           yarnTypes={yarnTypes as any}
           onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
           submitting={createOrder.isPending}
+        />
+      )}
+
+      {hasFullAccess && (
+        <NewOFRModal
+          open={!!editOrder}
+          onOpenChange={(o) => !o && setEditOrder(null)}
+          freighters={freighters}
+          costCompanies={costCompanies}
+          articles={articles as any}
+          yarnTypes={yarnTypes as any}
+          mode="edit"
+          initial={editOrder ? {
+            freighter_id: editOrder.freighter_id,
+            cost_company_id: editOrder.cost_company_id || '',
+            pickup_location: editOrder.pickup_location,
+            delivery_location: editOrder.delivery_location,
+            observations: editOrder.observations || '',
+            delivery_doc_type: editOrder.delivery_doc_type || null,
+            delivery_doc_number: editOrder.delivery_doc_number || '',
+            items: (editOrder.items || []).map(it => ({
+              item_type: (it.item_type || 'malha') as 'malha' | 'fio',
+              article_id: it.article_id || '',
+              yarn_type_id: it.yarn_type_id || '',
+              boxes: it.boxes != null ? String(it.boxes) : '',
+              pieces: Number(it.pieces || 0),
+              weight_kg: it.weight_kg != null ? String(it.weight_kg).replace('.', ',') : '',
+            })),
+          } : undefined}
+          onSubmit={(payload) => {
+            if (!editOrder) return;
+            updateOrder.mutate({ id: editOrder.id, ...payload }, { onSuccess: () => setEditOrder(null) });
+          }}
+          submitting={updateOrder.isPending}
         />
       )}
 
@@ -348,7 +384,7 @@ export default function FreightOrders() {
 
 function OrderCard({
   order, hasFullAccess, isFreteiro,
-  onStartPickup, onComplete, onCancel, onDetails, onDownload,
+  onStartPickup, onComplete, onCancel, onEdit, onDetails, onDownload,
 }: {
   order: FreightOrder;
   hasFullAccess: boolean;
@@ -356,6 +392,7 @@ function OrderCard({
   onStartPickup: () => void;
   onComplete: () => void;
   onCancel: () => void;
+  onEdit: () => void;
   onDetails: () => void;
   onDownload: () => void;
 }) {
@@ -464,6 +501,11 @@ function OrderCard({
                 <Play className="h-4 w-4 mr-1.5" /> Iniciar Frete
               </Button>
             )}
+            {order.status === 'open' && hasFullAccess && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Pencil className="h-4 w-4 mr-1.5" /> Editar
+              </Button>
+            )}
             {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && (isFreteiro || hasFullAccess) && (
               <Button size="sm" onClick={onComplete}>
                 <CheckCircle2 className="h-4 w-4 mr-1.5" /> Finalizar
@@ -489,6 +531,7 @@ function OrderCard({
 
 function NewOFRModal({
   open, onOpenChange, freighters, costCompanies, articles, yarnTypes, onSubmit, submitting,
+  mode = 'create', initial,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -513,6 +556,24 @@ function NewOFRModal({
     }>;
   }) => void;
   submitting: boolean;
+  mode?: 'create' | 'edit';
+  initial?: {
+    freighter_id: string;
+    cost_company_id: string;
+    pickup_location: string;
+    delivery_location: string;
+    observations?: string | null;
+    delivery_doc_type?: 'nf' | 'rom' | null;
+    delivery_doc_number?: string | null;
+    items: Array<{
+      item_type: 'malha' | 'fio';
+      article_id: string;
+      yarn_type_id: string;
+      boxes: string;
+      pieces: number;
+      weight_kg: string;
+    }>;
+  };
 }) {
   const [freighterId, setFreighterId] = useState('');
   const [costCompanyId, setCostCompanyId] = useState('');
@@ -535,11 +596,24 @@ function NewOFRModal({
 
   useEffect(() => {
     if (open) {
-      setFreighterId(''); setCostCompanyId(''); setPickup(''); setDelivery(''); setObs('');
-      setDocType(''); setDocNumber('');
-      setItems([{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
+      if (mode === 'edit' && initial) {
+        setFreighterId(initial.freighter_id || '');
+        setCostCompanyId(initial.cost_company_id || '');
+        setPickup(initial.pickup_location || '');
+        setDelivery(initial.delivery_location || '');
+        setObs(initial.observations || '');
+        setDocType((initial.delivery_doc_type as any) || '');
+        setDocNumber(initial.delivery_doc_number || '');
+        setItems(initial.items?.length
+          ? initial.items.map(i => ({ ...i }))
+          : [{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
+      } else {
+        setFreighterId(''); setCostCompanyId(''); setPickup(''); setDelivery(''); setObs('');
+        setDocType(''); setDocNumber('');
+        setItems([{ item_type: 'malha', article_id: '', yarn_type_id: '', boxes: '', pieces: 0, weight_kg: '' }]);
+      }
     }
-  }, [open]);
+  }, [open, mode, initial]);
 
   const submit = () => {
     if (!freighterId) return toast({ title: 'Selecione o freteiro', variant: 'destructive' });
@@ -596,7 +670,7 @@ function NewOFRModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nova Ordem de Frete</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{mode === 'edit' ? 'Editar Ordem de Frete' : 'Nova Ordem de Frete'}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -718,7 +792,9 @@ function NewOFRModal({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submit} disabled={submitting}>{submitting ? 'Salvando…' : 'Criar OFR'}</Button>
+          <Button onClick={submit} disabled={submitting}>
+            {submitting ? 'Salvando…' : (mode === 'edit' ? 'Salvar alterações' : 'Criar OFR')}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
