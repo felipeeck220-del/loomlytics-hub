@@ -167,6 +167,8 @@ export function useFreightOrders() {
           *,
           freighter:freighters(*),
           cost_company:freight_cost_companies(*),
+          pickup_address:freight_addresses!freight_orders_pickup_address_id_fkey(*),
+          delivery_address:freight_addresses!freight_orders_delivery_address_id_fkey(*),
           items:freight_order_items(*, article:articles(name, client_id, client_name)),
           photos:freight_order_photos(*),
           creator:profiles!freight_orders_created_by_fkey(name, code),
