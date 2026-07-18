@@ -549,6 +549,7 @@ export default function Invoices() {
       }
       logAction(editingYarn ? 'yarn_type_update' : 'yarn_type_create', { name: yarnName.trim() });
       queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
       toast({ title: editingYarn ? 'Fio atualizado!' : 'Fio cadastrado!' });
       setYarnDialogOpen(false);
       setEditingYarn(null);
@@ -563,6 +564,7 @@ export default function Invoices() {
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('yarn_type_delete', { name: y.name });
     queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
+    queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
     toast({ title: 'Fio excluído' });
   };
 
