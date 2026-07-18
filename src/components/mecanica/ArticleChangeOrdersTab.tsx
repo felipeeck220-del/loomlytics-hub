@@ -1027,46 +1027,29 @@ function FinalizeModal({ o, onClose, onDone }: { o: OT; onClose: () => void; onD
     savingRef.current = true;
     setSaving(true);
     try {
-    const { error } = await (supabase.from as any)('article_change_orders')
-      .update({
-        status: 'concluida',
-        concluded_at: new Date().toISOString(),
-        concluded_by_name: userName,
-        concluded_by_code: userCode,
-        monitoring_turns: (() => {
-          if (!turns) return null;
-          const n = Number(String(turns).replace(',', '.'));
-          return Number.isFinite(n) ? n : null;
-        })(),
-        piece_defects_holes: Number(holes) || 0,
-        piece_defects_flaws: Number(flaws) || 0,
-        final_report: report.trim(),
-      })
-      .eq('id', o.id);
+    // [rpcmecanica Fase 3] Conclusão atômica em uma única transação SQL.
+    const parsedTurns = (() => {
+      if (!turns) return null;
+      const n = Number(String(turns).replace(',', '.'));
+      return Number.isFinite(n) ? n : null;
+    })();
+    const { data: rpcData, error } = await (supabase.rpc as any)('finalize_article_change_order', {
+      p_order_id: o.id,
+      p_report: report.trim(),
+      p_turns: parsedTurns,
+      p_holes: Number(holes) || 0,
+      p_flaws: Number(flaws) || 0,
+      p_author_name: userName,
+      p_author_code: userCode,
+    });
     if (error) { toast.error(getFriendlyErrorMessage(error.message)); return; }
-    // Ao concluir a OT, promove o "próximo artigo" a artigo atual da máquina
-    // (Máquinas > Informações Básicas > Artigo Atual → coluna machines.article_id)
-    if (o.next_article_id && o.machine_id) {
-      const { error: machErr, data: machUpd } = await (supabase.from as any)('machines')
-        .update({ article_id: o.next_article_id, status: 'ativa' })
-        .eq('id', o.machine_id)
-        .select('id');
-      if (machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0)) {
-        toast.error('OT concluída, mas não foi possível atualizar o Artigo Atual da máquina. Ajuste manualmente em Máquinas.');
-        console.error('[FinalizeOT] machine current_article update failed', { machErr, machUpd, machine_id: o.machine_id });
-      } else {
-        // Recarrega o dataset compartilhado para que "Artigo Atual" reflita imediatamente
-        // em Máquinas > Informações Básicas, cards da OT e demais telas sem F5.
-        try { await refreshData?.(); } catch (e) { console.error('[FinalizeOT] refreshData failed', e); }
-      }
-    } else if (o.machine_id) {
-      // Mesmo sem próximo artigo definido, garantir que a máquina volte a 'ativa'
-      // ao concluir a OT — evita status travado como "troca_artigo" em Máquinas.
-      const { error: machErr } = await (supabase.from as any)('machines')
-        .update({ status: 'ativa' })
-        .eq('id', o.machine_id);
-      if (machErr) console.error('[FinalizeOT] machine status reset failed', machErr);
-      else { try { await refreshData?.(); } catch { /* silencioso */ } }
+    const alreadyConcluded = !!(rpcData && rpcData.already);
+    // Refresh do contexto compartilhado (Artigo Atual em Máquinas)
+    try { await refreshData?.(); } catch (e) { console.error('[FinalizeOT] refreshData failed', e); }
+    if (alreadyConcluded) {
+      toast.success(`OT #${o.ot_number} já concluída`);
+      onDone();
+      return;
     }
     logAction('ot_conclude', { ot: o.ot_number });
     toast.success(`OT #${o.ot_number} concluída`);
