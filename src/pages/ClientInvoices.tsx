@@ -482,7 +482,10 @@ export default function ClientInvoices() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todo período</SelectItem>
-                {Array.from(new Set(clientInvoices.map(inv => inv.issue_date.substring(0, 7)))).sort().reverse().map(month => (
+                {(bootstrapMonths.length
+                  ? bootstrapMonths
+                  : Array.from(new Set(clientInvoices.map(inv => inv.issue_date.substring(0, 7)))).sort().reverse()
+                ).map(month => (
                   <SelectItem key={month} value={month}>{format(new Date(month + '-02T12:00:00'), 'MMMM yyyy')}</SelectItem>
                 ))}
               </SelectContent>
