@@ -4984,6 +4984,40 @@ export type Database = {
       get_mecanica_bootstrap: { Args: { p_company_id: string }; Returns: Json }
       get_needle_stock: { Args: { p_company_id: string }; Returns: Json }
       get_outsource_bootstrap: { Args: { p_company_id: string }; Returns: Json }
+      get_outsource_freights_list: {
+        Args: {
+          p_company_id: string
+          p_end_date?: string
+          p_month?: string
+          p_outsource_company_id?: string
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_start_date?: string
+        }
+        Returns: Json
+      }
+      get_outsource_kpis: {
+        Args: {
+          p_company_id: string
+          p_end_date?: string
+          p_month?: string
+          p_start_date?: string
+        }
+        Returns: Json
+      }
+      get_outsource_productions_list: {
+        Args: {
+          p_company_id: string
+          p_end_date?: string
+          p_month?: string
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_start_date?: string
+        }
+        Returns: Json
+      }
       get_production_filter_articles: {
         Args: { p_company_id: string }
         Returns: {
