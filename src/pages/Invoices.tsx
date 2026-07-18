@@ -307,84 +307,10 @@ export default function Invoices() {
     return [format(new Date(), 'yyyy-MM')];
   }, [bootstrapMonthsInvoices]);
 
-  // ===== Filtered invoices by tab + filters =====
-  const filteredInvoicesBase = useMemo(() => {
-    let filtered = invoices;
-
-    // Tab filter
-    if (activeTab === 'entrada') filtered = filtered.filter(i => i.type === 'entrada');
-    else if (activeTab === 'venda_fio') filtered = filtered.filter(i => i.type === 'venda_fio');
-    else if (activeTab === 'saida_malha') filtered = filtered.filter(i => i.type === 'saida');
-
-    // Status
-    if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
-
-    // Month
-    if (filterMonth !== 'all') filtered = filtered.filter(i => i.issue_date.startsWith(filterMonth));
-
-    // Search — includes buyer_name (supplier/buyer), yarn type names and articles
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      filtered = filtered.filter(i => {
-        const basicMatch = i.invoice_number.toLowerCase().includes(q) ||
-          (i.client_name || '').toLowerCase().includes(q) ||
-          (i.buyer_name || '').toLowerCase().includes(q) ||
-          (i.destination_name || '').toLowerCase().includes(q) ||
-          (i.access_key || '').includes(q);
-        
-        if (basicMatch) return true;
-
-        // Search in items (yarn types or articles)
-        const items = invoiceItems.filter(it => it.invoice_id === i.id);
-        return items.some(it => 
-          (it.yarn_type_name || '').toLowerCase().includes(q) ||
-          (it.article_name || '').toLowerCase().includes(q)
-        );
-      });
-    }
-
-    return filtered;
-  }, [invoices, activeTab, filterStatus, filterMonth, searchTerm, invoiceItems]);
-
-  const totalPages = Math.ceil(filteredInvoicesBase.length / itemsPerPage);
-  
-  const filteredInvoices = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredInvoicesBase.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredInvoicesBase, currentPage]);
-
-  // ===== KPIs =====
-  const kpis = useMemo(() => {
-    const active = filteredInvoicesBase.filter(i => i.status !== 'cancelada');
-    return {
-      count: active.length,
-      totalKg: active.reduce((s, i) => s + Number(i.total_weight_kg), 0),
-      totalValue: active.reduce((s, i) => s + Number(i.total_value || 0), 0),
-      pendentes: active.filter(i => i.status === 'pendente').length,
-    };
-  }, [filteredInvoicesBase]);
-
-  // ===== Available brands from items with positive stock =====
-  const availableBrands = useMemo(() => {
-    const brandMap = new Map<string, number>();
-    // Sum entries
-    invoices.filter(i => i.type === 'entrada' && i.status !== 'cancelada').forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => {
-        brandMap.set(it.brand!, (brandMap.get(it.brand!) || 0) + Number(it.weight_kg));
-      });
-    });
-    // Subtract sales
-    invoices.filter(i => i.type === 'venda_fio' && i.status !== 'cancelada').forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => {
-        brandMap.set(it.brand!, (brandMap.get(it.brand!) || 0) - Number(it.weight_kg));
-      });
-    });
-    // Only return brands with positive stock
-    return Array.from(brandMap.entries())
-      .filter(([, qty]) => qty > 0)
-      .map(([brand]) => brand)
-      .sort();
-  }, [invoices, invoiceItems]);
+  // ===== Fase 3 rpcInvoices.md: derivações antigas removidas =====
+  // A lista, os KPIs e a paginação da aba ativa vêm de `rpcRows`/`rpcKpis`/`rpcTotalCount`
+  // (get_invoices_list). O dropdown de marcas do formulário (`availableBrands`) é
+  // alimentado por `get_yarn_balance_by_brand` (all/all) filtrando `balance > 0`.
 
   // ===== Save Invoice =====
   const handleSaveInvoice = async () => {
