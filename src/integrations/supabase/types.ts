@@ -5018,6 +5018,32 @@ export type Database = {
         }
         Returns: Json
       }
+      get_outsource_report_list: {
+        Args: {
+          p_client_name?: string
+          p_company_id: string
+          p_end_date?: string
+          p_month?: string
+          p_outsource_company_id?: string
+          p_page?: number
+          p_page_size?: number
+          p_profit_filter?: string
+          p_start_date?: string
+        }
+        Returns: Json
+      }
+      get_outsource_report_metrics: {
+        Args: {
+          p_client_name?: string
+          p_company_id: string
+          p_end_date?: string
+          p_month?: string
+          p_outsource_company_id?: string
+          p_profit_filter?: string
+          p_start_date?: string
+        }
+        Returns: Json
+      }
       get_production_filter_articles: {
         Args: { p_company_id: string }
         Returns: {
