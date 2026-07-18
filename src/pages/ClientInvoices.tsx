@@ -323,19 +323,31 @@ export default function ClientInvoices() {
 
   const confirmDelete = async () => {
     if (!invoiceToDelete) return;
-    
-    // Check if it's an entrance with linked outputs
-    const invoice = clientInvoices.find(i => i.id === invoiceToDelete);
-    const hasLinkedLegacy = invoice?.type === 'entrada' && clientInvoices.some(i => i.parent_invoice_id === invoiceToDelete);
-    const hasLinkedNew = invoice?.type === 'entrada' && (exitLinksAll || []).some((l: any) => l.entry_invoice_id === invoiceToDelete);
-    const hasLinked = hasLinkedLegacy || hasLinkedNew;
 
-    const { error } = await supabase.from('client_invoices').delete().eq('id', invoiceToDelete);
-    if (error) toast.error('Erro ao excluir');
-    else {
-      logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete, was_parent: hasLinked });
-      toast.success(hasLinked ? 'Nota excluída — saídas vinculadas podem precisar ser revisadas' : 'Nota excluída');
+    // Fase 4 rpcclientInvoices — DELETE atômico + cascade_count server-side
+    const { data, error } = await (supabase.rpc as any)('delete_client_invoice', {
+      p_id: invoiceToDelete,
+      p_author_name: userTrackingInfo.created_by_name,
+      p_author_code: userTrackingInfo.created_by_code,
+    });
+    if (error) {
+      toast.error('Erro ao excluir');
+    } else {
+      const already = Boolean(data?.already);
+      const cascade = Number(data?.cascade_count ?? 0);
+      const wasParent = Boolean(data?.was_parent);
+      if (!already) {
+        logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete, was_parent: wasParent, cascade_count: cascade });
+        toast.success(cascade > 0
+          ? `Nota excluída — ${cascade} saída(s) vinculada(s) também foram removidas`
+          : 'Nota excluída');
+      }
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoice_exit_links'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoices_search'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoices_by_client'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoice_linked_exits'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoices_bootstrap'] });
     }
     setDeleteDialogOpen(false);
     setInvoiceToDelete(null);
