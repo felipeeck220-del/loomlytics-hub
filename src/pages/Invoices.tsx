@@ -134,10 +134,9 @@ export default function Invoices() {
   const { userCode, userName, logAction } = useAuditLog();
   const queryClient = useQueryClient();
   const { canSeeFinancial } = usePermissions();
-  const { getClients, getArticles, getProductions } = useSharedCompanyData();
+  const { getClients, getArticles } = useSharedCompanyData();
   const clients = getClients();
   const articles = getArticles();
-  const productions = getProductions();
   const { minDate, maxDate } = getDateLimits();
 
   // ===== Bootstrap (Fase 1 rpcInvoices.md): yarn_types + outsource_companies + company + available_months =====
@@ -164,21 +163,10 @@ export default function Invoices() {
   const bootstrapCompany = bootstrap?.company;
   const loadingYarns = loadingBootstrap;
 
-  // ===== (Legacy) Fetch Invoices + Items =====
-  // Fase 2 rpcInvoices.md: as 3 abas de lista (entrada/venda_fio/saida_malha) e a aba
-  // EFT agora consomem RPCs paginadas. Estas duas queries continuam ativas apenas para
-  // os consumidores da Fase 3 (saldo, saldoGlobal, malhaEstoque, availableBrands, viewItems
-  // e exportação de PDF), que serão migrados na próxima fase.
-  const { data: invoices = [], isLoading: loadingInvoicesRaw } = useQuery({
-    queryKey: ['invoices', companyId],
-    queryFn: () => fetchAllPaginated<Invoice>('invoices', companyId, 'created_at', false),
-    enabled: !!companyId,
-  });
-  const { data: invoiceItems = [] } = useQuery({
-    queryKey: ['invoice_items', companyId],
-    queryFn: () => fetchAllPaginated<InvoiceItem>('invoice_items', companyId, 'created_at'),
-    enabled: !!companyId,
-  });
+  // ===== Fase 3 rpcInvoices.md =====
+  // As queries diretas em `invoices` e `invoice_items` foram eliminadas. Todas as leituras
+  // acontecem via RPCs (`get_invoices_list`, `get_yarn_balance_by_brand`,
+  // `get_yarn_global_balance`, `get_yarn_sales_report_export`).
 
   // ===== State (declarado antes das RPCs paginadas p/ compor queryKey) =====
 
