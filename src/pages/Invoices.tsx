@@ -810,6 +810,9 @@ export default function Invoices() {
     totalYarnTypes: Number(eftListKpis.yarn_types_count) || 0,
   }), [eftListKpis]);
 
+  // Total de páginas derivado da RPC (Fase 2)
+  const rpcTotalPages = Math.max(1, Math.ceil(rpcTotalCount / itemsPerPage));
+
   const eftAvailableMonths = useMemo(() => {
     if (bootstrapMonthsEft.length > 0) return bootstrapMonthsEft;
     return [format(new Date(), 'yyyy-MM')];
