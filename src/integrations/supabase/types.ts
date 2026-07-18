@@ -4875,6 +4875,28 @@ export type Database = {
               weight_kg: number
             }[]
           }
+      finalize_article_change_order: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_flaws?: number
+          p_holes?: number
+          p_order_id: string
+          p_report: string
+          p_turns?: number
+        }
+        Returns: Json
+      }
+      finalize_maintenance_order: {
+        Args: {
+          p_author_name?: string
+          p_author_user_id?: string
+          p_finish_notes?: string
+          p_items?: Json
+          p_order_id: string
+        }
+        Returns: Json
+      }
       get_article_change_orders_list: {
         Args: { p_company_id: string }
         Returns: Json
