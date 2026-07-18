@@ -87,19 +87,23 @@ export default function ClientInvoices() {
   const [filterMonth, setFilterMonth] = useState('all');
 
   // Company branding for PDF exports
-  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
-  const [companyName, setCompanyName] = useState<string>('');
-  useEffect(() => {
-    if (!companyId) return;
-    (supabase.from as any)('companies')
-      .select('logo_url, name')
-      .eq('id', companyId)
-      .maybeSingle()
-      .then(({ data }: any) => {
-        if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
-        if (data?.name) setCompanyName(data.name);
-      });
-  }, [companyId]);
+  // Bootstrap (Fase 1 rpcclientInvoices.md): company + available_months em 1 chamada
+  const { data: bootstrap } = useQuery({
+    queryKey: ['client_invoices_bootstrap', companyId],
+    enabled: !!companyId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_client_invoices_bootstrap', { p_company_id: companyId });
+      if (error) throw error;
+      return (data ?? { company: { name: '', logo_url: null }, available_months: [] }) as {
+        company: { name: string; logo_url: string | null };
+        available_months: string[];
+      };
+    },
+  });
+  const companyLogoUrl = bootstrap?.company?.logo_url ?? null;
+  const companyName = bootstrap?.company?.name ?? '';
+  const bootstrapMonths = bootstrap?.available_months ?? [];
 
   // Fetch Client Invoices
   const { data: clientInvoices = [], isLoading: loadingInvoices } = useQuery({
@@ -478,7 +482,10 @@ export default function ClientInvoices() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todo período</SelectItem>
-                {Array.from(new Set(clientInvoices.map(inv => inv.issue_date.substring(0, 7)))).sort().reverse().map(month => (
+                {(bootstrapMonths.length
+                  ? bootstrapMonths
+                  : Array.from(new Set(clientInvoices.map(inv => inv.issue_date.substring(0, 7)))).sort().reverse()
+                ).map(month => (
                   <SelectItem key={month} value={month}>{format(new Date(month + '-02T12:00:00'), 'MMMM yyyy')}</SelectItem>
                 ))}
               </SelectContent>

@@ -4963,6 +4963,10 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      get_client_invoices_bootstrap: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       get_company_public_by_slug: {
         Args: { _slug: string }
         Returns: {
