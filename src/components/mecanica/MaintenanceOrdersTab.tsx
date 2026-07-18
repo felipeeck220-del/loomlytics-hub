@@ -436,138 +436,49 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     finishingRef.current = true;
     setFinishing(true);
     try {
-    const now = new Date().toISOString();
-    const seconds = Math.max(0, Math.floor((Date.now() - new Date(finishOrder.started_at).getTime()) / 1000));
-    // Data local (GMT-3) para registros que usam coluna DATE
-    const localDate = (() => {
-      const d = new Date();
-      const off = d.getTimezoneOffset() * 60000;
-      return new Date(d.getTime() - off).toISOString().slice(0, 10);
-    })();
-
-    // 1) fecha machine_log
-    if (finishOrder.machine_log_id) {
-      await (supabase.from as any)('machine_logs').update({
-        ended_at: now, ended_by_name: authorLabel,
-      }).eq('id', finishOrder.machine_log_id);
-    }
-    // 2) máquina volta a ativa + abre novo log "ativa" para manter a linha do tempo
-    const { error: machErr, data: machUpd } = await (supabase.from as any)('machines')
-      .update({ status: 'ativa' })
-      .eq('id', finishOrder.machine_id)
-      .select('id');
-    const machineReactivated = !(machErr || !machUpd || (Array.isArray(machUpd) && machUpd.length === 0));
-    if (!machineReactivated) {
-      toast.error('Falha ao reativar máquina. Verifique o status em Máquinas.');
-      console.error('[confirmFinish] machine status update failed', { machErr, machUpd, machine_id: finishOrder.machine_id });
-    } else {
-      // Só abre novo log "ativa" se o status da máquina realmente voltou a ativa —
-      // evita histórico inconsistente (log dizendo ativa enquanto machines.status ainda está em manutenção).
-      await (supabase.from as any)('machine_logs').insert({
-        machine_id: finishOrder.machine_id,
-        company_id: companyId,
-        status: 'ativa',
-        started_at: now,
-        started_by_name: authorLabel,
-      });
-    }
-
-    // 3) atualiza OM
-    const { error } = await (supabase.from as any)('maintenance_orders').update({
-      status: 'finalizada', finished_at: now, finished_by_id: user?.id, finished_by_name: authorLabel,
-      duration_seconds: seconds,
-      finish_notes: finishNotes || null,
-    }).eq('id', finishOrder.id);
     const isCorr = finishOrder.type === 'manutencao_corretiva';
-    if (error) { toast.error(`Erro ao finalizar ${isCorr ? 'OC' : 'OM'}`); return; }
-
-    // 4) insere itens
-    const itemsToInsert = finishItems.filter(it => it.quantity > 0 && (it.ref_id || it.description)).map(it => ({
-      company_id: companyId,
-      order_id: finishOrder.id,
-      item_type: it.item_type,
-      needle_id: it.item_type === 'agulha' ? (it.ref_id || null) : null,
-      sinker_id: it.item_type === 'platina' ? (it.ref_id || null) : null,
-      cylinder_id: it.item_type === 'cilindro' ? (it.ref_id || null) : null,
-      description: it.description || null,
-      quantity: it.quantity,
-    }));
-    if (itemsToInsert.length) {
-      await (supabase.from as any)('maintenance_order_items').insert(itemsToInsert);
+    // [rpcmecanica Fase 3] Toda a finalização acontece em 1 chamada atômica.
+    // Ganhos: sem status travado, sem itens/transações órfãs, idempotência real.
+    const payloadItems = finishItems
+      .filter(it => it.quantity > 0 && (it.ref_id || it.description))
+      .map(it => ({
+        item_type: it.item_type,
+        ref_id: it.ref_id || null,
+        description: it.description || null,
+        quantity: it.quantity,
+      }));
+    const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('finalize_maintenance_order', {
+      p_order_id: finishOrder.id,
+      p_items: payloadItems,
+      p_finish_notes: finishNotes || null,
+      p_author_name: authorLabel,
+      p_author_user_id: user?.id ?? null,
+    });
+    if (rpcErr) {
+      console.error('[confirmFinish] finalize_maintenance_order failed', rpcErr);
+      toast.error(`Erro ao finalizar ${isCorr ? 'OC' : 'OM'}`);
+      return;
     }
+    const seconds: number = (rpcData && rpcData.duration_seconds) ?? 0;
+    const itemsInsertedCount: number = (rpcData && rpcData.items_inserted) ?? payloadItems.length;
+    const alreadyFinalized = !!(rpcData && rpcData.already);
 
-    // 5) trocas de agulha/platina viram transações de estoque (saída)
-    //    + atualizam automaticamente as referências em USO da máquina
-    const machine = machines.find(m => m.id === finishOrder.machine_id);
-    const isDupla = machine?.machine_type === 'dupla';
-    for (const it of itemsToInsert) {
-      if (it.item_type === 'agulha' && it.needle_id) {
-        await (supabase.from as any)('needle_transactions').insert({
-          company_id: companyId, needle_id: it.needle_id, type: 'exit',
-          // SEMPRE 'reposicao' aqui: o OM já criou o machine_log de início/fim.
-          // Usar 'troca_agulheiro' faria o trigger inserir machine_logs duplicados.
-          exit_mode: 'reposicao',
-          quantity: it.quantity, date: localDate, machine_id: finishOrder.machine_id,
-          created_by_id: user?.id, created_by_name: authorLabel,
-        });
-        // Atualiza ref em uso (substitui posição correspondente)
-        const position = isDupla ? 'cilindro' : 'mono';
-        await (supabase.from as any)('machine_needle_refs')
-          .delete()
-          .eq('machine_id', finishOrder.machine_id)
-          .eq('position', position);
-        await (supabase.from as any)('machine_needle_refs').insert({
-          company_id: companyId, machine_id: finishOrder.machine_id,
-          needle_id: it.needle_id, position,
-        });
-      } else if (it.item_type === 'platina' && it.sinker_id) {
-        await (supabase.from as any)('sinker_transactions').insert({
-          company_id: companyId, sinker_id: it.sinker_id, type: 'exit',
-          exit_mode: 'troca_platinas', quantity: it.quantity, date: localDate,
-          machine_id: finishOrder.machine_id,
-          created_by_id: user?.id, created_by_name: authorLabel,
-        });
-        // Substitui apenas se a referência ainda não estiver vinculada
-        const { data: existingRef } = await (supabase.from as any)('machine_sinker_refs')
-          .select('id').eq('machine_id', finishOrder.machine_id).eq('sinker_id', it.sinker_id).maybeSingle();
-        if (!existingRef) {
-          await (supabase.from as any)('machine_sinker_refs').insert({
-            company_id: companyId, machine_id: finishOrder.machine_id, sinker_id: it.sinker_id,
-          });
-        }
-      } else if (it.item_type === 'cilindro' && it.cylinder_id) {
-        // Libera cilindro anterior desta máquina
-        if (machine?.cylinder_id && machine.cylinder_id !== it.cylinder_id) {
-          await (supabase.from as any)('cylinders').update({ machine_id: null }).eq('id', machine.cylinder_id);
-        }
-        // Remove o novo cilindro de qualquer outra máquina que o esteja usando
-        const otherMachine = machines.find(m => m.cylinder_id === it.cylinder_id && m.id !== finishOrder.machine_id);
-        if (otherMachine) {
-          await (supabase.from as any)('machines').update({ cylinder_id: null }).eq('id', otherMachine.id);
-        }
-        await (supabase.from as any)('machines').update({ cylinder_id: it.cylinder_id }).eq('id', finishOrder.machine_id);
-        await (supabase.from as any)('cylinders').update({ machine_id: finishOrder.machine_id }).eq('id', it.cylinder_id);
-      }
-    }
-
-    // Se OM de troca de agulhas, atualiza marcador de última troca manualmente
-    // (já que removemos exit_mode='troca_agulheiro' para evitar log duplicado).
-    if (finishOrder.type === 'troca_agulhas') {
-      const { error: needleErr } = await (supabase.from as any)('machines')
-        .update({ last_needle_change_at: now })
-        .eq('id', finishOrder.machine_id);
-      if (needleErr) {
-        console.error('[confirmFinish] last_needle_change_at update failed', needleErr);
-        toast.error('OM finalizada, mas não foi possível registrar a data da troca de agulhas.');
-      }
+    if (alreadyFinalized) {
+      // Idempotência: OM já estava finalizada (duplo clique / concorrência).
+      // Não dispara push nem audit para não duplicar histórico.
+      toast.success(`${isCorr ? 'OC' : 'OM'} já finalizada`);
+      setFinishOrder(null);
+      await load();
+      await Promise.resolve(refreshMachines());
+      return;
     }
 
     toast.success(`${isCorr ? 'OC' : 'OM'} finalizada`);
     logAction(
       isCorr ? 'oc_finish' : 'om_finish',
       isCorr
-        ? { oc: finishOrder.oc_number, duration_s: seconds, items: itemsToInsert.length }
-        : { om: finishOrder.om_number, duration_s: seconds, items: itemsToInsert.length },
+        ? { oc: finishOrder.oc_number, duration_s: seconds, items: itemsInsertedCount }
+        : { om: finishOrder.om_number, duration_s: seconds, items: itemsInsertedCount },
     );
     // Push de finalização — notifica admins (e líderes/mecânicos envolvidos)
     try {
