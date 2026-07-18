@@ -361,18 +361,13 @@ function CompaniesTab({ companies, companyId, loading }: {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (editId) {
-        const { error } = await sb('outsource_companies').update({
-          name: form.name, contact: form.contact || null, observations: form.observations || null,
-        }).eq('id', editId);
-        if (error) throw error;
-      } else {
-        const { error } = await sb('outsource_companies').insert({
-          company_id: companyId, name: form.name,
-          contact: form.contact || null, observations: form.observations || null,
-        });
-        if (error) throw error;
-      }
+      const { data, error } = await (supabase.rpc as any)('save_outsource_company', {
+        p_company_id: companyId,
+        p_id: editId,
+        p_payload: { name: form.name, contact: form.contact || null, observations: form.observations || null },
+      });
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_companies'] });
@@ -385,7 +380,10 @@ function CompaniesTab({ companies, companyId, loading }: {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await sb('outsource_companies').delete().eq('id', id);
+      const { error } = await (supabase.rpc as any)('delete_outsource_company', {
+        p_company_id: companyId,
+        p_id: id,
+      });
       if (error) throw error;
     },
     onSuccess: (_: any, id: string) => {
