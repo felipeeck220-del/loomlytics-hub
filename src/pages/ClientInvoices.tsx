@@ -1237,32 +1237,23 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
 
   }, [invoices, exitLinksAll]);
 
+  // Fase 2 rpcclientInvoices — normaliza payload da RPC para o shape esperado pelo template (camelCase)
   const filteredInvoices = useMemo(() => {
-    const base = activeSubTab === 'aberto' 
-      ? invoicesWithBalance.filter((i: any) => !i.isEncerrada)
-      : activeSubTab === 'encerrada'
-        ? invoicesWithBalance.filter((i: any) => i.isEncerrada)
-        : invoices; // 'historico' base
-    
-    if (!localSearch) return base;
-    const q = localSearch.toLowerCase();
-    return base.filter((inv: any) => {
-      const itemName = inv.type === 'entrada' 
-        ? (yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '')
-        : (allArticles.find((a: any) => a.id === inv.items?.[0]?.article_id)?.name || '');
-      return inv.invoice_number.toLowerCase().includes(q) || itemName.toLowerCase().includes(q);
-    });
-  }, [invoicesWithBalance, activeSubTab, localSearch, yarnTypes, allArticles, invoices]);
+    return serverRows.map((r: any) => ({
+      ...r,
+      weightEntrada: Number(r.weight_entrada ?? 0),
+      weightSaida:   Number(r.weight_saida ?? 0),
+      saldo:         r.saldo == null ? 0 : Number(r.saldo),
+      isEncerrada:   Boolean(r.is_encerrada),
+      hasLinkedOutputs: Boolean(r.has_linked_outputs),
+    }));
+  }, [serverRows]);
 
   useEffect(() => { setPage(1); }, [localSearch]);
 
-  // Apply pagination only for Histórico and Encerradas
-  const paginatedInvoices = useMemo(() => {
-    if (activeSubTab === 'aberto') return filteredInvoices;
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredInvoices.slice(start, start + PAGE_SIZE);
-  }, [filteredInvoices, activeSubTab, page]);
-  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / PAGE_SIZE));
+  // Paginação real vem da RPC (server-side); 'aberto' devolve tudo em uma página
+  const paginatedInvoices = filteredInvoices;
+  const totalPages = Math.max(1, Math.ceil(serverTotal / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
 
   // ---- Build dataset for export based on filters ----
