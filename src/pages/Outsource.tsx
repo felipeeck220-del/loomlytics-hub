@@ -1537,22 +1537,22 @@ function ReportsTab({ companyId, freights, companies, availableMonths, loading, 
         {/* Export PDFs */}
         <div className="flex justify-end gap-2 flex-wrap">
           {selectedClientName !== '_all' ? (
-            <Button onClick={() => exportByClientPdf(filtered, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+            <Button onClick={async () => { const rows = await fetchAllFilteredRows(); if (rows.length) exportByClientPdf(rows, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl); }} className="btn-gradient" disabled={totalCount === 0}>
               <Download className="h-4 w-4 mr-2" /> Exportar PDF ({selectedClientName})
             </Button>
           ) : selectedCompanyId !== '_all' ? (
-            <Button onClick={() => exportByCompanyPdf(filtered, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+            <Button onClick={async () => { const rows = await fetchAllFilteredRows(); if (rows.length) exportByCompanyPdf(rows, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl); }} className="btn-gradient" disabled={totalCount === 0}>
               <Download className="h-4 w-4 mr-2" /> Exportar PDF ({companies.find(c => c.id === selectedCompanyId)?.name})
             </Button>
           ) : (
             <>
-              <Button onClick={() => exportByClientPdf(filtered, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
+              <Button onClick={async () => { const rows = await fetchAllFilteredRows(); if (rows.length) exportByClientPdf(rows, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl); }} variant="outline" disabled={totalCount === 0}>
                 <Users className="h-4 w-4 mr-2" /> Exportar por Cliente
               </Button>
-              <Button onClick={() => exportByCompanyPdf(filtered, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl)} variant="outline" disabled={filtered.length === 0}>
+              <Button onClick={async () => { const rows = await fetchAllFilteredRows(); if (rows.length) exportByCompanyPdf(rows, filteredFreightsInReport, periodLabel, companyName, companyLogoUrl); }} variant="outline" disabled={totalCount === 0}>
                 <Factory className="h-4 w-4 mr-2" /> Exportar por Malharia
               </Button>
-              <Button onClick={() => exportOutsourcePdf(filtered, { ...totals, freight: filteredFreightsInReport.reduce((s,f) => s+f.total_freight, 0), finalProfit: totals.profit - filteredFreightsInReport.reduce((s,f) => s+f.total_freight, 0) }, periodLabel, companyName, companyLogoUrl)} className="btn-gradient" disabled={filtered.length === 0}>
+              <Button onClick={async () => { const rows = await fetchAllFilteredRows(); if (!rows.length) return; const newFreight = filteredFreightsInReport.reduce((s,f) => s+f.total_freight, 0); exportOutsourcePdf(rows, { revenue: totals.revenue, cost: totals.cost, profit: totals.profit, weight: totals.weight, rolls: totals.rolls, freight: newFreight, finalProfit: totals.profit - newFreight }, periodLabel, companyName, companyLogoUrl); }} className="btn-gradient" disabled={totalCount === 0}>
                 <Download className="h-4 w-4 mr-2" /> Exportar PDF
               </Button>
             </>
@@ -1560,7 +1560,7 @@ function ReportsTab({ companyId, freights, companies, availableMonths, loading, 
         </div>
 
         {/* Table */}
-        {filtered.length === 0 ? (
+        {totalCount === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum registro encontrado para os filtros selecionados.</p>
         ) : (
           <>
@@ -1638,7 +1638,7 @@ function ReportsTab({ companyId, freights, companies, availableMonths, loading, 
           {totalPages > 1 && (
             <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
               <div className="text-xs text-muted-foreground">
-                Mostrando <strong>{(safePage - 1) * PAGE_SIZE + 1}</strong>–<strong>{Math.min(safePage * PAGE_SIZE, filtered.length)}</strong> de <strong>{filtered.length}</strong>
+                Mostrando <strong>{(safePage - 1) * PAGE_SIZE + 1}</strong>–<strong>{Math.min(safePage * PAGE_SIZE, Number(totalCount))}</strong> de <strong>{Number(totalCount)}</strong>
               </div>
               <div className="flex flex-wrap items-center gap-1">
                 <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={safePage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>Anterior</Button>
