@@ -1001,15 +1001,11 @@ export default function Invoices() {
                         className="gap-1.5"
                         onClick={async () => {
                           try {
-                            const { data: comp } = await sb('companies')
-                              .select('name, logo_url')
-                              .eq('id', companyId)
-                              .maybeSingle();
                             await generateYarnSalesReportPdf({
                               invoices: filteredInvoicesBase as any,
                               items: invoiceItems as any,
-                              companyName: comp?.name || '',
-                              companyLogoUrl: comp?.logo_url || null,
+                              companyName: bootstrapCompany?.name || '',
+                              companyLogoUrl: bootstrapCompany?.logo_url || null,
                               filters: { month: filterMonth, status: filterStatus, search: searchTerm },
                               canSeeFinancial,
                             });
