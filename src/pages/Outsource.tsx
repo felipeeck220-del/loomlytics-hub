@@ -1172,32 +1172,38 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
  
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+          <div className="flex flex-wrap items-center justify-center gap-1 pt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
               Anterior
             </Button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <Button
-                  key={page}
-                  variant={currentPage === page ? "default" : "outline"}
-                  size="sm"
-                  className="w-8 h-8 p-0"
-                  onClick={() => setCurrentPage(page)}
-                >
-                  {page}
-                </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+              .map((p, idx, arr) => (
+                <div key={p} className="flex items-center gap-1">
+                  {idx > 0 && p - arr[idx - 1] > 1 && (
+                    <span className="px-1 text-xs text-muted-foreground">…</span>
+                  )}
+                  <Button
+                    variant={currentPage === p ? "default" : "outline"}
+                    size="sm"
+                    className="w-8 h-8 p-0 text-xs"
+                    onClick={() => setCurrentPage(p)}
+                  >
+                    {p}
+                  </Button>
+                </div>
               ))}
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
             >
               Próximo
