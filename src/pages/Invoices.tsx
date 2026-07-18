@@ -763,11 +763,9 @@ export default function Invoices() {
   }), [eftGroups]);
 
   const eftAvailableMonths = useMemo(() => {
-    const months = new Set<string>();
-    months.add(format(new Date(), 'yyyy-MM'));
-    outsourceYarnStock.forEach(r => { if (r.reference_month) months.add(r.reference_month); });
-    return Array.from(months).sort().reverse();
-  }, [outsourceYarnStock]);
+    if (bootstrapMonthsEft.length > 0) return bootstrapMonthsEft;
+    return [format(new Date(), 'yyyy-MM')];
+  }, [bootstrapMonthsEft]);
 
   // ===== Estoque Fio Terceiros CRUD =====
   const handleSaveEft = async () => {
