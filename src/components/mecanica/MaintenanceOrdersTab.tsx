@@ -171,16 +171,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const load = async (opts?: { silent?: boolean }) => {
     if (!companyId) return;
     if (!opts?.silent) setLoading(true);
-    const [{ data: o, error: oErr }, { data: i, error: iErr }] = await Promise.all([
-      (supabase.from as any)('maintenance_orders').select('*').eq('company_id', companyId).order('created_at', { ascending: false }),
-      (supabase.from as any)('maintenance_order_items').select('*').eq('company_id', companyId),
-    ]);
-    if (oErr || iErr) {
-      console.error('[MaintenanceOrdersTab.load] fetch failed', { oErr, iErr });
+    // [rpcmecanica Fase 2] 1 RPC consolidada em vez de 2 SELECTs
+    const { data, error } = await (supabase.rpc as any)('get_maintenance_orders_list', { p_company_id: companyId });
+    if (error) {
+      console.error('[MaintenanceOrdersTab.load] rpc failed', error);
       toast.error('Erro ao carregar ordens de manutenção');
     }
-    setOrders((o as MaintenanceOrder[]) || []);
-    setItems((i as MaintenanceOrderItem[]) || []);
+    const payload = (data || {}) as { orders?: MaintenanceOrder[]; items?: MaintenanceOrderItem[] };
+    setOrders((payload.orders as MaintenanceOrder[]) || []);
+    setItems((payload.items as MaintenanceOrderItem[]) || []);
     if (!opts?.silent) setLoading(false);
   };
 

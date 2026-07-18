@@ -159,29 +159,11 @@ export default function ArticleChangeOrdersTab() {
   const load = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (!user?.company_id) return;
     if (!opts.silent) setLoading(true);
-    const { data: os, error } = await (supabase.from as any)('article_change_orders')
-      .select('*')
-      .eq('company_id', user.company_id)
-      .order('created_at', { ascending: false });
+    // [rpcmecanica Fase 2] 1 RPC consolidada, yarns já embutidos e ordenados
+    const { data, error } = await (supabase.rpc as any)('get_article_change_orders_list', { p_company_id: user.company_id });
     if (error) { toast.error(getFriendlyErrorMessage(error.message)); setLoading(false); return; }
-    const ids = (os || []).map((o: OT) => o.id);
-    let yarns: Yarn[] = [];
-    if (ids.length) {
-      const { data: ys, error: yErr } = await (supabase.from as any)('article_change_yarns')
-        .select('*')
-        .eq('company_id', user.company_id)
-        .in('order_id', ids);
-      if (yErr) console.error('[ArticleChangeOrdersTab.load] yarns fetch failed', yErr);
-      yarns = (ys || []) as Yarn[];
-    }
-    const enriched = (os || []).map((o: OT) => ({
-      ...o,
-      yarns: yarns.filter(y => y.order_id === o.id).sort((a, b) => {
-        if (a.feeder_type !== b.feeder_type) return a.feeder_type === 'fio' ? -1 : 1;
-        return a.feeder_position - b.feeder_position;
-      }),
-    })) as OT[];
-    setOrders(enriched);
+    const payload = (data || {}) as { orders?: OT[] };
+    setOrders((payload.orders || []) as OT[]);
     setLoading(false);
   }, [user?.company_id]);
 
