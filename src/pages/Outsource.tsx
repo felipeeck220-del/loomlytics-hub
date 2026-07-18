@@ -194,57 +194,37 @@ export default function Outsource() {
   const [filterFrom, setFilterFrom] = useState<Date | undefined>(undefined);
   const [filterTo, setFilterTo] = useState<Date | undefined>(undefined);
 
-  const displayProductions = useMemo(() => {
-    let result = productions;
-    if (filterMonth) {
-      result = result.filter(p => p.date.startsWith(filterMonth));
-    }
-    if (filterFrom) {
-      const from = format(filterFrom, 'yyyy-MM-dd');
-      result = result.filter(p => p.date >= from);
-    }
-    if (filterTo) {
-      const to = format(filterTo, 'yyyy-MM-dd');
-      result = result.filter(p => p.date <= to);
-    }
-    return result;
-  }, [productions, filterMonth, filterFrom, filterTo]);
+  // Fase 2 rpcoutsource.md — KPIs do header agora vêm da RPC get_outsource_kpis
+  // (independente do dataset completo baixado no cliente; recalcula server-side a cada mudança de filtro).
+  const kpiParams = useMemo(() => ({
+    p_company_id: companyId,
+    p_start_date: filterFrom ? format(filterFrom, 'yyyy-MM-dd') : null,
+    p_end_date: filterTo ? format(filterTo, 'yyyy-MM-dd') : null,
+    p_month: filterMonth || null,
+  }), [companyId, filterFrom, filterTo, filterMonth]);
 
-   // KPIs based on filtered data
-   const filteredFreights = useMemo(() => {
-     let result = freights;
-     if (filterMonth) result = result.filter(f => f.date.startsWith(filterMonth));
-     if (filterFrom) {
-       const from = format(filterFrom, 'yyyy-MM-dd');
-       result = result.filter(f => f.date >= from);
-     }
-     if (filterTo) {
-       const to = format(filterTo, 'yyyy-MM-dd');
-       result = result.filter(f => f.date <= to);
-     }
-     return result;
-   }, [freights, filterMonth, filterFrom, filterTo]);
-
-    const totals = useMemo(() => {
-      const totalRevenue = displayProductions.reduce((s, p) => s + p.total_revenue, 0);
-      const totalCost = displayProductions.reduce((s, p) => s + p.total_cost, 0);
-      const totalWeight = displayProductions.reduce((s, p) => s + p.weight_kg, 0);
-      const totalRolls = displayProductions.reduce((s, p) => s + p.rolls, 0);
-
-      // Include historical freights still in productions table + new freights from freights table
-      const historicalFreight = displayProductions.reduce((s, p) => s + (Number(p.freight_per_kg || 0) * p.weight_kg), 0);
-      const newFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
-      const totalFreight = historicalFreight + newFreight;
-
-      // Global Profit = Revenue - Repasse - Total Freight
-      const totalProfit = totalRevenue - totalCost - totalFreight;
-
-      const totalLoss = displayProductions
-        .filter(p => (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)) < 0)
-        .reduce((s, p) => s + (p.total_revenue - p.total_cost - (Number(p.freight_per_kg || 0) * p.weight_kg)), 0);
-
-      return { totalRevenue, totalCost, totalProfit, totalWeight, totalRolls, totalLoss, totalFreight };
-    }, [displayProductions, filteredFreights]);
+  const { data: kpiData } = useQuery({
+    queryKey: ['outsource_kpis', kpiParams],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_outsource_kpis', kpiParams);
+      if (error) throw error;
+      return data as {
+        totalRevenue: number; totalCost: number; totalWeight: number; totalRolls: number;
+        totalFreight: number; totalProfit: number; totalLoss: number;
+      };
+    },
+    enabled: !!companyId,
+    staleTime: 60 * 1000,
+  });
+  const totals = {
+    totalRevenue: Number(kpiData?.totalRevenue ?? 0),
+    totalCost: Number(kpiData?.totalCost ?? 0),
+    totalWeight: Number(kpiData?.totalWeight ?? 0),
+    totalRolls: Number(kpiData?.totalRolls ?? 0),
+    totalFreight: Number(kpiData?.totalFreight ?? 0),
+    totalProfit: Number(kpiData?.totalProfit ?? 0),
+    totalLoss: Number(kpiData?.totalLoss ?? 0),
+  };
 
   const firstName = companyName.split(' ')[0] || 'Empresa';
 
