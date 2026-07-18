@@ -1274,105 +1274,31 @@ export default function MecanicaPage() {
       if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
       if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
       try {
-        if (editingLot) {
-          // Se a quantidade mudou, precisamos ajustar a entrada automática vinculada.
-          const linked = needleTransactions.filter((t: any) => t.lot_id === editingLot.id);
-          const linkedExits = linked.filter(t => t.type === 'exit');
-          const linkedEntries = linked.filter(t => t.type === 'entry');
-          const qtyChanged = qty !== (editingLot.quantity || 0);
-          const needleChanged = lotForm.needle_id !== editingLot.needle_id;
-          const dateChanged = lotForm.purchase_date !== editingLot.purchase_date;
-          // Trocar a agulha de um lote com movimentações desalinha o estoque
-          // (as transações antigas continuariam creditando/debitando a agulha antiga).
-          if (needleChanged && linked.length > 0) {
-            toast.error('Não é possível trocar a agulha: já existem movimentações vinculadas a este lote. Exclua-as antes.');
-            return;
-          }
-          if (qtyChanged) {
-            if (linkedExits.length > 0) {
-              toast.error('Não é possível alterar a quantidade: já existem saídas vinculadas a este lote. Estorne-as em Movimentações antes.');
-              return;
-            }
-            // Remove entradas antigas vinculadas (o trigger irá reverter o estoque) e recria uma única entrada com a nova quantidade.
-            for (const e of linkedEntries) {
-              const { error: delErr } = await supabase.from('needle_transactions').delete().eq('id', e.id);
-              if (delErr) throw delErr;
-            }
-          }
-          const { error } = await (supabase.from as any)('needle_lots').update({
-            provider_id: lotForm.provider_id, needle_id: lotForm.needle_id,
-            lot_code: lotForm.lot_code || null, purchase_date: lotForm.purchase_date,
-            quantity: qty, unit_price: price,
-          }).eq('id', editingLot.id);
-          if (error) throw error;
-          if (qtyChanged) {
-            // Recria a entrada automática espelhando a nova quantidade e a data da compra.
-            const { error: entryErr } = await (supabase.from as any)('needle_transactions').insert({
-              company_id: user.company_id,
-              needle_id: lotForm.needle_id,
-              type: 'entry',
-              quantity: qty,
-              date: lotForm.purchase_date,
-              lot_id: editingLot.id,
-              created_by_id: user.id,
-              created_by_name: userName || undefined,
-            });
-            if (entryErr) throw entryErr;
-          } else if (dateChanged && linkedEntries.length > 0) {
-            // Mantém a data da entrada automática sincronizada com a data de compra do lote,
-            // evitando divergências no histórico e nos relatórios por período.
-            for (const e of linkedEntries) {
-              await supabase.from('needle_transactions')
-                .update({ date: lotForm.purchase_date })
-                .eq('id', e.id);
-            }
-          }
-          logAction('needle_lot_update', { id: editingLot.id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
-        } else {
-          // Cria o lote e, na sequência, uma entrada automática que já lança o estoque físico.
-          // Isso elimina o passo separado de "Registrar Entrada" para lotes novos.
-          const { data: newLot, error } = await (supabase.from as any)('needle_lots').insert({
-            company_id: user.company_id, provider_id: lotForm.provider_id, needle_id: lotForm.needle_id,
-            lot_code: lotForm.lot_code || null, purchase_date: lotForm.purchase_date,
-            quantity: qty, unit_price: price,
-          }).select('id').single();
-          if (error) throw error;
-          const { error: entryErr } = await (supabase.from as any)('needle_transactions').insert({
-            company_id: user.company_id,
-            needle_id: lotForm.needle_id,
-            type: 'entry',
-            quantity: qty,
-            date: lotForm.purchase_date,
-            lot_id: newLot?.id,
-            created_by_id: user.id,
-            created_by_name: userName || undefined,
-          });
-          if (entryErr) throw entryErr;
-          logAction('needle_lot_create', { provider_id: lotForm.provider_id, needle_id: lotForm.needle_id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
-        }
+        // [rpcmecanica Fase 4] Lote + entrada automática em uma única transação atômica.
+        // Validações (troca de agulha/qty com movimentações vinculadas) agora inviáveis por design.
+        const { error } = await (supabase.rpc as any)('save_needle_lot', {
+          p_id: editingLot?.id ?? null,
+          p_company_id: user.company_id,
+          p_provider_id: lotForm.provider_id,
+          p_needle_id: lotForm.needle_id,
+          p_lot_code: lotForm.lot_code || null,
+          p_purchase_date: lotForm.purchase_date,
+          p_quantity: qty,
+          p_unit_price: price,
+          p_created_by_id: user.id,
+          p_created_by_name: userName || null,
+        });
+        if (error) throw error;
+        logAction(editingLot ? 'needle_lot_update' : 'needle_lot_create', { id: editingLot?.id, provider_id: lotForm.provider_id, needle_id: lotForm.needle_id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
         toast.success(editingLot ? 'Lote atualizado!' : 'Lote cadastrado e estoque atualizado!');
         setShowLotModal(false); setEditingLot(null); bumpProviders(); refreshData();
       } catch (e: any) { toast.error(e?.message || 'Erro ao salvar lote.'); }
     };
     const handleDeleteLot = async () => {
       if (!deleteLotId) return;
-      // Só bloqueia quando há SAÍDAS vinculadas. As entradas automáticas do lote são removidas em cascata
-      // (o trigger de delete de needle_transactions reverte o estoque).
-      const linked = needleTransactions.filter((t: any) => t.lot_id === deleteLotId);
-      const linkedExits = linked.filter(t => t.type === 'exit');
-      if (linkedExits.length > 0) {
-        toast.error(`Não é possível remover: existem ${linkedExits.length} saída(s) vinculadas a este lote. Estorne-as em Movimentações antes.`);
-        setDeleteLotId(null);
-        return;
-      }
       try {
-        // Remove primeiro as entradas vinculadas (para reverter o estoque via trigger).
-        const linkedEntries = linked.filter(t => t.type === 'entry');
-        for (const e of linkedEntries) {
-          const { error: delErr } = await supabase.from('needle_transactions').delete().eq('id', e.id);
-          if (delErr) throw delErr;
-        }
-        const { error } = await (supabase.from as any)('needle_lots').delete().eq('id', deleteLotId);
+        // [rpcmecanica Fase 4] Delete atômico; RPC valida saídas vinculadas e devolve erro amigável.
+        const { error } = await (supabase.rpc as any)('delete_needle_lot', { p_id: deleteLotId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('needle_lot_delete', { id: deleteLotId });
         toast.success('Lote removido.');
