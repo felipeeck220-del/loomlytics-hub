@@ -1344,15 +1344,13 @@ export default function MecanicaPage() {
       if (!sinkerProviderName.trim()) { toast.error('Informe o nome do fornecedor.'); return; }
       if (!user?.company_id) return;
       try {
-        if (editingSinkerProvider) {
-          const { error } = await (supabase.from as any)('sinker_providers').update({ name: sinkerProviderName.trim() }).eq('id', editingSinkerProvider.id);
-          if (error) throw error;
-          logAction('sinker_provider_update', { name: sinkerProviderName.trim() });
-        } else {
-          const { error } = await (supabase.from as any)('sinker_providers').insert({ company_id: user.company_id, name: sinkerProviderName.trim() });
-          if (error) throw error;
-          logAction('sinker_provider_create', { name: sinkerProviderName.trim() });
-        }
+        const { error } = await (supabase.rpc as any)('upsert_sinker_provider', {
+          p_id: editingSinkerProvider?.id ?? null,
+          p_company_id: user.company_id,
+          p_name: sinkerProviderName.trim(),
+        });
+        if (error) throw error;
+        logAction(editingSinkerProvider ? 'sinker_provider_update' : 'sinker_provider_create', { name: sinkerProviderName.trim() });
         toast.success(editingSinkerProvider ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
         setShowSinkerProviderModal(false); setSinkerProviderName(''); setEditingSinkerProvider(null);
         bumpSinkerProviders();
@@ -1361,7 +1359,7 @@ export default function MecanicaPage() {
     const handleDeleteSinkerProvider = async () => {
       if (!deleteSinkerProviderId) return;
       try {
-        const { error } = await (supabase.from as any)('sinker_providers').delete().eq('id', deleteSinkerProviderId);
+        const { error } = await (supabase.rpc as any)('delete_sinker_provider', { p_id: deleteSinkerProviderId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('sinker_provider_delete', { id: deleteSinkerProviderId });
         toast.success('Fornecedor removido.');
@@ -1384,15 +1382,14 @@ export default function MecanicaPage() {
       if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
       if (!user?.company_id) return;
       try {
-        if (editingSinkerPrice) {
-          const { error } = await (supabase.from as any)('sinker_provider_prices').update({ unit_price: price }).eq('id', editingSinkerPrice.id);
-          if (error) throw error;
-        } else {
-          const { error } = await (supabase.from as any)('sinker_provider_prices').insert({
-            company_id: user.company_id, provider_id: sinkerPriceProviderId, sinker_id: sinkerPriceSinkerId, unit_price: price,
-          });
-          if (error) throw error;
-        }
+        const { error } = await (supabase.rpc as any)('upsert_sinker_price', {
+          p_id: editingSinkerPrice?.id ?? null,
+          p_company_id: user.company_id,
+          p_provider_id: sinkerPriceProviderId,
+          p_sinker_id: sinkerPriceSinkerId,
+          p_unit_price: price,
+        });
+        if (error) throw error;
         logAction(editingSinkerPrice ? 'sinker_price_update' : 'sinker_price_create', { provider_id: sinkerPriceProviderId, sinker_id: sinkerPriceSinkerId, price });
         toast.success(editingSinkerPrice ? 'Preço atualizado!' : 'Platina vinculada ao fornecedor.');
         setShowSinkerPriceModal(false); setEditingSinkerPrice(null); bumpSinkerProviders();
@@ -1401,7 +1398,7 @@ export default function MecanicaPage() {
     const handleDeleteSinkerPrice = async () => {
       if (!deleteSinkerPriceId) return;
       try {
-        const { error } = await (supabase.from as any)('sinker_provider_prices').delete().eq('id', deleteSinkerPriceId);
+        const { error } = await (supabase.rpc as any)('delete_sinker_price', { p_id: deleteSinkerPriceId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('sinker_price_delete', { id: deleteSinkerPriceId });
         toast.success('Vínculo removido.');
