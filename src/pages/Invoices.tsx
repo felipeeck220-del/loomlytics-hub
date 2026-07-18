@@ -135,7 +135,7 @@ export default function Invoices() {
   const queryClient = useQueryClient();
   // Fase 3 rpcInvoices.md: invalidação consolidada de todas as caches derivadas de invoices.
   const invalidateInvoiceCaches = () => {
-    queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+    
     queryClient.invalidateQueries({ queryKey: ['yarn_balance_by_brand'] });
     queryClient.invalidateQueries({ queryKey: ['yarn_balance_by_brand_all'] });
     queryClient.invalidateQueries({ queryKey: ['yarn_global_balance'] });
@@ -403,9 +403,9 @@ export default function Invoices() {
       const { error: itemsError } = await sb('invoice_items').insert(itemsToInsert);
       if (itemsError) throw itemsError;
 
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+      invalidateInvoiceCaches();
+      
+      
       const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : formTinturariaName.trim();
       logAction('invoice_create', { invoice_number: formInvoiceNumber.trim() || 'S/N', type: formType, client: logName, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
@@ -423,15 +423,15 @@ export default function Invoices() {
       const { error } = await sb('invoices').delete().eq('id', inv.id);
       if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
       logAction('invoice_delete', { invoice_number: inv.invoice_number, type: 'entrada' });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+      invalidateInvoiceCaches();
+      
       toast({ title: 'NF de entrada excluída com sucesso' });
     } else {
       const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
       if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
       logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+      invalidateInvoiceCaches();
+      
       toast({ title: 'NF cancelada' });
     }
   };
@@ -441,8 +441,8 @@ export default function Invoices() {
     const { error } = await sb('invoices').update({ status: 'conferida' }).eq('id', inv.id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('invoice_confirm', { invoice_number: inv.invoice_number, client: inv.client_name });
-    queryClient.invalidateQueries({ queryKey: ['invoices'] });
-    queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+    invalidateInvoiceCaches();
+    
     toast({ title: 'NF conferida' });
   };
 
@@ -469,7 +469,7 @@ export default function Invoices() {
         await sb('yarn_types').insert({ company_id: companyId, name: yarnName.trim(), composition: yarnComposition.trim() || null, color: yarnColor.trim() || null, observations: yarnObs.trim() || null });
       }
       logAction(editingYarn ? 'yarn_type_update' : 'yarn_type_create', { name: yarnName.trim() });
-      queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
+      
       queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
       toast({ title: editingYarn ? 'Fio atualizado!' : 'Fio cadastrado!' });
       setYarnDialogOpen(false);
@@ -484,7 +484,7 @@ export default function Invoices() {
     const { error } = await sb('yarn_types').delete().eq('id', y.id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('yarn_type_delete', { name: y.name });
-    queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
+    
     queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
     toast({ title: 'Fio excluído' });
   };
