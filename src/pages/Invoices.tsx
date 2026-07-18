@@ -482,6 +482,7 @@ export default function Invoices() {
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
       const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : formTinturariaName.trim();
       logAction('invoice_create', { invoice_number: formInvoiceNumber.trim() || 'S/N', type: formType, client: logName, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
@@ -500,12 +501,14 @@ export default function Invoices() {
       if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
       logAction('invoice_delete', { invoice_number: inv.invoice_number, type: 'entrada' });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
       toast({ title: 'NF de entrada excluída com sucesso' });
     } else {
       const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
       if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
       logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
       toast({ title: 'NF cancelada' });
     }
   };
@@ -516,6 +519,7 @@ export default function Invoices() {
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('invoice_confirm', { invoice_number: inv.invoice_number, client: inv.client_name });
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
     toast({ title: 'NF conferida' });
   };
 
@@ -849,6 +853,7 @@ export default function Invoices() {
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock_list'] });
       const compName = outsourceCompanies.find(c => c.id === eftFormCompany)?.name;
       const yarnName2 = yarnTypes.find(y => y.id === eftFormYarn)?.name;
       logAction(eftEditing ? 'outsource_yarn_stock_update' : 'outsource_yarn_stock_create', { company: compName, yarn: yarnName2, month: eftFormMonth, qty });
