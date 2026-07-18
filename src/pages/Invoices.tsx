@@ -573,137 +573,104 @@ export default function Invoices() {
   const eftListGroups = eftListQuery.data?.groups ?? [];
   const eftListKpis = eftListQuery.data?.kpis ?? { total_kg: 0, companies_count: 0, yarn_types_count: 0 };
 
-  // ===== Saldo de Fios (por Marca) =====
-  const yarnBalance = useMemo(() => {
-    const map = new Map<string, { received: number; sold: number }>();
-    const matchMonth = (date: string) => saldoMonth === 'all' || date.startsWith(saldoMonth);
-
-    // Entradas (recebido) por marca
-    invoices.filter(i => i.type === 'entrada' && i.status !== 'cancelada' && matchMonth(i.issue_date)).forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id).forEach(it => {
-        const brand = it.brand || 'Sem marca';
-        if (!map.has(brand)) map.set(brand, { received: 0, sold: 0 });
-        map.get(brand)!.received += Number(it.weight_kg);
+  // ===== Fase 3 rpcInvoices.md: Saldo por marca (get_yarn_balance_by_brand) =====
+  const yarnBalanceQuery = useQuery({
+    queryKey: ['yarn_balance_by_brand', companyId, saldoMonth, saldoYarn],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_yarn_balance_by_brand', {
+        p_company_id: companyId,
+        p_month: saldoMonth,
+        p_brand: saldoYarn,
       });
-    });
-
-    // Vendas de fio por marca
-    invoices.filter(i => i.type === 'venda_fio' && i.status !== 'cancelada' && matchMonth(i.issue_date)).forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id).forEach(it => {
-        const brand = it.brand || 'Sem marca';
-        if (!map.has(brand)) map.set(brand, { received: 0, sold: 0 });
-        map.get(brand)!.sold += Number(it.weight_kg);
-      });
-    });
-
-    let result = Array.from(map.entries()).map(([brand, vals]) => ({
-      brand,
-      received: vals.received,
-      sold: vals.sold,
-      balance: vals.received - vals.sold,
-    }));
-
-    if (saldoYarn !== 'all') {
-      result = result.filter(r => r.brand === saldoYarn);
-    }
-
-    return result.sort((a, b) => a.brand.localeCompare(b.brand));
-  }, [invoices, invoiceItems, saldoYarn, saldoMonth]);
-
-  // Available brands for saldo filter
-  const saldoBrandOptions = useMemo(() => {
-    const brands = new Set<string>();
-    invoices.filter(i => (i.type === 'entrada' || i.type === 'venda_fio') && i.status !== 'cancelada').forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => brands.add(it.brand!));
-    });
-    return Array.from(brands).sort();
-  }, [invoices, invoiceItems]);
-
-  // Global KPIs for saldo
+      if (error) throw error;
+      return data as {
+        rows: Array<{ brand: string; received: number; sold: number; balance: number }>;
+        kpis: { totalReceived: number; totalSold: number; totalBalance: number };
+        available_brands: string[];
+      };
+    },
+    enabled: !!companyId && activeTab === 'saldo',
+    staleTime: 60 * 1000,
+  });
+  const yarnBalance = useMemo(() => (yarnBalanceQuery.data?.rows ?? []).map(r => ({
+    brand: r.brand,
+    received: Number(r.received) || 0,
+    sold: Number(r.sold) || 0,
+    balance: Number(r.balance) || 0,
+  })), [yarnBalanceQuery.data]);
+  const saldoBrandOptions = yarnBalanceQuery.data?.available_brands ?? [];
   const saldoKpis = useMemo(() => {
-    return yarnBalance.reduce((acc, g) => ({
-      received: acc.received + g.received,
-      sold: acc.sold + g.sold,
-      balance: acc.balance + g.balance,
-    }), { received: 0, sold: 0, balance: 0 });
-  }, [yarnBalance]);
-
-  // ===== Saldo Global de Fios (por tipo de fio, todos clientes) =====
-  const yarnGlobalBalance = useMemo(() => {
-    const selectedMonth = saldoGlobalMonth;
-    const map = new Map<string, { yarnTypeId: string; yarnTypeName: string; purchaseMonth: number; consumedMonth: number; salesMonth: number; stockAccumulated: number }>();
-
-    // Helper: last day of a yyyy-MM string
-    const lastDayOfMonth = (ym: string): string => {
-      const [year, month] = ym.split('-').map(Number);
-      const lastDay = new Date(year, month, 0).getDate();
-      return `${ym}-${String(lastDay).padStart(2, '0')}`;
+    const k = yarnBalanceQuery.data?.kpis;
+    return {
+      received: Number(k?.totalReceived) || 0,
+      sold:     Number(k?.totalSold)     || 0,
+      balance:  Number(k?.totalBalance)  || 0,
     };
+  }, [yarnBalanceQuery.data]);
 
-    // Initialize all yarn types
-    for (const yt of yarnTypes) {
-      map.set(yt.id, { yarnTypeId: yt.id, yarnTypeName: formatYarnLabel(yt), purchaseMonth: 0, consumedMonth: 0, salesMonth: 0, stockAccumulated: 0 });
-    }
+  // Dropdown de marcas do formulário de NF (saldo positivo). Reaproveita a mesma RPC
+  // sem filtros para não impactar o cache da aba Saldo.
+  const yarnBalanceAllQuery = useQuery({
+    queryKey: ['yarn_balance_by_brand_all', companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_yarn_balance_by_brand', {
+        p_company_id: companyId,
+        p_month: 'all',
+        p_brand: 'all',
+      });
+      if (error) throw error;
+      return data as { rows: Array<{ brand: string; balance: number }> };
+    },
+    enabled: !!companyId,
+    staleTime: 60 * 1000,
+  });
+  const availableBrands = useMemo(() => (
+    (yarnBalanceAllQuery.data?.rows ?? [])
+      .filter(r => Number(r.balance) > 0)
+      .map(r => r.brand)
+      .sort((a, b) => a.localeCompare(b))
+  ), [yarnBalanceAllQuery.data]);
 
-    const endDate = selectedMonth === 'all' ? '9999-12-31' : lastDayOfMonth(selectedMonth);
-
-    // 1. Compra (NFs entrada)
-    const entradaInvs = invoices.filter(inv => inv.type === 'entrada' && inv.status !== 'cancelada');
-    for (const inv of entradaInvs) {
-      const isMonth = selectedMonth === 'all' || inv.issue_date.startsWith(selectedMonth);
-      const isAccum = inv.issue_date <= endDate;
-      const items = invoiceItems.filter(it => it.invoice_id === inv.id && it.yarn_type_id);
-      for (const item of items) {
-        const entry = map.get(item.yarn_type_id!);
-        if (!entry) continue;
-        if (isMonth) entry.purchaseMonth += Number(item.weight_kg);
-        if (isAccum) entry.stockAccumulated += Number(item.weight_kg);
-      }
-    }
-
-    // 2. Consumo (produções via artigos)
-    for (const prod of productions) {
-      const art = articles.find(a => a.id === prod.article_id);
-      if (!art?.yarn_type_id) continue;
-      const entry = map.get(art.yarn_type_id);
-      if (!entry) continue;
-      const isMonth = selectedMonth === 'all' || prod.date.startsWith(selectedMonth);
-      const isAccum = prod.date <= endDate;
-      if (isMonth) entry.consumedMonth += Number(prod.weight_kg);
-      if (isAccum) entry.stockAccumulated -= Number(prod.weight_kg);
-    }
-
-    // 3. Vendas (NFs venda_fio)
-    const vendaInvs = invoices.filter(inv => inv.type === 'venda_fio' && inv.status !== 'cancelada');
-    for (const inv of vendaInvs) {
-      const isMonth = selectedMonth === 'all' || inv.issue_date.startsWith(selectedMonth);
-      const isAccum = inv.issue_date <= endDate;
-      const items = invoiceItems.filter(it => it.invoice_id === inv.id && it.yarn_type_id);
-      for (const item of items) {
-        const entry = map.get(item.yarn_type_id!);
-        if (!entry) continue;
-        if (isMonth) entry.salesMonth += Number(item.weight_kg);
-        if (isAccum) entry.stockAccumulated -= Number(item.weight_kg);
-      }
-    }
-
-    // Filter and sort
-    let result = Array.from(map.values())
-      .filter(y => y.purchaseMonth > 0 || y.salesMonth > 0 || y.stockAccumulated !== 0 || y.consumedMonth > 0);
-
-    if (saldoGlobalYarn !== 'all') {
-      result = result.filter(y => y.yarnTypeId === saldoGlobalYarn);
-    }
-
-    return result.sort((a, b) => a.yarnTypeName.localeCompare(b.yarnTypeName));
-  }, [invoices, invoiceItems, productions, articles, yarnTypes, saldoGlobalMonth, saldoGlobalYarn]);
-
-  const saldoGlobalKpis = useMemo(() => yarnGlobalBalance.reduce((acc, y) => ({
-    purchase: acc.purchase + y.purchaseMonth,
-    stock: acc.stock + y.stockAccumulated,
-    sales: acc.sales + y.salesMonth,
-    consumed: acc.consumed + y.consumedMonth,
-  }), { purchase: 0, stock: 0, sales: 0, consumed: 0 }), [yarnGlobalBalance]);
+  // ===== Fase 3 rpcInvoices.md: Saldo Global (get_yarn_global_balance) =====
+  const yarnGlobalBalanceQuery = useQuery({
+    queryKey: ['yarn_global_balance', companyId, saldoGlobalMonth, saldoGlobalYarn],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_yarn_global_balance', {
+        p_company_id: companyId,
+        p_month: saldoGlobalMonth,
+        p_yarn_type_id: saldoGlobalYarn === 'all' ? null : saldoGlobalYarn,
+      });
+      if (error) throw error;
+      return data as {
+        rows: Array<{
+          yarn_type_id: string; yarn_type_name: string;
+          yarn_color: string | null; yarn_composition: string | null;
+          purchase_month: number; consumed_month: number; sales_month: number;
+          stock_accumulated: number;
+        }>;
+        kpis: { totalPurchase: number; totalConsumed: number; totalSales: number; totalStock: number };
+      };
+    },
+    enabled: !!companyId && activeTab === 'saldoGlobal',
+    staleTime: 60 * 1000,
+  });
+  const yarnGlobalBalance = useMemo(() => (yarnGlobalBalanceQuery.data?.rows ?? []).map(r => ({
+    yarnTypeId: r.yarn_type_id,
+    yarnTypeName: formatYarnLabel({ name: r.yarn_type_name, color: r.yarn_color, composition: r.yarn_composition }),
+    purchaseMonth: Number(r.purchase_month) || 0,
+    consumedMonth: Number(r.consumed_month) || 0,
+    salesMonth: Number(r.sales_month) || 0,
+    stockAccumulated: Number(r.stock_accumulated) || 0,
+  })), [yarnGlobalBalanceQuery.data]);
+  const saldoGlobalKpis = useMemo(() => {
+    const k = yarnGlobalBalanceQuery.data?.kpis;
+    return {
+      purchase: Number(k?.totalPurchase) || 0,
+      consumed: Number(k?.totalConsumed) || 0,
+      sales:    Number(k?.totalSales)    || 0,
+      stock:    Number(k?.totalStock)    || 0,
+    };
+  }, [yarnGlobalBalanceQuery.data]);
 
   // ===== Estoque Fio Terceiros — dados vêm da RPC (Fase 2) =====
   // Normaliza `groups` para o shape camelCase esperado pelo render.
