@@ -164,30 +164,23 @@ export default function Invoices() {
   const bootstrapCompany = bootstrap?.company;
   const loadingYarns = loadingBootstrap;
 
-  // ===== Fetch Invoices =====
-  const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
+  // ===== (Legacy) Fetch Invoices + Items =====
+  // Fase 2 rpcInvoices.md: as 3 abas de lista (entrada/venda_fio/saida_malha) e a aba
+  // EFT agora consomem RPCs paginadas. Estas duas queries continuam ativas apenas para
+  // os consumidores da Fase 3 (saldo, saldoGlobal, malhaEstoque, availableBrands, viewItems
+  // e exportação de PDF), que serão migrados na próxima fase.
+  const { data: invoices = [], isLoading: loadingInvoicesRaw } = useQuery({
     queryKey: ['invoices', companyId],
     queryFn: () => fetchAllPaginated<Invoice>('invoices', companyId, 'created_at', false),
     enabled: !!companyId,
   });
-
-  // ===== Fetch Invoice Items =====
   const { data: invoiceItems = [] } = useQuery({
     queryKey: ['invoice_items', companyId],
     queryFn: () => fetchAllPaginated<InvoiceItem>('invoice_items', companyId, 'created_at'),
     enabled: !!companyId,
   });
 
-  // ===== Fetch Outsource Yarn Stock =====
-  const { data: outsourceYarnStock = [], isLoading: loadingYarnStock } = useQuery({
-    queryKey: ['outsource_yarn_stock', companyId],
-    queryFn: () => fetchAllPaginated<{
-      id: string; company_id: string; outsource_company_id: string; yarn_type_id: string;
-      quantity_kg: number; reference_month: string; observations: string | null;
-      created_at: string; updated_at: string;
-    }>('outsource_yarn_stock', companyId, 'reference_month', false),
-    enabled: !!companyId,
-  });
+  // ===== State (declarado antes das RPCs paginadas p/ compor queryKey) =====
 
   // ===== State =====
   const [activeTab, setActiveTab] = useState(() => {
@@ -489,6 +482,7 @@ export default function Invoices() {
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
       const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : formTinturariaName.trim();
       logAction('invoice_create', { invoice_number: formInvoiceNumber.trim() || 'S/N', type: formType, client: logName, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
@@ -507,12 +501,14 @@ export default function Invoices() {
       if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
       logAction('invoice_delete', { invoice_number: inv.invoice_number, type: 'entrada' });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
       toast({ title: 'NF de entrada excluída com sucesso' });
     } else {
       const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
       if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
       logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
       toast({ title: 'NF cancelada' });
     }
   };
@@ -523,6 +519,7 @@ export default function Invoices() {
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('invoice_confirm', { invoice_number: inv.invoice_number, client: inv.client_name });
     queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
     toast({ title: 'NF conferida' });
   };
 
@@ -595,6 +592,71 @@ export default function Invoices() {
   const [eftFormMonth, setEftFormMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [eftFormQty, setEftFormQty] = useState('');
   const [eftFormObs, setEftFormObs] = useState('');
+
+  // ===== Fase 2 rpcInvoices.md: Lista paginada por aba (invoices_list) =====
+  const invListType = activeTab === 'entrada' ? 'entrada'
+    : activeTab === 'venda_fio' ? 'venda_fio'
+    : activeTab === 'saida_malha' ? 'saida'
+    : null;
+
+  const invListQuery = useQuery({
+    queryKey: ['invoices_list', companyId, invListType, filterStatus, filterMonth, searchTerm, currentPage],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_invoices_list', {
+        p_company_id: companyId,
+        p_type: invListType,
+        p_status: filterStatus,
+        p_month: filterMonth,
+        p_search: searchTerm.trim() || null,
+        p_page: currentPage,
+        p_page_size: itemsPerPage,
+      });
+      if (error) throw error;
+      return data as {
+        rows: Array<Invoice & { items: InvoiceItem[] }>;
+        total_count: number;
+        kpis: { count: number; totalKg: number; totalValue: number; pendentes: number };
+      };
+    },
+    enabled: !!companyId && !!invListType,
+    staleTime: 30 * 1000,
+  });
+  const rpcRows = invListQuery.data?.rows ?? [];
+  const rpcTotalCount = invListQuery.data?.total_count ?? 0;
+  const rpcKpis = invListQuery.data?.kpis ?? { count: 0, totalKg: 0, totalValue: 0, pendentes: 0 };
+  const invListLoading = invListQuery.isLoading;
+
+  // ===== Fase 2 rpcInvoices.md: Lista agrupada de Fio Terceiros =====
+  const eftListQuery = useQuery({
+    queryKey: ['outsource_yarn_stock_list', companyId, eftMonth, eftCompany, eftYarn],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_outsource_yarn_stock_list', {
+        p_company_id: companyId,
+        p_month: eftMonth,
+        p_outsource_company_id: eftCompany === 'all' ? null : eftCompany,
+        p_yarn_type_id: eftYarn === 'all' ? null : eftYarn,
+      });
+      if (error) throw error;
+      return data as {
+        groups: Array<{
+          outsource_company_id: string;
+          outsource_company_name: string;
+          items: Array<{
+            id: string; yarn_type_id: string; yarn_type_name: string | null;
+            yarn_color: string | null; yarn_composition: string | null;
+            quantity_kg: number; reference_month: string; observations: string | null;
+          }>;
+          total_kg: number;
+        }>;
+        kpis: { total_kg: number; companies_count: number; yarn_types_count: number };
+      };
+    },
+    enabled: !!companyId && activeTab === 'efterceiro',
+    staleTime: 30 * 1000,
+  });
+  const eftListLoading = eftListQuery.isLoading;
+  const eftListGroups = eftListQuery.data?.groups ?? [];
+  const eftListKpis = eftListQuery.data?.kpis ?? { total_kg: 0, companies_count: 0, yarn_types_count: 0 };
 
   // ===== Saldo de Fios (por Marca) =====
   const yarnBalance = useMemo(() => {
@@ -728,41 +790,32 @@ export default function Invoices() {
     consumed: acc.consumed + y.consumedMonth,
   }), { purchase: 0, stock: 0, sales: 0, consumed: 0 }), [yarnGlobalBalance]);
 
-  // ===== Estoque Fio Terceiros useMemo =====
-  const eftGroups = useMemo(() => {
-    const map = new Map<string, { outsourceCompanyId: string; outsourceCompanyName: string; items: any[]; totalKg: number }>();
-
-    for (const record of outsourceYarnStock) {
-      if (eftMonth !== 'all' && record.reference_month !== eftMonth) continue;
-      if (eftCompany !== 'all' && record.outsource_company_id !== eftCompany) continue;
-      if (eftYarn !== 'all' && record.yarn_type_id !== eftYarn) continue;
-
-      const cid = record.outsource_company_id;
-      if (!map.has(cid)) {
-        const company = outsourceCompanies.find(c => c.id === cid);
-        map.set(cid, { outsourceCompanyId: cid, outsourceCompanyName: company?.name || 'Facção removida', items: [], totalKg: 0 });
-      }
-      const group = map.get(cid)!;
-      const yarn = yarnTypes.find(y => y.id === record.yarn_type_id);
-      group.items.push({
-        id: record.id,
-        yarnTypeId: record.yarn_type_id,
-        yarnTypeName: yarn ? formatYarnLabel(yarn) : 'Fio removido',
-        quantityKg: Number(record.quantity_kg),
-        referenceMonth: record.reference_month,
-        observations: record.observations || '',
-      });
-      group.totalKg += Number(record.quantity_kg);
-    }
-
-    return Array.from(map.values()).sort((a, b) => a.outsourceCompanyName.localeCompare(b.outsourceCompanyName));
-  }, [outsourceYarnStock, outsourceCompanies, yarnTypes, eftMonth, eftCompany, eftYarn]);
+  // ===== Estoque Fio Terceiros — dados vêm da RPC (Fase 2) =====
+  // Normaliza `groups` para o shape camelCase esperado pelo render.
+  const eftGroups = useMemo(() => eftListGroups.map(g => ({
+    outsourceCompanyId: g.outsource_company_id,
+    outsourceCompanyName: g.outsource_company_name,
+    totalKg: Number(g.total_kg) || 0,
+    items: g.items.map(it => ({
+      id: it.id,
+      yarnTypeId: it.yarn_type_id,
+      yarnTypeName: it.yarn_type_name
+        ? formatYarnLabel({ name: it.yarn_type_name, color: it.yarn_color, composition: it.yarn_composition })
+        : 'Fio removido',
+      quantityKg: Number(it.quantity_kg) || 0,
+      referenceMonth: it.reference_month,
+      observations: it.observations || '',
+    })),
+  })), [eftListGroups]);
 
   const eftKpis = useMemo(() => ({
-    totalKg: eftGroups.reduce((s, g) => s + g.totalKg, 0),
-    totalCompanies: new Set(eftGroups.map(g => g.outsourceCompanyId)).size,
-    totalYarnTypes: new Set(eftGroups.flatMap(g => g.items.map(i => i.yarnTypeId))).size,
-  }), [eftGroups]);
+    totalKg: Number(eftListKpis.total_kg) || 0,
+    totalCompanies: Number(eftListKpis.companies_count) || 0,
+    totalYarnTypes: Number(eftListKpis.yarn_types_count) || 0,
+  }), [eftListKpis]);
+
+  // Total de páginas derivado da RPC (Fase 2)
+  const rpcTotalPages = Math.max(1, Math.ceil(rpcTotalCount / itemsPerPage));
 
   const eftAvailableMonths = useMemo(() => {
     if (bootstrapMonthsEft.length > 0) return bootstrapMonthsEft;
@@ -800,6 +853,7 @@ export default function Invoices() {
         if (error) throw error;
       }
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock_list'] });
       const compName = outsourceCompanies.find(c => c.id === eftFormCompany)?.name;
       const yarnName2 = yarnTypes.find(y => y.id === eftFormYarn)?.name;
       logAction(eftEditing ? 'outsource_yarn_stock_update' : 'outsource_yarn_stock_create', { company: compName, yarn: yarnName2, month: eftFormMonth, qty });
@@ -817,10 +871,15 @@ export default function Invoices() {
   const handleDeleteEft = async (id: string) => {
     const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
-    const item = outsourceYarnStock.find((s: any) => s.id === id);
-    const compName = outsourceCompanies.find(c => c.id === item?.outsource_company_id)?.name;
-    logAction('outsource_yarn_stock_delete', { company: compName, month: item?.reference_month });
-    queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+    // Localiza o item nos grupos da RPC (Fase 2) para preservar o log de auditoria.
+    let compName: string | undefined;
+    let refMonth: string | undefined;
+    for (const g of eftListGroups) {
+      const it = g.items.find(i => i.id === id);
+      if (it) { compName = g.outsource_company_name; refMonth = it.reference_month; break; }
+    }
+    logAction('outsource_yarn_stock_delete', { company: compName, month: refMonth });
+    queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock_list'] });
     toast({ title: 'Registro excluído' });
   };
 
@@ -965,21 +1024,21 @@ export default function Invoices() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Card><CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />NFs</div>
-                <p className="text-xl font-bold text-foreground">{kpis.count}</p>
+                <p className="text-xl font-bold text-foreground">{rpcKpis.count}</p>
               </CardContent></Card>
               <Card><CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Scale className="h-3.5 w-3.5" />Peso Total</div>
-                <p className="text-xl font-bold text-foreground">{formatWeight(kpis.totalKg)}</p>
+                <p className="text-xl font-bold text-foreground">{formatWeight(Number(rpcKpis.totalKg))}</p>
               </CardContent></Card>
               {canSeeFinancial && (
                 <Card><CardContent className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><DollarSign className="h-3.5 w-3.5" />Valor Total</div>
-                  <p className="text-xl font-bold text-foreground">{formatCurrency(kpis.totalValue)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatCurrency(Number(rpcKpis.totalValue))}</p>
                 </CardContent></Card>
               )}
               <Card><CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Filter className="h-3.5 w-3.5" />Pendentes</div>
-                <p className="text-xl font-bold text-warning">{kpis.pendentes}</p>
+                <p className="text-xl font-bold text-warning">{rpcKpis.pendentes}</p>
               </CardContent></Card>
             </div>
 
@@ -1069,16 +1128,16 @@ export default function Invoices() {
             {/* Table */}
             <Card>
               <CardContent className="p-0">
-                {loadingInvoices ? (
+                {invListLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                ) : filteredInvoices.length === 0 ? (
+                ) : rpcRows.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma NF encontrada</div>
                 ) : (
                   <>
                   {/* Mobile: card list */}
                   <div className="md:hidden divide-y divide-border">
-                    {filteredInvoices.map(inv => {
-                      const items = invoiceItems.filter(it => it.invoice_id === inv.id);
+                    {rpcRows.map((inv: any) => {
+                      const items: InvoiceItem[] = inv.items || [];
                       const yarnLabels = Array.from(new Set(items.map(it => it.yarn_type_name).filter(Boolean))).join(', ') || '—';
                       const articleLabels = items.map(it => it.article_name).filter(Boolean).join(', ') || '—';
                       return (
@@ -1149,7 +1208,7 @@ export default function Invoices() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredInvoices.map(inv => (
+                        {rpcRows.map((inv: any) => (
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                              <TableCell className="text-xs">
@@ -1157,10 +1216,10 @@ export default function Invoices() {
                              </TableCell>
                              {(tab === 'entrada' || tab === 'venda_fio') && (
                                <TableCell className="text-xs">
-                                 {Array.from(new Set(invoiceItems.filter(it => it.invoice_id === inv.id).map(it => it.yarn_type_name).filter(Boolean))).join(', ') || '—'}
+                                 {Array.from(new Set(((inv.items as InvoiceItem[]) || []).map(it => it.yarn_type_name).filter(Boolean))).join(', ') || '—'}
                                </TableCell>
                              )}
-                             {tab === 'saida_malha' && <TableCell className="text-xs">{invoiceItems.filter(it => it.invoice_id === inv.id).map(it => it.article_name).filter(Boolean).join(', ') || '—'}</TableCell>}
+                             {tab === 'saida_malha' && <TableCell className="text-xs">{((inv.items as InvoiceItem[]) || []).map(it => it.article_name).filter(Boolean).join(', ') || '—'}</TableCell>}
                             {tab === 'saida_malha' && <TableCell className="text-xs">{inv.buyer_name || '—'}</TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
@@ -1203,7 +1262,7 @@ export default function Invoices() {
                   </>
                 )}
               </CardContent>
-              {totalPages > 1 && (
+              {rpcTotalPages > 1 && (
                 <div className="flex items-center justify-center py-4 border-t gap-2">
                   <Button
                     variant="outline"
@@ -1214,11 +1273,11 @@ export default function Invoices() {
                     Anterior
                   </Button>
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    {Array.from({ length: Math.min(5, rpcTotalPages) }, (_, i) => {
                       let pageNum;
-                      if (totalPages <= 5) pageNum = i + 1;
+                      if (rpcTotalPages <= 5) pageNum = i + 1;
                       else if (currentPage <= 3) pageNum = i + 1;
-                      else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                      else if (currentPage >= rpcTotalPages - 2) pageNum = rpcTotalPages - 4 + i;
                       else pageNum = currentPage - 2 + i;
 
                       return (
@@ -1237,8 +1296,8 @@ export default function Invoices() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, rpcTotalPages))}
+                    disabled={currentPage === rpcTotalPages}
                   >
                     Próxima
                   </Button>
@@ -1543,7 +1602,7 @@ export default function Invoices() {
           </Card>
 
           {/* Grouped by outsource company */}
-          {loadingYarnStock ? (
+          {eftListLoading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : eftGroups.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">

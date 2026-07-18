@@ -5000,6 +5000,18 @@ export type Database = {
         Returns: Json
       }
       get_invoices_bootstrap: { Args: { p_company_id: string }; Returns: Json }
+      get_invoices_list: {
+        Args: {
+          p_company_id: string
+          p_month?: string
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_status?: string
+          p_type: string
+        }
+        Returns: Json
+      }
       get_maintenance_orders_list: {
         Args: { p_company_id: string }
         Returns: Json
@@ -5064,6 +5076,15 @@ export type Database = {
           p_outsource_company_id?: string
           p_profit_filter?: string
           p_start_date?: string
+        }
+        Returns: Json
+      }
+      get_outsource_yarn_stock_list: {
+        Args: {
+          p_company_id: string
+          p_month?: string
+          p_outsource_company_id?: string
+          p_yarn_type_id?: string
         }
         Returns: Json
       }
