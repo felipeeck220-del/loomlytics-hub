@@ -319,19 +319,12 @@ export default function Invoices() {
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [dialogOpen]);
 
-  // ===== Available months =====
+  // ===== Available months (bootstrap Fase 1) =====
   const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    months.add(format(new Date(), 'yyyy-MM'));
-    invoices.forEach(inv => {
-      if (inv.issue_date && inv.issue_date.length >= 7) {
-        const m = inv.issue_date.substring(0, 7);
-        const year = parseInt(m.substring(0, 4));
-        if (year >= 2020 && year <= 2099) months.add(m);
-      }
-    });
-    return Array.from(months).sort().reverse();
-  }, [invoices]);
+    if (bootstrapMonthsInvoices.length > 0) return bootstrapMonthsInvoices;
+    // Fallback (bootstrap ainda carregando): mês corrente.
+    return [format(new Date(), 'yyyy-MM')];
+  }, [bootstrapMonthsInvoices]);
 
   // ===== Filtered invoices by tab + filters =====
   const filteredInvoicesBase = useMemo(() => {
