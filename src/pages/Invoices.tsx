@@ -140,16 +140,29 @@ export default function Invoices() {
   const productions = getProductions();
   const { minDate, maxDate } = getDateLimits();
 
-  // ===== Fetch Yarn Types =====
-  const { data: yarnTypes = [], isLoading: loadingYarns } = useQuery({
-    queryKey: ['yarn_types', companyId],
+  // ===== Bootstrap (Fase 1 rpcInvoices.md): yarn_types + outsource_companies + company + available_months =====
+  const { data: bootstrap, isLoading: loadingBootstrap } = useQuery({
+    queryKey: ['invoices_bootstrap', companyId],
     queryFn: async () => {
-      const { data, error } = await sb('yarn_types').select('*').eq('company_id', companyId).order('name');
+      const { data, error } = await (supabase.rpc as any)('get_invoices_bootstrap', { p_company_id: companyId });
       if (error) throw error;
-      return (data || []) as YarnType[];
+      return data as {
+        company: { name: string | null; logo_url: string | null };
+        yarn_types: YarnType[];
+        outsource_companies: Array<{ id: string; name: string }>;
+        available_months_invoices: string[];
+        available_months_eft: string[];
+      };
     },
     enabled: !!companyId,
+    staleTime: 5 * 60 * 1000,
   });
+  const yarnTypes: YarnType[] = bootstrap?.yarn_types ?? [];
+  const outsourceCompanies = bootstrap?.outsource_companies ?? [];
+  const bootstrapMonthsInvoices = bootstrap?.available_months_invoices ?? [];
+  const bootstrapMonthsEft = bootstrap?.available_months_eft ?? [];
+  const bootstrapCompany = bootstrap?.company;
+  const loadingYarns = loadingBootstrap;
 
   // ===== Fetch Invoices =====
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
@@ -162,17 +175,6 @@ export default function Invoices() {
   const { data: invoiceItems = [] } = useQuery({
     queryKey: ['invoice_items', companyId],
     queryFn: () => fetchAllPaginated<InvoiceItem>('invoice_items', companyId, 'created_at'),
-    enabled: !!companyId,
-  });
-
-  // ===== Fetch Outsource Companies =====
-  const { data: outsourceCompanies = [] } = useQuery({
-    queryKey: ['outsource_companies', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('outsource_companies').select('id, name').eq('company_id', companyId).order('name');
-      if (error) throw error;
-      return (data || []) as Array<{ id: string; name: string }>;
-    },
     enabled: !!companyId,
   });
 
