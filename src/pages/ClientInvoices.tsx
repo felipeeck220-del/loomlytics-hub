@@ -810,7 +810,7 @@ export default function ClientInvoices() {
                     </Label>
                     <Button
                       variant="outline" size="sm" className="gap-1 h-7 text-xs"
-                      onClick={() => {
+                      onClick={async () => {
                         const totalKg = parseFloat(weightKg) || 0;
                         if (totalKg <= 0) {
                           toast.error('Informe o peso total antes de auto distribuir');
@@ -822,14 +822,22 @@ export default function ClientInvoices() {
                           toast.error('Adicione ao menos uma NF de entrada para distribuir');
                           return;
                         }
-                        const saldos = validIds.map(id => {
-                          const inv: any = clientInvoices.find(i => i.id === id);
-                          const weightEntrada = inv?.items?.[0]?.weight_kg || 0;
-                          const used = exitLinksAll
-                            .filter((l: any) => l.entry_invoice_id === id && (!editingInvoice || l.exit_invoice_id !== editingInvoice.id))
-                            .reduce((s: number, l: any) => s + Number(l.deduct_kg || 0), 0);
-                          return { id, saldo: Math.max(0, weightEntrada - used) };
-                        });
+                        // Fase 3 rpcclientInvoices — saldo fresco vindo do banco
+                        const { data: balData, error: balErr } = await (supabase.rpc as any)(
+                          'get_client_invoice_balances_for_distribute',
+                          {
+                            p_company_id: companyId,
+                            p_client_id: selectedClientId,
+                            p_entry_invoice_ids: validIds,
+                            p_exclude_exit_id: editingInvoice?.id || null,
+                          },
+                        );
+                        if (balErr) { toast.error('Erro ao consultar saldos'); return; }
+                        const entries = (balData?.entries || []) as Array<{ entry_invoice_id: string; saldo: number }>;
+                        const saldos = validIds.map(id => ({
+                          id,
+                          saldo: Math.max(0, Number(entries.find(e => e.entry_invoice_id === id)?.saldo || 0)),
+                        }));
                         const totalSaldo = saldos.reduce((s, x) => s + x.saldo, 0);
                         if (totalSaldo <= 0) {
                           toast.error('Sem saldo disponível nas NFs selecionadas');
@@ -1288,12 +1296,26 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
       const periodLabel = periodParts.length ? periodParts.join(' · ') : 'Todo o período';
 
       if (exportMode === 'general') {
-        if (exportInvoices.length === 0) { toast.error('Nenhuma nota no período selecionado'); return; }
+        // Fase 3 rpcclientInvoices — payload consolidado do banco
+        const { data: payload, error } = await (supabase.rpc as any)('get_client_invoices_export', {
+          p_company_id: companyId,
+          p_client_id: clientId,
+          p_type: exportType,
+          p_month: exportMonth || 'all',
+          p_start: exportFrom || null,
+          p_end: exportTo || null,
+        });
+        if (error) throw error;
+        const rows = (payload?.rows || []) as any[];
+        if (rows.length === 0) { toast.error('Nenhuma nota no período selecionado'); return; }
         await exportClientInvoicesGeneralPdf({
-          companyName, logoUrl: companyLogoUrl, periodLabel,
-          invoices: exportInvoices,
-          exitLinksAll, allClients, allArticles, yarnTypes,
+          companyName: payload?.company?.name || companyName,
+          logoUrl:     payload?.company?.logo_url ?? companyLogoUrl,
+          periodLabel,
           exportType,
+          clientName:  payload?.client?.name,
+          rows,
+          totals: payload?.totals || { totalEntrada: 0, totalSaida: 0, totalSaldo: 0, totalNotas: rows.length },
         });
         toast.success('PDF gerado com sucesso');
         setExportOpen(false);
@@ -1306,14 +1328,25 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   const handleExportSingleNf = async (entry: any) => {
     try {
       setExportLoading(true);
-      const links = (exitLinksAll || []).filter((l: any) => l.entry_invoice_id === entry.id);
-      const exits = allInvoices.filter((i: any) =>
-        i.type === 'saida' && (links.some((l: any) => l.exit_invoice_id === i.id) || i.parent_invoice_id === entry.id)
-      );
-      const client = allClients.find((c: any) => c.id === entry.client_id);
+      // Fase 3 rpcclientInvoices — payload consolidado do banco
+      const { data: payload, error } = await (supabase.rpc as any)('get_client_invoice_by_nf_export', {
+        p_company_id: companyId,
+        p_entry_invoice_id: entry.id,
+      });
+      if (error) throw error;
+      if (!payload || payload.ok === false || !payload.entry) {
+        toast.error('NF de entrada não encontrada');
+        return;
+      }
       await exportClientInvoiceByNfPdf({
-        companyName, logoUrl: companyLogoUrl,
-        entry, exitLinks: links, exits, client, yarnTypes, allArticles,
+        companyName: payload?.company?.name || companyName,
+        logoUrl:     payload?.company?.logo_url ?? companyLogoUrl,
+        entry:       payload.entry,
+        client:      payload.client,
+        linked:      payload.linked || [],
+        legacy:      payload.legacy || [],
+        consumed_kg: Number(payload.consumed_kg || 0),
+        saldo:       Number(payload.saldo || 0),
       });
       toast.success('PDF gerado com sucesso');
       setExportOpen(false);

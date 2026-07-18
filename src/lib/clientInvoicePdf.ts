@@ -112,12 +112,20 @@ export async function exportClientInvoicesGeneralPdf(params: {
   companyName: string;
   logoUrl: string | null;
   periodLabel: string;
-  invoices: any[]; // already filtered
-  exitLinksAll: any[];
-  allClients: any[];
-  allArticles: any[];
-  yarnTypes: any[];
   exportType?: 'entrada' | 'saida' | 'ambos';
+  clientName?: string;
+  // Fase 3 rpcclientInvoices: payload já vem pronto do banco (get_client_invoices_export)
+  rows: Array<{
+    issue_date: string | null;
+    invoice_number: string | null;
+    type: 'entrada' | 'saida';
+    yarn_name: string | null;
+    supplier_name: string | null;
+    weight_entrada: number;
+    weight_saida: number;
+    saldo: number;
+  }>;
+  totals: { totalEntrada: number; totalSaida: number; totalSaldo: number; totalNotas: number };
 }) {
   const { jsPDF } = await import('jspdf');
   const { default: autoTable } = await import('jspdf-autotable');
@@ -136,74 +144,39 @@ export async function exportClientInvoicesGeneralPdf(params: {
     periodLabel: params.periodLabel,
   }, pageWidth, margin, margin);
 
-  // KPIs
-  const filtered = params.invoices.filter(i => exportType === 'ambos' ? true : i.type === exportType);
-  const totalEntrada = filtered.filter(i => i.type === 'entrada').reduce((s, i) => s + (i.items?.[0]?.weight_kg || 0), 0);
-  const totalSaida = filtered.filter(i => i.type === 'saida').reduce((s, i) => s + (i.items?.[0]?.weight_kg || 0), 0);
-  const totalNotas = filtered.length;
+  // KPIs vindos da RPC
+  const { totalEntrada, totalSaida, totalNotas } = params.totals;
 
   pdf.setFontSize(9);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(...colors.textDark);
-  pdf.text(`Total de Notas: ${totalNotas}    Entrada (kg): ${fmt(totalEntrada)}    Saída (kg): ${fmt(totalSaida)}    Saldo: ${fmt(totalEntrada - totalSaida)}`, margin, y);
+  pdf.text(
+    `${params.clientName ? 'Cliente: ' + params.clientName + '    ' : ''}Total de Notas: ${totalNotas}    Entrada (kg): ${fmt(totalEntrada)}    Saída (kg): ${fmt(totalSaida)}    Saldo: ${fmt(totalEntrada - totalSaida)}`,
+    margin, y,
+  );
   y += 4;
 
-  const rows = filtered
-    .slice()
-    .sort((a, b) => (b.issue_date || '').localeCompare(a.issue_date || ''))
-    .map(inv => {
-      const cli = params.allClients.find(c => c.id === inv.client_id)?.name || '-';
-      const item = inv.items?.[0];
-      // Yarn name: para entrada usa yarn_type direto; para saida tenta inferir via vínculos
-      let yarnName = '-';
-      if (inv.type === 'entrada') {
-        yarnName = params.yarnTypes.find(y => y.id === item?.yarn_type_id)?.name || '-';
-      } else {
-        const links = params.exitLinksAll.filter(l => l.exit_invoice_id === inv.id);
-        const names = Array.from(new Set(links.map(l => params.yarnTypes.find(y => y.id === l.yarn_type_id)?.name).filter(Boolean))) as string[];
-        if (names.length) yarnName = names.join(' + ');
-        else {
-          // legado: parent_invoice_id
-          const parent = params.invoices.find(p => p.id === inv.parent_invoice_id);
-          if (parent) yarnName = params.yarnTypes.find(y => y.id === parent.items?.[0]?.yarn_type_id)?.name || '-';
-        }
-      }
-      const weight = Number(item?.weight_kg || 0);
-      let pesoEntrada = '-';
-      let pesoSaida = '-';
-      let saldoStr = '-';
-      if (inv.type === 'entrada') {
-        pesoEntrada = fmt(weight);
-        const links = params.exitLinksAll.filter(l => l.entry_invoice_id === inv.id);
-        const weightFromLinks = links.reduce((s, l) => s + Number(l.deduct_kg || 0), 0);
-        const linkedExitIds = new Set(links.map(l => l.exit_invoice_id));
-        const legacy = params.invoices.filter(i => i.type === 'saida' && i.parent_invoice_id === inv.id && !linkedExitIds.has(i.id));
-        const weightLegacy = legacy.reduce((s, i) => s + Number(i.items?.[0]?.weight_kg || 0), 0);
-        const totalSaidaInv = weightFromLinks + weightLegacy;
-        saldoStr = fmt(Math.max(0, weight - totalSaidaInv));
-      } else {
-        pesoSaida = fmt(weight);
-      }
-      return [
-        dateBR(inv.issue_date),
-        inv.invoice_number || '-',
-        cli,
-        yarnName,
-        inv.supplier_name || '-',
-        pesoEntrada,
-        pesoSaida,
-        saldoStr,
-      ].map((c: any) => sanitizePdfText(String(c ?? '')));
-    });
+  const rows = params.rows.map(r => {
+    const isEntrada = r.type === 'entrada';
+    return [
+      dateBR(r.issue_date),
+      r.invoice_number || '-',
+      r.yarn_name || '-',
+      r.supplier_name || '-',
+      isEntrada ? fmt(r.weight_entrada) : '-',
+      !isEntrada ? fmt(r.weight_saida) : '-',
+      isEntrada ? fmt(r.saldo) : '-',
+    ].map((c: any) => sanitizePdfText(String(c ?? '')));
+  });
 
   autoTable(pdf, {
     startY: y + 2,
-    head: [['Data', 'NF', 'Cliente', 'Fio', 'Fornecedor', 'Peso Entrada (kg)', 'Peso Saída (kg)', 'Saldo (kg)']],
+    head: [['Data', 'NF', 'Fio', 'Fornecedor', 'Peso Entrada (kg)', 'Peso Saída (kg)', 'Saldo (kg)']],
     body: rows,
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: colors.headerFill, textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [248, 250, 252] },
-    columnStyles: { 5: { halign: 'right' }, 6: { halign: 'right' }, 7: { halign: 'right' } },
+    columnStyles: { 4: { halign: 'right' }, 5: { halign: 'right' }, 6: { halign: 'right' } },
     margin: { left: margin, right: margin },
   });
 
@@ -213,12 +186,13 @@ export async function exportClientInvoicesGeneralPdf(params: {
 export async function exportClientInvoiceByNfPdf(params: {
   companyName: string;
   logoUrl: string | null;
-  entry: any;
-  exitLinks: any[]; // exit_links of this entry
-  exits: any[]; // exit invoices linked or legacy
-  client: any;
-  yarnTypes: any[];
-  allArticles: any[];
+  // Fase 3 rpcclientInvoices: payload já vem pronto do banco (get_client_invoice_by_nf_export)
+  entry: any;                       // já contém weight_entrada e yarn_type_name resolvidos
+  client: { id?: string; name?: string } | null;
+  linked: Array<{ invoice_number?: string; issue_date?: string; weight_kg?: number; deduct_kg?: number; article_name?: string | null }>;
+  legacy: Array<{ invoice_number?: string; issue_date?: string; weight_kg?: number; deduct_kg?: number; article_name?: string | null }>;
+  consumed_kg: number;
+  saldo: number;
 }) {
   const { jsPDF } = await import('jspdf');
   const { default: autoTable } = await import('jspdf-autotable');
@@ -228,8 +202,8 @@ export async function exportClientInvoiceByNfPdf(params: {
   const logoInfo = await loadLogoForPdf(params.logoUrl);
 
   const entry = params.entry;
-  const entryWeight = Number(entry.items?.[0]?.weight_kg || 0);
-  const yarnName = params.yarnTypes.find(y => y.id === entry.items?.[0]?.yarn_type_id)?.name || '-';
+  const entryWeight = Number(entry?.weight_entrada ?? entry?.items?.[0]?.weight_kg ?? 0);
+  const yarnName = entry?.yarn_type_name || '-';
 
   let y = drawHeader(pdf, {
     companyName: params.companyName,
@@ -256,10 +230,8 @@ export async function exportClientInvoiceByNfPdf(params: {
   pdf.text(sanitizePdfText(`${entry.created_by_name || '-'} ${entry.created_by_code ? '#' + entry.created_by_code : ''} ${entry.created_at ? '· ' + format(new Date(entry.created_at), 'dd/MM/yyyy HH:mm') : ''}`), col1 + 20, y + 24);
 
   pdf.setFont('helvetica', 'bold'); pdf.text('Peso Entrada:', col2, y + 6); pdf.setFont('helvetica', 'normal'); pdf.text(`${fmt(entryWeight)} kg`, col2 + 28, y + 6);
-  const totalSaida = params.exitLinks.reduce((s, l) => s + Number(l.deduct_kg || 0), 0)
-    + params.exits.filter(e => e.parent_invoice_id === entry.id && !params.exitLinks.find(l => l.exit_invoice_id === e.id))
-        .reduce((s, e) => s + Number(e.items?.[0]?.weight_kg || 0), 0);
-  const saldo = Math.max(0, entryWeight - totalSaida);
+  const totalSaida = Number(params.consumed_kg || 0);
+  const saldo = Number(params.saldo ?? Math.max(0, entryWeight - totalSaida));
   pdf.setFont('helvetica', 'bold'); pdf.text('Total Saída:', col2, y + 12); pdf.setFont('helvetica', 'normal'); pdf.text(`${fmt(totalSaida)} kg`, col2 + 28, y + 12);
   pdf.setFont('helvetica', 'bold'); pdf.text('Saldo:', col2, y + 18); pdf.setFont('helvetica', 'normal'); pdf.text(`${fmt(saldo)} kg`, col2 + 28, y + 18);
   pdf.setFont('helvetica', 'bold'); pdf.text('Status:', col2, y + 24); pdf.setFont('helvetica', 'normal');
@@ -275,32 +247,15 @@ export async function exportClientInvoiceByNfPdf(params: {
   y += 2;
 
   const exitRows: any[] = [];
-  // From new links
-  params.exitLinks.forEach(link => {
-    const exit = params.exits.find(e => e.id === link.exit_invoice_id);
-    if (!exit) return;
-    const art = params.allArticles.find(a => a.id === exit.items?.[0]?.article_id)?.name || '-';
-    exitRows.push([
-      dateBR(exit.issue_date),
-      exit.invoice_number || '-',
-      art,
-      fmt(exit.items?.[0]?.weight_kg || 0),
-      fmt(link.deduct_kg || 0),
-    ]);
-  });
-  // Legacy exits
-  params.exits
-    .filter(e => e.parent_invoice_id === entry.id && !params.exitLinks.find(l => l.exit_invoice_id === e.id))
-    .forEach(exit => {
-      const art = params.allArticles.find(a => a.id === exit.items?.[0]?.article_id)?.name || '-';
-      exitRows.push([
-        dateBR(exit.issue_date),
-        exit.invoice_number || '-',
-        art,
-        fmt(exit.items?.[0]?.weight_kg || 0),
-        fmt(exit.items?.[0]?.weight_kg || 0),
-      ]);
-    });
+  const pushRow = (r: any) => exitRows.push([
+    dateBR(r.issue_date),
+    r.invoice_number || '-',
+    r.article_name || '-',
+    fmt(Number(r.weight_kg || 0)),
+    fmt(Number(r.deduct_kg || 0)),
+  ]);
+  (params.linked || []).forEach(pushRow);
+  (params.legacy || []).forEach(pushRow);
 
   autoTable(pdf, {
     startY: y + 2,
