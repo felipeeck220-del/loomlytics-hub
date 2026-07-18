@@ -637,7 +637,8 @@ export default function Dashboard() {
               {stoppedOrders.map(om => {
                 const machine = machines.find(mm => mm.id === om.machine_id);
                 const startedAt = om.startedAt;
-                const elapsed = startedAt ? Math.floor((nowTick.getTime() - new Date(startedAt).getTime()) / 1000) : 0;
+                const rawElapsed = startedAt ? Math.floor((nowTick.getTime() - new Date(startedAt).getTime()) / 1000) : 0;
+                const elapsed = Math.max(0, rawElapsed);
                 const hours = Math.floor(elapsed / 3600);
                 const minutes = Math.floor((elapsed % 3600) / 60);
                 const seconds = elapsed % 60;
