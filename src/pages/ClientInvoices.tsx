@@ -86,6 +86,13 @@ export default function ClientInvoices() {
   const SEARCH_PAGE_SIZE = 15;
   const [filterMonth, setFilterMonth] = useState('all');
 
+  // Debounce da busca da aba raiz (300ms) para evitar refetch a cada tecla
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
   // Company branding for PDF exports
   // Bootstrap (Fase 1 rpcclientInvoices.md): company + available_months em 1 chamada
   const { data: bootstrap } = useQuery({
