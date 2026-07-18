@@ -519,38 +519,27 @@ export default function ClientInvoices() {
           </div>
 
           {(() => {
-            const filteredInvoices = clientInvoices.filter(inv => {
-              const q = searchTerm.toLowerCase().trim();
-              if (!q && filterMonth === 'all') return true;
-              const client = allClients.find(c => c.id === inv.client_id)?.name || '';
-              const itemName = inv.items?.[0]
-                ? (inv.type === 'entrada'
-                    ? (yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name || '')
-                    : (allArticles.find(a => a.id === inv.items[0].article_id)?.name || ''))
-                : '';
-              const matchSearch = !q
-                || inv.invoice_number.toLowerCase().includes(q)
-                || client.toLowerCase().includes(q)
-                || itemName.toLowerCase().includes(q)
-                || (inv.supplier_name || '').toLowerCase().includes(q);
-              return matchSearch && (filterMonth === 'all' || inv.issue_date.startsWith(filterMonth));
-            });
-            const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / SEARCH_PAGE_SIZE));
+            const rows = searchData?.rows ?? [];
+            const totalCount = searchData?.total_count ?? 0;
+            const totalPages = Math.max(1, Math.ceil(totalCount / SEARCH_PAGE_SIZE));
             const safePage = Math.min(searchPage, totalPages);
             const start = (safePage - 1) * SEARCH_PAGE_SIZE;
-            const pageItems = filteredInvoices.slice(start, start + SEARCH_PAGE_SIZE);
+            const pageItems = rows;
             return (
               <>
           <Card>
             {/* Mobile: card list */}
             <div className="md:hidden divide-y divide-border">
               {pageItems.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8 text-sm">Nenhuma nota encontrada.</div>
+                <div className="text-center text-muted-foreground py-8 text-sm">
+                  {searchFetching ? 'Carregando…' : 'Nenhuma nota encontrada.'}
+                </div>
               ) : pageItems.map(inv => {
                 const itemName = inv.items?.[0]
-                  ? (inv.type === 'entrada'
-                      ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name
-                      : allArticles.find(a => a.id === inv.items[0].article_id)?.name)
+                  ? (inv.items[0].yarn_type_name ?? inv.items[0].article_name
+                      ?? (inv.type === 'entrada'
+                          ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name
+                          : allArticles.find(a => a.id === inv.items[0].article_id)?.name))
                   : '-';
                 return (
                   <div key={inv.id} className="p-3 space-y-1.5 text-xs">
@@ -561,7 +550,7 @@ export default function ClientInvoices() {
                       </Badge>
                     </div>
                     <div className="text-primary font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</div>
-                    <div className="break-words"><span className="text-muted-foreground">Cliente:</span> {allClients.find(c => c.id === inv.client_id)?.name || '—'}</div>
+                    <div className="break-words"><span className="text-muted-foreground">Cliente:</span> {inv.client_name || allClients.find(c => c.id === inv.client_id)?.name || '—'}</div>
                     <div className="break-words"><span className="text-muted-foreground">Item:</span> {itemName || '—'}</div>
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span className="tabular-nums font-medium"><span className="text-muted-foreground font-normal">Peso:</span> {formatWeight(inv.items?.[0]?.weight_kg || 0)}</span>
@@ -617,12 +606,14 @@ export default function ClientInvoices() {
                         {inv.type === 'entrada' ? 'Entrada Fio' : 'Saída Malha'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{allClients.find(c => c.id === inv.client_id)?.name}</TableCell>
+                    <TableCell>{inv.client_name || allClients.find(c => c.id === inv.client_id)?.name}</TableCell>
                     <TableCell>
                       {inv.items?.[0] ? (
-                        inv.type === 'entrada' 
-                          ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name 
-                          : allArticles.find(a => a.id === inv.items[0].article_id)?.name
+                        inv.items[0].yarn_type_name ?? inv.items[0].article_name ?? (
+                          inv.type === 'entrada'
+                            ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name
+                            : allArticles.find(a => a.id === inv.items[0].article_id)?.name
+                        )
                       ) : '-'}
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
@@ -641,7 +632,7 @@ export default function ClientInvoices() {
                 {pageItems.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      Nenhuma nota encontrada.
+                      {searchFetching ? 'Carregando…' : 'Nenhuma nota encontrada.'}
                     </TableCell>
                   </TableRow>
                 )}
@@ -649,10 +640,10 @@ export default function ClientInvoices() {
             </Table>
           </Card>
 
-          {filteredInvoices.length > SEARCH_PAGE_SIZE && (
+          {totalCount > SEARCH_PAGE_SIZE && (
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
               <div className="text-xs text-muted-foreground">
-                Mostrando <strong>{start + 1}</strong>–<strong>{Math.min(start + SEARCH_PAGE_SIZE, filteredInvoices.length)}</strong> de <strong>{filteredInvoices.length}</strong>
+                Mostrando <strong>{start + 1}</strong>–<strong>{Math.min(start + SEARCH_PAGE_SIZE, totalCount)}</strong> de <strong>{totalCount}</strong>
               </div>
               <div className="flex flex-wrap items-center gap-1">
                 <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={safePage <= 1} onClick={() => setSearchPage(p => Math.max(1, p - 1))}>
