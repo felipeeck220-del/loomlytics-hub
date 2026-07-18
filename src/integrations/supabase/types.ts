@@ -4927,6 +4927,8 @@ export type Database = {
         }
         Returns: Json
       }
+      get_mecanica_bootstrap: { Args: { p_company_id: string }; Returns: Json }
+      get_needle_stock: { Args: { p_company_id: string }; Returns: Json }
       get_production_filter_articles: {
         Args: { p_company_id: string }
         Returns: {
@@ -5186,6 +5188,7 @@ export type Database = {
         Args: { p_company_id: string; p_end_date: string; p_start_date: string }
         Returns: Json
       }
+      get_sinker_stock: { Args: { p_company_id: string }; Returns: Json }
       get_user_companies: {
         Args: never
         Returns: {
