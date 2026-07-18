@@ -1019,21 +1019,21 @@ export default function Invoices() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Card><CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />NFs</div>
-                <p className="text-xl font-bold text-foreground">{kpis.count}</p>
+                <p className="text-xl font-bold text-foreground">{rpcKpis.count}</p>
               </CardContent></Card>
               <Card><CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Scale className="h-3.5 w-3.5" />Peso Total</div>
-                <p className="text-xl font-bold text-foreground">{formatWeight(kpis.totalKg)}</p>
+                <p className="text-xl font-bold text-foreground">{formatWeight(Number(rpcKpis.totalKg))}</p>
               </CardContent></Card>
               {canSeeFinancial && (
                 <Card><CardContent className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><DollarSign className="h-3.5 w-3.5" />Valor Total</div>
-                  <p className="text-xl font-bold text-foreground">{formatCurrency(kpis.totalValue)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatCurrency(Number(rpcKpis.totalValue))}</p>
                 </CardContent></Card>
               )}
               <Card><CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Filter className="h-3.5 w-3.5" />Pendentes</div>
-                <p className="text-xl font-bold text-warning">{kpis.pendentes}</p>
+                <p className="text-xl font-bold text-warning">{rpcKpis.pendentes}</p>
               </CardContent></Card>
             </div>
 
@@ -1123,16 +1123,16 @@ export default function Invoices() {
             {/* Table */}
             <Card>
               <CardContent className="p-0">
-                {loadingInvoices ? (
+                {invListLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                ) : filteredInvoices.length === 0 ? (
+                ) : rpcRows.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma NF encontrada</div>
                 ) : (
                   <>
                   {/* Mobile: card list */}
                   <div className="md:hidden divide-y divide-border">
-                    {filteredInvoices.map(inv => {
-                      const items = invoiceItems.filter(it => it.invoice_id === inv.id);
+                    {rpcRows.map((inv: any) => {
+                      const items: InvoiceItem[] = inv.items || [];
                       const yarnLabels = Array.from(new Set(items.map(it => it.yarn_type_name).filter(Boolean))).join(', ') || '—';
                       const articleLabels = items.map(it => it.article_name).filter(Boolean).join(', ') || '—';
                       return (
@@ -1203,7 +1203,7 @@ export default function Invoices() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredInvoices.map(inv => (
+                        {rpcRows.map((inv: any) => (
                           <TableRow key={inv.id}>
                             <TableCell className="text-xs font-medium">{inv.invoice_number}</TableCell>
                              <TableCell className="text-xs">
@@ -1211,10 +1211,10 @@ export default function Invoices() {
                              </TableCell>
                              {(tab === 'entrada' || tab === 'venda_fio') && (
                                <TableCell className="text-xs">
-                                 {Array.from(new Set(invoiceItems.filter(it => it.invoice_id === inv.id).map(it => it.yarn_type_name).filter(Boolean))).join(', ') || '—'}
+                                 {Array.from(new Set(((inv.items as InvoiceItem[]) || []).map(it => it.yarn_type_name).filter(Boolean))).join(', ') || '—'}
                                </TableCell>
                              )}
-                             {tab === 'saida_malha' && <TableCell className="text-xs">{invoiceItems.filter(it => it.invoice_id === inv.id).map(it => it.article_name).filter(Boolean).join(', ') || '—'}</TableCell>}
+                             {tab === 'saida_malha' && <TableCell className="text-xs">{((inv.items as InvoiceItem[]) || []).map(it => it.article_name).filter(Boolean).join(', ') || '—'}</TableCell>}
                             {tab === 'saida_malha' && <TableCell className="text-xs">{inv.buyer_name || '—'}</TableCell>}
                             <TableCell className="text-xs">
                               {inv.issue_date ? format(parse(inv.issue_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : '—'}
@@ -1257,7 +1257,7 @@ export default function Invoices() {
                   </>
                 )}
               </CardContent>
-              {totalPages > 1 && (
+              {rpcTotalPages > 1 && (
                 <div className="flex items-center justify-center py-4 border-t gap-2">
                   <Button
                     variant="outline"
@@ -1268,11 +1268,11 @@ export default function Invoices() {
                     Anterior
                   </Button>
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    {Array.from({ length: Math.min(5, rpcTotalPages) }, (_, i) => {
                       let pageNum;
-                      if (totalPages <= 5) pageNum = i + 1;
+                      if (rpcTotalPages <= 5) pageNum = i + 1;
                       else if (currentPage <= 3) pageNum = i + 1;
-                      else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                      else if (currentPage >= rpcTotalPages - 2) pageNum = rpcTotalPages - 4 + i;
                       else pageNum = currentPage - 2 + i;
 
                       return (
@@ -1291,8 +1291,8 @@ export default function Invoices() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, rpcTotalPages))}
+                    disabled={currentPage === rpcTotalPages}
                   >
                     Próxima
                   </Button>
