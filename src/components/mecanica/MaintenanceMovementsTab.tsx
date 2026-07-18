@@ -49,12 +49,12 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
     (async () => {
       if (!companyId) return;
       setLoading(true);
-      const [{ data: o }, { data: i }] = await Promise.all([
-        (supabase.from as any)('maintenance_orders').select('*').eq('company_id', companyId).order('finished_at', { ascending: false, nullsFirst: false }),
-        (supabase.from as any)('maintenance_order_items').select('*').eq('company_id', companyId),
-      ]);
-      setOrders((o as MaintenanceOrder[]) || []);
-      setItems((i as MaintenanceOrderItem[]) || []);
+      // [rpcmecanica Fase 2] 1 RPC consolidada em vez de 2 SELECTs
+      const { data, error } = await (supabase.rpc as any)('get_maintenance_orders_list', { p_company_id: companyId });
+      if (error) console.error('[MaintenanceMovementsTab] rpc failed', error);
+      const payload = (data || {}) as { orders?: MaintenanceOrder[]; items?: MaintenanceOrderItem[] };
+      setOrders((payload.orders as MaintenanceOrder[]) || []);
+      setItems((payload.items as MaintenanceOrderItem[]) || []);
       setLoading(false);
     })();
   }, [companyId]);
