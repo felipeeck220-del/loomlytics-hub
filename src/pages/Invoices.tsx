@@ -140,16 +140,29 @@ export default function Invoices() {
   const productions = getProductions();
   const { minDate, maxDate } = getDateLimits();
 
-  // ===== Fetch Yarn Types =====
-  const { data: yarnTypes = [], isLoading: loadingYarns } = useQuery({
-    queryKey: ['yarn_types', companyId],
+  // ===== Bootstrap (Fase 1 rpcInvoices.md): yarn_types + outsource_companies + company + available_months =====
+  const { data: bootstrap, isLoading: loadingBootstrap } = useQuery({
+    queryKey: ['invoices_bootstrap', companyId],
     queryFn: async () => {
-      const { data, error } = await sb('yarn_types').select('*').eq('company_id', companyId).order('name');
+      const { data, error } = await (supabase.rpc as any)('get_invoices_bootstrap', { p_company_id: companyId });
       if (error) throw error;
-      return (data || []) as YarnType[];
+      return data as {
+        company: { name: string | null; logo_url: string | null };
+        yarn_types: YarnType[];
+        outsource_companies: Array<{ id: string; name: string }>;
+        available_months_invoices: string[];
+        available_months_eft: string[];
+      };
     },
     enabled: !!companyId,
+    staleTime: 5 * 60 * 1000,
   });
+  const yarnTypes: YarnType[] = bootstrap?.yarn_types ?? [];
+  const outsourceCompanies = bootstrap?.outsource_companies ?? [];
+  const bootstrapMonthsInvoices = bootstrap?.available_months_invoices ?? [];
+  const bootstrapMonthsEft = bootstrap?.available_months_eft ?? [];
+  const bootstrapCompany = bootstrap?.company;
+  const loadingYarns = loadingBootstrap;
 
   // ===== Fetch Invoices =====
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
@@ -162,17 +175,6 @@ export default function Invoices() {
   const { data: invoiceItems = [] } = useQuery({
     queryKey: ['invoice_items', companyId],
     queryFn: () => fetchAllPaginated<InvoiceItem>('invoice_items', companyId, 'created_at'),
-    enabled: !!companyId,
-  });
-
-  // ===== Fetch Outsource Companies =====
-  const { data: outsourceCompanies = [] } = useQuery({
-    queryKey: ['outsource_companies', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('outsource_companies').select('id, name').eq('company_id', companyId).order('name');
-      if (error) throw error;
-      return (data || []) as Array<{ id: string; name: string }>;
-    },
     enabled: !!companyId,
   });
 
@@ -317,19 +319,12 @@ export default function Invoices() {
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [dialogOpen]);
 
-  // ===== Available months =====
+  // ===== Available months (bootstrap Fase 1) =====
   const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    months.add(format(new Date(), 'yyyy-MM'));
-    invoices.forEach(inv => {
-      if (inv.issue_date && inv.issue_date.length >= 7) {
-        const m = inv.issue_date.substring(0, 7);
-        const year = parseInt(m.substring(0, 4));
-        if (year >= 2020 && year <= 2099) months.add(m);
-      }
-    });
-    return Array.from(months).sort().reverse();
-  }, [invoices]);
+    if (bootstrapMonthsInvoices.length > 0) return bootstrapMonthsInvoices;
+    // Fallback (bootstrap ainda carregando): mês corrente.
+    return [format(new Date(), 'yyyy-MM')];
+  }, [bootstrapMonthsInvoices]);
 
   // ===== Filtered invoices by tab + filters =====
   const filteredInvoicesBase = useMemo(() => {
@@ -554,6 +549,7 @@ export default function Invoices() {
       }
       logAction(editingYarn ? 'yarn_type_update' : 'yarn_type_create', { name: yarnName.trim() });
       queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
       toast({ title: editingYarn ? 'Fio atualizado!' : 'Fio cadastrado!' });
       setYarnDialogOpen(false);
       setEditingYarn(null);
@@ -568,6 +564,7 @@ export default function Invoices() {
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('yarn_type_delete', { name: y.name });
     queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
+    queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
     toast({ title: 'Fio excluído' });
   };
 
@@ -768,11 +765,9 @@ export default function Invoices() {
   }), [eftGroups]);
 
   const eftAvailableMonths = useMemo(() => {
-    const months = new Set<string>();
-    months.add(format(new Date(), 'yyyy-MM'));
-    outsourceYarnStock.forEach(r => { if (r.reference_month) months.add(r.reference_month); });
-    return Array.from(months).sort().reverse();
-  }, [outsourceYarnStock]);
+    if (bootstrapMonthsEft.length > 0) return bootstrapMonthsEft;
+    return [format(new Date(), 'yyyy-MM')];
+  }, [bootstrapMonthsEft]);
 
   // ===== Estoque Fio Terceiros CRUD =====
   const handleSaveEft = async () => {
@@ -1008,15 +1003,11 @@ export default function Invoices() {
                         className="gap-1.5"
                         onClick={async () => {
                           try {
-                            const { data: comp } = await sb('companies')
-                              .select('name, logo_url')
-                              .eq('id', companyId)
-                              .maybeSingle();
                             await generateYarnSalesReportPdf({
                               invoices: filteredInvoicesBase as any,
                               items: invoiceItems as any,
-                              companyName: comp?.name || '',
-                              companyLogoUrl: comp?.logo_url || null,
+                              companyName: bootstrapCompany?.name || '',
+                              companyLogoUrl: bootstrapCompany?.logo_url || null,
                               filters: { month: filterMonth, status: filterStatus, search: searchTerm },
                               canSeeFinancial,
                             });
