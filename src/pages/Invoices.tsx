@@ -873,9 +873,17 @@ export default function Invoices() {
                         className="gap-1.5"
                         onClick={async () => {
                           try {
+                            // Fase 3 rpcInvoices.md: dados do PDF via get_yarn_sales_report_export.
+                            const { data, error } = await (supabase.rpc as any)('get_yarn_sales_report_export', {
+                              p_company_id: companyId,
+                              p_month: filterMonth,
+                              p_status: filterStatus,
+                              p_search: searchTerm.trim() || null,
+                            });
+                            if (error) throw error;
                             await generateYarnSalesReportPdf({
-                              invoices: filteredInvoicesBase as any,
-                              items: invoiceItems as any,
+                              invoices: (data?.invoices ?? []) as any,
+                              items:    (data?.items    ?? []) as any,
                               companyName: bootstrapCompany?.name || '',
                               companyLogoUrl: bootstrapCompany?.logo_url || null,
                               filters: { month: filterMonth, status: filterStatus, search: searchTerm },
