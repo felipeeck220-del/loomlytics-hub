@@ -4983,6 +4983,7 @@ export type Database = {
       }
       get_mecanica_bootstrap: { Args: { p_company_id: string }; Returns: Json }
       get_needle_stock: { Args: { p_company_id: string }; Returns: Json }
+      get_outsource_bootstrap: { Args: { p_company_id: string }; Returns: Json }
       get_production_filter_articles: {
         Args: { p_company_id: string }
         Returns: {

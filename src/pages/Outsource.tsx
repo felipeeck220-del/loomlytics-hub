@@ -89,26 +89,29 @@ export default function Outsource() {
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
 
-  // Fetch company name and logo
-  useEffect(() => {
-    if (!companyId) return;
-    sb('companies').select('name, logo_url').eq('id', companyId).single().then(({ data }: any) => {
-      if (data?.name) setCompanyName(data.name);
-      if (data?.logo_url) setCompanyLogoUrl(data.logo_url);
-    });
-  }, [companyId]);
-
-  // Fetch outsource companies
-  const { data: companies = [], isLoading: loadingCompanies } = useQuery({
-    queryKey: ['outsource_companies', companyId],
+  // Fase 1 rpcoutsource.md — Bootstrap único (company + malharias + artigos + meses)
+  const { data: bootstrap } = useQuery({
+    queryKey: ['outsource_bootstrap', companyId],
     queryFn: async () => {
-      const { data, error } = await sb('outsource_companies')
-        .select('*').eq('company_id', companyId).order('name');
+      const { data, error } = await (supabase.rpc as any)('get_outsource_bootstrap', { p_company_id: companyId });
       if (error) throw error;
-      return data as OutsourceCompany[];
+      return data as {
+        company: { name?: string; logo_url?: string | null };
+        companies: OutsourceCompany[];
+        articles: any[];
+        available_months: string[];
+      };
     },
     enabled: !!companyId,
+    staleTime: 5 * 60 * 1000,
   });
+  const companies = bootstrap?.companies ?? [];
+  const loadingCompanies = !bootstrap;
+
+  useEffect(() => {
+    if (bootstrap?.company?.name) setCompanyName(bootstrap.company.name);
+    if (bootstrap?.company?.logo_url) setCompanyLogoUrl(bootstrap.company.logo_url);
+  }, [bootstrap]);
 
    // Fetch outsource freights
    const { data: freights = [], isLoading: loadingFreights } = useQuery({
@@ -182,17 +185,8 @@ export default function Outsource() {
     enabled: !!companyId,
   });
 
-  // Fetch articles for selection
-  const { data: articles = [] } = useQuery({
-    queryKey: ['articles', companyId],
-    queryFn: async () => {
-      const { data, error } = await sb('articles')
-        .select('*').eq('company_id', companyId).order('name');
-      if (error) throw error;
-      return data as any[];
-    },
-    enabled: !!companyId,
-  });
+  // Fase 1 rpcoutsource.md — Articles vêm do bootstrap (com client_name já resolvido)
+  const articles = bootstrap?.articles ?? [];
 
   // Lifted filter state so KPIs reflect filtered data
   const [filterMonth, setFilterMonth] = useState<string>('');
