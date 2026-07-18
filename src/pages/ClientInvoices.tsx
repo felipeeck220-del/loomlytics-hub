@@ -1151,6 +1151,8 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   const [activeSubTab, setActiveSubTab] = useState('aberto');
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
+  const { user } = useAuth();
+  const companyId = user?.company_id || '';
 
   // Pagination for Histórico & Encerradas (15 per page)
   const PAGE_SIZE = 15;
@@ -1169,22 +1171,44 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
 
   const [localSearch, setLocalSearch] = useState('');
 
-  const stats = useMemo(() => {
-    const q = (localSearch || '').toLowerCase();
-    const base = !q ? invoices : invoices.filter((inv: any) => {
-      const itemName = inv.type === 'entrada'
-        ? (yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '')
-        : (allArticles.find((a: any) => a.id === inv.items?.[0]?.article_id)?.name || '');
-      return (inv.invoice_number || '').toLowerCase().includes(q) || itemName.toLowerCase().includes(q);
-    });
-    const entrada = base.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
-    const saida = base.filter((i: any) => i.type === 'saida').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
-    return {
-      entrada,
-      saida,
-      saldo: entrada - saida
-    };
-  }, [invoices, localSearch, yarnTypes, allArticles]);
+  // Debounce da busca local para a RPC
+  const [debouncedLocalSearch, setDebouncedLocalSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedLocalSearch(localSearch.trim()), 300);
+    return () => clearTimeout(t);
+  }, [localSearch]);
+
+  // Fase 2 rpcclientInvoices — leitura server-side por cliente/sub-aba
+  const { data: serverData, isFetching: serverFetching } = useQuery({
+    queryKey: ['client_invoices_by_client', companyId, clientId, activeSubTab, debouncedLocalSearch, page],
+    enabled: !!companyId && !!clientId,
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_client_invoices_by_client', {
+        p_company_id: companyId,
+        p_client_id: clientId,
+        p_view: activeSubTab,
+        p_search: debouncedLocalSearch || null,
+        p_page: page,
+        p_page_size: PAGE_SIZE,
+      });
+      if (error) throw error;
+      return (data ?? { rows: [], total_count: 0, kpis: {} }) as {
+        rows: any[];
+        total_count: number;
+        kpis: { totalEntrada?: number; totalSaida?: number; totalSaldo?: number };
+      };
+    },
+  });
+  const serverRows = serverData?.rows ?? [];
+  const serverTotal = serverData?.total_count ?? 0;
+  const serverKpis = serverData?.kpis ?? {};
+
+  const stats = useMemo(() => ({
+    entrada: Number(serverKpis.totalEntrada ?? 0),
+    saida:   Number(serverKpis.totalSaida ?? 0),
+    saldo:   Number(serverKpis.totalSaldo ?? 0),
+  }), [serverKpis]);
 
   const invoicesWithBalance = useMemo(() => {
     return invoices
