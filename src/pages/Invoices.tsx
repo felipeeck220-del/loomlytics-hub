@@ -443,10 +443,11 @@ export default function Invoices() {
     setViewDialogOpen(true);
   };
 
-  const viewItems = useMemo(() => {
+  const viewItems = useMemo<InvoiceItem[]>(() => {
     if (!viewingInvoice) return [];
-    return invoiceItems.filter(it => it.invoice_id === viewingInvoice.id);
-  }, [viewingInvoice, invoiceItems]);
+    // Fase 3 rpcInvoices.md: `viewingInvoice` recebe os itens inline via get_invoices_list.
+    return ((viewingInvoice as any).items ?? []) as InvoiceItem[];
+  }, [viewingInvoice]);
 
   // ===== Yarn Type CRUD =====
   const handleSaveYarn = async () => {
