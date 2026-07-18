@@ -735,30 +735,26 @@ export default function Invoices() {
     }
     setSaving(true);
     try {
-      const payload = {
-        company_id: companyId,
-        outsource_company_id: eftFormCompany,
-        yarn_type_id: eftFormYarn,
-        reference_month: eftFormMonth,
-        quantity_kg: qty,
-        observations: eftFormObs.trim() || null,
-      };
-      if (eftEditing) {
-        const { error } = await sb('outsource_yarn_stock').update({
-          quantity_kg: qty, observations: eftFormObs.trim() || null,
-        }).eq('id', eftEditing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await sb('outsource_yarn_stock').upsert(payload, {
-          onConflict: 'company_id,outsource_company_id,yarn_type_id,reference_month'
-        });
-        if (error) throw error;
-      }
-      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      const { data, error } = await (supabase.rpc as any)('save_outsource_yarn_stock', {
+        p_id: eftEditing?.id ?? null,
+        p_payload: {
+          company_id: companyId,
+          outsource_company_id: eftFormCompany,
+          yarn_type_id: eftFormYarn,
+          reference_month: eftFormMonth,
+          quantity_kg: qty,
+          observations: eftFormObs.trim() || null,
+        },
+        p_author_name: userName || null,
+        p_author_code: userCode || null,
+      });
+      if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock_list'] });
       const compName = outsourceCompanies.find(c => c.id === eftFormCompany)?.name;
       const yarnName2 = yarnTypes.find(y => y.id === eftFormYarn)?.name;
-      logAction(eftEditing ? 'outsource_yarn_stock_update' : 'outsource_yarn_stock_create', { company: compName, yarn: yarnName2, month: eftFormMonth, qty });
+      if (!data?.already) {
+        logAction(eftEditing ? 'outsource_yarn_stock_update' : 'outsource_yarn_stock_create', { company: compName, yarn: yarnName2, month: eftFormMonth, qty });
+      }
       toast({ title: eftEditing ? 'Estoque atualizado!' : 'Estoque salvo!' });
       // Keep modal open, preserve company
       setEftFormYarn('');
@@ -771,7 +767,9 @@ export default function Invoices() {
   };
 
   const handleDeleteEft = async (id: string) => {
-    const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
+    const { data, error } = await (supabase.rpc as any)('delete_outsource_yarn_stock', {
+      p_id: id, p_author_name: userName || null, p_author_code: userCode || null,
+    });
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     // Localiza o item nos grupos da RPC (Fase 2) para preservar o log de auditoria.
     let compName: string | undefined;
@@ -780,7 +778,7 @@ export default function Invoices() {
       const it = g.items.find(i => i.id === id);
       if (it) { compName = g.outsource_company_name; refMonth = it.reference_month; break; }
     }
-    logAction('outsource_yarn_stock_delete', { company: compName, month: refMonth });
+    if (!data?.already) logAction('outsource_yarn_stock_delete', { company: compName, month: refMonth });
     queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock_list'] });
     toast({ title: 'Registro excluído' });
   };
