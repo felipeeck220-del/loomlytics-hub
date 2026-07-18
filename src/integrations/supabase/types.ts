@@ -4999,6 +4999,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_invoices_bootstrap: { Args: { p_company_id: string }; Returns: Json }
       get_maintenance_orders_list: {
         Args: { p_company_id: string }
         Returns: Json
