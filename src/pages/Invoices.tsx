@@ -133,6 +133,15 @@ export default function Invoices() {
   
   const { userCode, userName, logAction } = useAuditLog();
   const queryClient = useQueryClient();
+  // Fase 3 rpcInvoices.md: invalidação consolidada de todas as caches derivadas de invoices.
+  const invalidateInvoiceCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+    queryClient.invalidateQueries({ queryKey: ['yarn_balance_by_brand'] });
+    queryClient.invalidateQueries({ queryKey: ['yarn_balance_by_brand_all'] });
+    queryClient.invalidateQueries({ queryKey: ['yarn_global_balance'] });
+    queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock_list'] });
+    queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
+  };
   const { canSeeFinancial } = usePermissions();
   const { getClients, getArticles } = useSharedCompanyData();
   const clients = getClients();
