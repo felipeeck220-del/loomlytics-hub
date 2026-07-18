@@ -771,25 +771,6 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
        toast({ title: 'Data inválida', description: 'O ano deve estar entre os últimos 5 e próximos 5 anos.', variant: 'destructive' });
        return;
      }
-
-     // Check NF/ROM duplicate per malharia (same outsource company)
-     if (form.nf_rom && form.nf_rom.trim()) {
-       const { data: existing } = await sb('outsource_productions')
-         .select('id, date')
-         .eq('company_id', companyId)
-         .eq('outsource_company_id', form.outsource_company_id)
-         .eq('nf_rom', form.nf_rom.trim())
-         .limit(1);
-       const selectedCompanyName = companies.find(c => c.id === form.outsource_company_id)?.name || 'malharia';
-       if (existing && existing.length > 0 && existing[0].id !== editId) {
-         toast({
-           title: 'NF/ROM duplicada',
-           description: `O número "${form.nf_rom}" já está cadastrado para ${selectedCompanyName} (data: ${existing[0].date}). Verifique antes de continuar.`,
-           variant: 'destructive',
-         });
-         return;
-       }
-     }
      saveMutation.mutate();
    };
 
