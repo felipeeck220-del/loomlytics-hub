@@ -5358,6 +5358,27 @@ export type Database = {
         }[]
       }
       get_user_company_id: { Args: never; Returns: string }
+      get_yarn_balance_by_brand: {
+        Args: { p_brand?: string; p_company_id: string; p_month?: string }
+        Returns: Json
+      }
+      get_yarn_global_balance: {
+        Args: {
+          p_company_id: string
+          p_month?: string
+          p_yarn_type_id?: string
+        }
+        Returns: Json
+      }
+      get_yarn_sales_report_export: {
+        Args: {
+          p_company_id: string
+          p_month?: string
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       save_needle_lot: {
         Args: {
