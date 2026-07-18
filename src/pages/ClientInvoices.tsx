@@ -1296,12 +1296,26 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
       const periodLabel = periodParts.length ? periodParts.join(' · ') : 'Todo o período';
 
       if (exportMode === 'general') {
-        if (exportInvoices.length === 0) { toast.error('Nenhuma nota no período selecionado'); return; }
+        // Fase 3 rpcclientInvoices — payload consolidado do banco
+        const { data: payload, error } = await (supabase.rpc as any)('get_client_invoices_export', {
+          p_company_id: companyId,
+          p_client_id: clientId,
+          p_type: exportType,
+          p_month: exportMonth || 'all',
+          p_start: exportFrom || null,
+          p_end: exportTo || null,
+        });
+        if (error) throw error;
+        const rows = (payload?.rows || []) as any[];
+        if (rows.length === 0) { toast.error('Nenhuma nota no período selecionado'); return; }
         await exportClientInvoicesGeneralPdf({
-          companyName, logoUrl: companyLogoUrl, periodLabel,
-          invoices: exportInvoices,
-          exitLinksAll, allClients, allArticles, yarnTypes,
+          companyName: payload?.company?.name || companyName,
+          logoUrl:     payload?.company?.logo_url ?? companyLogoUrl,
+          periodLabel,
           exportType,
+          clientName:  payload?.client?.name,
+          rows,
+          totals: payload?.totals || { totalEntrada: 0, totalSaida: 0, totalSaldo: 0, totalNotas: rows.length },
         });
         toast.success('PDF gerado com sucesso');
         setExportOpen(false);
@@ -1314,14 +1328,25 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   const handleExportSingleNf = async (entry: any) => {
     try {
       setExportLoading(true);
-      const links = (exitLinksAll || []).filter((l: any) => l.entry_invoice_id === entry.id);
-      const exits = allInvoices.filter((i: any) =>
-        i.type === 'saida' && (links.some((l: any) => l.exit_invoice_id === i.id) || i.parent_invoice_id === entry.id)
-      );
-      const client = allClients.find((c: any) => c.id === entry.client_id);
+      // Fase 3 rpcclientInvoices — payload consolidado do banco
+      const { data: payload, error } = await (supabase.rpc as any)('get_client_invoice_by_nf_export', {
+        p_company_id: companyId,
+        p_entry_invoice_id: entry.id,
+      });
+      if (error) throw error;
+      if (!payload || payload.ok === false || !payload.entry) {
+        toast.error('NF de entrada não encontrada');
+        return;
+      }
       await exportClientInvoiceByNfPdf({
-        companyName, logoUrl: companyLogoUrl,
-        entry, exitLinks: links, exits, client, yarnTypes, allArticles,
+        companyName: payload?.company?.name || companyName,
+        logoUrl:     payload?.company?.logo_url ?? companyLogoUrl,
+        entry:       payload.entry,
+        client:      payload.client,
+        linked:      payload.linked || [],
+        legacy:      payload.legacy || [],
+        consumed_kg: Number(payload.consumed_kg || 0),
+        saldo:       Number(payload.saldo || 0),
       });
       toast.success('PDF gerado com sucesso');
       setExportOpen(false);
