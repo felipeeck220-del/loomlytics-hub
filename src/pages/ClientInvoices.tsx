@@ -112,6 +112,25 @@ export default function ClientInvoices() {
   const companyName = bootstrap?.company?.name ?? '';
   const bootstrapMonths = bootstrap?.available_months ?? [];
 
+  // Fase 2 rpcclientInvoices — Busca Geral paginada server-side
+  const { data: searchData, isFetching: searchFetching } = useQuery({
+    queryKey: ['client_invoices_search', companyId, debouncedSearch, filterMonth, searchPage],
+    enabled: !!companyId,
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_client_invoices_search', {
+        p_company_id: companyId,
+        p_search: debouncedSearch || null,
+        p_month: filterMonth,
+        p_type: 'all',
+        p_page: searchPage,
+        p_page_size: SEARCH_PAGE_SIZE,
+      });
+      if (error) throw error;
+      return (data ?? { rows: [], total_count: 0 }) as { rows: any[]; total_count: number };
+    },
+  });
+
   // Fetch Client Invoices
   const { data: clientInvoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ['client_invoices', companyId],
