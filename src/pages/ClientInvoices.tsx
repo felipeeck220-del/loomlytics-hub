@@ -86,6 +86,13 @@ export default function ClientInvoices() {
   const SEARCH_PAGE_SIZE = 15;
   const [filterMonth, setFilterMonth] = useState('all');
 
+  // Debounce da busca da aba raiz (300ms) para evitar refetch a cada tecla
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
   // Company branding for PDF exports
   // Bootstrap (Fase 1 rpcclientInvoices.md): company + available_months em 1 chamada
   const { data: bootstrap } = useQuery({
@@ -104,6 +111,25 @@ export default function ClientInvoices() {
   const companyLogoUrl = bootstrap?.company?.logo_url ?? null;
   const companyName = bootstrap?.company?.name ?? '';
   const bootstrapMonths = bootstrap?.available_months ?? [];
+
+  // Fase 2 rpcclientInvoices — Busca Geral paginada server-side
+  const { data: searchData, isFetching: searchFetching } = useQuery({
+    queryKey: ['client_invoices_search', companyId, debouncedSearch, filterMonth, searchPage],
+    enabled: !!companyId,
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_client_invoices_search', {
+        p_company_id: companyId,
+        p_search: debouncedSearch || null,
+        p_month: filterMonth,
+        p_type: 'all',
+        p_page: searchPage,
+        p_page_size: SEARCH_PAGE_SIZE,
+      });
+      if (error) throw error;
+      return (data ?? { rows: [], total_count: 0 }) as { rows: any[]; total_count: number };
+    },
+  });
 
   // Fetch Client Invoices
   const { data: clientInvoices = [], isLoading: loadingInvoices } = useQuery({
@@ -493,38 +519,27 @@ export default function ClientInvoices() {
           </div>
 
           {(() => {
-            const filteredInvoices = clientInvoices.filter(inv => {
-              const q = searchTerm.toLowerCase().trim();
-              if (!q && filterMonth === 'all') return true;
-              const client = allClients.find(c => c.id === inv.client_id)?.name || '';
-              const itemName = inv.items?.[0]
-                ? (inv.type === 'entrada'
-                    ? (yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name || '')
-                    : (allArticles.find(a => a.id === inv.items[0].article_id)?.name || ''))
-                : '';
-              const matchSearch = !q
-                || inv.invoice_number.toLowerCase().includes(q)
-                || client.toLowerCase().includes(q)
-                || itemName.toLowerCase().includes(q)
-                || (inv.supplier_name || '').toLowerCase().includes(q);
-              return matchSearch && (filterMonth === 'all' || inv.issue_date.startsWith(filterMonth));
-            });
-            const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / SEARCH_PAGE_SIZE));
+            const rows = searchData?.rows ?? [];
+            const totalCount = searchData?.total_count ?? 0;
+            const totalPages = Math.max(1, Math.ceil(totalCount / SEARCH_PAGE_SIZE));
             const safePage = Math.min(searchPage, totalPages);
             const start = (safePage - 1) * SEARCH_PAGE_SIZE;
-            const pageItems = filteredInvoices.slice(start, start + SEARCH_PAGE_SIZE);
+            const pageItems = rows;
             return (
               <>
           <Card>
             {/* Mobile: card list */}
             <div className="md:hidden divide-y divide-border">
               {pageItems.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8 text-sm">Nenhuma nota encontrada.</div>
+                <div className="text-center text-muted-foreground py-8 text-sm">
+                  {searchFetching ? 'Carregando…' : 'Nenhuma nota encontrada.'}
+                </div>
               ) : pageItems.map(inv => {
                 const itemName = inv.items?.[0]
-                  ? (inv.type === 'entrada'
-                      ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name
-                      : allArticles.find(a => a.id === inv.items[0].article_id)?.name)
+                  ? (inv.items[0].yarn_type_name ?? inv.items[0].article_name
+                      ?? (inv.type === 'entrada'
+                          ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name
+                          : allArticles.find(a => a.id === inv.items[0].article_id)?.name))
                   : '-';
                 return (
                   <div key={inv.id} className="p-3 space-y-1.5 text-xs">
@@ -535,7 +550,7 @@ export default function ClientInvoices() {
                       </Badge>
                     </div>
                     <div className="text-primary font-medium">{format(new Date(inv.issue_date + 'T12:00:00'), 'dd-MM-yyyy')}</div>
-                    <div className="break-words"><span className="text-muted-foreground">Cliente:</span> {allClients.find(c => c.id === inv.client_id)?.name || '—'}</div>
+                    <div className="break-words"><span className="text-muted-foreground">Cliente:</span> {inv.client_name || allClients.find(c => c.id === inv.client_id)?.name || '—'}</div>
                     <div className="break-words"><span className="text-muted-foreground">Item:</span> {itemName || '—'}</div>
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span className="tabular-nums font-medium"><span className="text-muted-foreground font-normal">Peso:</span> {formatWeight(inv.items?.[0]?.weight_kg || 0)}</span>
@@ -591,12 +606,14 @@ export default function ClientInvoices() {
                         {inv.type === 'entrada' ? 'Entrada Fio' : 'Saída Malha'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{allClients.find(c => c.id === inv.client_id)?.name}</TableCell>
+                    <TableCell>{inv.client_name || allClients.find(c => c.id === inv.client_id)?.name}</TableCell>
                     <TableCell>
                       {inv.items?.[0] ? (
-                        inv.type === 'entrada' 
-                          ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name 
-                          : allArticles.find(a => a.id === inv.items[0].article_id)?.name
+                        inv.items[0].yarn_type_name ?? inv.items[0].article_name ?? (
+                          inv.type === 'entrada'
+                            ? yarnTypes.find(y => y.id === inv.items[0].yarn_type_id)?.name
+                            : allArticles.find(a => a.id === inv.items[0].article_id)?.name
+                        )
                       ) : '-'}
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatWeight(inv.items?.[0]?.weight_kg || 0)}</TableCell>
@@ -615,7 +632,7 @@ export default function ClientInvoices() {
                 {pageItems.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      Nenhuma nota encontrada.
+                      {searchFetching ? 'Carregando…' : 'Nenhuma nota encontrada.'}
                     </TableCell>
                   </TableRow>
                 )}
@@ -623,10 +640,10 @@ export default function ClientInvoices() {
             </Table>
           </Card>
 
-          {filteredInvoices.length > SEARCH_PAGE_SIZE && (
+          {totalCount > SEARCH_PAGE_SIZE && (
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
               <div className="text-xs text-muted-foreground">
-                Mostrando <strong>{start + 1}</strong>–<strong>{Math.min(start + SEARCH_PAGE_SIZE, filteredInvoices.length)}</strong> de <strong>{filteredInvoices.length}</strong>
+                Mostrando <strong>{start + 1}</strong>–<strong>{Math.min(start + SEARCH_PAGE_SIZE, totalCount)}</strong> de <strong>{totalCount}</strong>
               </div>
               <div className="flex flex-wrap items-center gap-1">
                 <Button size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={safePage <= 1} onClick={() => setSearchPage(p => Math.max(1, p - 1))}>
@@ -1134,6 +1151,8 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
   const [activeSubTab, setActiveSubTab] = useState('aberto');
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
+  const { user } = useAuth();
+  const companyId = user?.company_id || '';
 
   // Pagination for Histórico & Encerradas (15 per page)
   const PAGE_SIZE = 15;
@@ -1152,22 +1171,44 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
 
   const [localSearch, setLocalSearch] = useState('');
 
-  const stats = useMemo(() => {
-    const q = (localSearch || '').toLowerCase();
-    const base = !q ? invoices : invoices.filter((inv: any) => {
-      const itemName = inv.type === 'entrada'
-        ? (yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '')
-        : (allArticles.find((a: any) => a.id === inv.items?.[0]?.article_id)?.name || '');
-      return (inv.invoice_number || '').toLowerCase().includes(q) || itemName.toLowerCase().includes(q);
-    });
-    const entrada = base.filter((i: any) => i.type === 'entrada').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
-    const saida = base.filter((i: any) => i.type === 'saida').reduce((s: number, i: any) => s + (i.items?.[0]?.weight_kg || 0), 0);
-    return {
-      entrada,
-      saida,
-      saldo: entrada - saida
-    };
-  }, [invoices, localSearch, yarnTypes, allArticles]);
+  // Debounce da busca local para a RPC
+  const [debouncedLocalSearch, setDebouncedLocalSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedLocalSearch(localSearch.trim()), 300);
+    return () => clearTimeout(t);
+  }, [localSearch]);
+
+  // Fase 2 rpcclientInvoices — leitura server-side por cliente/sub-aba
+  const { data: serverData, isFetching: serverFetching } = useQuery({
+    queryKey: ['client_invoices_by_client', companyId, clientId, activeSubTab, debouncedLocalSearch, page],
+    enabled: !!companyId && !!clientId,
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_client_invoices_by_client', {
+        p_company_id: companyId,
+        p_client_id: clientId,
+        p_view: activeSubTab,
+        p_search: debouncedLocalSearch || null,
+        p_page: page,
+        p_page_size: PAGE_SIZE,
+      });
+      if (error) throw error;
+      return (data ?? { rows: [], total_count: 0, kpis: {} }) as {
+        rows: any[];
+        total_count: number;
+        kpis: { totalEntrada?: number; totalSaida?: number; totalSaldo?: number };
+      };
+    },
+  });
+  const serverRows = serverData?.rows ?? [];
+  const serverTotal = serverData?.total_count ?? 0;
+  const serverKpis = serverData?.kpis ?? {};
+
+  const stats = useMemo(() => ({
+    entrada: Number(serverKpis.totalEntrada ?? 0),
+    saida:   Number(serverKpis.totalSaida ?? 0),
+    saldo:   Number(serverKpis.totalSaldo ?? 0),
+  }), [serverKpis]);
 
   const invoicesWithBalance = useMemo(() => {
     return invoices
@@ -1196,32 +1237,23 @@ function ClientDetailView({ clientId, invoices, allInvoices, exitLinksAll = [], 
 
   }, [invoices, exitLinksAll]);
 
+  // Fase 2 rpcclientInvoices — normaliza payload da RPC para o shape esperado pelo template (camelCase)
   const filteredInvoices = useMemo(() => {
-    const base = activeSubTab === 'aberto' 
-      ? invoicesWithBalance.filter((i: any) => !i.isEncerrada)
-      : activeSubTab === 'encerrada'
-        ? invoicesWithBalance.filter((i: any) => i.isEncerrada)
-        : invoices; // 'historico' base
-    
-    if (!localSearch) return base;
-    const q = localSearch.toLowerCase();
-    return base.filter((inv: any) => {
-      const itemName = inv.type === 'entrada' 
-        ? (yarnTypes.find((y: any) => y.id === inv.items?.[0]?.yarn_type_id)?.name || '')
-        : (allArticles.find((a: any) => a.id === inv.items?.[0]?.article_id)?.name || '');
-      return inv.invoice_number.toLowerCase().includes(q) || itemName.toLowerCase().includes(q);
-    });
-  }, [invoicesWithBalance, activeSubTab, localSearch, yarnTypes, allArticles, invoices]);
+    return serverRows.map((r: any) => ({
+      ...r,
+      weightEntrada: Number(r.weight_entrada ?? 0),
+      weightSaida:   Number(r.weight_saida ?? 0),
+      saldo:         r.saldo == null ? 0 : Number(r.saldo),
+      isEncerrada:   Boolean(r.is_encerrada),
+      hasLinkedOutputs: Boolean(r.has_linked_outputs),
+    }));
+  }, [serverRows]);
 
   useEffect(() => { setPage(1); }, [localSearch]);
 
-  // Apply pagination only for Histórico and Encerradas
-  const paginatedInvoices = useMemo(() => {
-    if (activeSubTab === 'aberto') return filteredInvoices;
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredInvoices.slice(start, start + PAGE_SIZE);
-  }, [filteredInvoices, activeSubTab, page]);
-  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / PAGE_SIZE));
+  // Paginação real vem da RPC (server-side); 'aberto' devolve tudo em uma página
+  const paginatedInvoices = filteredInvoices;
+  const totalPages = Math.max(1, Math.ceil(serverTotal / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
 
   // ---- Build dataset for export based on filters ----

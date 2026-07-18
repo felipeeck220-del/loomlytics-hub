@@ -4963,8 +4963,34 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      get_client_invoice_linked_exits: {
+        Args: { p_company_id: string; p_entry_invoice_id: string }
+        Returns: Json
+      }
       get_client_invoices_bootstrap: {
         Args: { p_company_id: string }
+        Returns: Json
+      }
+      get_client_invoices_by_client: {
+        Args: {
+          p_client_id: string
+          p_company_id: string
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_view?: string
+        }
+        Returns: Json
+      }
+      get_client_invoices_search: {
+        Args: {
+          p_company_id: string
+          p_month?: string
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_type?: string
+        }
         Returns: Json
       }
       get_company_public_by_slug: {
