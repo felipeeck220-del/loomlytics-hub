@@ -4808,6 +4808,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _adjust_outsource_yarn_stock: {
+        Args: {
+          p_article_id: string
+          p_company_id: string
+          p_date: string
+          p_delta_kg: number
+          p_outsource_company_id: string
+        }
+        Returns: undefined
+      }
       delete_needle_lot: {
         Args: { p_company_id: string; p_id: string }
         Returns: Json
@@ -4817,6 +4827,18 @@ export type Database = {
         Returns: Json
       }
       delete_needle_provider: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      delete_outsource_company: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      delete_outsource_freight: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      delete_outsource_production: {
         Args: { p_company_id: string; p_id: string }
         Returns: Json
       }
@@ -5327,6 +5349,34 @@ export type Database = {
           p_purchase_date: string
           p_quantity: number
           p_unit_price: number
+        }
+        Returns: Json
+      }
+      save_outsource_company: {
+        Args: { p_company_id: string; p_id: string; p_payload: Json }
+        Returns: Json
+      }
+      save_outsource_freight: {
+        Args: {
+          p_author_code: string
+          p_author_name: string
+          p_company_id: string
+          p_id: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
+      save_outsource_production: {
+        Args: {
+          p_author_code: string
+          p_author_name: string
+          p_company_id: string
+          p_date: string
+          p_id: string
+          p_items: Json
+          p_nf_rom: string
+          p_observations: string
+          p_outsource_company_id: string
         }
         Returns: Json
       }

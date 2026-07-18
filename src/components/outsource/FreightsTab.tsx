@@ -150,8 +150,7 @@ import { Badge } from '@/components/ui/badge';
  
    const saveMutation = useMutation({
      mutationFn: async () => {
-        const data = {
-          company_id: companyId,
+        const payload = {
           outsource_company_id: form.outsource_company_id || null,
           date: form.date,
           nf_rom: form.nf_rom || null,
@@ -160,17 +159,15 @@ import { Badge } from '@/components/ui/badge';
           freight_per_kg: parseBrNumber(form.freight_per_kg),
           total_freight: parseBrNumber(form.total_freight),
           observations: form.observations || null,
-          created_by_name: userNameRef.current || null,
-          created_by_code: userCodeRef.current || null,
         };
- 
-        if (editId) {
-          const { error } = await supabase.from('outsource_freights').update(data).eq('id', editId);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from('outsource_freights').insert(data);
-          if (error) throw error;
-        }
+        const { error } = await (supabase.rpc as any)('save_outsource_freight', {
+          p_company_id: companyId,
+          p_id: editId,
+          p_payload: payload,
+          p_author_name: userNameRef.current || null,
+          p_author_code: userCodeRef.current || null,
+        });
+        if (error) throw error;
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['outsource_freights'] });
@@ -184,7 +181,10 @@ import { Badge } from '@/components/ui/badge';
  
     const deleteMutation = useMutation({
       mutationFn: async (id: string) => {
-        const { error } = await supabase.from('outsource_freights').delete().eq('id', id);
+        const { error } = await (supabase.rpc as any)('delete_outsource_freight', {
+          p_company_id: companyId,
+          p_id: id,
+        });
         if (error) throw error;
       },
      onSuccess: () => {
