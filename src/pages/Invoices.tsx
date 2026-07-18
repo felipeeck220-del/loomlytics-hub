@@ -180,6 +180,8 @@ export default function Invoices() {
     enabled: !!companyId,
   });
 
+  // ===== State (declarado antes das RPCs paginadas p/ compor queryKey) =====
+
   // ===== State =====
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
