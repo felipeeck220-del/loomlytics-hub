@@ -164,28 +164,19 @@ export default function Invoices() {
   const bootstrapCompany = bootstrap?.company;
   const loadingYarns = loadingBootstrap;
 
-  // ===== Fetch Invoices =====
-  const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
+  // ===== (Legacy) Fetch Invoices + Items =====
+  // Fase 2 rpcInvoices.md: as 3 abas de lista (entrada/venda_fio/saida_malha) e a aba
+  // EFT agora consomem RPCs paginadas. Estas duas queries continuam ativas apenas para
+  // os consumidores da Fase 3 (saldo, saldoGlobal, malhaEstoque, availableBrands, viewItems
+  // e exportação de PDF), que serão migrados na próxima fase.
+  const { data: invoices = [], isLoading: loadingInvoicesRaw } = useQuery({
     queryKey: ['invoices', companyId],
     queryFn: () => fetchAllPaginated<Invoice>('invoices', companyId, 'created_at', false),
     enabled: !!companyId,
   });
-
-  // ===== Fetch Invoice Items =====
   const { data: invoiceItems = [] } = useQuery({
     queryKey: ['invoice_items', companyId],
     queryFn: () => fetchAllPaginated<InvoiceItem>('invoice_items', companyId, 'created_at'),
-    enabled: !!companyId,
-  });
-
-  // ===== Fetch Outsource Yarn Stock =====
-  const { data: outsourceYarnStock = [], isLoading: loadingYarnStock } = useQuery({
-    queryKey: ['outsource_yarn_stock', companyId],
-    queryFn: () => fetchAllPaginated<{
-      id: string; company_id: string; outsource_company_id: string; yarn_type_id: string;
-      quantity_kg: number; reference_month: string; observations: string | null;
-      created_at: string; updated_at: string;
-    }>('outsource_yarn_stock', companyId, 'reference_month', false),
     enabled: !!companyId,
   });
 
