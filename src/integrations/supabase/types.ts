@@ -4818,6 +4818,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      cancel_invoice: {
+        Args: { p_author_code?: string; p_author_name?: string; p_id: string }
+        Returns: Json
+      }
+      confirm_invoice: {
+        Args: { p_author_code?: string; p_author_name?: string; p_id: string }
+        Returns: Json
+      }
       delete_needle_lot: {
         Args: { p_company_id: string; p_id: string }
         Returns: Json
@@ -4842,6 +4850,10 @@ export type Database = {
         Args: { p_company_id: string; p_id: string }
         Returns: Json
       }
+      delete_outsource_yarn_stock: {
+        Args: { p_author_code?: string; p_author_name?: string; p_id: string }
+        Returns: Json
+      }
       delete_sinker_lot: {
         Args: { p_company_id: string; p_id: string }
         Returns: Json
@@ -4852,6 +4864,10 @@ export type Database = {
       }
       delete_sinker_provider: {
         Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      delete_yarn_type: {
+        Args: { p_author_code?: string; p_author_name?: string; p_id: string }
         Returns: Json
       }
       fetch_productions_page:
@@ -5380,6 +5396,16 @@ export type Database = {
         Returns: Json
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      save_invoice: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_id: string
+          p_items: Json
+          p_payload: Json
+        }
+        Returns: Json
+      }
       save_needle_lot: {
         Args: {
           p_company_id: string
@@ -5423,6 +5449,15 @@ export type Database = {
         }
         Returns: Json
       }
+      save_outsource_yarn_stock: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_id: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
       save_sinker_lot: {
         Args: {
           p_company_id: string
@@ -5435,6 +5470,15 @@ export type Database = {
           p_quantity: number
           p_sinker_id: string
           p_unit_price: number
+        }
+        Returns: Json
+      }
+      save_yarn_type: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_id: string
+          p_payload: Json
         }
         Returns: Json
       }

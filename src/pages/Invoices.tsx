@@ -358,35 +358,13 @@ export default function Invoices() {
 
       const observationsToSave = formObservations.trim() || null;
 
-      const { data: invData, error: invError } = await sb('invoices').insert({
-        company_id: companyId,
-        type: formType,
-        invoice_number: formInvoiceNumber.trim() || 'S/N',
-        access_key: formAccessKey.trim() || null,
-        client_id: null,
-        client_name: null,
-        buyer_name: buyerNameValue,
-        destination_name: formType === 'saida' ? formTinturariaName.trim() : null,
-        issue_date: formIssueDate,
-        total_weight_kg: totalWeight,
-        total_value: totalValue,
-        status: formStatus,
-        observations: observationsToSave,
-        
-        created_by_name: userName || null,
-        created_by_code: userCode || null,
-      }).select('id').single();
-
-      if (invError) throw invError;
-
-      const itemsToInsert = validItems.map(it => {
+      // Fase 4 rpcInvoices.md: gravação atômica via RPC save_invoice.
+      const itemsPayload = validItems.map(it => {
         const w = parseFloat(it.weight_kg || '0');
         const v = parseFloat(it.value_per_kg || '0');
         const yarnObj = yarnTypes.find(y => y.id === it.yarn_type_id);
         const artObj = articles.find(a => a.id === it.article_id);
         return {
-          invoice_id: invData.id,
-          company_id: companyId,
           yarn_type_id: it.yarn_type_id || null,
           yarn_type_name: yarnObj?.name || null,
           article_id: it.article_id || null,
@@ -395,13 +373,31 @@ export default function Invoices() {
           quantity_rolls: parseFloat(it.quantity_rolls || '0'),
           quantity_boxes: parseFloat(it.quantity_boxes || '0'),
           value_per_kg: v,
-          subtotal: w * v,
           brand: it.brand?.trim() || null,
         };
       });
-
-      const { error: itemsError } = await sb('invoice_items').insert(itemsToInsert);
-      if (itemsError) throw itemsError;
+      const { error: rpcError } = await (supabase.rpc as any)('save_invoice', {
+        p_id: null,
+        p_payload: {
+          company_id: companyId,
+          type: formType,
+          invoice_number: formInvoiceNumber.trim() || 'S/N',
+          access_key: formAccessKey.trim() || null,
+          client_id: null,
+          client_name: null,
+          buyer_name: buyerNameValue,
+          destination_name: formType === 'saida' ? formTinturariaName.trim() : null,
+          issue_date: formIssueDate,
+          status: formStatus,
+          observations: observationsToSave,
+          created_by_name: userName || null,
+          created_by_code: userCode || null,
+        },
+        p_items: itemsPayload,
+        p_author_name: userName || null,
+        p_author_code: userCode || null,
+      });
+      if (rpcError) throw rpcError;
 
       invalidateInvoiceCaches();
       
@@ -419,31 +415,34 @@ export default function Invoices() {
 
   // ===== Cancel Invoice =====
   const handleCancelInvoice = async (inv: Invoice) => {
-    if (inv.type === 'entrada') {
-      const { error } = await sb('invoices').delete().eq('id', inv.id);
-      if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
-      logAction('invoice_delete', { invoice_number: inv.invoice_number, type: 'entrada' });
-      invalidateInvoiceCaches();
-      
-      toast({ title: 'NF de entrada excluída com sucesso' });
-    } else {
-      const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
-      if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
-      logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
-      invalidateInvoiceCaches();
-      
-      toast({ title: 'NF cancelada' });
+    // Fase 4 rpcInvoices.md: cancel_invoice aplica a regra "entrada = DELETE físico".
+    const { data, error } = await (supabase.rpc as any)('cancel_invoice', {
+      p_id: inv.id, p_author_name: userName || null, p_author_code: userCode || null,
+    });
+    if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
+    if (!data?.already) {
+      if (inv.type === 'entrada') {
+        logAction('invoice_delete', { invoice_number: inv.invoice_number, type: 'entrada' });
+        toast({ title: 'NF de entrada excluída com sucesso' });
+      } else {
+        logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
+        toast({ title: 'NF cancelada' });
+      }
     }
+    invalidateInvoiceCaches();
   };
 
   // ===== Confirm Invoice =====
   const handleConfirmInvoice = async (inv: Invoice) => {
-    const { error } = await sb('invoices').update({ status: 'conferida' }).eq('id', inv.id);
+    const { data, error } = await (supabase.rpc as any)('confirm_invoice', {
+      p_id: inv.id, p_author_name: userName || null, p_author_code: userCode || null,
+    });
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
-    logAction('invoice_confirm', { invoice_number: inv.invoice_number, client: inv.client_name });
+    if (!data?.already) {
+      logAction('invoice_confirm', { invoice_number: inv.invoice_number, client: inv.client_name });
+      toast({ title: 'NF conferida' });
+    }
     invalidateInvoiceCaches();
-    
-    toast({ title: 'NF conferida' });
   };
 
   // ===== View Invoice =====
@@ -463,12 +462,22 @@ export default function Invoices() {
     if (!yarnName.trim()) { toast({ title: 'Informe o nome do fio', variant: 'destructive' }); return; }
     setSaving(true);
     try {
-      if (editingYarn) {
-        await sb('yarn_types').update({ name: yarnName.trim(), composition: yarnComposition.trim() || null, color: yarnColor.trim() || null, observations: yarnObs.trim() || null }).eq('id', editingYarn.id);
-      } else {
-        await sb('yarn_types').insert({ company_id: companyId, name: yarnName.trim(), composition: yarnComposition.trim() || null, color: yarnColor.trim() || null, observations: yarnObs.trim() || null });
+      const { data, error } = await (supabase.rpc as any)('save_yarn_type', {
+        p_id: editingYarn?.id ?? null,
+        p_payload: {
+          company_id: companyId,
+          name: yarnName.trim(),
+          composition: yarnComposition.trim() || null,
+          color: yarnColor.trim() || null,
+          observations: yarnObs.trim() || null,
+        },
+        p_author_name: userName || null,
+        p_author_code: userCode || null,
+      });
+      if (error) throw error;
+      if (!data?.already) {
+        logAction(editingYarn ? 'yarn_type_update' : 'yarn_type_create', { name: yarnName.trim() });
       }
-      logAction(editingYarn ? 'yarn_type_update' : 'yarn_type_create', { name: yarnName.trim() });
       
       queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
       toast({ title: editingYarn ? 'Fio atualizado!' : 'Fio cadastrado!' });
@@ -481,9 +490,11 @@ export default function Invoices() {
   };
 
   const handleDeleteYarn = async (y: YarnType) => {
-    const { error } = await sb('yarn_types').delete().eq('id', y.id);
+    const { data, error } = await (supabase.rpc as any)('delete_yarn_type', {
+      p_id: y.id, p_author_name: userName || null, p_author_code: userCode || null,
+    });
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
-    logAction('yarn_type_delete', { name: y.name });
+    if (!data?.already) logAction('yarn_type_delete', { name: y.name });
     
     queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
     toast({ title: 'Fio excluído' });
@@ -724,30 +735,26 @@ export default function Invoices() {
     }
     setSaving(true);
     try {
-      const payload = {
-        company_id: companyId,
-        outsource_company_id: eftFormCompany,
-        yarn_type_id: eftFormYarn,
-        reference_month: eftFormMonth,
-        quantity_kg: qty,
-        observations: eftFormObs.trim() || null,
-      };
-      if (eftEditing) {
-        const { error } = await sb('outsource_yarn_stock').update({
-          quantity_kg: qty, observations: eftFormObs.trim() || null,
-        }).eq('id', eftEditing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await sb('outsource_yarn_stock').upsert(payload, {
-          onConflict: 'company_id,outsource_company_id,yarn_type_id,reference_month'
-        });
-        if (error) throw error;
-      }
-      queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock'] });
+      const { data, error } = await (supabase.rpc as any)('save_outsource_yarn_stock', {
+        p_id: eftEditing?.id ?? null,
+        p_payload: {
+          company_id: companyId,
+          outsource_company_id: eftFormCompany,
+          yarn_type_id: eftFormYarn,
+          reference_month: eftFormMonth,
+          quantity_kg: qty,
+          observations: eftFormObs.trim() || null,
+        },
+        p_author_name: userName || null,
+        p_author_code: userCode || null,
+      });
+      if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock_list'] });
       const compName = outsourceCompanies.find(c => c.id === eftFormCompany)?.name;
       const yarnName2 = yarnTypes.find(y => y.id === eftFormYarn)?.name;
-      logAction(eftEditing ? 'outsource_yarn_stock_update' : 'outsource_yarn_stock_create', { company: compName, yarn: yarnName2, month: eftFormMonth, qty });
+      if (!data?.already) {
+        logAction(eftEditing ? 'outsource_yarn_stock_update' : 'outsource_yarn_stock_create', { company: compName, yarn: yarnName2, month: eftFormMonth, qty });
+      }
       toast({ title: eftEditing ? 'Estoque atualizado!' : 'Estoque salvo!' });
       // Keep modal open, preserve company
       setEftFormYarn('');
@@ -760,7 +767,9 @@ export default function Invoices() {
   };
 
   const handleDeleteEft = async (id: string) => {
-    const { error } = await sb('outsource_yarn_stock').delete().eq('id', id);
+    const { data, error } = await (supabase.rpc as any)('delete_outsource_yarn_stock', {
+      p_id: id, p_author_name: userName || null, p_author_code: userCode || null,
+    });
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     // Localiza o item nos grupos da RPC (Fase 2) para preservar o log de auditoria.
     let compName: string | undefined;
@@ -769,7 +778,7 @@ export default function Invoices() {
       const it = g.items.find(i => i.id === id);
       if (it) { compName = g.outsource_company_name; refMonth = it.reference_month; break; }
     }
-    logAction('outsource_yarn_stock_delete', { company: compName, month: refMonth });
+    if (!data?.already) logAction('outsource_yarn_stock_delete', { company: compName, month: refMonth });
     queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock_list'] });
     toast({ title: 'Registro excluído' });
   };
