@@ -133,11 +133,19 @@ export default function Invoices() {
   
   const { userCode, userName, logAction } = useAuditLog();
   const queryClient = useQueryClient();
+  // Fase 3 rpcInvoices.md: invalidação consolidada de todas as caches derivadas de invoices.
+  const invalidateInvoiceCaches = () => {
+    
+    queryClient.invalidateQueries({ queryKey: ['yarn_balance_by_brand'] });
+    queryClient.invalidateQueries({ queryKey: ['yarn_balance_by_brand_all'] });
+    queryClient.invalidateQueries({ queryKey: ['yarn_global_balance'] });
+    queryClient.invalidateQueries({ queryKey: ['outsource_yarn_stock_list'] });
+    queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
+  };
   const { canSeeFinancial } = usePermissions();
-  const { getClients, getArticles, getProductions } = useSharedCompanyData();
+  const { getClients, getArticles } = useSharedCompanyData();
   const clients = getClients();
   const articles = getArticles();
-  const productions = getProductions();
   const { minDate, maxDate } = getDateLimits();
 
   // ===== Bootstrap (Fase 1 rpcInvoices.md): yarn_types + outsource_companies + company + available_months =====
@@ -164,21 +172,10 @@ export default function Invoices() {
   const bootstrapCompany = bootstrap?.company;
   const loadingYarns = loadingBootstrap;
 
-  // ===== (Legacy) Fetch Invoices + Items =====
-  // Fase 2 rpcInvoices.md: as 3 abas de lista (entrada/venda_fio/saida_malha) e a aba
-  // EFT agora consomem RPCs paginadas. Estas duas queries continuam ativas apenas para
-  // os consumidores da Fase 3 (saldo, saldoGlobal, malhaEstoque, availableBrands, viewItems
-  // e exportação de PDF), que serão migrados na próxima fase.
-  const { data: invoices = [], isLoading: loadingInvoicesRaw } = useQuery({
-    queryKey: ['invoices', companyId],
-    queryFn: () => fetchAllPaginated<Invoice>('invoices', companyId, 'created_at', false),
-    enabled: !!companyId,
-  });
-  const { data: invoiceItems = [] } = useQuery({
-    queryKey: ['invoice_items', companyId],
-    queryFn: () => fetchAllPaginated<InvoiceItem>('invoice_items', companyId, 'created_at'),
-    enabled: !!companyId,
-  });
+  // ===== Fase 3 rpcInvoices.md =====
+  // As queries diretas em `invoices` e `invoice_items` foram eliminadas. Todas as leituras
+  // acontecem via RPCs (`get_invoices_list`, `get_yarn_balance_by_brand`,
+  // `get_yarn_global_balance`, `get_yarn_sales_report_export`).
 
   // ===== State (declarado antes das RPCs paginadas p/ compor queryKey) =====
 
@@ -319,84 +316,10 @@ export default function Invoices() {
     return [format(new Date(), 'yyyy-MM')];
   }, [bootstrapMonthsInvoices]);
 
-  // ===== Filtered invoices by tab + filters =====
-  const filteredInvoicesBase = useMemo(() => {
-    let filtered = invoices;
-
-    // Tab filter
-    if (activeTab === 'entrada') filtered = filtered.filter(i => i.type === 'entrada');
-    else if (activeTab === 'venda_fio') filtered = filtered.filter(i => i.type === 'venda_fio');
-    else if (activeTab === 'saida_malha') filtered = filtered.filter(i => i.type === 'saida');
-
-    // Status
-    if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
-
-    // Month
-    if (filterMonth !== 'all') filtered = filtered.filter(i => i.issue_date.startsWith(filterMonth));
-
-    // Search — includes buyer_name (supplier/buyer), yarn type names and articles
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      filtered = filtered.filter(i => {
-        const basicMatch = i.invoice_number.toLowerCase().includes(q) ||
-          (i.client_name || '').toLowerCase().includes(q) ||
-          (i.buyer_name || '').toLowerCase().includes(q) ||
-          (i.destination_name || '').toLowerCase().includes(q) ||
-          (i.access_key || '').includes(q);
-        
-        if (basicMatch) return true;
-
-        // Search in items (yarn types or articles)
-        const items = invoiceItems.filter(it => it.invoice_id === i.id);
-        return items.some(it => 
-          (it.yarn_type_name || '').toLowerCase().includes(q) ||
-          (it.article_name || '').toLowerCase().includes(q)
-        );
-      });
-    }
-
-    return filtered;
-  }, [invoices, activeTab, filterStatus, filterMonth, searchTerm, invoiceItems]);
-
-  const totalPages = Math.ceil(filteredInvoicesBase.length / itemsPerPage);
-  
-  const filteredInvoices = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredInvoicesBase.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredInvoicesBase, currentPage]);
-
-  // ===== KPIs =====
-  const kpis = useMemo(() => {
-    const active = filteredInvoicesBase.filter(i => i.status !== 'cancelada');
-    return {
-      count: active.length,
-      totalKg: active.reduce((s, i) => s + Number(i.total_weight_kg), 0),
-      totalValue: active.reduce((s, i) => s + Number(i.total_value || 0), 0),
-      pendentes: active.filter(i => i.status === 'pendente').length,
-    };
-  }, [filteredInvoicesBase]);
-
-  // ===== Available brands from items with positive stock =====
-  const availableBrands = useMemo(() => {
-    const brandMap = new Map<string, number>();
-    // Sum entries
-    invoices.filter(i => i.type === 'entrada' && i.status !== 'cancelada').forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => {
-        brandMap.set(it.brand!, (brandMap.get(it.brand!) || 0) + Number(it.weight_kg));
-      });
-    });
-    // Subtract sales
-    invoices.filter(i => i.type === 'venda_fio' && i.status !== 'cancelada').forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => {
-        brandMap.set(it.brand!, (brandMap.get(it.brand!) || 0) - Number(it.weight_kg));
-      });
-    });
-    // Only return brands with positive stock
-    return Array.from(brandMap.entries())
-      .filter(([, qty]) => qty > 0)
-      .map(([brand]) => brand)
-      .sort();
-  }, [invoices, invoiceItems]);
+  // ===== Fase 3 rpcInvoices.md: derivações antigas removidas =====
+  // A lista, os KPIs e a paginação da aba ativa vêm de `rpcRows`/`rpcKpis`/`rpcTotalCount`
+  // (get_invoices_list). O dropdown de marcas do formulário (`availableBrands`) é
+  // alimentado por `get_yarn_balance_by_brand` (all/all) filtrando `balance > 0`.
 
   // ===== Save Invoice =====
   const handleSaveInvoice = async () => {
@@ -480,9 +403,9 @@ export default function Invoices() {
       const { error: itemsError } = await sb('invoice_items').insert(itemsToInsert);
       if (itemsError) throw itemsError;
 
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoice_items'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+      invalidateInvoiceCaches();
+      
+      
       const logName = formType === 'entrada' ? formSupplierName.trim() : formType === 'venda_fio' ? formBuyerName.trim() : formTinturariaName.trim();
       logAction('invoice_create', { invoice_number: formInvoiceNumber.trim() || 'S/N', type: formType, client: logName, total_weight_kg: totalWeight });
       toast({ title: 'NF registrada com sucesso!' });
@@ -500,15 +423,15 @@ export default function Invoices() {
       const { error } = await sb('invoices').delete().eq('id', inv.id);
       if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
       logAction('invoice_delete', { invoice_number: inv.invoice_number, type: 'entrada' });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+      invalidateInvoiceCaches();
+      
       toast({ title: 'NF de entrada excluída com sucesso' });
     } else {
       const { error } = await sb('invoices').update({ status: 'cancelada' }).eq('id', inv.id);
       if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
       logAction('invoice_cancel', { invoice_number: inv.invoice_number, client: inv.client_name });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+      invalidateInvoiceCaches();
+      
       toast({ title: 'NF cancelada' });
     }
   };
@@ -518,8 +441,8 @@ export default function Invoices() {
     const { error } = await sb('invoices').update({ status: 'conferida' }).eq('id', inv.id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('invoice_confirm', { invoice_number: inv.invoice_number, client: inv.client_name });
-    queryClient.invalidateQueries({ queryKey: ['invoices'] });
-    queryClient.invalidateQueries({ queryKey: ['invoices_list'] });
+    invalidateInvoiceCaches();
+    
     toast({ title: 'NF conferida' });
   };
 
@@ -529,10 +452,11 @@ export default function Invoices() {
     setViewDialogOpen(true);
   };
 
-  const viewItems = useMemo(() => {
+  const viewItems = useMemo<InvoiceItem[]>(() => {
     if (!viewingInvoice) return [];
-    return invoiceItems.filter(it => it.invoice_id === viewingInvoice.id);
-  }, [viewingInvoice, invoiceItems]);
+    // Fase 3 rpcInvoices.md: `viewingInvoice` recebe os itens inline via get_invoices_list.
+    return ((viewingInvoice as any).items ?? []) as InvoiceItem[];
+  }, [viewingInvoice]);
 
   // ===== Yarn Type CRUD =====
   const handleSaveYarn = async () => {
@@ -545,7 +469,7 @@ export default function Invoices() {
         await sb('yarn_types').insert({ company_id: companyId, name: yarnName.trim(), composition: yarnComposition.trim() || null, color: yarnColor.trim() || null, observations: yarnObs.trim() || null });
       }
       logAction(editingYarn ? 'yarn_type_update' : 'yarn_type_create', { name: yarnName.trim() });
-      queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
+      
       queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
       toast({ title: editingYarn ? 'Fio atualizado!' : 'Fio cadastrado!' });
       setYarnDialogOpen(false);
@@ -560,7 +484,7 @@ export default function Invoices() {
     const { error } = await sb('yarn_types').delete().eq('id', y.id);
     if (error) { toast({ title: 'Erro', description: getFriendlyErrorMessage(error.message), variant: 'destructive' }); return; }
     logAction('yarn_type_delete', { name: y.name });
-    queryClient.invalidateQueries({ queryKey: ['yarn_types'] });
+    
     queryClient.invalidateQueries({ queryKey: ['invoices_bootstrap'] });
     toast({ title: 'Fio excluído' });
   };
@@ -658,137 +582,104 @@ export default function Invoices() {
   const eftListGroups = eftListQuery.data?.groups ?? [];
   const eftListKpis = eftListQuery.data?.kpis ?? { total_kg: 0, companies_count: 0, yarn_types_count: 0 };
 
-  // ===== Saldo de Fios (por Marca) =====
-  const yarnBalance = useMemo(() => {
-    const map = new Map<string, { received: number; sold: number }>();
-    const matchMonth = (date: string) => saldoMonth === 'all' || date.startsWith(saldoMonth);
-
-    // Entradas (recebido) por marca
-    invoices.filter(i => i.type === 'entrada' && i.status !== 'cancelada' && matchMonth(i.issue_date)).forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id).forEach(it => {
-        const brand = it.brand || 'Sem marca';
-        if (!map.has(brand)) map.set(brand, { received: 0, sold: 0 });
-        map.get(brand)!.received += Number(it.weight_kg);
+  // ===== Fase 3 rpcInvoices.md: Saldo por marca (get_yarn_balance_by_brand) =====
+  const yarnBalanceQuery = useQuery({
+    queryKey: ['yarn_balance_by_brand', companyId, saldoMonth, saldoYarn],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_yarn_balance_by_brand', {
+        p_company_id: companyId,
+        p_month: saldoMonth,
+        p_brand: saldoYarn,
       });
-    });
-
-    // Vendas de fio por marca
-    invoices.filter(i => i.type === 'venda_fio' && i.status !== 'cancelada' && matchMonth(i.issue_date)).forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id).forEach(it => {
-        const brand = it.brand || 'Sem marca';
-        if (!map.has(brand)) map.set(brand, { received: 0, sold: 0 });
-        map.get(brand)!.sold += Number(it.weight_kg);
-      });
-    });
-
-    let result = Array.from(map.entries()).map(([brand, vals]) => ({
-      brand,
-      received: vals.received,
-      sold: vals.sold,
-      balance: vals.received - vals.sold,
-    }));
-
-    if (saldoYarn !== 'all') {
-      result = result.filter(r => r.brand === saldoYarn);
-    }
-
-    return result.sort((a, b) => a.brand.localeCompare(b.brand));
-  }, [invoices, invoiceItems, saldoYarn, saldoMonth]);
-
-  // Available brands for saldo filter
-  const saldoBrandOptions = useMemo(() => {
-    const brands = new Set<string>();
-    invoices.filter(i => (i.type === 'entrada' || i.type === 'venda_fio') && i.status !== 'cancelada').forEach(inv => {
-      invoiceItems.filter(it => it.invoice_id === inv.id && it.brand).forEach(it => brands.add(it.brand!));
-    });
-    return Array.from(brands).sort();
-  }, [invoices, invoiceItems]);
-
-  // Global KPIs for saldo
+      if (error) throw error;
+      return data as {
+        rows: Array<{ brand: string; received: number; sold: number; balance: number }>;
+        kpis: { totalReceived: number; totalSold: number; totalBalance: number };
+        available_brands: string[];
+      };
+    },
+    enabled: !!companyId && activeTab === 'saldo',
+    staleTime: 60 * 1000,
+  });
+  const yarnBalance = useMemo(() => (yarnBalanceQuery.data?.rows ?? []).map(r => ({
+    brand: r.brand,
+    received: Number(r.received) || 0,
+    sold: Number(r.sold) || 0,
+    balance: Number(r.balance) || 0,
+  })), [yarnBalanceQuery.data]);
+  const saldoBrandOptions = yarnBalanceQuery.data?.available_brands ?? [];
   const saldoKpis = useMemo(() => {
-    return yarnBalance.reduce((acc, g) => ({
-      received: acc.received + g.received,
-      sold: acc.sold + g.sold,
-      balance: acc.balance + g.balance,
-    }), { received: 0, sold: 0, balance: 0 });
-  }, [yarnBalance]);
-
-  // ===== Saldo Global de Fios (por tipo de fio, todos clientes) =====
-  const yarnGlobalBalance = useMemo(() => {
-    const selectedMonth = saldoGlobalMonth;
-    const map = new Map<string, { yarnTypeId: string; yarnTypeName: string; purchaseMonth: number; consumedMonth: number; salesMonth: number; stockAccumulated: number }>();
-
-    // Helper: last day of a yyyy-MM string
-    const lastDayOfMonth = (ym: string): string => {
-      const [year, month] = ym.split('-').map(Number);
-      const lastDay = new Date(year, month, 0).getDate();
-      return `${ym}-${String(lastDay).padStart(2, '0')}`;
+    const k = yarnBalanceQuery.data?.kpis;
+    return {
+      received: Number(k?.totalReceived) || 0,
+      sold:     Number(k?.totalSold)     || 0,
+      balance:  Number(k?.totalBalance)  || 0,
     };
+  }, [yarnBalanceQuery.data]);
 
-    // Initialize all yarn types
-    for (const yt of yarnTypes) {
-      map.set(yt.id, { yarnTypeId: yt.id, yarnTypeName: formatYarnLabel(yt), purchaseMonth: 0, consumedMonth: 0, salesMonth: 0, stockAccumulated: 0 });
-    }
+  // Dropdown de marcas do formulário de NF (saldo positivo). Reaproveita a mesma RPC
+  // sem filtros para não impactar o cache da aba Saldo.
+  const yarnBalanceAllQuery = useQuery({
+    queryKey: ['yarn_balance_by_brand_all', companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_yarn_balance_by_brand', {
+        p_company_id: companyId,
+        p_month: 'all',
+        p_brand: 'all',
+      });
+      if (error) throw error;
+      return data as { rows: Array<{ brand: string; balance: number }> };
+    },
+    enabled: !!companyId,
+    staleTime: 60 * 1000,
+  });
+  const availableBrands = useMemo(() => (
+    (yarnBalanceAllQuery.data?.rows ?? [])
+      .filter(r => Number(r.balance) > 0)
+      .map(r => r.brand)
+      .sort((a, b) => a.localeCompare(b))
+  ), [yarnBalanceAllQuery.data]);
 
-    const endDate = selectedMonth === 'all' ? '9999-12-31' : lastDayOfMonth(selectedMonth);
-
-    // 1. Compra (NFs entrada)
-    const entradaInvs = invoices.filter(inv => inv.type === 'entrada' && inv.status !== 'cancelada');
-    for (const inv of entradaInvs) {
-      const isMonth = selectedMonth === 'all' || inv.issue_date.startsWith(selectedMonth);
-      const isAccum = inv.issue_date <= endDate;
-      const items = invoiceItems.filter(it => it.invoice_id === inv.id && it.yarn_type_id);
-      for (const item of items) {
-        const entry = map.get(item.yarn_type_id!);
-        if (!entry) continue;
-        if (isMonth) entry.purchaseMonth += Number(item.weight_kg);
-        if (isAccum) entry.stockAccumulated += Number(item.weight_kg);
-      }
-    }
-
-    // 2. Consumo (produções via artigos)
-    for (const prod of productions) {
-      const art = articles.find(a => a.id === prod.article_id);
-      if (!art?.yarn_type_id) continue;
-      const entry = map.get(art.yarn_type_id);
-      if (!entry) continue;
-      const isMonth = selectedMonth === 'all' || prod.date.startsWith(selectedMonth);
-      const isAccum = prod.date <= endDate;
-      if (isMonth) entry.consumedMonth += Number(prod.weight_kg);
-      if (isAccum) entry.stockAccumulated -= Number(prod.weight_kg);
-    }
-
-    // 3. Vendas (NFs venda_fio)
-    const vendaInvs = invoices.filter(inv => inv.type === 'venda_fio' && inv.status !== 'cancelada');
-    for (const inv of vendaInvs) {
-      const isMonth = selectedMonth === 'all' || inv.issue_date.startsWith(selectedMonth);
-      const isAccum = inv.issue_date <= endDate;
-      const items = invoiceItems.filter(it => it.invoice_id === inv.id && it.yarn_type_id);
-      for (const item of items) {
-        const entry = map.get(item.yarn_type_id!);
-        if (!entry) continue;
-        if (isMonth) entry.salesMonth += Number(item.weight_kg);
-        if (isAccum) entry.stockAccumulated -= Number(item.weight_kg);
-      }
-    }
-
-    // Filter and sort
-    let result = Array.from(map.values())
-      .filter(y => y.purchaseMonth > 0 || y.salesMonth > 0 || y.stockAccumulated !== 0 || y.consumedMonth > 0);
-
-    if (saldoGlobalYarn !== 'all') {
-      result = result.filter(y => y.yarnTypeId === saldoGlobalYarn);
-    }
-
-    return result.sort((a, b) => a.yarnTypeName.localeCompare(b.yarnTypeName));
-  }, [invoices, invoiceItems, productions, articles, yarnTypes, saldoGlobalMonth, saldoGlobalYarn]);
-
-  const saldoGlobalKpis = useMemo(() => yarnGlobalBalance.reduce((acc, y) => ({
-    purchase: acc.purchase + y.purchaseMonth,
-    stock: acc.stock + y.stockAccumulated,
-    sales: acc.sales + y.salesMonth,
-    consumed: acc.consumed + y.consumedMonth,
-  }), { purchase: 0, stock: 0, sales: 0, consumed: 0 }), [yarnGlobalBalance]);
+  // ===== Fase 3 rpcInvoices.md: Saldo Global (get_yarn_global_balance) =====
+  const yarnGlobalBalanceQuery = useQuery({
+    queryKey: ['yarn_global_balance', companyId, saldoGlobalMonth, saldoGlobalYarn],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_yarn_global_balance', {
+        p_company_id: companyId,
+        p_month: saldoGlobalMonth,
+        p_yarn_type_id: saldoGlobalYarn === 'all' ? null : saldoGlobalYarn,
+      });
+      if (error) throw error;
+      return data as {
+        rows: Array<{
+          yarn_type_id: string; yarn_type_name: string;
+          yarn_color: string | null; yarn_composition: string | null;
+          purchase_month: number; consumed_month: number; sales_month: number;
+          stock_accumulated: number;
+        }>;
+        kpis: { totalPurchase: number; totalConsumed: number; totalSales: number; totalStock: number };
+      };
+    },
+    enabled: !!companyId && activeTab === 'saldoGlobal',
+    staleTime: 60 * 1000,
+  });
+  const yarnGlobalBalance = useMemo(() => (yarnGlobalBalanceQuery.data?.rows ?? []).map(r => ({
+    yarnTypeId: r.yarn_type_id,
+    yarnTypeName: formatYarnLabel({ name: r.yarn_type_name, color: r.yarn_color, composition: r.yarn_composition }),
+    purchaseMonth: Number(r.purchase_month) || 0,
+    consumedMonth: Number(r.consumed_month) || 0,
+    salesMonth: Number(r.sales_month) || 0,
+    stockAccumulated: Number(r.stock_accumulated) || 0,
+  })), [yarnGlobalBalanceQuery.data]);
+  const saldoGlobalKpis = useMemo(() => {
+    const k = yarnGlobalBalanceQuery.data?.kpis;
+    return {
+      purchase: Number(k?.totalPurchase) || 0,
+      consumed: Number(k?.totalConsumed) || 0,
+      sales:    Number(k?.totalSales)    || 0,
+      stock:    Number(k?.totalStock)    || 0,
+    };
+  }, [yarnGlobalBalanceQuery.data]);
 
   // ===== Estoque Fio Terceiros — dados vêm da RPC (Fase 2) =====
   // Normaliza `groups` para o shape camelCase esperado pelo render.
@@ -903,78 +794,7 @@ export default function Invoices() {
     setEftDialogOpen(true);
   };
 
-  // ===== Estoque de Malha Filters =====
-  const [estoqueClient, setEstoqueClient] = useState('all');
-  const [estoqueArticle, setEstoqueArticle] = useState('all');
-  const [estoqueMonth, setEstoqueMonth] = useState('all');
-
-  // ===== Estoque de Malha =====
-  const malhaEstoque = useMemo(() => {
-    const map = new Map<string, Map<string, { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number }>>();
-    const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
-
-    // 1. Produção por client_id + article_id
-    for (const prod of productions) {
-      if (!matchMonth(prod.date)) continue;
-      const art = articles.find(a => a.id === prod.article_id);
-      if (!art || !art.client_id) continue;
-      if (!map.has(art.client_id)) map.set(art.client_id, new Map());
-      const artMap = map.get(art.client_id)!;
-      if (!artMap.has(prod.article_id!)) artMap.set(prod.article_id!, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
-      const entry = artMap.get(prod.article_id!)!;
-      entry.producedKg += Number(prod.weight_kg);
-      entry.producedRolls += Number(prod.rolls_produced);
-    }
-
-    // 2. Entregas (NFs saída e saída malha não canceladas)
-    const saidaInvs = invoices.filter(i => i.type === 'saida' && i.status !== 'cancelada' && matchMonth(i.issue_date));
-    for (const inv of saidaInvs) {
-      const items = invoiceItems.filter(it => it.invoice_id === inv.id);
-      for (const item of items) {
-        if (!item.article_id) continue;
-        const artForDelivery = articles.find(a => a.id === item.article_id);
-        const clientIdForItem = artForDelivery?.client_id;
-        if (!clientIdForItem) continue;
-        if (!map.has(clientIdForItem)) map.set(clientIdForItem, new Map());
-        const artMap = map.get(clientIdForItem)!;
-        if (!artMap.has(item.article_id)) artMap.set(item.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0 });
-        const entry = artMap.get(item.article_id)!;
-        entry.deliveredKg += Number(item.weight_kg);
-        entry.deliveredRolls += Number(item.quantity_rolls || 0);
-      }
-    }
-
-    // 3. Montar resultado
-    const result: Array<{
-      clientId: string; clientName: string;
-      articles: Array<{ articleId: string; articleName: string; producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; stockKg: number; stockRolls: number }>;
-      totalProducedKg: number; totalProducedRolls: number; totalDeliveredKg: number; totalDeliveredRolls: number; totalStockKg: number; totalStockRolls: number;
-    }> = [];
-
-    map.forEach((artMap, clientId) => {
-      if (estoqueClient !== 'all' && clientId !== estoqueClient) return;
-      const client = clients.find(c => c.id === clientId);
-      const arts: typeof result[0]['articles'] = [];
-      let tPK = 0, tPR = 0, tDK = 0, tDR = 0;
-      artMap.forEach((vals, articleId) => {
-        if (estoqueArticle !== 'all' && articleId !== estoqueArticle) return;
-        const article = articles.find(a => a.id === articleId);
-        arts.push({ articleId, articleName: article?.name || 'Artigo removido', ...vals, stockKg: vals.producedKg - vals.deliveredKg, stockRolls: vals.producedRolls - vals.deliveredRolls });
-        tPK += vals.producedKg; tPR += vals.producedRolls; tDK += vals.deliveredKg; tDR += vals.deliveredRolls;
-      });
-      if (arts.length > 0) {
-        result.push({ clientId, clientName: client?.name || 'Cliente removido', articles: arts.sort((a, b) => a.articleName.localeCompare(b.articleName)), totalProducedKg: tPK, totalProducedRolls: tPR, totalDeliveredKg: tDK, totalDeliveredRolls: tDR, totalStockKg: tPK - tDK, totalStockRolls: tPR - tDR });
-      }
-    });
-    return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
-  }, [productions, invoices, invoiceItems, articles, clients, estoqueClient, estoqueArticle, estoqueMonth]);
-
-  const estoqueKpis = useMemo(() => malhaEstoque.reduce((acc, g) => ({
-    producedKg: acc.producedKg + g.totalProducedKg,
-    deliveredKg: acc.deliveredKg + g.totalDeliveredKg,
-    stockKg: acc.stockKg + g.totalStockKg,
-    stockRolls: acc.stockRolls + g.totalStockRolls,
-  }), { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0 }), [malhaEstoque]);
+  // ===== Estoque de Malha — código legado removido (aba não renderizada). =====
 
   // ===== Clear filters =====
   const clearFilters = () => {
@@ -1062,9 +882,17 @@ export default function Invoices() {
                         className="gap-1.5"
                         onClick={async () => {
                           try {
+                            // Fase 3 rpcInvoices.md: dados do PDF via get_yarn_sales_report_export.
+                            const { data, error } = await (supabase.rpc as any)('get_yarn_sales_report_export', {
+                              p_company_id: companyId,
+                              p_month: filterMonth,
+                              p_status: filterStatus,
+                              p_search: searchTerm.trim() || null,
+                            });
+                            if (error) throw error;
                             await generateYarnSalesReportPdf({
-                              invoices: filteredInvoicesBase as any,
-                              items: invoiceItems as any,
+                              invoices: (data?.invoices ?? []) as any,
+                              items:    (data?.items    ?? []) as any,
                               companyName: bootstrapCompany?.name || '',
                               companyLogoUrl: bootstrapCompany?.logo_url || null,
                               filters: { month: filterMonth, status: filterStatus, search: searchTerm },
