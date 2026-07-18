@@ -1137,15 +1137,14 @@ export default function MecanicaPage() {
       if (!providerName.trim()) { toast.error('Informe o nome do fornecedor.'); return; }
       if (!user?.company_id) return;
       try {
-        if (editingProvider) {
-          const { error } = await (supabase.from as any)('needle_providers').update({ name: providerName.trim() }).eq('id', editingProvider.id);
-          if (error) throw error;
-          logAction('needle_provider_update', { name: providerName.trim() });
-        } else {
-          const { error } = await (supabase.from as any)('needle_providers').insert({ company_id: user.company_id, name: providerName.trim() });
-          if (error) throw error;
-          logAction('needle_provider_create', { name: providerName.trim() });
-        }
+        // [rpcmecanica Fase 4] CRUD atômico via RPC.
+        const { error } = await (supabase.rpc as any)('upsert_needle_provider', {
+          p_id: editingProvider?.id ?? null,
+          p_company_id: user.company_id,
+          p_name: providerName.trim(),
+        });
+        if (error) throw error;
+        logAction(editingProvider ? 'needle_provider_update' : 'needle_provider_create', { name: providerName.trim() });
         toast.success(editingProvider ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
         setShowProviderModal(false); setProviderName(''); setEditingProvider(null);
         bumpProviders();
@@ -1154,7 +1153,7 @@ export default function MecanicaPage() {
     const handleDeleteProvider = async () => {
       if (!deleteProviderId) return;
       try {
-        const { error } = await (supabase.from as any)('needle_providers').delete().eq('id', deleteProviderId);
+        const { error } = await (supabase.rpc as any)('delete_needle_provider', { p_id: deleteProviderId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('needle_provider_delete', { id: deleteProviderId });
         toast.success('Fornecedor removido.');
@@ -1179,15 +1178,14 @@ export default function MecanicaPage() {
       if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
       if (!user?.company_id) return;
       try {
-        if (editingPrice) {
-          const { error } = await (supabase.from as any)('needle_provider_prices').update({ unit_price: price }).eq('id', editingPrice.id);
-          if (error) throw error;
-        } else {
-          const { error } = await (supabase.from as any)('needle_provider_prices').insert({
-            company_id: user.company_id, provider_id: priceProviderId, needle_id: priceNeedleId, unit_price: price,
-          });
-          if (error) throw error;
-        }
+        const { error } = await (supabase.rpc as any)('upsert_needle_price', {
+          p_id: editingPrice?.id ?? null,
+          p_company_id: user.company_id,
+          p_provider_id: priceProviderId,
+          p_needle_id: priceNeedleId,
+          p_unit_price: price,
+        });
+        if (error) throw error;
         logAction(editingPrice ? 'needle_price_update' : 'needle_price_create', { provider_id: priceProviderId, needle_id: priceNeedleId, price });
         toast.success(editingPrice ? 'Preço atualizado!' : 'Agulha vinculada ao fornecedor.');
         setShowPriceModal(false); setEditingPrice(null); bumpProviders();
@@ -1196,7 +1194,7 @@ export default function MecanicaPage() {
     const handleDeletePrice = async () => {
       if (!deletePriceId) return;
       try {
-        const { error } = await (supabase.from as any)('needle_provider_prices').delete().eq('id', deletePriceId);
+        const { error } = await (supabase.rpc as any)('delete_needle_price', { p_id: deletePriceId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('needle_price_delete', { id: deletePriceId });
         toast.success('Vínculo removido.');
