@@ -4875,6 +4875,10 @@ export type Database = {
               weight_kg: number
             }[]
           }
+      get_article_change_orders_list: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       get_company_public_by_slug: {
         Args: { _slug: string }
         Returns: {
@@ -4925,6 +4929,10 @@ export type Database = {
           p_prev_start_date: string
           p_start_date: string
         }
+        Returns: Json
+      }
+      get_maintenance_orders_list: {
+        Args: { p_company_id: string }
         Returns: Json
       }
       get_mecanica_bootstrap: { Args: { p_company_id: string }; Returns: Json }
