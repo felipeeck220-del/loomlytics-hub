@@ -188,155 +188,55 @@ export default function ClientInvoices() {
         throw new Error('Preencha os campos obrigatórios');
       }
 
-      console.log('Iniciando salvamento de nota...', { companyId, formType, invoiceNumber });
-
-      // Validações específicas para saída de malha
-      if (formType === 'saida') {
-        const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
-        if (validLinks.length === 0) {
-          throw new Error('Selecione ao menos uma NF de entrada para descontar (a primeira é obrigatória).');
-        }
-        if (validLinks.length > 0) {
-          const totalDeduct = validLinks.reduce((s, l) => s + (parseFloat(l.deduct_kg) || 0), 0);
-          const peso = parseFloat(weightKg) || 0;
-          if (totalDeduct - peso > 0.001) {
-            throw new Error(`Total descontado (${totalDeduct.toFixed(3)} kg) é maior que o peso da saída (${peso.toFixed(3)} kg)`);
-          }
-          // Detectar duplicidade de NFs de entrada
-          const ids = validLinks.map(l => l.entry_invoice_id);
-          if (new Set(ids).size !== ids.length) {
-            throw new Error('Existem NFs de entrada duplicadas na lista de descontos.');
-          }
-        }
-      }
-
-      if (editingInvoice) {
-        // Atualizar cabeçalho
-        const { error: invError } = await supabase
-          .from('client_invoices')
-          .update({
-            client_id: selectedClientId,
-            type: formType,
-            invoice_number: invoiceNumber,
-            issue_date: issueDate,
-            observations: observations || null,
-            parent_invoice_id: parentInvoiceId,
-            supplier_name: formType === 'entrada' ? (supplierName || null) : null,
-            composition: null,
-          } as any)
-          .eq('id', editingInvoice.id);
-
-        if (invError) throw invError;
-
-        // Atualizar item (assumindo apenas um item por nota no momento)
-        const { error: itemError } = await supabase
-          .from('client_invoice_items')
-          .update({
-            yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
-            article_id: formType === 'saida' ? (articleId || null) : null,
-            weight_kg: parseFloat(weightKg)
-          })
-          .eq('invoice_id', editingInvoice.id);
-
-        if (itemError) throw itemError;
-
-        if (formType === 'saida') {
-          // Snapshot dos vínculos atuais para permitir restaurar caso o insert falhe
-          // (delete+insert não é atômico; sem snapshot, uma falha apaga os vínculos).
-          const { data: previousLinks } = await supabase
-            .from('client_invoice_exit_links')
-            .select('entry_invoice_id, yarn_type_id, deduct_kg, company_id, exit_invoice_id')
-            .eq('exit_invoice_id', editingInvoice.id);
-          await supabase.from('client_invoice_exit_links').delete().eq('exit_invoice_id', editingInvoice.id);
-          const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
-          if (validLinks.length > 0) {
-            const { error: linksError } = await supabase.from('client_invoice_exit_links').insert(
-              validLinks.map(l => ({
-                company_id: companyId,
-                exit_invoice_id: editingInvoice.id,
-                entry_invoice_id: l.entry_invoice_id,
-                yarn_type_id: l.yarn_type_id || null,
-                deduct_kg: parseFloat(l.deduct_kg) || 0,
-              }))
-            );
-            if (linksError) {
-              // Tenta restaurar os vínculos anteriores para evitar perda silenciosa
-              if (previousLinks && previousLinks.length > 0) {
-                await supabase.from('client_invoice_exit_links').insert(previousLinks as any);
-              }
-              throw linksError;
-            }
-          }
-        }
-
-        return { action: 'updated', id: editingInvoice.id };
-      } else {
-        // Inserir o cabeçalho da nota
-        const { data: invoice, error: invError } = await supabase
-          .from('client_invoices')
-          .insert({
-            company_id: companyId,
-            client_id: selectedClientId,
-            type: formType,
-            invoice_number: invoiceNumber,
-            issue_date: issueDate,
-            observations: observations || null,
-            parent_invoice_id: parentInvoiceId,
-            supplier_name: formType === 'entrada' ? (supplierName || null) : null,
-            composition: null,
-            created_by_name: userTrackingInfo.created_by_name,
-            created_by_code: userTrackingInfo.created_by_code
-          } as any)
-          .select()
-          .single();
-
-        if (invError) throw invError;
-
-        // Inserir o item da nota
-        const { error: itemError } = await supabase
-          .from('client_invoice_items')
-          .insert({
-            invoice_id: invoice.id,
-            company_id: companyId,
-            yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
-            article_id: formType === 'saida' ? (articleId || null) : null,
-            weight_kg: parseFloat(weightKg)
-          });
-
-        if (itemError) {
-          await supabase.from('client_invoices').delete().eq('id', invoice.id);
-          throw itemError;
-        }
-
-        if (formType === 'saida') {
-          const validLinks = exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0);
-          if (validLinks.length > 0) {
-            const { error: linksError } = await supabase.from('client_invoice_exit_links').insert(
-              validLinks.map(l => ({
-                company_id: companyId,
-                exit_invoice_id: invoice.id,
-                entry_invoice_id: l.entry_invoice_id,
-                yarn_type_id: l.yarn_type_id || null,
-                deduct_kg: parseFloat(l.deduct_kg) || 0,
-              }))
-            );
-            if (linksError) {
-              // Rollback: remove a nota recém-criada para não deixar saída órfã sem vínculos
-              await supabase.from('client_invoice_items').delete().eq('invoice_id', invoice.id);
-              await supabase.from('client_invoices').delete().eq('id', invoice.id);
-              throw linksError;
-            }
-          }
-        }
-
-        return { action: 'created', id: invoice.id };
-      }
+      // Fase 4 rpcclientInvoices — escrita atômica via RPC (validações server-side)
+      const validLinks = formType === 'saida'
+        ? exitLinks.filter(l => l.entry_invoice_id && parseFloat(l.deduct_kg) > 0)
+        : [];
+      const { data, error } = await (supabase.rpc as any)('save_client_invoice', {
+        p_id: editingInvoice?.id ?? null,
+        p_payload: {
+          company_id: companyId,
+          client_id: selectedClientId,
+          type: formType,
+          invoice_number: invoiceNumber,
+          issue_date: issueDate,
+          observations: observations || null,
+          parent_invoice_id: parentInvoiceId,
+          supplier_name: formType === 'entrada' ? (supplierName || null) : null,
+        },
+        p_items: [{
+          yarn_type_id: formType === 'entrada' ? (yarnTypeId || null) : null,
+          article_id: formType === 'saida' ? (articleId || null) : null,
+          weight_kg: parseFloat(weightKg),
+        }],
+        p_exit_links: formType === 'saida'
+          ? validLinks.map(l => ({
+              entry_invoice_id: l.entry_invoice_id,
+              yarn_type_id: l.yarn_type_id || null,
+              deduct_kg: parseFloat(l.deduct_kg) || 0,
+            }))
+          : [],
+        p_author_name: userTrackingInfo.created_by_name,
+        p_author_code: userTrackingInfo.created_by_code,
+      });
+      if (error) throw error;
+      return {
+        action: (data?.action as 'created' | 'updated') ?? (editingInvoice ? 'updated' : 'created'),
+        id: (data?.id as string) ?? editingInvoice?.id,
+        already: Boolean(data?.already),
+      };
     },
     onSuccess: (data) => {
-      logAction(`NF CLIENTES: ${data.action === 'updated' ? 'Editou' : 'Criou'} nota`, { invoice_number: invoiceNumber, type: formType });
+      if (!data.already) {
+        logAction(`NF CLIENTES: ${data.action === 'updated' ? 'Editou' : 'Criou'} nota`, { invoice_number: invoiceNumber, type: formType });
+        toast.success(`Nota ${data.action === 'updated' ? 'atualizada' : 'registrada'} com sucesso!`);
+      }
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
       queryClient.invalidateQueries({ queryKey: ['client_invoice_exit_links'] });
-      toast.success(`Nota ${data.action === 'updated' ? 'atualizada' : 'registrada'} com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ['client_invoices_search'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoices_by_client'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoice_linked_exits'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoices_bootstrap'] });
       setDialogOpen(false);
       resetForm();
     },
@@ -423,19 +323,31 @@ export default function ClientInvoices() {
 
   const confirmDelete = async () => {
     if (!invoiceToDelete) return;
-    
-    // Check if it's an entrance with linked outputs
-    const invoice = clientInvoices.find(i => i.id === invoiceToDelete);
-    const hasLinkedLegacy = invoice?.type === 'entrada' && clientInvoices.some(i => i.parent_invoice_id === invoiceToDelete);
-    const hasLinkedNew = invoice?.type === 'entrada' && (exitLinksAll || []).some((l: any) => l.entry_invoice_id === invoiceToDelete);
-    const hasLinked = hasLinkedLegacy || hasLinkedNew;
 
-    const { error } = await supabase.from('client_invoices').delete().eq('id', invoiceToDelete);
-    if (error) toast.error('Erro ao excluir');
-    else {
-      logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete, was_parent: hasLinked });
-      toast.success(hasLinked ? 'Nota excluída — saídas vinculadas podem precisar ser revisadas' : 'Nota excluída');
+    // Fase 4 rpcclientInvoices — DELETE atômico + cascade_count server-side
+    const { data, error } = await (supabase.rpc as any)('delete_client_invoice', {
+      p_id: invoiceToDelete,
+      p_author_name: userTrackingInfo.created_by_name,
+      p_author_code: userTrackingInfo.created_by_code,
+    });
+    if (error) {
+      toast.error('Erro ao excluir');
+    } else {
+      const already = Boolean(data?.already);
+      const cascade = Number(data?.cascade_count ?? 0);
+      const wasParent = Boolean(data?.was_parent);
+      if (!already) {
+        logAction('NF CLIENTES: Excluiu nota', { id: invoiceToDelete, was_parent: wasParent, cascade_count: cascade });
+        toast.success(cascade > 0
+          ? `Nota excluída — ${cascade} saída(s) vinculada(s) também foram removidas`
+          : 'Nota excluída');
+      }
       queryClient.invalidateQueries({ queryKey: ['client_invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoice_exit_links'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoices_search'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoices_by_client'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoice_linked_exits'] });
+      queryClient.invalidateQueries({ queryKey: ['client_invoices_bootstrap'] });
     }
     setDeleteDialogOpen(false);
     setInvoiceToDelete(null);

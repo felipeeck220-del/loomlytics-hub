@@ -4826,6 +4826,10 @@ export type Database = {
         Args: { p_author_code?: string; p_author_name?: string; p_id: string }
         Returns: Json
       }
+      delete_client_invoice: {
+        Args: { p_author_code: string; p_author_name: string; p_id: string }
+        Returns: Json
+      }
       delete_needle_lot: {
         Args: { p_company_id: string; p_id: string }
         Returns: Json
@@ -5450,6 +5454,17 @@ export type Database = {
         Returns: Json
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      save_client_invoice: {
+        Args: {
+          p_author_code: string
+          p_author_name: string
+          p_exit_links: Json
+          p_id: string
+          p_items: Json
+          p_payload: Json
+        }
+        Returns: Json
+      }
       save_invoice: {
         Args: {
           p_author_code?: string
