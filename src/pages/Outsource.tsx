@@ -1266,10 +1266,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 
 // ─── Reports Tab ─────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
-function ReportsTab({ productions, freights, companies, loading, companyName, companyLogoUrl }: {
-  productions: OutsourceProduction[];
+function ReportsTab({ companyId, freights, companies, availableMonths, loading, companyName, companyLogoUrl }: {
+  companyId: string;
   freights: OutsourceFreight[];
   companies: OutsourceCompany[];
+  availableMonths: string[];
   loading: boolean;
   companyName?: string;
   companyLogoUrl?: string | null;
@@ -1287,27 +1288,57 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 20;
 
-  const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    productions.forEach(p => {
-      if (p.date && p.date.length >= 7 && p.date >= '2020' && p.date <= '2099') {
-        months.add(p.date.substring(0, 7));
-      }
-    });
-    return Array.from(months).sort().reverse();
-  }, [productions]);
-
   const filteredCompanies = useMemo(() => {
     if (!companySearch.trim()) return companies;
     const q = companySearch.toLowerCase();
     return companies.filter(c => c.name.toLowerCase().includes(q));
   }, [companies, companySearch]);
+  // Fase 3 rpcoutsource.md — filtros consolidados para as RPCs
+  const rpcFilters = useMemo(() => ({
+    p_company_id: companyId,
+    p_start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+    p_end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
+    p_month: reportMonth || null,
+    p_outsource_company_id: selectedCompanyId === '_all' ? null : selectedCompanyId,
+    p_client_name: selectedClientName === '_all' ? null : selectedClientName,
+    p_profit_filter: profitFilter,
+  }), [companyId, startDate, endDate, reportMonth, selectedCompanyId, selectedClientName, profitFilter]);
 
-  const availableClients = useMemo(() => {
-    const clients = new Set<string>();
-    productions.forEach(p => { if (p.client_name) clients.add(p.client_name); });
-    return Array.from(clients).sort();
-  }, [productions]);
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1); }, [reportMonth, startDate, endDate, profitFilter, selectedCompanyId, selectedClientName]);
+
+  // Metrics (KPIs + clientes disponíveis) via RPC
+  const { data: metricsData, isLoading: loadingMetrics } = useQuery({
+    queryKey: ['outsource_report_metrics', rpcFilters],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_outsource_report_metrics', rpcFilters);
+      if (error) throw error;
+      return data as {
+        kpis: { revenue: number; cost: number; weight: number; rolls: number; freight: number; profit: number; finalProfit: number; historical_freight: number; freight_new: number; row_count: number; loss: number };
+        available_clients: string[];
+      };
+    },
+    enabled: !!companyId,
+    staleTime: 30 * 1000,
+  });
+  const totals = metricsData?.kpis ?? { revenue: 0, cost: 0, weight: 0, rolls: 0, freight: 0, profit: 0, finalProfit: 0, historical_freight: 0, freight_new: 0, row_count: 0, loss: 0 };
+  const availableClients = metricsData?.available_clients ?? [];
+  const totalCount = metricsData?.kpis.row_count ?? 0;
+
+  // Lista paginada via RPC
+  const { data: listData, isLoading: loadingList } = useQuery({
+    queryKey: ['outsource_report_list', rpcFilters, currentPage],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_outsource_report_list', { ...rpcFilters, p_page: currentPage, p_page_size: PAGE_SIZE });
+      if (error) throw error;
+      return data as { rows: OutsourceProduction[]; total_count: number };
+    },
+    enabled: !!companyId,
+    staleTime: 30 * 1000,
+  });
+  const paginatedFiltered = listData?.rows ?? [];
+  const totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
 
   const filteredClients = useMemo(() => {
     if (!clientSearch.trim()) return availableClients;
@@ -1315,67 +1346,12 @@ function ReportsTab({ productions, freights, companies, loading, companyName, co
     return availableClients.filter(c => c.toLowerCase().includes(q));
   }, [availableClients, clientSearch]);
 
-  const filtered = useMemo(() => {
-    let result = [...productions];
-    if (selectedClientName !== '_all') {
-      result = result.filter(p => p.client_name === selectedClientName);
-    }
-    if (selectedCompanyId !== '_all') {
-      result = result.filter(p => p.outsource_company_id === selectedCompanyId);
-    }
-    if (reportMonth) {
-      result = result.filter(p => p.date.startsWith(reportMonth));
-    }
-    if (startDate) {
-      const start = format(startDate, 'yyyy-MM-dd');
-      result = result.filter(p => p.date >= start);
-    }
-    if (endDate) {
-      const end = format(endDate, 'yyyy-MM-dd');
-      result = result.filter(p => p.date <= end);
-    }
-    if (profitFilter === 'profit') result = result.filter(p => p.total_profit > 0);
-    else if (profitFilter === 'loss') result = result.filter(p => p.total_profit < 0);
-    return result;
-  }, [productions, startDate, endDate, profitFilter, reportMonth, selectedCompanyId, selectedClientName]);
-
-  const totals = useMemo(() => {
-    const revenue = filtered.reduce((s, p) => s + p.total_revenue, 0);
-    const cost = filtered.reduce((s, p) => s + p.total_cost, 0);
-    const weight = filtered.reduce((s, p) => s + p.weight_kg, 0);
-    const rolls = filtered.reduce((s, p) => s + p.rolls, 0);
-
-    let filteredFreights = [...freights];
-    if (selectedCompanyId !== '_all') {
-      filteredFreights = filteredFreights.filter(f => f.outsource_company_id === selectedCompanyId);
-    }
-    if (reportMonth) {
-      filteredFreights = filteredFreights.filter(f => f.date.startsWith(reportMonth));
-    }
-    if (startDate) {
-      const start = format(startDate, 'yyyy-MM-dd');
-      filteredFreights = filteredFreights.filter(f => f.date >= start);
-    }
-    if (endDate) {
-      const end = format(endDate, 'yyyy-MM-dd');
-      filteredFreights = filteredFreights.filter(f => f.date <= end);
-    }
-
-    // Historical freights in productions table + new freights
-    const historicalFreight = filtered.reduce((s, p) => s + (Number(p.freight_per_kg || 0) * p.weight_kg), 0);
-    const newFreight = filteredFreights.reduce((s, f) => s + f.total_freight, 0);
-    const totalFreight = historicalFreight + newFreight;
-    const profit = revenue - cost;
-    const finalProfit = revenue - cost - totalFreight;
-
-    return { revenue, cost, profit, weight, rolls, freight: totalFreight, finalProfit };
-  }, [filtered, freights, reportMonth, startDate, endDate, selectedCompanyId]);
-
-  // Reset page when filters change
-  useEffect(() => { setCurrentPage(1); }, [reportMonth, startDate, endDate, profitFilter, selectedCompanyId, selectedClientName]);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedFiltered = useMemo(() => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE), [filtered, safePage]);
+  // Fetch all rows for PDF export (bypasses paginação)
+  const fetchAllFilteredRows = useCallback(async (): Promise<OutsourceProduction[]> => {
+    const { data, error } = await (supabase.rpc as any)('get_outsource_report_list', { ...rpcFilters, p_page: 1, p_page_size: 100000 });
+    if (error) { toast({ title: 'Erro ao gerar PDF', description: error.message, variant: 'destructive' }); return []; }
+    return (data?.rows ?? []) as OutsourceProduction[];
+  }, [rpcFilters]);
 
   const filteredFreightsInReport = useMemo(() => {
     let result = freights;
