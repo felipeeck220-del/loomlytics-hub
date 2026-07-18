@@ -673,51 +673,34 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
    const saveMutation = useMutation({
      mutationFn: async () => {
        const selectedCompany = companies.find(c => c.id === form.outsource_company_id);
-       const rows = itemsCalculations.map(calc => ({
-         company_id: companyId,
-         outsource_company_id: form.outsource_company_id,
-         article_id: calc.article?.id || '',
-         article_name: calc.article?.name || '',
-         outsource_company_name: selectedCompany?.name || 'Avulso',
-         client_name: calc.article?.client_name || '',
-         date: form.date,
-         weight_kg: calc.weightKg,
-         rolls: Number(form.items.find(i => i.article_id === calc.article?.id)?.rolls) || 0,
-         client_value_per_kg: calc.clientValuePerKg,
-         outsource_value_per_kg: calc.outsourceValuePerKg,
-         freight_per_kg: calc.freightPerKg,
-         profit_per_kg: calc.profitPerKg,
-         total_revenue: calc.totalRevenue,
-         total_cost: calc.totalCost,
-         total_profit: calc.totalProfit,
-         observations: form.observations || null,
-         nf_rom: form.nf_rom || null,
-          created_by_name: userNameRef.current || null,
-          created_by_code: userCodeRef.current || null,
-       }));
-
-       if (editId) {
-         const row = rows[0];
-         const oldRecord = productions.find(p => p.id === editId);
-         const { error } = await sb('outsource_productions').update(row).eq('id', editId);
-         if (error) throw error;
-
-         if (oldRecord && oldRecord.weight_kg > 0) {
-           await adjustOutsourceYarnStock(oldRecord.outsource_company_id, oldRecord.article_id, oldRecord.date, -oldRecord.weight_kg);
-         }
-         if (row.weight_kg > 0) {
-           await adjustOutsourceYarnStock(row.outsource_company_id, row.article_id, row.date, row.weight_kg);
-         }
-       } else {
-         const { error } = await sb('outsource_productions').insert(rows);
-         if (error) throw error;
-
-         for (const row of rows) {
-           if (row.weight_kg > 0) {
-             await adjustOutsourceYarnStock(row.outsource_company_id, row.article_id, row.date, row.weight_kg);
-           }
-         }
-       }
+        const items = itemsCalculations.map(calc => ({
+          article_id: calc.article?.id || null,
+          article_name: calc.article?.name || '',
+          client_name: calc.article?.client_name || '',
+          weight_kg: calc.weightKg,
+          rolls: Number(form.items.find(i => i.article_id === calc.article?.id)?.rolls) || 0,
+          client_value_per_kg: calc.clientValuePerKg,
+          outsource_value_per_kg: calc.outsourceValuePerKg,
+          freight_per_kg: calc.freightPerKg,
+          profit_per_kg: calc.profitPerKg,
+          total_revenue: calc.totalRevenue,
+          total_cost: calc.totalCost,
+          total_profit: calc.totalProfit,
+        }));
+        void selectedCompany;
+        const { data, error } = await (supabase.rpc as any)('save_outsource_production', {
+          p_company_id: companyId,
+          p_id: editId,
+          p_outsource_company_id: form.outsource_company_id,
+          p_date: form.date,
+          p_nf_rom: form.nf_rom || null,
+          p_observations: form.observations || null,
+          p_items: items,
+          p_author_name: userNameRef.current || null,
+          p_author_code: userCodeRef.current || null,
+        });
+        if (error) throw error;
+        return data;
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
@@ -742,21 +725,11 @@ function ProductionsTab({ productions, companies, articles, companyId, loading, 
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Get record before deleting to add back yarn stock
-      const record = productions.find(p => p.id === id);
-      
-      const { error } = await sb('outsource_productions').delete().eq('id', id);
+      const { error } = await (supabase.rpc as any)('delete_outsource_production', {
+        p_company_id: companyId,
+        p_id: id,
+      });
       if (error) throw error;
-
-      // Add back yarn to outsource stock
-      if (record && record.weight_kg > 0) {
-        await adjustOutsourceYarnStock(
-          record.outsource_company_id,
-          record.article_id,
-          record.date,
-          -record.weight_kg // negative = add back
-        );
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['outsource_productions'] });
