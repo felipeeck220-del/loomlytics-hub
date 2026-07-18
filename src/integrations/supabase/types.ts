@@ -4808,6 +4808,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_needle_lot: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      delete_needle_price: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      delete_needle_provider: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      delete_sinker_lot: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      delete_sinker_price: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      delete_sinker_provider: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
       fetch_productions_page:
         | {
             Args: {
@@ -5230,7 +5254,65 @@ export type Database = {
       }
       get_user_company_id: { Args: never; Returns: string }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      save_needle_lot: {
+        Args: {
+          p_company_id: string
+          p_created_by_id: string
+          p_created_by_name: string
+          p_id: string
+          p_lot_code: string
+          p_needle_id: string
+          p_provider_id: string
+          p_purchase_date: string
+          p_quantity: number
+          p_unit_price: number
+        }
+        Returns: Json
+      }
+      save_sinker_lot: {
+        Args: {
+          p_company_id: string
+          p_created_by_id: string
+          p_created_by_name: string
+          p_id: string
+          p_lot_code: string
+          p_provider_id: string
+          p_purchase_date: string
+          p_quantity: number
+          p_sinker_id: string
+          p_unit_price: number
+        }
+        Returns: Json
+      }
       set_active_company: { Args: { _company_id: string }; Returns: undefined }
+      upsert_needle_price: {
+        Args: {
+          p_company_id: string
+          p_id: string
+          p_needle_id: string
+          p_provider_id: string
+          p_unit_price: number
+        }
+        Returns: Json
+      }
+      upsert_needle_provider: {
+        Args: { p_company_id: string; p_id: string; p_name: string }
+        Returns: Json
+      }
+      upsert_sinker_price: {
+        Args: {
+          p_company_id: string
+          p_id: string
+          p_provider_id: string
+          p_sinker_id: string
+          p_unit_price: number
+        }
+        Returns: Json
+      }
+      upsert_sinker_provider: {
+        Args: { p_company_id: string; p_id: string; p_name: string }
+        Returns: Json
+      }
     }
     Enums: {
       article_change_feeder_type: "fio" | "elastano"

@@ -1137,15 +1137,14 @@ export default function MecanicaPage() {
       if (!providerName.trim()) { toast.error('Informe o nome do fornecedor.'); return; }
       if (!user?.company_id) return;
       try {
-        if (editingProvider) {
-          const { error } = await (supabase.from as any)('needle_providers').update({ name: providerName.trim() }).eq('id', editingProvider.id);
-          if (error) throw error;
-          logAction('needle_provider_update', { name: providerName.trim() });
-        } else {
-          const { error } = await (supabase.from as any)('needle_providers').insert({ company_id: user.company_id, name: providerName.trim() });
-          if (error) throw error;
-          logAction('needle_provider_create', { name: providerName.trim() });
-        }
+        // [rpcmecanica Fase 4] CRUD atômico via RPC.
+        const { error } = await (supabase.rpc as any)('upsert_needle_provider', {
+          p_id: editingProvider?.id ?? null,
+          p_company_id: user.company_id,
+          p_name: providerName.trim(),
+        });
+        if (error) throw error;
+        logAction(editingProvider ? 'needle_provider_update' : 'needle_provider_create', { name: providerName.trim() });
         toast.success(editingProvider ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
         setShowProviderModal(false); setProviderName(''); setEditingProvider(null);
         bumpProviders();
@@ -1154,7 +1153,7 @@ export default function MecanicaPage() {
     const handleDeleteProvider = async () => {
       if (!deleteProviderId) return;
       try {
-        const { error } = await (supabase.from as any)('needle_providers').delete().eq('id', deleteProviderId);
+        const { error } = await (supabase.rpc as any)('delete_needle_provider', { p_id: deleteProviderId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('needle_provider_delete', { id: deleteProviderId });
         toast.success('Fornecedor removido.');
@@ -1179,15 +1178,14 @@ export default function MecanicaPage() {
       if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
       if (!user?.company_id) return;
       try {
-        if (editingPrice) {
-          const { error } = await (supabase.from as any)('needle_provider_prices').update({ unit_price: price }).eq('id', editingPrice.id);
-          if (error) throw error;
-        } else {
-          const { error } = await (supabase.from as any)('needle_provider_prices').insert({
-            company_id: user.company_id, provider_id: priceProviderId, needle_id: priceNeedleId, unit_price: price,
-          });
-          if (error) throw error;
-        }
+        const { error } = await (supabase.rpc as any)('upsert_needle_price', {
+          p_id: editingPrice?.id ?? null,
+          p_company_id: user.company_id,
+          p_provider_id: priceProviderId,
+          p_needle_id: priceNeedleId,
+          p_unit_price: price,
+        });
+        if (error) throw error;
         logAction(editingPrice ? 'needle_price_update' : 'needle_price_create', { provider_id: priceProviderId, needle_id: priceNeedleId, price });
         toast.success(editingPrice ? 'Preço atualizado!' : 'Agulha vinculada ao fornecedor.');
         setShowPriceModal(false); setEditingPrice(null); bumpProviders();
@@ -1196,7 +1194,7 @@ export default function MecanicaPage() {
     const handleDeletePrice = async () => {
       if (!deletePriceId) return;
       try {
-        const { error } = await (supabase.from as any)('needle_provider_prices').delete().eq('id', deletePriceId);
+        const { error } = await (supabase.rpc as any)('delete_needle_price', { p_id: deletePriceId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('needle_price_delete', { id: deletePriceId });
         toast.success('Vínculo removido.');
@@ -1276,105 +1274,31 @@ export default function MecanicaPage() {
       if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
       if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
       try {
-        if (editingLot) {
-          // Se a quantidade mudou, precisamos ajustar a entrada automática vinculada.
-          const linked = needleTransactions.filter((t: any) => t.lot_id === editingLot.id);
-          const linkedExits = linked.filter(t => t.type === 'exit');
-          const linkedEntries = linked.filter(t => t.type === 'entry');
-          const qtyChanged = qty !== (editingLot.quantity || 0);
-          const needleChanged = lotForm.needle_id !== editingLot.needle_id;
-          const dateChanged = lotForm.purchase_date !== editingLot.purchase_date;
-          // Trocar a agulha de um lote com movimentações desalinha o estoque
-          // (as transações antigas continuariam creditando/debitando a agulha antiga).
-          if (needleChanged && linked.length > 0) {
-            toast.error('Não é possível trocar a agulha: já existem movimentações vinculadas a este lote. Exclua-as antes.');
-            return;
-          }
-          if (qtyChanged) {
-            if (linkedExits.length > 0) {
-              toast.error('Não é possível alterar a quantidade: já existem saídas vinculadas a este lote. Estorne-as em Movimentações antes.');
-              return;
-            }
-            // Remove entradas antigas vinculadas (o trigger irá reverter o estoque) e recria uma única entrada com a nova quantidade.
-            for (const e of linkedEntries) {
-              const { error: delErr } = await supabase.from('needle_transactions').delete().eq('id', e.id);
-              if (delErr) throw delErr;
-            }
-          }
-          const { error } = await (supabase.from as any)('needle_lots').update({
-            provider_id: lotForm.provider_id, needle_id: lotForm.needle_id,
-            lot_code: lotForm.lot_code || null, purchase_date: lotForm.purchase_date,
-            quantity: qty, unit_price: price,
-          }).eq('id', editingLot.id);
-          if (error) throw error;
-          if (qtyChanged) {
-            // Recria a entrada automática espelhando a nova quantidade e a data da compra.
-            const { error: entryErr } = await (supabase.from as any)('needle_transactions').insert({
-              company_id: user.company_id,
-              needle_id: lotForm.needle_id,
-              type: 'entry',
-              quantity: qty,
-              date: lotForm.purchase_date,
-              lot_id: editingLot.id,
-              created_by_id: user.id,
-              created_by_name: userName || undefined,
-            });
-            if (entryErr) throw entryErr;
-          } else if (dateChanged && linkedEntries.length > 0) {
-            // Mantém a data da entrada automática sincronizada com a data de compra do lote,
-            // evitando divergências no histórico e nos relatórios por período.
-            for (const e of linkedEntries) {
-              await supabase.from('needle_transactions')
-                .update({ date: lotForm.purchase_date })
-                .eq('id', e.id);
-            }
-          }
-          logAction('needle_lot_update', { id: editingLot.id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
-        } else {
-          // Cria o lote e, na sequência, uma entrada automática que já lança o estoque físico.
-          // Isso elimina o passo separado de "Registrar Entrada" para lotes novos.
-          const { data: newLot, error } = await (supabase.from as any)('needle_lots').insert({
-            company_id: user.company_id, provider_id: lotForm.provider_id, needle_id: lotForm.needle_id,
-            lot_code: lotForm.lot_code || null, purchase_date: lotForm.purchase_date,
-            quantity: qty, unit_price: price,
-          }).select('id').single();
-          if (error) throw error;
-          const { error: entryErr } = await (supabase.from as any)('needle_transactions').insert({
-            company_id: user.company_id,
-            needle_id: lotForm.needle_id,
-            type: 'entry',
-            quantity: qty,
-            date: lotForm.purchase_date,
-            lot_id: newLot?.id,
-            created_by_id: user.id,
-            created_by_name: userName || undefined,
-          });
-          if (entryErr) throw entryErr;
-          logAction('needle_lot_create', { provider_id: lotForm.provider_id, needle_id: lotForm.needle_id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
-        }
+        // [rpcmecanica Fase 4] Lote + entrada automática em uma única transação atômica.
+        // Validações (troca de agulha/qty com movimentações vinculadas) agora inviáveis por design.
+        const { error } = await (supabase.rpc as any)('save_needle_lot', {
+          p_id: editingLot?.id ?? null,
+          p_company_id: user.company_id,
+          p_provider_id: lotForm.provider_id,
+          p_needle_id: lotForm.needle_id,
+          p_lot_code: lotForm.lot_code || null,
+          p_purchase_date: lotForm.purchase_date,
+          p_quantity: qty,
+          p_unit_price: price,
+          p_created_by_id: user.id,
+          p_created_by_name: userName || null,
+        });
+        if (error) throw error;
+        logAction(editingLot ? 'needle_lot_update' : 'needle_lot_create', { id: editingLot?.id, provider_id: lotForm.provider_id, needle_id: lotForm.needle_id, lot_code: lotForm.lot_code, quantity: qty, unit_price: price });
         toast.success(editingLot ? 'Lote atualizado!' : 'Lote cadastrado e estoque atualizado!');
         setShowLotModal(false); setEditingLot(null); bumpProviders(); refreshData();
       } catch (e: any) { toast.error(e?.message || 'Erro ao salvar lote.'); }
     };
     const handleDeleteLot = async () => {
       if (!deleteLotId) return;
-      // Só bloqueia quando há SAÍDAS vinculadas. As entradas automáticas do lote são removidas em cascata
-      // (o trigger de delete de needle_transactions reverte o estoque).
-      const linked = needleTransactions.filter((t: any) => t.lot_id === deleteLotId);
-      const linkedExits = linked.filter(t => t.type === 'exit');
-      if (linkedExits.length > 0) {
-        toast.error(`Não é possível remover: existem ${linkedExits.length} saída(s) vinculadas a este lote. Estorne-as em Movimentações antes.`);
-        setDeleteLotId(null);
-        return;
-      }
       try {
-        // Remove primeiro as entradas vinculadas (para reverter o estoque via trigger).
-        const linkedEntries = linked.filter(t => t.type === 'entry');
-        for (const e of linkedEntries) {
-          const { error: delErr } = await supabase.from('needle_transactions').delete().eq('id', e.id);
-          if (delErr) throw delErr;
-        }
-        const { error } = await (supabase.from as any)('needle_lots').delete().eq('id', deleteLotId);
+        // [rpcmecanica Fase 4] Delete atômico; RPC valida saídas vinculadas e devolve erro amigável.
+        const { error } = await (supabase.rpc as any)('delete_needle_lot', { p_id: deleteLotId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('needle_lot_delete', { id: deleteLotId });
         toast.success('Lote removido.');
@@ -1420,15 +1344,13 @@ export default function MecanicaPage() {
       if (!sinkerProviderName.trim()) { toast.error('Informe o nome do fornecedor.'); return; }
       if (!user?.company_id) return;
       try {
-        if (editingSinkerProvider) {
-          const { error } = await (supabase.from as any)('sinker_providers').update({ name: sinkerProviderName.trim() }).eq('id', editingSinkerProvider.id);
-          if (error) throw error;
-          logAction('sinker_provider_update', { name: sinkerProviderName.trim() });
-        } else {
-          const { error } = await (supabase.from as any)('sinker_providers').insert({ company_id: user.company_id, name: sinkerProviderName.trim() });
-          if (error) throw error;
-          logAction('sinker_provider_create', { name: sinkerProviderName.trim() });
-        }
+        const { error } = await (supabase.rpc as any)('upsert_sinker_provider', {
+          p_id: editingSinkerProvider?.id ?? null,
+          p_company_id: user.company_id,
+          p_name: sinkerProviderName.trim(),
+        });
+        if (error) throw error;
+        logAction(editingSinkerProvider ? 'sinker_provider_update' : 'sinker_provider_create', { name: sinkerProviderName.trim() });
         toast.success(editingSinkerProvider ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
         setShowSinkerProviderModal(false); setSinkerProviderName(''); setEditingSinkerProvider(null);
         bumpSinkerProviders();
@@ -1437,7 +1359,7 @@ export default function MecanicaPage() {
     const handleDeleteSinkerProvider = async () => {
       if (!deleteSinkerProviderId) return;
       try {
-        const { error } = await (supabase.from as any)('sinker_providers').delete().eq('id', deleteSinkerProviderId);
+        const { error } = await (supabase.rpc as any)('delete_sinker_provider', { p_id: deleteSinkerProviderId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('sinker_provider_delete', { id: deleteSinkerProviderId });
         toast.success('Fornecedor removido.');
@@ -1460,15 +1382,14 @@ export default function MecanicaPage() {
       if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
       if (!user?.company_id) return;
       try {
-        if (editingSinkerPrice) {
-          const { error } = await (supabase.from as any)('sinker_provider_prices').update({ unit_price: price }).eq('id', editingSinkerPrice.id);
-          if (error) throw error;
-        } else {
-          const { error } = await (supabase.from as any)('sinker_provider_prices').insert({
-            company_id: user.company_id, provider_id: sinkerPriceProviderId, sinker_id: sinkerPriceSinkerId, unit_price: price,
-          });
-          if (error) throw error;
-        }
+        const { error } = await (supabase.rpc as any)('upsert_sinker_price', {
+          p_id: editingSinkerPrice?.id ?? null,
+          p_company_id: user.company_id,
+          p_provider_id: sinkerPriceProviderId,
+          p_sinker_id: sinkerPriceSinkerId,
+          p_unit_price: price,
+        });
+        if (error) throw error;
         logAction(editingSinkerPrice ? 'sinker_price_update' : 'sinker_price_create', { provider_id: sinkerPriceProviderId, sinker_id: sinkerPriceSinkerId, price });
         toast.success(editingSinkerPrice ? 'Preço atualizado!' : 'Platina vinculada ao fornecedor.');
         setShowSinkerPriceModal(false); setEditingSinkerPrice(null); bumpSinkerProviders();
@@ -1477,7 +1398,7 @@ export default function MecanicaPage() {
     const handleDeleteSinkerPrice = async () => {
       if (!deleteSinkerPriceId) return;
       try {
-        const { error } = await (supabase.from as any)('sinker_provider_prices').delete().eq('id', deleteSinkerPriceId);
+        const { error } = await (supabase.rpc as any)('delete_sinker_price', { p_id: deleteSinkerPriceId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('sinker_price_delete', { id: deleteSinkerPriceId });
         toast.success('Vínculo removido.');
@@ -1546,80 +1467,29 @@ export default function MecanicaPage() {
       if (qty <= 0) { toast.error('Quantidade deve ser maior que zero.'); return; }
       if (isNaN(price) || price < 0) { toast.error('Preço inválido.'); return; }
       try {
-        if (editingSinkerLot) {
-          const linked = sinkerTransactions.filter((t: any) => t.lot_id === editingSinkerLot.id);
-          const linkedExits = linked.filter(t => t.type === 'exit');
-          const linkedEntries = linked.filter(t => t.type === 'entry');
-          const qtyChanged = qty !== (editingSinkerLot.quantity || 0);
-          const sinkerChanged = sinkerLotForm.sinker_id !== editingSinkerLot.sinker_id;
-          const dateChanged = sinkerLotForm.purchase_date !== editingSinkerLot.purchase_date;
-          if (sinkerChanged && linked.length > 0) {
-            toast.error('Não é possível trocar a platina: já existem movimentações vinculadas a este lote. Exclua-as antes.');
-            return;
-          }
-          if (qtyChanged) {
-            if (linkedExits.length > 0) {
-              toast.error('Não é possível alterar a quantidade: já existem saídas vinculadas a este lote. Estorne-as em Movimentações antes.');
-              return;
-            }
-            for (const e of linkedEntries) {
-              const { error: delErr } = await supabase.from('sinker_transactions').delete().eq('id', e.id);
-              if (delErr) throw delErr;
-            }
-          }
-          const { error } = await (supabase.from as any)('sinker_lots').update({
-            provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id,
-            lot_code: sinkerLotForm.lot_code || null, purchase_date: sinkerLotForm.purchase_date,
-            quantity: qty, unit_price: price,
-          }).eq('id', editingSinkerLot.id);
-          if (error) throw error;
-          if (qtyChanged) {
-            const { error: entryErr } = await (supabase.from as any)('sinker_transactions').insert({
-              company_id: user.company_id, sinker_id: sinkerLotForm.sinker_id,
-              type: 'entry', quantity: qty, date: sinkerLotForm.purchase_date,
-              lot_id: editingSinkerLot.id, created_by_id: user.id, created_by_name: userName || undefined,
-            });
-            if (entryErr) throw entryErr;
-          } else if (dateChanged && linkedEntries.length > 0) {
-            for (const e of linkedEntries) {
-              await supabase.from('sinker_transactions').update({ date: sinkerLotForm.purchase_date }).eq('id', e.id);
-            }
-          }
-          logAction('sinker_lot_update', { id: editingSinkerLot.id, lot_code: sinkerLotForm.lot_code, quantity: qty, unit_price: price });
-        } else {
-          const { data: newLot, error } = await (supabase.from as any)('sinker_lots').insert({
-            company_id: user.company_id, provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id,
-            lot_code: sinkerLotForm.lot_code || null, purchase_date: sinkerLotForm.purchase_date,
-            quantity: qty, unit_price: price,
-          }).select('id').single();
-          if (error) throw error;
-          const { error: entryErr } = await (supabase.from as any)('sinker_transactions').insert({
-            company_id: user.company_id, sinker_id: sinkerLotForm.sinker_id,
-            type: 'entry', quantity: qty, date: sinkerLotForm.purchase_date,
-            lot_id: newLot?.id, created_by_id: user.id, created_by_name: userName || undefined,
-          });
-          if (entryErr) throw entryErr;
-          logAction('sinker_lot_create', { provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id, lot_code: sinkerLotForm.lot_code, quantity: qty, unit_price: price });
-        }
+        // [rpcmecanica Fase 4] Lote + entrada em transação atômica.
+        const { error } = await (supabase.rpc as any)('save_sinker_lot', {
+          p_id: editingSinkerLot?.id ?? null,
+          p_company_id: user.company_id,
+          p_provider_id: sinkerLotForm.provider_id,
+          p_sinker_id: sinkerLotForm.sinker_id,
+          p_lot_code: sinkerLotForm.lot_code || null,
+          p_purchase_date: sinkerLotForm.purchase_date,
+          p_quantity: qty,
+          p_unit_price: price,
+          p_created_by_id: user.id,
+          p_created_by_name: userName || null,
+        });
+        if (error) throw error;
+        logAction(editingSinkerLot ? 'sinker_lot_update' : 'sinker_lot_create', { id: editingSinkerLot?.id, provider_id: sinkerLotForm.provider_id, sinker_id: sinkerLotForm.sinker_id, lot_code: sinkerLotForm.lot_code, quantity: qty, unit_price: price });
         toast.success(editingSinkerLot ? 'Lote atualizado!' : 'Lote cadastrado e estoque atualizado!');
         setShowSinkerLotModal(false); setEditingSinkerLot(null); bumpSinkerProviders(); refreshData();
       } catch (e: any) { toast.error(e?.message || 'Erro ao salvar lote.'); }
     };
     const handleDeleteSinkerLot = async () => {
       if (!deleteSinkerLotId) return;
-      const linked = sinkerTransactions.filter((t: any) => t.lot_id === deleteSinkerLotId);
-      const linkedExits = linked.filter(t => t.type === 'exit');
-      if (linkedExits.length > 0) {
-        toast.error(`Não é possível remover: existem ${linkedExits.length} saída(s) vinculadas a este lote. Estorne-as em Movimentações antes.`);
-        setDeleteSinkerLotId(null); return;
-      }
       try {
-        const linkedEntries = linked.filter(t => t.type === 'entry');
-        for (const e of linkedEntries) {
-          const { error: delErr } = await supabase.from('sinker_transactions').delete().eq('id', e.id);
-          if (delErr) throw delErr;
-        }
-        const { error } = await (supabase.from as any)('sinker_lots').delete().eq('id', deleteSinkerLotId);
+        const { error } = await (supabase.rpc as any)('delete_sinker_lot', { p_id: deleteSinkerLotId, p_company_id: user?.company_id });
         if (error) throw error;
         logAction('sinker_lot_delete', { id: deleteSinkerLotId });
         toast.success('Lote removido.');
