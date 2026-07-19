@@ -5451,16 +5451,16 @@ export type Database = {
       }
       get_stock_malha_movements: {
         Args: {
-          p_article_id?: string
-          p_client_id?: string
+          p_article_id: string
+          p_client_id: string
           p_company_id: string
-          p_from?: string
-          p_of_search?: string
-          p_page?: number
-          p_page_size?: number
-          p_second?: boolean
-          p_to?: string
-          p_type?: string
+          p_from: string
+          p_of_search: string
+          p_page: number
+          p_page_size: number
+          p_second: boolean
+          p_to: string
+          p_type: string
         }
         Returns: Json
       }
