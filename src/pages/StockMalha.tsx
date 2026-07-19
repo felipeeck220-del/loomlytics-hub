@@ -377,7 +377,7 @@ export default function StockMalha() {
       }
     });
     return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
-  }, [productions, invoices, invoiceItems, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth, entregueRange, stockCutoffDate]);
+  }, [productions, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth, entregueRange, stockCutoffDate]);
 
   const estoqueKpis = useMemo(() => malhaEstoque.reduce((acc, g) => ({
     producedKg: acc.producedKg + g.totalProducedKg,
@@ -517,13 +517,10 @@ export default function StockMalha() {
   }), { entradaKg: 0, entradaRolls: 0, saidaKg: 0, saidaRolls: 0, saldoKg: 0, saldoRolls: 0 }), [segundaEstoque]);
 
   const availableMonths = useMemo(() => {
-    const months = new Set<string>();
+    const months = new Set<string>(bootstrap?.available_months ?? []);
     months.add(format(new Date(), 'yyyy-MM'));
-    invoices.forEach((inv: any) => {
-      if (inv.issue_date) months.add(inv.issue_date.substring(0, 7));
-    });
     return Array.from(months).sort().reverse();
-  }, [invoices]);
+  }, [bootstrap?.available_months]);
 
   // Histórico completo de movimentos (tab Movimentações)
   const { data: movementsHistory = [] } = useQuery({
