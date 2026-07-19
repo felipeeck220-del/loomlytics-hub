@@ -5422,6 +5422,10 @@ export type Database = {
         Returns: Json
       }
       get_sinker_stock: { Args: { p_company_id: string }; Returns: Json }
+      get_stock_malha_bootstrap: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       get_user_companies: {
         Args: never
         Returns: {

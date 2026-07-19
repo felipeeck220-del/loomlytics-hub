@@ -102,19 +102,24 @@ export default function StockMalha() {
   const companyFirstName = (user?.company_name || 'Fábrica').split(/\s+/)[0];
   const canOwnStock = role === 'admin' || (role as any) === 'expedicao';
 
-  // Own stock data
-  const { data: ownArticles = [], isLoading: ownArticlesLoading } = useQuery({
-    queryKey: ['own_stock_articles', companyId],
+  // Bootstrap consolidado (Fase 1 rpcstockMalha): company + cutoff + available_months + own_articles
+  const { data: bootstrap, isLoading: bootstrapLoading } = useQuery({
+    queryKey: ['stock_malha_bootstrap', companyId],
     queryFn: async () => {
-      const { data, error } = await (supabase.from as any)('own_stock_articles')
-        .select('id, name, observations, created_at')
-        .eq('company_id', companyId)
-        .order('name');
+      const { data, error } = await (supabase.rpc as any)('get_stock_malha_bootstrap', { p_company_id: companyId });
       if (error) throw error;
-      return (data || []) as { id: string; name: string; observations: string | null; created_at: string }[];
+      return (data || {}) as {
+        company: { name: string | null; logo_url: string | null } | null;
+        cutoff_date: string | null;
+        available_months: string[];
+        own_articles: { id: string; name: string; observations: string | null; created_at: string }[];
+      };
     },
     enabled: !!companyId,
+    staleTime: 5 * 60 * 1000,
   });
+  const ownArticles = bootstrap?.own_articles ?? [];
+  const ownArticlesLoading = bootstrapLoading;
   const { data: ownMovements = [], isLoading: ownMovementsLoading } = useQuery({
     queryKey: ['own_stock_movements', companyId],
     queryFn: async () => {
@@ -128,7 +133,7 @@ export default function StockMalha() {
     enabled: !!companyId,
   });
   const refreshOwnStock = () => {
-    queryClient.invalidateQueries({ queryKey: ['own_stock_articles', companyId] });
+    queryClient.invalidateQueries({ queryKey: ['stock_malha_bootstrap', companyId] });
     queryClient.invalidateQueries({ queryKey: ['own_stock_movements', companyId] });
   };
   const ownSummary = useMemo(() => {
@@ -221,22 +226,6 @@ export default function StockMalha() {
   const [segArticle, setSegArticle] = useState('all');
   const [segMonth, setSegMonth] = useState('all');
 
-  const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
-    queryKey: ['invoices_for_stock', companyId],
-    queryFn: async () => {
-      return await fetchAllPaginated('invoices', companyId!);
-    },
-    enabled: !!companyId,
-  });
-
-  const { data: invoiceItems = [], isLoading: invoiceItemsLoading } = useQuery({
-    queryKey: ['invoice_items_for_stock', companyId],
-    queryFn: async () => {
-      return await fetchAllPaginated('invoice_items', companyId!);
-    },
-    enabled: !!companyId,
-  });
-
   const { data: stockMovements = [], isLoading: stockMovementsLoading } = useQuery({
     queryKey: ['stock_movements_for_stock', companyId],
     queryFn: async () => {
@@ -245,35 +234,13 @@ export default function StockMalha() {
     enabled: !!companyId,
   });
 
-  // Data de corte do estoque: produções/movimentações anteriores são ignoradas no cálculo
-  // (mas continuam preservadas no histórico para relatórios/dashboard).
-  const { data: stockCutoffDate, isLoading: cutoffLoading } = useQuery({
-    queryKey: ['stock_cutoff_date', companyId],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from as any)('company_settings')
-        .select('stock_cutoff_date')
-        .eq('company_id', companyId)
-        .maybeSingle();
-      if (error) throw error;
-      return (data?.stock_cutoff_date as string | null) || null;
-    },
-    enabled: !!companyId,
-  });
-
-  // Empresa (logo + nome) para o PDF
-  const { data: companyInfo } = useQuery({
-    queryKey: ['company_info_for_stock_pdf', companyId],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('companies').select('name, logo_url').eq('id', companyId).maybeSingle();
-      if (error) throw error;
-      return data as { name: string | null; logo_url: string | null } | null;
-    },
-    enabled: !!companyId,
-  });
+  // Data de corte + empresa (PDF) agora vêm do bootstrap
+  const stockCutoffDate = bootstrap?.cutoff_date ?? null;
+  const companyInfo = bootstrap?.company ?? null;
 
   // Aguardar TODAS as fontes de dados do estoque antes de renderizar, para não exibir
   // valores "intermediários" (ex.: Produzido sem o desconto de Entregue) que mudam após o load.
-  const isStockLoading = stockMovementsLoading || cutoffLoading || invoicesLoading || invoiceItemsLoading;
+  const isStockLoading = stockMovementsLoading || bootstrapLoading;
 
   // Re-implementing the malhaEstoque logic from Invoices.tsx
   const malhaEstoque = useMemo(() => {
@@ -410,7 +377,7 @@ export default function StockMalha() {
       }
     });
     return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
-  }, [productions, invoices, invoiceItems, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth, entregueRange, stockCutoffDate]);
+  }, [productions, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth, entregueRange, stockCutoffDate]);
 
   const estoqueKpis = useMemo(() => malhaEstoque.reduce((acc, g) => ({
     producedKg: acc.producedKg + g.totalProducedKg,
@@ -550,13 +517,10 @@ export default function StockMalha() {
   }), { entradaKg: 0, entradaRolls: 0, saidaKg: 0, saidaRolls: 0, saldoKg: 0, saldoRolls: 0 }), [segundaEstoque]);
 
   const availableMonths = useMemo(() => {
-    const months = new Set<string>();
+    const months = new Set<string>(bootstrap?.available_months ?? []);
     months.add(format(new Date(), 'yyyy-MM'));
-    invoices.forEach((inv: any) => {
-      if (inv.issue_date) months.add(inv.issue_date.substring(0, 7));
-    });
     return Array.from(months).sort().reverse();
-  }, [invoices]);
+  }, [bootstrap?.available_months]);
 
   // Histórico completo de movimentos (tab Movimentações)
   const { data: movementsHistory = [] } = useQuery({
