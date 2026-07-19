@@ -569,7 +569,7 @@ export default function StockMalha() {
       )}
 
       <Tabs value={activeStockTab} onValueChange={(v) => setActiveStockTab(v as any)} className="w-full">
-        <TabsList className="flex flex-wrap h-auto gap-1">
+        <TabsList className="flex flex-wrap justify-start h-auto gap-1 w-fit">
           <TabsTrigger value="estoque">Estoque (Clientes)</TabsTrigger>
           <TabsTrigger value="propria">Estoque ({companyFirstName})</TabsTrigger>
           <TabsTrigger value="segunda">Estoque de 2ª</TabsTrigger>
