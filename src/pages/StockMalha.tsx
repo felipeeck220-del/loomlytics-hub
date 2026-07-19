@@ -306,6 +306,17 @@ export default function StockMalha() {
     if (exportingArticleId) return;
     setExportingArticleId(key);
     try {
+      // Fase 3 rpcstockMalha — payload pronto do banco
+      const { data: exportData, error: exportError } = await (supabase.rpc as any)(
+        'get_stock_malha_article_export',
+        { p_company_id: companyId, p_client_id: group.clientId, p_article_id: article.articleId }
+      );
+      if (exportError) throw exportError;
+      const rpcCompany = exportData?.company ?? companyInfo;
+      const rpcArticle = exportData?.article ?? { name: article.articleName };
+      const rpcClient  = exportData?.client  ?? { name: group.clientName };
+      const rpcRows: Array<{ machine_name: string; machine_number: number | null; available_rolls: number; available_kg: number }> = exportData?.rows ?? [];
+
       const { jsPDF } = await import('jspdf');
       const { default: autoTable } = await import('jspdf-autotable');
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -331,7 +342,7 @@ export default function StockMalha() {
           img.onerror = () => resolve(null);
           img.src = url;
         });
-      const logoInfo = companyInfo?.logo_url ? await loadLogo(companyInfo.logo_url) : null;
+      const logoInfo = rpcCompany?.logo_url ? await loadLogo(rpcCompany.logo_url) : null;
       const fitWithinBox = (w: number, h: number, mw: number, mh: number) => {
         if (!w || !h) return { width: mw, height: mh };
         const s = Math.min(mw / w, mh / h);
@@ -361,16 +372,16 @@ export default function StockMalha() {
           const ls = fitWithinBox(logoInfo.width, logoInfo.height, 24, 14);
           pdf.addImage(logoInfo.data, 'PNG', leftX, y + 2.5, ls.width, ls.height);
         } catch {
-          if (companyInfo?.name) {
+          if (rpcCompany?.name) {
             pdf.setFontSize(10); pdf.setFont('helvetica', 'bold');
             pdf.setTextColor(...colors.textDark);
-            pdf.text(sanitizePdfText(companyInfo.name), leftX, y + 10);
+            pdf.text(sanitizePdfText(rpcCompany.name), leftX, y + 10);
           }
         }
-      } else if (companyInfo?.name) {
+      } else if (rpcCompany?.name) {
         pdf.setFontSize(10); pdf.setFont('helvetica', 'bold');
         pdf.setTextColor(...colors.textDark);
-        pdf.text(sanitizePdfText(companyInfo.name), leftX, y + 10);
+        pdf.text(sanitizePdfText(rpcCompany.name), leftX, y + 10);
       }
       pdf.setFontSize(8); pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...colors.textMid);
@@ -388,37 +399,27 @@ export default function StockMalha() {
       });
       pdf.setFontSize(9); pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(...colors.textMid);
-      const subtitle = sanitizePdfText(`${article.articleName} — ${group.clientName}`);
+      const subtitle = sanitizePdfText(`${rpcArticle.name} — ${rpcClient.name}`);
       const sw = pdf.getTextWidth(subtitle);
       pdf.text(subtitle, (pageWidth - sw) / 2, titleY + 1);
 
-      // Quebra por máquina
-      const inner = byMachineMap.get(key) || [];
-      const rows = inner
-        .filter((v: any) => v.machineId)
-        .map((v: any) => ({
-          name: v.machineName || 'Máquina removida',
-          availableRolls: Number((v.producedRolls || 0) - (v.deliveredRollsTotal || 0)) - Number(v.reservedRolls || 0),
-        }))
-        .filter((r: any) => r.availableRolls >= 1)
-        .sort((x: any, y: any) => x.name.localeCompare(y.name));
-
-      if (rows.length === 0) {
+      // Quebra por máquina (payload já filtrado e ordenado pelo RPC)
+      if (!rpcRows || rpcRows.length === 0) {
         toast.info('Nenhuma máquina com saldo disponível (≥ 1 rolo) para este artigo.');
         setExportingArticleId(null);
         return;
       }
 
-      const totalAvailableRolls = rows.reduce((s, r) => s + r.availableRolls, 0);
-      const body = rows.map(r => [
-        sanitizePdfText(r.name),
-        formatNumber(r.availableRolls),
-        sanitizePdfText(article.articleName),
+      const totalAvailableRolls = rpcRows.reduce((s, r) => s + Number(r.available_rolls || 0), 0);
+      const body = rpcRows.map(r => [
+        sanitizePdfText(r.machine_name || 'Máquina removida'),
+        formatNumber(Number(r.available_rolls || 0)),
+        sanitizePdfText(rpcArticle.name),
       ]);
       body.push([
         'TOTAL',
         formatNumber(totalAvailableRolls),
-        sanitizePdfText(article.articleName),
+        sanitizePdfText(rpcArticle.name),
       ]);
 
       autoTable(pdf, {
@@ -442,7 +443,7 @@ export default function StockMalha() {
         },
       });
 
-      const safeName = (article.articleName || 'artigo').replace(/[^a-zA-Z0-9-_]+/g, '_').slice(0, 40);
+      const safeName = (rpcArticle.name || 'artigo').replace(/[^a-zA-Z0-9-_]+/g, '_').slice(0, 40);
       pdf.save(`estoque_${safeName}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
     } catch (e: any) {
       console.error(e);
