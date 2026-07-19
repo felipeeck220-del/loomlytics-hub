@@ -5162,6 +5162,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_own_stock_summary: {
+        Args: { p_article_id?: string; p_company_id: string; p_month?: string }
+        Returns: Json
+      }
       get_production_filter_articles: {
         Args: { p_company_id: string }
         Returns: {
@@ -5424,6 +5428,38 @@ export type Database = {
       get_sinker_stock: { Args: { p_company_id: string }; Returns: Json }
       get_stock_malha_bootstrap: {
         Args: { p_company_id: string }
+        Returns: Json
+      }
+      get_stock_malha_estoque: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_entregue_from?: string
+          p_entregue_to?: string
+          p_month?: string
+        }
+        Returns: Json
+      }
+      get_stock_malha_movements: {
+        Args: {
+          p_company_id: string
+          p_from?: string
+          p_page?: number
+          p_page_size?: number
+          p_second?: boolean
+          p_to?: string
+          p_type?: string
+        }
+        Returns: Json
+      }
+      get_stock_malha_segunda: {
+        Args: {
+          p_article_id?: string
+          p_client_id?: string
+          p_company_id: string
+          p_month?: string
+        }
         Returns: Json
       }
       get_user_companies: {
