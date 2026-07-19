@@ -146,6 +146,33 @@ export default function StockMalha() {
   }, [ownData]);
   const isOwnLoading = ownArticlesLoading || ownSummaryLoading;
   const [expandedOwnArticle, setExpandedOwnArticle] = useState<string | null>(null);
+  // Filtros da aba Trama (Estoque próprio)
+  const [ownFilterArticle, setOwnFilterArticle] = useState<string>('all');
+  const [ownFilterSource, setOwnFilterSource] = useState<'all' | 'outsource' | 'internal'>('all');
+
+  // Artigos com saldo positivo (para o SearchableSelect da aba Trama)
+  const ownArticlesPositive = useMemo(() =>
+    ownSummary
+      .filter(r => (r.inKg - r.outKg) > 0 || (r.inPc - r.outPc) > 0)
+      .map(r => ({ value: r.articleId, label: r.name }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [ownSummary]
+  );
+
+  // Artigos filtrados pela origem: só entram se tiverem ao menos um lote da origem selecionada
+  const ownSummaryFiltered = useMemo(() => {
+    return ownSummary.filter(r => {
+      const saldoKg = r.inKg - r.outKg;
+      const saldoPc = r.inPc - r.outPc;
+      if (saldoKg === 0 && saldoPc === 0) return false;
+      if (ownFilterArticle !== 'all' && r.articleId !== ownFilterArticle) return false;
+      if (ownFilterSource !== 'all') {
+        const details = ownDetailByArticle.get(r.articleId) || [];
+        if (!details.some(d => d.source === ownFilterSource)) return false;
+      }
+      return true;
+    });
+  }, [ownSummary, ownDetailByArticle, ownFilterArticle, ownFilterSource]);
 
   const refreshAllStock = () => {
     queryClient.invalidateQueries({ queryKey: ['stock_malha_estoque', companyId] });
