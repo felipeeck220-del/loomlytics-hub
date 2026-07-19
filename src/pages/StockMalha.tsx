@@ -848,126 +848,84 @@ export default function StockMalha() {
               Nenhum artigo próprio cadastrado. Use "Lançamento Manual ({companyFirstName})" para começar.
             </CardContent></Card>
           ) : (
-            <Card className="overflow-hidden border-border/60 shadow-sm">
+            <Card>
               <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
-                    <thead>
-                      <tr className="bg-muted/40 border-b border-border">
-                        <th rowSpan={2} className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground align-middle border-r border-border/60">
-                          Artigo
-                        </th>
-                        <th colSpan={2} className="text-center px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-400 border-r border-border/60">
-                          Entradas
-                        </th>
-                        <th colSpan={2} className="text-center px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700 dark:text-rose-400 border-r border-border/60">
-                          Saídas
-                        </th>
-                        <th colSpan={2} className="text-center px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground">
-                          Saldo
-                        </th>
-                      </tr>
-                      <tr className="bg-muted/20 border-b border-border">
-                        <th className="text-right px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">kg</th>
-                        <th className="text-right px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground border-r border-border/60">peças</th>
-                        <th className="text-right px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">kg</th>
-                        <th className="text-right px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground border-r border-border/60">peças</th>
-                        <th className="text-right px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">kg</th>
-                        <th className="text-right px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">peças</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60">
-                      {ownSummary.map((r, idx) => {
-                        const saldoKg = r.inKg - r.outKg;
-                        const saldoPc = r.inPc - r.outPc;
-                        const details = ownDetailByArticle.get(r.articleId) || [];
-                        const isOpen = expandedOwnArticle === r.articleId;
-                        return (
-                          <React.Fragment key={r.articleId}>
-                            <tr
-                              className={cn(
-                                'cursor-pointer transition-colors',
-                                isOpen ? 'bg-primary/5' : idx % 2 === 0 ? 'bg-background' : 'bg-muted/10',
-                                'hover:bg-muted/40'
-                              )}
-                              onClick={() => setExpandedOwnArticle(isOpen ? null : r.articleId)}
-                            >
-                              <td className="px-4 py-3 border-r border-border/60">
-                                <div className="flex items-center gap-2">
-                                  <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', isOpen ? '' : '-rotate-90')} />
-                                  <span className="font-medium text-foreground">{r.name}</span>
-                                  {details.length > 0 && (
-                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-normal text-muted-foreground">
-                                      {details.length} lote{details.length > 1 ? 's' : ''}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-3 py-3 text-right tabular-nums text-emerald-700 dark:text-emerald-400">{formatWeight(r.inKg)}</td>
-                              <td className="px-3 py-3 text-right tabular-nums text-emerald-700/80 dark:text-emerald-400/80 border-r border-border/60">{formatNumber(r.inPc)}</td>
-                              <td className="px-3 py-3 text-right tabular-nums text-rose-700 dark:text-rose-400">{formatWeight(r.outKg)}</td>
-                              <td className="px-3 py-3 text-right tabular-nums text-rose-700/80 dark:text-rose-400/80 border-r border-border/60">{formatNumber(r.outPc)}</td>
-                              <td className={cn('px-3 py-3 text-right tabular-nums font-semibold', saldoKg < 0 ? 'text-destructive' : saldoKg === 0 ? 'text-muted-foreground' : 'text-foreground')}>{formatWeight(saldoKg)}</td>
-                              <td className={cn('px-3 py-3 text-right tabular-nums font-semibold', saldoPc < 0 ? 'text-destructive' : saldoPc === 0 ? 'text-muted-foreground' : 'text-foreground')}>{formatNumber(saldoPc)}</td>
-                            </tr>
-                            {isOpen && (
-                              <tr className="bg-muted/20">
-                                <td colSpan={7} className="p-0">
-                                  {details.length === 0 ? (
-                                    <div className="px-6 py-4 text-xs text-muted-foreground italic">
-                                      Nenhuma entrada com Tipo de Fio, Origem ou Nº OF/ROM registrada para este artigo.
-                                    </div>
-                                  ) : (
-                                    <div className="px-4 py-3">
-                                      <div className="rounded-md border border-border/60 bg-background overflow-hidden">
-                                        <table className="w-full text-xs">
-                                          <thead className="bg-muted/40">
-                                            <tr className="border-b border-border/60">
-                                              <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Tipo de fio</th>
-                                              <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Origem da malha</th>
-                                              <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Nº OF / ROM</th>
-                                              <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Entradas (kg)</th>
-                                              <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Entradas (pç)</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-border/40">
-                                            {details
-                                              .slice()
-                                              .sort((a, b) => a.yarn_type.localeCompare(b.yarn_type) || a.origin_label.localeCompare(b.origin_label) || a.of_number.localeCompare(b.of_number))
-                                              .map(d => (
-                                                <tr key={d.key} className="hover:bg-muted/30 transition-colors">
-                                                  <td className="px-3 py-2 font-medium text-foreground">{d.yarn_type}</td>
-                                                  <td className="px-3 py-2">
-                                                    <span className={cn(
-                                                      'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border',
-                                                      d.source === 'outsource'
-                                                        ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
-                                                        : d.source === 'internal'
-                                                        ? 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
-                                                        : 'border-border bg-muted text-muted-foreground'
-                                                    )}>
-                                                      {d.origin_label}
-                                                    </span>
-                                                  </td>
-                                                  <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">{d.of_number}</td>
-                                                  <td className="px-3 py-2 text-right tabular-nums text-foreground">{formatWeight(d.inKg)}</td>
-                                                  <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatNumber(d.inPc)}</td>
-                                                </tr>
-                                              ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Artigo</TableHead>
+                      <TableHead className="text-xs text-right">Entradas (kg)</TableHead>
+                      <TableHead className="text-xs text-right">Entradas (pç)</TableHead>
+                      <TableHead className="text-xs text-right">Saídas (kg)</TableHead>
+                      <TableHead className="text-xs text-right">Saídas (pç)</TableHead>
+                      <TableHead className="text-xs text-right font-bold">Saldo (kg)</TableHead>
+                      <TableHead className="text-xs text-right font-bold">Saldo (pç)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ownSummary.map((r) => {
+                      const saldoKg = r.inKg - r.outKg;
+                      const saldoPc = r.inPc - r.outPc;
+                      const details = ownDetailByArticle.get(r.articleId) || [];
+                      const isOpen = expandedOwnArticle === r.articleId;
+                      return (
+                        <React.Fragment key={r.articleId}>
+                          <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedOwnArticle(isOpen ? null : r.articleId)}>
+                            <TableCell className="text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <ChevronDown className={cn('h-3 w-3 transition-transform', isOpen ? '' : '-rotate-90')} />
+                                <span className="flex-1 font-medium">{r.name}</span>
+                                {details.length > 0 && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-normal text-muted-foreground">
+                                    {details.length} lote{details.length > 1 ? 's' : ''}
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs text-right">{formatWeight(r.inKg)}</TableCell>
+                            <TableCell className="text-xs text-right">{formatNumber(r.inPc)}</TableCell>
+                            <TableCell className="text-xs text-right">{formatWeight(r.outKg)}</TableCell>
+                            <TableCell className="text-xs text-right">{formatNumber(r.outPc)}</TableCell>
+                            <TableCell className={cn('text-xs text-right font-bold', saldoKg < 0 ? 'text-destructive' : saldoKg === 0 ? 'text-muted-foreground' : 'text-success')}>{formatWeight(saldoKg)}</TableCell>
+                            <TableCell className={cn('text-xs text-right font-bold', saldoPc < 0 ? 'text-destructive' : saldoPc === 0 ? 'text-muted-foreground' : 'text-success')}>{formatNumber(saldoPc)}</TableCell>
+                          </TableRow>
+                          {isOpen && details.length > 0 && details
+                            .slice()
+                            .sort((a, b) => a.yarn_type.localeCompare(b.yarn_type) || a.origin_label.localeCompare(b.origin_label) || a.of_number.localeCompare(b.of_number))
+                            .map(d => (
+                              <TableRow key={`${r.articleId}-${d.key}`} className="bg-muted/30">
+                                <TableCell className="text-[11px] pl-8 text-muted-foreground">
+                                  ↳ <span className="font-medium">{d.yarn_type}</span>
+                                  <span className={cn(
+                                    'ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border',
+                                    d.source === 'outsource'
+                                      ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                                      : d.source === 'internal'
+                                      ? 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
+                                      : 'border-border bg-muted text-muted-foreground'
+                                  )}>{d.origin_label}</span>
+                                  {d.of_number && <span className="ml-2 font-mono text-[10px]">#{d.of_number}</span>}
+                                </TableCell>
+                                <TableCell className="text-[11px] text-right">{formatWeight(d.inKg)}</TableCell>
+                                <TableCell className="text-[11px] text-right">{formatNumber(d.inPc)}</TableCell>
+                                <TableCell className="text-[11px] text-right text-muted-foreground">—</TableCell>
+                                <TableCell className="text-[11px] text-right text-muted-foreground">—</TableCell>
+                                <TableCell className="text-[11px] text-right text-muted-foreground">—</TableCell>
+                                <TableCell className="text-[11px] text-right text-muted-foreground">—</TableCell>
+                              </TableRow>
+                            ))}
+                          {isOpen && details.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-[11px] text-muted-foreground italic bg-muted/30 py-2 pl-8">
+                                Nenhuma entrada com Tipo de Fio, Origem ou Nº OF/ROM registrada.
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           )}
