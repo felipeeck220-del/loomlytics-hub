@@ -876,6 +876,33 @@ export default function StockMalha() {
             </CardContent></Card>
           </div>
 
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <SearchableSelect
+                  value={ownFilterArticle === 'all' ? '' : ownFilterArticle}
+                  onValueChange={v => setOwnFilterArticle(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos artigos' }, ...ownArticlesPositive]}
+                  placeholder="Todos artigos"
+                  searchPlaceholder="Buscar artigo..."
+                  triggerClassName="w-[240px] h-8 text-xs"
+                />
+                <Select value={ownFilterSource} onValueChange={v => setOwnFilterSource(v as any)}>
+                  <SelectTrigger className="w-[200px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas origens</SelectItem>
+                    <SelectItem value="outsource">Terceirizado</SelectItem>
+                    <SelectItem value="internal">Produção interna</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(ownFilterArticle !== 'all' || ownFilterSource !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setOwnFilterArticle('all'); setOwnFilterSource('all'); }}>Limpar</Button>
+                )}
+                <span className="text-xs text-muted-foreground">{ownSummaryFiltered.length} artigo(s)</span>
+              </div>
+            </CardContent>
+          </Card>
+
           {ownSummary.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
               Nenhum artigo próprio cadastrado. Use "Lançamento Manual ({companyFirstName})" para começar.
