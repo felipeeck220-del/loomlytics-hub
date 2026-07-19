@@ -254,12 +254,15 @@ export default function StockMalha() {
   }, [bootstrap?.available_months]);
 
   const [movFilterType, setMovFilterType] = useState<string>('all');
+  const [movFilterClient, setMovFilterClient] = useState<string>('all');
+  const [movFilterArticle, setMovFilterArticle] = useState<string>('all');
+  const [movFilterOf, setMovFilterOf] = useState<string>('');
   const [movPage, setMovPage] = useState(1);
   const MOV_PAGE_SIZE = 15;
 
   // Fase 2 rpcstockMalha — Aba Movimentações (get_stock_malha_movements, paginado server-side)
   const { data: movementsData } = useQuery({
-    queryKey: ['stock_malha_movements', companyId, movFilterType, movPage],
+    queryKey: ['stock_malha_movements', companyId, movFilterType, movFilterClient, movFilterArticle, movFilterOf, movPage],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)('get_stock_malha_movements', {
         p_company_id: companyId,
@@ -269,6 +272,9 @@ export default function StockMalha() {
         p_to: null,
         p_page: movPage,
         p_page_size: MOV_PAGE_SIZE,
+        p_client_id: movFilterClient === 'all' ? null : movFilterClient,
+        p_article_id: movFilterArticle === 'all' ? null : movFilterArticle,
+        p_of_search: movFilterOf.trim() ? movFilterOf.trim() : null,
       });
       if (error) throw error;
       return (data || { rows: [], total_count: 0 }) as { rows: any[]; total_count: number };
@@ -297,7 +303,7 @@ export default function StockMalha() {
   // Reset page when filter type changes
   useEffect(() => {
     setMovPage(1);
-  }, [movFilterType]);
+  }, [movFilterType, movFilterClient, movFilterArticle, movFilterOf]);
 
   // ============== EXPORT PDF (estoque por artigo) ==============
   const [exportingArticleId, setExportingArticleId] = useState<string | null>(null);
