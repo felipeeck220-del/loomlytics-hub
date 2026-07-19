@@ -923,12 +923,20 @@ export default function StockMalha() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {ownSummary
-                       .filter((r) => (r.inKg - r.outKg) !== 0 || (r.inPc - r.outPc) !== 0)
-                       .map((r) => {
+                     {ownSummaryFiltered.length === 0 && (
+                       <TableRow>
+                         <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">
+                           Nenhum artigo encontrado com os filtros atuais.
+                         </TableCell>
+                       </TableRow>
+                     )}
+                     {ownSummaryFiltered.map((r) => {
                        const saldoKg = r.inKg - r.outKg;
                        const saldoPc = r.inPc - r.outPc;
-                       const details = ownDetailByArticle.get(r.articleId) || [];
+                       const allDetails = ownDetailByArticle.get(r.articleId) || [];
+                       const details = ownFilterSource === 'all'
+                         ? allDetails
+                         : allDetails.filter(d => d.source === ownFilterSource);
                        const isOpen = expandedOwnArticle === r.articleId;
                        return (
                         <React.Fragment key={r.articleId}>
