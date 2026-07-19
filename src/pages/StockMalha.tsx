@@ -1052,6 +1052,31 @@ export default function StockMalha() {
                     <SelectItem value="adjust_out">Ajuste manual -</SelectItem>
                   </SelectContent>
                 </Select>
+                <SearchableSelect
+                  value={movFilterClient === 'all' ? '' : movFilterClient}
+                  onValueChange={v => setMovFilterClient(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todos clientes"
+                  searchPlaceholder="Buscar cliente..."
+                  triggerClassName="w-[200px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={movFilterArticle === 'all' ? '' : movFilterArticle}
+                  onValueChange={v => setMovFilterArticle(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
+                  placeholder="Todos artigos"
+                  searchPlaceholder="Buscar artigo..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                <Input
+                  value={movFilterOf}
+                  onChange={e => setMovFilterOf(e.target.value)}
+                  placeholder="Nº OF"
+                  className="w-[120px] h-8 text-xs"
+                />
+                {(movFilterType !== 'all' || movFilterClient !== 'all' || movFilterArticle !== 'all' || movFilterOf) && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setMovFilterType('all'); setMovFilterClient('all'); setMovFilterArticle('all'); setMovFilterOf(''); }}>Limpar</Button>
+                )}
                 <span className="text-xs text-muted-foreground">{movTotalCount} movimento(s) — Página {movPage} de {movTotalPages || 1}</span>
               </div>
             </CardContent>
