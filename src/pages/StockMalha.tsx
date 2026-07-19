@@ -54,19 +54,13 @@ import { toast } from 'sonner';
 
 export default function StockMalha() {
   const { 
-    getProductions, getClients, getArticles, getYarnTypes, getMachines, refreshData
+    getClients, getArticles, getYarnTypes, getMachines, refreshData
   } = useSharedCompanyData();
   
-  const productions = getProductions();
   const clients = getClients();
   const articles = getArticles();
   const yarnTypes = getYarnTypes();
   const machines = getMachines();
-  const machineNameById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const x of machines) m.set(x.id, x.name);
-    return m;
-  }, [machines]);
   const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
 
   // No Invoices or InvoiceItems dependency as requested: "sem ligação com a aba Saida de malha"
@@ -120,79 +114,43 @@ export default function StockMalha() {
   });
   const ownArticles = bootstrap?.own_articles ?? [];
   const ownArticlesLoading = bootstrapLoading;
-  const { data: ownMovements = [], isLoading: ownMovementsLoading } = useQuery({
-    queryKey: ['own_stock_movements', companyId],
+
+  // Aba Própria — Fase 2 rpcstockMalha (get_own_stock_summary)
+  const { data: ownData, isLoading: ownSummaryLoading } = useQuery({
+    queryKey: ['own_stock_summary', companyId],
     queryFn: async () => {
-      const { data, error } = await (supabase.from as any)('own_stock_movements')
-        .select('id, own_article_id, type, pieces, weight_kg, reason, source, outsource_company_id, yarn_type, of_number, created_at, author:profiles!own_stock_movements_created_by_fkey(name, code), outsource:outsource_companies(name)')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await (supabase.rpc as any)('get_own_stock_summary', {
+        p_company_id: companyId, p_article_id: null, p_month: 'all',
+      });
       if (error) throw error;
-      return (data || []) as any[];
+      return (data || {}) as {
+        summary: Array<{ articleId: string; name: string; inKg: number; inPc: number; outKg: number; outPc: number }>;
+        details: Record<string, Array<{ key: string; yarn_type: string; of_number: string; source: string; origin_label: string; inKg: number; inPc: number }>>;
+        kpis: { entradaKg: number; entradaPc: number; saidaKg: number; saidaPc: number; saldoKg: number; saldoPc: number };
+      };
     },
     enabled: !!companyId,
+    staleTime: 30 * 1000,
   });
   const refreshOwnStock = () => {
     queryClient.invalidateQueries({ queryKey: ['stock_malha_bootstrap', companyId] });
-    queryClient.invalidateQueries({ queryKey: ['own_stock_movements', companyId] });
+    queryClient.invalidateQueries({ queryKey: ['own_stock_summary', companyId] });
   };
-  const ownSummary = useMemo(() => {
-    const map = new Map<string, { articleId: string; name: string; inPc: number; inKg: number; outPc: number; outKg: number }>();
-    for (const a of ownArticles) map.set(a.id, { articleId: a.id, name: a.name, inPc: 0, inKg: 0, outPc: 0, outKg: 0 });
-    for (const mv of ownMovements) {
-      const e = map.get(mv.own_article_id);
-      if (!e) continue;
-      const pc = Number(mv.pieces) || 0;
-      const kg = Number(mv.weight_kg) || 0;
-      if (mv.type === 'in') { e.inPc += pc; e.inKg += kg; }
-      else if (mv.type === 'out') { e.outPc += pc; e.outKg += kg; }
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [ownArticles, ownMovements]);
-  const ownKpis = useMemo(() => ownSummary.reduce((acc, r) => ({
-    entradaKg: acc.entradaKg + r.inKg,
-    entradaPc: acc.entradaPc + r.inPc,
-    saidaKg: acc.saidaKg + r.outKg,
-    saidaPc: acc.saidaPc + r.outPc,
-    saldoKg: acc.saldoKg + (r.inKg - r.outKg),
-    saldoPc: acc.saldoPc + (r.inPc - r.outPc),
-  }), { entradaKg: 0, entradaPc: 0, saidaKg: 0, saidaPc: 0, saldoKg: 0, saldoPc: 0 }), [ownSummary]);
-  const isOwnLoading = ownArticlesLoading || ownMovementsLoading;
-
-  // Detalhamento por artigo → (tipo de fio + origem) agregando entradas em lotes.
-  // Saídas ficam agregadas por artigo (não têm origem/tipo de fio).
+  const ownSummary = ownData?.summary ?? [];
+  const ownKpis = ownData?.kpis ?? { entradaKg: 0, entradaPc: 0, saidaKg: 0, saidaPc: 0, saldoKg: 0, saldoPc: 0 };
   const ownDetailByArticle = useMemo(() => {
-    const map = new Map<string, Array<{
-      key: string; yarn_type: string; of_number: string; source: string; origin_label: string;
-      inKg: number; inPc: number;
-    }>>();
-    for (const a of ownArticles) map.set(a.id, []);
-    for (const mv of ownMovements) {
-      if (mv.type !== 'in') continue;
-      const list = map.get(mv.own_article_id);
-      if (!list) continue;
-      const yarn = (mv.yarn_type || '—').trim() || '—';
-      const of = (mv.of_number || '—').trim() || '—';
-      const src = mv.source === 'outsource' ? 'outsource' : (mv.source === 'internal' ? 'internal' : 'unknown');
-      const originLabel = src === 'outsource'
-        ? `Terceirizado${mv.outsource?.name ? ` — ${mv.outsource.name}` : ''}`
-        : src === 'internal' ? 'Produção interna' : '—';
-      const key = `${yarn}||${of}||${src}||${mv.outsource_company_id || ''}`;
-      let row = list.find(r => r.key === key);
-      if (!row) {
-        row = { key, yarn_type: yarn, of_number: of, source: src, origin_label: originLabel, inKg: 0, inPc: 0 };
-        list.push(row);
-      }
-      row.inKg += Number(mv.weight_kg) || 0;
-      row.inPc += Number(mv.pieces) || 0;
-    }
+    const map = new Map<string, Array<{ key: string; yarn_type: string; of_number: string; source: string; origin_label: string; inKg: number; inPc: number }>>();
+    const raw = ownData?.details || {};
+    for (const [aid, items] of Object.entries(raw)) map.set(aid, items as any[]);
     return map;
-  }, [ownArticles, ownMovements]);
+  }, [ownData]);
+  const isOwnLoading = ownArticlesLoading || ownSummaryLoading;
   const [expandedOwnArticle, setExpandedOwnArticle] = useState<string | null>(null);
 
   const refreshAllStock = () => {
-    queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock', companyId] });
-    queryClient.invalidateQueries({ queryKey: ['stock_movements_history', companyId] });
+    queryClient.invalidateQueries({ queryKey: ['stock_malha_estoque', companyId] });
+    queryClient.invalidateQueries({ queryKey: ['stock_malha_segunda', companyId] });
+    queryClient.invalidateQueries({ queryKey: ['stock_malha_movements', companyId] });
   };
   // Reage a inserts diretos em stock_movements vindos de outros módulos (ex.: paletes em OF)
   useEffect(() => {
@@ -226,295 +184,68 @@ export default function StockMalha() {
   const [segArticle, setSegArticle] = useState('all');
   const [segMonth, setSegMonth] = useState('all');
 
-  const { data: stockMovements = [], isLoading: stockMovementsLoading } = useQuery({
-    queryKey: ['stock_movements_for_stock', companyId],
-    queryFn: async () => {
-      return await fetchAllPaginated('stock_movements', companyId!, 'id, article_id, client_id, billing_order_id, machine_id, type, pieces, weight_kg, is_second_quality, created_at');
-    },
-    enabled: !!companyId,
-  });
-
   // Data de corte + empresa (PDF) agora vêm do bootstrap
   const stockCutoffDate = bootstrap?.cutoff_date ?? null;
   const companyInfo = bootstrap?.company ?? null;
 
-  // Aguardar TODAS as fontes de dados do estoque antes de renderizar, para não exibir
-  // valores "intermediários" (ex.: Produzido sem o desconto de Entregue) que mudam após o load.
-  const isStockLoading = stockMovementsLoading || bootstrapLoading;
+  // Fase 2 rpcstockMalha — Aba Estoque (get_stock_malha_estoque)
+  const estoqueParams = {
+    p_company_id: companyId,
+    p_client_id: estoqueClient === 'all' ? null : estoqueClient,
+    p_article_id: estoqueArticle === 'all' ? null : estoqueArticle,
+    p_month: estoqueMonth,
+    p_entregue_from: entregueRange.from || null,
+    p_entregue_to: entregueRange.to || entregueRange.from || null,
+  };
+  const { data: estoqueData, isLoading: estoqueLoading } = useQuery({
+    queryKey: ['stock_malha_estoque', companyId, estoqueClient, estoqueArticle, estoqueMonth, entregueRange.from, entregueRange.to],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_stock_malha_estoque', estoqueParams);
+      if (error) throw error;
+      return (data || { groups: [], kpis: {} }) as {
+        groups: any[];
+        kpis: { producedKg: number; deliveredKg: number; stockKg: number; stockRolls: number; reservedKg: number; availableKg: number };
+      };
+    },
+    enabled: !!companyId,
+    staleTime: 30 * 1000,
+  });
+  const malhaEstoque: any[] = estoqueData?.groups ?? [];
+  const estoqueKpis = estoqueData?.kpis ?? { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0, reservedKg: 0, availableKg: 0 };
+  const isStockLoading = estoqueLoading || bootstrapLoading;
 
-  // Re-implementing the malhaEstoque logic from Invoices.tsx
-  const malhaEstoque = useMemo(() => {
-    // deliveredKg/Rolls = entregue NO RANGE (apenas para exibição da coluna Entregue).
-    // deliveredKgTotal/RollsTotal = entregue ACUMULADO (usado para calcular Estoque/Disponível,
-    // que NÃO devem oscilar conforme o usuário muda o filtro de período).
-    const map = new Map<string, Map<string, { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; deliveredKgTotal: number; deliveredRollsTotal: number; reservedKg: number; reservedRolls: number }>>();
-    const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
-    // Corte: ignora qualquer produção/movimentação com data < stockCutoffDate
-    const cutoff = stockCutoffDate || '';
-    const afterCutoffDate = (date: string) => !cutoff || date >= cutoff;
-    const afterCutoffTs = (createdAt: string) => !cutoff || format(new Date(createdAt), 'yyyy-MM-dd') >= cutoff;
-
-    // 1. Production
-    for (const prod of productions) {
-      if (!matchMonth(prod.date)) continue;
-      if (!afterCutoffDate(prod.date)) continue;
-      // Ignorar produções sem máquina nas contas de estoque
-      if (!prod.machine_id) continue;
-      const art = articles.find(a => a.id === prod.article_id);
-      if (!art || !art.client_id) continue;
-      if (!map.has(art.client_id)) map.set(art.client_id, new Map());
-      const artMap = map.get(art.client_id)!;
-      if (!artMap.has(prod.article_id!)) artMap.set(prod.article_id!, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, deliveredKgTotal: 0, deliveredRollsTotal: 0, reservedKg: 0, reservedRolls: 0 });
-      const entry = artMap.get(prod.article_id!)!;
-      entry.producedKg += Number(prod.weight_kg);
-      entry.producedRolls += Number(prod.rolls_produced);
-    }
-
-    // 2. NFs de Saída NÃO descontam mais estoque a partir do deploy de OF×Estoque.
-    //    A baixa real ocorre via stock_movements.out gerado pela OF coletada (§9 do plano).
-
-    // 3. Stock movements (manual adjustments) — add to producedKg/Rolls so it flows into Estoque
-    const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
-    // Filtro do intervalo de "Entregue" (compara dia local do created_at com o range escolhido)
-    const entregueFrom = entregueRange.from || '';
-    const entregueTo = entregueRange.to || entregueFrom;
-    const matchesEntregueRange = (createdAt: string) => {
-      if (!entregueFrom) return true;
-      const d = format(new Date(createdAt), 'yyyy-MM-dd');
-      return d >= entregueFrom && d <= entregueTo;
-    };
-    for (const mv of stockMovements as any[]) {
-      if (!monthMatchesMovement(mv.created_at)) continue;
-      if (!afterCutoffTs(mv.created_at)) continue;
-      // Movimentos de 2ª qualidade não afetam o estoque principal
-      if (mv.is_second_quality) continue;
-      if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
-      // Ignorar movimentos sem máquina nas contas de estoque
-      if (!mv.machine_id) continue;
-      const art = articles.find(a => a.id === mv.article_id);
-      if (!art || !art.client_id) continue;
-      if (!map.has(art.client_id)) map.set(art.client_id, new Map());
-      const artMap = map.get(art.client_id)!;
-      if (!artMap.has(mv.article_id)) artMap.set(mv.article_id, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, deliveredKgTotal: 0, deliveredRollsTotal: 0, reservedKg: 0, reservedRolls: 0 });
-      const entry = artMap.get(mv.article_id)!;
-      const kg = Number(mv.weight_kg);
-      const pc = Number(mv.pieces);
-      if (mv.type === 'adjust_in') {
-        entry.producedKg += Number(mv.weight_kg);
-        entry.producedRolls += Number(mv.pieces);
-      } else if (mv.type === 'adjust_out') {
-        entry.producedKg -= Number(mv.weight_kg);
-        entry.producedRolls -= Number(mv.pieces);
-      } else if (mv.type === 'in') {
-        // Estorno 1ª qualidade: pç retornam ao estoque → desconta Entregue (libera Disponível)
-        if (mv.billing_order_id) {
-          // total (sempre): afeta cálculo de Estoque/Disponível
-          entry.deliveredKgTotal -= kg;
-          entry.deliveredRollsTotal -= pc;
-          // exibição: só desconta da coluna Entregue se cair no range filtrado
-          if (matchesEntregueRange(mv.created_at)) {
-            entry.deliveredKg -= kg;
-            entry.deliveredRolls -= pc;
-          }
-        } else {
-          entry.producedKg += kg;
-          entry.producedRolls += pc;
-        }
-      } else if (mv.type === 'out') {
-        // Saída por OF coletada — conta como entregue (não desconta o "Produzido" exibido).
-        entry.deliveredKgTotal += Number(mv.weight_kg);
-        entry.deliveredRollsTotal += Number(mv.pieces);
-        if (matchesEntregueRange(mv.created_at)) {
-          entry.deliveredKg += Number(mv.weight_kg);
-          entry.deliveredRolls += Number(mv.pieces);
-        }
-      } else if (mv.type === 'reserve') {
-        entry.reservedKg += kg;
-        entry.reservedRolls += pc;
-      } else if (mv.type === 'release') {
-        entry.reservedKg -= kg;
-        entry.reservedRolls -= pc;
-      }
-    }
-
-    const result: any[] = [];
-    map.forEach((artMap, clientId) => {
-      if (estoqueClient !== 'all' && clientId !== estoqueClient) return;
-      const client = clients.find(c => c.id === clientId);
-      const arts: any[] = [];
-      let tPK = 0, tPR = 0, tDK = 0, tDR = 0, tDKT = 0, tDRT = 0, tRK = 0, tRR = 0;
-      artMap.forEach((vals, articleId) => {
-        if (estoqueArticle !== 'all' && articleId !== estoqueArticle) return;
-        const article = articles.find(a => a.id === articleId);
-        // Estoque/Disponível usam o TOTAL entregue (não o filtrado pelo range)
-        const stockKg = vals.producedKg - vals.deliveredKgTotal;
-        const stockRolls = vals.producedRolls - vals.deliveredRollsTotal;
-        arts.push({
-          articleId,
-          articleName: article?.name || 'Artigo removido',
-          ...vals,
-          stockKg,
-          stockRolls,
-          availableKg: stockKg - vals.reservedKg,
-          availableRolls: stockRolls - vals.reservedRolls,
-        });
-        tPK += vals.producedKg; tPR += vals.producedRolls;
-        tDK += vals.deliveredKg; tDR += vals.deliveredRolls;
-        tDKT += vals.deliveredKgTotal; tDRT += vals.deliveredRollsTotal;
-        tRK += vals.reservedKg; tRR += vals.reservedRolls;
-      });
-      if (arts.length > 0) {
-        result.push({
-          clientId,
-          clientName: client?.name || 'Cliente removido',
-          articles: arts.sort((a, b) => a.articleName.localeCompare(b.articleName)),
-          totalProducedKg: tPK, totalProducedRolls: tPR,
-          totalDeliveredKg: tDK, totalDeliveredRolls: tDR,
-          totalReservedKg: tRK, totalReservedRolls: tRR,
-          totalStockKg: tPK - tDKT, totalStockRolls: tPR - tDRT,
-          totalAvailableKg: (tPK - tDKT) - tRK, totalAvailableRolls: (tPR - tDRT) - tRR,
-        });
-      }
-    });
-    return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
-  }, [productions, stockMovements, articles, clients, estoqueClient, estoqueArticle, estoqueMonth, entregueRange, stockCutoffDate]);
-
-  const estoqueKpis = useMemo(() => malhaEstoque.reduce((acc, g) => ({
-    producedKg: acc.producedKg + g.totalProducedKg,
-    deliveredKg: acc.deliveredKg + g.totalDeliveredKg,
-    stockKg: acc.stockKg + g.totalStockKg,
-    stockRolls: acc.stockRolls + g.totalStockRolls,
-    reservedKg: acc.reservedKg + g.totalReservedKg,
-    availableKg: acc.availableKg + g.totalAvailableKg,
-  }), { producedKg: 0, deliveredKg: 0, stockKg: 0, stockRolls: 0, reservedKg: 0, availableKg: 0 }), [malhaEstoque]);
-
-  // Quebra por máquina, por artigo. Chave: `${clientId}::${articleId}` → Map(machineKey → totals)
-  // machineKey = machine_id ou '__none__' quando não informado.
+  // Quebra por máquina: derivada de estoqueData.groups[*].articles[*].byMachine
   const byMachineMap = useMemo(() => {
-    type MachineTotals = { producedKg: number; producedRolls: number; deliveredKg: number; deliveredRolls: number; deliveredKgTotal: number; deliveredRollsTotal: number; reservedKg: number; reservedRolls: number };
-    const out = new Map<string, Map<string, MachineTotals>>();
-    const ensure = (k: string, mk: string) => {
-      if (!out.has(k)) out.set(k, new Map());
-      const inner = out.get(k)!;
-      if (!inner.has(mk)) inner.set(mk, { producedKg: 0, producedRolls: 0, deliveredKg: 0, deliveredRolls: 0, deliveredKgTotal: 0, deliveredRollsTotal: 0, reservedKg: 0, reservedRolls: 0 });
-      return inner.get(mk)!;
-    };
-    const cutoff = stockCutoffDate || '';
-    const afterCutoffDate = (date: string) => !cutoff || date >= cutoff;
-    const afterCutoffTs = (createdAt: string) => !cutoff || format(new Date(createdAt), 'yyyy-MM-dd') >= cutoff;
-    const matchMonth = (date: string) => estoqueMonth === 'all' || date.startsWith(estoqueMonth);
-    const monthMatchesMovement = (createdAt: string) => estoqueMonth === 'all' || createdAt.startsWith(estoqueMonth);
-    const entregueFrom = entregueRange.from || '';
-    const entregueTo = entregueRange.to || entregueFrom;
-    const matchesEntregueRange = (createdAt: string) => {
-      if (!entregueFrom) return true;
-      const d = format(new Date(createdAt), 'yyyy-MM-dd');
-      return d >= entregueFrom && d <= entregueTo;
-    };
-
-    for (const prod of productions) {
-      if (!matchMonth(prod.date)) continue;
-      if (!afterCutoffDate(prod.date)) continue;
-      if (!prod.machine_id) continue;
-      const art = articles.find(a => a.id === prod.article_id);
-      if (!art || !art.client_id) continue;
-      const k = `${art.client_id}::${prod.article_id}`;
-      const mk = (prod.machine_id as string | null) || '__none__';
-      const e = ensure(k, mk);
-      e.producedKg += Number(prod.weight_kg);
-      e.producedRolls += Number(prod.rolls_produced);
-    }
-    for (const mv of stockMovements as any[]) {
-      if (!monthMatchesMovement(mv.created_at)) continue;
-      if (!afterCutoffTs(mv.created_at)) continue;
-      if (mv.is_second_quality) continue;
-      if (!['adjust_in', 'adjust_out', 'out', 'in', 'reserve', 'release'].includes(mv.type)) continue;
-      if (!mv.machine_id) continue;
-      const art = articles.find(a => a.id === mv.article_id);
-      if (!art || !art.client_id) continue;
-      const k = `${art.client_id}::${mv.article_id}`;
-      const mk = (mv.machine_id as string | null) || '__none__';
-      const e = ensure(k, mk);
-      const kg = Number(mv.weight_kg); const pc = Number(mv.pieces);
-      if (mv.type === 'adjust_in') { e.producedKg += kg; e.producedRolls += pc; }
-      else if (mv.type === 'adjust_out') { e.producedKg -= kg; e.producedRolls -= pc; }
-      else if (mv.type === 'in') {
-        if (mv.billing_order_id) {
-          e.deliveredKgTotal -= kg; e.deliveredRollsTotal -= pc;
-          if (matchesEntregueRange(mv.created_at)) { e.deliveredKg -= kg; e.deliveredRolls -= pc; }
-        }
-        else { e.producedKg += kg; e.producedRolls += pc; }
+    const out = new Map<string, any[]>();
+    for (const g of malhaEstoque) {
+      for (const a of g.articles || []) {
+        out.set(`${g.clientId}::${a.articleId}`, a.byMachine || []);
       }
-      else if (mv.type === 'out') {
-        e.deliveredKgTotal += kg; e.deliveredRollsTotal += pc;
-        if (matchesEntregueRange(mv.created_at)) { e.deliveredKg += kg; e.deliveredRolls += pc; }
-      }
-      else if (mv.type === 'reserve') { e.reservedKg += kg; e.reservedRolls += pc; }
-      else if (mv.type === 'release') { e.reservedKg -= kg; e.reservedRolls -= pc; }
     }
     return out;
-  }, [productions, stockMovements, articles, estoqueMonth, stockCutoffDate, entregueRange]);
+  }, [malhaEstoque]);
 
-  // 2ª QUALIDADE — agregação independente
-  const segundaEstoque = useMemo(() => {
-    const map = new Map<string, Map<string, { entradaKg: number; entradaRolls: number; saidaKg: number; saidaRolls: number }>>();
-    const matchMonth = (createdAt: string) => segMonth === 'all' || createdAt.startsWith(segMonth);
-    for (const mv of stockMovements as any[]) {
-      if (!mv.is_second_quality) continue;
-      if (!matchMonth(mv.created_at)) continue;
-      const art = articles.find(a => a.id === mv.article_id);
-      if (!art || !art.client_id) continue;
-      if (!map.has(art.client_id)) map.set(art.client_id, new Map());
-      const artMap = map.get(art.client_id)!;
-      if (!artMap.has(mv.article_id)) artMap.set(mv.article_id, { entradaKg: 0, entradaRolls: 0, saidaKg: 0, saidaRolls: 0 });
-      const e = artMap.get(mv.article_id)!;
-      const kg = Number(mv.weight_kg);
-      const pc = Number(mv.pieces);
-      if (mv.type === 'in' || mv.type === 'adjust_in') {
-        e.entradaKg += kg; e.entradaRolls += pc;
-      } else if (mv.type === 'out' || mv.type === 'adjust_out') {
-        e.saidaKg += kg; e.saidaRolls += pc;
-      }
-    }
-    const result: any[] = [];
-    map.forEach((artMap, clientId) => {
-      if (segClient !== 'all' && clientId !== segClient) return;
-      const client = clients.find(c => c.id === clientId);
-      const arts: any[] = [];
-      let tEK = 0, tER = 0, tSK = 0, tSR = 0;
-      artMap.forEach((vals, articleId) => {
-        if (segArticle !== 'all' && articleId !== segArticle) return;
-        const article = articles.find(a => a.id === articleId);
-        const saldoKg = vals.entradaKg - vals.saidaKg;
-        const saldoRolls = vals.entradaRolls - vals.saidaRolls;
-        arts.push({
-          articleId, articleName: article?.name || 'Artigo removido',
-          ...vals, saldoKg, saldoRolls,
-        });
-        tEK += vals.entradaKg; tER += vals.entradaRolls;
-        tSK += vals.saidaKg; tSR += vals.saidaRolls;
+  // Fase 2 rpcstockMalha — Aba 2ª Qualidade (get_stock_malha_segunda)
+  const { data: segundaData, isLoading: segundaLoading } = useQuery({
+    queryKey: ['stock_malha_segunda', companyId, segClient, segArticle, segMonth],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_stock_malha_segunda', {
+        p_company_id: companyId,
+        p_client_id: segClient === 'all' ? null : segClient,
+        p_article_id: segArticle === 'all' ? null : segArticle,
+        p_month: segMonth,
       });
-      if (arts.length > 0) {
-        result.push({
-          clientId, clientName: client?.name || 'Cliente removido',
-          articles: arts.sort((a, b) => a.articleName.localeCompare(b.articleName)),
-          totalEntradaKg: tEK, totalEntradaRolls: tER,
-          totalSaidaKg: tSK, totalSaidaRolls: tSR,
-          totalSaldoKg: tEK - tSK, totalSaldoRolls: tER - tSR,
-        });
-      }
-    });
-    return result.sort((a, b) => a.clientName.localeCompare(b.clientName));
-  }, [stockMovements, articles, clients, segClient, segArticle, segMonth]);
-
-  const segundaKpis = useMemo(() => segundaEstoque.reduce((acc, g) => ({
-    entradaKg: acc.entradaKg + g.totalEntradaKg,
-    entradaRolls: acc.entradaRolls + g.totalEntradaRolls,
-    saidaKg: acc.saidaKg + g.totalSaidaKg,
-    saidaRolls: acc.saidaRolls + g.totalSaidaRolls,
-    saldoKg: acc.saldoKg + g.totalSaldoKg,
-    saldoRolls: acc.saldoRolls + g.totalSaldoRolls,
-  }), { entradaKg: 0, entradaRolls: 0, saidaKg: 0, saidaRolls: 0, saldoKg: 0, saldoRolls: 0 }), [segundaEstoque]);
+      if (error) throw error;
+      return (data || { groups: [], kpis: {} }) as {
+        groups: any[];
+        kpis: { entradaKg: number; entradaRolls: number; saidaKg: number; saidaRolls: number; saldoKg: number; saldoRolls: number };
+      };
+    },
+    enabled: !!companyId,
+    staleTime: 30 * 1000,
+  });
+  const segundaEstoque: any[] = segundaData?.groups ?? [];
+  const segundaKpis = segundaData?.kpis ?? { entradaKg: 0, entradaRolls: 0, saidaKg: 0, saidaRolls: 0, saldoKg: 0, saldoRolls: 0 };
 
   const availableMonths = useMemo(() => {
     const months = new Set<string>(bootstrap?.available_months ?? []);
@@ -522,36 +253,32 @@ export default function StockMalha() {
     return Array.from(months).sort().reverse();
   }, [bootstrap?.available_months]);
 
-  // Histórico completo de movimentos (tab Movimentações)
-  const { data: movementsHistory = [] } = useQuery({
-    queryKey: ['stock_movements_history', companyId],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from as any)('stock_movements')
-        .select(`
-          id, article_id, client_id, billing_order_id, type, pieces, weight_kg, reason, is_second_quality, created_at,
-          article:articles(name),
-          client:clients(name),
-          author:profiles!stock_movements_created_by_fkey(name, code),
-          billing_order:billing_orders(of_number)
-        `)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!companyId,
-  });
-
   const [movFilterType, setMovFilterType] = useState<string>('all');
   const [movPage, setMovPage] = useState(1);
   const MOV_PAGE_SIZE = 15;
 
-  const filteredMovements = useMemo(() => {
-    return (movementsHistory as any[]).filter(m => movFilterType === 'all' || m.type === movFilterType);
-  }, [movementsHistory, movFilterType]);
-
-  const movTotalPages = Math.ceil(filteredMovements.length / MOV_PAGE_SIZE);
+  // Fase 2 rpcstockMalha — Aba Movimentações (get_stock_malha_movements, paginado server-side)
+  const { data: movementsData } = useQuery({
+    queryKey: ['stock_malha_movements', companyId, movFilterType, movPage],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_stock_malha_movements', {
+        p_company_id: companyId,
+        p_type: movFilterType,
+        p_second: null,
+        p_from: null,
+        p_to: null,
+        p_page: movPage,
+        p_page_size: MOV_PAGE_SIZE,
+      });
+      if (error) throw error;
+      return (data || { rows: [], total_count: 0 }) as { rows: any[]; total_count: number };
+    },
+    enabled: !!companyId,
+    staleTime: 30 * 1000,
+  });
+  const paginatedMovements = movementsData?.rows ?? [];
+  const movTotalCount = movementsData?.total_count ?? 0;
+  const movTotalPages = Math.max(1, Math.ceil(movTotalCount / MOV_PAGE_SIZE));
 
   const movVisiblePages = useMemo(() => {
     const pages = [];
@@ -566,11 +293,6 @@ export default function StockMalha() {
     }
     return pages;
   }, [movPage, movTotalPages]);
-
-  const paginatedMovements = useMemo(() => {
-    const start = (movPage - 1) * MOV_PAGE_SIZE;
-    return filteredMovements.slice(start, start + MOV_PAGE_SIZE);
-  }, [filteredMovements, movPage]);
 
   // Reset page when filter type changes
   useEffect(() => {
@@ -671,17 +393,15 @@ export default function StockMalha() {
       pdf.text(subtitle, (pageWidth - sw) / 2, titleY + 1);
 
       // Quebra por máquina
-      const inner = byMachineMap.get(key);
+      const inner = byMachineMap.get(key) || [];
       const rows = inner
-        ? Array.from(inner.entries())
-            .filter(([mk]) => mk !== '__none__')
-            .map(([mk, v]) => ({
-              name: machineNameById.get(mk) || 'Máquina removida',
-              availableRolls: (v.producedRolls - v.deliveredRollsTotal) - v.reservedRolls,
-            }))
-            .filter(r => r.availableRolls >= 1)
-            .sort((x, y) => x.name.localeCompare(y.name))
-        : [];
+        .filter((v: any) => v.machineId)
+        .map((v: any) => ({
+          name: v.machineName || 'Máquina removida',
+          availableRolls: Number((v.producedRolls || 0) - (v.deliveredRollsTotal || 0)) - Number(v.reservedRolls || 0),
+        }))
+        .filter((r: any) => r.availableRolls >= 1)
+        .sort((x: any, y: any) => x.name.localeCompare(y.name));
 
       if (rows.length === 0) {
         toast.info('Nenhuma máquina com saldo disponível (≥ 1 rolo) para este artigo.');
@@ -1040,8 +760,8 @@ export default function StockMalha() {
                             </TableCell>
                           </TableRow>
                           {expandedArticle === `${group.clientId}::${a.articleId}` && (() => {
-                            const inner = byMachineMap.get(`${group.clientId}::${a.articleId}`);
-                            if (!inner || inner.size === 0) {
+                            const inner = byMachineMap.get(`${group.clientId}::${a.articleId}`) || [];
+                            if (inner.length === 0) {
                               return (
                                 <TableRow key={`${a.articleId}-empty`}>
                                   <TableCell colSpan={10} className="text-[11px] text-muted-foreground italic bg-muted/30 py-2 pl-8">
@@ -1050,17 +770,23 @@ export default function StockMalha() {
                                 </TableRow>
                               );
                             }
-                            const rows = Array.from(inner.entries())
-                              .filter(([mk]) => mk !== '__none__')
-                              .map(([mk, v]) => ({
-                              mk,
-                              name: machineNameById.get(mk) || 'Máquina removida',
-                              ...v,
-                              stockKg: v.producedKg - v.deliveredKgTotal,
-                              stockRolls: v.producedRolls - v.deliveredRollsTotal,
-                              availableKg: (v.producedKg - v.deliveredKgTotal) - v.reservedKg,
-                              availableRolls: (v.producedRolls - v.deliveredRollsTotal) - v.reservedRolls,
-                            })).sort((x, y) => x.name.localeCompare(y.name));
+                            const rows = inner
+                              .filter((v: any) => v.machineId)
+                              .map((v: any) => ({
+                                mk: v.machineId,
+                                name: v.machineName || 'Máquina removida',
+                                producedKg: Number(v.producedKg || 0),
+                                producedRolls: Number(v.producedRolls || 0),
+                                deliveredKg: Number(v.deliveredKg || 0),
+                                deliveredRolls: Number(v.deliveredRolls || 0),
+                                reservedKg: Number(v.reservedKg || 0),
+                                reservedRolls: Number(v.reservedRolls || 0),
+                                stockKg: Number(v.producedKg || 0) - Number(v.deliveredKgTotal || 0),
+                                stockRolls: Number(v.producedRolls || 0) - Number(v.deliveredRollsTotal || 0),
+                                availableKg: (Number(v.producedKg || 0) - Number(v.deliveredKgTotal || 0)) - Number(v.reservedKg || 0),
+                                availableRolls: (Number(v.producedRolls || 0) - Number(v.deliveredRollsTotal || 0)) - Number(v.reservedRolls || 0),
+                              }))
+                              .sort((x: any, y: any) => x.name.localeCompare(y.name));
                             return rows.map((r) => (
                               <TableRow key={`${a.articleId}-${r.mk}`} className="bg-muted/30">
                                 <TableCell className="text-[11px] pl-8 text-muted-foreground">
@@ -1359,7 +1085,7 @@ export default function StockMalha() {
                     <SelectItem value="adjust_out">Ajuste manual -</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="text-xs text-muted-foreground">{filteredMovements.length} movimento(s) — Página {movPage} de {movTotalPages || 1}</span>
+                <span className="text-xs text-muted-foreground">{movTotalCount} movimento(s) — Página {movPage} de {movTotalPages || 1}</span>
               </div>
             </CardContent>
           </Card>
