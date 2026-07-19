@@ -146,6 +146,33 @@ export default function StockMalha() {
   }, [ownData]);
   const isOwnLoading = ownArticlesLoading || ownSummaryLoading;
   const [expandedOwnArticle, setExpandedOwnArticle] = useState<string | null>(null);
+  // Filtros da aba Trama (Estoque próprio)
+  const [ownFilterArticle, setOwnFilterArticle] = useState<string>('all');
+  const [ownFilterSource, setOwnFilterSource] = useState<'all' | 'outsource' | 'internal'>('all');
+
+  // Artigos com saldo positivo (para o SearchableSelect da aba Trama)
+  const ownArticlesPositive = useMemo(() =>
+    ownSummary
+      .filter(r => (r.inKg - r.outKg) > 0 || (r.inPc - r.outPc) > 0)
+      .map(r => ({ value: r.articleId, label: r.name }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [ownSummary]
+  );
+
+  // Artigos filtrados pela origem: só entram se tiverem ao menos um lote da origem selecionada
+  const ownSummaryFiltered = useMemo(() => {
+    return ownSummary.filter(r => {
+      const saldoKg = r.inKg - r.outKg;
+      const saldoPc = r.inPc - r.outPc;
+      if (saldoKg === 0 && saldoPc === 0) return false;
+      if (ownFilterArticle !== 'all' && r.articleId !== ownFilterArticle) return false;
+      if (ownFilterSource !== 'all') {
+        const details = ownDetailByArticle.get(r.articleId) || [];
+        if (!details.some(d => d.source === ownFilterSource)) return false;
+      }
+      return true;
+    });
+  }, [ownSummary, ownDetailByArticle, ownFilterArticle, ownFilterSource]);
 
   const refreshAllStock = () => {
     queryClient.invalidateQueries({ queryKey: ['stock_malha_estoque', companyId] });
@@ -254,12 +281,15 @@ export default function StockMalha() {
   }, [bootstrap?.available_months]);
 
   const [movFilterType, setMovFilterType] = useState<string>('all');
+  const [movFilterClient, setMovFilterClient] = useState<string>('all');
+  const [movFilterArticle, setMovFilterArticle] = useState<string>('all');
+  const [movFilterOf, setMovFilterOf] = useState<string>('');
   const [movPage, setMovPage] = useState(1);
   const MOV_PAGE_SIZE = 15;
 
   // Fase 2 rpcstockMalha — Aba Movimentações (get_stock_malha_movements, paginado server-side)
   const { data: movementsData } = useQuery({
-    queryKey: ['stock_malha_movements', companyId, movFilterType, movPage],
+    queryKey: ['stock_malha_movements', companyId, movFilterType, movFilterClient, movFilterArticle, movFilterOf, movPage],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)('get_stock_malha_movements', {
         p_company_id: companyId,
@@ -269,6 +299,9 @@ export default function StockMalha() {
         p_to: null,
         p_page: movPage,
         p_page_size: MOV_PAGE_SIZE,
+        p_client_id: movFilterClient === 'all' ? null : movFilterClient,
+        p_article_id: movFilterArticle === 'all' ? null : movFilterArticle,
+        p_of_search: movFilterOf.trim() ? movFilterOf.trim() : null,
       });
       if (error) throw error;
       return (data || { rows: [], total_count: 0 }) as { rows: any[]; total_count: number };
@@ -297,7 +330,7 @@ export default function StockMalha() {
   // Reset page when filter type changes
   useEffect(() => {
     setMovPage(1);
-  }, [movFilterType]);
+  }, [movFilterType, movFilterClient, movFilterArticle, movFilterOf]);
 
   // ============== EXPORT PDF (estoque por artigo) ==============
   const [exportingArticleId, setExportingArticleId] = useState<string | null>(null);
@@ -843,6 +876,33 @@ export default function StockMalha() {
             </CardContent></Card>
           </div>
 
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <SearchableSelect
+                  value={ownFilterArticle === 'all' ? '' : ownFilterArticle}
+                  onValueChange={v => setOwnFilterArticle(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos artigos' }, ...ownArticlesPositive]}
+                  placeholder="Todos artigos"
+                  searchPlaceholder="Buscar artigo..."
+                  triggerClassName="w-[240px] h-8 text-xs"
+                />
+                <Select value={ownFilterSource} onValueChange={v => setOwnFilterSource(v as any)}>
+                  <SelectTrigger className="w-[200px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas origens</SelectItem>
+                    <SelectItem value="outsource">Terceirizado</SelectItem>
+                    <SelectItem value="internal">Produção interna</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(ownFilterArticle !== 'all' || ownFilterSource !== 'all') && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setOwnFilterArticle('all'); setOwnFilterSource('all'); }}>Limpar</Button>
+                )}
+                <span className="text-xs text-muted-foreground">{ownSummaryFiltered.length} artigo(s)</span>
+              </div>
+            </CardContent>
+          </Card>
+
           {ownSummary.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
               Nenhum artigo próprio cadastrado. Use "Lançamento Manual ({companyFirstName})" para começar.
@@ -863,12 +923,20 @@ export default function StockMalha() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {ownSummary
-                       .filter((r) => (r.inKg - r.outKg) !== 0 || (r.inPc - r.outPc) !== 0)
-                       .map((r) => {
+                     {ownSummaryFiltered.length === 0 && (
+                       <TableRow>
+                         <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">
+                           Nenhum artigo encontrado com os filtros atuais.
+                         </TableCell>
+                       </TableRow>
+                     )}
+                     {ownSummaryFiltered.map((r) => {
                        const saldoKg = r.inKg - r.outKg;
                        const saldoPc = r.inPc - r.outPc;
-                       const details = ownDetailByArticle.get(r.articleId) || [];
+                       const allDetails = ownDetailByArticle.get(r.articleId) || [];
+                       const details = ownFilterSource === 'all'
+                         ? allDetails
+                         : allDetails.filter(d => d.source === ownFilterSource);
                        const isOpen = expandedOwnArticle === r.articleId;
                        return (
                         <React.Fragment key={r.articleId}>
@@ -1046,6 +1114,31 @@ export default function StockMalha() {
                     <SelectItem value="adjust_out">Ajuste manual -</SelectItem>
                   </SelectContent>
                 </Select>
+                <SearchableSelect
+                  value={movFilterClient === 'all' ? '' : movFilterClient}
+                  onValueChange={v => setMovFilterClient(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos clientes' }, ...clients.map(c => ({ value: c.id, label: c.name }))]}
+                  placeholder="Todos clientes"
+                  searchPlaceholder="Buscar cliente..."
+                  triggerClassName="w-[200px] h-8 text-xs"
+                />
+                <SearchableSelect
+                  value={movFilterArticle === 'all' ? '' : movFilterArticle}
+                  onValueChange={v => setMovFilterArticle(v || 'all')}
+                  options={[{ value: 'all', label: 'Todos artigos' }, ...articles.map(a => ({ value: a.id, label: a.name }))]}
+                  placeholder="Todos artigos"
+                  searchPlaceholder="Buscar artigo..."
+                  triggerClassName="w-[220px] h-8 text-xs"
+                />
+                <Input
+                  value={movFilterOf}
+                  onChange={e => setMovFilterOf(e.target.value)}
+                  placeholder="Nº OF"
+                  className="w-[120px] h-8 text-xs"
+                />
+                {(movFilterType !== 'all' || movFilterClient !== 'all' || movFilterArticle !== 'all' || movFilterOf) && (
+                  <Button variant="ghost" size="sm" className="text-xs h-8" onClick={() => { setMovFilterType('all'); setMovFilterClient('all'); setMovFilterArticle('all'); setMovFilterOf(''); }}>Limpar</Button>
+                )}
                 <span className="text-xs text-muted-foreground">{movTotalCount} movimento(s) — Página {movPage} de {movTotalPages || 1}</span>
               </div>
             </CardContent>
