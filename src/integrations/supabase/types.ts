@@ -5575,6 +5575,8 @@ export type Database = {
         }
         Returns: Json
       }
+      save_own_stock_article: { Args: { p_payload: Json }; Returns: Json }
+      save_own_stock_movement: { Args: { p_payload: Json }; Returns: Json }
       save_sinker_lot: {
         Args: {
           p_company_id: string
@@ -5590,6 +5592,7 @@ export type Database = {
         }
         Returns: Json
       }
+      save_stock_manual_movement: { Args: { p_payload: Json }; Returns: Json }
       save_yarn_type: {
         Args: {
           p_author_code?: string

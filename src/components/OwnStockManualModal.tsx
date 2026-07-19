@@ -75,11 +75,12 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
       if (creatingNew) {
         const nm = newName.trim();
         if (nm.length < 2) { setSaving(false); return toast({ title: 'Informe o nome do artigo', variant: 'destructive' }); }
-        const { data, error } = await (supabase.from as any)('own_stock_articles').insert({
-          company_id: user.company_id, name: nm, created_by: profile?.id ?? null,
-        }).select('id').single();
+        const { data, error } = await (supabase.rpc as any)('save_own_stock_article', {
+          p_payload: { company_id: user.company_id, name: nm, created_by: profile?.id ?? null },
+        });
         if (error) throw error;
-        finalArticleId = data.id;
+        finalArticleId = (data as any)?.id;
+        if (!finalArticleId) throw new Error('Falha ao criar artigo');
       }
       if (!finalArticleId) { setSaving(false); return toast({ title: 'Selecione ou crie um artigo', variant: 'destructive' }); }
       if (!(weightNum > 0) && !(piecesNum > 0)) { setSaving(false); return toast({ title: 'Informe peças ou peso', variant: 'destructive' }); }
@@ -88,18 +89,20 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
         return toast({ title: 'Selecione a malharia terceirizada', variant: 'destructive' });
       }
 
-      const { error: mvErr } = await (supabase.from as any)('own_stock_movements').insert({
-        company_id: user.company_id,
-        own_article_id: finalArticleId,
-        type,
-        pieces: piecesNum,
-        weight_kg: weightNum,
-        reason: reason.trim() || null,
-        created_by: profile?.id ?? null,
-        source: type === 'in' ? source : null,
-        outsource_company_id: type === 'in' && source === 'outsource' ? outsourceCompanyId : null,
-        yarn_type: type === 'in' ? (yarnType.trim() || null) : null,
-        of_number: type === 'in' ? (ofNumber.trim() || null) : null,
+      const { error: mvErr } = await (supabase.rpc as any)('save_own_stock_movement', {
+        p_payload: {
+          company_id: user.company_id,
+          own_article_id: finalArticleId,
+          type,
+          pieces: piecesNum,
+          weight_kg: weightNum,
+          reason: reason.trim() || null,
+          created_by: profile?.id ?? null,
+          source: type === 'in' ? source : null,
+          outsource_company_id: type === 'in' && source === 'outsource' ? outsourceCompanyId : null,
+          yarn_type: type === 'in' ? (yarnType.trim() || null) : null,
+          of_number: type === 'in' ? (ofNumber.trim() || null) : null,
+        },
       });
       if (mvErr) throw mvErr;
 
