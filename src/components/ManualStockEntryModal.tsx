@@ -68,17 +68,19 @@ export function ManualStockEntryModal({ open, onOpenChange, clients, articles, m
 
     setSaving(true);
     try {
-      const { error } = await (supabase.from as any)('stock_movements').insert({
-        company_id: user.company_id,
-        article_id: articleId,
-        client_id: clientId,
-        machine_id: machineId,
-        type,
-        pieces: piecesNum,
-        weight_kg: weightNum,
-        reason: reason.trim(),
-        created_by: profile?.id ?? null,
-        is_second_quality: isSecondQuality,
+      const { error } = await (supabase.rpc as any)('save_stock_manual_movement', {
+        p_payload: {
+          company_id: user.company_id,
+          article_id: articleId,
+          client_id: clientId,
+          machine_id: machineId,
+          type,
+          pieces: piecesNum,
+          weight_kg: weightNum,
+          reason: reason.trim(),
+          created_by: profile?.id ?? null,
+          is_second_quality: isSecondQuality,
+        },
       });
       if (error) throw error;
 
