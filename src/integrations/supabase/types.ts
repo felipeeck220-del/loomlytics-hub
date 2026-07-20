@@ -5505,6 +5505,10 @@ export type Database = {
         Returns: Json
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      recompute_machine_article_from_latest_ot: {
+        Args: { p_company_id: string; p_machine_id: string }
+        Returns: undefined
+      }
       save_client_invoice: {
         Args: {
           p_author_code: string
