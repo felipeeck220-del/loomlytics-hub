@@ -466,18 +466,36 @@ export default function FreightOrders() {
                 />
               </div>
             )}
+            <div className="space-y-2">
+              <Label htmlFor="ofr-priority-obs" className="text-red-600 font-semibold">
+                Observação para o freteiro (opcional)
+              </Label>
+              <Textarea
+                id="ofr-priority-obs"
+                rows={3}
+                placeholder="Ex: Cliente aguardando na portaria a partir das 8h..."
+                value={priorityObs}
+                onChange={(e) => setPriorityObs(e.target.value)}
+                className="border-red-300 focus-visible:ring-red-500"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Esta observação aparecerá em destaque para o freteiro no app e no celular.
+              </p>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPriorityOrder(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setPriorityOrder(null); setPriorityObs(''); }}>Cancelar</Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white"
               disabled={setPriority.isPending || !priorityReason || (priorityReason === 'custom' && !priorityCustom.trim())}
               onClick={() => {
                 if (!priorityOrder) return;
-                const reason = priorityReason === 'custom' ? priorityCustom.trim() : priorityReason;
+                const baseReason = priorityReason === 'custom' ? priorityCustom.trim() : priorityReason;
+                const obs = priorityObs.trim();
+                const reason = obs ? `${baseReason}\n📝 Obs: ${obs}` : baseReason;
                 setPriority.mutate(
                   { id: priorityOrder.id, priority: true, reason },
-                  { onSuccess: () => { setPriorityOrder(null); setTab('priority'); } }
+                  { onSuccess: () => { setPriorityOrder(null); setPriorityObs(''); setTab('priority'); } }
                 );
               }}
             >
