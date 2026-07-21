@@ -18,11 +18,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil, AlertTriangle, Flame } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type TabKey = 'open' | 'in_progress' | 'completed' | 'cancelled' | 'reports';
+type TabKey = 'priority' | 'open' | 'in_progress' | 'completed' | 'cancelled' | 'reports';
+
+const PRIORITY_REASONS = [
+  'Coleta urgente',
+  'Cliente aguardando',
+  'Entrega urgente hoje',
+];
 
 const STATUS_LABEL: Record<FreightOrderStatus, string> = {
   open: 'Aberto',
@@ -89,6 +95,7 @@ export default function FreightOrders() {
   const {
     orders, isLoading, freighters, costCompanies,
     createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
+    setPriority,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
     getPhotoSignedUrl,
@@ -96,7 +103,7 @@ export default function FreightOrders() {
 
   const hasFullAccess = role === 'admin' || role === 'lider_frete';
   const isFreteiro = role === 'freteiro';
-  const [tab, setTab] = useState<TabKey>('open');
+  const [tab, setTab] = useState<TabKey>('priority');
   const [searchTerm, setSearchTerm] = useState('');
   const [completedPage, setCompletedPage] = useState(0);
   const COMPLETED_PAGE_SIZE = 15;
@@ -107,6 +114,10 @@ export default function FreightOrders() {
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
   const [completeOrderId, setCompleteOrderId] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [priorityOrder, setPriorityOrder] = useState<FreightOrder | null>(null);
+  const [priorityReason, setPriorityReason] = useState<string>('');
+  const [priorityCustom, setPriorityCustom] = useState<string>('');
+  const [removePriorityOrder, setRemovePriorityOrder] = useState<FreightOrder | null>(null);
   const [companyName, setCompanyName] = useState<string>('');
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
@@ -121,17 +132,33 @@ export default function FreightOrders() {
       });
   }, [user?.company_id]);
 
+  // Freteiro só enxerga prioridade das próprias OFRs; admin/líder vê todas.
+  const isPriorityVisibleFor = (o: FreightOrder) => {
+    if (!o.priority || o.status !== 'open') return false;
+    if (hasFullAccess) return true;
+    if (isFreteiro && o.freighter?.user_id && user?.id && o.freighter.user_id === user.id) return true;
+    return false;
+  };
+
   const counts = useMemo(() => {
-    const c: Record<TabKey, number> = { open: 0, in_progress: 0, completed: 0, cancelled: 0, reports: 0 };
-    for (const o of orders) c[tabOfStatus(o.status)] += 1;
+    const c: Record<TabKey, number> = { priority: 0, open: 0, in_progress: 0, completed: 0, cancelled: 0, reports: 0 };
+    for (const o of orders) {
+      if (isPriorityVisibleFor(o)) { c.priority += 1; continue; }
+      c[tabOfStatus(o.status)] += 1;
+    }
     c.reports = orders.filter(o => o.status === 'completed').length;
     return c;
-  }, [orders]);
+  }, [orders, hasFullAccess, isFreteiro, user?.id]);
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return orders.filter(o => {
-      if (tabOfStatus(o.status) !== tab) return false;
+      if (tab === 'priority') {
+        if (!isPriorityVisibleFor(o)) return false;
+      } else if (tab === 'open') {
+        if (o.status !== 'open') return false;
+        if (isPriorityVisibleFor(o)) return false;
+      } else if (tabOfStatus(o.status) !== tab) return false;
       if (!term) return true;
       const matches =
         o.ofr_number?.toLowerCase().includes(term) ||
@@ -146,7 +173,7 @@ export default function FreightOrders() {
         );
       return matches;
     });
-  }, [orders, tab, searchTerm]);
+  }, [orders, tab, searchTerm, hasFullAccess, isFreteiro, user?.id]);
 
   useEffect(() => { setCompletedPage(0); }, [searchTerm, tab]);
 
@@ -195,6 +222,9 @@ export default function FreightOrders() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
         <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
+          <TabsTrigger value="priority" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-red-600 data-[state=active]:text-white">
+            <Flame className="h-3.5 w-3.5" /> Aberto Prioritário <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.priority}</Badge>
+          </TabsTrigger>
           <TabsTrigger value="open" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.open}</Badge>
           </TabsTrigger>
@@ -240,6 +270,8 @@ export default function FreightOrders() {
               onEdit={() => setEditOrder(order)}
               onDetails={() => setDetailsOrder(order)}
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
+              onSetPriority={() => { setPriorityReason(''); setPriorityCustom(''); setPriorityOrder(order); }}
+              onRemovePriority={() => setRemovePriorityOrder(order)}
             />
           ))}
           {tab === 'completed' && completedTotal > COMPLETED_PAGE_SIZE && (
@@ -376,6 +408,107 @@ export default function FreightOrders() {
         onOpenChange={(o) => !o && setDetailsOrder(null)}
         getPhotoSignedUrl={getPhotoSignedUrl}
       />
+
+      {/* Modal Adicionar Prioridade */}
+      <Dialog open={!!priorityOrder} onOpenChange={(o) => !o && setPriorityOrder(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" /> Adicionar Prioridade
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            {priorityOrder && (
+              <p className="text-sm text-muted-foreground">
+                OFR <strong>#{priorityOrder.ofr_number}</strong> — {priorityOrder.freighter?.name || 'Freteiro'}
+              </p>
+            )}
+            <div className="space-y-2">
+              <Label>Motivo da Prioridade</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {PRIORITY_REASONS.map((r) => (
+                  <Button
+                    key={r}
+                    variant={priorityReason === r ? 'default' : 'outline'}
+                    className="justify-start font-normal"
+                    onClick={() => { setPriorityReason(r); setPriorityCustom(''); }}
+                  >
+                    {r}
+                  </Button>
+                ))}
+                <Button
+                  variant={priorityReason === 'custom' ? 'default' : 'outline'}
+                  className="justify-start font-normal"
+                  onClick={() => setPriorityReason('custom')}
+                >
+                  Outro motivo...
+                </Button>
+              </div>
+            </div>
+            {priorityReason === 'custom' && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                <Label htmlFor="ofr-custom-reason">Especifique o motivo</Label>
+                <Input
+                  id="ofr-custom-reason"
+                  placeholder="Digite o motivo personalizado..."
+                  value={priorityCustom}
+                  onChange={(e) => setPriorityCustom(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPriorityOrder(null)}>Cancelar</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={setPriority.isPending || !priorityReason || (priorityReason === 'custom' && !priorityCustom.trim())}
+              onClick={() => {
+                if (!priorityOrder) return;
+                const reason = priorityReason === 'custom' ? priorityCustom.trim() : priorityReason;
+                setPriority.mutate(
+                  { id: priorityOrder.id, priority: true, reason },
+                  { onSuccess: () => { setPriorityOrder(null); setTab('priority'); } }
+                );
+              }}
+            >
+              Confirmar Prioridade
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Remover Prioridade */}
+      <Dialog open={!!removePriorityOrder} onOpenChange={(o) => !o && setRemovePriorityOrder(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <X className="h-5 w-5" /> Remover Prioridade
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Confirmar remoção da prioridade da OFR <strong>#{removePriorityOrder?.ofr_number}</strong>?
+            {removePriorityOrder?.priority_reason && (
+              <> <br /><span className="text-xs">Motivo atual: {removePriorityOrder.priority_reason}</span></>
+            )}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemovePriorityOrder(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={setPriority.isPending}
+              onClick={() => {
+                if (!removePriorityOrder) return;
+                setPriority.mutate(
+                  { id: removePriorityOrder.id, priority: false },
+                  { onSuccess: () => setRemovePriorityOrder(null) }
+                );
+              }}
+            >
+              Remover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -385,6 +518,7 @@ export default function FreightOrders() {
 function OrderCard({
   order, hasFullAccess, isFreteiro,
   onStartPickup, onComplete, onCancel, onEdit, onDetails, onDownload,
+  onSetPriority, onRemovePriority,
 }: {
   order: FreightOrder;
   hasFullAccess: boolean;
@@ -395,6 +529,8 @@ function OrderCard({
   onEdit: () => void;
   onDetails: () => void;
   onDownload: () => void;
+  onSetPriority?: () => void;
+  onRemovePriority?: () => void;
 }) {
   const totalPieces = (order.items || []).reduce((s, i) => s + Number(i.pieces || 0), 0);
   const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
@@ -408,14 +544,23 @@ function OrderCard({
     : null;
 
   const style = getStatusStyle(order.status);
+  const isPriority = !!order.priority && order.status === 'open';
 
   return (
-    <Card className="relative overflow-hidden border bg-card hover:shadow-md transition-shadow">
-      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${style.stripe}`} />
+    <Card className={cn(
+      "relative overflow-hidden border bg-card hover:shadow-md transition-shadow",
+      isPriority && "border-red-500/70 shadow-[0_0_0_1px_rgb(239,68,68,0.35)]"
+    )}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isPriority ? 'bg-red-600' : style.stripe}`} />
       <CardContent className="p-4 pl-5">
         <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
+              {isPriority && (
+                <Badge className="bg-red-600 text-white border-red-700 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1">
+                  <Flame className="h-3 w-3" /> PRIORIDADE
+                </Badge>
+              )}
               <Badge className={`${style.badgeClass} font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 border`}>
                 {style.label}
               </Badge>
@@ -504,6 +649,16 @@ function OrderCard({
             {order.status === 'open' && hasFullAccess && (
               <Button variant="outline" size="sm" onClick={onEdit}>
                 <Pencil className="h-4 w-4 mr-1.5" /> Editar
+              </Button>
+            )}
+            {order.status === 'open' && hasFullAccess && !isPriority && onSetPriority && (
+              <Button variant="outline" size="sm" onClick={onSetPriority} className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                <Flame className="h-4 w-4 mr-1.5" /> Prioridade
+              </Button>
+            )}
+            {order.status === 'open' && hasFullAccess && isPriority && onRemovePriority && (
+              <Button variant="outline" size="sm" onClick={onRemovePriority} className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                <X className="h-4 w-4 mr-1.5" /> Remover Prioridade
               </Button>
             )}
             {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && (isFreteiro || hasFullAccess) && (

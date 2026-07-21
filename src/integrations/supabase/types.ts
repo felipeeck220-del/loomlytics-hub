@@ -1553,6 +1553,10 @@ export type Database = {
           pickup_location: string
           pickup_started_at: string | null
           pickup_started_by: string | null
+          priority: boolean
+          priority_at: string | null
+          priority_by: string | null
+          priority_reason: string | null
           status: Database["public"]["Enums"]["freight_order_status"]
           updated_at: string
         }
@@ -1583,6 +1587,10 @@ export type Database = {
           pickup_location: string
           pickup_started_at?: string | null
           pickup_started_by?: string | null
+          priority?: boolean
+          priority_at?: string | null
+          priority_by?: string | null
+          priority_reason?: string | null
           status?: Database["public"]["Enums"]["freight_order_status"]
           updated_at?: string
         }
@@ -1613,6 +1621,10 @@ export type Database = {
           pickup_location?: string
           pickup_started_at?: string | null
           pickup_started_by?: string | null
+          priority?: boolean
+          priority_at?: string | null
+          priority_by?: string | null
+          priority_reason?: string | null
           status?: Database["public"]["Enums"]["freight_order_status"]
           updated_at?: string
         }
@@ -1683,6 +1695,13 @@ export type Database = {
           {
             foreignKeyName: "freight_orders_pickup_started_by_fkey"
             columns: ["pickup_started_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_orders_priority_by_fkey"
+            columns: ["priority_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
