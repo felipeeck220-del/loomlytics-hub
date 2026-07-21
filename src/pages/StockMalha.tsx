@@ -477,7 +477,7 @@ export default function StockMalha() {
       } else {
         // Por máquina — uma linha por (artigo, máquina), com subtotal por artigo
         const body: any[] = [];
-        let totalRolls = 0;
+        
         for (const a of articles) {
           const machines = ((a.byMachine || []) as any[])
             .filter((m) => m.machineId)
