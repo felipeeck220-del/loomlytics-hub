@@ -1163,9 +1163,15 @@ function CompleteModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Finalizar Entrega</DialogTitle></DialogHeader>
-        <div className="space-y-3">
+      <DialogContent
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        className="p-0 gap-0 w-screen h-screen max-w-none sm:max-w-none sm:rounded-none flex flex-col"
+        style={{ width: '100vw', height: '100vh' }}
+      >
+        <DialogHeader className="px-4 py-3 border-b shrink-0">
+          <DialogTitle>Finalizar Entrega{order ? ` — OFR #${order.ofr_number}` : ''}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
           <div className="rounded-md border bg-muted/30 p-3">
             <Label className="text-[10px] uppercase text-muted-foreground">Documento (definido na criação da OFR)</Label>
             <div className="mt-1 font-semibold text-sm text-foreground">
@@ -1222,7 +1228,7 @@ function CompleteModal({
             ))}
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="px-4 py-3 border-t shrink-0 bg-background gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={submit} disabled={submitting}>{submitting ? 'Enviando…' : 'Finalizar'}</Button>
         </DialogFooter>
