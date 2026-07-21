@@ -408,6 +408,107 @@ export default function FreightOrders() {
         onOpenChange={(o) => !o && setDetailsOrder(null)}
         getPhotoSignedUrl={getPhotoSignedUrl}
       />
+
+      {/* Modal Adicionar Prioridade */}
+      <Dialog open={!!priorityOrder} onOpenChange={(o) => !o && setPriorityOrder(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" /> Adicionar Prioridade
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            {priorityOrder && (
+              <p className="text-sm text-muted-foreground">
+                OFR <strong>#{priorityOrder.ofr_number}</strong> — {priorityOrder.freighter?.name || 'Freteiro'}
+              </p>
+            )}
+            <div className="space-y-2">
+              <Label>Motivo da Prioridade</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {PRIORITY_REASONS.map((r) => (
+                  <Button
+                    key={r}
+                    variant={priorityReason === r ? 'default' : 'outline'}
+                    className="justify-start font-normal"
+                    onClick={() => { setPriorityReason(r); setPriorityCustom(''); }}
+                  >
+                    {r}
+                  </Button>
+                ))}
+                <Button
+                  variant={priorityReason === 'custom' ? 'default' : 'outline'}
+                  className="justify-start font-normal"
+                  onClick={() => setPriorityReason('custom')}
+                >
+                  Outro motivo...
+                </Button>
+              </div>
+            </div>
+            {priorityReason === 'custom' && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                <Label htmlFor="ofr-custom-reason">Especifique o motivo</Label>
+                <Input
+                  id="ofr-custom-reason"
+                  placeholder="Digite o motivo personalizado..."
+                  value={priorityCustom}
+                  onChange={(e) => setPriorityCustom(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPriorityOrder(null)}>Cancelar</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={setPriority.isPending || !priorityReason || (priorityReason === 'custom' && !priorityCustom.trim())}
+              onClick={() => {
+                if (!priorityOrder) return;
+                const reason = priorityReason === 'custom' ? priorityCustom.trim() : priorityReason;
+                setPriority.mutate(
+                  { id: priorityOrder.id, priority: true, reason },
+                  { onSuccess: () => { setPriorityOrder(null); setTab('priority'); } }
+                );
+              }}
+            >
+              Confirmar Prioridade
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Remover Prioridade */}
+      <Dialog open={!!removePriorityOrder} onOpenChange={(o) => !o && setRemovePriorityOrder(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <X className="h-5 w-5" /> Remover Prioridade
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Confirmar remoção da prioridade da OFR <strong>#{removePriorityOrder?.ofr_number}</strong>?
+            {removePriorityOrder?.priority_reason && (
+              <> <br /><span className="text-xs">Motivo atual: {removePriorityOrder.priority_reason}</span></>
+            )}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemovePriorityOrder(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={setPriority.isPending}
+              onClick={() => {
+                if (!removePriorityOrder) return;
+                setPriority.mutate(
+                  { id: removePriorityOrder.id, priority: false },
+                  { onSuccess: () => setRemovePriorityOrder(null) }
+                );
+              }}
+            >
+              Remover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
