@@ -497,7 +497,7 @@ export default function StockMalha() {
             ]);
           });
           const subtotal = machines.reduce((s, m) => s + m.availableRolls, 0);
-          totalRolls += subtotal;
+          
           body.push([
             { content: `Subtotal — ${sanitizePdfText(a.articleName || '-')}`, colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', fillColor: [243, 244, 246] } },
             { content: formatNumber(subtotal), styles: { halign: 'center', fontStyle: 'bold', fillColor: [243, 244, 246] } },
