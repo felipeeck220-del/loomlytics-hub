@@ -18,11 +18,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil, AlertTriangle, Flame } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type TabKey = 'open' | 'in_progress' | 'completed' | 'cancelled' | 'reports';
+type TabKey = 'priority' | 'open' | 'in_progress' | 'completed' | 'cancelled' | 'reports';
+
+const PRIORITY_REASONS = [
+  'Coleta urgente',
+  'Cliente aguardando',
+  'Entrega urgente hoje',
+];
 
 const STATUS_LABEL: Record<FreightOrderStatus, string> = {
   open: 'Aberto',
@@ -89,6 +95,7 @@ export default function FreightOrders() {
   const {
     orders, isLoading, freighters, costCompanies,
     createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
+    setPriority,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
     getPhotoSignedUrl,
@@ -96,7 +103,7 @@ export default function FreightOrders() {
 
   const hasFullAccess = role === 'admin' || role === 'lider_frete';
   const isFreteiro = role === 'freteiro';
-  const [tab, setTab] = useState<TabKey>('open');
+  const [tab, setTab] = useState<TabKey>('priority');
   const [searchTerm, setSearchTerm] = useState('');
   const [completedPage, setCompletedPage] = useState(0);
   const COMPLETED_PAGE_SIZE = 15;
@@ -107,6 +114,10 @@ export default function FreightOrders() {
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
   const [completeOrderId, setCompleteOrderId] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [priorityOrder, setPriorityOrder] = useState<FreightOrder | null>(null);
+  const [priorityReason, setPriorityReason] = useState<string>('');
+  const [priorityCustom, setPriorityCustom] = useState<string>('');
+  const [removePriorityOrder, setRemovePriorityOrder] = useState<FreightOrder | null>(null);
   const [companyName, setCompanyName] = useState<string>('');
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
@@ -121,17 +132,33 @@ export default function FreightOrders() {
       });
   }, [user?.company_id]);
 
+  // Freteiro só enxerga prioridade das próprias OFRs; admin/líder vê todas.
+  const isPriorityVisibleFor = (o: FreightOrder) => {
+    if (!o.priority || o.status !== 'open') return false;
+    if (hasFullAccess) return true;
+    if (isFreteiro && o.freighter?.user_id && user?.id && o.freighter.user_id === user.id) return true;
+    return false;
+  };
+
   const counts = useMemo(() => {
-    const c: Record<TabKey, number> = { open: 0, in_progress: 0, completed: 0, cancelled: 0, reports: 0 };
-    for (const o of orders) c[tabOfStatus(o.status)] += 1;
+    const c: Record<TabKey, number> = { priority: 0, open: 0, in_progress: 0, completed: 0, cancelled: 0, reports: 0 };
+    for (const o of orders) {
+      if (isPriorityVisibleFor(o)) { c.priority += 1; continue; }
+      c[tabOfStatus(o.status)] += 1;
+    }
     c.reports = orders.filter(o => o.status === 'completed').length;
     return c;
-  }, [orders]);
+  }, [orders, hasFullAccess, isFreteiro, user?.id]);
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return orders.filter(o => {
-      if (tabOfStatus(o.status) !== tab) return false;
+      if (tab === 'priority') {
+        if (!isPriorityVisibleFor(o)) return false;
+      } else if (tab === 'open') {
+        if (o.status !== 'open') return false;
+        if (isPriorityVisibleFor(o)) return false;
+      } else if (tabOfStatus(o.status) !== tab) return false;
       if (!term) return true;
       const matches =
         o.ofr_number?.toLowerCase().includes(term) ||
@@ -146,7 +173,7 @@ export default function FreightOrders() {
         );
       return matches;
     });
-  }, [orders, tab, searchTerm]);
+  }, [orders, tab, searchTerm, hasFullAccess, isFreteiro, user?.id]);
 
   useEffect(() => { setCompletedPage(0); }, [searchTerm, tab]);
 
@@ -195,6 +222,9 @@ export default function FreightOrders() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
         <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
+          <TabsTrigger value="priority" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-red-600 data-[state=active]:text-white">
+            <Flame className="h-3.5 w-3.5" /> Aberto Prioritário <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.priority}</Badge>
+          </TabsTrigger>
           <TabsTrigger value="open" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.open}</Badge>
           </TabsTrigger>
@@ -240,6 +270,8 @@ export default function FreightOrders() {
               onEdit={() => setEditOrder(order)}
               onDetails={() => setDetailsOrder(order)}
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
+              onSetPriority={() => { setPriorityReason(''); setPriorityCustom(''); setPriorityOrder(order); }}
+              onRemovePriority={() => setRemovePriorityOrder(order)}
             />
           ))}
           {tab === 'completed' && completedTotal > COMPLETED_PAGE_SIZE && (
