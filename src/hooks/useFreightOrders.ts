@@ -94,6 +94,10 @@ export interface FreightOrder {
   canceller?: { name: string; code: string } | null;
   items?: FreightOrderItem[];
   photos?: FreightOrderPhoto[];
+  priority?: boolean;
+  priority_at?: string | null;
+  priority_by?: string | null;
+  priority_reason?: string | null;
 }
 
 export function useFreightOrders() {
