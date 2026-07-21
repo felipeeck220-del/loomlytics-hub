@@ -584,29 +584,39 @@ function OrderCard({
   return (
     <Card className={cn(
       "relative overflow-hidden border bg-card hover:shadow-md transition-shadow",
-      isPriority && "border-red-500/70 shadow-[0_0_0_1px_rgb(239,68,68,0.35)]"
+      isPriority && "border-red-500/70 shadow-[0_0_0_1px_rgb(239,68,68,0.35)] bg-gradient-to-br from-red-500/5 to-transparent"
     )}>
-      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isPriority ? 'bg-red-600' : style.stripe}`} />
-      <CardContent className="p-4 pl-5">
-        <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+      <div className={cn(
+        "absolute left-0 top-0 bottom-0 w-2",
+        isPriority ? 'bg-red-600' : style.stripe
+      )} />
+      <CardContent className="p-3 pl-4 sm:p-4 sm:pl-5">
+        <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-3 sm:gap-4">
           <div className="flex-1 min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-extrabold text-xl sm:text-lg text-foreground tracking-tight">OFR #{order.ofr_number}</span>
+              {timer && (
+                <span className="px-2.5 py-1 rounded-md bg-primary/10 border border-primary/30 font-mono text-xs sm:text-sm font-semibold text-primary tabular-nums">
+                  ⏱ {timer}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
               {isPriority && (
-                <Badge className="bg-red-600 text-white border-red-700 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1">
+                <Badge className="bg-red-600 text-white border-red-700 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1 animate-pulse">
                   <Flame className="h-3 w-3" /> PRIORIDADE
                 </Badge>
               )}
               <Badge className={`${style.badgeClass} font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 border`}>
                 {style.label}
               </Badge>
-              <span className="font-bold text-lg text-foreground">OFR #{order.ofr_number}</span>
-              <Badge variant="outline" className="font-semibold uppercase text-[10px] border-foreground/20 text-foreground">
+              <Badge variant="outline" className="font-semibold uppercase text-[10px] border-foreground/20 text-foreground max-w-[60vw] truncate">
                 {order.freighter?.name || '—'}
               </Badge>
               {hasFio && <Badge variant="outline" className="text-[10px] border-violet-500 text-violet-700 dark:text-violet-400">CONTÉM FIO</Badge>}
               {hasMalha && <Badge variant="outline" className="text-[10px] border-sky-500 text-sky-700 dark:text-sky-400">CONTÉM MALHA</Badge>}
               {(order.cost_company_name || order.cost_company?.name) && (
-                <Badge className="text-[10px] bg-indigo-600/15 text-indigo-700 dark:text-indigo-300 border border-indigo-600/40 gap-1 py-0 px-2 h-5 uppercase font-bold">
+                <Badge className="text-[10px] bg-indigo-600/15 text-indigo-700 dark:text-indigo-300 border border-indigo-600/40 gap-1 py-0 px-2 h-5 uppercase font-bold max-w-[60vw] truncate">
                   <Building2 className="h-3 w-3" />
                   Rateio: {order.cost_company_name || order.cost_company?.name}
                 </Badge>
@@ -617,14 +627,17 @@ function OrderCard({
                   {order.delivery_doc_type === 'rom' ? 'ROM' : 'NF'} {order.delivery_doc_number}
                 </Badge>
               )}
-              {timer && (
-                <span className="ml-auto px-2 py-0.5 rounded bg-background/60 border border-border font-mono text-xs">⏱ {timer}</span>
-              )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm">
-              <div><span className="text-muted-foreground text-xs uppercase">Coleta:</span> <span className="font-medium">{order.pickup_location}</span></div>
-              <div><span className="text-muted-foreground text-xs uppercase">Entrega:</span> <span className="font-medium">{order.delivery_location}</span></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm rounded-md bg-muted/40 border border-border/60 p-2.5">
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Coleta</div>
+                <div className="font-semibold text-foreground break-words">{order.pickup_location}</div>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Entrega</div>
+                <div className="font-semibold text-foreground break-words">{order.delivery_location}</div>
+              </div>
             </div>
 
             {isPriority && order.priority_reason && (
@@ -677,44 +690,45 @@ function OrderCard({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-1 xl:pt-0 xl:justify-end">
-            <Button variant="outline" size="sm" onClick={onDetails}>
-              <Eye className="h-4 w-4 mr-1.5" /> Detalhes
-            </Button>
-            <Button variant="outline" size="sm" onClick={onDownload}>
-              <Download className="h-4 w-4 mr-1.5" /> PDF
-            </Button>
-
+          <div className="flex flex-col xl:flex-row xl:flex-wrap gap-2 pt-1 xl:pt-0 xl:justify-end">
             {order.status === 'open' && (isFreteiro || hasFullAccess) && (
-              <Button size="sm" onClick={onStartPickup}>
+              <Button size="sm" onClick={onStartPickup} className="h-11 xl:h-9 font-semibold shadow-sm">
                 <Play className="h-4 w-4 mr-1.5" /> Iniciar Frete
               </Button>
             )}
-            {order.status === 'open' && hasFullAccess && (
-              <Button variant="outline" size="sm" onClick={onEdit}>
-                <Pencil className="h-4 w-4 mr-1.5" /> Editar
-              </Button>
-            )}
-            {order.status === 'open' && hasFullAccess && !isPriority && onSetPriority && (
-              <Button variant="outline" size="sm" onClick={onSetPriority} className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
-                <Flame className="h-4 w-4 mr-1.5" /> Prioridade
-              </Button>
-            )}
-            {order.status === 'open' && hasFullAccess && isPriority && onRemovePriority && (
-              <Button variant="outline" size="sm" onClick={onRemovePriority} className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
-                <X className="h-4 w-4 mr-1.5" /> Remover Prioridade
-              </Button>
-            )}
             {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && (isFreteiro || hasFullAccess) && (
-              <Button size="sm" onClick={onComplete}>
-                <CheckCircle2 className="h-4 w-4 mr-1.5" /> Finalizar
+              <Button size="sm" onClick={onComplete} className="h-11 xl:h-9 font-semibold shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white">
+                <CheckCircle2 className="h-4 w-4 mr-1.5" /> Finalizar Entrega
               </Button>
             )}
-            {hasFullAccess && order.status !== 'completed' && order.status !== 'cancelled' && (
-              <Button variant="ghost" size="sm" onClick={onCancel} className="text-destructive">
-                <Ban className="h-4 w-4 mr-1.5" /> Cancelar
+            <div className="grid grid-cols-2 gap-2 xl:flex xl:flex-wrap">
+              <Button variant="outline" size="sm" onClick={onDetails} className="h-10 xl:h-9">
+                <Eye className="h-4 w-4 mr-1.5" /> Detalhes
               </Button>
-            )}
+              <Button variant="outline" size="sm" onClick={onDownload} className="h-10 xl:h-9">
+                <Download className="h-4 w-4 mr-1.5" /> PDF
+              </Button>
+              {order.status === 'open' && hasFullAccess && (
+                <Button variant="outline" size="sm" onClick={onEdit} className="h-10 xl:h-9">
+                  <Pencil className="h-4 w-4 mr-1.5" /> Editar
+                </Button>
+              )}
+              {order.status === 'open' && hasFullAccess && !isPriority && onSetPriority && (
+                <Button variant="outline" size="sm" onClick={onSetPriority} className="h-10 xl:h-9 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                  <Flame className="h-4 w-4 mr-1.5" /> Prioridade
+                </Button>
+              )}
+              {order.status === 'open' && hasFullAccess && isPriority && onRemovePriority && (
+                <Button variant="outline" size="sm" onClick={onRemovePriority} className="h-10 xl:h-9 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                  <X className="h-4 w-4 mr-1.5" /> Remover Prioridade
+                </Button>
+              )}
+              {hasFullAccess && order.status !== 'completed' && order.status !== 'cancelled' && (
+                <Button variant="ghost" size="sm" onClick={onCancel} className="h-10 xl:h-9 text-destructive col-span-2 xl:col-span-1">
+                  <Ban className="h-4 w-4 mr-1.5" /> Cancelar
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
