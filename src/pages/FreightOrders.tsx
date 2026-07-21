@@ -280,7 +280,7 @@ export default function FreightOrders() {
               onEdit={() => setEditOrder(order)}
               onDetails={() => setDetailsOrder(order)}
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
-              onSetPriority={() => { setPriorityReason(''); setPriorityCustom(''); setPriorityOrder(order); }}
+              onSetPriority={() => { setPriorityReason(''); setPriorityCustom(''); setPriorityObs(''); setPriorityOrder(order); }}
               onRemovePriority={() => setRemovePriorityOrder(order)}
             />
           ))}
