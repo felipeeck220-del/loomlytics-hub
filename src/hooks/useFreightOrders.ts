@@ -544,6 +544,52 @@ export function useFreightOrders() {
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
+  const setPriority = useMutation({
+    mutationFn: async ({ id, priority, reason }: { id: string; priority: boolean; reason?: string | null }) => {
+      if (!user?.company_id) throw new Error('Sem empresa ativa');
+      const { data: current, error: curErr } = await (supabase.from as any)('freight_orders')
+        .select('id, ofr_number, status, freighter_id, pickup_location, delivery_location')
+        .eq('id', id).maybeSingle();
+      if (curErr) throw curErr;
+      if (!current) throw new Error('OFR não encontrada');
+      if (current.status !== 'open') throw new Error('Somente OFRs em Aberto podem ser priorizadas');
+
+      const patch: any = priority
+        ? { priority: true, priority_at: new Date().toISOString(), priority_by: profile?.id ?? null, priority_reason: reason || null }
+        : { priority: false, priority_at: null, priority_by: null, priority_reason: null };
+      const { error } = await (supabase.from as any)('freight_orders').update(patch).eq('id', id);
+      if (error) throw error;
+
+      if (priority) {
+        try {
+          const { data: frt } = await (supabase.from as any)('freighters')
+            .select('name, user_id').eq('id', current.freighter_id).maybeSingle();
+          const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+          const targetPath = slug ? `/${slug}/freight-orders` : '/';
+          const motivo = reason && reason.trim() ? ` · Motivo: ${reason.trim()}` : '';
+          supabase.functions.invoke('send-push-notification', {
+            body: {
+              company_id: user.company_id,
+              title: `🚨 OFR #${current.ofr_number} marcada como PRIORIDADE — ${frt?.name || 'Freteiro'}`,
+              message: `${current.pickup_location} → ${current.delivery_location}${motivo}`,
+              url: targetPath,
+              include_admins: true,
+              target_user_ids: frt?.user_id ? [frt.user_id] : [],
+              source: 'OFR',
+              ref_id: id,
+              ref_number: `OFR #${current.ofr_number}`,
+            },
+          }).catch(() => { /* silencioso */ });
+        } catch { /* silencioso */ }
+      }
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['freight_orders'] });
+      toast({ title: vars.priority ? 'OFR marcada como prioridade' : 'Prioridade removida' });
+    },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
   const createFreighter = useMutation({
     mutationFn: async (payload: { name: string; phone?: string; vehicle?: string; user_id?: string; profile_id?: string }) => {
       const { error } = await (supabase.from as any)('freighters').insert({
@@ -586,7 +632,7 @@ export function useFreightOrders() {
 
   return {
     orders, isLoading, freighters, costCompanies,
-    createOrder, updateOrder, startPickup, completeOrder, cancelOrder,
+    createOrder, updateOrder, startPickup, completeOrder, cancelOrder, setPriority,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
     getPhotoSignedUrl,
