@@ -117,6 +117,7 @@ export default function FreightOrders() {
   const [priorityOrder, setPriorityOrder] = useState<FreightOrder | null>(null);
   const [priorityReason, setPriorityReason] = useState<string>('');
   const [priorityCustom, setPriorityCustom] = useState<string>('');
+  const [priorityObs, setPriorityObs] = useState<string>('');
   const [removePriorityOrder, setRemovePriorityOrder] = useState<FreightOrder | null>(null);
   const [companyName, setCompanyName] = useState<string>('');
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
@@ -222,8 +223,17 @@ export default function FreightOrders() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
         <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
-          <TabsTrigger value="priority" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-red-600 data-[state=active]:text-white">
-            <Flame className="h-3.5 w-3.5" /> Aberto Prioritário <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.priority}</Badge>
+          <TabsTrigger
+            value="priority"
+            className={cn(
+              "gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial",
+              counts.priority > 0 && "data-[state=active]:bg-red-600 data-[state=active]:text-white text-red-600"
+            )}
+          >
+            <Flame className="h-3.5 w-3.5" /> Aberto Prioritário
+            {counts.priority > 0 && (
+              <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.priority}</Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="open" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.open}</Badge>
@@ -232,7 +242,7 @@ export default function FreightOrders() {
             Frete em curso <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.in_progress}</Badge>
           </TabsTrigger>
           <TabsTrigger value="completed" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-            Finalizados <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.completed}</Badge>
+            Finalizados
           </TabsTrigger>
           <TabsTrigger value="cancelled" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Cancelados <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.cancelled}</Badge>
@@ -270,7 +280,7 @@ export default function FreightOrders() {
               onEdit={() => setEditOrder(order)}
               onDetails={() => setDetailsOrder(order)}
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
-              onSetPriority={() => { setPriorityReason(''); setPriorityCustom(''); setPriorityOrder(order); }}
+              onSetPriority={() => { setPriorityReason(''); setPriorityCustom(''); setPriorityObs(''); setPriorityOrder(order); }}
               onRemovePriority={() => setRemovePriorityOrder(order)}
             />
           ))}
@@ -456,18 +466,36 @@ export default function FreightOrders() {
                 />
               </div>
             )}
+            <div className="space-y-2">
+              <Label htmlFor="ofr-priority-obs" className="text-red-600 font-semibold">
+                Observação para o freteiro (opcional)
+              </Label>
+              <Textarea
+                id="ofr-priority-obs"
+                rows={3}
+                placeholder="Ex: Cliente aguardando na portaria a partir das 8h..."
+                value={priorityObs}
+                onChange={(e) => setPriorityObs(e.target.value)}
+                className="border-red-300 focus-visible:ring-red-500"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Esta observação aparecerá em destaque para o freteiro no app e no celular.
+              </p>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPriorityOrder(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setPriorityOrder(null); setPriorityObs(''); }}>Cancelar</Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white"
               disabled={setPriority.isPending || !priorityReason || (priorityReason === 'custom' && !priorityCustom.trim())}
               onClick={() => {
                 if (!priorityOrder) return;
-                const reason = priorityReason === 'custom' ? priorityCustom.trim() : priorityReason;
+                const baseReason = priorityReason === 'custom' ? priorityCustom.trim() : priorityReason;
+                const obs = priorityObs.trim();
+                const reason = obs ? `${baseReason}\n📝 Obs: ${obs}` : baseReason;
                 setPriority.mutate(
                   { id: priorityOrder.id, priority: true, reason },
-                  { onSuccess: () => { setPriorityOrder(null); setTab('priority'); } }
+                  { onSuccess: () => { setPriorityOrder(null); setPriorityObs(''); setTab('priority'); } }
                 );
               }}
             >
@@ -591,6 +619,15 @@ function OrderCard({
               <div><span className="text-muted-foreground text-xs uppercase">Coleta:</span> <span className="font-medium">{order.pickup_location}</span></div>
               <div><span className="text-muted-foreground text-xs uppercase">Entrega:</span> <span className="font-medium">{order.delivery_location}</span></div>
             </div>
+
+            {isPriority && order.priority_reason && (
+              <div className="rounded-md border-2 border-red-500/70 bg-red-500/10 px-3 py-2 text-sm text-red-800 dark:text-red-200 whitespace-pre-wrap break-words">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-red-700 dark:text-red-300 mb-0.5">
+                  <Flame className="h-3 w-3" /> Motivo da Prioridade
+                </div>
+                {order.priority_reason}
+              </div>
+            )}
 
             <div className="rounded-md border border-border/60 bg-muted/30 overflow-hidden">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-2.5 py-1 bg-muted/60 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
