@@ -620,6 +620,15 @@ function OrderCard({
               <div><span className="text-muted-foreground text-xs uppercase">Entrega:</span> <span className="font-medium">{order.delivery_location}</span></div>
             </div>
 
+            {isPriority && order.priority_reason && (
+              <div className="rounded-md border-2 border-red-500/70 bg-red-500/10 px-3 py-2 text-sm text-red-800 dark:text-red-200 whitespace-pre-wrap break-words">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-red-700 dark:text-red-300 mb-0.5">
+                  <Flame className="h-3 w-3" /> Motivo da Prioridade
+                </div>
+                {order.priority_reason}
+              </div>
+            )}
+
             <div className="rounded-md border border-border/60 bg-muted/30 overflow-hidden">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-2.5 py-1 bg-muted/60 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 <span>{(order.items || []).length} item(ns)</span>
