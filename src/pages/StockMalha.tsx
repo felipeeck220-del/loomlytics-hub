@@ -455,8 +455,6 @@ export default function StockMalha() {
           sanitizePdfText(a.articleName || '-'),
           formatNumber(Number(a.availableRolls || 0)),
         ]);
-        const totalRolls = articles.reduce((s: number, a: any) => s + Number(a.availableRolls || 0), 0);
-        body.push(['TOTAL', formatNumber(totalRolls)]);
         autoTable(pdf, {
           head: [[ 'ARTIGO', 'DISP. ROLOS' ]],
           body,
