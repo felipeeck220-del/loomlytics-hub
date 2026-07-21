@@ -455,8 +455,6 @@ export default function StockMalha() {
           sanitizePdfText(a.articleName || '-'),
           formatNumber(Number(a.availableRolls || 0)),
         ]);
-        const totalRolls = articles.reduce((s: number, a: any) => s + Number(a.availableRolls || 0), 0);
-        body.push(['TOTAL', formatNumber(totalRolls)]);
         autoTable(pdf, {
           head: [[ 'ARTIGO', 'DISP. ROLOS' ]],
           body,
@@ -474,18 +472,12 @@ export default function StockMalha() {
               if (d.column.index === 0) d.cell.styles.halign = 'left';
               if (d.column.index === 1) d.cell.styles.halign = 'center';
             }
-            if (d.section === 'body' && d.row.index === body.length - 1) {
-              d.cell.styles.fillColor = [243, 244, 246];
-              d.cell.styles.fontStyle = 'bold';
-              if (d.column.index === 0) d.cell.styles.halign = 'left';
-              if (d.column.index === 1) d.cell.styles.halign = 'center';
-            }
           },
         });
       } else {
         // Por máquina — uma linha por (artigo, máquina), com subtotal por artigo
         const body: any[] = [];
-        let totalRolls = 0;
+        
         for (const a of articles) {
           const machines = ((a.byMachine || []) as any[])
             .filter((m) => m.machineId)
@@ -505,7 +497,7 @@ export default function StockMalha() {
             ]);
           });
           const subtotal = machines.reduce((s, m) => s + m.availableRolls, 0);
-          totalRolls += subtotal;
+          
           body.push([
             { content: `Subtotal — ${sanitizePdfText(a.articleName || '-')}`, colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', fillColor: [243, 244, 246] } },
             { content: formatNumber(subtotal), styles: { halign: 'center', fontStyle: 'bold', fillColor: [243, 244, 246] } },
@@ -516,10 +508,6 @@ export default function StockMalha() {
           setExportingClientId(null);
           return;
         }
-        body.push([
-          { content: 'TOTAL GERAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', fillColor: [229, 231, 235] } },
-          { content: formatNumber(totalRolls), styles: { halign: 'center', fontStyle: 'bold', fillColor: [229, 231, 235] } },
-        ]);
         autoTable(pdf, {
           head: [[ 'ARTIGO', 'MÁQUINA', 'DISP. ROLOS' ]],
           body,
