@@ -472,12 +472,6 @@ export default function StockMalha() {
               if (d.column.index === 0) d.cell.styles.halign = 'left';
               if (d.column.index === 1) d.cell.styles.halign = 'center';
             }
-            if (d.section === 'body' && d.row.index === body.length - 1) {
-              d.cell.styles.fillColor = [243, 244, 246];
-              d.cell.styles.fontStyle = 'bold';
-              if (d.column.index === 0) d.cell.styles.halign = 'left';
-              if (d.column.index === 1) d.cell.styles.halign = 'center';
-            }
           },
         });
       } else {
