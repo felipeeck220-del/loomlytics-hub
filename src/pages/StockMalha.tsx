@@ -508,10 +508,6 @@ export default function StockMalha() {
           setExportingClientId(null);
           return;
         }
-        body.push([
-          { content: 'TOTAL GERAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold', fillColor: [229, 231, 235] } },
-          { content: formatNumber(totalRolls), styles: { halign: 'center', fontStyle: 'bold', fillColor: [229, 231, 235] } },
-        ]);
         autoTable(pdf, {
           head: [[ 'ARTIGO', 'MÁQUINA', 'DISP. ROLOS' ]],
           body,
