@@ -454,28 +454,31 @@ export default function StockMalha() {
         const body = articles.map((a: any) => [
           sanitizePdfText(a.articleName || '-'),
           formatNumber(Number(a.availableRolls || 0)),
-          formatWeight(Number(a.availableKg || 0)),
         ]);
         const totalRolls = articles.reduce((s: number, a: any) => s + Number(a.availableRolls || 0), 0);
-        const totalKg = articles.reduce((s: number, a: any) => s + Number(a.availableKg || 0), 0);
-        body.push(['TOTAL', formatNumber(totalRolls), formatWeight(totalKg)]);
+        body.push(['TOTAL', formatNumber(totalRolls)]);
         autoTable(pdf, {
-          head: [[ 'ARTIGO', 'DISP. ROLOS', 'DISP. (KG)' ]],
+          head: [[ 'ARTIGO', 'DISP. ROLOS' ]],
           body,
           startY,
           margin: { left: margin, right: margin },
           styles: { fontSize: 9, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle' },
-          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', halign: 'center' },
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
           bodyStyles: { halign: 'center' },
           columnStyles: {
             0: { halign: 'left', fontStyle: 'bold' },
             1: { halign: 'center' },
-            2: { halign: 'right' },
           },
           didParseCell: (d: any) => {
+            if (d.section === 'head') {
+              if (d.column.index === 0) d.cell.styles.halign = 'left';
+              if (d.column.index === 1) d.cell.styles.halign = 'center';
+            }
             if (d.section === 'body' && d.row.index === body.length - 1) {
               d.cell.styles.fillColor = [243, 244, 246];
               d.cell.styles.fontStyle = 'bold';
+              if (d.column.index === 0) d.cell.styles.halign = 'left';
+              if (d.column.index === 1) d.cell.styles.halign = 'center';
             }
           },
         });
