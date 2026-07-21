@@ -178,6 +178,13 @@ export default function FreightOrders() {
 
   useEffect(() => { setCompletedPage(0); }, [searchTerm, tab]);
 
+  // Se a aba Prioritário ficar vazia e estivermos nela, voltar para "Aberto".
+  useEffect(() => {
+    if (tab === 'priority' && !isLoading && counts.priority === 0) {
+      setTab('open');
+    }
+  }, [tab, isLoading, counts.priority]);
+
   const completedTotal = tab === 'completed' ? filtered.length : 0;
   const completedTotalPages = Math.max(1, Math.ceil(completedTotal / COMPLETED_PAGE_SIZE));
   const completedPageSafe = Math.min(completedPage, completedTotalPages - 1);

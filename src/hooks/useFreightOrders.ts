@@ -557,8 +557,15 @@ export function useFreightOrders() {
       const patch: any = priority
         ? { priority: true, priority_at: new Date().toISOString(), priority_by: profile?.id ?? null, priority_reason: reason || null }
         : { priority: false, priority_at: null, priority_by: null, priority_reason: null };
-      const { error } = await (supabase.from as any)('freight_orders').update(patch).eq('id', id);
+      // UPDATE condicional: evita race caso o status tenha mudado entre o SELECT e o UPDATE
+      const { data: updated, error } = await (supabase.from as any)('freight_orders')
+        .update(patch)
+        .eq('id', id)
+        .eq('status', 'open')
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!updated) throw new Error('OFR não está mais em Aberto — prioridade não aplicada');
 
       if (priority) {
         try {
