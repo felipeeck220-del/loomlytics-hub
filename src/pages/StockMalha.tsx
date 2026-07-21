@@ -1508,6 +1508,59 @@ export default function StockMalha() {
           onSaved={refreshOwnStock}
         />
       )}
+      <Dialog open={!!clientExportGroup} onOpenChange={(o) => { if (!o) setClientExportGroup(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exportar PDF do cliente</DialogTitle>
+            <DialogDescription>
+              {clientExportGroup?.clientName} — escolha o formato do relatório
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
+            <button
+              type="button"
+              disabled={!!exportingClientId}
+              onClick={() => handleExportClientPdf(clientExportGroup, 'byMachine')}
+              className="text-left rounded-lg border p-4 hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-sm">Por máquina</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Cliente → Artigo → Máquinas (com subtotal por artigo)
+                  </div>
+                </div>
+                {exportingClientId === `${clientExportGroup?.clientId}::byMachine`
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Download className="h-4 w-4" />}
+              </div>
+            </button>
+            <button
+              type="button"
+              disabled={!!exportingClientId}
+              onClick={() => handleExportClientPdf(clientExportGroup, 'geral')}
+              className="text-left rounded-lg border p-4 hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-sm">Geral</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Cliente → Artigo (somando todas as peças de todas as máquinas)
+                  </div>
+                </div>
+                {exportingClientId === `${clientExportGroup?.clientId}::geral`
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Download className="h-4 w-4" />}
+              </div>
+            </button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClientExportGroup(null)} disabled={!!exportingClientId}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
