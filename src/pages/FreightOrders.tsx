@@ -417,6 +417,7 @@ export default function FreightOrders() {
 function OrderCard({
   order, hasFullAccess, isFreteiro,
   onStartPickup, onComplete, onCancel, onEdit, onDetails, onDownload,
+  onSetPriority, onRemovePriority,
 }: {
   order: FreightOrder;
   hasFullAccess: boolean;
@@ -427,6 +428,8 @@ function OrderCard({
   onEdit: () => void;
   onDetails: () => void;
   onDownload: () => void;
+  onSetPriority?: () => void;
+  onRemovePriority?: () => void;
 }) {
   const totalPieces = (order.items || []).reduce((s, i) => s + Number(i.pieces || 0), 0);
   const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
@@ -440,14 +443,23 @@ function OrderCard({
     : null;
 
   const style = getStatusStyle(order.status);
+  const isPriority = !!order.priority && order.status === 'open';
 
   return (
-    <Card className="relative overflow-hidden border bg-card hover:shadow-md transition-shadow">
-      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${style.stripe}`} />
+    <Card className={cn(
+      "relative overflow-hidden border bg-card hover:shadow-md transition-shadow",
+      isPriority && "border-red-500/70 shadow-[0_0_0_1px_rgb(239,68,68,0.35)]"
+    )}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isPriority ? 'bg-red-600' : style.stripe}`} />
       <CardContent className="p-4 pl-5">
         <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
+              {isPriority && (
+                <Badge className="bg-red-600 text-white border-red-700 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1">
+                  <Flame className="h-3 w-3" /> PRIORIDADE
+                </Badge>
+              )}
               <Badge className={`${style.badgeClass} font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 border`}>
                 {style.label}
               </Badge>
@@ -536,6 +548,16 @@ function OrderCard({
             {order.status === 'open' && hasFullAccess && (
               <Button variant="outline" size="sm" onClick={onEdit}>
                 <Pencil className="h-4 w-4 mr-1.5" /> Editar
+              </Button>
+            )}
+            {order.status === 'open' && hasFullAccess && !isPriority && onSetPriority && (
+              <Button variant="outline" size="sm" onClick={onSetPriority} className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                <Flame className="h-4 w-4 mr-1.5" /> Prioridade
+              </Button>
+            )}
+            {order.status === 'open' && hasFullAccess && isPriority && onRemovePriority && (
+              <Button variant="outline" size="sm" onClick={onRemovePriority} className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                <X className="h-4 w-4 mr-1.5" /> Remover Prioridade
               </Button>
             )}
             {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && (isFreteiro || hasFullAccess) && (
