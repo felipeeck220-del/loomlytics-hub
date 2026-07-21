@@ -117,6 +117,7 @@ export default function FreightOrders() {
   const [priorityOrder, setPriorityOrder] = useState<FreightOrder | null>(null);
   const [priorityReason, setPriorityReason] = useState<string>('');
   const [priorityCustom, setPriorityCustom] = useState<string>('');
+  const [priorityObs, setPriorityObs] = useState<string>('');
   const [removePriorityOrder, setRemovePriorityOrder] = useState<FreightOrder | null>(null);
   const [companyName, setCompanyName] = useState<string>('');
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
@@ -222,8 +223,17 @@ export default function FreightOrders() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
         <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
-          <TabsTrigger value="priority" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-red-600 data-[state=active]:text-white">
-            <Flame className="h-3.5 w-3.5" /> Aberto Prioritário <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.priority}</Badge>
+          <TabsTrigger
+            value="priority"
+            className={cn(
+              "gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial",
+              counts.priority > 0 && "data-[state=active]:bg-red-600 data-[state=active]:text-white text-red-600"
+            )}
+          >
+            <Flame className="h-3.5 w-3.5" /> Aberto Prioritário
+            {counts.priority > 0 && (
+              <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.priority}</Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="open" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Aberto <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.open}</Badge>
@@ -232,7 +242,7 @@ export default function FreightOrders() {
             Frete em curso <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.in_progress}</Badge>
           </TabsTrigger>
           <TabsTrigger value="completed" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-            Finalizados <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.completed}</Badge>
+            Finalizados
           </TabsTrigger>
           <TabsTrigger value="cancelled" className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial">
             Cancelados <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.cancelled}</Badge>
