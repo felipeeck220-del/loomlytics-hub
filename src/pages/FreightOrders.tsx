@@ -124,6 +124,13 @@ export default function FreightOrders() {
 
   useTicker(tab === 'in_progress');
 
+  // Se a aba Prioritário fica vazia e estamos nela, voltar para "Aberto" evita tela em branco.
+  useEffect(() => {
+    if (tab === 'priority' && !isLoading && counts.priority === 0) {
+      setTab('open');
+    }
+  }, [tab, isLoading, counts.priority]);
+
   useEffect(() => {
     if (!user?.company_id) return;
     (supabase.from as any)('companies').select('name, logo_url').eq('id', user.company_id).maybeSingle()
