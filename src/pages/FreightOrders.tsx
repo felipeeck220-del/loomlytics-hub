@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
-import { useFreightOrders, type FreightOrderStatus, type FreightOrder, type FreightOrderItem } from '@/hooks/useFreightOrders';
+import { useFreightOrders, type FreightOrderStatus, type FreightOrder, type FreightOrderItem, type FreightAddress } from '@/hooks/useFreightOrders';
 import { generateFreightOrderPdf } from '@/lib/freightOrderPdf';
 import { FreightReportsTab } from '@/components/freight/FreightReportsTab';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { BrazilianWeightInput } from '@/components/BrazilianWeightInput';
-import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil, AlertTriangle, Flame } from 'lucide-react';
+import { Plus, Play, Truck, CheckCircle2, Download, Ban, X, Camera, Eye, Trash2, Users, Search, FileText, Building2, BarChart3, MapPin, ArrowRight, StickyNote, ChevronLeft, ChevronRight, Pencil, AlertTriangle, Flame, Navigation, Map as MapIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -98,6 +98,7 @@ export default function FreightOrders() {
     setPriority,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
+    addresses, createAddress, updateAddress, deleteAddress,
     getPhotoSignedUrl,
   } = useFreightOrders();
 
@@ -111,6 +112,8 @@ export default function FreightOrders() {
   const [editOrder, setEditOrder] = useState<FreightOrder | null>(null);
   const [freightersOpen, setFreightersOpen] = useState(false);
   const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
+  const [addressesOpen, setAddressesOpen] = useState(false);
+  const [orderAddressesView, setOrderAddressesView] = useState<FreightOrder | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
   const [completeOrderId, setCompleteOrderId] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
@@ -210,6 +213,9 @@ export default function FreightOrders() {
               <Button variant="outline" onClick={() => setCostCompaniesOpen(true)} className="gap-2">
                 <Building2 className="h-4 w-4" /> Empresas
               </Button>
+              <Button variant="outline" onClick={() => setAddressesOpen(true)} className="gap-2">
+                <MapPin className="h-4 w-4" /> Endereços
+              </Button>
               <Button onClick={() => setNewOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" /> Nova OFR
               </Button>
@@ -289,6 +295,7 @@ export default function FreightOrders() {
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
               onSetPriority={() => { setPriorityReason(''); setPriorityCustom(''); setPriorityObs(''); setPriorityOrder(order); }}
               onRemovePriority={() => setRemovePriorityOrder(order)}
+              onOpenAddresses={() => setOrderAddressesView(order)}
             />
           ))}
           {tab === 'completed' && completedTotal > COMPLETED_PAGE_SIZE && (
@@ -333,6 +340,7 @@ export default function FreightOrders() {
           onOpenChange={setNewOpen}
           freighters={freighters}
           costCompanies={costCompanies}
+          addresses={addresses}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
@@ -346,6 +354,7 @@ export default function FreightOrders() {
           onOpenChange={(o) => !o && setEditOrder(null)}
           freighters={freighters}
           costCompanies={costCompanies}
+          addresses={addresses}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           mode="edit"
@@ -395,6 +404,22 @@ export default function FreightOrders() {
           onDelete={(id) => deleteCostCompany.mutate(id)}
         />
       )}
+
+      {hasFullAccess && (
+        <AddressesModal
+          open={addressesOpen}
+          onOpenChange={setAddressesOpen}
+          addresses={addresses}
+          onCreate={(p) => createAddress.mutate(p)}
+          onUpdate={(p) => updateAddress.mutate(p)}
+          onDelete={(id) => deleteAddress.mutate(id)}
+        />
+      )}
+
+      <OrderAddressesModal
+        order={orderAddressesView}
+        onOpenChange={(o) => !o && setOrderAddressesView(null)}
+      />
 
       <CompleteModal
         open={!!completeOrderId}
@@ -554,6 +579,7 @@ function OrderCard({
   order, hasFullAccess, isFreteiro,
   onStartPickup, onComplete, onCancel, onEdit, onDetails, onDownload,
   onSetPriority, onRemovePriority,
+  onOpenAddresses,
 }: {
   order: FreightOrder;
   hasFullAccess: boolean;
@@ -566,6 +592,7 @@ function OrderCard({
   onDownload: () => void;
   onSetPriority?: () => void;
   onRemovePriority?: () => void;
+  onOpenAddresses?: () => void;
 }) {
   const totalPieces = (order.items || []).reduce((s, i) => s + Number(i.pieces || 0), 0);
   const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
@@ -705,6 +732,11 @@ function OrderCard({
               <Button variant="outline" size="sm" onClick={onDetails} className="h-10 xl:h-9">
                 <Eye className="h-4 w-4 mr-1.5" /> Detalhes
               </Button>
+              {onOpenAddresses && (
+                <Button variant="outline" size="sm" onClick={onOpenAddresses} className="h-10 xl:h-9 border-primary/40 text-primary hover:bg-primary/10">
+                  <Navigation className="h-4 w-4 mr-1.5" /> Endereços
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={onDownload} className="h-10 xl:h-9">
                 <Download className="h-4 w-4 mr-1.5" /> PDF
               </Button>
@@ -743,13 +775,14 @@ function OrderCard({
 /* ---------------- Modals ---------------- */
 
 function NewOFRModal({
-  open, onOpenChange, freighters, costCompanies, articles, yarnTypes, onSubmit, submitting,
+  open, onOpenChange, freighters, costCompanies, addresses, articles, yarnTypes, onSubmit, submitting,
   mode = 'create', initial,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   freighters: Array<{ id: string; name: string; active: boolean }>;
   costCompanies: Array<{ id: string; name: string; active: boolean }>;
+  addresses: Array<{ id: string; name: string; full_address: string; active: boolean }>;
   articles: Array<{ id: string; name: string; client_name?: string }>;
   yarnTypes: Array<{ id: string; name: string }>;
   onSubmit: (p: {
@@ -903,11 +936,33 @@ function NewOFRModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Local de coleta *</Label>
-              <Input value={pickup} onChange={e => setPickup(e.target.value)} placeholder="Ex: TEAR / Tinturaria Litoral" />
+              {addresses.filter(a => a.active).length > 0 && (
+                <SearchableSelect
+                  value=""
+                  onValueChange={(id) => {
+                    const a = addresses.find(x => x.id === id);
+                    if (a) setPickup(`${a.name} — ${a.full_address}`);
+                  }}
+                  options={addresses.filter(a => a.active).map(a => ({ value: a.id, label: `${a.name} — ${a.full_address}` }))}
+                  placeholder="Selecionar endereço cadastrado..."
+                />
+              )}
+              <Input className="mt-2" value={pickup} onChange={e => setPickup(e.target.value)} placeholder="Ou digite manualmente" />
             </div>
             <div>
               <Label>Local de entrega *</Label>
-              <Input value={delivery} onChange={e => setDelivery(e.target.value)} placeholder="Ex: Cliente XYZ" />
+              {addresses.filter(a => a.active).length > 0 && (
+                <SearchableSelect
+                  value=""
+                  onValueChange={(id) => {
+                    const a = addresses.find(x => x.id === id);
+                    if (a) setDelivery(`${a.name} — ${a.full_address}`);
+                  }}
+                  options={addresses.filter(a => a.active).map(a => ({ value: a.id, label: `${a.name} — ${a.full_address}` }))}
+                  placeholder="Selecionar endereço cadastrado..."
+                />
+              )}
+              <Input className="mt-2" value={delivery} onChange={e => setDelivery(e.target.value)} placeholder="Ou digite manualmente" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1592,6 +1647,175 @@ function CostCompaniesModal({
             </div>
           ))}
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============= Addresses Manager Modal =============
+function AddressesModal({
+  open, onOpenChange, addresses, onCreate, onUpdate, onDelete,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  addresses: FreightAddress[];
+  onCreate: (p: { name: string; full_address: string }) => void;
+  onUpdate: (p: { id: string; name?: string; full_address?: string; active?: boolean }) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [name, setName] = useState('');
+  const [addr, setAddr] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [preview, setPreview] = useState('');
+
+  useEffect(() => {
+    if (!open) { setName(''); setAddr(''); setEditingId(null); setPreview(''); }
+  }, [open]);
+
+  const previewQuery = preview.trim() || addr.trim();
+  const embedUrl = previewQuery
+    ? `https://www.google.com/maps?q=${encodeURIComponent(previewQuery)}&output=embed`
+    : null;
+
+  function submit() {
+    if (!name.trim() || !addr.trim()) return;
+    if (editingId) {
+      onUpdate({ id: editingId, name: name.trim(), full_address: addr.trim() });
+      setEditingId(null);
+    } else {
+      onCreate({ name: name.trim(), full_address: addr.trim() });
+    }
+    setName(''); setAddr(''); setPreview('');
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[80vw] max-w-4xl h-[80vh] max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" /> Endereços
+          </DialogTitle>
+          <DialogDescription>Cadastre endereços para reutilizar em Coletas e Entregas.</DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-auto grid grid-cols-1 lg:grid-cols-2 gap-4 pr-2">
+          <div className="space-y-3">
+            <div>
+              <Label>Nome do local *</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Tinturaria Litoral" />
+            </div>
+            <div>
+              <Label>Endereço completo *</Label>
+              <Textarea rows={3} value={addr} onChange={e => setAddr(e.target.value)} placeholder="Rua, número, bairro, cidade — UF" />
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setPreview(addr)} disabled={!addr.trim()}>
+                <MapIcon className="h-4 w-4 mr-1.5" /> Ver no mapa
+              </Button>
+              <Button type="button" onClick={submit} disabled={!name.trim() || !addr.trim()} className="ml-auto">
+                {editingId ? 'Atualizar' : 'Cadastrar'}
+              </Button>
+              {editingId && (
+                <Button type="button" variant="ghost" onClick={() => { setEditingId(null); setName(''); setAddr(''); setPreview(''); }}>Cancelar</Button>
+              )}
+            </div>
+            {embedUrl && (
+              <div className="rounded-md overflow-hidden border" style={{ height: 260 }}>
+                <iframe
+                  title="Mapa"
+                  src={embedUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm font-semibold text-muted-foreground">Cadastrados ({addresses.length})</div>
+            {addresses.length === 0 && (
+              <div className="text-sm text-muted-foreground py-8 text-center border rounded-md">Nenhum endereço cadastrado.</div>
+            )}
+            {addresses.map(a => (
+              <div key={a.id} className="border rounded-md p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{a.name}</div>
+                    <div className="text-xs text-muted-foreground break-words">{a.full_address}</div>
+                  </div>
+                  {!a.active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setEditingId(a.id); setName(a.name); setAddr(a.full_address); setPreview(a.full_address); }}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => onUpdate({ id: a.id, active: !a.active })}>
+                    {a.active ? 'Desativar' : 'Ativar'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => window.open(`https://www.google.com/maps?q=${encodeURIComponent(a.full_address)}`, '_blank')}>
+                    <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (window.confirm(`Remover "${a.name}"?`)) onDelete(a.id); }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============= Order Addresses (GPS) Modal =============
+function OrderAddressesModal({
+  order, onOpenChange,
+}: {
+  order: FreightOrder | null;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const open = !!order;
+  function openGps(text: string) {
+    // Tenta abrir no app nativo de mapas (mobile) ou Google Maps (desktop).
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[90vw] max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Navigation className="h-5 w-5" /> OFR #{order?.ofr_number} — Endereços
+          </DialogTitle>
+        </DialogHeader>
+        {order && (
+          <div className="space-y-4">
+            <div className="rounded-lg border p-3 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+              <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1 flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" /> COLETA
+              </div>
+              <div className="text-sm break-words mb-3">{order.pickup_location || '—'}</div>
+              {order.pickup_location && (
+                <Button size="sm" className="w-full" onClick={() => openGps(order.pickup_location!)}>
+                  <Navigation className="h-4 w-4 mr-1.5" /> Abrir no GPS
+                </Button>
+              )}
+            </div>
+            <div className="rounded-lg border p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+              <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1 flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" /> ENTREGA
+              </div>
+              <div className="text-sm break-words mb-3">{order.delivery_location || '—'}</div>
+              {order.delivery_location && (
+                <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => openGps(order.delivery_location!)}>
+                  <Navigation className="h-4 w-4 mr-1.5" /> Abrir no GPS
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -32,6 +32,19 @@ export interface FreightCostCompany {
   created_at: string;
 }
 
+export interface FreightAddress {
+  id: string;
+  company_id: string;
+  name: string;
+  full_address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  active: boolean;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface FreightOrderItem {
   id: string;
   freight_order_id: string;
@@ -133,6 +146,20 @@ export function useFreightOrders() {
     enabled: !!user?.company_id,
   });
 
+  const { data: addresses = [] } = useQuery({
+    queryKey: ['freight_addresses', user?.company_id],
+    queryFn: async () => {
+      if (!user?.company_id) return [];
+      const { data, error } = await (supabase.from as any)('freight_addresses')
+        .select('*')
+        .eq('company_id', user.company_id)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as FreightAddress[];
+    },
+    enabled: !!user?.company_id,
+  });
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['freight_orders', user?.company_id],
     queryFn: async () => {
@@ -177,6 +204,9 @@ export function useFreightOrders() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_cost_companies', filter: `company_id=eq.${user.company_id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ['freight_cost_companies', user.company_id] });
         queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_addresses', filter: `company_id=eq.${user.company_id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['freight_addresses', user.company_id] });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -637,11 +667,48 @@ export function useFreightOrders() {
     return data?.signedUrl || null;
   }
 
+  const createAddress = useMutation({
+    mutationFn: async (payload: { name: string; full_address: string; latitude?: number | null; longitude?: number | null }) => {
+      if (!user?.company_id) throw new Error('Sem empresa ativa');
+      const { error } = await (supabase.from as any)('freight_addresses').insert({
+        company_id: user.company_id,
+        name: payload.name.trim(),
+        full_address: payload.full_address.trim(),
+        latitude: payload.latitude ?? null,
+        longitude: payload.longitude ?? null,
+        created_by: profile?.id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_addresses'] }); toast({ title: 'Endereço cadastrado' }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const updateAddress = useMutation({
+    mutationFn: async (payload: { id: string; name?: string; full_address?: string; latitude?: number | null; longitude?: number | null; active?: boolean }) => {
+      const { id, ...rest } = payload;
+      const { error } = await (supabase.from as any)('freight_addresses').update(rest).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_addresses'] }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const deleteAddress = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from as any)('freight_addresses').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_addresses'] }); toast({ title: 'Endereço removido' }); },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
   return {
-    orders, isLoading, freighters, costCompanies,
+    orders, isLoading, freighters, costCompanies, addresses,
     createOrder, updateOrder, startPickup, completeOrder, cancelOrder, setPriority,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
+    createAddress, updateAddress, deleteAddress,
     getPhotoSignedUrl,
   };
 }
