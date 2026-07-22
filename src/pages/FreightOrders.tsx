@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useFreightOrders, type FreightOrderStatus, type FreightOrder, type FreightOrderItem, type FreightAddress } from '@/hooks/useFreightOrders';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { generateFreightOrderPdf } from '@/lib/freightOrderPdf';
 import { FreightReportsTab } from '@/components/freight/FreightReportsTab';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
@@ -1667,9 +1668,10 @@ function AddressesModal({
   const [addr, setAddr] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [preview, setPreview] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<FreightAddress | null>(null);
 
   useEffect(() => {
-    if (!open) { setName(''); setAddr(''); setEditingId(null); setPreview(''); }
+    if (!open) { setName(''); setAddr(''); setEditingId(null); setPreview(''); setConfirmDelete(null); }
   }, [open]);
 
   const previewQuery = preview.trim() || addr.trim();
@@ -1756,7 +1758,7 @@ function AddressesModal({
                   <Button size="sm" variant="outline" onClick={() => window.open(`https://www.google.com/maps?q=${encodeURIComponent(a.full_address)}`, '_blank')}>
                     <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (window.confirm(`Remover "${a.name}"?`)) onDelete(a.id); }}>
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setConfirmDelete(a)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -1765,6 +1767,13 @@ function AddressesModal({
           </div>
         </div>
       </DialogContent>
+      <DeleteConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(o) => !o && setConfirmDelete(null)}
+        title="Remover endereço"
+        description={confirmDelete ? `Tem certeza que deseja remover o endereço "${confirmDelete.name}"? Esta ação não pode ser desfeita.` : ''}
+        onConfirm={() => { if (confirmDelete) { onDelete(confirmDelete.id); setConfirmDelete(null); } }}
+      />
     </Dialog>
   );
 }
