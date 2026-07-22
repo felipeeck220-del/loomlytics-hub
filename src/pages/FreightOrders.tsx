@@ -1732,20 +1732,27 @@ function AddressesModal({
               <Label>Endereço completo *</Label>
               <Textarea rows={3} value={addr} onChange={e => setAddr(e.target.value)} placeholder="Rua, número, bairro, cidade — UF" />
             </div>
-            <label className={cn('flex items-center gap-2 text-sm', mustRegisterCompanyFirst && 'opacity-70')}>
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                checked={effectiveIsCompany}
-                disabled={mustRegisterCompanyFirst || (!!companyAddress && !editing) || (editing?.is_company ?? false)}
-                onChange={e => setMarkCompany(e.target.checked)}
-              />
-              <span>
-                Este é o <strong>endereço da empresa</strong>
-                {mustRegisterCompanyFirst && ' (obrigatório no primeiro cadastro)'}
-                {!!companyAddress && !editing && ' — já cadastrado'}
-              </span>
-            </label>
+            {(() => {
+              const alreadyHasCompany = !!companyAddress && (!editing || !editing.is_company);
+              const lockedOn = mustRegisterCompanyFirst || (editing?.is_company ?? false);
+              const checkboxDisabled = lockedOn || alreadyHasCompany;
+              return (
+                <label className={cn('flex items-center gap-2 text-sm', checkboxDisabled && 'opacity-70')}>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={effectiveIsCompany}
+                    disabled={checkboxDisabled}
+                    onChange={e => setMarkCompany(e.target.checked)}
+                  />
+                  <span>
+                    Este é o <strong>endereço da empresa</strong>
+                    {mustRegisterCompanyFirst && ' (obrigatório no primeiro cadastro)'}
+                    {alreadyHasCompany && ' — já cadastrado'}
+                  </span>
+                </label>
+              );
+            })()}
             <div className="flex gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setPreview(addr)} disabled={!addr.trim()}>
                 <MapIcon className="h-4 w-4 mr-1.5" /> Ver no mapa
