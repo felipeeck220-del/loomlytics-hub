@@ -43,6 +43,7 @@ export interface FreightAddress {
   created_by?: string | null;
   created_at: string;
   updated_at: string;
+  is_company?: boolean;
 }
 
 export interface FreightOrderItem {
@@ -668,7 +669,7 @@ export function useFreightOrders() {
   }
 
   const createAddress = useMutation({
-    mutationFn: async (payload: { name: string; full_address: string; latitude?: number | null; longitude?: number | null }) => {
+    mutationFn: async (payload: { name: string; full_address: string; latitude?: number | null; longitude?: number | null; is_company?: boolean }) => {
       if (!user?.company_id) throw new Error('Sem empresa ativa');
       const { error } = await (supabase.from as any)('freight_addresses').insert({
         company_id: user.company_id,
@@ -676,6 +677,7 @@ export function useFreightOrders() {
         full_address: payload.full_address.trim(),
         latitude: payload.latitude ?? null,
         longitude: payload.longitude ?? null,
+        is_company: !!payload.is_company,
         created_by: profile?.id ?? null,
       });
       if (error) throw error;
@@ -685,7 +687,7 @@ export function useFreightOrders() {
   });
 
   const updateAddress = useMutation({
-    mutationFn: async (payload: { id: string; name?: string; full_address?: string; latitude?: number | null; longitude?: number | null; active?: boolean }) => {
+    mutationFn: async (payload: { id: string; name?: string; full_address?: string; latitude?: number | null; longitude?: number | null; active?: boolean; is_company?: boolean }) => {
       const { id, ...rest } = payload;
       const { error } = await (supabase.from as any)('freight_addresses').update(rest).eq('id', id);
       if (error) throw error;
