@@ -213,6 +213,9 @@ export default function FreightOrders() {
               <Button variant="outline" onClick={() => setCostCompaniesOpen(true)} className="gap-2">
                 <Building2 className="h-4 w-4" /> Empresas
               </Button>
+              <Button variant="outline" onClick={() => setAddressesOpen(true)} className="gap-2">
+                <MapPin className="h-4 w-4" /> Endereços
+              </Button>
               <Button onClick={() => setNewOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" /> Nova OFR
               </Button>
