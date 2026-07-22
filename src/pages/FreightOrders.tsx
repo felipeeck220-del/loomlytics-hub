@@ -751,13 +751,14 @@ function OrderCard({
 /* ---------------- Modals ---------------- */
 
 function NewOFRModal({
-  open, onOpenChange, freighters, costCompanies, articles, yarnTypes, onSubmit, submitting,
+  open, onOpenChange, freighters, costCompanies, addresses, articles, yarnTypes, onSubmit, submitting,
   mode = 'create', initial,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   freighters: Array<{ id: string; name: string; active: boolean }>;
   costCompanies: Array<{ id: string; name: string; active: boolean }>;
+  addresses: Array<{ id: string; name: string; full_address: string; active: boolean }>;
   articles: Array<{ id: string; name: string; client_name?: string }>;
   yarnTypes: Array<{ id: string; name: string }>;
   onSubmit: (p: {
