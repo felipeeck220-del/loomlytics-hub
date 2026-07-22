@@ -1330,6 +1330,7 @@ export type Database = {
           created_by: string | null
           full_address: string
           id: string
+          is_company: boolean
           latitude: number | null
           longitude: number | null
           name: string
@@ -1342,6 +1343,7 @@ export type Database = {
           created_by?: string | null
           full_address: string
           id?: string
+          is_company?: boolean
           latitude?: number | null
           longitude?: number | null
           name: string
@@ -1354,6 +1356,7 @@ export type Database = {
           created_by?: string | null
           full_address?: string
           id?: string
+          is_company?: boolean
           latitude?: number | null
           longitude?: number | null
           name?: string

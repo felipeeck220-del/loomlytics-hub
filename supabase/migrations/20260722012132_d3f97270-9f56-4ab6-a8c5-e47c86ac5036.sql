@@ -1,0 +1,2 @@
+ALTER TABLE public.freight_addresses ADD COLUMN IF NOT EXISTS is_company boolean NOT NULL DEFAULT false;
+CREATE UNIQUE INDEX IF NOT EXISTS freight_addresses_one_company_per_tenant ON public.freight_addresses (company_id) WHERE is_company = true;
