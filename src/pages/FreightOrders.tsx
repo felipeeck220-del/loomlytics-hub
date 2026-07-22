@@ -716,6 +716,11 @@ function OrderCard({
               <Button variant="outline" size="sm" onClick={onDetails} className="h-10 xl:h-9">
                 <Eye className="h-4 w-4 mr-1.5" /> Detalhes
               </Button>
+              {onOpenAddresses && (
+                <Button variant="outline" size="sm" onClick={onOpenAddresses} className="h-10 xl:h-9 border-primary/40 text-primary hover:bg-primary/10">
+                  <Navigation className="h-4 w-4 mr-1.5" /> Endereços
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={onDownload} className="h-10 xl:h-9">
                 <Download className="h-4 w-4 mr-1.5" /> PDF
               </Button>
