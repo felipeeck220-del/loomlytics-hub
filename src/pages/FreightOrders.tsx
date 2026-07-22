@@ -1695,7 +1695,7 @@ function AddressesModal({
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" /> Endereços
           </DialogTitle>
-          <DialogDescription>Cadastre endereços para reutilizar em Coletas e Entregas.</DialogDescription>
+          <p className="text-sm text-muted-foreground">Cadastre endereços para reutilizar em Coletas e Entregas.</p>
         </DialogHeader>
         <div className="flex-1 overflow-auto grid grid-cols-1 lg:grid-cols-2 gap-4 pr-2">
           <div className="space-y-3">
