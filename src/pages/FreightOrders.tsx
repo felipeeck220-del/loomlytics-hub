@@ -98,6 +98,7 @@ export default function FreightOrders() {
     setPriority,
     createFreighter, updateFreighter, deleteFreighter,
     createCostCompany, updateCostCompany, deleteCostCompany,
+    addresses, createAddress, updateAddress, deleteAddress,
     getPhotoSignedUrl,
   } = useFreightOrders();
 
@@ -111,6 +112,8 @@ export default function FreightOrders() {
   const [editOrder, setEditOrder] = useState<FreightOrder | null>(null);
   const [freightersOpen, setFreightersOpen] = useState(false);
   const [costCompaniesOpen, setCostCompaniesOpen] = useState(false);
+  const [addressesOpen, setAddressesOpen] = useState(false);
+  const [orderAddressesView, setOrderAddressesView] = useState<FreightOrder | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<FreightOrder | null>(null);
   const [completeOrderId, setCompleteOrderId] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
