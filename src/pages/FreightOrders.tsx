@@ -405,6 +405,22 @@ export default function FreightOrders() {
         />
       )}
 
+      {hasFullAccess && (
+        <AddressesModal
+          open={addressesOpen}
+          onOpenChange={setAddressesOpen}
+          addresses={addresses}
+          onCreate={(p) => createAddress.mutate(p)}
+          onUpdate={(p) => updateAddress.mutate(p)}
+          onDelete={(id) => deleteAddress.mutate(id)}
+        />
+      )}
+
+      <OrderAddressesModal
+        order={orderAddressesView}
+        onOpenChange={(o) => !o && setOrderAddressesView(null)}
+      />
+
       <CompleteModal
         open={!!completeOrderId}
         order={orders.find(o => o.id === completeOrderId) || null}
