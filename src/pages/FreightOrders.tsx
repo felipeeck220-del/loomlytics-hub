@@ -1651,3 +1651,172 @@ function CostCompaniesModal({
     </Dialog>
   );
 }
+
+// ============= Addresses Manager Modal =============
+function AddressesModal({
+  open, onOpenChange, addresses, onCreate, onUpdate, onDelete,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  addresses: FreightAddress[];
+  onCreate: (p: { name: string; full_address: string }) => void;
+  onUpdate: (p: { id: string; name?: string; full_address?: string; active?: boolean }) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [name, setName] = useState('');
+  const [addr, setAddr] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [preview, setPreview] = useState('');
+
+  useEffect(() => {
+    if (!open) { setName(''); setAddr(''); setEditingId(null); setPreview(''); }
+  }, [open]);
+
+  const previewQuery = preview.trim() || addr.trim();
+  const embedUrl = previewQuery
+    ? `https://www.google.com/maps?q=${encodeURIComponent(previewQuery)}&output=embed`
+    : null;
+
+  function submit() {
+    if (!name.trim() || !addr.trim()) return;
+    if (editingId) {
+      onUpdate({ id: editingId, name: name.trim(), full_address: addr.trim() });
+      setEditingId(null);
+    } else {
+      onCreate({ name: name.trim(), full_address: addr.trim() });
+    }
+    setName(''); setAddr(''); setPreview('');
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[80vw] max-w-4xl h-[80vh] max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" /> Endereços
+          </DialogTitle>
+          <DialogDescription>Cadastre endereços para reutilizar em Coletas e Entregas.</DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-auto grid grid-cols-1 lg:grid-cols-2 gap-4 pr-2">
+          <div className="space-y-3">
+            <div>
+              <Label>Nome do local *</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Tinturaria Litoral" />
+            </div>
+            <div>
+              <Label>Endereço completo *</Label>
+              <Textarea rows={3} value={addr} onChange={e => setAddr(e.target.value)} placeholder="Rua, número, bairro, cidade — UF" />
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setPreview(addr)} disabled={!addr.trim()}>
+                <MapIcon className="h-4 w-4 mr-1.5" /> Ver no mapa
+              </Button>
+              <Button type="button" onClick={submit} disabled={!name.trim() || !addr.trim()} className="ml-auto">
+                {editingId ? 'Atualizar' : 'Cadastrar'}
+              </Button>
+              {editingId && (
+                <Button type="button" variant="ghost" onClick={() => { setEditingId(null); setName(''); setAddr(''); setPreview(''); }}>Cancelar</Button>
+              )}
+            </div>
+            {embedUrl && (
+              <div className="rounded-md overflow-hidden border" style={{ height: 260 }}>
+                <iframe
+                  title="Mapa"
+                  src={embedUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm font-semibold text-muted-foreground">Cadastrados ({addresses.length})</div>
+            {addresses.length === 0 && (
+              <div className="text-sm text-muted-foreground py-8 text-center border rounded-md">Nenhum endereço cadastrado.</div>
+            )}
+            {addresses.map(a => (
+              <div key={a.id} className="border rounded-md p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{a.name}</div>
+                    <div className="text-xs text-muted-foreground break-words">{a.full_address}</div>
+                  </div>
+                  {!a.active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setEditingId(a.id); setName(a.name); setAddr(a.full_address); setPreview(a.full_address); }}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => onUpdate({ id: a.id, active: !a.active })}>
+                    {a.active ? 'Desativar' : 'Ativar'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => window.open(`https://www.google.com/maps?q=${encodeURIComponent(a.full_address)}`, '_blank')}>
+                    <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (window.confirm(`Remover "${a.name}"?`)) onDelete(a.id); }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============= Order Addresses (GPS) Modal =============
+function OrderAddressesModal({
+  order, onOpenChange,
+}: {
+  order: FreightOrder | null;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const open = !!order;
+  function openGps(text: string) {
+    // Tenta abrir no app nativo de mapas (mobile) ou Google Maps (desktop).
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[90vw] max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Navigation className="h-5 w-5" /> OFR #{order?.ofr_number} — Endereços
+          </DialogTitle>
+        </DialogHeader>
+        {order && (
+          <div className="space-y-4">
+            <div className="rounded-lg border p-3 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+              <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1 flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" /> COLETA
+              </div>
+              <div className="text-sm break-words mb-3">{order.pickup_location || '—'}</div>
+              {order.pickup_location && (
+                <Button size="sm" className="w-full" onClick={() => openGps(order.pickup_location!)}>
+                  <Navigation className="h-4 w-4 mr-1.5" /> Abrir no GPS
+                </Button>
+              )}
+            </div>
+            <div className="rounded-lg border p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900">
+              <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1 flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" /> ENTREGA
+              </div>
+              <div className="text-sm break-words mb-3">{order.delivery_location || '—'}</div>
+              {order.delivery_location && (
+                <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => openGps(order.delivery_location!)}>
+                  <Navigation className="h-4 w-4 mr-1.5" /> Abrir no GPS
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
