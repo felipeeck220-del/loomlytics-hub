@@ -339,6 +339,7 @@ export default function FreightOrders() {
           onOpenChange={setNewOpen}
           freighters={freighters}
           costCompanies={costCompanies}
+          addresses={addresses}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           onSubmit={(payload) => createOrder.mutate(payload, { onSuccess: () => setNewOpen(false) })}
@@ -352,6 +353,7 @@ export default function FreightOrders() {
           onOpenChange={(o) => !o && setEditOrder(null)}
           freighters={freighters}
           costCompanies={costCompanies}
+          addresses={addresses}
           articles={articles as any}
           yarnTypes={yarnTypes as any}
           mode="edit"
