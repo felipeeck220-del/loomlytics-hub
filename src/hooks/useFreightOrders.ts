@@ -146,6 +146,20 @@ export function useFreightOrders() {
     enabled: !!user?.company_id,
   });
 
+  const { data: addresses = [] } = useQuery({
+    queryKey: ['freight_addresses', user?.company_id],
+    queryFn: async () => {
+      if (!user?.company_id) return [];
+      const { data, error } = await (supabase.from as any)('freight_addresses')
+        .select('*')
+        .eq('company_id', user.company_id)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as FreightAddress[];
+    },
+    enabled: !!user?.company_id,
+  });
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['freight_orders', user?.company_id],
     queryFn: async () => {
