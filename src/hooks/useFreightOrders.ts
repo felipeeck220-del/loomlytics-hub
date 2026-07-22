@@ -205,6 +205,9 @@ export function useFreightOrders() {
         queryClient.invalidateQueries({ queryKey: ['freight_cost_companies', user.company_id] });
         queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_addresses', filter: `company_id=eq.${user.company_id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['freight_addresses', user.company_id] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.company_id, queryClient]);
