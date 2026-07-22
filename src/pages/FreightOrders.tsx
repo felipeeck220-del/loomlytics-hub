@@ -1670,8 +1670,8 @@ function AddressesModal({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   addresses: FreightAddress[];
-  onCreate: (p: { name: string; full_address: string }) => void;
-  onUpdate: (p: { id: string; name?: string; full_address?: string; active?: boolean }) => void;
+  onCreate: (p: { name: string; full_address: string; is_company?: boolean }) => void;
+  onUpdate: (p: { id: string; name?: string; full_address?: string; active?: boolean; is_company?: boolean }) => void;
   onDelete: (id: string) => void;
 }) {
   const [name, setName] = useState('');
@@ -1679,9 +1679,17 @@ function AddressesModal({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [preview, setPreview] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<FreightAddress | null>(null);
+  const [markCompany, setMarkCompany] = useState(false);
+
+  const companyAddress = addresses.find(a => a.is_company);
+  const otherAddresses = addresses.filter(a => !a.is_company);
+  const editing = editingId ? addresses.find(a => a.id === editingId) : null;
+  // Bloqueia cadastrar outros endereços enquanto não houver endereço da empresa
+  const mustRegisterCompanyFirst = !companyAddress && !editing;
+  const effectiveIsCompany = mustRegisterCompanyFirst ? true : markCompany;
 
   useEffect(() => {
-    if (!open) { setName(''); setAddr(''); setEditingId(null); setPreview(''); setConfirmDelete(null); }
+    if (!open) { setName(''); setAddr(''); setEditingId(null); setPreview(''); setConfirmDelete(null); setMarkCompany(false); }
   }, [open]);
 
   const previewQuery = preview.trim() || addr.trim();
@@ -1692,12 +1700,12 @@ function AddressesModal({
   function submit() {
     if (!name.trim() || !addr.trim()) return;
     if (editingId) {
-      onUpdate({ id: editingId, name: name.trim(), full_address: addr.trim() });
+      onUpdate({ id: editingId, name: name.trim(), full_address: addr.trim(), is_company: effectiveIsCompany });
       setEditingId(null);
     } else {
-      onCreate({ name: name.trim(), full_address: addr.trim() });
+      onCreate({ name: name.trim(), full_address: addr.trim(), is_company: effectiveIsCompany });
     }
-    setName(''); setAddr(''); setPreview('');
+    setName(''); setAddr(''); setPreview(''); setMarkCompany(false);
   }
 
   return (
@@ -1709,16 +1717,35 @@ function AddressesModal({
           </DialogTitle>
           <p className="text-sm text-muted-foreground">Cadastre endereços para reutilizar em Coletas e Entregas.</p>
         </DialogHeader>
+        {mustRegisterCompanyFirst && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 px-3 py-2 text-sm">
+            <strong>Obrigatório:</strong> cadastre primeiro o endereço da sua empresa. Ele será usado como referência para os demais endereços.
+          </div>
+        )}
         <div className="flex-1 overflow-auto grid grid-cols-1 lg:grid-cols-2 gap-4 pr-2">
           <div className="space-y-3">
             <div>
-              <Label>Nome do local *</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Tinturaria Litoral" />
+              <Label>{effectiveIsCompany ? 'Nome da empresa *' : 'Nome do local *'}</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder={effectiveIsCompany ? 'Ex: Malharia Modelo' : 'Ex: Tinturaria Litoral'} />
             </div>
             <div>
               <Label>Endereço completo *</Label>
               <Textarea rows={3} value={addr} onChange={e => setAddr(e.target.value)} placeholder="Rua, número, bairro, cidade — UF" />
             </div>
+            <label className={cn('flex items-center gap-2 text-sm', mustRegisterCompanyFirst && 'opacity-70')}>
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={effectiveIsCompany}
+                disabled={mustRegisterCompanyFirst || (!!companyAddress && !editing) || (editing?.is_company ?? false)}
+                onChange={e => setMarkCompany(e.target.checked)}
+              />
+              <span>
+                Este é o <strong>endereço da empresa</strong>
+                {mustRegisterCompanyFirst && ' (obrigatório no primeiro cadastro)'}
+                {!!companyAddress && !editing && ' — já cadastrado'}
+              </span>
+            </label>
             <div className="flex gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setPreview(addr)} disabled={!addr.trim()}>
                 <MapIcon className="h-4 w-4 mr-1.5" /> Ver no mapa
@@ -1727,7 +1754,7 @@ function AddressesModal({
                 {editingId ? 'Atualizar' : 'Cadastrar'}
               </Button>
               {editingId && (
-                <Button type="button" variant="ghost" onClick={() => { setEditingId(null); setName(''); setAddr(''); setPreview(''); }}>Cancelar</Button>
+                <Button type="button" variant="ghost" onClick={() => { setEditingId(null); setName(''); setAddr(''); setPreview(''); setMarkCompany(false); }}>Cancelar</Button>
               )}
             </div>
             {embedUrl && (
@@ -1745,34 +1772,32 @@ function AddressesModal({
             )}
           </div>
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-muted-foreground">Cadastrados ({addresses.length})</div>
-            {addresses.length === 0 && (
-              <div className="text-sm text-muted-foreground py-8 text-center border rounded-md">Nenhum endereço cadastrado.</div>
+            {companyAddress && (
+              <>
+                <div className="text-sm font-semibold text-muted-foreground">Endereço da empresa</div>
+                <AddressRow
+                  a={companyAddress}
+                  isCompany
+                  onEdit={() => { setEditingId(companyAddress.id); setName(companyAddress.name); setAddr(companyAddress.full_address); setPreview(companyAddress.full_address); setMarkCompany(true); }}
+                  onToggleActive={() => onUpdate({ id: companyAddress.id, active: !companyAddress.active })}
+                  onDelete={() => setConfirmDelete(companyAddress)}
+                />
+              </>
             )}
-            {addresses.map(a => (
-              <div key={a.id} className="border rounded-md p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{a.name}</div>
-                    <div className="text-xs text-muted-foreground break-words">{a.full_address}</div>
-                  </div>
-                  {!a.active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => { setEditingId(a.id); setName(a.name); setAddr(a.full_address); setPreview(a.full_address); }}>
-                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => onUpdate({ id: a.id, active: !a.active })}>
-                    {a.active ? 'Desativar' : 'Ativar'}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => window.open(`https://www.google.com/maps?q=${encodeURIComponent(a.full_address)}`, '_blank')}>
-                    <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setConfirmDelete(a)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+            <div className="text-sm font-semibold text-muted-foreground pt-2">Outros endereços ({otherAddresses.length})</div>
+            {otherAddresses.length === 0 && (
+              <div className="text-sm text-muted-foreground py-6 text-center border rounded-md">
+                {mustRegisterCompanyFirst ? 'Cadastre primeiro o endereço da empresa.' : 'Nenhum outro endereço cadastrado.'}
               </div>
+            )}
+            {otherAddresses.map(a => (
+              <AddressRow
+                key={a.id}
+                a={a}
+                onEdit={() => { setEditingId(a.id); setName(a.name); setAddr(a.full_address); setPreview(a.full_address); setMarkCompany(false); }}
+                onToggleActive={() => onUpdate({ id: a.id, active: !a.active })}
+                onDelete={() => setConfirmDelete(a)}
+              />
             ))}
           </div>
         </div>
@@ -1785,6 +1810,44 @@ function AddressesModal({
         onConfirm={() => { if (confirmDelete) { onDelete(confirmDelete.id); setConfirmDelete(null); } }}
       />
     </Dialog>
+  );
+}
+
+function AddressRow({ a, isCompany, onEdit, onToggleActive, onDelete }: {
+  a: FreightAddress; isCompany?: boolean;
+  onEdit: () => void; onToggleActive: () => void; onDelete: () => void;
+}) {
+  return (
+    <div className={cn('border rounded-md p-3 space-y-2', isCompany && 'border-primary/40 bg-primary/5')}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="font-medium truncate">{a.name}</div>
+            {isCompany && <Badge className="text-xs">Empresa</Badge>}
+          </div>
+          <div className="text-xs text-muted-foreground break-words">{a.full_address}</div>
+        </div>
+        {!a.active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+        </Button>
+        {!isCompany && (
+          <Button size="sm" variant="outline" onClick={onToggleActive}>
+            {a.active ? 'Desativar' : 'Ativar'}
+          </Button>
+        )}
+        <Button size="sm" variant="outline" onClick={() => window.open(`https://www.google.com/maps?q=${encodeURIComponent(a.full_address)}`, '_blank')}>
+          <MapIcon className="h-3.5 w-3.5 mr-1" /> Mapa
+        </Button>
+        {!isCompany && (
+          <Button size="sm" variant="ghost" className="text-destructive" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 
