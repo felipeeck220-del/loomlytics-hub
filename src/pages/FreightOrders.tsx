@@ -453,7 +453,17 @@ export default function FreightOrders() {
       />
 
       {/* Modal Adicionar Prioridade */}
-      <Dialog open={!!priorityOrder} onOpenChange={(o) => !o && setPriorityOrder(null)}>
+      <Dialog
+        open={!!priorityOrder}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPriorityOrder(null);
+            setPriorityReason('');
+            setPriorityCustom('');
+            setPriorityObs('');
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[440px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
