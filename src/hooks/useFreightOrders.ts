@@ -32,6 +32,19 @@ export interface FreightCostCompany {
   created_at: string;
 }
 
+export interface FreightAddress {
+  id: string;
+  company_id: string;
+  name: string;
+  full_address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  active: boolean;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface FreightOrderItem {
   id: string;
   freight_order_id: string;
