@@ -295,6 +295,7 @@ export default function FreightOrders() {
               onDownload={() => generateFreightOrderPdf(order, companyName, companyLogo)}
               onSetPriority={() => { setPriorityReason(''); setPriorityCustom(''); setPriorityObs(''); setPriorityOrder(order); }}
               onRemovePriority={() => setRemovePriorityOrder(order)}
+              onOpenAddresses={() => setOrderAddressesView(order)}
             />
           ))}
           {tab === 'completed' && completedTotal > COMPLETED_PAGE_SIZE && (
