@@ -563,6 +563,7 @@ function OrderCard({
   order, hasFullAccess, isFreteiro,
   onStartPickup, onComplete, onCancel, onEdit, onDetails, onDownload,
   onSetPriority, onRemovePriority,
+  onOpenAddresses,
 }: {
   order: FreightOrder;
   hasFullAccess: boolean;
@@ -575,6 +576,7 @@ function OrderCard({
   onDownload: () => void;
   onSetPriority?: () => void;
   onRemovePriority?: () => void;
+  onOpenAddresses?: () => void;
 }) {
   const totalPieces = (order.items || []).reduce((s, i) => s + Number(i.pieces || 0), 0);
   const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
