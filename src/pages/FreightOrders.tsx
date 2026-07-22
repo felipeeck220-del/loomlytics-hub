@@ -912,11 +912,33 @@ function NewOFRModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Local de coleta *</Label>
-              <Input value={pickup} onChange={e => setPickup(e.target.value)} placeholder="Ex: TEAR / Tinturaria Litoral" />
+              {addresses.filter(a => a.active).length > 0 && (
+                <SearchableSelect
+                  value=""
+                  onValueChange={(id) => {
+                    const a = addresses.find(x => x.id === id);
+                    if (a) setPickup(`${a.name} — ${a.full_address}`);
+                  }}
+                  options={addresses.filter(a => a.active).map(a => ({ value: a.id, label: `${a.name} — ${a.full_address}` }))}
+                  placeholder="Selecionar endereço cadastrado..."
+                />
+              )}
+              <Input className="mt-2" value={pickup} onChange={e => setPickup(e.target.value)} placeholder="Ou digite manualmente" />
             </div>
             <div>
               <Label>Local de entrega *</Label>
-              <Input value={delivery} onChange={e => setDelivery(e.target.value)} placeholder="Ex: Cliente XYZ" />
+              {addresses.filter(a => a.active).length > 0 && (
+                <SearchableSelect
+                  value=""
+                  onValueChange={(id) => {
+                    const a = addresses.find(x => x.id === id);
+                    if (a) setDelivery(`${a.name} — ${a.full_address}`);
+                  }}
+                  options={addresses.filter(a => a.active).map(a => ({ value: a.id, label: `${a.name} — ${a.full_address}` }))}
+                  placeholder="Selecionar endereço cadastrado..."
+                />
+              )}
+              <Input className="mt-2" value={delivery} onChange={e => setDelivery(e.target.value)} placeholder="Ou digite manualmente" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
