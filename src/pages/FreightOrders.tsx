@@ -1060,7 +1060,7 @@ function OrderCard({
                   onClick={onAuthorizeEdit}
                   className="h-10 border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
                 >
-                  <ShieldCheck className="h-4 w-4 mr-1.5" /> Autorizar edição
+                  <ShieldCheck className="h-4 w-4 mr-1.5" /> Aut. edição
                 </Button>
               )}
               {order.status === "completed" && hasFullAccess && isEditAuthorized && onRevokeEditAuthorization && (
