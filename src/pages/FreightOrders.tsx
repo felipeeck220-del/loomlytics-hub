@@ -51,11 +51,14 @@ import {
   Flame,
   Navigation,
   Map as MapIcon,
+  PencilRuler,
+  ShieldCheck,
+  History,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-type TabKey = "priority" | "open" | "in_progress" | "completed" | "cancelled" | "reports";
+type TabKey = "priority" | "open" | "in_progress" | "edit" | "completed" | "cancelled" | "reports";
 
 const PRIORITY_REASONS = ["Coleta urgente", "Cliente aguardando", "Entrega urgente hoje"];
 
@@ -162,6 +165,9 @@ export default function FreightOrders() {
     updateAddress,
     deleteAddress,
     getPhotoSignedUrl,
+    authorizeEdit,
+    revokeEditAuthorization,
+    saveFreighterEdit,
   } = useFreightOrders();
 
   const hasFullAccess = role === "admin" || role === "lider_frete";
@@ -184,6 +190,8 @@ export default function FreightOrders() {
   const [priorityCustom, setPriorityCustom] = useState<string>("");
   const [priorityObs, setPriorityObs] = useState<string>("");
   const [removePriorityOrder, setRemovePriorityOrder] = useState<FreightOrder | null>(null);
+  const [authorizeEditOrder, setAuthorizeEditOrder] = useState<FreightOrder | null>(null);
+  const [freighterEditOrder, setFreighterEditOrder] = useState<FreightOrder | null>(null);
   const [companyName, setCompanyName] = useState<string>("");
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
@@ -210,7 +218,7 @@ export default function FreightOrders() {
   };
 
   const counts = useMemo(() => {
-    const c: Record<TabKey, number> = { priority: 0, open: 0, in_progress: 0, completed: 0, cancelled: 0, reports: 0 };
+    const c: Record<TabKey, number> = { priority: 0, open: 0, in_progress: 0, edit: 0, completed: 0, cancelled: 0, reports: 0 };
     for (const o of orders) {
       if (isPriorityVisibleFor(o)) {
         c.priority += 1;
@@ -219,6 +227,12 @@ export default function FreightOrders() {
       c[tabOfStatus(o.status)] += 1;
     }
     c.reports = orders.filter((o) => o.status === "completed").length;
+    c.edit = orders.filter((o) => {
+      if (!o.edit_authorized || o.status !== "completed") return false;
+      if (hasFullAccess) return true;
+      if (isFreteiro && o.freighter?.user_id && user?.id && o.freighter.user_id === user.id) return true;
+      return false;
+    }).length;
     return c;
   }, [orders, hasFullAccess, isFreteiro, user?.id]);
 
@@ -230,6 +244,9 @@ export default function FreightOrders() {
       } else if (tab === "open") {
         if (o.status !== "open") return false;
         if (isPriorityVisibleFor(o)) return false;
+      } else if (tab === "edit") {
+        if (o.status !== "completed" || !o.edit_authorized) return false;
+        if (isFreteiro && !(o.freighter?.user_id && user?.id && o.freighter.user_id === user.id)) return false;
       } else if (tabOfStatus(o.status) !== tab) return false;
       if (!term) return true;
       const matches =
@@ -336,6 +353,22 @@ export default function FreightOrders() {
               {counts.in_progress}
             </Badge>
           </TabsTrigger>
+          {(counts.edit > 0 || tab === "edit") && (
+            <TabsTrigger
+              value="edit"
+              className={cn(
+                "gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial",
+                counts.edit > 0 && "data-[state=active]:bg-amber-600 data-[state=active]:text-white text-amber-700 dark:text-amber-400",
+              )}
+            >
+              <PencilRuler className="h-3.5 w-3.5" /> Editar
+              {counts.edit > 0 && (
+                <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">
+                  {counts.edit}
+                </Badge>
+              )}
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="completed"
             className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
@@ -392,6 +425,10 @@ export default function FreightOrders() {
                   }}
                   onRemovePriority={() => setRemovePriorityOrder(order)}
                   onOpenAddresses={() => setOrderAddressesView(order)}
+                  onAuthorizeEdit={() => setAuthorizeEditOrder(order)}
+                  onRevokeEditAuthorization={() => revokeEditAuthorization.mutate(order.id)}
+                  onFreighterEdit={() => setFreighterEditOrder(order)}
+                  currentUserId={user?.id}
                 />
               ))}
               {tab === "completed" && completedTotal > COMPLETED_PAGE_SIZE && (
@@ -709,6 +746,35 @@ export default function FreightOrders() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Autorizar edição */}
+      <AuthorizeEditModal
+        order={authorizeEditOrder}
+        onOpenChange={(o) => !o && setAuthorizeEditOrder(null)}
+        submitting={authorizeEdit.isPending}
+        onSubmit={(reason) => {
+          if (!authorizeEditOrder) return;
+          authorizeEdit.mutate(
+            { id: authorizeEditOrder.id, reason },
+            { onSuccess: () => setAuthorizeEditOrder(null) },
+          );
+        }}
+      />
+
+      {/* Modal Edição do Freteiro */}
+      <FreighterEditModal
+        order={freighterEditOrder}
+        onOpenChange={(o) => !o && setFreighterEditOrder(null)}
+        submitting={saveFreighterEdit.isPending}
+        getPhotoSignedUrl={getPhotoSignedUrl}
+        onSubmit={(payload) => {
+          if (!freighterEditOrder) return;
+          saveFreighterEdit.mutate(
+            { id: freighterEditOrder.id, ...payload },
+            { onSuccess: () => setFreighterEditOrder(null) },
+          );
+        }}
+      />
     </div>
   );
 }
@@ -728,6 +794,10 @@ function OrderCard({
   onSetPriority,
   onRemovePriority,
   onOpenAddresses,
+  onAuthorizeEdit,
+  onRevokeEditAuthorization,
+  onFreighterEdit,
+  currentUserId,
 }: {
   order: FreightOrder;
   hasFullAccess: boolean;
@@ -741,6 +811,10 @@ function OrderCard({
   onSetPriority?: () => void;
   onRemovePriority?: () => void;
   onOpenAddresses?: () => void;
+  onAuthorizeEdit?: () => void;
+  onRevokeEditAuthorization?: () => void;
+  onFreighterEdit?: () => void;
+  currentUserId?: string;
 }) {
   const totalPieces = (order.items || []).reduce((s, i) => s + Number(i.pieces || 0), 0);
   const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
@@ -755,6 +829,10 @@ function OrderCard({
 
   const style = getStatusStyle(order.status);
   const isPriority = !!order.priority && order.status === "open";
+  const isEditAuthorized = !!order.edit_authorized && order.status === "completed";
+  const wasEdited = !!order.edited_at;
+  const isOwnerFreighter =
+    isFreteiro && !!order.freighter?.user_id && !!currentUserId && order.freighter.user_id === currentUserId;
 
   return (
     <Card
@@ -782,6 +860,19 @@ function OrderCard({
               {isPriority && (
                 <Badge className="bg-red-600 text-white border-red-700 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1 animate-pulse">
                   <Flame className="h-3 w-3" /> PRIORIDADE
+                </Badge>
+              )}
+              {isEditAuthorized && (
+                <Badge className="bg-amber-600 text-white border-amber-700 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1">
+                  <PencilRuler className="h-3 w-3" /> EDIÇÃO LIBERADA
+                </Badge>
+              )}
+              {wasEdited && (
+                <Badge
+                  className="bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/60 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1"
+                  title={`Editada em ${fmt(order.edited_at)}${order.editor ? ` por ${order.editor.name} #${order.editor.code}` : ""}`}
+                >
+                  <History className="h-3 w-3" /> EDITADA
                 </Badge>
               )}
               <Badge className={`${style.badgeClass} font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 border`}>
@@ -954,6 +1045,34 @@ function OrderCard({
                   className="h-10 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
                 >
                   <X className="h-4 w-4 mr-1.5" /> Remover Prioridade
+                </Button>
+              )}
+              {order.status === "completed" && hasFullAccess && !isEditAuthorized && onAuthorizeEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onAuthorizeEdit}
+                  className="h-10 border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                >
+                  <ShieldCheck className="h-4 w-4 mr-1.5" /> Autorizar edição
+                </Button>
+              )}
+              {order.status === "completed" && hasFullAccess && isEditAuthorized && onRevokeEditAuthorization && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRevokeEditAuthorization}
+                  className="h-10 border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                >
+                  <X className="h-4 w-4 mr-1.5" /> Revogar autorização
+                </Button>
+              )}
+              {order.status === "completed" && isEditAuthorized && (isOwnerFreighter || hasFullAccess) && onFreighterEdit && (
+                <Button
+                  onClick={onFreighterEdit}
+                  className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-semibold shadow-sm bg-amber-600 hover:bg-amber-700 text-white col-span-2 sm:col-span-1"
+                >
+                  <PencilRuler className="h-5 w-5 sm:h-4 sm:w-4 mr-2 sm:mr-1.5" /> Editar OFR
                 </Button>
               )}
               {hasFullAccess && order.status !== "completed" && order.status !== "cancelled" && (
@@ -1946,8 +2065,25 @@ function DetailsModal({
                     {order.canceller && ` · por ${order.canceller.name} #${order.canceller.code}`}
                   </div>
                 )}
+                {order.edit_authorized_at && (
+                  <div className="text-amber-700 dark:text-amber-300">
+                    Edição autorizada: {fmt(order.edit_authorized_at)}
+                    {order.edit_authorizer && ` · por ${order.edit_authorizer.name} #${order.edit_authorizer.code}`}
+                    {order.edit_authorized_reason && ` — Motivo: ${order.edit_authorized_reason}`}
+                  </div>
+                )}
+                {order.edited_at && (
+                  <div className="text-amber-700 dark:text-amber-300">
+                    Editada: <span className="font-medium">{fmt(order.edited_at)}</span>
+                    {order.editor && ` · por ${order.editor.name} #${order.editor.code}`}
+                  </div>
+                )}
               </div>
             </div>
+
+            {order.edited_at && (order.previous_price_per_kg != null || (order.edit_photos && order.edit_photos.length > 0)) && (
+              <EditHistoryBlock order={order} getPhotoSignedUrl={getPhotoSignedUrl} onOpenViewer={setViewerUrl} />
+            )}
 
             {(order.photos || []).length > 0 && (
               <div>
@@ -2499,5 +2635,404 @@ function OrderAddressesModal({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ---------------- Autorizar edição (admin) ---------------- */
+
+function AuthorizeEditModal({
+  order,
+  onOpenChange,
+  onSubmit,
+  submitting,
+}: {
+  order: FreightOrder | null;
+  onOpenChange: (o: boolean) => void;
+  onSubmit: (reason: string) => void;
+  submitting: boolean;
+}) {
+  const [reason, setReason] = useState("");
+  useEffect(() => {
+    if (order) setReason("");
+  }, [order?.id]);
+  return (
+    <Dialog open={!!order} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+            <ShieldCheck className="h-5 w-5" /> Autorizar edição
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          {order && (
+            <p className="text-sm text-muted-foreground">
+              OFR <strong>#{order.ofr_number}</strong> — {order.freighter?.name || "Freteiro"}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            O freteiro será notificado e poderá alterar apenas o <strong>valor do frete</strong> e as{" "}
+            <strong>fotos</strong> desta OFR.
+          </p>
+          <div className="space-y-2">
+            <Label>Motivo (opcional)</Label>
+            <Textarea
+              rows={3}
+              placeholder="Ex: Foto de NF trocada, valor por kg incorreto..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+            disabled={submitting}
+            onClick={() => onSubmit(reason.trim())}
+          >
+            {submitting ? "Autorizando…" : "Autorizar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Edição do Freteiro (valor + fotos) ---------------- */
+
+function FreighterEditModal({
+  order,
+  onOpenChange,
+  onSubmit,
+  submitting,
+  getPhotoSignedUrl,
+}: {
+  order: FreightOrder | null;
+  onOpenChange: (o: boolean) => void;
+  onSubmit: (payload: {
+    pricePerKg: number;
+    keepPhotoIds: string[];
+    addPhotos: Array<{ file: File; description?: string }>;
+  }) => void;
+  submitting: boolean;
+  getPhotoSignedUrl: (p: string, e?: number) => Promise<string | null>;
+}) {
+  const [priceStr, setPriceStr] = useState("");
+  const [keepIds, setKeepIds] = useState<string[]>([]);
+  const [addPhotos, setAddPhotos] = useState<Array<{ file: File; description: string; preview: string }>>([]);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!order) return;
+    setPriceStr(order.freight_price_per_kg != null ? String(order.freight_price_per_kg).replace(".", ",") : "");
+    setKeepIds((order.photos || []).map((p) => p.id));
+    setAddPhotos([]);
+  }, [order?.id]);
+
+  useEffect(() => {
+    if (!order?.photos?.length) {
+      setPhotoUrls({});
+      return;
+    }
+    (async () => {
+      const map: Record<string, string> = {};
+      for (const p of order.photos!) {
+        const url = await getPhotoSignedUrl(p.storage_path, 3600);
+        if (url) map[p.id] = url;
+      }
+      setPhotoUrls(map);
+    })();
+  }, [order?.id]);
+
+  const addPhotosRef = React.useRef(addPhotos);
+  useEffect(() => {
+    addPhotosRef.current = addPhotos;
+  }, [addPhotos]);
+  useEffect(() => {
+    return () => {
+      addPhotosRef.current.forEach((p) => {
+        try {
+          URL.revokeObjectURL(p.preview);
+        } catch {
+          /* noop */
+        }
+      });
+    };
+  }, []);
+
+  if (!order) return null;
+
+  const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
+  const priceNum = parseFloat(priceStr.replace(",", ".")) || 0;
+  const newTotal = totalKg * priceNum;
+  const totalFinalPhotos = keepIds.length + addPhotos.length;
+  const priceChanged = Number(order.freight_price_per_kg || 0) !== priceNum;
+
+  const onFile = (files: FileList | null) => {
+    if (!files) return;
+    const next = [...addPhotos];
+    for (const f of Array.from(files)) {
+      if (keepIds.length + next.length >= 2) break;
+      next.push({ file: f, description: "", preview: URL.createObjectURL(f) });
+    }
+    setAddPhotos(next);
+  };
+
+  const submit = () => {
+    if (totalFinalPhotos < 1) return toast({ title: "Mantenha ou anexe ao menos 1 foto", variant: "destructive" });
+    if (totalFinalPhotos > 2) return toast({ title: "Máximo de 2 fotos", variant: "destructive" });
+    if (priceNum <= 0) return toast({ title: "Informe um valor por kg válido", variant: "destructive" });
+    onSubmit({
+      pricePerKg: priceNum,
+      keepPhotoIds: keepIds,
+      addPhotos: addPhotos.map((p) => ({ file: p.file, description: p.description })),
+    });
+  };
+
+  return (
+    <Dialog open={!!order} onOpenChange={onOpenChange}>
+      <DialogContent
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        className="p-0 gap-0 w-screen h-screen max-w-none sm:max-w-none sm:rounded-none flex flex-col"
+        style={{ width: "100vw", height: "100vh" }}
+      >
+        <DialogHeader className="px-4 py-3 border-b shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <PencilRuler className="h-5 w-5 text-amber-600" />
+            Editar OFR #{order.ofr_number}
+          </DialogTitle>
+          {order.edit_authorized_reason && (
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+              Motivo autorizado: {order.edit_authorized_reason}
+            </p>
+          )}
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end border rounded-lg p-3 bg-muted/30">
+            <div>
+              <Label>Valor por kg (R$)</Label>
+              <Input
+                inputMode="decimal"
+                value={priceStr}
+                onChange={(e) => setPriceStr(e.target.value)}
+                placeholder="0,10"
+              />
+              {priceChanged && order.freight_price_per_kg != null && (
+                <p className="text-[11px] mt-1 text-amber-700 dark:text-amber-300">
+                  Antes: {fmtMoney(order.freight_price_per_kg)} → Agora: {fmtMoney(priceNum)}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label>Peso total</Label>
+              <Input
+                value={`${totalKg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`}
+                disabled
+              />
+            </div>
+            <div>
+              <Label>Total do frete</Label>
+              <Input value={fmtMoney(newTotal)} disabled className="font-bold" />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold">Fotos ({totalFinalPhotos}/2)</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" asChild disabled={totalFinalPhotos >= 2}>
+                  <label className="cursor-pointer">
+                    <Camera className="h-4 w-4 mr-1.5" /> Tirar
+                    <input
+                      hidden
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(e) => onFile(e.target.files)}
+                    />
+                  </label>
+                </Button>
+                <Button variant="outline" size="sm" asChild disabled={totalFinalPhotos >= 2}>
+                  <label className="cursor-pointer">
+                    <Plus className="h-4 w-4 mr-1.5" /> Galeria
+                    <input hidden type="file" accept="image/*" multiple onChange={(e) => onFile(e.target.files)} />
+                  </label>
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {(order.photos || []).map((p) => {
+                const kept = keepIds.includes(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    className={cn(
+                      "border rounded-lg p-2 space-y-2 relative",
+                      !kept && "opacity-50 border-destructive/60",
+                    )}
+                  >
+                    {photoUrls[p.id] ? (
+                      <img src={photoUrls[p.id]} alt="" className="w-full h-32 object-cover rounded" />
+                    ) : (
+                      <div className="w-full h-32 bg-muted animate-pulse rounded" />
+                    )}
+                    <Button
+                      variant={kept ? "destructive" : "outline"}
+                      size="sm"
+                      className="w-full h-8"
+                      onClick={() =>
+                        setKeepIds(kept ? keepIds.filter((id) => id !== p.id) : [...keepIds, p.id])
+                      }
+                    >
+                      {kept ? (
+                        <>
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Remover
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-3.5 w-3.5 mr-1.5" /> Manter
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground">Foto atual</p>
+                  </div>
+                );
+              })}
+              {addPhotos.map((p, idx) => (
+                <div key={`new-${idx}`} className="border rounded-lg p-2 space-y-2 border-emerald-500/60">
+                  <div className="relative">
+                    <img src={p.preview} alt="" className="w-full h-32 object-cover rounded" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 bg-background/80"
+                      onClick={() => {
+                        try {
+                          URL.revokeObjectURL(p.preview);
+                        } catch {
+                          /* noop */
+                        }
+                        setAddPhotos(addPhotos.filter((_, i) => i !== idx));
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <Input
+                    placeholder="Descrição (opcional)"
+                    value={p.description}
+                    onChange={(e) =>
+                      setAddPhotos(addPhotos.map((x, i) => (i === idx ? { ...x, description: e.target.value } : x)))
+                    }
+                  />
+                  <p className="text-[10px] text-emerald-700 dark:text-emerald-400">Nova foto</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <DialogFooter className="px-4 py-3 border-t shrink-0 bg-background gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={submit}
+            disabled={submitting}
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            {submitting ? "Salvando…" : "Salvar edição"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Histórico de edição (no DetailsModal) ---------------- */
+
+function EditHistoryBlock({
+  order,
+  getPhotoSignedUrl,
+  onOpenViewer,
+}: {
+  order: FreightOrder;
+  getPhotoSignedUrl: (p: string, e?: number) => Promise<string | null>;
+  onOpenViewer: (url: string | null) => void;
+}) {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const ps = order.edit_photos || [];
+    if (!ps.length) {
+      setUrls({});
+      return;
+    }
+    (async () => {
+      const map: Record<string, string> = {};
+      for (const p of ps) {
+        const u = await getPhotoSignedUrl(p.storage_path, 3600);
+        if (u) map[p.id] = u;
+      }
+      setUrls(map);
+    })();
+  }, [order.id, (order.edit_photos || []).length]);
+
+  const hasPriceChange = order.previous_price_per_kg != null;
+  const oldPhotos = order.edit_photos || [];
+  return (
+    <div className="border-2 border-amber-500/50 rounded-lg overflow-hidden bg-amber-500/5">
+      <div className="bg-amber-500/20 px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-amber-800 dark:text-amber-200">
+        <History className="h-3.5 w-3.5" /> Histórico de Edição
+      </div>
+      <div className="p-3 space-y-3 text-xs">
+        {hasPriceChange && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded border bg-background p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">R$ / kg (antes → agora)</div>
+              <div className="font-semibold">
+                <span className="line-through text-muted-foreground">{fmtMoney(order.previous_price_per_kg)}</span>
+                {" → "}
+                <span className="text-amber-700 dark:text-amber-300">{fmtMoney(order.freight_price_per_kg)}</span>
+              </div>
+            </div>
+            <div className="rounded border bg-background p-2">
+              <div className="text-[10px] uppercase text-muted-foreground">Total (antes → agora)</div>
+              <div className="font-semibold">
+                <span className="line-through text-muted-foreground">{fmtMoney(order.previous_total)}</span>
+                {" → "}
+                <span className="text-amber-700 dark:text-amber-300">{fmtMoney(order.freight_total)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        {oldPhotos.length > 0 && (
+          <div>
+            <p className="text-[11px] font-semibold mb-1">Fotos removidas ({oldPhotos.length})</p>
+            <div className="grid grid-cols-2 gap-2">
+              {oldPhotos.map((p) => (
+                <div key={p.id} className="border rounded p-1 bg-background">
+                  {urls[p.id] ? (
+                    <img
+                      src={urls[p.id]}
+                      alt=""
+                      className="w-full h-24 object-cover rounded cursor-zoom-in opacity-80 hover:opacity-100"
+                      onClick={() => onOpenViewer(urls[p.id])}
+                    />
+                  ) : (
+                    <div className="w-full h-24 bg-muted animate-pulse rounded" />
+                  )}
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Removida em {fmt(p.replaced_at)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
