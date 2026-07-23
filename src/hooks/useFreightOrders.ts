@@ -509,6 +509,15 @@ export function useFreightOrders() {
       if (!user?.company_id) throw new Error('Sem empresa ativa');
       if (!photos?.length) throw new Error('Anexe ao menos 1 foto da entrega');
       if (photos.length > 2) throw new Error('Máximo 2 fotos');
+      // Pré-checa status ANTES de fazer upload para evitar fotos órfãs
+      // caso um admin tenha cancelado / revertido a OFR no meio tempo.
+      const { data: pre, error: preErr } = await (supabase.from as any)('freight_orders')
+        .select('status').eq('id', id).maybeSingle();
+      if (preErr) throw preErr;
+      if (!pre) throw new Error('OFR não encontrada');
+      if (!['pickup_in_progress','delivery_in_progress'].includes(pre.status)) {
+        throw new Error('Esta OFR não está mais em curso — atualize a tela e tente novamente.');
+      }
       const uploaded: Array<{ path: string; description?: string }> = [];
       for (const p of photos) {
         const ext = (p.file.name.split('.').pop() || 'jpg').toLowerCase();
@@ -520,15 +529,6 @@ export function useFreightOrders() {
         if (upErr) throw upErr;
         uploaded.push({ path, description: p.description });
       }
-      const photoRows = uploaded.map(u => ({
-        freight_order_id: id,
-        company_id: user.company_id,
-        storage_path: u.path,
-        description: u.description || null,
-        uploaded_by: profile?.id ?? null,
-      }));
-      const { error: pErr } = await (supabase.from as any)('freight_order_photos').insert(photoRows);
-      if (pErr) throw pErr;
       // Total do frete = kg total × preço por kg
       const { data: items } = await (supabase.from as any)('freight_order_items')
         .select('weight_kg').eq('freight_order_id', id);
@@ -544,9 +544,32 @@ export function useFreightOrders() {
       };
       if (delivery_doc_type) updatePayload.delivery_doc_type = delivery_doc_type;
       if (delivery_doc_number != null) updatePayload.delivery_doc_number = delivery_doc_number || null;
-      const { error } = await (supabase.from as any)('freight_orders').update(updatePayload)
-        .eq('id', id).in('status', ['pickup_in_progress','delivery_in_progress']);
-      if (error) throw error;
+      // UPDATE condicional: só aplica se ainda em curso, e valida retorno.
+      const { data: upd, error } = await (supabase.from as any)('freight_orders').update(updatePayload)
+        .eq('id', id).in('status', ['pickup_in_progress','delivery_in_progress'])
+        .select('id').maybeSingle();
+      if (error) {
+        // rollback dos uploads no storage
+        try { await supabase.storage.from('freight-photos').remove(uploaded.map(u => u.path)); } catch { /* silencioso */ }
+        throw error;
+      }
+      if (!upd) {
+        try { await supabase.storage.from('freight-photos').remove(uploaded.map(u => u.path)); } catch { /* silencioso */ }
+        throw new Error('Esta OFR não está mais em curso — atualize a tela e tente novamente.');
+      }
+      // Só insere linhas de fotos APÓS o status ter sido efetivamente atualizado.
+      const photoRows = uploaded.map(u => ({
+        freight_order_id: id,
+        company_id: user.company_id,
+        storage_path: u.path,
+        description: u.description || null,
+        uploaded_by: profile?.id ?? null,
+      }));
+      const { error: pErr } = await (supabase.from as any)('freight_order_photos').insert(photoRows);
+      if (pErr) {
+        // não bloqueia a finalização, mas registra
+        console.error('[OFR] falha ao registrar linhas de fotos:', pErr);
+      }
       // Push notification para admins ao finalizar OFR
       try {
         const { data: ord } = await (supabase.from as any)('freight_orders')
@@ -579,13 +602,18 @@ export function useFreightOrders() {
 
   const cancelOrder = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-      const { error } = await (supabase.from as any)('freight_orders').update({
+      const { data: upd, error } = await (supabase.from as any)('freight_orders').update({
         status: 'cancelled',
         cancelled_at: new Date().toISOString(),
         cancelled_by: profile?.id ?? null,
         cancellation_reason: reason,
-      }).eq('id', id);
+      })
+        .eq('id', id)
+        .in('status', ['open', 'pickup_in_progress', 'delivery_in_progress'])
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!upd) throw new Error('OFR não pode ser cancelada neste status (já finalizada/cancelada).');
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['freight_orders'] }); toast({ title: 'OFR cancelada' }); },
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
