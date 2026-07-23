@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getFriendlyErrorMessage } from '@/lib/utils';
-import { Warehouse, Plus } from 'lucide-react';
+import { Warehouse } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 interface OwnArticle { id: string; name: string }
@@ -26,9 +26,7 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [type, setType] = useState<'in' | 'out'>('in');
-  const [articleId, setArticleId] = useState('');
-  const [creatingNew, setCreatingNew] = useState(false);
-  const [newName, setNewName] = useState('');
+  const [articleName, setArticleName] = useState('');
   const [pieces, setPieces] = useState('');
   const [weight, setWeight] = useState('');
   const [reason, setReason] = useState('');
@@ -51,38 +49,49 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
     },
   });
 
+  // Artigos vêm de Clientes & Artigos (tabela articles), formatados como "Artigo (Cliente)".
+  const { data: clientArticles = [] } = useQuery({
+    queryKey: ['own_stock_modal_client_articles', user?.company_id],
+    enabled: !!user?.company_id && open,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)('articles')
+        .select('id, name, client_name, clients(name)')
+        .eq('company_id', user!.company_id)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name: string; client_name: string | null; clients: { name: string } | null }>;
+    },
+  });
+
   useEffect(() => {
     if (open) {
-      setType('in'); setArticleId(''); setCreatingNew(false);
-      setNewName(''); setPieces(''); setWeight(''); setReason('');
+      setType('in'); setArticleName('');
+      setPieces(''); setWeight(''); setReason('');
       setSource('internal'); setOutsourceCompanyId(''); setYarnType(''); setOfNumber('');
     }
   }, [open]);
 
-  const options = useMemo(() =>
-    [...ownArticles].sort((a, b) => a.name.localeCompare(b.name)).map(a => ({ value: a.id, label: a.name })),
-    [ownArticles]
-  );
+  const options = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Array<{ value: string; label: string }> = [];
+    for (const a of clientArticles) {
+      const cli = a.clients?.name || a.client_name || '';
+      const label = cli ? `${a.name} (${cli})` : a.name;
+      if (seen.has(label.toLowerCase())) continue;
+      seen.add(label.toLowerCase());
+      out.push({ value: label, label });
+    }
+    return out.sort((a, b) => a.label.localeCompare(b.label));
+  }, [clientArticles]);
 
   const handleSave = async () => {
     const piecesNum = parseInt(pieces || '0', 10);
     const weightNum = parseFloat(weight || '0');
     if (!user?.company_id) return;
 
-    let finalArticleId = articleId;
     setSaving(true);
     try {
-      if (creatingNew) {
-        const nm = newName.trim();
-        if (nm.length < 2) { setSaving(false); return toast({ title: 'Informe o nome do artigo', variant: 'destructive' }); }
-        const { data, error } = await (supabase.rpc as any)('save_own_stock_article', {
-          p_payload: { company_id: user.company_id, name: nm, created_by: profile?.id ?? null },
-        });
-        if (error) throw error;
-        finalArticleId = (data as any)?.id;
-        if (!finalArticleId) throw new Error('Falha ao criar artigo');
-      }
-      if (!finalArticleId) { setSaving(false); return toast({ title: 'Selecione ou crie um artigo', variant: 'destructive' }); }
+      if (!articleName) { setSaving(false); return toast({ title: 'Selecione um artigo', variant: 'destructive' }); }
       if (!(weightNum > 0) && !(piecesNum > 0)) { setSaving(false); return toast({ title: 'Informe peças ou peso', variant: 'destructive' }); }
       if (type === 'in' && source === 'outsource' && !outsourceCompanyId) {
         setSaving(false);
@@ -92,7 +101,7 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
       const { error: mvErr } = await (supabase.rpc as any)('save_own_stock_movement', {
         p_payload: {
           company_id: user.company_id,
-          own_article_id: finalArticleId,
+          article_name: articleName,
           type,
           pieces: piecesNum,
           weight_kg: weightNum,
@@ -186,23 +195,14 @@ export function OwnStockManualModal({ open, onOpenChange, ownArticles, onSaved }
           )}
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Artigo *</Label>
-              <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] gap-1" onClick={() => { setCreatingNew(v => !v); setArticleId(''); setNewName(''); }}>
-                {creatingNew ? 'Selecionar existente' : (<><Plus className="h-3 w-3" /> Criar novo</>)}
-              </Button>
-            </div>
-            {creatingNew ? (
-              <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome do artigo (ex.: Malha Piquet 30/1)" />
-            ) : (
-              <SearchableSelect
-                value={articleId}
-                onValueChange={setArticleId}
-                options={options}
-                placeholder={options.length ? 'Selecione o artigo' : 'Nenhum artigo — crie um novo'}
-                searchPlaceholder="Buscar artigo..."
-              />
-            )}
+            <Label className="text-xs">Artigo *</Label>
+            <SearchableSelect
+              value={articleName}
+              onValueChange={setArticleName}
+              options={options}
+              placeholder={options.length ? 'Selecione o artigo' : 'Nenhum artigo cadastrado em Clientes & Artigos'}
+              searchPlaceholder="Buscar artigo..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
