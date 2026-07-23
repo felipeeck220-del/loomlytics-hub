@@ -1409,6 +1409,58 @@ export type Database = {
         }
         Relationships: []
       }
+      freight_order_edit_photos: {
+        Row: {
+          company_id: string
+          description: string | null
+          freight_order_id: string
+          id: string
+          replaced_at: string
+          replaced_by: string | null
+          storage_path: string
+        }
+        Insert: {
+          company_id: string
+          description?: string | null
+          freight_order_id: string
+          id?: string
+          replaced_at?: string
+          replaced_by?: string | null
+          storage_path: string
+        }
+        Update: {
+          company_id?: string
+          description?: string | null
+          freight_order_id?: string
+          id?: string
+          replaced_at?: string
+          replaced_by?: string | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_order_edit_photos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_order_edit_photos_freight_order_id_fkey"
+            columns: ["freight_order_id"]
+            isOneToOne: false
+            referencedRelation: "freight_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_order_edit_photos_replaced_by_fkey"
+            columns: ["replaced_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_order_items: {
         Row: {
           article_id: string | null
@@ -1546,6 +1598,12 @@ export type Database = {
           delivery_location: string
           delivery_started_at: string | null
           delivery_started_by: string | null
+          edit_authorized: boolean
+          edit_authorized_at: string | null
+          edit_authorized_by: string | null
+          edit_authorized_reason: string | null
+          edited_at: string | null
+          edited_by: string | null
           freight_price_per_kg: number | null
           freight_total: number | null
           freighter_id: string
@@ -1556,6 +1614,8 @@ export type Database = {
           pickup_location: string
           pickup_started_at: string | null
           pickup_started_by: string | null
+          previous_price_per_kg: number | null
+          previous_total: number | null
           priority: boolean
           priority_at: string | null
           priority_by: string | null
@@ -1580,6 +1640,12 @@ export type Database = {
           delivery_location: string
           delivery_started_at?: string | null
           delivery_started_by?: string | null
+          edit_authorized?: boolean
+          edit_authorized_at?: string | null
+          edit_authorized_by?: string | null
+          edit_authorized_reason?: string | null
+          edited_at?: string | null
+          edited_by?: string | null
           freight_price_per_kg?: number | null
           freight_total?: number | null
           freighter_id: string
@@ -1590,6 +1656,8 @@ export type Database = {
           pickup_location: string
           pickup_started_at?: string | null
           pickup_started_by?: string | null
+          previous_price_per_kg?: number | null
+          previous_total?: number | null
           priority?: boolean
           priority_at?: string | null
           priority_by?: string | null
@@ -1614,6 +1682,12 @@ export type Database = {
           delivery_location?: string
           delivery_started_at?: string | null
           delivery_started_by?: string | null
+          edit_authorized?: boolean
+          edit_authorized_at?: string | null
+          edit_authorized_by?: string | null
+          edit_authorized_reason?: string | null
+          edited_at?: string | null
+          edited_by?: string | null
           freight_price_per_kg?: number | null
           freight_total?: number | null
           freighter_id?: string
@@ -1624,6 +1698,8 @@ export type Database = {
           pickup_location?: string
           pickup_started_at?: string | null
           pickup_started_by?: string | null
+          previous_price_per_kg?: number | null
+          previous_total?: number | null
           priority?: boolean
           priority_at?: string | null
           priority_by?: string | null
@@ -1677,6 +1753,20 @@ export type Database = {
           {
             foreignKeyName: "freight_orders_delivery_started_by_fkey"
             columns: ["delivery_started_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_orders_edit_authorized_by_fkey"
+            columns: ["edit_authorized_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_orders_edited_by_fkey"
+            columns: ["edited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
