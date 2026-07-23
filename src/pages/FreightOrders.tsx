@@ -218,7 +218,15 @@ export default function FreightOrders() {
   };
 
   const counts = useMemo(() => {
-    const c: Record<TabKey, number> = { priority: 0, open: 0, in_progress: 0, edit: 0, completed: 0, cancelled: 0, reports: 0 };
+    const c: Record<TabKey, number> = {
+      priority: 0,
+      open: 0,
+      in_progress: 0,
+      edit: 0,
+      completed: 0,
+      cancelled: 0,
+      reports: 0,
+    };
     for (const o of orders) {
       if (isPriorityVisibleFor(o)) {
         c.priority += 1;
@@ -358,7 +366,8 @@ export default function FreightOrders() {
               value="edit"
               className={cn(
                 "gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial",
-                counts.edit > 0 && "data-[state=active]:bg-amber-600 data-[state=active]:text-white text-amber-700 dark:text-amber-400",
+                counts.edit > 0 &&
+                  "data-[state=active]:bg-amber-600 data-[state=active]:text-white text-amber-700 dark:text-amber-400",
               )}
             >
               <PencilRuler className="h-3.5 w-3.5" /> Editar
@@ -754,10 +763,7 @@ export default function FreightOrders() {
         submitting={authorizeEdit.isPending}
         onSubmit={(reason) => {
           if (!authorizeEditOrder) return;
-          authorizeEdit.mutate(
-            { id: authorizeEditOrder.id, reason },
-            { onSuccess: () => setAuthorizeEditOrder(null) },
-          );
+          authorizeEdit.mutate({ id: authorizeEditOrder.id, reason }, { onSuccess: () => setAuthorizeEditOrder(null) });
         }}
       />
 
@@ -1067,14 +1073,17 @@ function OrderCard({
                   <X className="h-4 w-4 mr-1.5" /> Revogar autorização
                 </Button>
               )}
-              {order.status === "completed" && isEditAuthorized && (isOwnerFreighter || hasFullAccess) && onFreighterEdit && (
-                <Button
-                  onClick={onFreighterEdit}
-                  className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-semibold shadow-sm bg-amber-600 hover:bg-amber-700 text-white col-span-2 sm:col-span-1"
-                >
-                  <PencilRuler className="h-5 w-5 sm:h-4 sm:w-4 mr-2 sm:mr-1.5" /> Editar OFR
-                </Button>
-              )}
+              {order.status === "completed" &&
+                isEditAuthorized &&
+                (isOwnerFreighter || hasFullAccess) &&
+                onFreighterEdit && (
+                  <Button
+                    onClick={onFreighterEdit}
+                    className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-semibold shadow-sm bg-amber-600 hover:bg-amber-700 text-white col-span-2 sm:col-span-1"
+                  >
+                    <PencilRuler className="h-5 w-5 sm:h-4 sm:w-4 mr-2 sm:mr-1.5" /> Editar OFR
+                  </Button>
+                )}
               {hasFullAccess && order.status !== "completed" && order.status !== "cancelled" && (
                 <Button
                   variant="ghost"
@@ -2081,9 +2090,10 @@ function DetailsModal({
               </div>
             </div>
 
-            {order.edited_at && (order.previous_price_per_kg != null || (order.edit_photos && order.edit_photos.length > 0)) && (
-              <EditHistoryBlock order={order} getPhotoSignedUrl={getPhotoSignedUrl} onOpenViewer={setViewerUrl} />
-            )}
+            {order.edited_at &&
+              (order.previous_price_per_kg != null || (order.edit_photos && order.edit_photos.length > 0)) && (
+                <EditHistoryBlock order={order} getPhotoSignedUrl={getPhotoSignedUrl} onOpenViewer={setViewerUrl} />
+              )}
 
             {(order.photos || []).length > 0 && (
               <div>
@@ -2660,7 +2670,7 @@ function AuthorizeEditModal({
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
-            <ShieldCheck className="h-5 w-5" /> Autorizar edição
+            <ShieldCheck className="h-5 w-5" /> Aut. edição
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3 py-2">
@@ -2884,9 +2894,7 @@ function FreighterEditModal({
                       variant={kept ? "destructive" : "outline"}
                       size="sm"
                       className="w-full h-8"
-                      onClick={() =>
-                        setKeepIds(kept ? keepIds.filter((id) => id !== p.id) : [...keepIds, p.id])
-                      }
+                      onClick={() => setKeepIds(kept ? keepIds.filter((id) => id !== p.id) : [...keepIds, p.id])}
                     >
                       {kept ? (
                         <>
@@ -2939,11 +2947,7 @@ function FreighterEditModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button
-            onClick={submit}
-            disabled={submitting}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
-          >
+          <Button onClick={submit} disabled={submitting} className="bg-amber-600 hover:bg-amber-700 text-white">
             {submitting ? "Salvando…" : "Salvar edição"}
           </Button>
         </DialogFooter>
@@ -3024,9 +3028,7 @@ function EditHistoryBlock({
                   ) : (
                     <div className="w-full h-24 bg-muted animate-pulse rounded" />
                   )}
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Removida em {fmt(p.replaced_at)}
-                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Removida em {fmt(p.replaced_at)}</p>
                 </div>
               ))}
             </div>
