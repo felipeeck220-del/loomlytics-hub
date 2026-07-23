@@ -72,6 +72,16 @@ export interface FreightOrderPhoto {
   created_at: string;
 }
 
+export interface FreightOrderEditPhoto {
+  id: string;
+  freight_order_id: string;
+  company_id: string;
+  storage_path: string;
+  description?: string | null;
+  replaced_by?: string | null;
+  replaced_at: string;
+}
+
 export interface FreightOrder {
   id: string;
   company_id: string;
@@ -112,6 +122,17 @@ export interface FreightOrder {
   priority_at?: string | null;
   priority_by?: string | null;
   priority_reason?: string | null;
+  edit_authorized?: boolean;
+  edit_authorized_at?: string | null;
+  edit_authorized_by?: string | null;
+  edit_authorized_reason?: string | null;
+  edited_at?: string | null;
+  edited_by?: string | null;
+  previous_price_per_kg?: number | null;
+  previous_total?: number | null;
+  edit_photos?: FreightOrderEditPhoto[];
+  edit_authorizer?: { name: string; code: string } | null;
+  editor?: { name: string; code: string } | null;
 }
 
 export function useFreightOrders() {
@@ -172,11 +193,14 @@ export function useFreightOrders() {
           cost_company:freight_cost_companies(*),
           items:freight_order_items(*, article:articles(name, client_id, client_name)),
           photos:freight_order_photos(*),
+          edit_photos:freight_order_edit_photos(*),
           creator:profiles!freight_orders_created_by_fkey(name, code),
           pickup_starter:profiles!freight_orders_pickup_started_by_fkey(name, code),
           delivery_starter:profiles!freight_orders_delivery_started_by_fkey(name, code),
           completer:profiles!freight_orders_completed_by_fkey(name, code),
-          canceller:profiles!freight_orders_cancelled_by_fkey(name, code)
+          canceller:profiles!freight_orders_cancelled_by_fkey(name, code),
+          edit_authorizer:profiles!freight_orders_edit_authorized_by_fkey(name, code),
+          editor:profiles!freight_orders_edited_by_fkey(name, code)
         `)
         .eq('company_id', user.company_id)
         .order('created_at', { ascending: false });
@@ -197,6 +221,9 @@ export function useFreightOrders() {
         queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_order_photos', filter: `company_id=eq.${user.company_id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_order_edit_photos', filter: `company_id=eq.${user.company_id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ['freight_orders', user.company_id] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'freighters', filter: `company_id=eq.${user.company_id}` }, () => {
