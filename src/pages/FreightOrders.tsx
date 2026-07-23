@@ -756,6 +756,17 @@ function OrderCard({
                   <Pencil className="h-4 w-4 mr-1.5" /> Editar
                 </Button>
               )}
+              {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && hasFullAccess && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onEdit}
+                  className="h-10 xl:h-9 border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                  title="Editar OFR — retorna para Aberto"
+                >
+                  <Pencil className="h-4 w-4 mr-1.5" /> Editar (voltar p/ Aberto)
+                </Button>
+              )}
               {order.status === 'open' && hasFullAccess && !isPriority && onSetPriority && (
                 <Button variant="outline" size="sm" onClick={onSetPriority} className="h-10 xl:h-9 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
                   <Flame className="h-4 w-4 mr-1.5" /> Prioridade

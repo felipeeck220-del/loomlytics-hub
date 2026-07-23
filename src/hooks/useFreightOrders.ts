@@ -369,10 +369,14 @@ export function useFreightOrders() {
         .maybeSingle();
       if (curErr) throw curErr;
       if (!current) throw new Error('OFR não encontrada');
-      if (current.status !== 'open') throw new Error('Somente OFRs em Aberto podem ser editadas');
+      const editableStatuses = ['open', 'pickup_in_progress', 'delivery_in_progress'];
+      if (!editableStatuses.includes(current.status)) {
+        throw new Error('Somente OFRs em Aberto ou Frete em curso podem ser editadas');
+      }
+      const wasInProgress = current.status !== 'open';
 
       const costCompanySnapshot = costCompanies.find(c => c.id === payload.cost_company_id);
-      const { error: upErr } = await (supabase.from as any)('freight_orders').update({
+      const updatePayload: Record<string, any> = {
         freighter_id: payload.freighter_id,
         cost_company_id: payload.cost_company_id,
         cost_company_name: costCompanySnapshot?.name || null,
@@ -381,7 +385,19 @@ export function useFreightOrders() {
         observations: payload.observations || null,
         delivery_doc_type: payload.delivery_doc_type || null,
         delivery_doc_number: payload.delivery_doc_number || null,
-      }).eq('id', payload.id).eq('status', 'open');
+      };
+      if (wasInProgress) {
+        // Ao editar uma OFR em curso, volta para Aberto e limpa auditoria de início
+        updatePayload.status = 'open';
+        updatePayload.pickup_started_at = null;
+        updatePayload.pickup_started_by = null;
+        updatePayload.delivery_started_at = null;
+        updatePayload.delivery_started_by = null;
+      }
+      const { error: upErr } = await (supabase.from as any)('freight_orders')
+        .update(updatePayload)
+        .eq('id', payload.id)
+        .in('status', editableStatuses);
       if (upErr) throw upErr;
 
       // Substitui itens (remove todos e reinsere)
