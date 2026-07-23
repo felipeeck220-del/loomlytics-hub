@@ -762,6 +762,30 @@ export default function StockMalha() {
             )}
           </CardContent></Card>
         </div>
+      ) : activeStockTab === 'propria' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Entradas</div>
+            {isOwnLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
+              <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.entradaKg)}</p>
+              <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.entradaPc)} pç</p>
+            </>)}
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Saídas</div>
+            {isOwnLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
+              <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.saidaKg)}</p>
+              <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saidaPc)} pç</p>
+            </>)}
+          </CardContent></Card>
+          <Card><CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Saldo</div>
+            {isOwnLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
+              <p className={cn('text-xl font-bold', ownKpis.saldoKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(ownKpis.saldoKg)}</p>
+              <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saldoPc)} pç</p>
+            </>)}
+          </CardContent></Card>
+        </div>
       ) : activeStockTab === 'estoque' ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card><CardContent className="p-4">
@@ -1062,30 +1086,6 @@ export default function StockMalha() {
         </TabsContent>
 
         <TabsContent value="propria" className="space-y-3 mt-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Package className="h-3.5 w-3.5" />Entradas</div>
-              {isOwnLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
-                <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.entradaKg)}</p>
-                <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.entradaPc)} pç</p>
-              </>)}
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Truck className="h-3.5 w-3.5" />Saídas</div>
-              {isOwnLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
-                <p className="text-xl font-bold text-foreground">{formatWeight(ownKpis.saidaKg)}</p>
-                <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saidaPc)} pç</p>
-              </>)}
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1"><Warehouse className="h-3.5 w-3.5" />Saldo</div>
-              {isOwnLoading ? (<><Skeleton className="h-6 w-24" /><Skeleton className="h-3 w-14 mt-1" /></>) : (<>
-                <p className={cn('text-xl font-bold', ownKpis.saldoKg < 0 ? 'text-destructive' : 'text-success')}>{formatWeight(ownKpis.saldoKg)}</p>
-                <p className="text-[10px] text-muted-foreground">{formatNumber(ownKpis.saldoPc)} pç</p>
-              </>)}
-            </CardContent></Card>
-          </div>
-
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center gap-2">
