@@ -739,6 +739,215 @@ export function useFreightOrders() {
     return data?.signedUrl || null;
   }
 
+  // ================= Edição autorizada de OFRs finalizadas =================
+
+  const authorizeEdit = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason?: string | null }) => {
+      if (!user?.company_id) throw new Error('Sem empresa ativa');
+      const { data: current, error: curErr } = await (supabase.from as any)('freight_orders')
+        .select('id, ofr_number, status, freighter_id, pickup_location, delivery_location')
+        .eq('id', id).maybeSingle();
+      if (curErr) throw curErr;
+      if (!current) throw new Error('OFR não encontrada');
+      if (current.status !== 'completed') throw new Error('Somente OFRs finalizadas podem ser liberadas para edição');
+      const { data: upd, error } = await (supabase.from as any)('freight_orders')
+        .update({
+          edit_authorized: true,
+          edit_authorized_at: new Date().toISOString(),
+          edit_authorized_by: profile?.id ?? null,
+          edit_authorized_reason: (reason && reason.trim()) ? reason.trim() : null,
+        })
+        .eq('id', id)
+        .eq('status', 'completed')
+        .select('id')
+        .maybeSingle();
+      if (error) throw error;
+      if (!upd) throw new Error('OFR não pôde ser liberada — atualize a tela e tente novamente');
+
+      // Push para o freteiro vinculado
+      try {
+        const { data: frt } = await (supabase.from as any)('freighters')
+          .select('name, user_id').eq('id', current.freighter_id).maybeSingle();
+        const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+        const targetPath = slug ? `/${slug}/freight-orders` : '/';
+        const motivo = reason && reason.trim() ? ` · Motivo: ${reason.trim()}` : '';
+        supabase.functions.invoke('send-push-notification', {
+          body: {
+            company_id: user.company_id,
+            title: `✏️ OFR #${current.ofr_number} liberada para edição`,
+            message: `${current.pickup_location} → ${current.delivery_location}${motivo}`,
+            url: targetPath,
+            include_admins: false,
+            target_user_ids: frt?.user_id ? [frt.user_id] : [],
+            source: 'OFR',
+            ref_id: id,
+            ref_number: `OFR #${current.ofr_number}`,
+          },
+        }).catch(() => { /* silencioso */ });
+      } catch { /* silencioso */ }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['freight_orders'] });
+      toast({ title: 'Edição autorizada — freteiro notificado' });
+    },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const revokeEditAuthorization = useMutation({
+    mutationFn: async (id: string) => {
+      const { data: upd, error } = await (supabase.from as any)('freight_orders')
+        .update({
+          edit_authorized: false,
+          edit_authorized_at: null,
+          edit_authorized_by: null,
+          edit_authorized_reason: null,
+        })
+        .eq('id', id)
+        .eq('edit_authorized', true)
+        .select('id')
+        .maybeSingle();
+      if (error) throw error;
+      if (!upd) throw new Error('Autorização não encontrada');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['freight_orders'] });
+      toast({ title: 'Autorização revogada' });
+    },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+
+  const saveFreighterEdit = useMutation({
+    mutationFn: async ({ id, pricePerKg, keepPhotoIds, addPhotos }: {
+      id: string;
+      pricePerKg: number;
+      keepPhotoIds: string[];
+      addPhotos: Array<{ file: File; description?: string }>;
+    }) => {
+      if (!user?.company_id) throw new Error('Sem empresa ativa');
+
+      // Pré-checa autorização
+      const { data: current, error: curErr } = await (supabase.from as any)('freight_orders')
+        .select('id, ofr_number, status, edit_authorized, freight_price_per_kg, freight_total, freighter:freighters(name)')
+        .eq('id', id).maybeSingle();
+      if (curErr) throw curErr;
+      if (!current) throw new Error('OFR não encontrada');
+      if (!current.edit_authorized) throw new Error('Edição não está autorizada');
+      if (current.status !== 'completed') throw new Error('OFR não está finalizada');
+
+      // Fotos atuais
+      const { data: currentPhotos, error: phErr } = await (supabase.from as any)('freight_order_photos')
+        .select('*').eq('freight_order_id', id);
+      if (phErr) throw phErr;
+      const toRemove = (currentPhotos || []).filter((p: any) => !keepPhotoIds.includes(p.id));
+      const totalFinal = (keepPhotoIds.length + addPhotos.length);
+      if (totalFinal < 1) throw new Error('Mantenha ou anexe ao menos 1 foto');
+      if (totalFinal > 2) throw new Error('Máximo de 2 fotos');
+
+      // Upload das novas
+      const uploaded: Array<{ path: string; description?: string }> = [];
+      for (const p of addPhotos) {
+        const ext = (p.file.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = `${user.company_id}/${id}/edit-${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('freight-photos').upload(path, p.file, {
+          contentType: p.file.type || 'image/jpeg',
+          upsert: false,
+        });
+        if (upErr) {
+          try { await supabase.storage.from('freight-photos').remove(uploaded.map(u => u.path)); } catch { /* silencioso */ }
+          throw upErr;
+        }
+        uploaded.push({ path, description: p.description });
+      }
+
+      // Novo total = kg × novo preço
+      const { data: items } = await (supabase.from as any)('freight_order_items')
+        .select('weight_kg').eq('freight_order_id', id);
+      const totalKg = (items || []).reduce((s: number, r: any) => s + Number(r.weight_kg || 0), 0);
+      const newPrice = Math.max(0, Number(pricePerKg || 0));
+      const newTotal = Math.round(totalKg * newPrice * 100) / 100;
+
+      // UPDATE condicional (só se ainda autorizado)
+      const { data: upd, error: updErr } = await (supabase.from as any)('freight_orders')
+        .update({
+          previous_price_per_kg: current.freight_price_per_kg ?? null,
+          previous_total: current.freight_total ?? null,
+          freight_price_per_kg: newPrice || null,
+          freight_total: newPrice > 0 ? newTotal : null,
+          edited_at: new Date().toISOString(),
+          edited_by: profile?.id ?? null,
+          edit_authorized: false,
+        })
+        .eq('id', id)
+        .eq('edit_authorized', true)
+        .select('id')
+        .maybeSingle();
+      if (updErr) {
+        try { await supabase.storage.from('freight-photos').remove(uploaded.map(u => u.path)); } catch { /* silencioso */ }
+        throw updErr;
+      }
+      if (!upd) {
+        try { await supabase.storage.from('freight-photos').remove(uploaded.map(u => u.path)); } catch { /* silencioso */ }
+        throw new Error('Autorização revogada — atualize a tela');
+      }
+
+      // Move fotos removidas para o histórico (edit_photos) e apaga da tabela atual
+      if (toRemove.length) {
+        const editRows = toRemove.map((p: any) => ({
+          freight_order_id: id,
+          company_id: user.company_id,
+          storage_path: p.storage_path,
+          description: p.description || null,
+          replaced_by: profile?.id ?? null,
+        }));
+        await (supabase.from as any)('freight_order_edit_photos').insert(editRows);
+        await (supabase.from as any)('freight_order_photos').delete()
+          .in('id', toRemove.map((p: any) => p.id));
+      }
+
+      // Insere novas fotos na tabela ativa
+      if (uploaded.length) {
+        const rows = uploaded.map(u => ({
+          freight_order_id: id,
+          company_id: user.company_id,
+          storage_path: u.path,
+          description: u.description || null,
+          uploaded_by: profile?.id ?? null,
+        }));
+        await (supabase.from as any)('freight_order_photos').insert(rows);
+      }
+
+      // Notifica admins
+      try {
+        const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+        const targetPath = slug ? `/${slug}/freight-orders` : '/';
+        const changes: string[] = [];
+        if (Number(current.freight_price_per_kg || 0) !== newPrice) {
+          changes.push(`R$/kg: ${Number(current.freight_price_per_kg || 0).toFixed(2)} → ${newPrice.toFixed(2)}`);
+        }
+        if (toRemove.length || uploaded.length) {
+          changes.push(`fotos: -${toRemove.length}/+${uploaded.length}`);
+        }
+        supabase.functions.invoke('send-push-notification', {
+          body: {
+            company_id: user.company_id,
+            title: `OFR #${current.ofr_number} editada — ${current.freighter?.name || 'Freteiro'}`,
+            message: changes.join(' · ') || 'Edição registrada',
+            url: targetPath,
+            include_admins: true,
+            source: 'OFR',
+            ref_id: id,
+            ref_number: `OFR #${current.ofr_number}`,
+          },
+        }).catch(() => { /* silencioso */ });
+      } catch { /* silencioso */ }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['freight_orders'] });
+      toast({ title: 'Edição salva' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao salvar edição', description: e.message, variant: 'destructive' }),
+  });
+
   const createAddress = useMutation({
     mutationFn: async (payload: { name: string; full_address: string; latitude?: number | null; longitude?: number | null; is_company?: boolean }) => {
       if (!user?.company_id) throw new Error('Sem empresa ativa');
@@ -783,5 +992,6 @@ export function useFreightOrders() {
     createCostCompany, updateCostCompany, deleteCostCompany,
     createAddress, updateAddress, deleteAddress,
     getPhotoSignedUrl,
+    authorizeEdit, revokeEditAuthorization, saveFreighterEdit,
   };
 }
