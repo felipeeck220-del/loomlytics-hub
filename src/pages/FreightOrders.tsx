@@ -425,6 +425,10 @@ export default function FreightOrders() {
                   }}
                   onRemovePriority={() => setRemovePriorityOrder(order)}
                   onOpenAddresses={() => setOrderAddressesView(order)}
+                  onAuthorizeEdit={() => setAuthorizeEditOrder(order)}
+                  onRevokeEditAuthorization={() => revokeEditAuthorization.mutate(order.id)}
+                  onFreighterEdit={() => setFreighterEditOrder(order)}
+                  currentUserId={user?.id}
                 />
               ))}
               {tab === "completed" && completedTotal > COMPLETED_PAGE_SIZE && (
