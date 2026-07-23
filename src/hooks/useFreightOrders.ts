@@ -866,17 +866,27 @@ export function useFreightOrders() {
       const newPrice = Math.max(0, Number(pricePerKg || 0));
       const newTotal = Math.round(totalKg * newPrice * 100) / 100;
 
+      // Só snapshota preço/total se realmente mudaram (evita "R$ 10 → R$ 10" no histórico)
+      const priceChanged = Number(current.freight_price_per_kg ?? 0) !== newPrice;
+      const updatePayload: Record<string, any> = {
+        freight_price_per_kg: newPrice || null,
+        freight_total: newPrice > 0 ? newTotal : null,
+        edited_at: new Date().toISOString(),
+        edited_by: profile?.id ?? null,
+        edit_authorized: false,
+      };
+      if (priceChanged) {
+        updatePayload.previous_price_per_kg = current.freight_price_per_kg ?? null;
+        updatePayload.previous_total = current.freight_total ?? null;
+      } else {
+        // limpa snapshot antigo se essa edição não mexe no preço
+        updatePayload.previous_price_per_kg = null;
+        updatePayload.previous_total = null;
+      }
+
       // UPDATE condicional (só se ainda autorizado)
       const { data: upd, error: updErr } = await (supabase.from as any)('freight_orders')
-        .update({
-          previous_price_per_kg: current.freight_price_per_kg ?? null,
-          previous_total: current.freight_total ?? null,
-          freight_price_per_kg: newPrice || null,
-          freight_total: newPrice > 0 ? newTotal : null,
-          edited_at: new Date().toISOString(),
-          edited_by: profile?.id ?? null,
-          edit_authorized: false,
-        })
+        .update(updatePayload)
         .eq('id', id)
         .eq('edit_authorized', true)
         .select('id')
