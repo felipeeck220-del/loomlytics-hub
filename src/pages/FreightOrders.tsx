@@ -51,11 +51,14 @@ import {
   Flame,
   Navigation,
   Map as MapIcon,
+  PencilRuler,
+  ShieldCheck,
+  History,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-type TabKey = "priority" | "open" | "in_progress" | "completed" | "cancelled" | "reports";
+type TabKey = "priority" | "open" | "in_progress" | "edit" | "completed" | "cancelled" | "reports";
 
 const PRIORITY_REASONS = ["Coleta urgente", "Cliente aguardando", "Entrega urgente hoje"];
 
@@ -162,6 +165,9 @@ export default function FreightOrders() {
     updateAddress,
     deleteAddress,
     getPhotoSignedUrl,
+    authorizeEdit,
+    revokeEditAuthorization,
+    saveFreighterEdit,
   } = useFreightOrders();
 
   const hasFullAccess = role === "admin" || role === "lider_frete";
@@ -184,6 +190,8 @@ export default function FreightOrders() {
   const [priorityCustom, setPriorityCustom] = useState<string>("");
   const [priorityObs, setPriorityObs] = useState<string>("");
   const [removePriorityOrder, setRemovePriorityOrder] = useState<FreightOrder | null>(null);
+  const [authorizeEditOrder, setAuthorizeEditOrder] = useState<FreightOrder | null>(null);
+  const [freighterEditOrder, setFreighterEditOrder] = useState<FreightOrder | null>(null);
   const [companyName, setCompanyName] = useState<string>("");
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
@@ -210,7 +218,7 @@ export default function FreightOrders() {
   };
 
   const counts = useMemo(() => {
-    const c: Record<TabKey, number> = { priority: 0, open: 0, in_progress: 0, completed: 0, cancelled: 0, reports: 0 };
+    const c: Record<TabKey, number> = { priority: 0, open: 0, in_progress: 0, edit: 0, completed: 0, cancelled: 0, reports: 0 };
     for (const o of orders) {
       if (isPriorityVisibleFor(o)) {
         c.priority += 1;
@@ -219,6 +227,12 @@ export default function FreightOrders() {
       c[tabOfStatus(o.status)] += 1;
     }
     c.reports = orders.filter((o) => o.status === "completed").length;
+    c.edit = orders.filter((o) => {
+      if (!o.edit_authorized || o.status !== "completed") return false;
+      if (hasFullAccess) return true;
+      if (isFreteiro && o.freighter?.user_id && user?.id && o.freighter.user_id === user.id) return true;
+      return false;
+    }).length;
     return c;
   }, [orders, hasFullAccess, isFreteiro, user?.id]);
 
@@ -230,6 +244,9 @@ export default function FreightOrders() {
       } else if (tab === "open") {
         if (o.status !== "open") return false;
         if (isPriorityVisibleFor(o)) return false;
+      } else if (tab === "edit") {
+        if (o.status !== "completed" || !o.edit_authorized) return false;
+        if (isFreteiro && !(o.freighter?.user_id && user?.id && o.freighter.user_id === user.id)) return false;
       } else if (tabOfStatus(o.status) !== tab) return false;
       if (!term) return true;
       const matches =
