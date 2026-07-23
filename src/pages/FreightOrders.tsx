@@ -2065,8 +2065,25 @@ function DetailsModal({
                     {order.canceller && ` · por ${order.canceller.name} #${order.canceller.code}`}
                   </div>
                 )}
+                {order.edit_authorized_at && (
+                  <div className="text-amber-700 dark:text-amber-300">
+                    Edição autorizada: {fmt(order.edit_authorized_at)}
+                    {order.edit_authorizer && ` · por ${order.edit_authorizer.name} #${order.edit_authorizer.code}`}
+                    {order.edit_authorized_reason && ` — Motivo: ${order.edit_authorized_reason}`}
+                  </div>
+                )}
+                {order.edited_at && (
+                  <div className="text-amber-700 dark:text-amber-300">
+                    Editada: <span className="font-medium">{fmt(order.edited_at)}</span>
+                    {order.editor && ` · por ${order.editor.name} #${order.editor.code}`}
+                  </div>
+                )}
               </div>
             </div>
+
+            {order.edited_at && (order.previous_price_per_kg != null || (order.edit_photos && order.edit_photos.length > 0)) && (
+              <EditHistoryBlock order={order} getPhotoSignedUrl={getPhotoSignedUrl} onOpenViewer={setViewerUrl} />
+            )}
 
             {(order.photos || []).length > 0 && (
               <div>
