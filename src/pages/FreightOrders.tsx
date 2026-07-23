@@ -765,6 +765,10 @@ function OrderCard({
   onSetPriority,
   onRemovePriority,
   onOpenAddresses,
+  onAuthorizeEdit,
+  onRevokeEditAuthorization,
+  onFreighterEdit,
+  currentUserId,
 }: {
   order: FreightOrder;
   hasFullAccess: boolean;
@@ -778,6 +782,10 @@ function OrderCard({
   onSetPriority?: () => void;
   onRemovePriority?: () => void;
   onOpenAddresses?: () => void;
+  onAuthorizeEdit?: () => void;
+  onRevokeEditAuthorization?: () => void;
+  onFreighterEdit?: () => void;
+  currentUserId?: string;
 }) {
   const totalPieces = (order.items || []).reduce((s, i) => s + Number(i.pieces || 0), 0);
   const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
@@ -792,6 +800,10 @@ function OrderCard({
 
   const style = getStatusStyle(order.status);
   const isPriority = !!order.priority && order.status === "open";
+  const isEditAuthorized = !!order.edit_authorized && order.status === "completed";
+  const wasEdited = !!order.edited_at;
+  const isOwnerFreighter =
+    isFreteiro && !!order.freighter?.user_id && !!currentUserId && order.freighter.user_id === currentUserId;
 
   return (
     <Card
@@ -819,6 +831,19 @@ function OrderCard({
               {isPriority && (
                 <Badge className="bg-red-600 text-white border-red-700 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1 animate-pulse">
                   <Flame className="h-3 w-3" /> PRIORIDADE
+                </Badge>
+              )}
+              {isEditAuthorized && (
+                <Badge className="bg-amber-600 text-white border-amber-700 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1">
+                  <PencilRuler className="h-3 w-3" /> EDIÇÃO LIBERADA
+                </Badge>
+              )}
+              {wasEdited && (
+                <Badge
+                  className="bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/60 font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 gap-1"
+                  title={`Editada em ${fmt(order.edited_at)}${order.editor ? ` por ${order.editor.name} #${order.editor.code}` : ""}`}
+                >
+                  <History className="h-3 w-3" /> EDITADA
                 </Badge>
               )}
               <Badge className={`${style.badgeClass} font-bold text-[10px] tracking-wide uppercase px-2 py-0.5 border`}>
@@ -991,6 +1016,34 @@ function OrderCard({
                   className="h-10 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
                 >
                   <X className="h-4 w-4 mr-1.5" /> Remover Prioridade
+                </Button>
+              )}
+              {order.status === "completed" && hasFullAccess && !isEditAuthorized && onAuthorizeEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onAuthorizeEdit}
+                  className="h-10 border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                >
+                  <ShieldCheck className="h-4 w-4 mr-1.5" /> Autorizar edição
+                </Button>
+              )}
+              {order.status === "completed" && hasFullAccess && isEditAuthorized && onRevokeEditAuthorization && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRevokeEditAuthorization}
+                  className="h-10 border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                >
+                  <X className="h-4 w-4 mr-1.5" /> Revogar autorização
+                </Button>
+              )}
+              {order.status === "completed" && isEditAuthorized && (isOwnerFreighter || hasFullAccess) && onFreighterEdit && (
+                <Button
+                  onClick={onFreighterEdit}
+                  className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm font-semibold shadow-sm bg-amber-600 hover:bg-amber-700 text-white col-span-2 sm:col-span-1"
+                >
+                  <PencilRuler className="h-5 w-5 sm:h-4 sm:w-4 mr-2 sm:mr-1.5" /> Editar OFR
                 </Button>
               )}
               {hasFullAccess && order.status !== "completed" && order.status !== "cancelled" && (
