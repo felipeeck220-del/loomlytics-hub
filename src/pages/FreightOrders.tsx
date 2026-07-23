@@ -629,7 +629,7 @@ function OrderCard({
         isPriority ? 'bg-red-600' : style.stripe
       )} />
       <CardContent className="p-3 pl-4 sm:p-4 sm:pl-5">
-        <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-3 sm:gap-4">
+        <div className="flex flex-col gap-3 sm:gap-4">
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="font-extrabold text-xl sm:text-lg text-foreground tracking-tight">OFR #{order.ofr_number}</span>
@@ -728,61 +728,59 @@ function OrderCard({
             </div>
           </div>
 
-          <div className="flex flex-col xl:flex-row xl:flex-wrap gap-2 pt-1 xl:pt-0 xl:justify-end">
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
             {order.status === 'open' && (isFreteiro || hasFullAccess) && (
-              <Button size="sm" onClick={onStartPickup} className="h-11 xl:h-9 font-semibold shadow-sm">
+              <Button size="sm" onClick={onStartPickup} className="h-10 font-semibold shadow-sm">
                 <Play className="h-4 w-4 mr-1.5" /> Iniciar Frete
               </Button>
             )}
             {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && (isFreteiro || hasFullAccess) && (
-              <Button size="sm" onClick={onComplete} className="h-11 xl:h-9 font-semibold shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button size="sm" onClick={onComplete} className="h-10 font-semibold shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white">
                 <CheckCircle2 className="h-4 w-4 mr-1.5" /> Finalizar Entrega
               </Button>
             )}
-            <div className="grid grid-cols-2 gap-2 xl:flex xl:flex-wrap">
-              <Button variant="outline" size="sm" onClick={onDetails} className="h-10 xl:h-9">
-                <Eye className="h-4 w-4 mr-1.5" /> Detalhes
+            <Button variant="outline" size="sm" onClick={onDetails} className="h-10">
+              <Eye className="h-4 w-4 mr-1.5" /> Detalhes
+            </Button>
+            {onOpenAddresses && (
+              <Button variant="outline" size="sm" onClick={onOpenAddresses} className="h-10 border-primary/40 text-primary hover:bg-primary/10">
+                <Navigation className="h-4 w-4 mr-1.5" /> Endereços
               </Button>
-              {onOpenAddresses && (
-                <Button variant="outline" size="sm" onClick={onOpenAddresses} className="h-10 xl:h-9 border-primary/40 text-primary hover:bg-primary/10">
-                  <Navigation className="h-4 w-4 mr-1.5" /> Endereços
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={onDownload} className="h-10 xl:h-9">
-                <Download className="h-4 w-4 mr-1.5" /> PDF
+            )}
+            <Button variant="outline" size="sm" onClick={onDownload} className="h-10">
+              <Download className="h-4 w-4 mr-1.5" /> PDF
+            </Button>
+            {order.status === 'open' && hasFullAccess && (
+              <Button variant="outline" size="sm" onClick={onEdit} className="h-10">
+                <Pencil className="h-4 w-4 mr-1.5" /> Editar
               </Button>
-              {order.status === 'open' && hasFullAccess && (
-                <Button variant="outline" size="sm" onClick={onEdit} className="h-10 xl:h-9">
-                  <Pencil className="h-4 w-4 mr-1.5" /> Editar
-                </Button>
-              )}
-              {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && hasFullAccess && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onEdit}
-                  className="h-10 xl:h-9 border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
-                  title="Editar OFR — retorna para Aberto"
-                >
-                  <Pencil className="h-4 w-4 mr-1.5" /> Editar (voltar p/ Aberto)
-                </Button>
-              )}
-              {order.status === 'open' && hasFullAccess && !isPriority && onSetPriority && (
-                <Button variant="outline" size="sm" onClick={onSetPriority} className="h-10 xl:h-9 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
-                  <Flame className="h-4 w-4 mr-1.5" /> Prioridade
-                </Button>
-              )}
-              {order.status === 'open' && hasFullAccess && isPriority && onRemovePriority && (
-                <Button variant="outline" size="sm" onClick={onRemovePriority} className="h-10 xl:h-9 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
-                  <X className="h-4 w-4 mr-1.5" /> Remover Prioridade
-                </Button>
-              )}
-              {hasFullAccess && order.status !== 'completed' && order.status !== 'cancelled' && (
-                <Button variant="ghost" size="sm" onClick={onCancel} className="h-10 xl:h-9 text-destructive col-span-2 xl:col-span-1">
-                  <Ban className="h-4 w-4 mr-1.5" /> Cancelar
-                </Button>
-              )}
-            </div>
+            )}
+            {(order.status === 'pickup_in_progress' || order.status === 'delivery_in_progress') && hasFullAccess && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onEdit}
+                className="h-10 border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                title="Editar OFR — retorna para Aberto"
+              >
+                <Pencil className="h-4 w-4 mr-1.5" /> Editar (voltar p/ Aberto)
+              </Button>
+            )}
+            {order.status === 'open' && hasFullAccess && !isPriority && onSetPriority && (
+              <Button variant="outline" size="sm" onClick={onSetPriority} className="h-10 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                <Flame className="h-4 w-4 mr-1.5" /> Prioridade
+              </Button>
+            )}
+            {order.status === 'open' && hasFullAccess && isPriority && onRemovePriority && (
+              <Button variant="outline" size="sm" onClick={onRemovePriority} className="h-10 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                <X className="h-4 w-4 mr-1.5" /> Remover Prioridade
+              </Button>
+            )}
+            {hasFullAccess && order.status !== 'completed' && order.status !== 'cancelled' && (
+              <Button variant="ghost" size="sm" onClick={onCancel} className="h-10 text-destructive ml-auto">
+                <Ban className="h-4 w-4 mr-1.5" /> Cancelar
+              </Button>
+            )}
           </div>
         </div>
 
