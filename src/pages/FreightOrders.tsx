@@ -2984,7 +2984,9 @@ function EditHistoryBlock({
     })();
   }, [order.id, (order.edit_photos || []).length]);
 
-  const hasPriceChange = order.previous_price_per_kg != null;
+  const hasPriceChange =
+    order.previous_price_per_kg != null &&
+    Number(order.previous_price_per_kg) !== Number(order.freight_price_per_kg ?? 0);
   const oldPhotos = order.edit_photos || [];
   return (
     <div className="border-2 border-amber-500/50 rounded-lg overflow-hidden bg-amber-500/5">
