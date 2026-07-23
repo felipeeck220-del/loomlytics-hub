@@ -353,6 +353,22 @@ export default function FreightOrders() {
               {counts.in_progress}
             </Badge>
           </TabsTrigger>
+          {(counts.edit > 0 || tab === "edit") && (
+            <TabsTrigger
+              value="edit"
+              className={cn(
+                "gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial",
+                counts.edit > 0 && "data-[state=active]:bg-amber-600 data-[state=active]:text-white text-amber-700 dark:text-amber-400",
+              )}
+            >
+              <PencilRuler className="h-3.5 w-3.5" /> Editar
+              {counts.edit > 0 && (
+                <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">
+                  {counts.edit}
+                </Badge>
+              )}
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="completed"
             className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
