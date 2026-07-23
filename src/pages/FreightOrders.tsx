@@ -746,6 +746,35 @@ export default function FreightOrders() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Autorizar edição */}
+      <AuthorizeEditModal
+        order={authorizeEditOrder}
+        onOpenChange={(o) => !o && setAuthorizeEditOrder(null)}
+        submitting={authorizeEdit.isPending}
+        onSubmit={(reason) => {
+          if (!authorizeEditOrder) return;
+          authorizeEdit.mutate(
+            { id: authorizeEditOrder.id, reason },
+            { onSuccess: () => setAuthorizeEditOrder(null) },
+          );
+        }}
+      />
+
+      {/* Modal Edição do Freteiro */}
+      <FreighterEditModal
+        order={freighterEditOrder}
+        onOpenChange={(o) => !o && setFreighterEditOrder(null)}
+        submitting={saveFreighterEdit.isPending}
+        getPhotoSignedUrl={getPhotoSignedUrl}
+        onSubmit={(payload) => {
+          if (!freighterEditOrder) return;
+          saveFreighterEdit.mutate(
+            { id: freighterEditOrder.id, ...payload },
+            { onSuccess: () => setFreighterEditOrder(null) },
+          );
+        }}
+      />
     </div>
   );
 }
