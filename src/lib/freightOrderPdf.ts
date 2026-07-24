@@ -160,8 +160,9 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
   y += 4;
 
   // ===== Section: Malhas =====
-  const malhas = (order.items || []).filter(i => i.item_type !== 'fio');
+  const malhas = (order.items || []).filter(i => !i.item_type || i.item_type === 'malha');
   const fios = (order.items || []).filter(i => i.item_type === 'fio');
+  const outros = (order.items || []).filter(i => i.item_type === 'outros');
 
   if (malhas.length > 0) {
     sectionTitle(`Malhas (${malhas.length})`);
