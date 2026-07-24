@@ -273,6 +273,15 @@ export function AppSidebar() {
                                   Em teste
                                 </span>
                               )}
+                              {item.key === 'ordens' && ordersInProgressCount > 0 && (
+                                <span className="ml-auto inline-flex items-center gap-1 text-[10px] bg-warning/15 text-warning px-1.5 py-0.5 rounded-full font-semibold leading-none">
+                                  <span className="relative flex h-1.5 w-1.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success"></span>
+                                  </span>
+                                  {ordersInProgressCount}
+                                </span>
+                              )}
                               {item.key === 'mecanica-om' && openOMCount > 0 && (
                                 <span className="ml-auto text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-semibold leading-none">
                                   {openOMCount}
