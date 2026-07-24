@@ -110,8 +110,10 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
   const filtered = useMemo(() => {
     const from = new Date(dateFrom + 'T00:00:00');
     const to = new Date(dateTo + 'T23:59:59');
-    const minSec = minMinutes ? Number(minMinutes) * 60 : null;
-    const maxSec = maxMinutes ? Number(maxMinutes) * 60 : null;
+    const minNum = Number(minMinutes);
+    const maxNum = Number(maxMinutes);
+    const minSec = minMinutes !== '' && Number.isFinite(minNum) && minNum >= 0 ? minNum * 60 : null;
+    const maxSec = maxMinutes !== '' && Number.isFinite(maxNum) && maxNum >= 0 ? maxNum * 60 : null;
     const q = search.trim().toLowerCase();
     return orders.filter(o => {
       const created = new Date(o.created_at);
@@ -197,9 +199,9 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
     if (!filtered.length) return [];
     const from = new Date(dateFrom + 'T00:00:00');
     const to = new Date(dateTo + 'T00:00:00');
-    const spanDays = Math.min(90, Math.max(1, Math.floor((to.getTime() - from.getTime()) / 86400000) + 1));
-    // Se período muito grande, agrupa por mês
-    if (spanDays > 90 || (to.getTime() - from.getTime()) / 86400000 > 90) {
+    const spanDays = Math.max(1, Math.floor((to.getTime() - from.getTime()) / 86400000) + 1);
+    // Se período muito grande, agrupa por mês (evita explodir renderização diária)
+    if (spanDays > 90) {
       const map = new Map<string, number>();
       filtered.forEach(o => {
         const k = format(new Date(o.created_at), 'yyyy-MM');
