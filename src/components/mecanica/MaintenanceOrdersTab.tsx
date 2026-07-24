@@ -364,8 +364,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         const uploaded: OCPhoto[] = [];
         const uploadedPaths: string[] = [];
         try {
+          const { compressImage } = await import('@/lib/imageCompression');
           for (const draft of createPhotoDrafts) {
-            const { compressImage } = await import('@/lib/imageCompression');
             const c = await compressImage(draft.file);
             const uploadFile = c.file;
             const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
