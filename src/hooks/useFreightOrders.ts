@@ -548,10 +548,13 @@ export function useFreightOrders() {
       }
       const uploaded: Array<{ path: string; description?: string }> = [];
       for (const p of photos) {
-        const ext = (p.file.name.split('.').pop() || 'jpg').toLowerCase();
+        const { compressImage } = await import('@/lib/imageCompression');
+        const c = await compressImage(p.file);
+        const uploadFile = c.file;
+        const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase();
         const path = `${user.company_id}/${id}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('freight-photos').upload(path, p.file, {
-          contentType: p.file.type || 'image/jpeg',
+        const { error: upErr } = await supabase.storage.from('freight-photos').upload(path, uploadFile, {
+          contentType: uploadFile.type || 'image/jpeg',
           upsert: false,
         });
         if (upErr) throw upErr;
@@ -852,10 +855,13 @@ export function useFreightOrders() {
       // Upload das novas
       const uploaded: Array<{ path: string; description?: string }> = [];
       for (const p of addPhotos) {
-        const ext = (p.file.name.split('.').pop() || 'jpg').toLowerCase();
+        const { compressImage } = await import('@/lib/imageCompression');
+        const c = await compressImage(p.file);
+        const uploadFile = c.file;
+        const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase();
         const path = `${user.company_id}/${id}/edit-${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('freight-photos').upload(path, p.file, {
-          contentType: p.file.type || 'image/jpeg',
+        const { error: upErr } = await supabase.storage.from('freight-photos').upload(path, uploadFile, {
+          contentType: uploadFile.type || 'image/jpeg',
           upsert: false,
         });
         if (upErr) {
