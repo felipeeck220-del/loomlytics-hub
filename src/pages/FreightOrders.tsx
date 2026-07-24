@@ -513,12 +513,13 @@ export default function FreightOrders() {
                   delivery_doc_type: editOrder.delivery_doc_type || null,
                   delivery_doc_number: editOrder.delivery_doc_number || "",
                   items: (editOrder.items || []).map((it) => ({
-                    item_type: (it.item_type || "malha") as "malha" | "fio",
+                    item_type: (it.item_type || "malha") as "malha" | "fio" | "outros",
                     article_id: it.article_id || "",
                     yarn_type_id: it.yarn_type_id || "",
                     boxes: it.boxes != null ? String(it.boxes) : "",
                     pieces: Number(it.pieces || 0),
                     weight_kg: it.weight_kg != null ? String(it.weight_kg).replace(".", ",") : "",
+                    description: (it as any).description || "",
                   })),
                 }
               : undefined
