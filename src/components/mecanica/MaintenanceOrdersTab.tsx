@@ -748,26 +748,33 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setPhotoUploading(true);
     try {
       const { compressImage } = await import('@/lib/imageCompression');
+      const { uploadProgress } = await import('@/lib/uploadProgress');
+      uploadProgress.start('Anexando foto à OC', 1);
+      uploadProgress.step({ index: 1, phase: 'compressing' });
       const c = await compressImage(photoDraftFile);
       const uploadFile = c.file;
       const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase();
       const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
       const path = `${companyId}/${progressOrder.id}/${id}.${ext}`;
+      uploadProgress.step({ index: 1, phase: 'uploading' });
       const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uploadFile, {
         contentType: uploadFile.type || 'image/jpeg',
         upsert: false,
       });
-      if (upErr) { toast.error('Erro ao enviar foto'); console.error(upErr); return; }
+      if (upErr) { uploadProgress.fail('Erro ao enviar foto'); toast.error('Erro ao enviar foto'); console.error(upErr); return; }
       const photo: OCPhoto = { id, path, description: desc, author: authorLabel, ts: new Date().toISOString() };
       const next = [...currentPhotos, photo];
+      uploadProgress.step({ index: 1, phase: 'finalizing' });
       const { error } = await (supabase.from as any)('maintenance_orders')
         .update({ oc_photos: next })
         .eq('id', progressOrder.id);
       if (error) {
         await supabase.storage.from('oc-photos').remove([path]);
+        uploadProgress.fail('Erro ao salvar foto');
         toast.error('Erro ao salvar foto');
         return;
       }
+      uploadProgress.done();
       setOrders(prev => prev.map(o => o.id === progressOrder.id ? { ...o, oc_photos: next } as any : o));
       toast.success('Foto adicionada');
       logAction('oc_photo_add', { oc: progressOrder.oc_number });
@@ -2172,21 +2179,29 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                     const uploadedPaths: string[] = [];
                     try {
                       const { compressImage } = await import('@/lib/imageCompression');
-                      for (const p of escalatePhotos) {
+                      const { uploadProgress } = await import('@/lib/uploadProgress');
+                      uploadProgress.start('Enviando fotos da OE', escalatePhotos.length);
+                      for (let i = 0; i < escalatePhotos.length; i++) {
+                        const p = escalatePhotos[i];
+                        uploadProgress.step({ index: i + 1, phase: 'compressing' });
                         const c = await compressImage(p.file);
                         const uf = c.file;
                         const ext = (uf.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
                         const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
                         const path = `${companyId}/${oeId}/${uid}.${ext}`;
+                        uploadProgress.step({ index: i + 1, phase: 'uploading' });
                         const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uf, { contentType: uf.type || 'image/jpeg', upsert: false });
                         if (upErr) throw upErr;
                         uploadedPaths.push(path);
                         uploaded.push({ id: uid, path, description: '', author: authorLabel, ts: new Date().toISOString() });
                       }
+                      uploadProgress.step({ index: escalatePhotos.length, phase: 'finalizing' });
                       await (supabase.from as any)('maintenance_orders').update({ oc_photos: uploaded }).eq('id', oeId);
+                      uploadProgress.done();
                     } catch (photoErr) {
                       console.error('Falha ao anexar fotos na OE escalonada', photoErr);
                       if (uploadedPaths.length > 0) await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
+                      try { const { uploadProgress } = await import('@/lib/uploadProgress'); uploadProgress.fail('Falha ao enviar fotos'); } catch { /* */ }
                       toast.error('OE aberta, mas houve erro ao anexar as fotos.');
                     }
                   }
