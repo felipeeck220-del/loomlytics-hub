@@ -2365,6 +2365,50 @@ function ItemsBreakdown({ items }: { items: FreightOrderItem[] }) {
       )}
 
       {items.length === 0 && <p className="px-3 py-4 text-xs text-muted-foreground text-center">Nenhum item.</p>}
+
+      {outros.length > 0 && (
+        <div>
+          <div className="px-3 py-1 text-[10px] uppercase tracking-wide font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/5 border-t border-b border-amber-500/20 flex flex-wrap items-center gap-x-2 gap-y-0.5 justify-between">
+            <span>Outros · {outros.length} item(ns)</span>
+            <span className="font-mono text-muted-foreground normal-case tracking-normal">
+              {outrosPieces > 0 ? `${outrosPieces} pçs · ` : ""}
+              {outrosBoxes > 0 ? `${outrosBoxes} cx · ` : ""}
+              {fmtKg(kgOutros)} kg
+            </span>
+          </div>
+          <ul className="divide-y">
+            {outros.map((i) => {
+              const kg = Number(i.weight_kg || 0);
+              const pcs = Number(i.pieces || 0);
+              const bx = Number(i.boxes || 0);
+              return (
+                <li key={i.id} className="px-3 py-2 hover:bg-muted/30">
+                  <div className="text-xs font-semibold text-foreground break-words whitespace-pre-wrap">
+                    {(i as any).description || "—"}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {pcs > 0 && (
+                      <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">
+                        {pcs} pçs
+                      </span>
+                    )}
+                    {bx > 0 && (
+                      <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">
+                        {bx} cx
+                      </span>
+                    )}
+                    {kg > 0 && (
+                      <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">
+                        {fmtKg(kg)} kg
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
