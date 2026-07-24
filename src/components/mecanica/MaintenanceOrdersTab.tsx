@@ -25,6 +25,7 @@ import { SearchableSelect } from '@/components/SearchableSelect';
 import { generateOmReportPdf } from '@/lib/omReportPdf';
 import { useSharedCompanyData } from '@/contexts/CompanyDataContext';
 import { useMarkSourceAsRead } from '@/hooks/useMarkSourceAsRead';
+import OCReportsTab from './OCReportsTab';
 
 const DEFAULT_MAINTENANCE_INTERVAL_DAYS = 30;
 
@@ -146,7 +147,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [items, setItems] = useState<MaintenanceOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<MaintenanceOrderStatus>('aberto');
+  const [tab, setTab] = useState<MaintenanceOrderStatus | 'relatorios'>('aberto');
   const [finalizedSearch, setFinalizedSearch] = useState('');
   const [finalizedPage, setFinalizedPage] = useState(0);
   const FINALIZED_PAGE_SIZE = 15;
@@ -969,7 +970,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         )}
       </div>
 
-      <Tabs value={tab} onValueChange={v => setTab(v as MaintenanceOrderStatus)}>
+      <Tabs value={tab} onValueChange={v => setTab(v as MaintenanceOrderStatus | 'relatorios')}>
         <TabsList className="flex flex-wrap h-auto p-1 bg-muted/50 gap-1 w-full lg:w-fit">
           <TabsTrigger
             value="aberto"
@@ -1006,8 +1007,21 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             <X className="h-3 w-3" /> Canceladas
             <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.cancelada}</Badge>
           </TabsTrigger>
+          {isOC && (
+            <TabsTrigger
+              value="relatorios"
+              className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <FileText className="h-3 w-3" /> Relatórios
+            </TabsTrigger>
+          )}
         </TabsList>
-        <TabsContent value={tab} className="mt-4">
+        {isOC && (
+          <TabsContent value="relatorios" className="mt-4">
+            <OCReportsTab orders={modeOrders} machines={machines} />
+          </TabsContent>
+        )}
+        <TabsContent value={tab === 'relatorios' ? '__list_hidden__' : tab} className="mt-4">
           {tab === 'finalizada' && (
             <div className="mb-3 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
