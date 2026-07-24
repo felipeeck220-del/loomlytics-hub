@@ -398,12 +398,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         const uploadedPaths: string[] = [];
         try {
           const { compressImage } = await import('@/lib/imageCompression');
-          for (const draft of createPhotoDrafts) {
+          const { uploadProgress } = await import('@/lib/uploadProgress');
+          uploadProgress.start(`Enviando fotos da ${orderLabel}`, createPhotoDrafts.length);
+          for (let i = 0; i < createPhotoDrafts.length; i++) {
+            const draft = createPhotoDrafts[i];
+            uploadProgress.step({ index: i + 1, phase: 'compressing' });
             const c = await compressImage(draft.file);
             const uploadFile = c.file;
             const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
             const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
             const path = `${companyId}/${created.id}/${uid}.${ext}`;
+            uploadProgress.step({ index: i + 1, phase: 'uploading' });
             const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uploadFile, {
               contentType: uploadFile.type || 'image/jpeg',
               upsert: false,
@@ -418,15 +423,18 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               ts: new Date().toISOString(),
             });
           }
+          uploadProgress.step({ index: createPhotoDrafts.length, phase: 'finalizing' });
           const { error: updErr } = await (supabase.from as any)('maintenance_orders')
             .update({ oc_photos: uploaded })
             .eq('id', created.id);
           if (updErr) throw updErr;
+          uploadProgress.done();
         } catch (photoErr) {
           console.error('Falha ao anexar fotos à OC', photoErr);
           if (uploadedPaths.length > 0) {
             await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
           }
+          try { const { uploadProgress } = await import('@/lib/uploadProgress'); uploadProgress.fail('Falha ao enviar fotos'); } catch { /* */ }
           toast.error('OC criada, mas houve erro ao anexar as fotos.');
         }
       }
