@@ -604,6 +604,79 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de detalhes da OC */}
+      <Dialog open={!!detailOrder} onOpenChange={v => { if (!v) { setDetailOrder(null); setDetailPhotoUrls({}); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
+              <span>Relatório da OC</span>
+              {detailOrder && (
+                <>
+                  <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
+                    {detailOrder.oc_number != null ? String(detailOrder.oc_number).padStart(3,'0') : '—'}
+                  </span>
+                  <Badge variant="outline" className="text-[10px]" style={{ borderColor: STATUS_COLOR[detailOrder.status], color: STATUS_COLOR[detailOrder.status] }}>
+                    {STATUS_LABEL[detailOrder.status] || detailOrder.status}
+                  </Badge>
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {detailOrder && (() => {
+            const m = machineById.get(detailOrder.machine_id);
+            const rows: [string, React.ReactNode][] = [
+              ['Máquina', m?.name || '—'],
+              ['Descrição', detailOrder.description || '—'],
+              ['Criada em', format(new Date(detailOrder.created_at), "dd/MM/yyyy 'às' HH:mm")],
+              ['Criada por', detailOrder.created_by_name || '—'],
+              ['Iniciada em', detailOrder.started_at ? format(new Date(detailOrder.started_at), "dd/MM/yyyy 'às' HH:mm") : '—'],
+              ['Iniciada por', detailOrder.started_by_name || '—'],
+              ['Finalizada em', detailOrder.finished_at ? format(new Date(detailOrder.finished_at), "dd/MM/yyyy 'às' HH:mm") : '—'],
+              ['Finalizada por', detailOrder.finished_by_name || '—'],
+              ['Tempo de parada', detailOrder.duration_seconds ? fmtDur(detailOrder.duration_seconds) : '—'],
+            ];
+            return (
+              <div className="space-y-4">
+                <div className="rounded-md border divide-y">
+                  {rows.map(([label, value]) => (
+                    <div key={label} className="grid grid-cols-3 gap-2 px-3 py-2 text-sm">
+                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-semibold col-span-1 flex items-center">{label}</div>
+                      <div className="col-span-2 break-words">{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {detailPhotos.length > 0 && (
+                  <div>
+                    <div className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">
+                      Fotos do problema ({detailPhotos.length})
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {detailPhotos.map((p, i) => (
+                        <div key={p.path + i} className="rounded-md border overflow-hidden bg-muted/30">
+                          {detailPhotoUrls[p.path] ? (
+                            <a href={detailPhotoUrls[p.path]} target="_blank" rel="noreferrer">
+                              <img src={detailPhotoUrls[p.path]} alt={p.description || `Foto ${i+1}`} className="w-full h-48 object-cover" />
+                            </a>
+                          ) : (
+                            <div className="w-full h-48 flex items-center justify-center text-xs text-muted-foreground">Carregando…</div>
+                          )}
+                          {p.description && <div className="p-2 text-xs text-muted-foreground">{p.description}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-end pt-2">
+                  <Button variant="outline" size="sm" onClick={() => { setDetailOrder(null); setDetailPhotoUrls({}); }}>
+                    <X className="h-4 w-4 mr-1" /> Fechar
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
