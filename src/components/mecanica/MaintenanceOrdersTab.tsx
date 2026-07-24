@@ -365,11 +365,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         const uploadedPaths: string[] = [];
         try {
           for (const draft of createPhotoDrafts) {
-            const ext = (draft.file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+            const { compressImage } = await import('@/lib/imageCompression');
+            const c = await compressImage(draft.file);
+            const uploadFile = c.file;
+            const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
             const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
             const path = `${companyId}/${created.id}/${uid}.${ext}`;
-            const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, draft.file, {
-              contentType: draft.file.type || 'image/jpeg',
+            const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uploadFile, {
+              contentType: uploadFile.type || 'image/jpeg',
               upsert: false,
             });
             if (upErr) throw upErr;
@@ -682,11 +685,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (!desc) { toast.error('Adicione uma descrição para a foto'); return; }
     setPhotoUploading(true);
     try {
-      const ext = (photoDraftFile.name.split('.').pop() || 'jpg').toLowerCase();
+      const { compressImage } = await import('@/lib/imageCompression');
+      const c = await compressImage(photoDraftFile);
+      const uploadFile = c.file;
+      const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase();
       const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
       const path = `${companyId}/${progressOrder.id}/${id}.${ext}`;
-      const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, photoDraftFile, {
-        contentType: photoDraftFile.type || 'image/jpeg',
+      const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uploadFile, {
+        contentType: uploadFile.type || 'image/jpeg',
         upsert: false,
       });
       if (upErr) { toast.error('Erro ao enviar foto'); console.error(upErr); return; }
