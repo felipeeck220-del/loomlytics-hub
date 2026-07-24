@@ -461,7 +461,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   // ============ START ============
   const startOrder = async (o: MaintenanceOrder) => {
-    if (!canExecuteOrder(o)) { toast.error(o.type === 'manutencao_corretiva' ? 'Apenas mecânico ou líder de mecânica podem iniciar OCs' : 'Sem permissão para iniciar OM'); return; }
+    if (!canExecuteOrder(o)) {
+      const permLabel = o.type === 'manutencao_eletrica' ? 'OE' : (o.type === 'manutencao_corretiva' ? 'OC' : 'OM');
+      toast.error(
+        permLabel === 'OE'
+          ? 'Apenas admin ou eletricista podem iniciar OEs'
+          : permLabel === 'OC'
+            ? 'Apenas mecânico ou líder de mecânica podem iniciar OCs'
+            : 'Sem permissão para iniciar OM',
+      );
+      return;
+    }
     // Não permite iniciar se já existe outra ordem em curso na mesma máquina
     const inProgress = orders.find(x =>
       x.machine_id === o.machine_id && x.status === 'em_curso' && x.id !== o.id
@@ -507,9 +517,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       machine_log_id: (log as any).id,
     }).eq('id', o.id);
     const isCorr = o.type === 'manutencao_corretiva';
-    if (error) { toast.error(`Erro ao iniciar ${isCorr ? 'OC' : 'OM'}`); return; }
-    toast.success(`${isCorr ? 'OC' : 'OM'} iniciada`);
-    logAction(isCorr ? 'oc_start' : 'om_start', isCorr ? { oc: o.oc_number } : { om: o.om_number });
+    const isElec = o.type === 'manutencao_eletrica';
+    const startLabel = isElec ? 'OE' : (isCorr ? 'OC' : 'OM');
+    if (error) { toast.error(`Erro ao iniciar ${startLabel}`); return; }
+    toast.success(`${startLabel} iniciada`);
+    logAction(
+      isElec ? 'oe_start' : (isCorr ? 'oc_start' : 'om_start'),
+      isElec ? { oe: (o as any).oe_number } : (isCorr ? { oc: o.oc_number } : { om: o.om_number }),
+    );
     refreshMachines();
     await load();
   };
