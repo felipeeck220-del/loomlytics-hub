@@ -1495,6 +1495,49 @@ function NewOFRModal({
                         />
                       </div>
                     </div>
+                  ) : (
+                    <div className="grid grid-cols-12 gap-2 items-end">
+                      <div className="col-span-12">
+                        <Label className="text-xs">Descrição *</Label>
+                        <Textarea
+                          rows={2}
+                          value={it.description}
+                          onChange={(e) =>
+                            setItems(items.map((x, i) => (i === idx ? { ...x, description: e.target.value } : x)))
+                          }
+                          placeholder="Descreva o que deve ser transportado / feito"
+                        />
+                      </div>
+                      <div className="col-span-6 sm:col-span-3">
+                        <Label className="text-xs">Caixas (opc.)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={it.boxes}
+                          onChange={(e) =>
+                            setItems(items.map((x, i) => (i === idx ? { ...x, boxes: e.target.value } : x)))
+                          }
+                        />
+                      </div>
+                      <div className="col-span-6 sm:col-span-3">
+                        <Label className="text-xs">Peças (opc.)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={it.pieces || ""}
+                          onChange={(e) =>
+                            setItems(items.map((x, i) => (i === idx ? { ...x, pieces: parseInt(e.target.value || "0", 10) } : x)))
+                          }
+                        />
+                      </div>
+                      <div className="col-span-12 sm:col-span-6">
+                        <Label className="text-xs">Peso (kg) (opc.)</Label>
+                        <BrazilianWeightInput
+                          value={it.weight_kg}
+                          onChange={(v) => setItems(items.map((x, i) => (i === idx ? { ...x, weight_kg: v } : x)))}
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}
