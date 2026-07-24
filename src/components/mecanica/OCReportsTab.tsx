@@ -513,7 +513,7 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.slice(0, 200).map(o => {
+                    {paginated.map(o => {
                       const m = machineById.get(o.machine_id);
                       return (
                         <tr key={o.id} className="border-t hover:bg-muted/30">
@@ -533,11 +533,10 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
                     })}
                   </tbody>
                 </table>
-                {filtered.length > 200 && <div className="text-center text-xs text-muted-foreground py-2">Exibindo os 200 mais recentes de {filtered.length}. Use os filtros para refinar ou exporte em PDF/CSV.</div>}
               </div>
               {/* Mobile cards */}
               <div className="md:hidden space-y-2">
-                {filtered.slice(0, 100).map(o => {
+                {paginated.map(o => {
                   const m = machineById.get(o.machine_id);
                   return (
                     <div key={o.id} className="rounded-md border p-3 bg-card">
@@ -558,12 +557,37 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
                     </div>
                   );
                 })}
-                {filtered.length > 100 && <div className="text-center text-xs text-muted-foreground py-2">Exibindo 100 de {filtered.length}. Exporte para ver todos.</div>}
               </div>
+              <Pagination page={page} totalPages={totalPages} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
             </>
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function Pagination({ page, totalPages, total, pageSize, onChange }: { page: number; totalPages: number; total: number; pageSize: number; onChange: (p: number) => void }) {
+  if (total === 0) return null;
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+  const pages: (number | 'dots')[] = [];
+  const push = (v: number | 'dots') => { if (pages[pages.length - 1] !== v) pages.push(v); };
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || Math.abs(i - page) <= 1) push(i);
+    else push('dots');
+  }
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-3 pt-3 border-t">
+      <div className="text-[11px] text-muted-foreground">Exibindo <span className="font-semibold text-foreground">{from}-{to}</span> de <span className="font-semibold text-foreground">{total}</span></div>
+      <div className="flex items-center gap-1 flex-wrap justify-center">
+        <Button size="sm" variant="outline" className="h-8 w-8 p-0" disabled={page === 1} onClick={() => onChange(page - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+        {pages.map((p, i) => p === 'dots'
+          ? <span key={`d${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+          : <Button key={p} size="sm" variant={p === page ? 'default' : 'outline'} className="h-8 min-w-8 px-2 text-xs" onClick={() => onChange(p)}>{p}</Button>
+        )}
+        <Button size="sm" variant="outline" className="h-8 w-8 p-0" disabled={page === totalPages} onClick={() => onChange(page + 1)}><ChevronRight className="h-4 w-4" /></Button>
+      </div>
     </div>
   );
 }
