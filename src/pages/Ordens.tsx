@@ -401,7 +401,7 @@ export default function OrdensPage() {
 
       {/* Photo gallery modal */}
       <Dialog open={!!galleryOrder} onOpenChange={v => !v && setGalleryOrder(null)}>
-        <DialogContent className="max-w-[80vw] w-[80vw] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] sm:max-w-[80vw] sm:w-[80vw] sm:h-auto sm:max-h-[80vh] overflow-y-auto">
           {galleryOrder && (
             <>
               <DialogHeader>
