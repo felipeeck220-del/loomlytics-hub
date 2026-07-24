@@ -2282,15 +2282,19 @@ function DetailsModal({
 function ItemsBreakdown({ items }: { items: FreightOrderItem[] }) {
   const fmtKg = (n: number) =>
     Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const malhas = items.filter((i) => i.item_type !== "fio");
+  const malhas = items.filter((i) => !i.item_type || i.item_type === "malha");
   const fios = items.filter((i) => i.item_type === "fio");
+  const outros = items.filter((i) => i.item_type === "outros");
   const sum = (arr: FreightOrderItem[], k: "pieces" | "weight_kg" | "boxes") =>
     arr.reduce((s, i) => s + Number((i as any)[k] || 0), 0);
   const totalPieces = sum(malhas, "pieces");
   const totalBoxes = sum(fios, "boxes");
   const kgMalha = sum(malhas, "weight_kg");
   const kgFio = sum(fios, "weight_kg");
-  const kgTotal = kgMalha + kgFio;
+  const kgOutros = sum(outros, "weight_kg");
+  const outrosPieces = sum(outros, "pieces");
+  const outrosBoxes = sum(outros, "boxes");
+  const kgTotal = kgMalha + kgFio + kgOutros;
   return (
     <div className="border rounded-lg overflow-hidden">
       <div className="bg-muted/60 px-3 py-1.5 text-xs font-semibold flex items-center justify-between gap-2">
