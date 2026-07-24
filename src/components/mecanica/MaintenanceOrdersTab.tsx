@@ -358,6 +358,41 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       const createdNum = isCorrective ? (created.oc_number ?? created.om_number) : created.om_number;
       toast.success(`${orderLabel} #${String(createdNum).padStart(3, '0')} criada`);
       logAction(isCorrective ? 'oc_create' : 'om_create', { number: createdNum, type: form.type });
+      // Upload de fotos anexadas já na criação da OC (opcional, até 2)
+      if (isCorrective && createPhotoDrafts.length > 0) {
+        const uploaded: OCPhoto[] = [];
+        const uploadedPaths: string[] = [];
+        try {
+          for (const draft of createPhotoDrafts) {
+            const ext = (draft.file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+            const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+            const path = `${companyId}/${created.id}/${uid}.${ext}`;
+            const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, draft.file, {
+              contentType: draft.file.type || 'image/jpeg',
+              upsert: false,
+            });
+            if (upErr) throw upErr;
+            uploadedPaths.push(path);
+            uploaded.push({
+              id: uid,
+              path,
+              description: draft.description.trim(),
+              author: authorLabel,
+              ts: new Date().toISOString(),
+            });
+          }
+          const { error: updErr } = await (supabase.from as any)('maintenance_orders')
+            .update({ oc_photos: uploaded })
+            .eq('id', created.id);
+          if (updErr) throw updErr;
+        } catch (photoErr) {
+          console.error('Falha ao anexar fotos à OC', photoErr);
+          if (uploadedPaths.length > 0) {
+            await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
+          }
+          toast.error('OC criada, mas houve erro ao anexar as fotos.');
+        }
+      }
       // Notificação push para mecânicos/líder de mecânica
       try {
         const machineName = machineById[form.machine_id]?.name || 'Máquina';
