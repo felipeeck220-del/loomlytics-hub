@@ -638,7 +638,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   // ============ CANCEL ============
   const cancelOrder = async (o: MaintenanceOrder, reason: string | null) => {
     if (!canManageOrder(o)) { toast.error('Sem permissão para cancelar esta ordem'); return; }
-    const label = o.type === 'manutencao_corretiva' ? 'OC' : 'OM';
+    const label = o.type === 'manutencao_eletrica' ? 'OE' : (o.type === 'manutencao_corretiva' ? 'OC' : 'OM');
     if (o.status !== 'aberto') { toast.error(`Só é possível cancelar ${label}s em aberto`); return; }
     const { error } = await (supabase.from as any)('maintenance_orders').update({
       status: 'cancelada', cancelled_at: new Date().toISOString(), cancelled_by_id: user?.id, cancelled_by_name: authorLabel,
@@ -647,8 +647,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (error) { toast.error('Erro ao cancelar'); return; }
     toast.success(`${label} cancelada`);
     logAction(
-      o.type === 'manutencao_corretiva' ? 'oc_cancel' : 'om_cancel',
-      o.type === 'manutencao_corretiva' ? { oc: o.oc_number, reason } : { om: o.om_number, reason },
+      o.type === 'manutencao_eletrica' ? 'oe_cancel' : (o.type === 'manutencao_corretiva' ? 'oc_cancel' : 'om_cancel'),
+      o.type === 'manutencao_eletrica'
+        ? { oe: (o as any).oe_number, reason }
+        : (o.type === 'manutencao_corretiva' ? { oc: o.oc_number, reason } : { om: o.om_number, reason }),
     );
     await load();
   };
