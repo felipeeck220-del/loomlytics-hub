@@ -555,6 +555,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setFinishing(true);
     try {
     const isCorr = finishOrder.type === 'manutencao_corretiva';
+    const isElec = finishOrder.type === 'manutencao_eletrica';
+    const finLabel = isElec ? 'OE' : (isCorr ? 'OC' : 'OM');
     // [rpcmecanica Fase 3] Toda a finalização acontece em 1 chamada atômica.
     // Ganhos: sem status travado, sem itens/transações órfãs, idempotência real.
     const payloadItems = finishItems
@@ -574,7 +576,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     });
     if (rpcErr) {
       console.error('[confirmFinish] finalize_maintenance_order failed', rpcErr);
-      toast.error(`Erro ao finalizar ${isCorr ? 'OC' : 'OM'}`);
+      toast.error(`Erro ao finalizar ${finLabel}`);
       return;
     }
     const seconds: number = (rpcData && rpcData.duration_seconds) ?? 0;
@@ -584,39 +586,43 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (alreadyFinalized) {
       // Idempotência: OM já estava finalizada (duplo clique / concorrência).
       // Não dispara push nem audit para não duplicar histórico.
-      toast.success(`${isCorr ? 'OC' : 'OM'} já finalizada`);
+      toast.success(`${finLabel} já finalizada`);
       setFinishOrder(null);
       await load();
       await Promise.resolve(refreshMachines());
       return;
     }
 
-    toast.success(`${isCorr ? 'OC' : 'OM'} finalizada`);
+    toast.success(`${finLabel} finalizada`);
     logAction(
-      isCorr ? 'oc_finish' : 'om_finish',
-      isCorr
-        ? { oc: finishOrder.oc_number, duration_s: seconds, items: itemsInsertedCount }
-        : { om: finishOrder.om_number, duration_s: seconds, items: itemsInsertedCount },
+      isElec ? 'oe_finish' : (isCorr ? 'oc_finish' : 'om_finish'),
+      isElec
+        ? { oe: (finishOrder as any).oe_number, duration_s: seconds, items: itemsInsertedCount }
+        : isCorr
+          ? { oc: finishOrder.oc_number, duration_s: seconds, items: itemsInsertedCount }
+          : { om: finishOrder.om_number, duration_s: seconds, items: itemsInsertedCount },
     );
     // Push de finalização — notifica admins (e líderes/mecânicos envolvidos)
     try {
-      const finishedNum = isCorr ? (finishOrder.oc_number ?? finishOrder.om_number) : finishOrder.om_number;
+      const finishedNum = isElec
+        ? ((finishOrder as any).oe_number ?? finishOrder.om_number)
+        : isCorr
+          ? (finishOrder.oc_number ?? finishOrder.om_number)
+          : finishOrder.om_number;
       const machineName = machineById[finishOrder.machine_id]?.name || 'Máquina';
       const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
-      const targetPath = slug ? `/${slug}/mecanica/${isCorr ? 'oc' : 'om'}` : '/';
+      const targetPath = slug ? `/${slug}/mecanica/${isElec ? 'oe' : (isCorr ? 'oc' : 'om')}` : '/';
       supabase.functions.invoke('send-push-notification', {
         body: {
           company_id: companyId,
-          title: isCorr
-            ? `OC #${String(finishedNum).padStart(3, '0')} finalizada — ${machineName}`
-            : `OM #${String(finishedNum).padStart(3, '0')} finalizada — ${machineName}`,
+          title: `${finLabel} #${String(finishedNum).padStart(3, '0')} finalizada — ${machineName}`,
           message: `Duração: ${fmtDuration(seconds)}${finishNotes ? ` — ${finishNotes}` : ''}`,
           url: targetPath,
-          roles: ['mecanico', 'lider_mecanica', 'lider_noite'],
+          roles: isElec ? ['eletricista'] : ['mecanico', 'lider_mecanica', 'lider_noite'],
           include_admins: true,
-          source: isCorr ? 'OC' : 'OM',
+          source: finLabel,
           ref_id: finishOrder.id,
-          ref_number: `${isCorr ? 'OC' : 'OM'} #${String(finishedNum).padStart(3, '0')}`,
+          ref_number: `${finLabel} #${String(finishedNum).padStart(3, '0')}`,
         },
       }).catch(() => { /* silencioso */ });
     } catch { /* silencioso */ }
