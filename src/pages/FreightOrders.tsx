@@ -267,7 +267,8 @@ export default function FreightOrders() {
         (o.items || []).some(
           (i) =>
             (i.article?.name || i.article_name || "").toLowerCase().includes(term) ||
-            (i.yarn_type_name || "").toLowerCase().includes(term),
+            (i.yarn_type_name || "").toLowerCase().includes(term) ||
+            ((i as any).description || "").toLowerCase().includes(term),
         );
       return matches;
     });
@@ -827,7 +828,8 @@ function OrderCard({
   const totalKg = (order.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
   const totalBoxes = (order.items || []).reduce((s, i) => s + Number(i.boxes || 0), 0);
   const hasFio = (order.items || []).some((i) => i.item_type === "fio");
-  const hasMalha = (order.items || []).some((i) => i.item_type !== "fio");
+  const hasMalha = (order.items || []).some((i) => !i.item_type || i.item_type === "malha");
+  const hasOutros = (order.items || []).some((i) => i.item_type === "outros");
 
   const timer =
     order.status === "pickup_in_progress" || order.status === "delivery_in_progress"
@@ -899,6 +901,11 @@ function OrderCard({
               {hasMalha && (
                 <Badge variant="outline" className="text-[10px] border-sky-500 text-sky-700 dark:text-sky-400">
                   CONTÉM MALHA
+                </Badge>
+              )}
+              {hasOutros && (
+                <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                  CONTÉM OUTROS
                 </Badge>
               )}
               {(order.cost_company_name || order.cost_company?.name) && (
