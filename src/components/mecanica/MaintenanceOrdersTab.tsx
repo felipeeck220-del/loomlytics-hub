@@ -794,6 +794,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       toast.error(`Não é possível excluir uma ${label} em curso. Finalize ou cancele primeiro.`);
       return;
     }
+    // Remove fotos do bucket `oc-photos` (evita arquivos órfãos ao apagar OC com fotos anexadas).
+    const ocPhotos: OCPhoto[] = Array.isArray((o as any).oc_photos) ? ((o as any).oc_photos as OCPhoto[]) : [];
+    if (ocPhotos.length > 0) {
+      const paths = ocPhotos.map(p => p.path).filter(Boolean);
+      if (paths.length > 0) {
+        await supabase.storage.from('oc-photos').remove(paths).catch(() => { /* melhor esforço */ });
+      }
+    }
     await (supabase.from as any)('maintenance_order_items').delete().eq('order_id', o.id);
     await (supabase.from as any)('maintenance_orders').delete().eq('id', o.id);
     toast.success(`${label} excluída`);
