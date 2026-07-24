@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import CompanyLogin from "./pages/CompanyLogin";
 import Dashboard from "./pages/Dashboard";
+import Ordens from "./pages/Ordens";
 import Machines from "./pages/Machines";
 import ClientsArticles from "./pages/ClientsArticles";
 import ProductionPage from "./pages/Production";
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/:slug/login" element={<CompanyLogin />} />
               <Route path="/:slug" element={<CompanyRoute />}>
                 <Route index element={<ProtectedRoute routeKey="dashboard"><Dashboard /></ProtectedRoute>} />
+                <Route path="ordens" element={<ProtectedRoute routeKey="ordens"><Ordens /></ProtectedRoute>} />
                 <Route path="faturamento-total" element={<ProtectedRoute routeKey="faturamento-total"><FaturamentoTotal /></ProtectedRoute>} />
                 <Route path="machines" element={<ProtectedRoute routeKey="machines"><Machines /></ProtectedRoute>} />
                 <Route path="clients-articles" element={<ProtectedRoute routeKey="clients-articles"><ClientsArticles /></ProtectedRoute>} />

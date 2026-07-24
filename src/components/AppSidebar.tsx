@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle, Repeat, Truck, Zap,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle, Repeat, Truck, Zap, PauseCircle,
 } from 'lucide-react';
 import { useInstallApp } from '@/hooks/useInstallApp';
 import {
@@ -28,6 +28,7 @@ const COMING_SOON_KEYS = new Set<string>([]);
 const TESTING_KEYS = new Set(['contas-pagar', 'fechamento']);
 
 const allItems = [
+  { title: 'Ordens', path: 'ordens', icon: PauseCircle, key: 'ordens' },
   { title: 'Dashboard', path: '', icon: LayoutDashboard, key: 'dashboard' },
   { title: 'Faturamento Total', path: 'faturamento-total', icon: DollarSign, key: 'faturamento-total' },
   { title: 'Máquinas', path: 'machines', icon: Settings2, key: 'machines' },
@@ -68,6 +69,9 @@ export function AppSidebar() {
   const [openOECount, setOpenOECount] = useState(0);
   const [openOTCount, setOpenOTCount] = useState(0);
   const [otReadyCount, setOtReadyCount] = useState(0);
+  const [moInProgressCount, setMoInProgressCount] = useState(0);
+  const [otActiveStagesCount, setOtActiveStagesCount] = useState(0);
+  const ordersInProgressCount = moInProgressCount + otActiveStagesCount;
   const isAdmin = role === 'admin';
   const { canInstall, platform, install, showIOSInstructions, setShowIOSInstructions } = useInstallApp();
 
@@ -105,15 +109,18 @@ export function AppSidebar() {
       const { data } = await (supabase.from as any)('maintenance_orders')
         .select('type,status')
         .eq('company_id', companyId)
-        .eq('status', 'aberto');
+        .in('status', ['aberto', 'em_curso']);
       if (cancelled) return;
       const rows = (data || []) as Array<{ type: string; status: string }>;
-      const oc = rows.filter(r => r.type === 'manutencao_corretiva').length;
-      const oe = rows.filter(r => r.type === 'manutencao_eletrica').length;
-      const om = rows.length - oc - oe;
+      const openRows = rows.filter(r => r.status === 'aberto');
+      const oc = openRows.filter(r => r.type === 'manutencao_corretiva').length;
+      const oe = openRows.filter(r => r.type === 'manutencao_eletrica').length;
+      const om = openRows.length - oc - oe;
+      const inProgress = rows.filter(r => r.status === 'em_curso').length;
       setOpenOMCount(om);
       setOpenOCCount(oc);
       setOpenOECount(oe);
+      setMoInProgressCount(inProgress);
     };
 
     load();
@@ -134,11 +141,13 @@ export function AppSidebar() {
       const { data } = await (supabase.from as any)('article_change_orders')
         .select('status')
         .eq('company_id', companyId)
-        .in('status', ['aberto', 'aguardando_regulagem', 'em_regulagem']);
+        .in('status', ['aberto', 'aguardando_regulagem', 'em_regulagem', 'troca_fio_em_curso', 'em_acompanhamento']);
       if (cancelled) return;
       const rows = (data || []) as Array<{ status: string }>;
       setOpenOTCount(rows.filter(r => r.status === 'aberto').length);
       setOtReadyCount(rows.filter(r => r.status === 'aguardando_regulagem' || r.status === 'em_regulagem').length);
+      const otActive = rows.filter(r => ['troca_fio_em_curso', 'aguardando_regulagem', 'em_regulagem', 'em_acompanhamento'].includes(r.status)).length;
+      setOtActiveStagesCount(otActive);
     };
     load();
     const channel = (supabase as any)
@@ -152,6 +161,7 @@ export function AppSidebar() {
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? allItems.filter(item => {
+          if (item.key === 'ordens') return true;
           if (item.key === 'mecanica-om' || item.key === 'mecanica-oc' || item.key === 'mecanica-oe' || item.key === 'mecanica-ot') return mecanicaEnabled;
           return enabledNavItems.includes(item.key);
         })
@@ -166,11 +176,14 @@ export function AppSidebar() {
     const mecanicoOtVisible = user?.role === 'mecanico' ? otReadyCount > 0 : true;
     const otFiltered = mecanicoOtVisible ? mecanicoFiltered : mecanicoFiltered.filter(i => i.key !== 'mecanica-ot');
 
+    // "Ordens" só aparece quando há ordens em execução (em tempo real)
+    const ordensFiltered = ordersInProgressCount > 0 ? otFiltered : otFiltered.filter(i => i.key !== 'ordens');
+
     // On mobile, hide items that are in the bottom nav
     const mobileFooterKeys = getMobileFooterKeys(user?.role || 'admin');
     const finalItems = isMobile
-      ? otFiltered.filter(item => !mobileFooterKeys.includes(item.key))
-      : otFiltered;
+      ? ordensFiltered.filter(item => !mobileFooterKeys.includes(item.key))
+      : ordensFiltered;
 
     const firstName = companyName.split(' ')[0];
 
@@ -179,7 +192,7 @@ export function AppSidebar() {
       title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName, otReadyCount]);
+  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName, otReadyCount, ordersInProgressCount]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -258,6 +271,15 @@ export function AppSidebar() {
                               {isTesting && (
                                 <span className="text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-medium leading-none">
                                   Em teste
+                                </span>
+                              )}
+                              {item.key === 'ordens' && ordersInProgressCount > 0 && (
+                                <span className="ml-auto inline-flex items-center gap-1 text-[10px] bg-warning/15 text-warning px-1.5 py-0.5 rounded-full font-semibold leading-none">
+                                  <span className="relative flex h-1.5 w-1.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success"></span>
+                                  </span>
+                                  {ordersInProgressCount}
                                 </span>
                               )}
                               {item.key === 'mecanica-om' && openOMCount > 0 && (

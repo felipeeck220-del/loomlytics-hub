@@ -5,12 +5,12 @@ export type AppRole = 'admin' | 'lider' | 'lider_noite' | 'lider_mecanica' | 'me
 
 /** Which sidebar/route keys each role can access by default */
 const ROLE_ALLOWED_KEYS: Record<AppRole, string[]> = {
-  admin: ['dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'freight-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
-  lider: ['mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
-  lider_noite: ['mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
-  lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'mecanica'],
-  mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'mecanica'],
-  eletricista: ['mecanica-oe'],
+  admin: ['ordens', 'dashboard', 'faturamento-total', 'machines', 'clients-articles', 'production', 'revision', 'mecanica', 'mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'outsource', 'weavers', 'reports', 'contas-pagar', 'residuos', 'estoque-malha', 'billing-orders', 'freight-orders', 'invoices', 'client-invoices', 'fechamento', 'settings'],
+  lider: ['ordens', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
+  lider_noite: ['ordens', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
+  lider_mecanica: ['ordens', 'mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'mecanica'],
+  mecanico: ['ordens', 'mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot', 'mecanica'],
+  eletricista: ['ordens', 'mecanica-oe'],
   revisador: ['revision'],
   expedicao: ['billing-orders', 'estoque-malha', 'clients-articles'],
   freteiro: ['freight-orders'],
@@ -29,6 +29,7 @@ export const OVERRIDE_PERMISSIONS = [
 /** Route path → nav key mapping */
 const ROUTE_KEY_MAP: Record<string, string> = {
   '': 'dashboard',
+  ordens: 'ordens',
   machines: 'machines',
   'clients-articles': 'clients-articles',
   production: 'production',
