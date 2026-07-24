@@ -1106,6 +1106,24 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             )
                           )}
 
+                          {/* Indicador de fotos da OC (disponível em qualquer status) */}
+                          {o.type === 'manutencao_corretiva' && Array.isArray((o as any).oc_photos) && ((o as any).oc_photos as OCPhoto[]).length > 0 && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="gap-1 text-[10px] border-purple-500/50 text-purple-700 dark:text-purple-300 bg-purple-500/10">
+                                <ImageIcon className="h-3 w-3" />
+                                {((o as any).oc_photos as OCPhoto[]).length} foto{((o as any).oc_photos as OCPhoto[]).length > 1 ? 's' : ''} anexada{((o as any).oc_photos as OCPhoto[]).length > 1 ? 's' : ''}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setViewOrder(o)}
+                                className="gap-1.5 h-7 border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+                              >
+                                <Eye className="h-3.5 w-3.5" /> Ver fotos
+                              </Button>
+                            </div>
+                          )}
+
                           {/* Motivo do cancelamento */}
                           {o.status === 'cancelada' && o.cancellation_reason && (
                             <div className="rounded-md border border-zinc-400 bg-zinc-100 dark:bg-zinc-900/60 p-2 flex items-start gap-2">
