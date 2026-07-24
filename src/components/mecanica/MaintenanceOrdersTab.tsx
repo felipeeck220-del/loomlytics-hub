@@ -415,7 +415,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         }).catch(() => { /* silencioso */ });
       } catch { /* silencioso */ }
     }
-    setCreateOpen(false);
+      setCreateOpen(false);
+      clearCreatePhotoDrafts();
     await load();
     } finally {
       savingOrderRef.current = false;
