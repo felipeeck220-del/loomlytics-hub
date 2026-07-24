@@ -44,6 +44,9 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
   const [loading, setLoading] = useState(true);
   const [selectedMachine, setSelectedMachine] = useState('');
   const [detail, setDetail] = useState<FeedItem | null>(null);
+  const [geralPage, setGeralPage] = useState(1);
+  const [maqPage, setMaqPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     (async () => {
@@ -114,25 +117,57 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
 
   const filteredByMachine = useMemo(() => selectedMachine ? feed.filter(f => f.machine_id === selectedMachine) : [], [feed, selectedMachine]);
 
+  useEffect(() => { setGeralPage(1); }, [feed.length]);
+  useEffect(() => { setMaqPage(1); }, [selectedMachine]);
+
   if (loading) return <div className="p-8 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" />Carregando…</div>;
 
-  const renderList = (list: FeedItem[]) => list.length === 0 ? (
-    <div className="text-center text-muted-foreground py-10 border rounded">Sem movimentações.</div>
-  ) : (
-    <div className="space-y-2">
-      {list.map(f => (
-        <Card key={f.id}><CardContent className="p-3 flex items-center gap-3">
-          <Badge variant="outline" className="shrink-0">{f.kind === 'om' ? 'OM' : f.kind === 'agulha' ? 'AGULHA' : 'PLATINA'}</Badge>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium truncate">{f.title}</div>
-            <div className="text-xs text-muted-foreground truncate">{f.detail}</div>
-          </div>
-          <div className="text-xs text-muted-foreground shrink-0">{f.date ? format(new Date(f.date), 'dd/MM/yyyy HH:mm') : '—'}</div>
-          <Button size="icon" variant="ghost" onClick={() => setDetail(f)}><Eye className="h-4 w-4" /></Button>
-        </CardContent></Card>
-      ))}
-    </div>
-  );
+  const renderPagination = (page: number, total: number, onChange: (p: number) => void) => {
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (pages <= 1) return null;
+    const nums: (number | 'dots')[] = [];
+    for (let i = 1; i <= pages; i++) {
+      if (i === 1 || i === pages || Math.abs(i - page) <= 1) nums.push(i);
+      else if (nums[nums.length - 1] !== 'dots') nums.push('dots');
+    }
+    const from = (page - 1) * PAGE_SIZE + 1;
+    const to = Math.min(page * PAGE_SIZE, total);
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2">
+        <div className="text-xs text-muted-foreground">Mostrando {from}–{to} de {total}</div>
+        <div className="flex items-center gap-1 flex-wrap justify-center">
+          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onChange(page - 1)}>Anterior</Button>
+          {nums.map((n, i) => n === 'dots'
+            ? <span key={`d${i}`} className="px-2 text-muted-foreground text-xs">…</span>
+            : <Button key={n} size="sm" variant={n === page ? 'default' : 'outline'} onClick={() => onChange(n)} className="min-w-9">{n}</Button>
+          )}
+          <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => onChange(page + 1)}>Próxima</Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderList = (list: FeedItem[], page: number, onPageChange: (p: number) => void) => {
+    if (list.length === 0) return <div className="text-center text-muted-foreground py-10 border rounded">Sem movimentações.</div>;
+    const start = (page - 1) * PAGE_SIZE;
+    const slice = list.slice(start, start + PAGE_SIZE);
+    return (
+      <div className="space-y-2">
+        {slice.map(f => (
+          <Card key={f.id}><CardContent className="p-3 flex items-center gap-3">
+            <Badge variant="outline" className="shrink-0">{f.kind === 'om' ? 'OM' : f.kind === 'agulha' ? 'AGULHA' : 'PLATINA'}</Badge>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium truncate">{f.title}</div>
+              <div className="text-xs text-muted-foreground truncate">{f.detail}</div>
+            </div>
+            <div className="text-xs text-muted-foreground shrink-0">{f.date ? format(new Date(f.date), 'dd/MM/yyyy HH:mm') : '—'}</div>
+            <Button size="icon" variant="ghost" onClick={() => setDetail(f)}><Eye className="h-4 w-4" /></Button>
+          </CardContent></Card>
+        ))}
+        {renderPagination(page, list.length, onPageChange)}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -141,7 +176,7 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
         <TabsTrigger value="geral">Movimentações Gerais</TabsTrigger>
         <TabsTrigger value="por_maquina">Por Máquina</TabsTrigger>
       </TabsList>
-      <TabsContent value="geral" className="mt-4">{renderList(feed)}</TabsContent>
+      <TabsContent value="geral" className="mt-4">{renderList(feed, geralPage, setGeralPage)}</TabsContent>
       <TabsContent value="por_maquina" className="mt-4 space-y-3">
         <div className="max-w-md">
           <SearchableSelect
@@ -152,7 +187,7 @@ export default function MaintenanceMovementsTab({ machines, needles, sinkers, ne
             options={machines.map(m => ({ value: m.id, label: m.name }))}
           />
         </div>
-        {selectedMachine ? renderList(filteredByMachine) : <div className="text-center text-muted-foreground py-10 border rounded">Selecione uma máquina para ver o histórico.</div>}
+        {selectedMachine ? renderList(filteredByMachine, maqPage, setMaqPage) : <div className="text-center text-muted-foreground py-10 border rounded">Selecione uma máquina para ver o histórico.</div>}
       </TabsContent>
     </Tabs>
 
