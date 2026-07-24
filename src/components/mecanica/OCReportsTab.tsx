@@ -540,6 +540,7 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
                       <th className="text-left px-3 py-2 font-semibold">Finalizada</th>
                       <th className="text-left px-3 py-2 font-semibold">Finalizada por</th>
                       <th className="text-right px-3 py-2 font-semibold">Parada</th>
+                      <th className="text-center px-3 py-2 font-semibold w-10"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -558,6 +559,11 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
                           <td className="px-3 py-2 whitespace-nowrap">{o.finished_at ? format(new Date(o.finished_at),'dd/MM/yy HH:mm') : '—'}</td>
                           <td className="px-3 py-2">{o.finished_by_name || '—'}</td>
                           <td className="px-3 py-2 text-right font-mono">{o.duration_seconds ? fmtDur(o.duration_seconds) : '—'}</td>
+                          <td className="px-3 py-2 text-center">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setDetailOrder(o)} title="Ver relatório">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -575,7 +581,12 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
                           <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">OC {o.oc_number != null ? String(o.oc_number).padStart(3,'0') : '—'}</span>
                           <Badge variant="outline" className="text-[10px]" style={{ borderColor: STATUS_COLOR[o.status], color: STATUS_COLOR[o.status] }}>{STATUS_LABEL[o.status] || o.status}</Badge>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">{format(new Date(o.created_at),'dd/MM/yy HH:mm')}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground">{format(new Date(o.created_at),'dd/MM/yy HH:mm')}</span>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setDetailOrder(o)} title="Ver relatório">
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="text-sm font-medium">{m?.name || '—'}</div>
                       {o.description && <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{o.description}</div>}
