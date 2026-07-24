@@ -952,7 +952,12 @@ function OrderCard({
                 <ul className="divide-y divide-border/50">
                   {(order.items || []).slice(0, 4).map((it) => {
                     const isFio = it.item_type === "fio";
-                    const name = isFio ? it.yarn_type_name || "Fio" : it.article?.name || it.article_name || "Artigo";
+                    const isOutros = it.item_type === "outros";
+                    const name = isOutros
+                      ? (it as any).description || "Outros"
+                      : isFio
+                        ? it.yarn_type_name || "Fio"
+                        : it.article?.name || it.article_name || "Artigo";
                     const kg = Number(it.weight_kg || 0).toLocaleString("pt-BR", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -962,12 +967,16 @@ function OrderCard({
                         <span
                           className={cn(
                             "inline-block w-1.5 h-1.5 rounded-full shrink-0",
-                            isFio ? "bg-violet-500" : "bg-sky-500",
+                            isOutros ? "bg-amber-500" : isFio ? "bg-violet-500" : "bg-sky-500",
                           )}
                         />
                         <span className="font-medium text-foreground truncate">{name}</span>
                         <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
-                          {isFio ? `${it.boxes || 0} cx · ${kg} kg` : `${it.pieces} pçs · ${kg} kg`}
+                          {isOutros
+                            ? `${Number(it.weight_kg || 0) > 0 ? `${kg} kg` : "—"}`
+                            : isFio
+                              ? `${it.boxes || 0} cx · ${kg} kg`
+                              : `${it.pieces} pçs · ${kg} kg`}
                         </span>
                       </li>
                     );
