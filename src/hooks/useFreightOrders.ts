@@ -547,11 +547,11 @@ export function useFreightOrders() {
         throw new Error('Esta OFR não está mais em curso — atualize a tela e tente novamente.');
       }
       const uploaded: Array<{ path: string; description?: string }> = [];
+      const { compressImage } = await import('@/lib/imageCompression');
       for (const p of photos) {
-        const { compressImage } = await import('@/lib/imageCompression');
         const c = await compressImage(p.file);
         const uploadFile = c.file;
-        const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase();
+        const ext = ((uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'jpg';
         const path = `${user.company_id}/${id}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from('freight-photos').upload(path, uploadFile, {
           contentType: uploadFile.type || 'image/jpeg',
@@ -854,11 +854,11 @@ export function useFreightOrders() {
 
       // Upload das novas
       const uploaded: Array<{ path: string; description?: string }> = [];
+      const { compressImage } = await import('@/lib/imageCompression');
       for (const p of addPhotos) {
-        const { compressImage } = await import('@/lib/imageCompression');
         const c = await compressImage(p.file);
         const uploadFile = c.file;
-        const ext = (uploadFile.name.split('.').pop() || 'jpg').toLowerCase();
+        const ext = ((uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'jpg';
         const path = `${user.company_id}/${id}/edit-${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from('freight-photos').upload(path, uploadFile, {
           contentType: uploadFile.type || 'image/jpeg',
