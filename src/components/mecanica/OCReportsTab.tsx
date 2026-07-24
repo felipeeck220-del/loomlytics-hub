@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
-import { Download, FileText, RotateCcw, AlertTriangle, Clock, Wrench, Users, Activity, TrendingUp, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, FileText, RotateCcw, AlertTriangle, Clock, Wrench, Users, Activity, TrendingUp, Search, ChevronLeft, ChevronRight, Eye, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell, Legend,
@@ -56,6 +58,8 @@ type Period = 'current' | 'last30' | 'last90' | 'year' | 'all' | 'custom';
 
 export default function OCReportsTab({ orders, machines, companyName }: Props) {
   const now = new Date();
+  const [detailOrder, setDetailOrder] = useState<MaintenanceOrder | null>(null);
+  const [detailPhotoUrls, setDetailPhotoUrls] = useState<Record<string, string>>({});
   const [period, setPeriod] = useState<Period>('current');
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(now), 'yyyy-MM-dd'));
@@ -148,6 +152,30 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
     const start = (page - 1) * PAGE_SIZE;
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
+
+  const detailPhotos: { path: string; description?: string }[] = useMemo(() => {
+    if (!detailOrder) return [];
+    const arr = (detailOrder as any).oc_photos;
+    return Array.isArray(arr) ? arr : [];
+  }, [detailOrder]);
+
+  useEffect(() => {
+    if (!detailOrder || detailPhotos.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const missing = detailPhotos.filter(p => !detailPhotoUrls[p.path]);
+      if (missing.length === 0) return;
+      const entries: Record<string, string> = {};
+      for (const p of missing) {
+        const { data } = await supabase.storage.from('oc-photos').createSignedUrl(p.path, 3600);
+        if (data?.signedUrl) entries[p.path] = data.signedUrl;
+      }
+      if (!cancelled && Object.keys(entries).length) {
+        setDetailPhotoUrls(prev => ({ ...prev, ...entries }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [detailOrder, detailPhotos, detailPhotoUrls]);
 
   // KPIs
   const kpis = useMemo(() => {
