@@ -1401,21 +1401,37 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                   </div>
                 )}
                 {createPhotoDrafts.length < 2 && (
-                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition">
-                    <ImageIcon className="h-4 w-4" />
-                    <span>Adicionar foto ({createPhotoDrafts.length === 0 ? 'até 2' : 'mais 1'})</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0] || null;
-                        addCreatePhotoDraft(f);
-                        e.currentTarget.value = '';
-                      }}
-                    />
-                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition">
+                      <Camera className="h-4 w-4" />
+                      <span>Tirar foto</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] || null;
+                          addCreatePhotoDraft(f);
+                          e.currentTarget.value = '';
+                        }}
+                      />
+                    </label>
+                    <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition">
+                      <ImageIcon className="h-4 w-4" />
+                      <span>Escolher da galeria</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] || null;
+                          addCreatePhotoDraft(f);
+                          e.currentTarget.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
                 )}
               </div>
             )}
