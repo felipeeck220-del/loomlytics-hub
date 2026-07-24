@@ -1679,12 +1679,16 @@ function CompleteModal({
 }) {
   const [photos, setPhotos] = useState<Array<{ file: File; description: string; preview: string }>>([]);
   const [priceStr, setPriceStr] = useState("");
+  const [priceMode, setPriceMode] = useState<"per_kg" | "fixed">("per_kg");
+  const [totalStr, setTotalStr] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       setPhotos([]);
       setPriceStr("");
+      setTotalStr("");
+      setPriceMode("per_kg");
     }
   }, [open, order?.id]);
 
@@ -1707,8 +1711,15 @@ function CompleteModal({
   }, []);
 
   const totalKg = (order?.items || []).reduce((s, i) => s + Number(i.weight_kg || 0), 0);
-  const priceNum = parseFloat(priceStr.replace(",", ".")) || 0;
-  const freightTotal = totalKg * priceNum;
+  const priceNumInput = parseFloat(priceStr.replace(",", ".")) || 0;
+  const totalNumInput = parseFloat(totalStr.replace(",", ".")) || 0;
+  const priceNum =
+    priceMode === "per_kg"
+      ? priceNumInput
+      : totalKg > 0 && totalNumInput > 0
+        ? Math.round((totalNumInput / totalKg) * 10000) / 10000
+        : 0;
+  const freightTotal = priceMode === "per_kg" ? totalKg * priceNumInput : totalNumInput;
 
   const onFile = (files: FileList | null) => {
     if (!files) return;
@@ -1752,26 +1763,65 @@ function CompleteModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end border rounded-lg p-3 bg-muted/30">
+          <div className="border rounded-lg p-3 bg-muted/30 space-y-3">
             <div>
-              <Label>Valor por kg (R$)</Label>
-              <Input
-                inputMode="decimal"
-                value={priceStr}
-                onChange={(e) => setPriceStr(e.target.value)}
-                placeholder="0,10"
-              />
+              <Label className="text-[10px] uppercase text-muted-foreground">Modo de cobrança</Label>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={priceMode === "per_kg" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPriceMode("per_kg")}
+                >
+                  Valor por kg
+                </Button>
+                <Button
+                  type="button"
+                  variant={priceMode === "fixed" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPriceMode("fixed")}
+                >
+                  Valor fixo
+                </Button>
+              </div>
             </div>
-            <div>
-              <Label>Peso total</Label>
-              <Input
-                value={`${totalKg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`}
-                disabled
-              />
-            </div>
-            <div>
-              <Label>Total do frete</Label>
-              <Input value={fmtMoney(freightTotal)} disabled className="font-bold" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+              {priceMode === "per_kg" ? (
+                <div>
+                  <Label>Valor por kg (R$)</Label>
+                  <Input
+                    inputMode="decimal"
+                    value={priceStr}
+                    onChange={(e) => setPriceStr(e.target.value)}
+                    placeholder="0,10"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <Label>Valor fixo do frete (R$)</Label>
+                  <Input
+                    inputMode="decimal"
+                    value={totalStr}
+                    onChange={(e) => setTotalStr(e.target.value)}
+                    placeholder="0,00"
+                  />
+                </div>
+              )}
+              <div>
+                <Label>Peso total</Label>
+                <Input
+                  value={`${totalKg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`}
+                  disabled
+                />
+              </div>
+              <div>
+                <Label>{priceMode === "per_kg" ? "Total do frete" : "Valor por kg (calc.)"}</Label>
+                <Input
+                  value={priceMode === "per_kg" ? fmtMoney(freightTotal) : fmtMoney(priceNum)}
+                  disabled
+                  className="font-bold"
+                />
+              </div>
             </div>
           </div>
 
