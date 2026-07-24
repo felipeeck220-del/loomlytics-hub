@@ -461,7 +461,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   // ============ START ============
   const startOrder = async (o: MaintenanceOrder) => {
-    if (!canExecuteOrder(o)) { toast.error(o.type === 'manutencao_corretiva' ? 'Apenas mecânico ou líder de mecânica podem iniciar OCs' : 'Sem permissão para iniciar OM'); return; }
+    if (!canExecuteOrder(o)) {
+      const permLabel = o.type === 'manutencao_eletrica' ? 'OE' : (o.type === 'manutencao_corretiva' ? 'OC' : 'OM');
+      toast.error(
+        permLabel === 'OE'
+          ? 'Apenas admin ou eletricista podem iniciar OEs'
+          : permLabel === 'OC'
+            ? 'Apenas mecânico ou líder de mecânica podem iniciar OCs'
+            : 'Sem permissão para iniciar OM',
+      );
+      return;
+    }
     // Não permite iniciar se já existe outra ordem em curso na mesma máquina
     const inProgress = orders.find(x =>
       x.machine_id === o.machine_id && x.status === 'em_curso' && x.id !== o.id
@@ -507,9 +517,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       machine_log_id: (log as any).id,
     }).eq('id', o.id);
     const isCorr = o.type === 'manutencao_corretiva';
-    if (error) { toast.error(`Erro ao iniciar ${isCorr ? 'OC' : 'OM'}`); return; }
-    toast.success(`${isCorr ? 'OC' : 'OM'} iniciada`);
-    logAction(isCorr ? 'oc_start' : 'om_start', isCorr ? { oc: o.oc_number } : { om: o.om_number });
+    const isElec = o.type === 'manutencao_eletrica';
+    const startLabel = isElec ? 'OE' : (isCorr ? 'OC' : 'OM');
+    if (error) { toast.error(`Erro ao iniciar ${startLabel}`); return; }
+    toast.success(`${startLabel} iniciada`);
+    logAction(
+      isElec ? 'oe_start' : (isCorr ? 'oc_start' : 'om_start'),
+      isElec ? { oe: (o as any).oe_number } : (isCorr ? { oc: o.oc_number } : { om: o.om_number }),
+    );
     refreshMachines();
     await load();
   };
@@ -540,6 +555,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setFinishing(true);
     try {
     const isCorr = finishOrder.type === 'manutencao_corretiva';
+    const isElec = finishOrder.type === 'manutencao_eletrica';
+    const finLabel = isElec ? 'OE' : (isCorr ? 'OC' : 'OM');
     // [rpcmecanica Fase 3] Toda a finalização acontece em 1 chamada atômica.
     // Ganhos: sem status travado, sem itens/transações órfãs, idempotência real.
     const payloadItems = finishItems
@@ -559,7 +576,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     });
     if (rpcErr) {
       console.error('[confirmFinish] finalize_maintenance_order failed', rpcErr);
-      toast.error(`Erro ao finalizar ${isCorr ? 'OC' : 'OM'}`);
+      toast.error(`Erro ao finalizar ${finLabel}`);
       return;
     }
     const seconds: number = (rpcData && rpcData.duration_seconds) ?? 0;
@@ -569,39 +586,43 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (alreadyFinalized) {
       // Idempotência: OM já estava finalizada (duplo clique / concorrência).
       // Não dispara push nem audit para não duplicar histórico.
-      toast.success(`${isCorr ? 'OC' : 'OM'} já finalizada`);
+      toast.success(`${finLabel} já finalizada`);
       setFinishOrder(null);
       await load();
       await Promise.resolve(refreshMachines());
       return;
     }
 
-    toast.success(`${isCorr ? 'OC' : 'OM'} finalizada`);
+    toast.success(`${finLabel} finalizada`);
     logAction(
-      isCorr ? 'oc_finish' : 'om_finish',
-      isCorr
-        ? { oc: finishOrder.oc_number, duration_s: seconds, items: itemsInsertedCount }
-        : { om: finishOrder.om_number, duration_s: seconds, items: itemsInsertedCount },
+      isElec ? 'oe_finish' : (isCorr ? 'oc_finish' : 'om_finish'),
+      isElec
+        ? { oe: (finishOrder as any).oe_number, duration_s: seconds, items: itemsInsertedCount }
+        : isCorr
+          ? { oc: finishOrder.oc_number, duration_s: seconds, items: itemsInsertedCount }
+          : { om: finishOrder.om_number, duration_s: seconds, items: itemsInsertedCount },
     );
     // Push de finalização — notifica admins (e líderes/mecânicos envolvidos)
     try {
-      const finishedNum = isCorr ? (finishOrder.oc_number ?? finishOrder.om_number) : finishOrder.om_number;
+      const finishedNum = isElec
+        ? ((finishOrder as any).oe_number ?? finishOrder.om_number)
+        : isCorr
+          ? (finishOrder.oc_number ?? finishOrder.om_number)
+          : finishOrder.om_number;
       const machineName = machineById[finishOrder.machine_id]?.name || 'Máquina';
       const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
-      const targetPath = slug ? `/${slug}/mecanica/${isCorr ? 'oc' : 'om'}` : '/';
+      const targetPath = slug ? `/${slug}/mecanica/${isElec ? 'oe' : (isCorr ? 'oc' : 'om')}` : '/';
       supabase.functions.invoke('send-push-notification', {
         body: {
           company_id: companyId,
-          title: isCorr
-            ? `OC #${String(finishedNum).padStart(3, '0')} finalizada — ${machineName}`
-            : `OM #${String(finishedNum).padStart(3, '0')} finalizada — ${machineName}`,
+          title: `${finLabel} #${String(finishedNum).padStart(3, '0')} finalizada — ${machineName}`,
           message: `Duração: ${fmtDuration(seconds)}${finishNotes ? ` — ${finishNotes}` : ''}`,
           url: targetPath,
-          roles: ['mecanico', 'lider_mecanica', 'lider_noite'],
+          roles: isElec ? ['eletricista'] : ['mecanico', 'lider_mecanica', 'lider_noite'],
           include_admins: true,
-          source: isCorr ? 'OC' : 'OM',
+          source: finLabel,
           ref_id: finishOrder.id,
-          ref_number: `${isCorr ? 'OC' : 'OM'} #${String(finishedNum).padStart(3, '0')}`,
+          ref_number: `${finLabel} #${String(finishedNum).padStart(3, '0')}`,
         },
       }).catch(() => { /* silencioso */ });
     } catch { /* silencioso */ }
@@ -617,7 +638,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   // ============ CANCEL ============
   const cancelOrder = async (o: MaintenanceOrder, reason: string | null) => {
     if (!canManageOrder(o)) { toast.error('Sem permissão para cancelar esta ordem'); return; }
-    const label = o.type === 'manutencao_corretiva' ? 'OC' : 'OM';
+    const label = o.type === 'manutencao_eletrica' ? 'OE' : (o.type === 'manutencao_corretiva' ? 'OC' : 'OM');
     if (o.status !== 'aberto') { toast.error(`Só é possível cancelar ${label}s em aberto`); return; }
     const { error } = await (supabase.from as any)('maintenance_orders').update({
       status: 'cancelada', cancelled_at: new Date().toISOString(), cancelled_by_id: user?.id, cancelled_by_name: authorLabel,
@@ -626,8 +647,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     if (error) { toast.error('Erro ao cancelar'); return; }
     toast.success(`${label} cancelada`);
     logAction(
-      o.type === 'manutencao_corretiva' ? 'oc_cancel' : 'om_cancel',
-      o.type === 'manutencao_corretiva' ? { oc: o.oc_number, reason } : { om: o.om_number, reason },
+      o.type === 'manutencao_eletrica' ? 'oe_cancel' : (o.type === 'manutencao_corretiva' ? 'oc_cancel' : 'om_cancel'),
+      o.type === 'manutencao_eletrica'
+        ? { oe: (o as any).oe_number, reason }
+        : (o.type === 'manutencao_corretiva' ? { oc: o.oc_number, reason } : { om: o.om_number, reason }),
     );
     await load();
   };
