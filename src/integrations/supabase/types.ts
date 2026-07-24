@@ -2766,6 +2766,8 @@ export type Database = {
           created_by_name: string | null
           description: string | null
           duration_seconds: number | null
+          escalated_from_oc_id: string | null
+          escalated_to_oe_id: string | null
           finish_notes: string | null
           finished_at: string | null
           finished_by_id: string | null
@@ -2775,6 +2777,7 @@ export type Database = {
           machine_log_id: string | null
           oc_number: number | null
           oc_photos: Json
+          oe_number: number | null
           om_number: number | null
           priority: string
           progress_notes: Json
@@ -2796,6 +2799,8 @@ export type Database = {
           created_by_name?: string | null
           description?: string | null
           duration_seconds?: number | null
+          escalated_from_oc_id?: string | null
+          escalated_to_oe_id?: string | null
           finish_notes?: string | null
           finished_at?: string | null
           finished_by_id?: string | null
@@ -2805,6 +2810,7 @@ export type Database = {
           machine_log_id?: string | null
           oc_number?: number | null
           oc_photos?: Json
+          oe_number?: number | null
           om_number?: number | null
           priority?: string
           progress_notes?: Json
@@ -2826,6 +2832,8 @@ export type Database = {
           created_by_name?: string | null
           description?: string | null
           duration_seconds?: number | null
+          escalated_from_oc_id?: string | null
+          escalated_to_oe_id?: string | null
           finish_notes?: string | null
           finished_at?: string | null
           finished_by_id?: string | null
@@ -2835,6 +2843,7 @@ export type Database = {
           machine_log_id?: string | null
           oc_number?: number | null
           oc_photos?: Json
+          oe_number?: number | null
           om_number?: number | null
           priority?: string
           progress_notes?: Json
@@ -2851,6 +2860,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_orders_escalated_from_oc_id_fkey"
+            columns: ["escalated_from_oc_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_orders_escalated_to_oe_id_fkey"
+            columns: ["escalated_to_oe_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_orders"
             referencedColumns: ["id"]
           },
           {
@@ -4986,6 +5009,16 @@ export type Database = {
         Args: { p_author_code?: string; p_author_name?: string; p_id: string }
         Returns: Json
       }
+      escalate_oc_to_oe: {
+        Args: {
+          p_author_name?: string
+          p_author_user_id?: string
+          p_description: string
+          p_oc_id: string
+          p_photos?: Json
+        }
+        Returns: Json
+      }
       fetch_productions_page:
         | {
             Args: {
@@ -5782,6 +5815,7 @@ export type Database = {
         | "troca_artigo"
         | "inativa"
         | "troca_agulhas"
+        | "manutencao_eletrica"
       needle_exit_mode: "troca_agulheiro" | "reposicao"
       needle_transaction_type: "entry" | "exit"
       stock_movement_type:
@@ -5951,6 +5985,7 @@ export const Constants = {
         "troca_artigo",
         "inativa",
         "troca_agulhas",
+        "manutencao_eletrica",
       ],
       needle_exit_mode: ["troca_agulheiro", "reposicao"],
       needle_transaction_type: ["entry", "exit"],

@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle, Repeat, Truck,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle, Repeat, Truck, Zap,
 } from 'lucide-react';
 import { useInstallApp } from '@/hooks/useInstallApp';
 import {
@@ -37,6 +37,7 @@ const allItems = [
   { title: 'Mecânica', path: 'mecanica', icon: Wrench, key: 'mecanica', end: true },
   { title: 'OM', path: 'mecanica/om', icon: ClipboardList, key: 'mecanica-om', nonAdminOnly: true, end: true },
   { title: 'OC', path: 'mecanica/oc', icon: AlertTriangle, key: 'mecanica-oc', nonAdminOnly: true, end: true },
+  { title: 'OE', path: 'mecanica/oe', icon: Zap, key: 'mecanica-oe', nonAdminOnly: true, end: true },
   { title: 'OT', path: 'mecanica/ot', icon: Repeat, key: 'mecanica-ot', nonAdminOnly: true, end: true },
   { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
   { title: 'Tecelões', path: 'weavers', icon: HardHat, key: 'weavers' },
@@ -64,6 +65,7 @@ export function AppSidebar() {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [openOMCount, setOpenOMCount] = useState(0);
   const [openOCCount, setOpenOCCount] = useState(0);
+  const [openOECount, setOpenOECount] = useState(0);
   const [openOTCount, setOpenOTCount] = useState(0);
   const [otReadyCount, setOtReadyCount] = useState(0);
   const isAdmin = role === 'admin';
@@ -107,9 +109,11 @@ export function AppSidebar() {
       if (cancelled) return;
       const rows = (data || []) as Array<{ type: string; status: string }>;
       const oc = rows.filter(r => r.type === 'manutencao_corretiva').length;
-      const om = rows.length - oc;
+      const oe = rows.filter(r => r.type === 'manutencao_eletrica').length;
+      const om = rows.length - oc - oe;
       setOpenOMCount(om);
       setOpenOCCount(oc);
+      setOpenOECount(oe);
     };
 
     load();
@@ -148,7 +152,7 @@ export function AppSidebar() {
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? allItems.filter(item => {
-          if (item.key === 'mecanica-om' || item.key === 'mecanica-oc' || item.key === 'mecanica-ot') return mecanicaEnabled;
+          if (item.key === 'mecanica-om' || item.key === 'mecanica-oc' || item.key === 'mecanica-oe' || item.key === 'mecanica-ot') return mecanicaEnabled;
           return enabledNavItems.includes(item.key);
         })
       : allItems;
@@ -264,6 +268,11 @@ export function AppSidebar() {
                               {item.key === 'mecanica-oc' && openOCCount > 0 && (
                                 <span className="ml-auto text-[10px] bg-red-500/15 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full font-semibold leading-none">
                                   {openOCCount}
+                                </span>
+                              )}
+                              {item.key === 'mecanica-oe' && openOECount > 0 && (
+                                <span className="ml-auto text-[10px] bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded-full font-semibold leading-none">
+                                  {openOECount}
                                 </span>
                               )}
                               {item.key === 'mecanica-ot' && (openOTCount + otReadyCount) > 0 && (

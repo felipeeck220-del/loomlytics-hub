@@ -18,6 +18,7 @@ type ProgressNote = {
 const TYPE_LABELS: Record<MaintenanceOrderType, string> = {
   manutencao_preventiva: 'Manutenção Preventiva',
   manutencao_corretiva: 'Manutenção Corretiva',
+  manutencao_eletrica: 'Manutenção Elétrica',
   troca_artigo: 'Troca de Artigo',
   troca_agulhas: 'Troca de Agulheiro',
 };

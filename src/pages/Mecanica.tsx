@@ -175,9 +175,11 @@ export default function MecanicaPage() {
     ? 'om'
     : location.pathname.endsWith('/mecanica/oc')
       ? 'oc'
-      : location.pathname.endsWith('/mecanica/ot')
-        ? 'ot'
-        : null;
+      : location.pathname.endsWith('/mecanica/oe')
+        ? 'oe'
+        : location.pathname.endsWith('/mecanica/ot')
+          ? 'ot'
+          : null;
   const defaultTab = pathTab ?? (isAdmin ? 'om' : 'calendario');
   const machines = getMachines();
   const machineLogs = getMachineLogs();
@@ -1731,7 +1733,7 @@ export default function MecanicaPage() {
 
   // Quando acessado via rota dedicada de OM/OC/OT, renderiza apenas o componente
   // correspondente — sem o cabeçalho "Mecânica" e sem as abas Calendário/Cilindros.
-  if (pathTab === 'om' || pathTab === 'oc') {
+  if (pathTab === 'om' || pathTab === 'oc' || pathTab === 'oe') {
     return (
       <div className="space-y-6">
         <MaintenanceOrdersTab
@@ -1740,7 +1742,7 @@ export default function MecanicaPage() {
           sinkers={sinkers}
           cylinders={cylinders}
           refreshMachines={refreshData}
-          mode={pathTab}
+          mode={pathTab as 'om' | 'oc' | 'oe'}
         />
       </div>
     );
@@ -1770,6 +1772,7 @@ export default function MecanicaPage() {
          <TabsList className="flex flex-wrap h-auto justify-start gap-1">
            {isAdmin && <TabsTrigger value="om">OM</TabsTrigger>}
            {isAdmin && <TabsTrigger value="oc" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">OC</TabsTrigger>}
+           {isAdmin && <TabsTrigger value="oe" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">OE</TabsTrigger>}
            {isAdmin && <TabsTrigger value="ot" className="data-[state=active]:bg-amber-500 data-[state=active]:text-white">OT</TabsTrigger>}
            <TabsTrigger value="calendario">Calendário</TabsTrigger>
            {isAdmin && <TabsTrigger value="detalhes">Detalhes</TabsTrigger>}
@@ -1800,6 +1803,18 @@ export default function MecanicaPage() {
             cylinders={cylinders}
             refreshMachines={refreshData}
             mode="oc"
+          />
+        </TabsContent>
+
+        {/* OE Tab (Ordem Elétrica) */}
+        <TabsContent value="oe">
+          <MaintenanceOrdersTab
+            machines={getMachines()}
+            needles={needles}
+            sinkers={sinkers}
+            cylinders={cylinders}
+            refreshMachines={refreshData}
+            mode="oe"
           />
         </TabsContent>
 

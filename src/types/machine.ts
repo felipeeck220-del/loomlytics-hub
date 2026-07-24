@@ -6,12 +6,13 @@ export const PRODUCTION_MODE_LABELS: Record<ProductionMode, string> = {
   iot: 'IoT (Automático)',
 };
 
-export type MachineStatus = 'ativa' | 'manutencao_preventiva' | 'manutencao_corretiva' | 'troca_artigo' | 'troca_agulhas' | 'inativa';
+export type MachineStatus = 'ativa' | 'manutencao_preventiva' | 'manutencao_corretiva' | 'manutencao_eletrica' | 'troca_artigo' | 'troca_agulhas' | 'inativa';
 
 export const MACHINE_STATUS_LABELS: Record<MachineStatus, string> = {
   ativa: 'Ativa',
   manutencao_preventiva: 'Manutenção Preventiva',
   manutencao_corretiva: 'Manutenção Corretiva',
+  manutencao_eletrica: 'Manutenção Elétrica',
   troca_artigo: 'Troca de Artigo',
   troca_agulhas: 'Troca de Agulheiro',
   inativa: 'Inativa',
@@ -21,6 +22,7 @@ export const MACHINE_STATUS_COLORS: Record<MachineStatus, string> = {
   ativa: 'bg-success/10 text-success',
   manutencao_preventiva: 'bg-warning/10 text-warning',
   manutencao_corretiva: 'bg-destructive/10 text-destructive',
+  manutencao_eletrica: 'bg-yellow-500/10 text-yellow-600',
   troca_artigo: 'bg-info/10 text-info',
   troca_agulhas: 'bg-purple-500/10 text-purple-600',
   inativa: 'bg-muted text-muted-foreground',
@@ -163,7 +165,7 @@ export interface MachineLog {
 
 // =============== Ordem de Manutenção (OM) ===============
 export type MaintenanceOrderStatus = 'aberto' | 'em_curso' | 'finalizada' | 'cancelada';
-export type MaintenanceOrderType = 'manutencao_preventiva' | 'manutencao_corretiva' | 'troca_artigo' | 'troca_agulhas';
+export type MaintenanceOrderType = 'manutencao_preventiva' | 'manutencao_corretiva' | 'manutencao_eletrica' | 'troca_artigo' | 'troca_agulhas';
 export type MaintenanceOrderPriority = 'normal' | 'prioritaria';
 
 export const MAINTENANCE_ORDER_STATUS_LABELS: Record<MaintenanceOrderStatus, string> = {
@@ -178,6 +180,7 @@ export interface MaintenanceOrder {
   company_id: string;
   om_number: number;
   oc_number?: number | null;
+  oe_number?: number | null;
   machine_id: string;
   type: MaintenanceOrderType;
   priority: MaintenanceOrderPriority;
@@ -201,6 +204,8 @@ export interface MaintenanceOrder {
   progress_notes?: Array<{ id: string; ts: string; author: string | null; kind: 'observacao' | 'item'; text: string }> | null;
   finish_notes?: string | null;
   oc_photos?: Array<{ id: string; path: string; description: string; author: string | null; ts: string }> | null;
+  escalated_from_oc_id?: string | null;
+  escalated_to_oe_id?: string | null;
 }
 
 export type MaintenanceOrderItemType = 'agulha' | 'platina' | 'cilindro' | 'outro';

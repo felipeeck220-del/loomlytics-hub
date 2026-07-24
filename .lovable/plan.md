@@ -1,92 +1,92 @@
-# Edição autorizada de OFRs Finalizadas
 
-Permite que admins autorizem a edição de uma OFR já finalizada. O freteiro vinculado passa a ver a OFR em uma nova aba "Editar" (antes de "Finalizados") e pode ajustar **apenas o valor do frete e as fotos** (remover / adicionar, mantendo 1–2). Ao salvar, a OFR retorna a Finalizados marcada como editada, com trilha comparativa (antes × depois) visível nos Detalhes.
+# Módulo OE (Ordem Elétrica) — plano de implementação
 
-## Banco de dados
+Espelha o funcionamento de OC/OM, adiciona role "Eletricista" e cria fluxo de escalonamento OC → OE (quando o mecânico identifica que o problema é elétrico).
 
-Nova migração:
+---
 
-- `freight_orders`: colunas
-  - `edit_authorized` boolean default false
-  - `edit_authorized_at`, `edit_authorized_by` (profile), `edit_authorized_reason` text
-  - `edited_at`, `edited_by` (profile)
-  - `previous_price_per_kg` numeric, `previous_total` numeric  (snapshot do último salvo)
-- Nova tabela `freight_order_edit_photos` para preservar as fotos antigas quando o freteiro remove/troca:
-  - `id, freight_order_id, company_id, storage_path, description, replaced_at, replaced_by`
-  - GRANTs + RLS por `company_id`, leitura também para freteiro dono da OFR.
-- Realtime: publicar a nova tabela e `REPLICA IDENTITY FULL`.
+## 1. Banco de dados (migração)
 
-Nenhum drop; retrocompatível.
+- **Enum `app_role`**: adicionar valor `eletricista`.
+- **Enum `maintenance_order_type`**: adicionar valor `manutencao_eletrica`.
+- **Enum `machine_status`**: adicionar valor `manutencao_eletrica` (para máquina ficar com status correto durante a OE).
+- **Tabela `maintenance_orders`**: novas colunas
+  - `oe_number` (int, sequencial por empresa — trigger análogo a `oc_number`)
+  - `escalated_from_oc_id` (uuid, FK auto → `maintenance_orders.id`, `ON DELETE SET NULL`) — quando a OE nasce de uma OC
+  - `escalated_to_oe_id` (uuid, FK auto → `maintenance_orders.id`, `ON DELETE SET NULL`) — na OC que originou a OE
+- **RPC `get_maintenance_orders_list`**: continuar retornando todas as ordens; OE já vem embutida (mesma tabela).
+- **Storage**: reutilizar bucket `oc-photos` para fotos de OE (mesmas policies, chave `{companyId}/{orderId}/{uuid}.ext`).
+- **Trigger de numeração**: estender função existente que gera `oc_number` para também gerar `oe_number` quando `type = 'manutencao_eletrica'`.
+- **Realtime**: sem mudanças (a publication já cobre `maintenance_orders` e `machine_maintenance_observations`).
 
-## Backend / Hook `useFreightOrders`
+## 2. Papéis e permissões (`src/hooks/usePermissions.ts`)
 
-- Nova query key `['freight_orders', company_id]` já lê os novos campos + join `edit_photos` e `edit_authorizer`, `editor` (profiles).
-- Novas mutations:
-  - `authorizeEdit(orderId, reason)` — admin/lider_frete apenas. Grava `edit_authorized=true`, autor, motivo. Push para o freteiro vinculado ("OFR #N liberada para edição").
-  - `revokeEditAuthorization(orderId)` — admin cancela a autorização antes de o freteiro salvar.
-  - `saveFreighterEdit(orderId, { pricePerKg, addPhotos, removePhotoIds, docType?, docNumber? })` — permitido só quando `edit_authorized=true` e para o freteiro dono (ou admin). Fluxo:
-    1. Snapshot: se `previous_price_per_kg` for null, copia valor atual.
-    2. Fotos removidas: move linhas de `freight_order_photos` para `freight_order_edit_photos` (não apaga do storage).
-    3. Novas fotos: upload em `freight-photos/{company}/{order}/edit-{uuid}.ext`, insere em `freight_order_photos`.
-    4. Recalcula `freight_total = totalKg * novo pricePerKg`.
-    5. UPDATE condicional (`edit_authorized=true`) setando novo preço/total, `edited_at/by`, `edit_authorized=false`.
-    6. Rollback de storage se UPDATE retornar 0 linhas.
-  - Notifica admins ("OFR #N editada por {freteiro}").
+- Adicionar `eletricista` ao tipo `AppRole` e ao mapa `ROLE_ALLOWED_KEYS` liberando `mecanica-oe` (e `mecanica-oc` só para visualização, sem executar).
+- Regras dentro de `MaintenanceOrdersTab` (modo `oe`):
+  - **Criar OE**: admin, mecanico, lider, lider_noite.
+  - **Iniciar / finalizar OE**: apenas admin e eletricista.
+  - **Visualizar** (lista, notas, fotos): todos os papéis com acesso ao módulo mecanica (leitura).
+- Cadastro de usuário Eletricista em Configurações usa o mesmo dropdown de papéis já existente.
 
-Reaproveita as defesas atuais (pré-check de status, validação de retorno, rollback de storage).
+## 3. Roteamento e navegação
 
-## Permissões / RLS
+- `src/App.tsx`: nova rota `mecanica/oe`.
+- `src/components/AppSidebar.tsx`: novo item "OE" ao lado de OC (icon Zap), key `mecanica-oe`, com badge de abertos.
+- `src/pages/Mecanica.tsx`: reconhecer path `/mecanica/oe` e renderizar `<MaintenanceOrdersTab mode="oe" ... />`.
 
-- `authorizeEdit`/`revoke` restritos a `admin` e `lider_frete` na UI e via política.
-- `saveFreighterEdit`: RLS já restringe o freteiro à sua OFR. Adicionar guarda para exigir `edit_authorized=true` OR role admin/lider.
-- Freteiro nunca edita itens, trajeto, doc principal, etc.
+## 4. Componente `MaintenanceOrdersTab`
 
-## Frontend
+- Aceitar `mode: 'om' | 'oc' | 'oe'` (default `om`).
+- Constantes atualizadas: labels curtos/longos, cor da badge para OE (âmbar-elétrico / yellow-300).
+- `modeOrders`: filtro por `type === 'manutencao_eletrica'` no modo OE.
+- Reaproveitar todo o fluxo: Aberto, Em curso, Finalizadas, Canceladas, Relatórios (admin).
+- No **modal de finalização de OE**, o campo "relatório" fica obrigatório (mesmo padrão hoje aplicado em OM/OC).
+- Reaproveitar OCReportsTab renomeando textos condicionalmente (KPIs continuam válidos).
 
-### `src/pages/FreightOrders.tsx`
+## 5. Ponte OC → OE (a peça nova)
 
-- `TabKey` recebe `"edit"`. Ordem de abas para freteiro: `priority | open | in_progress | edit | completed | cancelled`. Para admin: mesma sequência, aba `edit` também visível (contagem para admin = OFRs com `edit_authorized=true`; para freteiro = suas OFRs autorizadas).
-- Badge da aba `edit`: contagem em âmbar.
-- Aba Finalizados:
-  - Novo botão **"Autorizar edição"** (admin/lider) em cada card já finalizado quando `edit_authorized=false && edited_at is null` — ou "Autorizado ✓ (revogar)" quando pendente.
-  - Ícone/badge **"Editada"** (Pencil âmbar) quando `edited_at != null`; tooltip com quem editou/quando.
-- Aba `edit`:
-  - Freteiro: lista OFRs autorizadas com botão grande "Editar OFR" abrindo modal específico.
-  - Admin: espelha e permite revogar autorização.
+Dentro do card/modal de OC **Em Curso**:
 
-### Novos modais
+- Botão "Abrir OE" (ícone Zap, roxo). Visível para quem pode executar aquela OC.
+- Abre modal "Escalonar para OE":
+  - Textarea "Descrição do problema elétrico" (obrigatório).
+  - Uploader de até **3 fotos** com preview/descrição (reaproveita `compressImage`).
+  - Botão "Abrir OE e finalizar OC".
+- Ao confirmar (transação sequencial, com rollback de storage se falhar):
+  1. Cria nova ordem `type='manutencao_eletrica'`, status inicial `em_curso` (já iniciada), `escalated_from_oc_id = ocId`, `description = <texto do problema elétrico>`, mesma `machine_id`, autoria do usuário atual.
+  2. Faz upload das fotos para `oc-photos/{companyId}/{oeId}/…` e grava `oc_photos` na OE.
+  3. Finaliza a OC de origem: `status='finalizada'`, `finished_at=now`, `finished_by_*`, e adiciona `progress_notes` com registro automático: `"Problema elétrico. OE #NNN aberta. Descrição: … • N foto(s) anexada(s)"` + `escalated_to_oe_id = novaOeId`.
+  4. Atualiza status da máquina para `manutencao_eletrica` (a OE já está em curso).
+  5. Registra `audit_logs` `oc_escalated_to_oe` e `oe_created_from_oc`.
+  6. Dispara push para eletricistas + admins.
+- Realtime cuida da atualização em todos os clientes.
 
-- `AuthorizeEditModal` — motivo (textarea opcional) + confirmar.
-- `FreighterEditModal` — full-screen mobile:
-  - `BrazilianWeightInput`-like para `pricePerKg`.
-  - Grid de fotos atuais com botão "remover"; uploader para novas (limite 1–2 no total final).
-  - Rodapé: "Salvar edição" + "Cancelar".
-- `DetailsModal`: nova seção **"Histórico de Edição"** quando `edited_at`:
-  - Preço: `R$ X → R$ Y` (usa `previous_price_per_kg`).
-  - Total: idem.
-  - Fotos antigas removidas: thumbnails via signed URL na aba "Fotos antigas".
-  - Autor + timestamp da edição / autorização.
+Na visualização da OC (modal "Ver relatório") e da OE, exibir um bloco "Escalonamento" com link clicável para a ordem contraparte.
 
-### PDF
+## 6. Notificações push
 
-- `freightOrderPdf.ts`: se `edited_at`, adiciona bloco "Editada em {data} por {nome}" logo abaixo da auditoria; opcional listar preço antes/depois. Não incluir fotos removidas.
+Reutilizar o pipeline de OC/OM. Novos gatilhos:
 
-## Regras críticas
+- **OE criada** (direta ou via escalonamento): notificar eletricistas + admins.
+- **OE finalizada**: notificar admins + mecânico que originou (se veio de OC).
+- **OC escalonada para OE**: notificar eletricistas + admins.
 
-1. Só uma edição pendente por vez — botão "Autorizar" oculto quando `edit_authorized=true`.
-2. Edição do freteiro é atômica no cliente (rollback de storage e restauração de foto se falhar).
-3. Snapshot preserva o valor original: se editar novamente, `previous_*` só é gravado se estava null (mantém referência ao último estado antes da 1ª edição). Alternativamente, cada edição sobrescreve — decidido: manter apenas comparativo entre último estado salvo e o novo (simplicidade).
-4. Fotos removidas permanecem no storage e são referenciadas por `freight_order_edit_photos` para exibição histórica.
-5. Notificações push reutilizam `send-push-notification` com `source: 'OFR'` e `ref_id/ref_number` para deduplicação.
+## 7. Atualização de `docs/mestre.md`
 
-## Documentação
+Adicionar entrada com data de hoje descrevendo:
+- Novo módulo OE, role Eletricista.
+- Fluxo OC → OE.
+- Enum values e coluna nova.
 
-Adicionar entrada em `docs/mestre.md` e atualizar `docs/FreightOrders.md` com o novo fluxo, aba, tabela e regras.
+---
 
-## Arquivos afetados
+## Detalhes técnicos (referência interna)
 
-- `supabase/migrations/*` (nova migração schema + RLS + realtime).
-- `src/hooks/useFreightOrders.ts` (novas mutations, query estendida).
-- `src/pages/FreightOrders.tsx` (aba, botões, badges, novos modais).
-- `src/lib/freightOrderPdf.ts` (bloco de edição).
-- `docs/mestre.md`, `docs/FreightOrders.md`.
+- Colunas novas: `maintenance_orders.oe_number int`, `escalated_from_oc_id uuid`, `escalated_to_oe_id uuid`.
+- Trigger `set_maintenance_order_number()` amplia branch: se `manutencao_eletrica`, próximo `MAX(oe_number)+1` por `company_id`.
+- Notificações reutilizam edge function `send-push-notification` — apenas novos `source` (`OE`, `OC_ESCALATED`).
+- Formulários mantêm `SearchableSelect` para máquina.
+- Textos e labels em português; ícone `Zap` (lucide) para OE.
+- `useMarkSourceAsRead('OE')` no modo OE.
+
+Nenhuma tela ou fluxo existente é removido; a mudança é aditiva.

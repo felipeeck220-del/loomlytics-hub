@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon, Eye, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Play, Square, Trash2, Pencil, Clock, AlertTriangle, Wrench, Loader2, X, StickyNote, Download, FileText, Camera, ImageIcon, Eye, Search, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -48,6 +48,7 @@ type OCPhoto = {
 const TYPE_LABELS: Record<MaintenanceOrderType, string> = {
   manutencao_preventiva: 'Manutenção Preventiva',
   manutencao_corretiva: 'Manutenção Corretiva',
+  manutencao_eletrica: 'Manutenção Elétrica',
   troca_artigo: 'Troca de Artigo',
   troca_agulhas: 'Troca de Agulheiro',
 };
@@ -59,6 +60,7 @@ const OM_TYPE_LABELS: Partial<Record<MaintenanceOrderType, string>> = {
 const TYPE_COLORS: Record<MaintenanceOrderType, string> = {
   manutencao_preventiva: 'bg-warning/15 text-warning border-warning/30',
   manutencao_corretiva: 'bg-destructive/15 text-destructive border-destructive/30',
+  manutencao_eletrica: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
   troca_artigo: 'bg-info/15 text-info border-info/30',
   troca_agulhas: 'bg-purple-500/15 text-purple-600 border-purple-500/30',
 };
@@ -101,15 +103,17 @@ interface Props {
   cylinders: Cylinder[];
   refreshMachines: () => void;
   /** 'om' = ordens não-corretivas (preventiva, troca de artigo, troca de agulheiro).
-   *  'oc' = ordens de corretiva. Default 'om'. */
-  mode?: 'om' | 'oc';
+   *  'oc' = ordens de corretiva.
+   *  'oe' = ordens elétricas. Default 'om'. */
+  mode?: 'om' | 'oc' | 'oe';
 }
 
 export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylinders, refreshMachines, mode = 'om' }: Props) {
   const isOC = mode === 'oc';
-  useMarkSourceAsRead(isOC ? 'OC' : 'OM');
-  const labelShort = isOC ? 'OC' : 'OM';
-  const labelLong = isOC ? 'Ordens de Corretiva' : 'Ordens de Manutenção';
+  const isOE = mode === 'oe';
+  useMarkSourceAsRead(isOE ? 'OE' as any : (isOC ? 'OC' : 'OM'));
+  const labelShort = isOE ? 'OE' : (isOC ? 'OC' : 'OM');
+  const labelLong = isOE ? 'Ordens Elétricas' : (isOC ? 'Ordens de Corretiva' : 'Ordens de Manutenção');
   const { user } = useAuth();
   const { logAction, userName, userCode } = useAuditLog();
   const { role } = usePermissions();
@@ -126,20 +130,31 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const canCreateCorrective = role === 'admin' || role === 'lider' || role === 'lider_noite';
   // OC: mecânicos, líder de mecânica e admin (acesso total) iniciam/finalizam
   const canExecuteCorrective = role === 'admin' || role === 'mecanico' || role === 'lider_mecanica' || role === 'lider_noite';
+  // OE (Ordem Elétrica): criam = admin/líder/mecânico/líder_mecânica; executam = admin/eletricista
+  const canCreateElectrical =
+    role === 'admin' || role === 'lider' || role === 'lider_noite' ||
+    role === 'lider_mecanica' || role === 'mecanico';
+  const canExecuteElectrical = role === 'admin' || (role as string) === 'eletricista';
   const canExecuteOrder = (o: MaintenanceOrder) =>
+    o.type === 'manutencao_eletrica' ? canExecuteElectrical :
     o.type === 'manutencao_corretiva' ? canExecuteCorrective : canExecute;
   const canManageOrder = (o: MaintenanceOrder) =>
+    o.type === 'manutencao_eletrica' ? canCreateElectrical :
     o.type === 'manutencao_corretiva' ? canCreateCorrective : canManage;
   // Permissões efetivas para o botão "Nova ..." no cabeçalho da aba atual
-  const canCreateInThisMode = isOC ? canCreateCorrective : canManage;
+  const canCreateInThisMode = isOE ? canCreateElectrical : (isOC ? canCreateCorrective : canManage);
   // Nº exibido (OM usa om_number; OC usa oc_number; fallback para o legado)
   const displayNumber = (o: MaintenanceOrder) => {
-    const raw = o.type === 'manutencao_corretiva'
+    const raw = o.type === 'manutencao_eletrica'
+      ? ((o as any).oe_number ?? o.om_number) as number | null | undefined
+      : o.type === 'manutencao_corretiva'
       ? ((o.oc_number ?? o.om_number) as number | null | undefined)
       : (o.om_number as number | null | undefined);
     return raw != null ? String(raw).padStart(3, '0') : '—';
   };
-  const labelOf = (o: MaintenanceOrder) => (o.type === 'manutencao_corretiva' ? 'OC' : 'OM');
+  const labelOf = (o: MaintenanceOrder) =>
+    o.type === 'manutencao_eletrica' ? 'OE' :
+    o.type === 'manutencao_corretiva' ? 'OC' : 'OM';
   // Quem pode abrir o modal "Notas/Itens" (leitura em tempo real p/ admin e criadores)
   const canViewProgressNotes = (o: MaintenanceOrder) =>
     canExecuteOrder(o) || canManageOrder(o) || isAdmin;
@@ -168,6 +183,11 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
   const [photoDraftDesc, setPhotoDraftDesc] = useState('');
   const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({});
   const [viewOrder, setViewOrder] = useState<MaintenanceOrder | null>(null);
+  // Escalonamento OC → OE
+  const [escalateOC, setEscalateOC] = useState<MaintenanceOrder | null>(null);
+  const [escalateDesc, setEscalateDesc] = useState('');
+  const [escalatePhotos, setEscalatePhotos] = useState<Array<{ id: string; file: File; preview: string; description: string }>>([]);
+  const [escalateSaving, setEscalateSaving] = useState(false);
 
   const load = async (opts?: { silent?: boolean }) => {
     if (!companyId) return;
@@ -292,6 +312,15 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     clearCreatePhotoDrafts();
     setCreateOpen(true);
   };
+  const openCreateElectrical = () => {
+    setEditing(null);
+    setCorrectiveMode(true); // reusa fluxo com descrição + fotos
+    setForm({ machine_id: '', type: 'manutencao_eletrica', priority: 'prioritaria', description: '' });
+    savingOrderRef.current = false;
+    setSavingOrder(false);
+    clearCreatePhotoDrafts();
+    setCreateOpen(true);
+  };
   const openEdit = (o: MaintenanceOrder) => {
     setEditing(o);
     setCorrectiveMode(o.type === 'manutencao_corretiva');
@@ -308,8 +337,10 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     try {
     if (!form.machine_id) { toast.error('Selecione uma máquina'); return; }
     const isCorrective = form.type === 'manutencao_corretiva';
+    const isElectrical = form.type === 'manutencao_eletrica';
     if (isCorrective && !canCreateCorrective) { toast.error('Apenas admin ou líder podem criar OC'); return; }
-    if (!isCorrective && !canManage) { toast.error('Sem permissão para criar OM'); return; }
+    if (isElectrical && !canCreateElectrical) { toast.error('Sem permissão para criar OE'); return; }
+    if (!isCorrective && !isElectrical && !canManage) { toast.error('Sem permissão para criar OM'); return; }
     // Regras de criação:
     // - Bloqueia se já existe uma ordem do MESMO tipo (OM ou OC) em aberto/em curso na máquina
     //   (evita duplicar OM ou OC para a mesma máquina).
@@ -336,14 +367,14 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         return;
       }
     }
-    const orderLabel = isCorrective ? 'OC' : 'OM';
+    const orderLabel = isElectrical ? 'OE' : (isCorrective ? 'OC' : 'OM');
     if (editing) {
       const { error } = await (supabase.from as any)('maintenance_orders').update({
         machine_id: form.machine_id, type: form.type, priority: form.priority, description: form.description || null,
       }).eq('id', editing.id);
       if (error) { toast.error(`Erro ao atualizar ${orderLabel}`); return; }
       toast.success(`${orderLabel} #${displayNumber(editing)} atualizada`);
-      logAction(isCorrective ? 'oc_update' : 'om_update', { om: editing.om_number, oc: editing.oc_number });
+      logAction(isElectrical ? 'oe_update' : (isCorrective ? 'oc_update' : 'om_update'), { om: editing.om_number, oc: editing.oc_number, oe: (editing as any).oe_number });
     } else {
       const { data, error } = await (supabase.from as any)('maintenance_orders').insert({
         company_id: companyId,
@@ -356,11 +387,13 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       }).select().single();
       if (error) { toast.error(`Erro ao criar ${orderLabel}`); return; }
       const created = data as any;
-      const createdNum = isCorrective ? (created.oc_number ?? created.om_number) : created.om_number;
+      const createdNum = isElectrical ? (created.oe_number ?? created.om_number)
+                       : isCorrective ? (created.oc_number ?? created.om_number)
+                       : created.om_number;
       toast.success(`${orderLabel} #${String(createdNum).padStart(3, '0')} criada`);
-      logAction(isCorrective ? 'oc_create' : 'om_create', { number: createdNum, type: form.type });
-      // Upload de fotos anexadas já na criação da OC (opcional, até 2)
-      if (isCorrective && createPhotoDrafts.length > 0) {
+      logAction(isElectrical ? 'oe_create' : (isCorrective ? 'oc_create' : 'om_create'), { number: createdNum, type: form.type });
+      // Upload de fotos anexadas já na criação (OC ou OE, opcional, até 2)
+      if ((isCorrective || isElectrical) && createPhotoDrafts.length > 0) {
         const uploaded: OCPhoto[] = [];
         const uploadedPaths: string[] = [];
         try {
@@ -401,20 +434,18 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       try {
         const machineName = machineById[form.machine_id]?.name || 'Máquina';
         const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
-        const targetPath = slug ? `/${slug}/mecanica/${isCorrective ? 'oc' : 'om'}` : '/';
+        const targetPath = slug ? `/${slug}/mecanica/${isElectrical ? 'oe' : (isCorrective ? 'oc' : 'om')}` : '/';
         supabase.functions.invoke('send-push-notification', {
           body: {
             company_id: companyId,
-            title: isCorrective
-              ? `Nova OC #${String(createdNum).padStart(3, '0')} — ${machineName}`
-              : `Nova OM #${String(createdNum).padStart(3, '0')} — ${machineName}`,
-            message: form.description || (isCorrective ? 'Ordem de Corretiva aberta' : 'Ordem de Manutenção aberta'),
+            title: `Nova ${orderLabel} #${String(createdNum).padStart(3, '0')} — ${machineName}`,
+            message: form.description || (isElectrical ? 'Ordem Elétrica aberta' : (isCorrective ? 'Ordem de Corretiva aberta' : 'Ordem de Manutenção aberta')),
             url: targetPath,
-            roles: ['mecanico', 'lider_mecanica', 'lider_noite'],
+            roles: isElectrical ? ['eletricista'] : ['mecanico', 'lider_mecanica', 'lider_noite'],
             include_admins: true,
-            source: isCorrective ? 'OC' : 'OM',
+            source: isElectrical ? 'OE' : (isCorrective ? 'OC' : 'OM'),
             ref_id: created.id,
-            ref_number: `${isCorrective ? 'OC' : 'OM'} #${String(createdNum).padStart(3, '0')}`,
+            ref_number: `${orderLabel} #${String(createdNum).padStart(3, '0')}`,
           },
         }).catch(() => { /* silencioso */ });
       } catch { /* silencioso */ }
@@ -821,8 +852,12 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
 
   // Filtra por modo (OM = não-corretivas; OC = apenas corretivas)
   const modeOrders = useMemo(
-    () => orders.filter(o => (isOC ? o.type === 'manutencao_corretiva' : o.type !== 'manutencao_corretiva')),
-    [orders, isOC],
+    () => orders.filter(o =>
+      isOE ? o.type === 'manutencao_eletrica' :
+      isOC ? o.type === 'manutencao_corretiva' :
+      (o.type !== 'manutencao_corretiva' && o.type !== 'manutencao_eletrica'),
+    ),
+    [orders, isOC, isOE],
   );
   const filtered = useMemo(() => modeOrders.filter(o => o.status === tab), [modeOrders, tab]);
   const counts = useMemo(() => ({
@@ -953,17 +988,26 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {isOC ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Wrench className="h-5 w-5" />}
+            {isOE ? <Zap className="h-5 w-5 text-yellow-500" /> : isOC ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Wrench className="h-5 w-5" />}
             {labelLong}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {isOC
-              ? 'Ordem de Corretiva — máquina apresentou problema. Admin/líder criam; mecânico e líder de mecânica iniciam e finalizam.'
-              : 'Fluxo Aberto → Em curso → Finalizada. Criada por admin/líder mecânica; mecânico inicia e finaliza.'}
+            {isOE
+              ? 'Ordem Elétrica — problema elétrico na máquina. Admin/líder/mecânico criam; apenas admin e eletricista iniciam e finalizam.'
+              : isOC
+                ? 'Ordem de Corretiva — máquina apresentou problema. Admin/líder criam; mecânico e líder de mecânica iniciam e finalizam.'
+                : 'Fluxo Aberto → Em curso → Finalizada. Criada por admin/líder mecânica; mecânico inicia e finaliza.'}
           </p>
         </div>
         {canCreateInThisMode && (
-          isOC ? (
+          isOE ? (
+            <Button
+              onClick={openCreateElectrical}
+              className="bg-yellow-500 text-white hover:bg-yellow-600"
+            >
+              <Zap className="h-4 w-4 mr-1" /> Nova OE
+            </Button>
+          ) : isOC ? (
             <Button
               onClick={openCreateCorrective}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -1255,6 +1299,17 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                                     <Square className="h-3.5 w-3.5" /> Finalizar
                                   </Button>
                                 )}
+                                {/* OC em curso → escalar para OE (apenas quem executa OCs) */}
+                                {o.type === 'manutencao_corretiva' && canExecuteCorrective && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => { setEscalateOC(o); setEscalateDesc(''); setEscalatePhotos([]); }}
+                                    className="gap-1.5 border-yellow-500/50 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/10"
+                                  >
+                                    <Zap className="h-3.5 w-3.5" /> Abrir OE
+                                  </Button>
+                                )}
                               </>
                             )}
                             {o.status === 'finalizada' && (
@@ -1327,7 +1382,9 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             <DialogTitle>
               {editing
                 ? `Editar ${labelOf(editing)} #${displayNumber(editing)}`
-                : correctiveMode ? 'Nova OC — Ordem de Corretiva' : 'Nova OM'}
+                : form.type === 'manutencao_eletrica'
+                  ? 'Nova OE — Ordem Elétrica'
+                  : correctiveMode ? 'Nova OC — Ordem de Corretiva' : 'Nova OM'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
@@ -1468,7 +1525,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             <Button variant="outline" onClick={() => { setCreateOpen(false); clearCreatePhotoDrafts(); }} disabled={savingOrder}>Cancelar</Button>
             <Button onClick={saveOrder} disabled={savingOrder}>
               {savingOrder && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              {editing ? 'Salvar' : correctiveMode ? 'Criar OC' : 'Criar OM'}
+              {editing ? 'Salvar' : form.type === 'manutencao_eletrica' ? 'Criar OE' : correctiveMode ? 'Criar OC' : 'Criar OM'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1985,6 +2042,157 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Escalation OC → OE */}
+      <Dialog open={!!escalateOC} onOpenChange={v => { if (!v && !escalateSaving) { setEscalateOC(null); escalatePhotos.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } }); setEscalatePhotos([]); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-yellow-500" /> Abrir OE a partir da OC #{escalateOC ? displayNumber(escalateOC) : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border-l-4 border-yellow-500 bg-yellow-500/10 p-3 text-xs">
+              A OC atual será <strong>finalizada automaticamente</strong> com o relatório "Problema elétrico. OE aberta." e uma nova <strong>Ordem Elétrica</strong> será aberta já <strong>em curso</strong>, notificando o eletricista.
+            </div>
+            <div>
+              <Label className="text-sm">Descrição do problema elétrico *</Label>
+              <Textarea
+                rows={4}
+                value={escalateDesc}
+                onChange={e => setEscalateDesc(e.target.value)}
+                placeholder="Ex.: Motor não liga, disjuntor disparando ao acionar a máquina"
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Fotos (opcional, até 3)</Label>
+                <span className="text-[10px] text-muted-foreground">{escalatePhotos.length}/3</span>
+              </div>
+              {escalatePhotos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {escalatePhotos.map(p => (
+                    <div key={p.id} className="relative border rounded overflow-hidden">
+                      <img src={p.preview} alt="" className="w-full h-24 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setEscalatePhotos(prev => { const f = prev.find(x => x.id === p.id); if (f) { try { URL.revokeObjectURL(f.preview); } catch { /* */ } } return prev.filter(x => x.id !== p.id); })}
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-white text-xs flex items-center justify-center"
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {escalatePhotos.length < 3 && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs hover:bg-muted/40">
+                    <Camera className="h-4 w-4" /> Tirar foto
+                    <input type="file" accept="image/*" capture="environment" className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        e.currentTarget.value = '';
+                        if (!f || !f.type.startsWith('image/')) return;
+                        if (f.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+                        const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+                        setEscalatePhotos(prev => prev.length >= 3 ? prev : [...prev, { id, file: f, preview: URL.createObjectURL(f), description: '' }]);
+                      }} />
+                  </label>
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs hover:bg-muted/40">
+                    <ImageIcon className="h-4 w-4" /> Da galeria
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        e.currentTarget.value = '';
+                        if (!f || !f.type.startsWith('image/')) return;
+                        if (f.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+                        const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+                        setEscalatePhotos(prev => prev.length >= 3 ? prev : [...prev, { id, file: f, preview: URL.createObjectURL(f), description: '' }]);
+                      }} />
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { if (escalateSaving) return; setEscalateOC(null); escalatePhotos.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } }); setEscalatePhotos([]); }} disabled={escalateSaving}>Cancelar</Button>
+            <Button
+              disabled={escalateSaving || !escalateDesc.trim()}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white gap-1.5"
+              onClick={async () => {
+                if (!escalateOC) return;
+                setEscalateSaving(true);
+                try {
+                  // 1) RPC atômica cria OE (em curso) e finaliza a OC
+                  const { data, error } = await (supabase.rpc as any)('escalate_oc_to_oe', {
+                    p_oc_id: escalateOC.id,
+                    p_description: escalateDesc.trim(),
+                    p_photos: [],
+                    p_author_name: authorLabel,
+                    p_author_user_id: user?.id ?? null,
+                  });
+                  if (error) { console.error(error); toast.error('Erro ao escalonar para OE'); return; }
+                  const oeId = data?.oe_id as string;
+                  const oeNumber = data?.oe_number as number;
+                  // 2) Upload fotos → oc-photos bucket (reaproveita) → update oc_photos da OE
+                  if (oeId && escalatePhotos.length > 0) {
+                    const uploaded: OCPhoto[] = [];
+                    const uploadedPaths: string[] = [];
+                    try {
+                      const { compressImage } = await import('@/lib/imageCompression');
+                      for (const p of escalatePhotos) {
+                        const c = await compressImage(p.file);
+                        const uf = c.file;
+                        const ext = (uf.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+                        const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+                        const path = `${companyId}/${oeId}/${uid}.${ext}`;
+                        const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uf, { contentType: uf.type || 'image/jpeg', upsert: false });
+                        if (upErr) throw upErr;
+                        uploadedPaths.push(path);
+                        uploaded.push({ id: uid, path, description: '', author: authorLabel, ts: new Date().toISOString() });
+                      }
+                      await (supabase.from as any)('maintenance_orders').update({ oc_photos: uploaded }).eq('id', oeId);
+                    } catch (photoErr) {
+                      console.error('Falha ao anexar fotos na OE escalonada', photoErr);
+                      if (uploadedPaths.length > 0) await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
+                      toast.error('OE aberta, mas houve erro ao anexar as fotos.');
+                    }
+                  }
+                  // 3) Push para eletricistas + admins
+                  try {
+                    const machineName = machineById[escalateOC.machine_id]?.name || 'Máquina';
+                    const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+                    supabase.functions.invoke('send-push-notification', {
+                      body: {
+                        company_id: companyId,
+                        title: `Nova OE #${String(oeNumber).padStart(3, '0')} — ${machineName}`,
+                        message: `Escalonada da OC #${displayNumber(escalateOC)}: ${escalateDesc.trim()}`,
+                        url: slug ? `/${slug}/mecanica/oe` : '/',
+                        roles: ['eletricista'],
+                        include_admins: true,
+                        source: 'OE',
+                        ref_id: oeId,
+                        ref_number: `OE #${String(oeNumber).padStart(3, '0')}`,
+                      },
+                    }).catch(() => { /* */ });
+                  } catch { /* */ }
+                  toast.success(`OE #${String(oeNumber).padStart(3, '0')} aberta em curso`);
+                  logAction('oc_escalate_to_oe', { oc: escalateOC.oc_number, oe: oeNumber });
+                  escalatePhotos.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } });
+                  setEscalatePhotos([]);
+                  setEscalateOC(null);
+                  refreshMachines();
+                  await load();
+                } finally {
+                  setEscalateSaving(false);
+                }
+              }}
+            >
+              {escalateSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Zap className="h-4 w-4" /> Abrir OE e finalizar OC
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
