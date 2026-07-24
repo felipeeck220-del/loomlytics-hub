@@ -1275,7 +1275,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       </Tabs>
 
       {/* Create / Edit Modal */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={(v) => { setCreateOpen(v); if (!v) clearCreatePhotoDrafts(); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
@@ -1349,9 +1349,61 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 placeholder={correctiveMode ? 'Descreva o problema apresentado pela máquina' : 'O que precisa ser feito'}
               />
             </div>
+            {correctiveMode && !editing && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Camera className="h-3.5 w-3.5" />
+                    Fotos do problema (opcional)
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground">{createPhotoDrafts.length}/2</span>
+                </div>
+                {createPhotoDrafts.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {createPhotoDrafts.map(d => (
+                      <div key={d.id} className="border rounded overflow-hidden bg-muted/30 relative">
+                        <img src={d.preview} alt="preview" className="w-full h-28 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeCreatePhotoDraft(d.id)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                          aria-label="Remover foto"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <Textarea
+                          rows={2}
+                          value={d.description}
+                          onChange={e => updateCreatePhotoDesc(d.id, e.target.value)}
+                          placeholder="Descrição (opcional)"
+                          className="text-xs rounded-none border-0 border-t focus-visible:ring-0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {createPhotoDrafts.length < 2 && (
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition">
+                    <ImageIcon className="h-4 w-4" />
+                    <span>Adicionar foto ({createPhotoDrafts.length === 0 ? 'até 2' : 'mais 1'})</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        addCreatePhotoDraft(f);
+                        e.currentTarget.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={savingOrder}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setCreateOpen(false); clearCreatePhotoDrafts(); }} disabled={savingOrder}>Cancelar</Button>
             <Button onClick={saveOrder} disabled={savingOrder}>
               {savingOrder && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               {editing ? 'Salvar' : correctiveMode ? 'Criar OC' : 'Criar OM'}
