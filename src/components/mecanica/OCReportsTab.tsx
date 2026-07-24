@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/SearchableSelect';
-import { Download, FileText, RotateCcw, AlertTriangle, Clock, Wrench, Users, Activity, TrendingUp, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, FileText, RotateCcw, AlertTriangle, Clock, Wrench, Users, Activity, TrendingUp, Search, ChevronLeft, ChevronRight, Eye, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell, Legend,
@@ -56,6 +58,8 @@ type Period = 'current' | 'last30' | 'last90' | 'year' | 'all' | 'custom';
 
 export default function OCReportsTab({ orders, machines, companyName }: Props) {
   const now = new Date();
+  const [detailOrder, setDetailOrder] = useState<MaintenanceOrder | null>(null);
+  const [detailPhotoUrls, setDetailPhotoUrls] = useState<Record<string, string>>({});
   const [period, setPeriod] = useState<Period>('current');
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(now), 'yyyy-MM-dd'));
@@ -148,6 +152,30 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
     const start = (page - 1) * PAGE_SIZE;
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
+
+  const detailPhotos: { path: string; description?: string }[] = useMemo(() => {
+    if (!detailOrder) return [];
+    const arr = (detailOrder as any).oc_photos;
+    return Array.isArray(arr) ? arr : [];
+  }, [detailOrder]);
+
+  useEffect(() => {
+    if (!detailOrder || detailPhotos.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const missing = detailPhotos.filter(p => !detailPhotoUrls[p.path]);
+      if (missing.length === 0) return;
+      const entries: Record<string, string> = {};
+      for (const p of missing) {
+        const { data } = await supabase.storage.from('oc-photos').createSignedUrl(p.path, 3600);
+        if (data?.signedUrl) entries[p.path] = data.signedUrl;
+      }
+      if (!cancelled && Object.keys(entries).length) {
+        setDetailPhotoUrls(prev => ({ ...prev, ...entries }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [detailOrder, detailPhotos, detailPhotoUrls]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -512,6 +540,7 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
                       <th className="text-left px-3 py-2 font-semibold">Finalizada</th>
                       <th className="text-left px-3 py-2 font-semibold">Finalizada por</th>
                       <th className="text-right px-3 py-2 font-semibold">Parada</th>
+                      <th className="text-center px-3 py-2 font-semibold w-10"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -530,6 +559,11 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
                           <td className="px-3 py-2 whitespace-nowrap">{o.finished_at ? format(new Date(o.finished_at),'dd/MM/yy HH:mm') : '—'}</td>
                           <td className="px-3 py-2">{o.finished_by_name || '—'}</td>
                           <td className="px-3 py-2 text-right font-mono">{o.duration_seconds ? fmtDur(o.duration_seconds) : '—'}</td>
+                          <td className="px-3 py-2 text-center">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setDetailOrder(o)} title="Ver relatório">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -547,7 +581,12 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
                           <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">OC {o.oc_number != null ? String(o.oc_number).padStart(3,'0') : '—'}</span>
                           <Badge variant="outline" className="text-[10px]" style={{ borderColor: STATUS_COLOR[o.status], color: STATUS_COLOR[o.status] }}>{STATUS_LABEL[o.status] || o.status}</Badge>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">{format(new Date(o.created_at),'dd/MM/yy HH:mm')}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground">{format(new Date(o.created_at),'dd/MM/yy HH:mm')}</span>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setDetailOrder(o)} title="Ver relatório">
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="text-sm font-medium">{m?.name || '—'}</div>
                       {o.description && <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{o.description}</div>}
@@ -565,6 +604,79 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de detalhes da OC */}
+      <Dialog open={!!detailOrder} onOpenChange={v => { if (!v) { setDetailOrder(null); setDetailPhotoUrls({}); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
+              <span>Relatório da OC</span>
+              {detailOrder && (
+                <>
+                  <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
+                    {detailOrder.oc_number != null ? String(detailOrder.oc_number).padStart(3,'0') : '—'}
+                  </span>
+                  <Badge variant="outline" className="text-[10px]" style={{ borderColor: STATUS_COLOR[detailOrder.status], color: STATUS_COLOR[detailOrder.status] }}>
+                    {STATUS_LABEL[detailOrder.status] || detailOrder.status}
+                  </Badge>
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {detailOrder && (() => {
+            const m = machineById.get(detailOrder.machine_id);
+            const rows: [string, React.ReactNode][] = [
+              ['Máquina', m?.name || '—'],
+              ['Descrição', detailOrder.description || '—'],
+              ['Criada em', format(new Date(detailOrder.created_at), "dd/MM/yyyy 'às' HH:mm")],
+              ['Criada por', detailOrder.created_by_name || '—'],
+              ['Iniciada em', detailOrder.started_at ? format(new Date(detailOrder.started_at), "dd/MM/yyyy 'às' HH:mm") : '—'],
+              ['Iniciada por', detailOrder.started_by_name || '—'],
+              ['Finalizada em', detailOrder.finished_at ? format(new Date(detailOrder.finished_at), "dd/MM/yyyy 'às' HH:mm") : '—'],
+              ['Finalizada por', detailOrder.finished_by_name || '—'],
+              ['Tempo de parada', detailOrder.duration_seconds ? fmtDur(detailOrder.duration_seconds) : '—'],
+            ];
+            return (
+              <div className="space-y-4">
+                <div className="rounded-md border divide-y">
+                  {rows.map(([label, value]) => (
+                    <div key={label} className="grid grid-cols-3 gap-2 px-3 py-2 text-sm">
+                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-semibold col-span-1 flex items-center">{label}</div>
+                      <div className="col-span-2 break-words">{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {detailPhotos.length > 0 && (
+                  <div>
+                    <div className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">
+                      Fotos do problema ({detailPhotos.length})
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {detailPhotos.map((p, i) => (
+                        <div key={p.path + i} className="rounded-md border overflow-hidden bg-muted/30">
+                          {detailPhotoUrls[p.path] ? (
+                            <a href={detailPhotoUrls[p.path]} target="_blank" rel="noreferrer">
+                              <img src={detailPhotoUrls[p.path]} alt={p.description || `Foto ${i+1}`} className="w-full h-48 object-cover" />
+                            </a>
+                          ) : (
+                            <div className="w-full h-48 flex items-center justify-center text-xs text-muted-foreground">Carregando…</div>
+                          )}
+                          {p.description && <div className="p-2 text-xs text-muted-foreground">{p.description}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-end pt-2">
+                  <Button variant="outline" size="sm" onClick={() => { setDetailOrder(null); setDetailPhotoUrls({}); }}>
+                    <X className="h-4 w-4 mr-1" /> Fechar
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
