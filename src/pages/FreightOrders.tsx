@@ -1137,12 +1137,13 @@ function NewOFRModal({
     delivery_doc_type?: "nf" | "rom" | null;
     delivery_doc_number?: string | null;
     items: Array<{
-      item_type: "malha" | "fio";
+      item_type: "malha" | "fio" | "outros";
       article_id?: string | null;
       article_name?: string | null;
       yarn_type_id?: string | null;
       yarn_type_name?: string | null;
       boxes?: number | null;
+      description?: string | null;
       pieces: number;
       weight_kg: number;
     }>;
@@ -1158,12 +1159,13 @@ function NewOFRModal({
     delivery_doc_type?: "nf" | "rom" | null;
     delivery_doc_number?: string | null;
     items: Array<{
-      item_type: "malha" | "fio";
+      item_type: "malha" | "fio" | "outros";
       article_id: string;
       yarn_type_id: string;
       boxes: string;
       pieces: number;
       weight_kg: string;
+      description?: string;
     }>;
   };
 }) {
@@ -1176,14 +1178,15 @@ function NewOFRModal({
   const [docNumber, setDocNumber] = useState("");
   const [items, setItems] = useState<
     Array<{
-      item_type: "malha" | "fio";
+      item_type: "malha" | "fio" | "outros";
       article_id: string;
       yarn_type_id: string;
       boxes: string;
       pieces: number;
       weight_kg: string;
+      description: string;
     }>
-  >([{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "" }]);
+  >([{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" }]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -1198,8 +1201,8 @@ function NewOFRModal({
         setDocNumber(initial.delivery_doc_number || "");
         setItems(
           initial.items?.length
-            ? initial.items.map((i) => ({ ...i }))
-            : [{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "" }],
+            ? initial.items.map((i) => ({ ...i, description: i.description || "" }))
+            : [{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" }],
         );
       } else {
         setFreighterId("");
@@ -1209,7 +1212,7 @@ function NewOFRModal({
         setObs("");
         setDocType("");
         setDocNumber("");
-        setItems([{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "" }]);
+        setItems([{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" }]);
       }
     }
   }, [open, mode, initial]);
@@ -1227,6 +1230,7 @@ function NewOFRModal({
       }))
       .filter((i) => {
         if (i.item_type === "fio") return i.yarn_type_id && (i.boxes_num > 0 || i.weight_num > 0);
+        if (i.item_type === "outros") return !!i.description.trim();
         return i.article_id && (i.pieces > 0 || i.weight_num > 0);
       });
     if (!cleaned.length) return toast({ title: "Adicione pelo menos 1 artigo", variant: "destructive" });
@@ -1248,6 +1252,15 @@ function NewOFRModal({
             boxes: i.boxes_num,
             pieces: 0,
             weight_kg: i.weight_num,
+          };
+        }
+        if (i.item_type === "outros") {
+          return {
+            item_type: "outros" as const,
+            description: i.description.trim(),
+            boxes: i.boxes_num || null,
+            pieces: i.pieces || 0,
+            weight_kg: i.weight_num || 0,
           };
         }
         const art = articles.find((a) => a.id === i.article_id);
@@ -1376,7 +1389,7 @@ function NewOFRModal({
                 onClick={() =>
                   setItems([
                     ...items,
-                    { item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "" },
+                    { item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" },
                   ])
                 }
               >
@@ -1400,6 +1413,7 @@ function NewOFRModal({
                       <SelectContent>
                         <SelectItem value="malha">Malha</SelectItem>
                         <SelectItem value="fio">Fio</SelectItem>
+                        <SelectItem value="outros">Outros</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
@@ -1449,7 +1463,7 @@ function NewOFRModal({
                         />
                       </div>
                     </div>
-                  ) : (
+                  ) : it.item_type === "fio" ? (
                     <div className="grid grid-cols-12 gap-2 items-end">
                       <div className="col-span-12 sm:col-span-6">
                         <Label className="text-xs">Tipo de fio</Label>
