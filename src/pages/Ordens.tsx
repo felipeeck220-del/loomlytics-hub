@@ -199,7 +199,7 @@ export default function OrdensPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="p-2 sm:p-4 md:p-6 space-y-4">
       <Card className="shadow-material border-0 border-l-4 border-l-warning">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -221,14 +221,14 @@ export default function OrdensPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           {orders.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Factory className="h-10 w-10 mx-auto mb-2 opacity-40" />
               <p className="text-sm">Nenhuma ordem em execução no momento.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
               {orders.map(o => {
                 const machine = machines.find(mm => mm.id === o.machine_id);
                 const startedAt = o.startedAt;
