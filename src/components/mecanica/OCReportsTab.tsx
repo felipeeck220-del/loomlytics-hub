@@ -65,6 +65,8 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
   const [minMinutes, setMinMinutes] = useState<string>('');
   const [maxMinutes, setMaxMinutes] = useState<string>('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const applyPeriod = (p: Period) => {
     setPeriod(p);
