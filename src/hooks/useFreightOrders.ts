@@ -55,10 +55,11 @@ export interface FreightOrderItem {
   pieces: number;
   weight_kg: number;
   created_at: string;
-  item_type?: 'malha' | 'fio';
+  item_type?: 'malha' | 'fio' | 'outros';
   yarn_type_id?: string | null;
   yarn_type_name?: string | null;
   boxes?: number | null;
+  description?: string | null;
   article?: { name: string; client_id?: string | null; client_name?: string | null } | null;
 }
 
@@ -263,12 +264,13 @@ export function useFreightOrders() {
       delivery_doc_type?: 'nf' | 'rom' | null;
       delivery_doc_number?: string | null;
       items: Array<{
-        item_type: 'malha' | 'fio';
+        item_type: 'malha' | 'fio' | 'outros';
         article_id?: string | null;
         article_name?: string | null;
         yarn_type_id?: string | null;
         yarn_type_name?: string | null;
         boxes?: number | null;
+        description?: string | null;
         pieces: number;
         weight_kg: number;
       }>;
@@ -318,6 +320,7 @@ export function useFreightOrders() {
         boxes: it.boxes != null ? Math.max(0, Math.round(Number(it.boxes))) : null,
         pieces: Math.max(0, Math.round(Number(it.pieces || 0))),
         weight_kg: Math.max(0, Number(it.weight_kg || 0)),
+        description: it.description ?? null,
       }));
       const { error: itErr } = await (supabase.from as any)('freight_order_items').insert(itemsRows);
       if (itErr) {
@@ -376,12 +379,13 @@ export function useFreightOrders() {
       delivery_doc_type?: 'nf' | 'rom' | null;
       delivery_doc_number?: string | null;
       items: Array<{
-        item_type: 'malha' | 'fio';
+        item_type: 'malha' | 'fio' | 'outros';
         article_id?: string | null;
         article_name?: string | null;
         yarn_type_id?: string | null;
         yarn_type_name?: string | null;
         boxes?: number | null;
+        description?: string | null;
         pieces: number;
         weight_kg: number;
       }>;
@@ -442,6 +446,7 @@ export function useFreightOrders() {
         boxes: it.boxes != null ? Math.max(0, Math.round(Number(it.boxes))) : null,
         pieces: Math.max(0, Math.round(Number(it.pieces || 0))),
         weight_kg: Math.max(0, Number(it.weight_kg || 0)),
+        description: it.description ?? null,
       }));
       const { error: insErr } = await (supabase.from as any)('freight_order_items').insert(itemsRows);
       if (insErr) throw insErr;
