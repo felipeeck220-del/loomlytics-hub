@@ -102,8 +102,9 @@ export default function AppLayout() {
    const isLiderNoite = user?.role === 'lider_noite';
    const isFreteiro = user?.role === 'freteiro';
    const isLiderFrete = user?.role === 'lider_frete';
+   const isEletricista = user?.role === 'eletricista';
 
-   if (companyLoading && !isRefreshing && !isExpedition && !isLiderMecanica && !isLider && !isMecanico && !isLiderNoite && !isFreteiro && !isLiderFrete) {
+   if (companyLoading && !isRefreshing && !isExpedition && !isLiderMecanica && !isLider && !isMecanico && !isLiderNoite && !isFreteiro && !isLiderFrete && !isEletricista) {
      return <LoadingScreen progress={loadingProgress} />;
    }
  
