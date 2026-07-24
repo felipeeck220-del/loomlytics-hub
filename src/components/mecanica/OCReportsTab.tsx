@@ -139,6 +139,14 @@ export default function OCReportsTab({ orders, machines, companyName }: Props) {
     });
   }, [orders, dateFrom, dateTo, machineFilter, userFilter, statusFilter, minMinutes, maxMinutes, search, machineById]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  useEffect(() => { setPage(1); }, [dateFrom, dateTo, machineFilter, userFilter, statusFilter, minMinutes, maxMinutes, search]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
   // KPIs
   const kpis = useMemo(() => {
     const finalized = filtered.filter(o => o.status === 'finalizada');
