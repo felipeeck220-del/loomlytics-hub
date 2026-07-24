@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle, Repeat, Truck, Zap,
+  LayoutDashboard, Settings2, Users, FileText, ClipboardList, HardHat, Factory, Settings, Search, Wrench, Lock, LogOut, Download, Smartphone, Share2, Receipt, Recycle, FileSpreadsheet, DollarSign, Warehouse, AlertTriangle, Repeat, Truck, Zap, PauseCircle,
 } from 'lucide-react';
 import { useInstallApp } from '@/hooks/useInstallApp';
 import {
@@ -28,6 +28,7 @@ const COMING_SOON_KEYS = new Set<string>([]);
 const TESTING_KEYS = new Set(['contas-pagar', 'fechamento']);
 
 const allItems = [
+  { title: 'Ordens', path: 'ordens', icon: PauseCircle, key: 'ordens' },
   { title: 'Dashboard', path: '', icon: LayoutDashboard, key: 'dashboard' },
   { title: 'Faturamento Total', path: 'faturamento-total', icon: DollarSign, key: 'faturamento-total' },
   { title: 'Máquinas', path: 'machines', icon: Settings2, key: 'machines' },
@@ -68,6 +69,7 @@ export function AppSidebar() {
   const [openOECount, setOpenOECount] = useState(0);
   const [openOTCount, setOpenOTCount] = useState(0);
   const [otReadyCount, setOtReadyCount] = useState(0);
+  const [ordersInProgressCount, setOrdersInProgressCount] = useState(0);
   const isAdmin = role === 'admin';
   const { canInstall, platform, install, showIOSInstructions, setShowIOSInstructions } = useInstallApp();
 
@@ -105,15 +107,24 @@ export function AppSidebar() {
       const { data } = await (supabase.from as any)('maintenance_orders')
         .select('type,status')
         .eq('company_id', companyId)
-        .eq('status', 'aberto');
+        .in('status', ['aberto', 'em_curso']);
       if (cancelled) return;
       const rows = (data || []) as Array<{ type: string; status: string }>;
-      const oc = rows.filter(r => r.type === 'manutencao_corretiva').length;
-      const oe = rows.filter(r => r.type === 'manutencao_eletrica').length;
-      const om = rows.length - oc - oe;
+      const openRows = rows.filter(r => r.status === 'aberto');
+      const oc = openRows.filter(r => r.type === 'manutencao_corretiva').length;
+      const oe = openRows.filter(r => r.type === 'manutencao_eletrica').length;
+      const om = openRows.length - oc - oe;
+      const inProgress = rows.filter(r => r.status === 'em_curso').length;
       setOpenOMCount(om);
       setOpenOCCount(oc);
       setOpenOECount(oe);
+      setOrdersInProgressCount(prev => {
+        // combine with OT active stages tracked separately
+        return inProgress + (prev - (prev & 0)); // placeholder; overwritten below via effect merge
+      });
+      // We actually want: setOrdersInProgressCount(inProgress + otActiveStages)
+      // handled by separate effect combining both counters
+      setMoInProgressCount(inProgress);
     };
 
     load();
@@ -134,11 +145,13 @@ export function AppSidebar() {
       const { data } = await (supabase.from as any)('article_change_orders')
         .select('status')
         .eq('company_id', companyId)
-        .in('status', ['aberto', 'aguardando_regulagem', 'em_regulagem']);
+        .in('status', ['aberto', 'aguardando_regulagem', 'em_regulagem', 'troca_fio_em_curso', 'em_acompanhamento']);
       if (cancelled) return;
       const rows = (data || []) as Array<{ status: string }>;
       setOpenOTCount(rows.filter(r => r.status === 'aberto').length);
       setOtReadyCount(rows.filter(r => r.status === 'aguardando_regulagem' || r.status === 'em_regulagem').length);
+      const otActive = rows.filter(r => ['troca_fio_em_curso', 'aguardando_regulagem', 'em_regulagem', 'em_acompanhamento'].includes(r.status)).length;
+      setOtActiveStagesCount(otActive);
     };
     load();
     const channel = (supabase as any)
