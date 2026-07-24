@@ -244,12 +244,42 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     priority: 'normal' as MaintenanceOrderPriority,
     description: '',
   });
+  // Fotos opcionais anexadas já na criação de uma OC (até 2)
+  type CreatePhotoDraft = { id: string; file: File; preview: string; description: string };
+  const [createPhotoDrafts, setCreatePhotoDrafts] = useState<CreatePhotoDraft[]>([]);
+  const clearCreatePhotoDrafts = () => {
+    setCreatePhotoDrafts(prev => {
+      prev.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } });
+      return [];
+    });
+  };
+  const addCreatePhotoDraft = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+    setCreatePhotoDrafts(prev => {
+      if (prev.length >= 2) { toast.error('Máximo de 2 fotos'); return prev; }
+      const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+      return [...prev, { id, file, preview: URL.createObjectURL(file), description: '' }];
+    });
+  };
+  const removeCreatePhotoDraft = (id: string) => {
+    setCreatePhotoDrafts(prev => {
+      const found = prev.find(p => p.id === id);
+      if (found) { try { URL.revokeObjectURL(found.preview); } catch { /* */ } }
+      return prev.filter(p => p.id !== id);
+    });
+  };
+  const updateCreatePhotoDesc = (id: string, description: string) => {
+    setCreatePhotoDrafts(prev => prev.map(p => p.id === id ? { ...p, description } : p));
+  };
   const openCreate = () => {
     setEditing(null);
     setCorrectiveMode(false);
     setForm({ machine_id: '', type: 'manutencao_preventiva', priority: 'normal', description: '' });
     savingOrderRef.current = false;
     setSavingOrder(false);
+    clearCreatePhotoDrafts();
     setCreateOpen(true);
   };
   const openCreateCorrective = () => {
@@ -258,6 +288,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setForm({ machine_id: '', type: 'manutencao_corretiva', priority: 'prioritaria', description: '' });
     savingOrderRef.current = false;
     setSavingOrder(false);
+    clearCreatePhotoDrafts();
     setCreateOpen(true);
   };
   const openEdit = (o: MaintenanceOrder) => {
@@ -266,6 +297,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setForm({ machine_id: o.machine_id, type: o.type, priority: o.priority, description: o.description || '' });
     savingOrderRef.current = false;
     setSavingOrder(false);
+    clearCreatePhotoDrafts();
     setCreateOpen(true);
   };
   const saveOrder = async () => {
@@ -326,6 +358,41 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       const createdNum = isCorrective ? (created.oc_number ?? created.om_number) : created.om_number;
       toast.success(`${orderLabel} #${String(createdNum).padStart(3, '0')} criada`);
       logAction(isCorrective ? 'oc_create' : 'om_create', { number: createdNum, type: form.type });
+      // Upload de fotos anexadas já na criação da OC (opcional, até 2)
+      if (isCorrective && createPhotoDrafts.length > 0) {
+        const uploaded: OCPhoto[] = [];
+        const uploadedPaths: string[] = [];
+        try {
+          for (const draft of createPhotoDrafts) {
+            const ext = (draft.file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+            const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+            const path = `${companyId}/${created.id}/${uid}.${ext}`;
+            const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, draft.file, {
+              contentType: draft.file.type || 'image/jpeg',
+              upsert: false,
+            });
+            if (upErr) throw upErr;
+            uploadedPaths.push(path);
+            uploaded.push({
+              id: uid,
+              path,
+              description: draft.description.trim(),
+              author: authorLabel,
+              ts: new Date().toISOString(),
+            });
+          }
+          const { error: updErr } = await (supabase.from as any)('maintenance_orders')
+            .update({ oc_photos: uploaded })
+            .eq('id', created.id);
+          if (updErr) throw updErr;
+        } catch (photoErr) {
+          console.error('Falha ao anexar fotos à OC', photoErr);
+          if (uploadedPaths.length > 0) {
+            await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
+          }
+          toast.error('OC criada, mas houve erro ao anexar as fotos.');
+        }
+      }
       // Notificação push para mecânicos/líder de mecânica
       try {
         const machineName = machineById[form.machine_id]?.name || 'Máquina';
@@ -348,7 +415,8 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
         }).catch(() => { /* silencioso */ });
       } catch { /* silencioso */ }
     }
-    setCreateOpen(false);
+      setCreateOpen(false);
+      clearCreatePhotoDrafts();
     await load();
     } finally {
       savingOrderRef.current = false;
@@ -1038,6 +1106,24 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                             )
                           )}
 
+                          {/* Indicador de fotos da OC (disponível em qualquer status) */}
+                          {o.type === 'manutencao_corretiva' && Array.isArray((o as any).oc_photos) && ((o as any).oc_photos as OCPhoto[]).length > 0 && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="gap-1 text-[10px] border-purple-500/50 text-purple-700 dark:text-purple-300 bg-purple-500/10">
+                                <ImageIcon className="h-3 w-3" />
+                                {((o as any).oc_photos as OCPhoto[]).length} foto{((o as any).oc_photos as OCPhoto[]).length > 1 ? 's' : ''} anexada{((o as any).oc_photos as OCPhoto[]).length > 1 ? 's' : ''}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setViewOrder(o)}
+                                className="gap-1.5 h-7 border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+                              >
+                                <Eye className="h-3.5 w-3.5" /> Ver fotos
+                              </Button>
+                            </div>
+                          )}
+
                           {/* Motivo do cancelamento */}
                           {o.status === 'cancelada' && o.cancellation_reason && (
                             <div className="rounded-md border border-zinc-400 bg-zinc-100 dark:bg-zinc-900/60 p-2 flex items-start gap-2">
@@ -1207,7 +1293,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
       </Tabs>
 
       {/* Create / Edit Modal */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={(v) => { setCreateOpen(v); if (!v) clearCreatePhotoDrafts(); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
@@ -1281,9 +1367,61 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
                 placeholder={correctiveMode ? 'Descreva o problema apresentado pela máquina' : 'O que precisa ser feito'}
               />
             </div>
+            {correctiveMode && !editing && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Camera className="h-3.5 w-3.5" />
+                    Fotos do problema (opcional)
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground">{createPhotoDrafts.length}/2</span>
+                </div>
+                {createPhotoDrafts.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {createPhotoDrafts.map(d => (
+                      <div key={d.id} className="border rounded overflow-hidden bg-muted/30 relative">
+                        <img src={d.preview} alt="preview" className="w-full h-28 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeCreatePhotoDraft(d.id)}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                          aria-label="Remover foto"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <Textarea
+                          rows={2}
+                          value={d.description}
+                          onChange={e => updateCreatePhotoDesc(d.id, e.target.value)}
+                          placeholder="Descrição (opcional)"
+                          className="text-xs rounded-none border-0 border-t focus-visible:ring-0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {createPhotoDrafts.length < 2 && (
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs text-muted-foreground hover:bg-muted/40 transition">
+                    <ImageIcon className="h-4 w-4" />
+                    <span>Adicionar foto ({createPhotoDrafts.length === 0 ? 'até 2' : 'mais 1'})</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        addCreatePhotoDraft(f);
+                        e.currentTarget.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={savingOrder}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setCreateOpen(false); clearCreatePhotoDrafts(); }} disabled={savingOrder}>Cancelar</Button>
             <Button onClick={saveOrder} disabled={savingOrder}>
               {savingOrder && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               {editing ? 'Salvar' : correctiveMode ? 'Criar OC' : 'Criar OM'}
