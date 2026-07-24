@@ -160,8 +160,9 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
   y += 4;
 
   // ===== Section: Malhas =====
-  const malhas = (order.items || []).filter(i => i.item_type !== 'fio');
+  const malhas = (order.items || []).filter(i => !i.item_type || i.item_type === 'malha');
   const fios = (order.items || []).filter(i => i.item_type === 'fio');
+  const outros = (order.items || []).filter(i => i.item_type === 'outros');
 
   if (malhas.length > 0) {
     sectionTitle(`Malhas (${malhas.length})`);
@@ -239,6 +240,42 @@ export async function generateFreightOrderPdf(order: FreightOrder, companyName: 
           if (data.column.index === 1) data.cell.styles.halign = 'left';
         }
       },
+    });
+    y = (pdf as any).lastAutoTable.finalY + 4;
+  }
+
+  if (outros.length > 0) {
+    sectionTitle(`Outros (${outros.length})`);
+    const totOutrosKg = outros.reduce((s, i) => s + Number(i.weight_kg || 0), 0);
+    autoTable(pdf, {
+      startY: y,
+      head: [['#', 'Descrição', 'Peças', 'Cx', 'Peso (kg)']],
+      body: outros.map((i, idx) => [
+        String(idx + 1),
+        sanitizePdfText((i as any).description || '—'),
+        String(i.pieces || 0),
+        String(i.boxes || 0),
+        fmtNumberBR(Number(i.weight_kg || 0)),
+      ]),
+      foot: [[
+        { content: '', styles: { halign: 'center' } },
+        { content: 'TOTAL', styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: '', styles: {} },
+        { content: '', styles: {} },
+        { content: fmtNumberBR(totOutrosKg), styles: { halign: 'right' } },
+      ]],
+      theme: 'striped',
+      headStyles: { fillColor: [217, 119, 6], textColor: 255, fontStyle: 'bold', halign: 'center' },
+      footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { halign: 'left' },
+        2: { halign: 'right', cellWidth: 20 },
+        3: { halign: 'right', cellWidth: 20 },
+        4: { halign: 'right', cellWidth: 28 },
+      },
+      styles: { fontSize: 9, cellPadding: 2 },
+      margin: { left: margin, right: margin },
     });
     y = (pdf as any).lastAutoTable.finalY + 4;
   }

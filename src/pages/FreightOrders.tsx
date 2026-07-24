@@ -513,12 +513,13 @@ export default function FreightOrders() {
                   delivery_doc_type: editOrder.delivery_doc_type || null,
                   delivery_doc_number: editOrder.delivery_doc_number || "",
                   items: (editOrder.items || []).map((it) => ({
-                    item_type: (it.item_type || "malha") as "malha" | "fio",
+                    item_type: (it.item_type || "malha") as "malha" | "fio" | "outros",
                     article_id: it.article_id || "",
                     yarn_type_id: it.yarn_type_id || "",
                     boxes: it.boxes != null ? String(it.boxes) : "",
                     pieces: Number(it.pieces || 0),
                     weight_kg: it.weight_kg != null ? String(it.weight_kg).replace(".", ",") : "",
+                    description: (it as any).description || "",
                   })),
                 }
               : undefined
@@ -952,7 +953,12 @@ function OrderCard({
                 <ul className="divide-y divide-border/50">
                   {(order.items || []).slice(0, 4).map((it) => {
                     const isFio = it.item_type === "fio";
-                    const name = isFio ? it.yarn_type_name || "Fio" : it.article?.name || it.article_name || "Artigo";
+                    const isOutros = it.item_type === "outros";
+                    const name = isOutros
+                      ? (it as any).description || "Outros"
+                      : isFio
+                        ? it.yarn_type_name || "Fio"
+                        : it.article?.name || it.article_name || "Artigo";
                     const kg = Number(it.weight_kg || 0).toLocaleString("pt-BR", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -962,12 +968,16 @@ function OrderCard({
                         <span
                           className={cn(
                             "inline-block w-1.5 h-1.5 rounded-full shrink-0",
-                            isFio ? "bg-violet-500" : "bg-sky-500",
+                            isOutros ? "bg-amber-500" : isFio ? "bg-violet-500" : "bg-sky-500",
                           )}
                         />
                         <span className="font-medium text-foreground truncate">{name}</span>
                         <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
-                          {isFio ? `${it.boxes || 0} cx · ${kg} kg` : `${it.pieces} pçs · ${kg} kg`}
+                          {isOutros
+                            ? `${Number(it.weight_kg || 0) > 0 ? `${kg} kg` : "—"}`
+                            : isFio
+                              ? `${it.boxes || 0} cx · ${kg} kg`
+                              : `${it.pieces} pçs · ${kg} kg`}
                         </span>
                       </li>
                     );
@@ -1137,12 +1147,13 @@ function NewOFRModal({
     delivery_doc_type?: "nf" | "rom" | null;
     delivery_doc_number?: string | null;
     items: Array<{
-      item_type: "malha" | "fio";
+      item_type: "malha" | "fio" | "outros";
       article_id?: string | null;
       article_name?: string | null;
       yarn_type_id?: string | null;
       yarn_type_name?: string | null;
       boxes?: number | null;
+      description?: string | null;
       pieces: number;
       weight_kg: number;
     }>;
@@ -1158,12 +1169,13 @@ function NewOFRModal({
     delivery_doc_type?: "nf" | "rom" | null;
     delivery_doc_number?: string | null;
     items: Array<{
-      item_type: "malha" | "fio";
+      item_type: "malha" | "fio" | "outros";
       article_id: string;
       yarn_type_id: string;
       boxes: string;
       pieces: number;
       weight_kg: string;
+      description?: string;
     }>;
   };
 }) {
@@ -1176,14 +1188,15 @@ function NewOFRModal({
   const [docNumber, setDocNumber] = useState("");
   const [items, setItems] = useState<
     Array<{
-      item_type: "malha" | "fio";
+      item_type: "malha" | "fio" | "outros";
       article_id: string;
       yarn_type_id: string;
       boxes: string;
       pieces: number;
       weight_kg: string;
+      description: string;
     }>
-  >([{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "" }]);
+  >([{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" }]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -1198,8 +1211,8 @@ function NewOFRModal({
         setDocNumber(initial.delivery_doc_number || "");
         setItems(
           initial.items?.length
-            ? initial.items.map((i) => ({ ...i }))
-            : [{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "" }],
+            ? initial.items.map((i) => ({ ...i, description: i.description || "" }))
+            : [{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" }],
         );
       } else {
         setFreighterId("");
@@ -1209,7 +1222,7 @@ function NewOFRModal({
         setObs("");
         setDocType("");
         setDocNumber("");
-        setItems([{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "" }]);
+        setItems([{ item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" }]);
       }
     }
   }, [open, mode, initial]);
@@ -1227,6 +1240,7 @@ function NewOFRModal({
       }))
       .filter((i) => {
         if (i.item_type === "fio") return i.yarn_type_id && (i.boxes_num > 0 || i.weight_num > 0);
+        if (i.item_type === "outros") return !!i.description.trim();
         return i.article_id && (i.pieces > 0 || i.weight_num > 0);
       });
     if (!cleaned.length) return toast({ title: "Adicione pelo menos 1 artigo", variant: "destructive" });
@@ -1248,6 +1262,15 @@ function NewOFRModal({
             boxes: i.boxes_num,
             pieces: 0,
             weight_kg: i.weight_num,
+          };
+        }
+        if (i.item_type === "outros") {
+          return {
+            item_type: "outros" as const,
+            description: i.description.trim(),
+            boxes: i.boxes_num || null,
+            pieces: i.pieces || 0,
+            weight_kg: i.weight_num || 0,
           };
         }
         const art = articles.find((a) => a.id === i.article_id);
@@ -1376,7 +1399,7 @@ function NewOFRModal({
                 onClick={() =>
                   setItems([
                     ...items,
-                    { item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "" },
+                    { item_type: "malha", article_id: "", yarn_type_id: "", boxes: "", pieces: 0, weight_kg: "", description: "" },
                   ])
                 }
               >
@@ -1400,6 +1423,7 @@ function NewOFRModal({
                       <SelectContent>
                         <SelectItem value="malha">Malha</SelectItem>
                         <SelectItem value="fio">Fio</SelectItem>
+                        <SelectItem value="outros">Outros</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
@@ -1449,7 +1473,7 @@ function NewOFRModal({
                         />
                       </div>
                     </div>
-                  ) : (
+                  ) : it.item_type === "fio" ? (
                     <div className="grid grid-cols-12 gap-2 items-end">
                       <div className="col-span-12 sm:col-span-6">
                         <Label className="text-xs">Tipo de fio</Label>
@@ -1475,6 +1499,49 @@ function NewOFRModal({
                       </div>
                       <div className="col-span-6 sm:col-span-3">
                         <Label className="text-xs">Peso (kg)</Label>
+                        <BrazilianWeightInput
+                          value={it.weight_kg}
+                          onChange={(v) => setItems(items.map((x, i) => (i === idx ? { ...x, weight_kg: v } : x)))}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-12 gap-2 items-end">
+                      <div className="col-span-12">
+                        <Label className="text-xs">Descrição *</Label>
+                        <Textarea
+                          rows={2}
+                          value={it.description}
+                          onChange={(e) =>
+                            setItems(items.map((x, i) => (i === idx ? { ...x, description: e.target.value } : x)))
+                          }
+                          placeholder="Descreva o que deve ser transportado / feito"
+                        />
+                      </div>
+                      <div className="col-span-6 sm:col-span-3">
+                        <Label className="text-xs">Caixas (opc.)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={it.boxes}
+                          onChange={(e) =>
+                            setItems(items.map((x, i) => (i === idx ? { ...x, boxes: e.target.value } : x)))
+                          }
+                        />
+                      </div>
+                      <div className="col-span-6 sm:col-span-3">
+                        <Label className="text-xs">Peças (opc.)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={it.pieces || ""}
+                          onChange={(e) =>
+                            setItems(items.map((x, i) => (i === idx ? { ...x, pieces: parseInt(e.target.value || "0", 10) } : x)))
+                          }
+                        />
+                      </div>
+                      <div className="col-span-12 sm:col-span-6">
+                        <Label className="text-xs">Peso (kg) (opc.)</Label>
                         <BrazilianWeightInput
                           value={it.weight_kg}
                           onChange={(v) => setItems(items.map((x, i) => (i === idx ? { ...x, weight_kg: v } : x)))}
