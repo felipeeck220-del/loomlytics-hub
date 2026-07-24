@@ -69,7 +69,9 @@ export function AppSidebar() {
   const [openOECount, setOpenOECount] = useState(0);
   const [openOTCount, setOpenOTCount] = useState(0);
   const [otReadyCount, setOtReadyCount] = useState(0);
-  const [ordersInProgressCount, setOrdersInProgressCount] = useState(0);
+  const [moInProgressCount, setMoInProgressCount] = useState(0);
+  const [otActiveStagesCount, setOtActiveStagesCount] = useState(0);
+  const ordersInProgressCount = moInProgressCount + otActiveStagesCount;
   const isAdmin = role === 'admin';
   const { canInstall, platform, install, showIOSInstructions, setShowIOSInstructions } = useInstallApp();
 
@@ -118,12 +120,6 @@ export function AppSidebar() {
       setOpenOMCount(om);
       setOpenOCCount(oc);
       setOpenOECount(oe);
-      setOrdersInProgressCount(prev => {
-        // combine with OT active stages tracked separately
-        return inProgress + (prev - (prev & 0)); // placeholder; overwritten below via effect merge
-      });
-      // We actually want: setOrdersInProgressCount(inProgress + otActiveStages)
-      // handled by separate effect combining both counters
       setMoInProgressCount(inProgress);
     };
 
