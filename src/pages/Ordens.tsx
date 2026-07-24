@@ -249,7 +249,7 @@ export default function OrdensPage() {
                   <div
                     key={`${o.kind}-${o.id}`}
                     className={cn(
-                      'rounded-xl border border-border/50 border-l-4 p-4 hover:shadow-md transition-shadow flex flex-col',
+                      'rounded-xl border border-border/50 border-l-4 p-3 sm:p-4 hover:shadow-md transition-shadow flex flex-col',
                       colorClass
                     )}
                   >
