@@ -1007,7 +1007,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             <X className="h-3 w-3" /> Canceladas
             <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 h-4">{counts.cancelada}</Badge>
           </TabsTrigger>
-          {isOC && (
+          {isOC && isAdmin && (
             <TabsTrigger
               value="relatorios"
               className="gap-1 py-2 text-xs sm:text-sm flex-1 sm:flex-initial data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -1016,7 +1016,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
             </TabsTrigger>
           )}
         </TabsList>
-        {isOC && (
+        {isOC && isAdmin && (
           <TabsContent value="relatorios" className="mt-4">
             <OCReportsTab orders={modeOrders} machines={machines} />
           </TabsContent>
