@@ -161,6 +161,7 @@ export function AppSidebar() {
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? allItems.filter(item => {
+          if (item.key === 'ordens') return true;
           if (item.key === 'mecanica-om' || item.key === 'mecanica-oc' || item.key === 'mecanica-oe' || item.key === 'mecanica-ot') return mecanicaEnabled;
           return enabledNavItems.includes(item.key);
         })
@@ -175,11 +176,14 @@ export function AppSidebar() {
     const mecanicoOtVisible = user?.role === 'mecanico' ? otReadyCount > 0 : true;
     const otFiltered = mecanicoOtVisible ? mecanicoFiltered : mecanicoFiltered.filter(i => i.key !== 'mecanica-ot');
 
+    // "Ordens" só aparece quando há ordens em execução (em tempo real)
+    const ordensFiltered = ordersInProgressCount > 0 ? otFiltered : otFiltered.filter(i => i.key !== 'ordens');
+
     // On mobile, hide items that are in the bottom nav
     const mobileFooterKeys = getMobileFooterKeys(user?.role || 'admin');
     const finalItems = isMobile
-      ? otFiltered.filter(item => !mobileFooterKeys.includes(item.key))
-      : otFiltered;
+      ? ordensFiltered.filter(item => !mobileFooterKeys.includes(item.key))
+      : ordensFiltered;
 
     const firstName = companyName.split(' ')[0];
 
@@ -188,7 +192,7 @@ export function AppSidebar() {
       title: item.key === 'invoices' && firstName ? `Notas Fiscais (${firstName})` : item.title,
       url: item.path ? `${slugPrefix}/${item.path}` : slugPrefix,
     }));
-  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName, otReadyCount]);
+  }, [enabledNavItems, slugPrefix, filterNavItems, isMobile, user?.role, companyName, otReadyCount, ordersInProgressCount]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
