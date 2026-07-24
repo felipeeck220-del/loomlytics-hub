@@ -199,7 +199,7 @@ export default function OrdensPage() {
   };
 
   return (
-    <div className="-mx-2 sm:mx-0 sm:p-2 md:p-4 space-y-4">
+    <div className="-mx-4 md:mx-0 space-y-4">
       <Card className="shadow-material border-0 border-l-4 border-l-warning">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
