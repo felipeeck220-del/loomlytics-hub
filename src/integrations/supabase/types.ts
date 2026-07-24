@@ -1468,6 +1468,7 @@ export type Database = {
           boxes: number | null
           company_id: string
           created_at: string
+          description: string | null
           freight_order_id: string
           id: string
           item_type: string
@@ -1482,6 +1483,7 @@ export type Database = {
           boxes?: number | null
           company_id: string
           created_at?: string
+          description?: string | null
           freight_order_id: string
           id?: string
           item_type?: string
@@ -1496,6 +1498,7 @@ export type Database = {
           boxes?: number | null
           company_id?: string
           created_at?: string
+          description?: string | null
           freight_order_id?: string
           id?: string
           item_type?: string
