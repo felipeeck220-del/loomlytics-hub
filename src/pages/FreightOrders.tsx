@@ -1674,6 +1674,7 @@ function CompleteModal({
   onSubmit: (payload: {
     photos: Array<{ file: File; description?: string }>;
     freight_price_per_kg?: number | null;
+    freight_total?: number | null;
   }) => void;
   submitting: boolean;
 }) {
@@ -1733,9 +1734,19 @@ function CompleteModal({
 
   const submit = () => {
     if (photos.length === 0) return toast({ title: "Anexe ao menos 1 foto", variant: "destructive" });
+    if (priceMode === "per_kg" && priceNumInput <= 0) {
+      return toast({ title: "Informe o valor por kg", variant: "destructive" });
+    }
+    if (priceMode === "fixed" && totalNumInput <= 0) {
+      return toast({ title: "Informe o valor fixo do frete", variant: "destructive" });
+    }
+    if (priceMode === "fixed" && totalKg <= 0) {
+      return toast({ title: "Sem peso total na OFR — não é possível calcular o valor por kg", variant: "destructive" });
+    }
     onSubmit({
       photos: photos.map((p) => ({ file: p.file, description: p.description })),
       freight_price_per_kg: priceNum > 0 ? priceNum : null,
+      freight_total: priceMode === "fixed" ? totalNumInput : null,
     });
   };
 

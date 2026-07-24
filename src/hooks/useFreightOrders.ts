@@ -526,10 +526,11 @@ export function useFreightOrders() {
   });
 
   const completeOrder = useMutation({
-    mutationFn: async ({ id, photos, freight_price_per_kg, delivery_doc_type, delivery_doc_number }: {
+    mutationFn: async ({ id, photos, freight_price_per_kg, freight_total, delivery_doc_type, delivery_doc_number }: {
       id: string;
       photos: Array<{ file: File; description?: string }>;
       freight_price_per_kg?: number | null;
+      freight_total?: number | null;
       delivery_doc_type?: 'nf' | 'rom' | null;
       delivery_doc_number?: string | null;
     }) => {
@@ -561,13 +562,18 @@ export function useFreightOrders() {
         .select('weight_kg').eq('freight_order_id', id);
       const totalKg = (items || []).reduce((s: number, r: any) => s + Number(r.weight_kg || 0), 0);
       const pricePerKg = Number(freight_price_per_kg || 0);
-      const freightTotal = Math.round(totalKg * pricePerKg * 100) / 100;
+      // Se veio freight_total explícito (modo "Valor fixo"), preserva-o exatamente.
+      // Caso contrário recalcula a partir de preço/kg × kg total.
+      const explicitTotal = freight_total != null ? Number(freight_total) : null;
+      const freightTotal = explicitTotal != null && explicitTotal > 0
+        ? Math.round(explicitTotal * 100) / 100
+        : Math.round(totalKg * pricePerKg * 100) / 100;
       const updatePayload: any = {
         status: 'completed',
         completed_at: new Date().toISOString(),
         completed_by: profile?.id ?? null,
         freight_price_per_kg: pricePerKg || null,
-        freight_total: pricePerKg > 0 ? freightTotal : null,
+        freight_total: freightTotal > 0 ? freightTotal : null,
       };
       if (delivery_doc_type) updatePayload.delivery_doc_type = delivery_doc_type;
       if (delivery_doc_number != null) updatePayload.delivery_doc_number = delivery_doc_number || null;
