@@ -2044,6 +2044,157 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Escalation OC → OE */}
+      <Dialog open={!!escalateOC} onOpenChange={v => { if (!v && !escalateSaving) { setEscalateOC(null); escalatePhotos.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } }); setEscalatePhotos([]); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-yellow-500" /> Abrir OE a partir da OC #{escalateOC ? displayNumber(escalateOC) : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border-l-4 border-yellow-500 bg-yellow-500/10 p-3 text-xs">
+              A OC atual será <strong>finalizada automaticamente</strong> com o relatório "Problema elétrico. OE aberta." e uma nova <strong>Ordem Elétrica</strong> será aberta já <strong>em curso</strong>, notificando o eletricista.
+            </div>
+            <div>
+              <Label className="text-sm">Descrição do problema elétrico *</Label>
+              <Textarea
+                rows={4}
+                value={escalateDesc}
+                onChange={e => setEscalateDesc(e.target.value)}
+                placeholder="Ex.: Motor não liga, disjuntor disparando ao acionar a máquina"
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Fotos (opcional, até 3)</Label>
+                <span className="text-[10px] text-muted-foreground">{escalatePhotos.length}/3</span>
+              </div>
+              {escalatePhotos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {escalatePhotos.map(p => (
+                    <div key={p.id} className="relative border rounded overflow-hidden">
+                      <img src={p.preview} alt="" className="w-full h-24 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setEscalatePhotos(prev => { const f = prev.find(x => x.id === p.id); if (f) { try { URL.revokeObjectURL(f.preview); } catch { /* */ } } return prev.filter(x => x.id !== p.id); })}
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-white text-xs flex items-center justify-center"
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {escalatePhotos.length < 3 && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs hover:bg-muted/40">
+                    <Camera className="h-4 w-4" /> Tirar foto
+                    <input type="file" accept="image/*" capture="environment" className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        e.currentTarget.value = '';
+                        if (!f || !f.type.startsWith('image/')) return;
+                        if (f.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+                        const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+                        setEscalatePhotos(prev => prev.length >= 3 ? prev : [...prev, { id, file: f, preview: URL.createObjectURL(f), description: '' }]);
+                      }} />
+                  </label>
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-muted-foreground/30 rounded-md p-3 cursor-pointer text-xs hover:bg-muted/40">
+                    <ImageIcon className="h-4 w-4" /> Da galeria
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        e.currentTarget.value = '';
+                        if (!f || !f.type.startsWith('image/')) return;
+                        if (f.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+                        const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+                        setEscalatePhotos(prev => prev.length >= 3 ? prev : [...prev, { id, file: f, preview: URL.createObjectURL(f), description: '' }]);
+                      }} />
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { if (escalateSaving) return; setEscalateOC(null); escalatePhotos.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } }); setEscalatePhotos([]); }} disabled={escalateSaving}>Cancelar</Button>
+            <Button
+              disabled={escalateSaving || !escalateDesc.trim()}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white gap-1.5"
+              onClick={async () => {
+                if (!escalateOC) return;
+                setEscalateSaving(true);
+                try {
+                  // 1) RPC atômica cria OE (em curso) e finaliza a OC
+                  const { data, error } = await (supabase.rpc as any)('escalate_oc_to_oe', {
+                    p_oc_id: escalateOC.id,
+                    p_description: escalateDesc.trim(),
+                    p_photos: [],
+                    p_author_name: authorLabel,
+                    p_author_user_id: user?.id ?? null,
+                  });
+                  if (error) { console.error(error); toast.error('Erro ao escalonar para OE'); return; }
+                  const oeId = data?.oe_id as string;
+                  const oeNumber = data?.oe_number as number;
+                  // 2) Upload fotos → oc-photos bucket (reaproveita) → update oc_photos da OE
+                  if (oeId && escalatePhotos.length > 0) {
+                    const uploaded: OCPhoto[] = [];
+                    const uploadedPaths: string[] = [];
+                    try {
+                      const { compressImage } = await import('@/lib/imageCompression');
+                      for (const p of escalatePhotos) {
+                        const c = await compressImage(p.file);
+                        const uf = c.file;
+                        const ext = (uf.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+                        const uid = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+                        const path = `${companyId}/${oeId}/${uid}.${ext}`;
+                        const { error: upErr } = await supabase.storage.from('oc-photos').upload(path, uf, { contentType: uf.type || 'image/jpeg', upsert: false });
+                        if (upErr) throw upErr;
+                        uploadedPaths.push(path);
+                        uploaded.push({ id: uid, path, description: '', author: authorLabel, ts: new Date().toISOString() });
+                      }
+                      await (supabase.from as any)('maintenance_orders').update({ oc_photos: uploaded }).eq('id', oeId);
+                    } catch (photoErr) {
+                      console.error('Falha ao anexar fotos na OE escalonada', photoErr);
+                      if (uploadedPaths.length > 0) await supabase.storage.from('oc-photos').remove(uploadedPaths).catch(() => { /* */ });
+                      toast.error('OE aberta, mas houve erro ao anexar as fotos.');
+                    }
+                  }
+                  // 3) Push para eletricistas + admins
+                  try {
+                    const machineName = machineById[escalateOC.machine_id]?.name || 'Máquina';
+                    const slug = (typeof window !== 'undefined') ? (window.location.pathname.split('/')[1] || '') : '';
+                    supabase.functions.invoke('send-push-notification', {
+                      body: {
+                        company_id: companyId,
+                        title: `Nova OE #${String(oeNumber).padStart(3, '0')} — ${machineName}`,
+                        message: `Escalonada da OC #${displayNumber(escalateOC)}: ${escalateDesc.trim()}`,
+                        url: slug ? `/${slug}/mecanica/oe` : '/',
+                        roles: ['eletricista'],
+                        include_admins: true,
+                        source: 'OE',
+                        ref_id: oeId,
+                        ref_number: `OE #${String(oeNumber).padStart(3, '0')}`,
+                      },
+                    }).catch(() => { /* */ });
+                  } catch { /* */ }
+                  toast.success(`OE #${String(oeNumber).padStart(3, '0')} aberta em curso`);
+                  logAction('oc_escalate_to_oe', { oc: escalateOC.oc_number, oe: oeNumber });
+                  escalatePhotos.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } });
+                  setEscalatePhotos([]);
+                  setEscalateOC(null);
+                  refreshMachines();
+                  await load();
+                } finally {
+                  setEscalateSaving(false);
+                }
+              }}
+            >
+              {escalateSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Zap className="h-4 w-4" /> Abrir OE e finalizar OC
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
