@@ -990,6 +990,7 @@ export function useFreightOrders() {
           },
         }).catch(() => { /* silencioso */ });
       } catch { /* silencioso */ }
+      if (addPhotos.length > 0) uploadProgress.done();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['freight_orders'] });
