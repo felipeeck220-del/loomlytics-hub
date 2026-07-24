@@ -137,6 +137,7 @@ export default function SettingsPage() {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [userSearch, setUserSearch] = useState('');
+  const [usersPage, setUsersPage] = useState(1);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [company, setCompany] = useState<any>(null);
   const [showAuditHistory, setShowAuditHistory] = useState(false);
@@ -958,7 +959,7 @@ export default function SettingsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
+                  onChange={(e) => { setUserSearch(e.target.value); setUsersPage(1); }}
                   placeholder="Buscar usuário por nome, email, código ou função..."
                   className="pl-9"
                 />
@@ -981,7 +982,13 @@ export default function SettingsPage() {
                     </div>
                   );
                 }
-                return filtered.map(p => (
+                const PAGE_SIZE = 15;
+                const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+                const currentPage = Math.min(usersPage, totalPages);
+                const startIdx = (currentPage - 1) * PAGE_SIZE;
+                const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+                return (<>
+                {pageItems.map(p => (
                 <div key={p.id} className="card-glass p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-primary/20 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
@@ -1052,7 +1059,34 @@ export default function SettingsPage() {
                     );
                   })()}
                 </div>
-                ));
+                ))}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2">
+                    <p className="text-xs text-muted-foreground">
+                      Mostrando {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, filtered.length)} de {filtered.length}
+                    </p>
+                    <div className="flex items-center gap-1 flex-wrap justify-center">
+                      <Button variant="outline" size="sm" className="h-8 px-2" disabled={currentPage === 1} onClick={() => setUsersPage(currentPage - 1)}>Anterior</Button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(n => n === 1 || n === totalPages || Math.abs(n - currentPage) <= 1)
+                        .map((n, idx, arr) => (
+                          <span key={n} className="flex items-center">
+                            {idx > 0 && arr[idx - 1] !== n - 1 && <span className="px-1 text-xs text-muted-foreground">…</span>}
+                            <Button
+                              variant={n === currentPage ? 'default' : 'outline'}
+                              size="sm"
+                              className="h-8 min-w-8 px-2"
+                              onClick={() => setUsersPage(n)}
+                            >
+                              {n}
+                            </Button>
+                          </span>
+                        ))}
+                      <Button variant="outline" size="sm" className="h-8 px-2" disabled={currentPage === totalPages} onClick={() => setUsersPage(currentPage + 1)}>Próxima</Button>
+                    </div>
+                  </div>
+                )}
+                </>);
               })()}
             </div>
           )}
