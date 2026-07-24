@@ -553,17 +553,28 @@ export function useFreightOrders() {
       }
       const uploaded: Array<{ path: string; description?: string }> = [];
       const { compressImage } = await import('@/lib/imageCompression');
-      for (const p of photos) {
+      const { uploadProgress } = await import('@/lib/uploadProgress');
+      uploadProgress.start('Finalizando entrega — enviando fotos', photos.length);
+      try {
+      for (let i = 0; i < photos.length; i++) {
+        const p = photos[i];
+        uploadProgress.step({ index: i + 1, phase: 'compressing' });
         const c = await compressImage(p.file);
         const uploadFile = c.file;
         const ext = ((uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'jpg';
         const path = `${user.company_id}/${id}/${crypto.randomUUID()}.${ext}`;
+        uploadProgress.step({ index: i + 1, phase: 'uploading' });
         const { error: upErr } = await supabase.storage.from('freight-photos').upload(path, uploadFile, {
           contentType: uploadFile.type || 'image/jpeg',
           upsert: false,
         });
         if (upErr) throw upErr;
         uploaded.push({ path, description: p.description });
+      }
+      uploadProgress.step({ index: photos.length, phase: 'finalizing' });
+      } catch (e: any) {
+        uploadProgress.fail(e?.message || 'Erro no envio das fotos');
+        throw e;
       }
       // Total do frete = kg total × preço por kg
       const { data: items } = await (supabase.from as any)('freight_order_items')
@@ -611,6 +622,7 @@ export function useFreightOrders() {
         // não bloqueia a finalização, mas registra
         console.error('[OFR] falha ao registrar linhas de fotos:', pErr);
       }
+      uploadProgress.done();
       // Push notification para admins ao finalizar OFR
       try {
         const { data: ord } = await (supabase.from as any)('freight_orders')
@@ -860,11 +872,17 @@ export function useFreightOrders() {
       // Upload das novas
       const uploaded: Array<{ path: string; description?: string }> = [];
       const { compressImage } = await import('@/lib/imageCompression');
-      for (const p of addPhotos) {
+      const { uploadProgress } = await import('@/lib/uploadProgress');
+      if (addPhotos.length > 0) uploadProgress.start('Salvando edição — enviando fotos', addPhotos.length);
+      try {
+      for (let i = 0; i < addPhotos.length; i++) {
+        const p = addPhotos[i];
+        uploadProgress.step({ index: i + 1, phase: 'compressing' });
         const c = await compressImage(p.file);
         const uploadFile = c.file;
         const ext = ((uploadFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'jpg';
         const path = `${user.company_id}/${id}/edit-${crypto.randomUUID()}.${ext}`;
+        uploadProgress.step({ index: i + 1, phase: 'uploading' });
         const { error: upErr } = await supabase.storage.from('freight-photos').upload(path, uploadFile, {
           contentType: uploadFile.type || 'image/jpeg',
           upsert: false,
@@ -874,6 +892,11 @@ export function useFreightOrders() {
           throw upErr;
         }
         uploaded.push({ path, description: p.description });
+      }
+      if (addPhotos.length > 0) uploadProgress.step({ index: addPhotos.length, phase: 'finalizing' });
+      } catch (e: any) {
+        if (addPhotos.length > 0) uploadProgress.fail(e?.message || 'Erro no envio das fotos');
+        throw e;
       }
 
       // Novo total = kg × novo preço
@@ -967,6 +990,7 @@ export function useFreightOrders() {
           },
         }).catch(() => { /* silencioso */ });
       } catch { /* silencioso */ }
+      if (addPhotos.length > 0) uploadProgress.done();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['freight_orders'] });
