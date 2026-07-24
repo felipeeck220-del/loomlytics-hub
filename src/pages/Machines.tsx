@@ -20,7 +20,7 @@ import type { Machine, MachineStatus, MachineLog, NeedleRefPosition } from '@/ty
 import { MACHINE_STATUS_LABELS, MACHINE_STATUS_COLORS } from '@/types';
 import { cn } from '@/lib/utils';
 
-const ALL_STATUSES: MachineStatus[] = ['ativa', 'manutencao_preventiva', 'manutencao_corretiva', 'troca_artigo', 'troca_agulhas', 'inativa'];
+const ALL_STATUSES: MachineStatus[] = ['ativa', 'manutencao_preventiva', 'manutencao_corretiva', 'manutencao_eletrica', 'troca_artigo', 'troca_agulhas', 'inativa'];
 
 const STATUS_ICONS: Record<MachineStatus | 'total', React.ReactNode> = {
   total: <Monitor className="h-6 w-6 text-muted-foreground" />,
@@ -28,6 +28,7 @@ const STATUS_ICONS: Record<MachineStatus | 'total', React.ReactNode> = {
   inativa: <AlertCircle className="h-6 w-6 text-destructive" />,
   manutencao_preventiva: <Wrench className="h-6 w-6 text-orange-400" />,
   manutencao_corretiva: <Wrench className="h-6 w-6 text-rose-400" />,
+  manutencao_eletrica: <Wrench className="h-6 w-6 text-yellow-500" />,
   troca_artigo: <Settings className="h-6 w-6 text-blue-400" />,
   troca_agulhas: <Wrench className="h-6 w-6 text-purple-500" />,
 };

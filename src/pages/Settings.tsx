@@ -20,6 +20,10 @@ const ROLE_PERMISSIONS: Record<string, { allowed: string[]; denied: string[] }> 
     allowed: ['Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Mecânica', 'Alterar Senha'],
     denied: ['Dashboard e Visão Geral', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
   },
+  eletricista: {
+    allowed: ['Ordens Elétricas (OE) — executar', 'Alterar Senha'],
+    denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Revisão', 'Mecânica', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
+  },
   revisador: {
     allowed: ['Revisão', 'Alterar Senha'],
     denied: ['Dashboard e Visão Geral', 'Máquinas e Manutenção', 'Acompanhamento de Manutenção', 'Clientes e Artigos', 'Registro de Produção', 'Terceirização', 'Gestão de Tecelões', 'Mecânica', 'Relatórios e Análises', 'Financeiro', 'Ordem de Faturamento'],
@@ -103,6 +107,7 @@ const ROLES = [
   { value: 'lider_noite', label: 'Líder da Noite', description: 'Líder + fluxo completo de OC e OT (sem mecânico no turno)', color: 'bg-indigo-100 text-indigo-700' },
   { value: 'lider_mecanica', label: 'Líder de Mecânica', description: 'Cria e gerencia Ordens de Manutenção (OM)', color: 'bg-orange-100 text-orange-700' },
   { value: 'mecanico', label: 'Mecânico', description: 'Acesso apenas às máquinas e mecânica', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'eletricista', label: 'Eletricista', description: 'Executa Ordens Elétricas (OE) — iniciar e finalizar', color: 'bg-yellow-100 text-yellow-700' },
   { value: 'revisador', label: 'Revisador', description: 'Acesso apenas para revisão', color: 'bg-yellow-100 text-yellow-700' },
   { value: 'expedicao', label: 'Expedição Malha', description: 'Controle de Ordem de Faturamento', color: 'bg-blue-100 text-blue-700' },
   { value: 'freteiro', label: 'Freteiro', description: 'Motorista que executa Ordens de Frete (só vê as próprias)', color: 'bg-cyan-100 text-cyan-700' },

@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect, useMemo } from 'react';
 import { Lock } from 'lucide-react';
 import {
-  LayoutDashboard, Settings2, ClipboardList, Factory, Settings, Search, Wrench, AlertTriangle, Repeat, Truck,
+  LayoutDashboard, Settings2, ClipboardList, Factory, Settings, Search, Wrench, AlertTriangle, Repeat, Truck, Zap,
 } from 'lucide-react';
 
 const allItems = [
@@ -17,6 +17,7 @@ const allItems = [
   { title: 'Mecânica', path: 'mecanica', icon: Wrench, key: 'mecanica' },
   { title: 'OM', path: 'mecanica/om', icon: ClipboardList, key: 'mecanica-om' },
   { title: 'OC', path: 'mecanica/oc', icon: AlertTriangle, key: 'mecanica-oc' },
+  { title: 'OE', path: 'mecanica/oe', icon: Zap, key: 'mecanica-oe' },
   { title: 'OT', path: 'mecanica/ot', icon: Repeat, key: 'mecanica-ot' },
   { title: 'Terceirizado', path: 'outsource', icon: Factory, key: 'outsource' },
   { title: 'Ordem de Frete', path: 'freight-orders', icon: Truck, key: 'freight-orders' },
@@ -26,10 +27,11 @@ const allItems = [
 /** Keys shown in the mobile footer per role */
 const MOBILE_FOOTER_KEYS: Record<string, string[]> = {
   admin: ['dashboard', 'production', 'outsource', 'settings'],
-  lider: ['mecanica-oc', 'mecanica-ot'],
-  lider_noite: ['mecanica-oc', 'mecanica-ot'],
-  mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-ot'],
-  lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-ot'],
+  lider: ['mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
+  lider_noite: ['mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
+  mecanico: ['mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
+  lider_mecanica: ['mecanica-om', 'mecanica-oc', 'mecanica-oe', 'mecanica-ot'],
+  eletricista: ['mecanica-oe'],
   revisador: ['production', 'revision'],
   freteiro: ['freight-orders'],
   lider_frete: ['freight-orders'],
@@ -50,6 +52,7 @@ export function MobileBottomNav() {
   const slugPrefix = `/${user?.company_slug || ''}`;
   const [openOMCount, setOpenOMCount] = useState(0);
   const [openOCCount, setOpenOCCount] = useState(0);
+  const [openOECount, setOpenOECount] = useState(0);
   const [openOTCount, setOpenOTCount] = useState(0);
   const [otReadyCount, setOtReadyCount] = useState(0);
 
@@ -78,9 +81,11 @@ export function MobileBottomNav() {
       if (cancelled) return;
       const rows = (data || []) as Array<{ type: string; status: string }>;
       const oc = rows.filter(r => r.type === 'manutencao_corretiva').length;
-      const om = rows.length - oc;
+      const oe = rows.filter(r => r.type === 'manutencao_eletrica').length;
+      const om = rows.length - oc - oe;
       setOpenOMCount(om);
       setOpenOCCount(oc);
+      setOpenOECount(oe);
     };
 
     load();
@@ -119,11 +124,11 @@ export function MobileBottomNav() {
     const footerKeys = getMobileFooterKeys(role);
     const footerItems = allItems.filter(i => footerKeys.includes(i.key));
 
-    // Apply company-level filtering (mecanica-om/oc herdam do toggle 'mecanica')
+    // Apply company-level filtering (mecanica-om/oc/oe herdam do toggle 'mecanica')
     const mecanicaEnabled = !enabledNavItems || enabledNavItems.includes('mecanica');
     const companyFiltered = enabledNavItems
       ? footerItems.filter(i => {
-          if (i.key === 'mecanica-om' || i.key === 'mecanica-oc' || i.key === 'mecanica-ot') return mecanicaEnabled;
+          if (i.key === 'mecanica-om' || i.key === 'mecanica-oc' || i.key === 'mecanica-oe' || i.key === 'mecanica-ot') return mecanicaEnabled;
           return enabledNavItems.includes(i.key);
         })
       : footerItems;
@@ -144,7 +149,7 @@ export function MobileBottomNav() {
     }
     const fullPath = `${slugPrefix}/${item.path}`;
     // Rotas de mecanica precisam de match exato para não destacar Mecânica junto com OM/OC
-    if (item.key === 'mecanica' || item.key === 'mecanica-om' || item.key === 'mecanica-oc' || item.key === 'mecanica-ot') {
+    if (item.key === 'mecanica' || item.key === 'mecanica-om' || item.key === 'mecanica-oc' || item.key === 'mecanica-oe' || item.key === 'mecanica-ot') {
       return location.pathname === fullPath;
     }
     return location.pathname.startsWith(fullPath);
@@ -159,9 +164,11 @@ export function MobileBottomNav() {
           const badgeCount =
             item.key === 'mecanica-om' ? openOMCount :
             item.key === 'mecanica-oc' ? openOCCount :
+            item.key === 'mecanica-oe' ? openOECount :
             item.key === 'mecanica-ot' ? (openOTCount + otReadyCount) : 0;
           const badgeColor =
             item.key === 'mecanica-oc' ? 'bg-red-500' :
+            item.key === 'mecanica-oe' ? 'bg-yellow-500' :
             item.key === 'mecanica-ot' ? 'bg-amber-500' : 'bg-primary';
           return (
             <button
