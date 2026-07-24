@@ -64,9 +64,21 @@ export const uploadProgress = {
   },
   getState(): UploadProgressState { return { ...state }; },
   start(title: string, total: number) {
+    // Se não há nada para enviar, não abre o overlay (evita "Foto 1 de 1"
+    // espúrio quando o chamador dispara start(..., 0) sem checar).
+    if (!total || total <= 0) {
+      state.open = false;
+      state.phase = 'idle';
+      state.total = 0;
+      state.current = 0;
+      state.percent = 0;
+      state.error = null;
+      emit();
+      return;
+    }
     state.open = true;
     state.title = title;
-    state.total = Math.max(1, total);
+    state.total = total;
     state.current = 1;
     state.phase = 'preparing';
     state.label = total > 1 ? `Preparando ${total} fotos…` : 'Preparando foto…';
@@ -75,6 +87,9 @@ export const uploadProgress = {
     emit();
   },
   step(opts: { index?: number; phase: UploadPhase; label?: string }) {
+    // Se o overlay não foi aberto (ex.: start com total=0), ignora os steps
+    // para não abrir uma UI vazia no meio de uma operação sem fotos.
+    if (!state.open) return;
     if (opts.index != null) state.current = opts.index;
     state.phase = opts.phase;
     if (opts.label) state.label = opts.label;
@@ -88,6 +103,7 @@ export const uploadProgress = {
     emit();
   },
   done() {
+    if (!state.open) return;
     state.phase = 'done';
     state.percent = 100;
     state.label = 'Concluído';
