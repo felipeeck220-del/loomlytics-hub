@@ -244,12 +244,42 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     priority: 'normal' as MaintenanceOrderPriority,
     description: '',
   });
+  // Fotos opcionais anexadas já na criação de uma OC (até 2)
+  type CreatePhotoDraft = { id: string; file: File; preview: string; description: string };
+  const [createPhotoDrafts, setCreatePhotoDrafts] = useState<CreatePhotoDraft[]>([]);
+  const clearCreatePhotoDrafts = () => {
+    setCreatePhotoDrafts(prev => {
+      prev.forEach(p => { try { URL.revokeObjectURL(p.preview); } catch { /* */ } });
+      return [];
+    });
+  };
+  const addCreatePhotoDraft = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error('Imagem acima de 8 MB'); return; }
+    setCreatePhotoDrafts(prev => {
+      if (prev.length >= 2) { toast.error('Máximo de 2 fotos'); return prev; }
+      const id = (typeof crypto !== 'undefined' && (crypto as any).randomUUID) ? (crypto as any).randomUUID() : `${Date.now()}-${Math.random()}`;
+      return [...prev, { id, file, preview: URL.createObjectURL(file), description: '' }];
+    });
+  };
+  const removeCreatePhotoDraft = (id: string) => {
+    setCreatePhotoDrafts(prev => {
+      const found = prev.find(p => p.id === id);
+      if (found) { try { URL.revokeObjectURL(found.preview); } catch { /* */ } }
+      return prev.filter(p => p.id !== id);
+    });
+  };
+  const updateCreatePhotoDesc = (id: string, description: string) => {
+    setCreatePhotoDrafts(prev => prev.map(p => p.id === id ? { ...p, description } : p));
+  };
   const openCreate = () => {
     setEditing(null);
     setCorrectiveMode(false);
     setForm({ machine_id: '', type: 'manutencao_preventiva', priority: 'normal', description: '' });
     savingOrderRef.current = false;
     setSavingOrder(false);
+    clearCreatePhotoDrafts();
     setCreateOpen(true);
   };
   const openCreateCorrective = () => {
@@ -258,6 +288,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setForm({ machine_id: '', type: 'manutencao_corretiva', priority: 'prioritaria', description: '' });
     savingOrderRef.current = false;
     setSavingOrder(false);
+    clearCreatePhotoDrafts();
     setCreateOpen(true);
   };
   const openEdit = (o: MaintenanceOrder) => {
@@ -266,6 +297,7 @@ export default function MaintenanceOrdersTab({ machines, needles, sinkers, cylin
     setForm({ machine_id: o.machine_id, type: o.type, priority: o.priority, description: o.description || '' });
     savingOrderRef.current = false;
     setSavingOrder(false);
+    clearCreatePhotoDrafts();
     setCreateOpen(true);
   };
   const saveOrder = async () => {
