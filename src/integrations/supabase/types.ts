@@ -5252,6 +5252,23 @@ export type Database = {
         Args: { p_company_id: string; p_id: string }
         Returns: Json
       }
+      get_billing_order_export: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
+      get_billing_order_link_group: {
+        Args: { p_company_id: string; p_group_id: string }
+        Returns: Json
+      }
+      get_billing_order_negative_warning: {
+        Args: {
+          p_article_id: string
+          p_company_id: string
+          p_requested_kg?: number
+          p_requested_pieces?: number
+        }
+        Returns: Json
+      }
       get_billing_orders_bootstrap: {
         Args: { p_company_id: string }
         Returns: Json
