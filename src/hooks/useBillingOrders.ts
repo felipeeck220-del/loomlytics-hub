@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -155,6 +155,8 @@ export function useBillingOrders() {
         () => {
           queryClient.invalidateQueries({ queryKey: ['billing_orders', user.company_id] });
           queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap', user.company_id] });
+          queryClient.invalidateQueries({ queryKey: ['billing_orders_list', user.company_id] });
+          queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
         }
       )
       .subscribe();
