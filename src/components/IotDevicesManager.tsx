@@ -334,6 +334,126 @@ export default function IotDevicesManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Logs em tempo real */}
+      <Dialog open={!!logsDevice} onOpenChange={(open) => { if (!open) setLogsDevice(null); }}>
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] sm:max-w-[80vw] sm:max-h-[80vh] sm:w-[80vw] sm:h-[80vh] flex flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
+              <Cpu className="h-4 w-4 text-primary" />
+              Logs — {logsDevice?.name || 'Sensor'}
+              <Badge variant="outline" className="text-xs">{logs.length}/100</Badge>
+              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200 text-xs">
+                <span className="relative flex h-1.5 w-1.5 mr-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                </span>
+                Ao vivo
+              </Badge>
+              {logsDevice && (
+                <Button variant="outline" size="icon" className="h-7 w-7 ml-auto" onClick={() => fetchLogs(logsDevice.id)} title="Recarregar">
+                  <RefreshCw className={`h-3.5 w-3.5 ${logsLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto -mx-4 sm:-mx-6 px-4 sm:px-6 border-t border-border pt-2">
+            {logsLoading && logs.length === 0 ? (
+              <div className="flex items-center gap-2 text-muted-foreground py-8 justify-center">
+                <Loader2 className="h-4 w-4 animate-spin" /> Carregando logs...
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Cpu className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Nenhum log recebido ainda</p>
+                <p className="text-xs mt-1">Assim que o dispositivo enviar dados, aparecerá aqui automaticamente.</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 py-2">
+                {logs.map((log) => {
+                  const isError = log.response_status && log.response_status >= 400;
+                  const isIgnored = log.response_body && String(log.response_body).includes('ignored');
+                  const expanded = expandedLog === log.id;
+                  return (
+                    <div
+                      key={log.id}
+                      className={`rounded border font-mono text-xs cursor-pointer transition-colors ${
+                        isError
+                          ? 'border-destructive/40 bg-destructive/5 hover:bg-destructive/10'
+                          : isIgnored
+                          ? 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10'
+                          : 'border-border bg-muted/30 hover:bg-muted/60'
+                      }`}
+                      onClick={() => setExpandedLog(expanded ? null : log.id)}
+                    >
+                      <div className="flex items-center gap-2 px-2 py-1.5 flex-wrap">
+                        <span className="text-muted-foreground shrink-0">
+                          {new Date(log.created_at).toLocaleTimeString('pt-BR', { hour12: false })}
+                          <span className="opacity-60 ml-1">
+                            {new Date(log.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                          </span>
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] px-1.5 py-0 h-4 ${
+                            isError
+                              ? 'border-destructive/40 text-destructive'
+                              : isIgnored
+                              ? 'border-amber-500/40 text-amber-600'
+                              : 'border-emerald-500/40 text-emerald-600'
+                          }`}
+                        >
+                          HTTP {log.response_status ?? '-'}
+                        </Badge>
+                        {log.rpm != null && (
+                          <span className="text-foreground">RPM: <b>{log.rpm}</b></span>
+                        )}
+                        {log.total_rotations != null && (
+                          <span className="text-muted-foreground">Rot: {log.total_rotations}</span>
+                        )}
+                        {log.is_running != null && (
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${log.is_running ? 'text-emerald-600 border-emerald-500/40' : 'text-muted-foreground'}`}>
+                            {log.is_running ? 'RUN' : 'STOP'}
+                          </Badge>
+                        )}
+                        {log.wifi_rssi != null && (
+                          <span className="text-muted-foreground">RSSI: {log.wifi_rssi}dBm</span>
+                        )}
+                        {log.uptime_ms != null && (
+                          <span className="text-muted-foreground">Up: {Math.floor(log.uptime_ms / 1000)}s</span>
+                        )}
+                        {log.error && (
+                          <span className="text-destructive truncate max-w-[300px]" title={log.error}>⚠ {log.error}</span>
+                        )}
+                        <span className="ml-auto text-[10px] text-muted-foreground/60">{expanded ? '▲' : '▼'}</span>
+                      </div>
+                      {expanded && (
+                        <div className="border-t border-border/50 px-2 py-2 space-y-1 bg-background/40">
+                          <div>
+                            <p className="text-[10px] uppercase text-muted-foreground mb-0.5">Payload recebido</p>
+                            <pre className="text-[11px] whitespace-pre-wrap break-all bg-muted/40 rounded p-2 max-h-40 overflow-auto">
+{JSON.stringify(log.payload, null, 2)}
+                            </pre>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase text-muted-foreground mb-0.5">Resposta</p>
+                            <pre className="text-[11px] whitespace-pre-wrap break-all bg-muted/40 rounded p-2 max-h-32 overflow-auto">
+{log.response_body || '(vazio)'}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center pt-1">
+            Mantém os últimos 100 registros por dispositivo — novos entram no topo em tempo real, antigos são descartados automaticamente.
+          </p>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
