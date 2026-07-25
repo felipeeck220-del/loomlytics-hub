@@ -508,30 +508,26 @@ const BillingOrders = () => {
       order_type: form.order_type as 'pieces' | 'weight' | 'all',
       admin_notes: form.admin_notes?.trim() || null,
     };
-    // Checa saldo do artigo e avisa se já estiver negativo ou se for ficar negativo.
+    // Checa saldo do artigo e avisa se já estiver negativo ou se for ficar negativo (RPC — Fase 4).
     try {
-      const { availableKg, availablePieces } = await fetchArticleBalance(form.article_id);
       const reqPieces = payload.pieces_expected || 0;
       const reqKg = payload.weight_expected || (reqPieces && payload.piece_weight_target ? reqPieces * (payload.piece_weight_target as number) : 0);
-      const afterKg = availableKg - reqKg;
-      const afterPieces = availablePieces - reqPieces;
-      const isAlreadyNegative = availableKg < 0 || availablePieces < 0;
-      const willGoNegative = (reqKg > 0 && afterKg < 0) || (reqPieces > 0 && afterPieces < 0);
-      if (isAlreadyNegative || willGoNegative) {
+      const warn = await checkNegativeWarning(form.article_id, reqPieces, reqKg);
+      if (warn && (warn.is_already_negative || warn.will_go_negative)) {
         const article = getArticles().find(a => a.id === form.article_id);
         setNegativeWarning({
-          currentKg: availableKg,
-          currentPieces: availablePieces,
-          requestedKg: reqKg,
-          requestedPieces: reqPieces,
-          afterKg, afterPieces,
-          articleName: article?.name || 'Artigo',
+          currentKg: Number(warn.available_kg) || 0,
+          currentPieces: Number(warn.available_pieces) || 0,
+          requestedKg: Number(warn.requested_kg) || 0,
+          requestedPieces: Number(warn.requested_pieces) || 0,
+          afterKg: Number(warn.after_kg) || 0,
+          afterPieces: Number(warn.after_pieces) || 0,
+          articleName: article?.name || warn.article_name || 'Artigo',
           payload,
         });
         return;
       }
     } catch (e) {
-      // Se a checagem falhar, segue normalmente sem bloquear o usuário
       console.error('[BillingOrders] balance check failed', e);
     }
     await submitCreateOrder(payload);
