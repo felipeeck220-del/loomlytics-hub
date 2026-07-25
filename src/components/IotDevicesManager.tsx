@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Loader2, Wifi, WifiOff, Copy, Cpu } from 'lucide-react';
+import { Plus, Trash2, Loader2, Wifi, WifiOff, Copy, Cpu, Eye, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,6 +40,37 @@ export default function IotDevicesManager() {
   const [showDelete, setShowDelete] = useState<IotDevice | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', machine_id: '', token: '' });
+  const [logsDevice, setLogsDevice] = useState<IotDevice | null>(null);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [expandedLog, setExpandedLog] = useState<string | null>(null);
+
+  const fetchLogs = useCallback(async (deviceId: string) => {
+    setLogsLoading(true);
+    const { data } = await sb('iot_device_logs')
+      .select('*')
+      .eq('device_id', deviceId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    setLogs(data || []);
+    setLogsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!logsDevice) { setLogs([]); return; }
+    const devId = logsDevice.id;
+    fetchLogs(devId);
+    const channel = (supabase as any)
+      .channel(`iot-logs-${devId}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'iot_device_logs', filter: `device_id=eq.${devId}` },
+        (payload: any) => {
+          setLogs(prev => [payload.new, ...prev].slice(0, 100));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [logsDevice, fetchLogs]);
 
   const fetchDevices = useCallback(async () => {
     if (!companyId) return;
@@ -201,6 +232,9 @@ export default function IotDevicesManager() {
                 <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap sm:shrink-0 justify-end">
                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(d.token, 'Token')} title="Copiar Token">
                     <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setLogsDevice(d)} title="Ver logs em tempo real">
+                    <Eye className="h-3.5 w-3.5 text-primary" />
                   </Button>
                   <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleToggleActive(d)} title={d.active ? 'Desativar' : 'Ativar'}>
                     {d.active ? <WifiOff className="h-3.5 w-3.5 text-warning" /> : <Wifi className="h-3.5 w-3.5 text-emerald-500" />}
