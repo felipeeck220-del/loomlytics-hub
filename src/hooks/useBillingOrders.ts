@@ -162,366 +162,125 @@ export function useBillingOrders() {
 
   const createOrder = useMutation({
     mutationFn: async (newOrder: Partial<BillingOrder>) => {
-      if (!newOrder.of_number || !newOrder.client_id || !newOrder.article_id || !newOrder.dyehouse) {
-        throw new Error("Missing required fields");
+      if (!newOrder.client_id || !newOrder.article_id || !newOrder.dyehouse) {
+        throw new Error('Missing required fields');
       }
       const orderType: BillingOrderType = (newOrder.order_type as BillingOrderType) || 'pieces';
       if (orderType === 'pieces' && !newOrder.pieces_expected) {
-        throw new Error("Pieces required for pieces-type order");
+        throw new Error('Pieces required for pieces-type order');
       }
       if (orderType === 'weight' && !newOrder.weight_expected) {
-        throw new Error("Weight required for weight-type order");
+        throw new Error('Weight required for weight-type order');
       }
-      // 'all' = coletar tudo disponível, sem peças/peso pré-definidos
-
-      // Verificação anti-duplicidade — vários admins podem gerar OF simultaneamente.
-      const { data: dup, error: dupErr } = await supabase
-        .from('billing_orders')
-        .select('id, of_number')
-        .eq('company_id', user?.company_id as string)
-        .eq('of_number', newOrder.of_number)
-        .maybeSingle();
-      if (dupErr) throw dupErr;
-      if (dup) {
+      const a = authorMeta();
+      const payload: any = {
+        of_number: newOrder.of_number ?? null,
+        client_id: newOrder.client_id,
+        article_id: newOrder.article_id,
+        machine_id: newOrder.machine_id ?? null,
+        pieces_expected: newOrder.pieces_expected ?? null,
+        weight_expected: newOrder.weight_expected ?? null,
+        piece_weight_target: newOrder.piece_weight_target ?? null,
+        dyehouse: newOrder.dyehouse,
+        order_type: orderType,
+        admin_notes: (newOrder as any).admin_notes ?? null,
+      };
+      const { data, error } = await (supabase as any).rpc('create_billing_order', {
+        p_company_id: user?.company_id,
+        p_payload: payload,
+        p_author_name: a.name,
+        p_author_code: a.code,
+      });
+      if (error) throw error;
+      const res = data as any;
+      if (res?.ok === false && res?.error === 'duplicate_of_number') {
         const err: any = new Error(`OF #${newOrder.of_number} já existe — outro admin acabou de criá-la.`);
         err.code = 'DUPLICATE_OF';
         throw err;
       }
-
-      const { data, error } = await supabase
-        .from('billing_orders')
-        .insert([{
-          of_number: newOrder.of_number,
-          client_id: newOrder.client_id,
-          article_id: newOrder.article_id,
-          machine_id: newOrder.machine_id,
-          pieces_expected: newOrder.pieces_expected ?? null,
-          dyehouse: newOrder.dyehouse,
-          weight_expected: newOrder.weight_expected,
-          piece_weight_target: newOrder.piece_weight_target ?? null,
-          order_type: orderType,
-          admin_notes: (newOrder as any).admin_notes ?? null,
-          company_id: user?.company_id as string,
-          created_by: profile?.id as string,
-          status: 'open' as any
-        } as any])
-        .select()
-        .single();
-      if (error) {
-        // Captura unique violation no banco (caso seja criada no instante exato)
-        if ((error as any).code === '23505') {
-          const e: any = new Error(`OF #${newOrder.of_number} já existe — outro admin acabou de criá-la.`);
-          e.code = 'DUPLICATE_OF';
-          throw e;
-        }
-        throw error;
-      }
-      return data;
+      return { id: res?.id, of_number: res?.of_number };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-      toast({ title: "OF criada com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
+      toast({ title: 'OF criada com sucesso' });
     },
     onError: (error: any) => {
-      // Duplicidade é tratada visualmente pelo modal — não exibir toast genérico.
       if (error?.code === 'DUPLICATE_OF') return;
-      toast({ title: "Erro ao criar OF", description: error.message, variant: "destructive" });
+      toast({ title: 'Erro ao criar OF', description: error.message, variant: 'destructive' });
     }
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status, data = {}, expectedStatus, reversalQuality }: { id: string, status: BillingOrderStatus | 'priority', data?: any, expectedStatus?: BillingOrderStatus, reversalQuality?: 'first' | 'second' }) => {
-      let updatePayload: any = { ...data };
-      if (status !== 'priority') {
-        updatePayload.status = status;
-        // Limpa prioridade ao mudar de status (exceto quando voltamos a 'open' preservando prioridade futura)
-        if (status !== 'open') {
-          updatePayload.priority = false;
-          updatePayload.priority_reason = null;
-          updatePayload.priority_at = null;
-          updatePayload.priority_by = null;
-        }
-      }
-      
-      if (status === 'separating') updatePayload.separated_by = profile?.id;
-      if (status === 'collected') {
-        updatePayload.collected_by = profile?.id;
-        updatePayload.collected_at = new Date().toISOString();
-      }
-      if (status === 'cancelled') {
-        updatePayload.cancelled_by = profile?.id;
-        updatePayload.cancelled_at = new Date().toISOString();
-        // Marca de onde veio o cancelamento (informativo)
-        if (expectedStatus) (updatePayload as any).reverted_from = expectedStatus;
-        // Quando estorna uma OF já coletada, registra o estorno
-        if (expectedStatus === 'collected') {
-          (updatePayload as any).reversal_reason = updatePayload.cancellation_reason;
-          (updatePayload as any).reversed_by = profile?.id;
-          (updatePayload as any).reversed_at = new Date().toISOString();
-          (updatePayload as any).reversal_quality = reversalQuality || 'first';
-        }
-      }
-      if (status === 'priority') {
-        updatePayload.priority = true;
-        updatePayload.priority_at = new Date().toISOString();
-        updatePayload.priority_by = profile?.id;
-      }
-
-      // Se a OF tem paletes salvos, separating→ready DEVE usar a SOMA dos paletes
-      // como pieces_real/weight_real — mesmo que o usuário tenha clicado em
-      // "Lançar Dados" com números diferentes (caso contrário o release no
-      // collected não bateria com a soma dos reserves individuais já gerados).
-      if (status === 'ready' && expectedStatus === 'separating') {
-        const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
-          .select('pieces, weight_kg')
-          .eq('billing_order_id', id);
-        if (palletRows && palletRows.length > 0) {
-          const sumP = palletRows.reduce((s: number, p: any) => s + Number(p.pieces || 0), 0);
-          const sumW = palletRows.reduce((s: number, p: any) => s + Number(p.weight_kg || 0), 0);
-          updatePayload.pieces_real = sumP;
-          updatePayload.weight_real = sumW;
-          updatePayload.weight_avg = sumP > 0 ? sumW / sumP : 0;
-        }
-      }
-
-      // Atualização condicional — evita conflito quando outro usuário já mudou o status (delay/realtime).
-      let q = supabase.from('billing_orders').update(updatePayload).eq('id', id);
-      if (expectedStatus) q = q.eq('status', expectedStatus);
-      const { data: rows, error } = await q.select('id, status');
-      if (error) throw error;
-      if (expectedStatus && (!rows || rows.length === 0)) {
-        // Buscar status atual para informar quem está conflitando
-        const { data: current } = await supabase
-          .from('billing_orders')
-          .select(`status, separator:profiles!billing_orders_separated_by_fkey(name, code), collector:profiles!billing_orders_collected_by_fkey(name, code), canceller:profiles!billing_orders_cancelled_by_fkey(name, code)`)
-          .eq('id', id)
-          .maybeSingle();
+    mutationFn: async ({ id, status, data = {}, expectedStatus, reversalQuality }: {
+      id: string;
+      status: BillingOrderStatus | 'priority';
+      data?: any;
+      expectedStatus?: BillingOrderStatus;
+      reversalQuality?: 'first' | 'second';
+    }) => {
+      const a = authorMeta();
+      const throwConflict = async (currentStatus?: string) => {
+        const cur = currentStatus ?? (await fetchConflictActor(id))?.status;
+        const actor = await fetchConflictActor(id);
         const err: any = new Error('CONFLICT');
         err.code = 'CONFLICT';
-        err.currentStatus = current?.status;
-        err.actor = (current as any)?.separator || (current as any)?.collector || (current as any)?.canceller || null;
+        err.currentStatus = cur;
+        err.actor = actor?.separator || actor?.collector || actor?.canceller || null;
         throw err;
+      };
+
+      let res: any;
+      if (status === 'separating') {
+        ({ data: res } = await (supabase as any).rpc('start_billing_order_separation', {
+          p_company_id: user?.company_id, p_id: id, p_author_name: a.name, p_author_code: a.code,
+        }));
+      } else if (status === 'ready') {
+        ({ data: res } = await (supabase as any).rpc('launch_billing_order_ready', {
+          p_company_id: user?.company_id, p_id: id,
+          p_pieces_real: (data?.pieces_real ?? null) as any,
+          p_weight_real: (data?.weight_real ?? null) as any,
+          p_author_name: a.name, p_author_code: a.code,
+        }));
+      } else if (status === 'collected') {
+        ({ data: res } = await (supabase as any).rpc('collect_billing_order', {
+          p_company_id: user?.company_id, p_id: id, p_author_name: a.name, p_author_code: a.code,
+        }));
+      } else if (status === 'cancelled') {
+        ({ data: res } = await (supabase as any).rpc('cancel_billing_order', {
+          p_company_id: user?.company_id, p_id: id,
+          p_reason: data?.cancellation_reason ?? null,
+          p_expected_status: expectedStatus ?? null,
+          p_reversal_quality: reversalQuality ?? 'first',
+          p_author_name: a.name, p_author_code: a.code,
+        }));
+      } else if (status === 'open') {
+        ({ data: res } = await (supabase as any).rpc('revert_billing_order_to_open', {
+          p_company_id: user?.company_id, p_id: id,
+          p_reason: data?.reversal_reason ?? data?.cancellation_reason ?? null,
+          p_expected_status: expectedStatus ?? null,
+          p_author_name: a.name, p_author_code: a.code,
+        }));
+      } else if (status === 'priority') {
+        ({ data: res } = await (supabase as any).rpc('set_billing_order_priority', {
+          p_company_id: user?.company_id, p_id: id, p_priority: true,
+          p_reason: data?.priority_reason ?? null,
+          p_author_name: a.name, p_author_code: a.code,
+        }));
+      } else {
+        throw new Error(`Status não suportado: ${status}`);
       }
 
-      // Movimentos de estoque conforme ciclo de vida da OF
-      if (rows && rows.length > 0 && user?.company_id) {
-        const { data: ofRow } = await supabase
-          .from('billing_orders')
-          .select('article_id, client_id, machine_id, pieces_real, weight_real, of_number, pieces_expected, weight_expected')
-          .eq('id', id)
-          .maybeSingle();
-        if (ofRow?.article_id) {
-          const pieces = Math.max(0, Math.round(Number(ofRow.pieces_real ?? ofRow.pieces_expected ?? 0)));
-          const weight = Math.max(0, Number(ofRow.weight_real ?? ofRow.weight_expected ?? 0));
-          const baseMov = {
-            company_id: user.company_id,
-            article_id: ofRow.article_id,
-            client_id: ofRow.client_id,
-            billing_order_id: id,
-            created_by: profile?.id ?? null,
-          };
-          const mvs: any[] = [];
-
-          // separating -> ready: reserva o estoque
-          if (status === 'ready' && expectedStatus === 'separating' && (pieces > 0 || weight > 0)) {
-            // Se já há paletes salvos (com reservas individuais), NÃO duplica a reserva.
-            const { count: palletCount } = await (supabase.from as any)('billing_order_pallets')
-              .select('id', { count: 'exact', head: true })
-              .eq('billing_order_id', id);
-            if (!palletCount || palletCount === 0) {
-              mvs.push({ ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
-                type: 'reserve', pieces, weight_kg: weight,
-                reason: `OF #${ofRow.of_number} pronta (reserva)` });
-            }
-          }
-
-          // ready -> collected: libera a reserva e baixa do físico
-          if (status === 'collected' && expectedStatus === 'ready' && (pieces > 0 || weight > 0)) {
-            // Libera APENAS o que foi realmente reservado, agrupando por
-            // (article, client, máquina) — respeita paletes com artigo
-            // alternativo (outro cliente/artigo) e a distribuição SEM MÁQUINA.
-            const { data: existingMvs } = await (supabase.from as any)('stock_movements')
-              .select('type, pieces, weight_kg, machine_id, article_id, client_id')
-              .eq('billing_order_id', id)
-              .in('type', ['reserve', 'release']);
-            const netByKey = new Map<string, { p: number; w: number; mid: string | null; article_id: string; client_id: string | null }>();
-            for (const m of (existingMvs || [])) {
-              const aid = (m as any).article_id as string;
-              const cid = ((m as any).client_id as string | null) ?? null;
-              const mid = (m.machine_id as string | null) || null;
-              const k = `${aid}|${cid ?? ''}|${mid ?? '__none__'}`;
-              const cur = netByKey.get(k) || { p: 0, w: 0, mid, article_id: aid, client_id: cid };
-              const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
-              if (m.type === 'reserve') { cur.p += p; cur.w += w; }
-              else if (m.type === 'release') { cur.p -= p; cur.w -= w; }
-              netByKey.set(k, cur);
-            }
-            for (const cur of netByKey.values()) {
-              if (cur.p > 0 || cur.w > 0) {
-                mvs.push({ ...baseMov, article_id: cur.article_id, client_id: cur.client_id, machine_id: cur.mid, type: 'release',
-                  pieces: Math.max(0, Math.round(cur.p)),
-                  weight_kg: Math.max(0, cur.w),
-                  reason: `OF #${ofRow.of_number} coletada (libera reserva)` });
-              }
-            }
-            let hadReserveOut = false;
-            for (const cur of netByKey.values()) {
-              if (cur.p > 0 || cur.w > 0) {
-                mvs.push({ ...baseMov, article_id: cur.article_id, client_id: cur.client_id, machine_id: cur.mid, type: 'out',
-                  pieces: Math.max(0, Math.round(cur.p)),
-                  weight_kg: Math.max(0, cur.w),
-                  reason: `OF #${ofRow.of_number} coletada` });
-                hadReserveOut = true;
-              }
-            }
-            // Fallback (OFs sem nenhuma reserva registrada — legado): baixa pelo
-            // total previsto, mantendo compatibilidade com OFs anteriores à
-            // integração com estoque.
-            if (!hadReserveOut) {
-              const { data: palletRows } = await (supabase.from as any)('billing_order_pallets')
-                .select('pieces, weight_kg, machine_id, own_article_id')
-                .eq('billing_order_id', id);
-              if (palletRows && palletRows.length > 0) {
-                const outByMachine = new Map<string, { p: number; w: number; mid: string | null }>();
-                for (const pr of palletRows) {
-                  // Paletes de Estoque Próprio já foram debitados no
-                  // own_stock_movements quando o palete foi criado — não gera 'out' em stock_movements
-                  if ((pr as any).own_article_id) continue;
-                  const k = (pr.machine_id as string | null) || '__none__';
-                  const cur = outByMachine.get(k) || { p: 0, w: 0, mid: (pr.machine_id as string | null) || null };
-                  cur.p += Number(pr.pieces || 0);
-                  cur.w += Number(pr.weight_kg || 0);
-                  outByMachine.set(k, cur);
-                }
-                for (const cur of outByMachine.values()) {
-                  if (cur.p > 0 || cur.w > 0) {
-                    mvs.push({ ...baseMov, machine_id: cur.mid, type: 'out',
-                      pieces: Math.max(0, Math.round(cur.p)),
-                      weight_kg: Math.max(0, cur.w),
-                      reason: `OF #${ofRow.of_number} coletada` });
-                  }
-                }
-              } else {
-                mvs.push({ ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
-                  type: 'out', pieces, weight_kg: weight,
-                  reason: `OF #${ofRow.of_number} coletada` });
-              }
-            }
-          }
-
-          // *->cancelled (exceto a partir de 'collected'): libera APENAS o que está
-          // efetivamente reservado para esta OF (soma de reserves − releases já feitos).
-          // Evita criar release "fantasma" quando a OF nunca teve reserva (ex.: OFs
-          // antigas, anteriores à integração com estoque) — o que deixava reservedKg
-          // negativo em /estoque-malha.
-          if (status === 'cancelled' && expectedStatus !== 'collected' && expectedStatus !== 'cancelled') {
-            const { data: existingMvs } = await (supabase.from as any)('stock_movements')
-              .select('type, pieces, weight_kg, machine_id, article_id, client_id')
-              .eq('billing_order_id', id)
-              .in('type', ['reserve', 'release']);
-            const netByKey = new Map<string, { p: number; w: number; mid: string | null; article_id: string; client_id: string | null }>();
-            for (const m of (existingMvs || [])) {
-              const aid = (m as any).article_id as string;
-              const cid = ((m as any).client_id as string | null) ?? null;
-              const mid = (m.machine_id as string | null) || null;
-              const k = `${aid}|${cid ?? ''}|${mid ?? '__none__'}`;
-              const cur = netByKey.get(k) || { p: 0, w: 0, mid, article_id: aid, client_id: cid };
-              const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
-              if (m.type === 'reserve') { cur.p += p; cur.w += w; }
-              else if (m.type === 'release') { cur.p -= p; cur.w -= w; }
-              netByKey.set(k, cur);
-            }
-            for (const cur of netByKey.values()) {
-              if (cur.p > 0 || cur.w > 0) {
-                mvs.push({ ...baseMov, article_id: cur.article_id, client_id: cur.client_id, machine_id: cur.mid, type: 'release',
-                  pieces: Math.max(0, Math.round(cur.p)),
-                  weight_kg: Math.max(0, cur.w),
-                  reason: `OF #${ofRow.of_number} cancelada (libera reserva pendente)` });
-              }
-            }
-            // Limpa paletes vinculados (se houver) — OF cancelada não retém paletes
-            // Antes de apagar, restaura estoque próprio consumido por paletes 'own'
-            await restoreOwnStockForOrder(id, ofRow.of_number, 'OF cancelada (devolve estoque próprio)');
-            await (supabase.from as any)('billing_order_pallets').delete().eq('billing_order_id', id);
-          }
-
-          // collected -> cancelled: estorno (devolve ao físico)
-          if (status === 'cancelled' && expectedStatus === 'collected' && (pieces > 0 || weight > 0)) {
-            const isSecondQ = reversalQuality === 'second';
-            // Estorna preservando a distribuição por máquina vinda dos paletes
-            // (mesma lógica usada na baixa `out` em ready→collected). Sem isso,
-            // o saldo por máquina em /estoque-malha fica incorreto quando a OF
-            // foi separada com paletes em múltiplas máquinas.
-            const { data: palletRowsRev } = await (supabase.from as any)('billing_order_pallets')
-              .select('pieces, weight_kg, machine_id, alt_article_id, alt_client_id, own_article_id, pallet_number')
-              .eq('billing_order_id', id);
-            const reasonStr = `OF #${ofRow.of_number} estornada — ${isSecondQ ? '2ª QUALIDADE' : '1ª qualidade'} — ${updatePayload.cancellation_reason || 'sem motivo'}`;
-            if (palletRowsRev && palletRowsRev.length > 0) {
-              const inByKey = new Map<string, { p: number; w: number; mid: string | null; article_id: string; client_id: string | null }>();
-              const ownIns: any[] = [];
-              for (const pr of palletRowsRev) {
-                if ((pr as any).own_article_id) {
-                  // Palete de estoque próprio: devolve ao own_stock, NÃO ao stock_movements
-                  ownIns.push({
-                    company_id: user.company_id,
-                    own_article_id: (pr as any).own_article_id,
-                    type: 'in',
-                    pieces: Number(pr.pieces || 0),
-                    weight_kg: Number(pr.weight_kg || 0),
-                    reason: `OF #${ofRow.of_number} estornada — devolve estoque próprio (Palete ${(pr as any).pallet_number})`,
-                    created_by: profile?.id ?? null,
-                  });
-                  continue;
-                }
-                const aid = ((pr as any).alt_article_id as string | null) || (ofRow as any).article_id;
-                const cid = ((pr as any).alt_client_id as string | null) ?? ((ofRow as any).client_id ?? null);
-                const mid = (pr.machine_id as string | null) || null;
-                const k = `${aid}|${cid ?? ''}|${mid ?? '__none__'}`;
-                const cur = inByKey.get(k) || { p: 0, w: 0, mid, article_id: aid, client_id: cid };
-                cur.p += Number(pr.pieces || 0);
-                cur.w += Number(pr.weight_kg || 0);
-                inByKey.set(k, cur);
-              }
-              if (ownIns.length > 0) {
-                await (supabase.from as any)('own_stock_movements').insert(ownIns);
-              }
-              for (const cur of inByKey.values()) {
-                if (cur.p > 0 || cur.w > 0) {
-                  mvs.push({
-                    ...baseMov, article_id: cur.article_id, client_id: cur.client_id, machine_id: cur.mid, type: 'in',
-                    pieces: Math.max(0, Math.round(cur.p)),
-                    weight_kg: Math.max(0, cur.w),
-                    is_second_quality: isSecondQ,
-                    reason: reasonStr,
-                  });
-                }
-              }
-            } else {
-              mvs.push({
-                ...baseMov, machine_id: (ofRow as any).machine_id ?? null,
-                type: 'in', pieces, weight_kg: weight,
-                is_second_quality: isSecondQ,
-                reason: reasonStr,
-              });
-            }
-          }
-
-          if (mvs.length > 0) {
-            const { error: mvErr } = await (supabase.from as any)('stock_movements').insert(mvs);
-            if (mvErr) {
-              // Status da OF já foi atualizado — não revertemos, mas avisamos no console
-              // e levantamos um erro amigável para o toast/onError.
-              console.error('[useBillingOrders] stock_movements insert failed:', mvErr);
-              const e: any = new Error(`Status atualizado, mas o lançamento no estoque falhou: ${mvErr.message}`);
-              e.code = 'STOCK_MOVEMENT_FAILED';
-              throw e;
-            }
-          }
-        }
+      if (res?.ok === false && res?.error === 'conflict') {
+        await throwConflict(res.current_status);
       }
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
       queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
       queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
       const labels: Record<string, string> = {
@@ -531,19 +290,11 @@ export function useBillingOrders() {
       toast({ title: labels[vars.status] || 'Status atualizado' });
     },
     onError: (error: any) => {
-      // Conflito é tratado visualmente pela página.
       if (error?.code === 'CONFLICT') {
         queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
         return;
       }
-      if (error?.code === 'STOCK_MOVEMENT_FAILED') {
-        queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-        queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
-        queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
-        toast({ title: 'Estoque não atualizado', description: error.message, variant: 'destructive' });
-        return;
-      }
-      toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" });
+      toast({ title: 'Erro ao atualizar status', description: error.message, variant: 'destructive' });
     }
   });
 
@@ -555,107 +306,33 @@ export function useBillingOrders() {
       revertToOpen: boolean;
       expectedStatus?: BillingOrderStatus;
     }) => {
-      // Snapshot do que será revertido para emitir 'release' depois
-      let preReleaseSnapshot: { pieces: number; weight: number; article_id: string | null; client_id: string | null; of_number: string | null; prev_status: string | null } | null = null;
-      if (revertToOpen) {
-        const { data: pre } = await supabase
-          .from('billing_orders')
-          .select('article_id, client_id, of_number, pieces_real, weight_real, status')
-          .eq('id', id)
-          .maybeSingle();
-        preReleaseSnapshot = {
-          pieces: Math.max(0, Math.round(Number(pre?.pieces_real || 0))),
-          weight: Math.max(0, Number(pre?.weight_real || 0)),
-          article_id: pre?.article_id ?? null,
-          client_id: pre?.client_id ?? null,
-          of_number: pre?.of_number ?? null,
-          prev_status: pre?.status ?? null,
-        };
+      const a = authorMeta();
+      // Somente campos permitidos são serializados; RPC ignora ausentes (COALESCE).
+      const allowed = ['client_id','article_id','machine_id','dyehouse',
+                       'pieces_expected','weight_expected','piece_weight_target',
+                       'order_type','admin_notes','priority','priority_reason'] as const;
+      const payload: Record<string, any> = {};
+      for (const k of allowed) {
+        if ((changes as any)[k] !== undefined) payload[k] = (changes as any)[k];
       }
-
-      const payload: any = {
-        ...changes,
-        edit_note: note,
-        last_edited_by: profile?.id,
-        last_edited_at: new Date().toISOString(),
-      };
-      if (revertToOpen) {
-        payload.status = 'open';
-        // Limpa dados reais já lançados, separador e prioridade — separação deverá recomeçar
-        payload.pieces_real = null;
-        payload.weight_real = null;
-        payload.weight_avg = null;
-        payload.separated_by = null;
-        // Limpa NF/Romaneio: se a OF voltar para Aberto, qualquer documento já
-        // registrado deixa de valer (separação vai recomeçar e o admin precisa
-        // lançar um novo documento quando a OF voltar para "Aguardando NF/ROM").
-        payload.delivery_doc_type = null;
-        payload.delivery_doc_number = null;
-        payload.delivery_doc_set_by = null;
-        payload.delivery_doc_set_at = null;
-      }
-      // UPDATE condicional para evitar overwrite silencioso quando outro
-      // usuário mudou o status no meio do caminho (modal aberto há tempo).
-      let q = supabase.from('billing_orders').update(payload).eq('id', id);
-      if (expectedStatus) q = q.eq('status', expectedStatus);
-      const { data: updatedRows, error } = await q.select('id');
+      const { data, error } = await (supabase as any).rpc('edit_billing_order', {
+        p_company_id: user?.company_id, p_id: id, p_payload: payload,
+        p_note: note, p_expected_status: expectedStatus ?? null,
+        p_revert_to_open: !!revertToOpen,
+        p_author_name: a.name, p_author_code: a.code,
+      });
       if (error) throw error;
-      if (expectedStatus && (!updatedRows || updatedRows.length === 0)) {
+      const res = data as any;
+      if (res?.ok === false && res?.error === 'conflict') {
         const err: any = new Error('OF foi alterada por outro usuário — recarregue a página.');
         err.code = 'CONFLICT';
         throw err;
       }
-
-      // Revert para 'open': libera APENAS o que está efetivamente reservado
-      // (soma de reserves − releases já feitos para esta OF). Evita release
-      // fantasma em OFs antigas sem reserva prévia.
-      if (revertToOpen && preReleaseSnapshot && preReleaseSnapshot.article_id && user?.company_id) {
-        const { data: existingMvs } = await (supabase.from as any)('stock_movements')
-          .select('type, pieces, weight_kg, machine_id, article_id, client_id')
-          .eq('billing_order_id', id)
-          .in('type', ['reserve', 'release']);
-        const netByKey = new Map<string, { p: number; w: number; mid: string | null; article_id: string; client_id: string | null }>();
-        for (const m of (existingMvs || [])) {
-          const aid = ((m as any).article_id as string) || preReleaseSnapshot.article_id;
-          const cid = ((m as any).client_id as string | null) ?? (preReleaseSnapshot.client_id ?? null);
-          const mid = (m.machine_id as string | null) || null;
-          const k = `${aid}|${cid ?? ''}|${mid ?? '__none__'}`;
-          const cur = netByKey.get(k) || { p: 0, w: 0, mid, article_id: aid, client_id: cid };
-          const p = Number(m.pieces || 0); const w = Number(m.weight_kg || 0);
-          if (m.type === 'reserve') { cur.p += p; cur.w += w; }
-          else if (m.type === 'release') { cur.p -= p; cur.w -= w; }
-          netByKey.set(k, cur);
-        }
-        const rels: any[] = [];
-        for (const cur of netByKey.values()) {
-          if (cur.p > 0 || cur.w > 0) {
-            rels.push({
-              company_id: user.company_id,
-              article_id: cur.article_id,
-              client_id: cur.client_id,
-              billing_order_id: id,
-              machine_id: cur.mid,
-              type: 'release',
-              pieces: Math.max(0, Math.round(cur.p)),
-              weight_kg: Math.max(0, cur.w),
-              reason: `OF #${preReleaseSnapshot.of_number} editada — reserva liberada`,
-              created_by: profile?.id ?? null,
-            });
-          }
-        }
-        if (rels.length > 0) {
-          await (supabase.from as any)('stock_movements').insert(rels);
-        }
-      }
-
-      // Em qualquer revert para Aberto, apaga paletes salvos (usuário recomeça a separação do zero)
-      if (revertToOpen) {
-        await restoreOwnStockForOrder(id, preReleaseSnapshot?.of_number ?? '', 'OF revertida para Aberto (devolve estoque próprio)');
-        await (supabase.from as any)('billing_order_pallets').delete().eq('billing_order_id', id);
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
       queryClient.invalidateQueries({ queryKey: ['stock_movements_for_stock'] });
       queryClient.invalidateQueries({ queryKey: ['stock_movements_history'] });
       toast({ title: 'OF atualizada' });
@@ -673,34 +350,26 @@ export function useBillingOrders() {
     updateStatus,
     editOrder,
     setDeliveryDoc: async ({ id, type, number }: { id: string; type: 'nf' | 'romaneio'; number: string }) => {
-      if (!number || number.trim().length < 1) {
-        throw new Error('Informe o número do documento');
-      }
-      // UPDATE condicional (ready) — fecha a race condition entre a leitura
-      // do status e a escrita do documento. Se a OF saiu de 'ready' nesse
-      // intervalo (cancelada/revertida/coletada), o update não atinge nenhuma
-      // linha e abortamos com mensagem amigável.
-      const { data: updRows, error } = await supabase
-        .from('billing_orders' as any)
-        .update({
-          delivery_doc_type: type,
-          delivery_doc_number: number.trim(),
-          delivery_doc_set_by: profile?.id,
-          delivery_doc_set_at: new Date().toISOString(),
-        } as any)
-        .eq('id', id)
-        .eq('status', 'ready')
-        .select('id');
+      const a = authorMeta();
+      const { data, error } = await (supabase as any).rpc('set_billing_order_delivery_doc', {
+        p_company_id: user?.company_id, p_id: id, p_doc_type: type, p_doc_number: number,
+        p_author_name: a.name, p_author_code: a.code,
+      });
       if (error) throw error;
-      if (!updRows || updRows.length === 0) {
+      const res = data as any;
+      if (res?.ok === false && res?.error === 'not_ready') {
         throw new Error('OF não está mais pronta para receber NF/Romaneio — recarregue a página.');
       }
+      if (res?.already && res?.conflict?.current_number) {
+        throw new Error(`Documento já registrado (${res.conflict.current_number}). Recarregue a página.`);
+      }
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_order_detail'] });
       toast({ title: `${type === 'nf' ? 'NF' : 'Romaneio'} registrado` });
     },
     getNextOfNumber: async (): Promise<{ last: string | null; next: string }> => {
       if (!user?.company_id) return { last: null, next: '001' };
-      // Fase 1: usa a RPC bootstrap (fresh) para evitar carregar todas as OFs.
       const { data, error } = await (supabase as any).rpc('get_billing_orders_bootstrap', {
         p_company_id: user.company_id,
       });
@@ -725,76 +394,40 @@ export function useBillingOrders() {
     linkOrders: async (ids: string[]): Promise<string> => {
       if (!user?.company_id) throw new Error('Sessão inválida');
       if (!ids || ids.length < 2) throw new Error('Selecione pelo menos 2 OFs para atrelar.');
-      // Se alguma das OFs já pertence a um grupo, reutiliza o mesmo group_id (mescla os grupos)
-      const { data: existing } = await supabase
-        .from('billing_orders')
-        .select('id, link_group_id')
-        .in('id', ids)
-        .eq('company_id', user.company_id);
-      const existingGroups = Array.from(new Set((existing || []).map((r: any) => r.link_group_id).filter(Boolean)));
-      const groupId: string = existingGroups[0] || (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
-      // Coleta TODOS os ids que devem ficar no grupo final (selecionados + qualquer um que já pertença a grupos sendo mesclados)
-      let allIds = new Set<string>(ids);
-      if (existingGroups.length > 0) {
-        const { data: members } = await supabase
-          .from('billing_orders')
-          .select('id')
-          .eq('company_id', user.company_id)
-          .in('link_group_id', existingGroups as string[]);
-        (members || []).forEach((m: any) => allIds.add(m.id));
-      }
-      const { error } = await supabase
-        .from('billing_orders')
-        .update({ link_group_id: groupId } as any)
-        .in('id', Array.from(allIds))
-        .eq('company_id', user.company_id);
+      const a = authorMeta();
+      const { data, error } = await (supabase as any).rpc('link_billing_orders', {
+        p_company_id: user.company_id, p_ids: ids,
+        p_author_name: a.name, p_author_code: a.code,
+      });
       if (error) throw error;
+      const res = data as any;
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
-      toast({ title: `${allIds.size} OFs atreladas` });
-      return groupId;
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
+      toast({ title: `${res?.count ?? ids.length} OFs atreladas` });
+      return res?.group_id as string;
     },
     unlinkGroup: async (groupId: string): Promise<void> => {
       if (!user?.company_id || !groupId) return;
-      const { error } = await supabase
-        .from('billing_orders')
-        .update({ link_group_id: null } as any)
-        .eq('company_id', user.company_id)
-        .eq('link_group_id', groupId);
+      const a = authorMeta();
+      const { error } = await (supabase as any).rpc('unlink_billing_order_group', {
+        p_company_id: user.company_id, p_group_id: groupId,
+        p_author_name: a.name, p_author_code: a.code,
+      });
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
       toast({ title: 'Atrelação desfeita' });
     },
     removeFromGroup: async (orderId: string): Promise<void> => {
       if (!user?.company_id || !orderId) return;
-      // Captura o grupo antes de remover, para checar se ficará órfão (1 OF só)
-      const { data: target } = await supabase
-        .from('billing_orders')
-        .select('link_group_id')
-        .eq('id', orderId)
-        .maybeSingle();
-      const gid = (target as any)?.link_group_id;
-      const { error } = await supabase
-        .from('billing_orders')
-        .update({ link_group_id: null } as any)
-        .eq('company_id', user.company_id)
-        .eq('id', orderId);
+      const a = authorMeta();
+      const { error } = await (supabase as any).rpc('remove_from_billing_order_group', {
+        p_company_id: user.company_id, p_id: orderId,
+        p_author_name: a.name, p_author_code: a.code,
+      });
       if (error) throw error;
-      // Se sobrou apenas 1 OF no grupo, limpa também para evitar grupo órfão
-      if (gid) {
-        const { data: remaining } = await supabase
-          .from('billing_orders')
-          .select('id')
-          .eq('company_id', user.company_id)
-          .eq('link_group_id', gid);
-        if (remaining && remaining.length === 1) {
-          await supabase
-            .from('billing_orders')
-            .update({ link_group_id: null } as any)
-            .eq('company_id', user.company_id)
-            .eq('link_group_id', gid);
-        }
-      }
       queryClient.invalidateQueries({ queryKey: ['billing_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['billing_orders_list'] });
       toast({ title: 'OF removida do grupo' });
     },
   };
