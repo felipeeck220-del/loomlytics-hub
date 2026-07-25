@@ -5174,8 +5174,26 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      get_billing_order_detail: {
+        Args: { p_company_id: string; p_id: string }
+        Returns: Json
+      }
       get_billing_orders_bootstrap: {
         Args: { p_company_id: string }
+        Returns: Json
+      }
+      get_billing_orders_list: {
+        Args: {
+          p_client_id?: string
+          p_company_id: string
+          p_end_date?: string
+          p_month?: string
+          p_page?: number
+          p_page_size?: number
+          p_search?: string
+          p_start_date?: string
+          p_view?: string
+        }
         Returns: Json
       }
       get_client_invoice_balances_for_distribute: {
