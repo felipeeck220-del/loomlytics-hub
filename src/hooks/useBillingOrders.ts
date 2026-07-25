@@ -805,3 +805,112 @@ export function useBillingOrders() {
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Fase 2 (docs/rpcBillingOrders.md): leituras paginadas server-side.
+// Hooks separados para não penalizar quem já consome o `orders` completo.
+// ---------------------------------------------------------------------------
+
+export type BillingOrdersListView =
+  | 'priority'
+  | 'open'
+  | 'separating'
+  | 'awaiting_doc'
+  | 'ready'
+  | 'collected'
+  | 'cancelled'
+  | 'all';
+
+export interface BillingOrdersListParams {
+  view: BillingOrdersListView;
+  search?: string;
+  clientId?: string | null;
+  month?: string | null;        // 'YYYY-MM'
+  startDate?: string | null;    // 'YYYY-MM-DD'
+  endDate?: string | null;      // 'YYYY-MM-DD'
+  page?: number;
+  pageSize?: number;
+  enabled?: boolean;
+}
+
+export interface BillingOrdersListRow {
+  [k: string]: any;
+  id: string;
+  of_number: string;
+  status: BillingOrderStatus;
+  client_name?: string | null;
+  article_name?: string | null;
+  machine_name?: string | null;
+  created_by_name?: string | null;
+  created_by_code?: number | null;
+  separated_by_name?: string | null;
+  collected_by_name?: string | null;
+  pallets: Array<{
+    id: string;
+    pallet_number: number;
+    pieces: number;
+    weight_kg: number;
+    machine_id: string | null;
+    machine_name: string | null;
+    alt_client_id?: string | null;
+    alt_article_id?: string | null;
+    own_article_id?: string | null;
+  }>;
+  link_group_size: number;
+}
+
+export function useBillingOrdersList(params: BillingOrdersListParams) {
+  const { user } = useAuth();
+  const {
+    view, search, clientId, month, startDate, endDate,
+    page = 1, pageSize = 50, enabled = true,
+  } = params;
+
+  return useQuery({
+    queryKey: [
+      'billing_orders_list', user?.company_id, view,
+      search ?? '', clientId ?? '', month ?? '', startDate ?? '', endDate ?? '',
+      page, pageSize,
+    ],
+    enabled: !!user?.company_id && enabled,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_billing_orders_list', {
+        p_company_id: user!.company_id,
+        p_view: view,
+        p_search: search ?? null,
+        p_client_id: clientId ?? null,
+        p_month: month ?? null,
+        p_start_date: startDate ?? null,
+        p_end_date: endDate ?? null,
+        p_page: page,
+        p_page_size: pageSize,
+      });
+      if (error) throw error;
+      return data as {
+        rows: BillingOrdersListRow[];
+        total_count: number;
+        page: number;
+        page_size: number;
+      };
+    },
+  });
+}
+
+export function useBillingOrderDetail(id: string | null | undefined) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['billing_order_detail', user?.company_id, id],
+    enabled: !!user?.company_id && !!id,
+    staleTime: 15_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_billing_order_detail', {
+        p_company_id: user!.company_id,
+        p_id: id,
+      });
+      if (error) throw error;
+      return data as Record<string, any>;
+    },
+  });
+}
