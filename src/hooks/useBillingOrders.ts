@@ -112,6 +112,33 @@ export function useBillingOrders() {
     enabled: !!user?.company_id,
   });
 
+  // Fase 1 do plano de RPCs (docs/rpcBillingOrders.md):
+  // bootstrap consolidado (empresa, stats, meses, next_of_number, grupos).
+  const { data: bootstrap } = useQuery({
+    queryKey: ['billing_orders_bootstrap', user?.company_id],
+    queryFn: async () => {
+      if (!user?.company_id) return null;
+      const { data, error } = await (supabase as any).rpc('get_billing_orders_bootstrap', {
+        p_company_id: user.company_id,
+      });
+      if (error) throw error;
+      return data as {
+        company: { id: string; name: string; logo_url: string | null; slug: string };
+        stats: {
+          open: number; priority: number; separating: number;
+          awaiting_doc: number; ready: number;
+          collected_month: number; cancelled_month: number;
+        };
+        available_months: string[];
+        next_of_number: string;
+        last_of_number: string | null;
+        link_groups_count: number;
+      };
+    },
+    enabled: !!user?.company_id,
+    staleTime: 60_000,
+  });
+
   useEffect(() => {
     if (!user?.company_id) return;
 
@@ -127,6 +154,7 @@ export function useBillingOrders() {
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['billing_orders', user.company_id] });
+          queryClient.invalidateQueries({ queryKey: ['billing_orders_bootstrap', user.company_id] });
         }
       )
       .subscribe();
@@ -644,6 +672,7 @@ export function useBillingOrders() {
   return {
     orders,
     isLoading,
+    bootstrap,
     createOrder,
     updateStatus,
     editOrder,
@@ -675,18 +704,16 @@ export function useBillingOrders() {
     },
     getNextOfNumber: async (): Promise<{ last: string | null; next: string }> => {
       if (!user?.company_id) return { last: null, next: '001' };
-      const { data, error } = await supabase
-        .from('billing_orders')
-        .select('of_number')
-        .eq('company_id', user.company_id);
+      // Fase 1: usa a RPC bootstrap (fresh) para evitar carregar todas as OFs.
+      const { data, error } = await (supabase as any).rpc('get_billing_orders_bootstrap', {
+        p_company_id: user.company_id,
+      });
       if (error) throw error;
-      const nums = (data ?? [])
-        .map((r: any) => parseInt(String(r.of_number).replace(/\D/g, ''), 10))
-        .filter((n: number) => Number.isFinite(n));
-      if (nums.length === 0) return { last: null, next: '001' };
-      const max = Math.max(...nums);
-      const pad = (n: number) => String(n).padStart(3, '0');
-      return { last: pad(max), next: pad(max + 1) };
+      const b = data as any;
+      return {
+        last: (b?.last_of_number as string | null) ?? null,
+        next: (b?.next_of_number as string) ?? '001',
+      };
     },
     ofExists: async (ofNumber: string): Promise<boolean> => {
       if (!user?.company_id || !ofNumber) return false;
