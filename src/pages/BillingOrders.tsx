@@ -70,7 +70,7 @@ const BillingOrders = () => {
   const { role } = usePermissions();
   const { toast } = useToast();
   const { getClients, getArticles, getMachines } = useSharedCompanyData();
-  const { orders, isLoading, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc, linkOrders, unlinkGroup, removeFromGroup } = useBillingOrders() as any;
+  const { orders, isLoading, bootstrap, createOrder, updateStatus, editOrder, getNextOfNumber, ofExists, setDeliveryDoc, linkOrders, unlinkGroup, removeFromGroup } = useBillingOrders() as any;
 
   const isAdmin = role === 'admin';
   const [activeTab, setActiveTab] = useState<BillingOrderStatus | 'all' | 'priority_tab' | 'awaiting_doc'>('open');
@@ -248,7 +248,16 @@ const BillingOrders = () => {
     let cancelled = false;
     (async () => {
       try {
-        const { last, next } = await getNextOfNumber();
+        // Fase 1 (docs/rpcBillingOrders.md): usa bootstrap quando já carregado,
+        // caindo na RPC direta só como fallback.
+        let last: string | null;
+        let next: string;
+        if (bootstrap?.next_of_number) {
+          last = bootstrap.last_of_number ?? null;
+          next = bootstrap.next_of_number;
+        } else {
+          ({ last, next } = await getNextOfNumber());
+        }
         if (cancelled) return;
         setLastOfNumber(last);
         setForm(f => ({ ...f, of_number: next }));
@@ -256,7 +265,7 @@ const BillingOrders = () => {
       } catch {/* ignore */}
     })();
     return () => { cancelled = true; };
-  }, [showCreateModal]);
+  }, [showCreateModal, bootstrap?.next_of_number, bootstrap?.last_of_number]);
 
   const [launchForm, setLaunchForm] = useState({
     pieces_real: '',
