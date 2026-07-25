@@ -85,7 +85,9 @@ export function usePermissions() {
       },
       /** The default route for this role (first allowed key) */
       defaultRoute: (() => {
-        const first = allowedKeys[0];
+        // 'ordens' é uma aba condicional (só aparece quando há ordens em curso),
+        // portanto nunca deve ser a rota padrão pós-login. Pula para a próxima chave.
+        const first = allowedKeys.find(k => k !== 'ordens');
         if (!first || first === 'dashboard') return '';
         // Reverse-map nav key back to its route path
         const entry = Object.entries(ROUTE_KEY_MAP).find(([, k]) => k === first);
