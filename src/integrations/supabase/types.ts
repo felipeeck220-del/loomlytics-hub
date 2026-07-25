@@ -5174,6 +5174,10 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      get_billing_orders_bootstrap: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       get_client_invoice_balances_for_distribute: {
         Args: {
           p_client_id: string
