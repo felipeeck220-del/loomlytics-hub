@@ -5025,6 +5025,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      _of_current_profile_id: {
+        Args: { p_company_id: string }
+        Returns: string
+      }
       _of_release_pending_reserves: {
         Args: {
           p_actor: string
