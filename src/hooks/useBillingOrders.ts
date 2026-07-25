@@ -308,7 +308,7 @@ export function useBillingOrders() {
     }) => {
       const a = authorMeta();
       // Somente campos permitidos são serializados; RPC ignora ausentes (COALESCE).
-      const allowed = ['client_id','article_id','machine_id','dyehouse',
+      const allowed = ['of_number','client_id','article_id','machine_id','dyehouse',
                        'pieces_expected','weight_expected','piece_weight_target',
                        'order_type','admin_notes','priority','priority_reason'] as const;
       const payload: Record<string, any> = {};
@@ -326,6 +326,16 @@ export function useBillingOrders() {
       if (res?.ok === false && res?.error === 'conflict') {
         const err: any = new Error('OF foi alterada por outro usuário — recarregue a página.');
         err.code = 'CONFLICT';
+        throw err;
+      }
+      if (res?.ok === false && res?.error === 'duplicate_of_number') {
+        const err: any = new Error('Já existe outra OF com este número — escolha um número diferente.');
+        err.code = 'DUPLICATE_OF';
+        throw err;
+      }
+      if (res?.ok === false && res?.error === 'invalid_of_number') {
+        const err: any = new Error('Número da OF inválido.');
+        err.code = 'INVALID_OF';
         throw err;
       }
     },
