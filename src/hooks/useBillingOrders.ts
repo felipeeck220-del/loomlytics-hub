@@ -672,6 +672,7 @@ export function useBillingOrders() {
   return {
     orders,
     isLoading,
+    bootstrap,
     createOrder,
     updateStatus,
     editOrder,
