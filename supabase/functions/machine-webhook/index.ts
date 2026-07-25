@@ -21,6 +21,46 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // Contexto acumulado ao longo da request para logar depois em iot_device_logs
+  let logCtx: {
+    device_id?: string;
+    company_id?: string;
+    machine_id?: string;
+    payload?: any;
+    rpm?: number;
+    total_rotations?: number;
+    is_running?: boolean;
+    wifi_rssi?: number;
+    uptime_ms?: number;
+  } = {};
+
+  const writeLog = async (status: number, body: any) => {
+    if (!logCtx.device_id) return;
+    try {
+      await supabase.from("iot_device_logs").insert({
+        device_id: logCtx.device_id,
+        company_id: logCtx.company_id,
+        machine_id: logCtx.machine_id,
+        payload: logCtx.payload ?? null,
+        rpm: logCtx.rpm ?? null,
+        total_rotations: logCtx.total_rotations ?? null,
+        is_running: logCtx.is_running ?? null,
+        wifi_rssi: logCtx.wifi_rssi ?? null,
+        uptime_ms: logCtx.uptime_ms ?? null,
+        response_status: status,
+        response_body: typeof body === "string" ? body : JSON.stringify(body).slice(0, 2000),
+        error: status >= 400 ? (body?.error || JSON.stringify(body)).toString().slice(0, 500) : null,
+      });
+    } catch (e) {
+      console.error("iot_device_logs insert failed:", e);
+    }
+  };
+
+  const respond = async (data: unknown, status = 200) => {
+    await writeLog(status, data);
+    return jsonResponse(data, status);
+  };
+
   try {
     const authHeader = req.headers.get("Authorization");
     const token = authHeader?.replace("Bearer ", "");
@@ -28,6 +68,15 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { company_id, machine_id, total_rotations, rpm, is_running, uptime_ms, wifi_rssi } = body;
+
+    logCtx.payload = body;
+    logCtx.company_id = company_id;
+    logCtx.machine_id = machine_id;
+    logCtx.total_rotations = typeof total_rotations === "number" ? total_rotations : null;
+    logCtx.rpm = typeof rpm === "number" ? rpm : null;
+    logCtx.is_running = typeof is_running === "boolean" ? is_running : null;
+    logCtx.uptime_ms = typeof uptime_ms === "number" ? uptime_ms : null;
+    logCtx.wifi_rssi = typeof wifi_rssi === "number" ? wifi_rssi : null;
 
     if (!company_id || !machine_id) {
       return jsonResponse({ error: "Missing company_id or machine_id" }, 400);
@@ -39,7 +88,7 @@ Deno.serve(async (req) => {
     // 1. Validate device token + company + machine
     const { data: device } = await supabase
       .from("iot_devices")
-      .select("machine_id, company_id")
+      .select("id, machine_id, company_id")
       .eq("token", token)
       .eq("machine_id", machine_id)
       .eq("company_id", company_id)
@@ -47,6 +96,8 @@ Deno.serve(async (req) => {
       .single();
 
     if (!device) return jsonResponse({ error: "Unauthorized — token/company/machine mismatch" }, 401);
+
+    logCtx.device_id = device.id;
 
     // 2. Update last_seen_at
     await supabase
@@ -63,19 +114,19 @@ Deno.serve(async (req) => {
 
     if (machineErr) {
       console.error("machine lookup error:", machineErr);
-      return jsonResponse({ error: "Machine lookup failed" }, 500);
+      return await respond({ error: "Machine lookup failed" }, 500);
     }
-    if (!machine) return jsonResponse({ error: "Machine not found" }, 404);
+    if (!machine) return await respond({ error: "Machine not found" }, 404);
 
     // If machine is inactive, ignore readings entirely
     if (machine.status === "inativa") {
-      return jsonResponse({ ok: true, ignored: true, reason: "machine_inactive" });
+      return await respond({ ok: true, ignored: true, reason: "machine_inactive" });
     }
 
     // Se a máquina não está mais em modo IoT, ignora processamento de produção
     // (mantém last_seen_at acima para detecção de offline no painel)
     if (machine.production_mode && machine.production_mode !== "iot") {
-      return jsonResponse({ ok: true, ignored: true, reason: "machine_not_iot_mode" });
+      return await respond({ ok: true, ignored: true, reason: "machine_not_iot_mode" });
     }
 
     // 4. Save raw reading
@@ -191,10 +242,10 @@ Deno.serve(async (req) => {
     // 10. Check shift change
     await checkShiftChange(supabase, device, settings, currentShift);
 
-    return jsonResponse({ ok: true, delta: deltaRotations, shift: currentShift });
+    return await respond({ ok: true, delta: deltaRotations, shift: currentShift });
   } catch (err: any) {
     console.error("machine-webhook error:", err);
-    return jsonResponse({ error: err.message || "Internal error" }, 500);
+    return await respond({ error: err.message || "Internal error" }, 500);
   }
 });
 

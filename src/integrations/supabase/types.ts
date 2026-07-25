@@ -2016,6 +2016,65 @@ export type Database = {
           },
         ]
       }
+      iot_device_logs: {
+        Row: {
+          company_id: string
+          created_at: string
+          device_id: string
+          error: string | null
+          id: string
+          is_running: boolean | null
+          machine_id: string | null
+          payload: Json | null
+          response_body: string | null
+          response_status: number | null
+          rpm: number | null
+          total_rotations: number | null
+          uptime_ms: number | null
+          wifi_rssi: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          device_id: string
+          error?: string | null
+          id?: string
+          is_running?: boolean | null
+          machine_id?: string | null
+          payload?: Json | null
+          response_body?: string | null
+          response_status?: number | null
+          rpm?: number | null
+          total_rotations?: number | null
+          uptime_ms?: number | null
+          wifi_rssi?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          device_id?: string
+          error?: string | null
+          id?: string
+          is_running?: boolean | null
+          machine_id?: string | null
+          payload?: Json | null
+          response_body?: string | null
+          response_status?: number | null
+          rpm?: number | null
+          total_rotations?: number | null
+          uptime_ms?: number | null
+          wifi_rssi?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iot_device_logs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "iot_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       iot_devices: {
         Row: {
           active: boolean
