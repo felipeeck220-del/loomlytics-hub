@@ -5015,12 +5015,73 @@ export type Database = {
         }
         Returns: undefined
       }
+      _of_audit: {
+        Args: {
+          p_action: string
+          p_author_code: string
+          p_author_name: string
+          p_company_id: string
+          p_details: Json
+        }
+        Returns: undefined
+      }
+      _of_release_pending_reserves: {
+        Args: {
+          p_actor: string
+          p_company_id: string
+          p_of_number: string
+          p_order_id: string
+          p_reason_suffix: string
+        }
+        Returns: number
+      }
+      _of_restore_own_stock_and_wipe_pallets: {
+        Args: {
+          p_actor: string
+          p_company_id: string
+          p_delete_pallets?: boolean
+          p_of_number: string
+          p_order_id: string
+          p_tag: string
+        }
+        Returns: number
+      }
+      cancel_billing_order: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_expected_status?: string
+          p_id: string
+          p_reason: string
+          p_reversal_quality?: string
+        }
+        Returns: Json
+      }
       cancel_invoice: {
         Args: { p_author_code?: string; p_author_name?: string; p_id: string }
         Returns: Json
       }
+      collect_billing_order: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_id: string
+        }
+        Returns: Json
+      }
       confirm_invoice: {
         Args: { p_author_code?: string; p_author_name?: string; p_id: string }
+        Returns: Json
+      }
+      create_billing_order: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_payload: Json
+        }
         Returns: Json
       }
       delete_client_invoice: {
@@ -5069,6 +5130,19 @@ export type Database = {
       }
       delete_yarn_type: {
         Args: { p_author_code?: string; p_author_name?: string; p_id: string }
+        Returns: Json
+      }
+      edit_billing_order: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_expected_status?: string
+          p_id: string
+          p_note: string
+          p_payload: Json
+          p_revert_to_open?: boolean
+        }
         Returns: Json
       }
       escalate_oc_to_oe: {
@@ -5734,9 +5808,49 @@ export type Database = {
         Returns: Json
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      launch_billing_order_ready: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_id: string
+          p_pieces_real?: number
+          p_weight_real?: number
+        }
+        Returns: Json
+      }
+      link_billing_orders: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_ids: string[]
+        }
+        Returns: Json
+      }
       recompute_machine_article_from_latest_ot: {
         Args: { p_company_id: string; p_machine_id: string }
         Returns: undefined
+      }
+      remove_from_billing_order_group: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_id: string
+        }
+        Returns: Json
+      }
+      revert_billing_order_to_open: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_expected_status?: string
+          p_id: string
+          p_reason?: string
+        }
+        Returns: Json
       }
       save_client_invoice: {
         Args: {
@@ -5839,6 +5953,46 @@ export type Database = {
         Returns: Json
       }
       set_active_company: { Args: { _company_id: string }; Returns: undefined }
+      set_billing_order_delivery_doc: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_doc_number: string
+          p_doc_type: string
+          p_id: string
+        }
+        Returns: Json
+      }
+      set_billing_order_priority: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_id: string
+          p_priority: boolean
+          p_reason?: string
+        }
+        Returns: Json
+      }
+      start_billing_order_separation: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_id: string
+        }
+        Returns: Json
+      }
+      unlink_billing_order_group: {
+        Args: {
+          p_author_code?: string
+          p_author_name?: string
+          p_company_id: string
+          p_group_id: string
+        }
+        Returns: Json
+      }
       upsert_needle_price: {
         Args: {
           p_company_id: string
